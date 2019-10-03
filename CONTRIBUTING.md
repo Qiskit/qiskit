@@ -37,9 +37,14 @@ intimate familiarity with qiskit-terra to develop a fix for the issue.
 ### Documentation
 
 If you make a change, make sure you update the associated
-*docstrings* and parts of the
-[documentation](https://github.com/Qiskit/qiskit/tree/master/docs/terra)
-that corresponds to it. You can also make a [documentation issue](
+*docstrings* and parts of the documentation under `docs/apidocs` that
+corresponds to it. To locally build the terra specific documentation you
+can run `tox -edocs` which will compile and build the documentation locally
+and save the output to `docs/_build/html`.
+
+If you have an issue with the combined documentation hosted at
+https://qiskit.org/documentation/ that is maintained in the
+[Qiskit/qiskit](https://github.com/Qiskit/qiskit). You can open a [documentation issue](
 https://github.com/Qiskit/qiskit/issues/new/choose) if you see doc bugs, have a
 new feature that needs to be documented, or think that material could be added
 to the existing docs.
@@ -100,8 +105,31 @@ please ensure that:
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
-   deprecation, removal etc) that you have updated the CHANGELOG.md and
-   added a reno release note for that change.
+   deprecation, removal etc) that you have added a reno release note for that
+   change and that the PR is tagged for the changelog.
+
+### Changelog generation
+
+The changelog is automatically generated as part of the release process
+automation. This works through a combination of the git log and the pull
+request. When a release is tagged and pushed to github the release automation
+bot looks at all commit messages from the git log for the release. It takes the
+PR numbers from the git log (assuming a squash merge) and checks if that PR had
+a `Changelog:` label on it. If there is a label it will add the git commit
+message summary line from the git log for the release to the changelog.
+
+If there are multiple `Changelog:` tags on a PR the git commit message summary
+line from the git log will be used for each changelog category tagged.
+
+The current categories for each label are as follows:
+
+| PR Label               | Changelog Category |
+| -----------------------|--------------------|
+| Changelog: Deprecation | Deprecated         |
+| Changelog: New Feature | Added              |
+| Changelog: API Change  | Changed            |
+| Changelog: Removal     | Removed            |
+| Changelog: Bugfix      | Fixed              |
 
 ### Commit messages
 
@@ -156,6 +184,10 @@ It is used as the default pull request title, email notification subject line,
 git annotate messages, gitk viewer annotations, merge commit messages, and many
 more places where space is at a premium. As well as summarizing the change
 itself, it should take care to detail what part of the code is affected.
+
+In addition the first line of the commit message gets used as entries in the
+generated changelog if the PR is tagged as being included in the changelog.
+It's critically important that you write a clear and succinct summary lines.
 
 * Describe any limitations of the current code.
 
@@ -290,6 +322,13 @@ release and the output will be submitted as a pull request to the documentation
 repository's [release notes file](
 https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
 
+#### Building release notes locally
+
+Building The release notes are part of the standard qiskit-terra documentation
+builds. To check what the rendered html output of the release notes will look
+like for the current state of the repo you can run: `tox -edocs` which will
+build all the documentation into `docs/_build/html` and the release notes in
+particulare will be located at `docs/_build/html/release_notes.html`
 
 ## Installing Qiskit Terra from source
 Please see the [Installing Qiskit Terra from
@@ -450,7 +489,7 @@ the project boards in Github for project management. We use milestones
 in Github to track work for specific releases. The features or other changes
 that we want to include in a release will be tagged and discussed in Github.
 As we're preparing a new release we'll document what has changed since the
-previous version in the release notes and Changelog.
+previous version in the release notes.
 
 ### Branches
 
@@ -471,11 +510,18 @@ merged to it are bugfixes.
 
 When it is time to release a new minor version of qiskit-terra we will:
 
-1.  Create a stable branch for the new minor version from the current
-    HEAD on the `master` branch
-2.  Create a new tag with the version number on the HEAD of the new stable
-    branch.
-3.  Change the `master` version to the next release version.
+1.  Create a new tag with the version number and push it to github
+2.  Change the `master` version to the next release version.
+
+The release automation processes will be triggered by the new tag and perform
+the following steps:
+
+1.  Create a stable branch for the new minor version from the release tag
+    on the `master` branch
+2.  Build and upload binary wheels to pypi
+3.  Create a github release page with a generated changelog
+4.  Generate a PR on the meta-repository to bump the terra version and
+    meta-package version.
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.

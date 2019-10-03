@@ -23,6 +23,7 @@ from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
     import matplotlib
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
     import matplotlib.cm as cm
@@ -127,6 +128,21 @@ def plot_gate_map(backend, figsize=None,
 
     mpl_data[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
+    mpl_data[53] = [[0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
+                    [1, 2], [1, 6],
+                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
+                    [2, 5], [2, 6], [2, 7], [2, 8],
+                    [3, 0], [3, 4], [3, 8],
+                    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
+                    [4, 5], [4, 6], [4, 7], [4, 8],
+                    [5, 2], [5, 6],
+                    [6, 0], [6, 1], [6, 2], [6, 3], [6, 4],
+                    [6, 5], [6, 6], [6, 7], [6, 8],
+                    [7, 0], [7, 4], [7, 8],
+                    [8, 0], [8, 1], [8, 2], [8, 3], [8, 4],
+                    [8, 5], [8, 6], [8, 7], [8, 8],
+                    [9, 2], [9, 6]]
+
     config = backend.configuration()
     n_qubits = config.n_qubits
     cmap = config.coupling_map
@@ -160,7 +176,6 @@ def plot_gate_map(backend, figsize=None,
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
         ax.axis('off')
-        fig.tight_layout()
 
     # set coloring
     if qubit_color is None:
@@ -232,7 +247,9 @@ def plot_gate_map(backend, figsize=None,
     ax.set_xlim([-1, x_max+1])
     ax.set_ylim([-(y_max+1), 1])
     if not input_axes:
-        plt.close(fig)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
         return fig
     return None
 
@@ -448,6 +465,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if show_title:
         fig.suptitle('{name} Error Map'.format(name=backend.name()),
                      fontsize=24, y=0.9)
-
-    plt.close(fig)
+    if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                         'nbAgg']:
+        plt.close(fig)
     return fig

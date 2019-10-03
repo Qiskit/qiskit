@@ -14,7 +14,7 @@
 
 """Module for Pulses."""
 
-from .channels import (DeviceSpecification, PulseChannelSpec, DriveChannel,
+from .channels import (PulseChannelSpec, DriveChannel,
                        MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
@@ -24,5 +24,4 @@ from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent
-# from .parser import parse_string_expr
 from .schedule import Schedule
