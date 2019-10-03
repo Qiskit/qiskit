@@ -33,6 +33,11 @@
 Sphinx documentation builder
 """
 
+import os
+# Set env flag so that we can doc functions that may otherwise not be loaded
+# see for example interactive visualizations in qiskit.visualization.
+os.environ['QISKIT_DOCS'] = 'TRUE'
+
 # -- Project information -----------------------------------------------------
 project = 'Qiskit'
 copyright = '2019, Qiskit Development Team'  # pylint: disable=redefined-builtin
@@ -53,17 +58,32 @@ release = '0.12.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx_automodapi.automodapi',
+    'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
-    'sphinx_automodapi.automodapi',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'reno.sphinxext',
 ]
+
+# -----------------------------------------------------------------------------
+# Autosummary
+# -----------------------------------------------------------------------------
+
+autosummary_generate = True
+
+# -----------------------------------------------------------------------------
+# Autodoc
+# -----------------------------------------------------------------------------
+
+autodoc_default_options = {
+    'inherited-members': None,
+}
 
 
 # If true, figures, tables and code-blocks are automatically numbered if they
