@@ -205,16 +205,11 @@ class TestPowerInvariant(QiskitTestCase):
     def test_invariant1_int(self, n):
         """Test (op^(1/n))^(n) == op, integer n
         """
-        qr = QuantumRegister(1, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(1 / n).power(n), [qr[0]])
-        result = PassManager([Unroller('u3'), Optimize1qGates()]).run(circuit)
-
-        expected_circuit = QuantumCircuit(qr)
-        expected_circuit.append(SGate(), [qr[0]])
-        expected = PassManager([Unroller('u3'), Optimize1qGates()]).run(expected_circuit)
-
-        self.assertEqual(result, expected)
+        result = SGate().power(1 / n).power(n)
+        self.assertEqual(result.label, 'unitary^' + str(n))
+        self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Gate)
+        assert_allclose(SGate().to_matrix(), result.definition[0][0].to_matrix())
 
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant2(self, n):
