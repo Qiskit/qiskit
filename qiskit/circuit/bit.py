@@ -45,16 +45,6 @@ class Bit:
         """Return the official string representing the bit."""
         return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
-    def __getitem__(self, item):
-        warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
-             'Go for bit.register and bit.index.', DeprecationWarning, stacklevel=2)
-        if item == 0:
-            return self.register
-        elif item == 1:
-            return self.index
-        else:
-            raise IndexError
-
     def __hash__(self):
         return hash((self.register, self.index))
 
