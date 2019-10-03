@@ -44,46 +44,20 @@ class TestPowerSgate(QiskitTestCase):
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), matrix_power(SGate().to_matrix(), n))
 
-    def test_sgate_float_1_5(self, n=1.5):
-        """Test Sgate.power(1.5) method.
+    results = {
+        1.5: array([[1, 0], [0, -0.70710678 + 0.70710678j]], dtype=complex),
+        0.1: array([[1, 0], [0, 0.98768834 + 0.15643447j]], dtype=complex),
+        -1.5: array([[1, 0], [0, -0.70710678 - 0.70710678j]], dtype=complex),
+        -0.1: array([[1, 0], [0, 0.98768834 - 0.15643447j]], dtype=complex)
+    }
+
+    @data(1.5, 0.1, -1.5, -0.1)
+    def test_sgate_float(self, n):
+        """Test Sgate.power(<float>) method.
         """
         result = SGate().power(n)
 
-        expected = array([[1, 0],
-                          [0, -0.70710678 + 0.70710678j]], dtype=complex)
-        self.assertEqual(result.label, 's^%s' % n)
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), expected)
-
-    def test_sgate_float_0_1(self, n=0.1):
-        """Test Sgate.power(0.1) method.
-        """
-        result = SGate().power(n)
-
-        expected = array([[1, 0],
-                          [0, 0.98768834 + 0.15643447j]], dtype=complex)
-        self.assertEqual(result.label, 's^%s' % n)
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), expected)
-
-    def test_sgate_float_minus_1_5(self, n=-1.5):
-        """Test Sgate.power(-1.5) method.
-        """
-        result = SGate().power(n)
-
-        expected = array([[1, 0],
-                          [0, -0.70710678 - 0.70710678j]], dtype=complex)
-        self.assertEqual(result.label, 's^%s' % n)
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), expected)
-
-    def test_sgate_float_minus_0_1(self, n=-0.1):
-        """Test Sgate.power(-0.1) method.
-        """
-        result = SGate().power(n)
-
-        expected = array([[1, 0],
-                          [0, 0.98768834 - 0.15643447j]], dtype=complex)
+        expected = self.results[n]
         self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), expected)
