@@ -96,7 +96,7 @@ class LayoutTest(QiskitTestCase):
     def test_layout_avoid_dangling_virtual(self):
         """ No dangling pointers for virtual qubits."""
         layout = Layout({self.qr[0]: 0})
-        self.assertEqual(layout[0], (self.qr, 0))
+        self.assertEqual(layout[0], self.qr[0])
         layout[0] = self.qr[1]
         with self.assertRaises(KeyError):
             _ = layout[self.qr[0]]
@@ -176,7 +176,7 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[0])
         layout.add(self.qr[1])
         layout.swap(0, 1)
-        self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 0})
+        self.assertDictEqual(layout.get_virtual_bits(), {self.qr[0]: 1, self.qr[1]: 0})
 
     def test_layout_swap_error(self):
         """swap() method error"""
@@ -184,7 +184,7 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[0])
         layout.add(self.qr[1])
         with self.assertRaises(LayoutError):
-            layout.swap(0, (self.qr, 0))
+            layout.swap(0, self.qr[0])
 
     def test_layout_combine(self):
         """combine_into_edge_map() method"""
@@ -196,7 +196,7 @@ class LayoutTest(QiskitTestCase):
         another_layout.add(self.qr[0])
 
         edge_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
+        self.assertDictEqual(edge_map, {self.qr[0]: self.qr[1], self.qr[1]: self.qr[0]})
 
     def test_layout_combine_bigger(self):
         """combine_into_edge_map() method with another_layout is bigger"""
@@ -209,7 +209,7 @@ class LayoutTest(QiskitTestCase):
         another_layout.add(self.qr[2])
 
         edge_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
+        self.assertDictEqual(edge_map, {self.qr[0]: self.qr[1], self.qr[1]: self.qr[0]})
 
     def test_set_virtual_without_physical(self):
         """When adding a virtual without care in which physical is going"""
@@ -217,7 +217,7 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[1], 2)
         layout.add(self.qr[0])
 
-        self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 2})
+        self.assertDictEqual(layout.get_virtual_bits(), {self.qr[0]: 1, self.qr[1]: 2})
 
     def test_layout_combine_smaller(self):
         """combine_into_edge_map() method with another_layout is smaller and raises an Error"""
