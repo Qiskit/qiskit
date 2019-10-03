@@ -223,22 +223,22 @@ class TestDagOperations(QiskitTestCase):
             sorted(self.dag._multi_graph.in_edges(h_node, data=True)),
             sorted([
                 (self.dag.input_map[self.qubit2], h_node,
-                 {'wire': Qubit(*self.qubit2), 'name': 'qr[2]'}),
+                 {'wire': self.qubit2, 'name': 'qr[2]'}),
                 (self.dag.input_map[self.clbit0], h_node,
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (self.dag.input_map[self.clbit1], h_node,
-                 {'wire': Clbit(*self.clbit1), 'name': 'cr[1]'}),
+                 {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
             sorted(self.dag._multi_graph.out_edges(h_node, data=True)),
             sorted([
                 (h_node, self.dag.output_map[self.qubit2],
-                 {'wire': Qubit(*self.qubit2), 'name': 'qr[2]'}),
+                 {'wire': self.qubit2, 'name': 'qr[2]'}),
                 (h_node, self.dag.output_map[self.clbit0],
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (h_node, self.dag.output_map[self.clbit1],
-                 {'wire': Clbit(*self.clbit1), 'name': 'cr[1]'}),
+                 {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
@@ -304,22 +304,22 @@ class TestDagOperations(QiskitTestCase):
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
             sorted([
                 (self.dag.input_map[self.qubit1], meas_node,
-                 {'wire': Qubit(*self.qubit1), 'name': 'qr[1]'}),
+                 {'wire': self.qubit1, 'name': 'qr[1]'}),
                 (self.dag.input_map[self.clbit0], meas_node,
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (self.dag.input_map[self.clbit1], meas_node,
-                 {'wire': Clbit(*self.clbit1), 'name': 'cr[1]'}),
+                 {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
             sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
             sorted([
                 (meas_node, self.dag.output_map[self.qubit1],
-                 {'wire': Qubit(*self.qubit1), 'name': 'qr[1]'}),
+                 {'wire': self.qubit1, 'name': 'qr[1]'}),
                 (meas_node, self.dag.output_map[self.clbit0],
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (meas_node, self.dag.output_map[self.clbit1],
-                 {'wire': Clbit(*self.clbit1), 'name': 'cr[1]'}),
+                 {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
