@@ -53,6 +53,9 @@ class Gate(Instruction):
 
         Returns:
             UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+
+        Raises:
+            QiskitError: If Gate is not unitary
         """
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
