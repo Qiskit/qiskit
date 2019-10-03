@@ -63,59 +63,27 @@ class TestPowerSgate(QiskitTestCase):
         assert_array_almost_equal(result.to_matrix(), expected)
 
 
+@ddt
 class TestPowerIntCX(QiskitTestCase):
     """Test CX.power() with integer"""
 
-    def setUp(self) -> None:
-        self.identity = array([[1, 0, 0, 0],
-                               [0, 1, 0, 0],
-                               [0, 0, 1, 0],
-                               [0, 0, 0, 1]], dtype=complex)
+    results = {
+        2: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex),
+        1: array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        0: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex),
+        -1: array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        -2: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
+    }
 
-    def test_cx_two(self):
-        """Test CX.power(2) method.
+    @data(2, 1, 0, -2)
+    def test_cx_int(self, n):
+        """Test CX.power(<int>) method.
         """
-        result = CnotGate().power(2)
+        result = CnotGate().power(n)
 
-        self.assertEqual(result.label, 'cx^2')
+        self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), self.identity)
-
-    def test_cx_one(self):
-        """Test CX.power(1) method.
-        """
-        result = CnotGate().power(1)
-
-        self.assertEqual(result.label, 'cx^1')
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
-
-    def test_cx_zero(self):
-        """Test CX.power(0) method.
-        """
-        result = CnotGate().power(0)
-
-        self.assertEqual(result.label, 'cx^0')
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), self.identity)
-
-    def test_cx_minus_one(self):
-        """Test CX.power(-1) method.
-        """
-        result = CnotGate().power(-1)
-
-        self.assertEqual(result.label, 'cx^-1')
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
-
-    def test_cx_minus_two(self):
-        """Test CX.power(-2) method.
-        """
-        result = CnotGate().power(-2)
-
-        self.assertEqual(result.label, 'cx^-2')
-        self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), self.identity)
+        assert_array_almost_equal(result.to_matrix(), self.results[n])
 
 
 class TestGateSqrt(QiskitTestCase):
