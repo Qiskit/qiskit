@@ -180,6 +180,21 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_active_repetition(self):
+        """Test measure_active in a circuit with a 'measure' creg.
+        measure_active should be aware that the creg 'measure' might exists.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        circuit.measure_active()
+
+        self.assertEqual(len(circuit.cregs), 2)  # Two cregs
+        self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
+        self.assertEqual(len(circuit.cregs[1]), 2)
+
     def test_measure_all(self):
         """Test measure_all applies measurements to all qubits.
         Creates a ClassicalRegister of size equal to the total amount of qubits to
@@ -196,6 +211,20 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
+
+    def test_measure_all_repetition(self):
+        """Test measure_all in a circuit with a 'measure' creg.
+        measure_all should be aware that the creg 'measure' might exists.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all()
+
+        self.assertEqual(len(circuit.cregs), 2)  # Two cregs
+        self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
+        self.assertEqual(len(circuit.cregs[1]), 2)
 
     def test_remove_final_measurements(self):
         """Test remove_final_measurements
