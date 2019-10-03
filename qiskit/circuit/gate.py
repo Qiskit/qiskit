@@ -59,7 +59,13 @@ class Gate(Instruction):
         decomposition, unitary = schur(self.to_matrix(), output='complex')
         # Raise the diagonal entries to the specified power
         decomposition_power = list()
-        for element in decomposition.diagonal():  # assert off-diagonal are 0
+
+        decomposition_diagonal = decomposition.diagonal()
+        # assert off-diagonal are 0
+        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
+            raise QiskitError('The matrix is not diagonal')
+
+        for element in decomposition_diagonal:
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
