@@ -265,9 +265,9 @@ class TestDagOperations(QiskitTestCase):
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
             sorted([
                 (self.dag.input_map[self.qubit0], meas_node,
-                 {'wire': Qubit(*self.qubit0), 'name': 'qr[0]'}),
+                 {'wire': self.qubit0, 'name': 'qr[0]'}),
                 (self.dag.input_map[self.clbit0], meas_node,
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (self.dag.input_map[new_creg[0]], meas_node,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
@@ -276,9 +276,9 @@ class TestDagOperations(QiskitTestCase):
             sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
             sorted([
                 (meas_node, self.dag.output_map[self.qubit0],
-                 {'wire': Qubit(*self.qubit0), 'name': 'qr[0]'}),
+                 {'wire': self.qubit0, 'name': 'qr[0]'}),
                 (meas_node, self.dag.output_map[self.clbit0],
-                 {'wire': Clbit(*self.clbit0), 'name': 'cr[0]'}),
+                 {'wire': self.clbit0, 'name': 'cr[0]'}),
                 (meas_node, self.dag.output_map[new_creg[0]],
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
