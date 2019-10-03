@@ -384,7 +384,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         qc.data = [(HGate(), [qr[0]], []),
                    (CnotGate(), [0, 1], []),
-                   (HGate(), [(qr, 1)], [])]
+                   (HGate(), [qr[1]], [])]
 
         expected_qc = QuantumCircuit(qr)
 
