@@ -281,29 +281,6 @@ class Layout():
         return out
 
     @staticmethod
-    def from_tuplelist(tuple_list):
-        """
-        Populates a Layout from a list containing virtual
-        qubits---(QuantumRegister, int) tuples---, or None.
-        Args:
-            tuple_list (list):
-                e.g.: [(qr,0), None, (qr,2), (qr,3)]
-        Returns:
-            Layout: the corresponding Layout object
-        Raises:
-            LayoutError: If the elements are not (Register, integer) or None
-        """
-        warn('Creating a layout with a list of tuples (eg. [(qr,0), None, (qr,2), (qr,3)]) '
-             'is deprecated. Go for [qr[0], None, qr[2], qr[3]].', DeprecationWarning)
-        new_list = []
-        for tuple_ in tuple_list:
-            if tuple_ is None:
-                new_list.append(None)
-            else:
-                new_list.append(tuple_[0][tuple_[1]])
-        return Layout.from_qubit_list(new_list)
-
-    @staticmethod
     def from_qubit_list(qubit_list):
         """
         Populates a Layout from a list containing virtual
