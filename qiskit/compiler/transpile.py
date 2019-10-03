@@ -13,9 +13,6 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-
-import warnings
-
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.transpile_config import TranspileConfig
