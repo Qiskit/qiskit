@@ -16,7 +16,6 @@
 
 import copy
 import unittest
-import warnings
 import numpy
 
 from qiskit.circuit import QuantumRegister, Qubit

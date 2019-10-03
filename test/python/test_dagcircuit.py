@@ -22,7 +22,7 @@ from ddt import ddt, data
 import networkx as nx
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
@@ -78,8 +78,8 @@ def raise_if_dagcircuit_invalid(dag):
                            if edge_data['wire'] not in dag.wires]
     if edges_outside_wires:
         raise DAGCircuitError('multi_graph contains one or more edges ({}) '
-                              'not found in DAGCircuit.wires ({}).'.format(
-            edges_outside_wires, dag.wires))
+                              'not found in DAGCircuit.wires ({}).'.format(edges_outside_wires,
+                                                                           dag.wires))
 
     # Every wire should have exactly one input node and one output node.
     for wire in dag.wires:

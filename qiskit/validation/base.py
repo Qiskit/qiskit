@@ -29,8 +29,6 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
-import warnings
-
 from functools import wraps
 from types import SimpleNamespace, MethodType
 

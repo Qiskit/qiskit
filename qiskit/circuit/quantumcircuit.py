@@ -18,7 +18,6 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-from warnings import warn
 from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
