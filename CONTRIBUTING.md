@@ -537,13 +537,13 @@ is handled by Qiskit:
 
 1. Features, APIs or configuration options are marked deprecated in the code.
 Appropriate `DeprecationWarning` class warnings will be sent to the user. The
-deprecated code will be frozen and only receive minimal maintenance (just so
+deprecated code will be frozen and receive only minimal maintenance (just so
 that it continues to work as-is).
 
 2. A migration path will be documented for current users of the feature. This
 will be outlined in the both the release notes adding the deprecation and the
 release notes removing the feature at the completion of the deprecation cycle.
-In addition if feasible the warning message will also include the migration
+In addition, if feasible the warning message will also include the migration
 path. A migration path might be "stop using that feature", but in such cases
 it is necessary to first judged how widely used and/or important the feature
 is to end users and decided an obsolescence date based on that.
