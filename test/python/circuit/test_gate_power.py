@@ -160,7 +160,7 @@ class TestGateSqrt(QiskitTestCase):
         self.assertIsInstance(result, Gate)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
 
-    def test_starndard_sqrt(self):
+    def test_standard_sqrt(self):
         """Test standard Gate.power(1/2) method.
         """
         expected = array([[1, 0],
