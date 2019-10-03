@@ -131,7 +131,7 @@ class TestGateFloat(QiskitTestCase):
         assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
                         SGate().to_matrix())
 
-    @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8)
+    @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
     def test_float_gt_one(self, exponent):
         """Test greater-than-one exponents """
         result = SGate().power(exponent)
@@ -141,17 +141,6 @@ class TestGateFloat(QiskitTestCase):
         self.assertIsInstance(result, Gate)
         # SGate().to_matrix() is diagonal so `**` is equivalent.
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
-
-    def test_zero_two(self, exponent=0.2):
-        """Test Sgate^(0.2)"""
-        result = SGate().power(exponent)
-
-        self.assertEqual(result.label, 's^' + str(exponent))
-        self.assertEqual(len(result.definition), 1)
-        self.assertIsInstance(result, Gate)
-        assert_allclose(array([[1, 0],
-                               [0, 0.95105652 + 0.30901699j]], dtype=complex),
-                        result.definition[0][0].to_matrix())
 
     def test_minus_zero_two(self, exponent=-0.2):
         """Test Sgate^(-0.2)"""
