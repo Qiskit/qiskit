@@ -852,6 +852,18 @@ class QuantumCircuit:
             cpy.name = name
         return cpy
 
+    def _create_creg(self, length, name):
+        """ Creates a creg, checking if ClassicalRegister with same name exists
+        """
+        if name in [creg.name for creg in self.cregs]:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = name
+            new_creg = ClassicalRegister(length)
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(length, name)
+        return new_creg
+
     def measure_active(self):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
@@ -859,16 +871,7 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         dag = circuit_to_dag(self)
         qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
-        measure_reg_name = 'measure'
-        # Check if ClassicalRegister with same name exists
-        if measure_reg_name in dag.cregs:
-            save_prefix = ClassicalRegister.prefix
-            ClassicalRegister.prefix = measure_reg_name
-            new_creg = ClassicalRegister(len(qubits_to_measure))
-            ClassicalRegister.prefix = save_prefix
-        else:
-            new_creg = ClassicalRegister(len(qubits_to_measure), measure_reg_name)
-
+        new_creg = self._create_creg(len(qubits_to_measure), 'measure')
         self.add_register(new_creg)
         self.barrier()
         self.measure(qubits_to_measure, new_creg)
@@ -877,18 +880,7 @@ class QuantumCircuit:
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
         """
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        dag = circuit_to_dag(self)
-        measure_reg_name = 'measure'
-        # Check if ClassicalRegister with same name exists
-        if measure_reg_name in dag.cregs:
-            save_prefix = ClassicalRegister.prefix
-            ClassicalRegister.prefix = measure_reg_name
-            new_creg = ClassicalRegister(len(self.qubits))
-            ClassicalRegister.prefix = save_prefix
-        else:
-            new_creg = ClassicalRegister(self.n_qubits, measure_reg_name)
-
+        new_creg = self._create_creg(len(self.qubits), 'measure')
         self.add_register(new_creg)
         self.barrier()
         self.measure(self.qubits, new_creg)
