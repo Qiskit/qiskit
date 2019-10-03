@@ -29,7 +29,7 @@ Counts and State Visualizations
    plot_bloch_vector - Plot a Bloch vector on the Bloch sphere.
    plot_bloch_multivector - Display multiple Bloch vectors on sphere.
    plot_state_city - The cityscape of quantum state.
-   plot_state_hinton - A hinton diagram for the quanum state.
+   plot_state_hinton - A hinton diagram for the quantum state.
    plot_state_paulivec - Plot the paulivec representation of a quantum state.
    plot_state_qsphere - The qsphere representation of a quantum state.
 
@@ -42,7 +42,7 @@ Interactive Visualizations
    iplot_histogram - Interactive histogram of counts.
    iplot_bloch_multivector - Display multiple Bloch vectors on sphere.
    iplot_state_city - The cityscape of quantum state.
-   iplot_state_hinton - A hinton diagram for the quanum state.
+   iplot_state_hinton - A hinton diagram for the quantum state.
    iplot_state_paulivec - Plot the paulivec representation of a quantum state.
    iplot_state_qsphere - Interactive qsphere representation of a quantum state.
 
