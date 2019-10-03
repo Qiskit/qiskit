@@ -182,6 +182,33 @@ stages:
             pylint -rn qiskit test
             reno lint
           displayName: 'Style and lint'
+    - job: 'Docs'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U tox
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            tox -edocs -- -j auto
+          displayName: 'Run Docs build'
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: 'docs/_build/html'
+            artifactName: 'html_docs'
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))

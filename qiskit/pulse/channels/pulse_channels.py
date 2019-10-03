@@ -13,31 +13,13 @@
 # that they have been altered from the originals.
 
 """
-Channels support signal output.
+This import path is being deprecated. Please use qiskit.pulse.channels.
 """
-from abc import ABCMeta
+import warnings
 
-from .channels import Channel
+# pylint: disable=unused-import
 
-
-class PulseChannel(Channel, metaclass=ABCMeta):
-    """Base class of Channel supporting pulse output."""
-    pass
-
-
-class DriveChannel(PulseChannel):
-    """Drive Channel."""
-
-    prefix = 'd'
-
-
-class MeasureChannel(PulseChannel):
-    """Measure Channel."""
-
-    prefix = 'm'
-
-
-class ControlChannel(PulseChannel):
-    """Control Channel."""
-
-    prefix = 'u'
+from .channels import PulseChannel, DriveChannel, MeasureChannel, ControlChannel
+warnings.warn("Channels have been migrated. Please use `from qiskit.pulse.channels import X` "
+              "rather than `from qiskit.pulse.channels.pulse_channels import X`.",
+              DeprecationWarning)

@@ -372,8 +372,7 @@ class QCircuitImage:
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
-                        pos_1 = self.img_regs[(qarglist[0].register,
-                                               qarglist[0].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
 
                         if op.condition:
                             mask = self._get_mask(op.condition[0])
@@ -486,8 +485,8 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                     elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
-                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
+                        pos_2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
                             pos_3 = self.img_regs[(if_reg, 0)]
@@ -549,6 +548,17 @@ class QCircuitImage:
                                     (pi_check(op.op.params[0], output='latex'),
                                      pi_check(op.op.params[1], output='latex'),
                                      pi_check(op.op.params[2], output='latex'))
+                            elif nm == "rzz":
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
+                                    pos_2 - pos_1) + "}"
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                # Based on the \cds command of the qcircuit package
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
+                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -594,6 +604,17 @@ class QCircuitImage:
                                      (pi_check(op.op.params[0], output='latex'),
                                       pi_check(op.op.params[1], output='latex'),
                                       pi_check(op.op.params[2], output='latex')))
+                            elif nm == "rzz":
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
+                                    pos_2 - pos_1) + "}"
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                # Based on the \cds command of the qcircuit package
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
+                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
@@ -611,9 +632,9 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
-                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
-                        pos_3 = self.img_regs[(qarglist[2].register, qarglist[2].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
+                        pos_2 = self.img_regs[qarglist[1]]
+                        pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]
@@ -701,17 +722,13 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    qname = op.qargs[0].register
-                    qindex = op.qargs[0].index
-                    cname = op.cargs[0].register
-                    cindex = op.cargs[0].index
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
                         qindex = newq[1]
 
-                    pos_1 = self.img_regs[(qname, qindex)]
-                    pos_2 = self.img_regs[(cname, cindex)]
+                    pos_1 = self.img_regs[op.qargs[0]]
+                    pos_2 = self.img_regs[op.cargs[0]]
 
                     try:
                         self._latex[pos_1][column] = "\\meter"
@@ -726,15 +743,24 @@ class QCircuitImage:
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
-                        start_bit = self.qubit_list[min(indexes)]
+                        indexes.sort()
                         if aliases is not None:
                             qarglist = map(lambda x: aliases[x], qarglist)
-                        start = self.img_regs[start_bit]
-                        span = len(op.qargs) - 1
 
-                        self._latex[start][column - 1] += " \\barrier[0em]{" + str(
-                            span) + "}"
-                        self._latex[start][column] = "\\qw"
+                        first = last = indexes[0]
+                        for index in indexes[1:]:
+                            if index - 1 == last:
+                                last = index
+                            else:
+                                pos = self.img_regs[self.qubit_list[first]]
+                                self._latex[pos][column - 1] += " \\barrier[0em]{" + str(
+                                    last - first) + "}"
+                                self._latex[pos][column] = "\\qw"
+                                first = last = index
+                        pos = self.img_regs[self.qubit_list[first]]
+                        self._latex[pos][column - 1] += " \\barrier[0em]{" + str(
+                            last - first) + "}"
+                        self._latex[pos][column] = "\\qw"
                 else:
                     raise exceptions.VisualizationError("bad node data")
 
