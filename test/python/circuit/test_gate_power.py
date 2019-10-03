@@ -21,12 +21,9 @@ from numpy import array, eye
 from numpy.testing import assert_allclose, assert_array_almost_equal
 from numpy.linalg import matrix_power
 
-from qiskit.transpiler import PassManager
-from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, UnitaryGate, CnotGate
 from qiskit.circuit import Gate
-from qiskit.transpiler.passes import Unroller, Optimize1qGates
 from qiskit.quantum_info.operators import Operator
 
 
