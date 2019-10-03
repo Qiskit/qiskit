@@ -208,7 +208,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.measure(qr, cr)
         circuit.remove_final_measurements()
 
-        expected = QuantumCircuit(qr, cr)
+        expected = QuantumCircuit(qr)
 
         self.assertEqual(expected, circuit)
 
