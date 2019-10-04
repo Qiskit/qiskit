@@ -487,12 +487,12 @@ class ScheduleDrawer:
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False, framechange=True,scaling=None):
+                       label=False, framechange=True, scaling=None):
         y0 = 0
         prev_labels = []
-        #Test if a channel has negative value
+        # Test if a channel has negative value
         test = False
-        test2=False
+        test2 = False
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -514,15 +514,15 @@ class ScheduleDrawer:
                 else:
                     test = False
                 print(test)
-                #if the current channel and previous channel  have not negative values
-                if test and test2 and scaling==None:
+                # if the current channel and previous channel  have not negative values
+                if test and test2 and scaling is None:
                     re = v_max * re * 1.5 + y0
                     im = v_max * im * 1.5 + y0
                 else:
                     re = v_max * re + y0
                     im = v_max * im + y0
 
-                test2=test
+                test2 = test
 
                 offset = np.zeros_like(time) + y0
                 # plot
@@ -614,7 +614,7 @@ class ScheduleDrawer:
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
                                  t0, tf, dt, v_max, label=label,
-                                 framechange=framechange,scaling=scaling)
+                                 framechange=framechange, scaling=scaling)
 
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
