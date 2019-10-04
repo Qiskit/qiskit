@@ -506,11 +506,9 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
-
                 # scaling and offset
-              
                 test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
-                
+             
                 # if the current channel and previous channel  have not negative values
                 if test1 and test2 and scaling is None:
                     re = v_max * re * 1.5 + y0
@@ -520,7 +518,6 @@ class ScheduleDrawer:
                     im = v_max * im + y0
 
                 test2 = test1
-
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
