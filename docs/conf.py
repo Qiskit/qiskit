@@ -137,5 +137,15 @@ modindex_common_prefix = ['qiskit.']
 #
 html_theme = 'sphinx_rtd_theme'  # use the theme in subdir 'theme'
 
-html_sidebars = {'**': ['globaltoc.html']}
+html_logo = 'images/logo.png'
+#html_sidebars = {'**': ['globaltoc.html']}
 html_last_updated_fmt = '%Y/%m/%d'
+
+html_theme_options = {
+    'logo_only': True,
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+    'style_nav_header_background': '#212121',
+}
+
