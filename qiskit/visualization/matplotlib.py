@@ -838,7 +838,7 @@ class MatplotlibDrawer:
                     elif op.name == 'cz':
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
-                            color = self._style.dispcol['multi']
+                            color = self._style.dispcol['cx']
                             self._ctrl_qubit(q_xy[0],
                                              fc=color,
                                              ec=color)
@@ -848,7 +848,7 @@ class MatplotlibDrawer:
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
                             self._line(qreg_b, qreg_t,
-                                       lc=self._style.dispcol['multi'])
+                                       lc=self._style.dispcol['cx'])
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE+1)
                     # control gate
