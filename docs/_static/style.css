@@ -2,6 +2,10 @@
     max-width: 90% !important;
 }
 
+.wy-side-scroll {
+    background:#8c8c8c;
+}
+
 .pre
 {
 color:#1191e6;
