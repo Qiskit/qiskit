@@ -545,7 +545,7 @@ will be outlined in the both the release notes adding the deprecation and the
 release notes removing the feature at the completion of the deprecation cycle.
 In addition, if feasible the warning message will also include the migration
 path. A migration path might be "stop using that feature", but in such cases
-it is necessary to first judged how widely used and/or important the feature
+it is necessary to first judge how widely used and/or important the feature
 is to end users and decided an obsolescence date based on that.
 
 3. An obsolescence date for the feature will be set. The feature must remain
@@ -561,7 +561,7 @@ mean that a deprecation warning may only occur in one release prior to removal.
 
 Note that this delay is a minimum. For significant features, it is recommend
 that the deprecated feature appears for at least double that time. Also, per
-the stable branch policy deprecation removals can only occur during minor
+the stable branch policy, deprecation removals can only occur during minor
 version releases, they are not appropriate for backporting.
 
 ## Stable Branch Policy
