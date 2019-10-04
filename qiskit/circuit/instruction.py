@@ -344,7 +344,6 @@ class Instruction:
     @property
     def control(self):
         """temporary classical control. Will be deprecated."""
-        raise AttributeError
         import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
@@ -353,7 +352,6 @@ class Instruction:
 
     @control.setter
     def control(self, value):
-        raise AttributeError        
         import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
