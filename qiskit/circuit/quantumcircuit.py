@@ -910,9 +910,9 @@ class QuantumCircuit:
             for clbit in node.cargs:
                 clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
 
-            # Get arguments for classical control (if any)
+            # Get arguments for classical condition (if any)
             inst = node.op.copy()
-            inst.control = node.condition
+            inst.condition = node.condition
             self.append(inst, qubits, clbits)
 
     @staticmethod
