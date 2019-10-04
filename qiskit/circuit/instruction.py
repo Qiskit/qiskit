@@ -73,7 +73,7 @@ class Instruction:
         self._params = []  # a list of gate params stored
 
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
-        self.control = None
+        self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
@@ -195,11 +195,11 @@ class Instruction:
             instruction.qubits = list(range(self.num_qubits))
         if self.num_clbits:
             instruction.memory = list(range(self.num_clbits))
-        # Add control parameters for assembler. This is needed to convert
+        # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
-        if self.control:
-            instruction._control = self.control
+        if self.condition:
+            instruction._condition = self.condition
         return instruction
 
     def mirror(self):
@@ -249,8 +249,8 @@ class Instruction:
         if not isinstance(classical, ClassicalRegister):
             raise QiskitError("c_if must be used with a classical register")
         if val < 0:
-            raise QiskitError("control value should be non-negative")
-        self.control = (classical, val)
+            raise QiskitError("condition value should be non-negative")
+        self.condition = (classical, val)
         return self
 
     def copy(self, name=None):
@@ -272,9 +272,9 @@ class Instruction:
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
-        if self.control is None:
+        if self.condition is None:
             return string
-        return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+        return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
@@ -340,3 +340,20 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
+
+    @property
+    def control(self):
+        """temporary classical control. Will be deprecated."""
+        import warnings
+        warnings.warn('The instruction attribute, "control", will be renamed '
+                      'to "condition". The "control" method will later be used '
+                      'to create quantum controlled gates')
+        return self.condition
+
+    @control.setter
+    def control(self, value):
+        import warnings
+        warnings.warn('The instruction attribute, "control", will be renamed '
+                      'to "condition". The "control" method will later be used '
+                      'to create quantum controlled gates')
+        self.condition = value
