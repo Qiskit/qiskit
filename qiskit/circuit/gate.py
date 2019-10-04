@@ -14,6 +14,9 @@
 
 """Unitary gate."""
 
+import numpy as np
+from scipy.linalg import schur
+
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
@@ -41,6 +44,35 @@ class Gate(Instruction):
                 exception will be raised when this base class method is called.
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
+
+    def power(self, exponent):
+        """Creates a unitary gate as `gate^exponent`.
+
+        Args:
+            exponent (float): Gate^exponent
+
+        Returns:
+            UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+
+        Raises:
+            QiskitError: If Gate is not unitary
+        """
+        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        # Should be diagonalized because it's a unitary.
+        decomposition, unitary = schur(self.to_matrix(), output='complex')
+        # Raise the diagonal entries to the specified power
+        decomposition_power = list()
+
+        decomposition_diagonal = decomposition.diagonal()
+        # assert off-diagonal are 0
+        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
+            raise QiskitError('The matrix is not diagonal')
+
+        for element in decomposition_diagonal:
+            decomposition_power.append(pow(element, exponent))
+        # Then reconstruct the resulting gate.
+        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+        return UnitaryGate(unitary_power, label='%s^%s' % (self.name, exponent))
 
     def _return_repeat(self, exponent):
         return Gate(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
