@@ -536,7 +536,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.barrier(qr1)
         circuit.barrier(qr2[1])
         circuit.h(qr2)
-        self.assertEqual(str(_text_circuit_drawer(circuit, plotbarriers=False)), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, plot_barriers=False)), expected)
 
     def test_text_measure_html(self):
         """ The measure operator. HTML representation. """

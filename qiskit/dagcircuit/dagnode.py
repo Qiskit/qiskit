@@ -14,6 +14,8 @@
 
 """Object to represent the information at a node in the DAGCircuit"""
 
+import warnings
+
 from qiskit.exceptions import QiskitError
 
 
@@ -109,6 +111,7 @@ class DAGNode:
 
     def pop(self, val):
         """Remove the provided value from the dictionary"""
+        warnings.warn('DAGNode.pop has been deprecated.', DeprecationWarning)
         del self.data_dict[val]
 
     @staticmethod
