@@ -56,6 +56,31 @@ Device Visualizations
    plot_error_map - Plot the error rates of a given device.
    plot_circuit_layout - Display the layout of a circuit on a device.
 
+Circuit Visualizations
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   circuit_drawer - Draw a quantum circuit in various formats.
+
+DAG Visualizations
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   dag_drawer - Plot directed acyclic graph (dag) of a quantum circuit.
+
+Pass Manager Visualizations
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   pass_manager_drawer - Draws the specified pass manager
+
+
 Exceptions
 ==========
 
