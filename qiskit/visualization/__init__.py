@@ -25,13 +25,13 @@ Counts and State Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   plot_histogram - Plot a histogram of counts.
-   plot_bloch_vector - Plot a Bloch vector on the Bloch sphere.
-   plot_bloch_multivector - Display multiple Bloch vectors on sphere.
-   plot_state_city - The cityscape of quantum state.
-   plot_state_hinton - A hinton diagram for the quantum state.
-   plot_state_paulivec - Plot the paulivec representation of a quantum state.
-   plot_state_qsphere - The qsphere representation of a quantum state.
+   plot_histogram
+   plot_bloch_vector
+   plot_bloch_multivector
+   plot_state_city
+   plot_state_hinton
+   plot_state_paulivec
+   plot_state_qsphere
 
 Interactive Visualizations
 ==========================
@@ -39,12 +39,12 @@ Interactive Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   iplot_histogram - Interactive histogram of counts.
-   iplot_bloch_multivector - Display multiple Bloch vectors on sphere.
-   iplot_state_city - The cityscape of quantum state.
-   iplot_state_hinton - A hinton diagram for the quantum state.
-   iplot_state_paulivec - Plot the paulivec representation of a quantum state.
-   iplot_state_qsphere - Interactive qsphere representation of a quantum state.
+   iplot_histogram
+   iplot_bloch_multivector
+   iplot_state_city
+   iplot_state_hinton
+   iplot_state_paulivec
+   iplot_state_qsphere
 
 Device Visualizations
 =====================
@@ -52,9 +52,9 @@ Device Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   plot_gate_map - Display device entangling gate topology.
-   plot_error_map - Plot the error rates of a given device.
-   plot_circuit_layout - Display the layout of a circuit on a device.
+   plot_gate_map
+   plot_error_map
+   plot_circuit_layout
 
 Circuit Visualizations
 ======================
@@ -62,7 +62,7 @@ Circuit Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   circuit_drawer - Draw a quantum circuit in various formats.
+   circuit_drawer
 
 DAG Visualizations
 ==================
@@ -70,7 +70,7 @@ DAG Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   dag_drawer - Plot directed acyclic graph (dag) of a quantum circuit.
+   dag_drawer
 
 Pass Manager Visualizations
 ===========================
@@ -78,7 +78,7 @@ Pass Manager Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   pass_manager_drawer - Draws the specified pass manager
+   pass_manager_drawer
 
 
 Exceptions
@@ -87,7 +87,7 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   VisualizationError - Base execption for visualizations.
+   VisualizationError
 """
 
 import os
