@@ -852,6 +852,69 @@ class QuantumCircuit:
             cpy.name = name
         return cpy
 
+    def _create_creg(self, length, name):
+        """ Creates a creg, checking if ClassicalRegister with same name exists
+        """
+        if name in [creg.name for creg in self.cregs]:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = name
+            new_creg = ClassicalRegister(length)
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(length, name)
+        return new_creg
+
+    def measure_active(self):
+        """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
+        a size equal to the number of non-idle qubits being measured.
+        """
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        dag = circuit_to_dag(self)
+        qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
+        new_creg = self._create_creg(len(qubits_to_measure), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(qubits_to_measure, new_creg)
+
+    def measure_all(self):
+        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
+        size equal to the number of qubits being measured.
+        """
+        new_creg = self._create_creg(len(self.qubits), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(self.qubits, new_creg)
+
+    def remove_final_measurements(self):
+        """Removes final measurement on all qubits if they are present.
+        Deletes the ClassicalRegister that was used to store the values from these measurements
+        if it is idle.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
+        remove_final_meas = RemoveFinalMeasurements()
+        new_dag = remove_final_meas.run(dag)
+
+        # Set self's cregs and instructions to match the new DAGCircuit's
+        self.data.clear()
+        self.cregs = list(new_dag.cregs.values())
+
+        for node in new_dag.topological_op_nodes():
+            qubits = []
+            for qubit in node.qargs:
+                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
+
+            clbits = []
+            for clbit in node.cargs:
+                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
+
+            # Get arguments for classical condition (if any)
+            inst = node.op.copy()
+            inst.condition = node.condition
+            self.append(inst, qubits, clbits)
+
     @staticmethod
     def from_qasm_file(path):
         """Take in a QASM file and generate a QuantumCircuit object.
