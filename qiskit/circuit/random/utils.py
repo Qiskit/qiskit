@@ -98,7 +98,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
             if conditional and rng.choice(range(10)) == 0:
                 possible_values = range(pow(2, n_qubits))
                 value = rng.choice(list(possible_values))
-                op.control = (cr, value)
+                op.condition = (cr, value)
 
             qc.append(op, register_operands)
 
