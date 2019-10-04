@@ -605,11 +605,13 @@ class QuantumCircuit:
             with_layout (bool): Include layout information, with labels on the physical
                 layout. Default is True.
             fold (int): Sets pagination. It can be disabled using -1.
-                In `text`, sets the length of the lines. This useful when the
+                In `text`, sets the length of the lines. This is useful when the
                 drawing does not fit in the console. If None (default), it will try to
                 guess the console width using `shutil.get_terminal_size()`. However, if
                 running in jupyter, the default line length is set to 80 characters.
                 In `mpl` is the amount of operations before folding. Default is 25.
+                This option will be ignored with the ``latex`` and
+                ``latex_source`` backends.
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
                 * PIL.Image: (output `latex`) an in-memory representation of the

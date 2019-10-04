@@ -1,0 +1,15 @@
+---
+deprecations:
+  - |
+    The ``line length`` kwarg for the ``qiskit.QuantumCircuit.draw()`` method
+    and the ``qiskit.visualization.circuit_drawer()`` function with the text
+    output mode is deprecated. It has been replaced by the ``fold`` kwarg which
+    will behave identically for the text output mode (but also now supports
+    the mpl output mode too). ``line_length`` will be removed in a future
+    release so calls should be updated to use ``fold`` instead.
+  - |
+    The ``fold`` field in the ``style`` dict kwarg for the
+    ``qiskit.QuantumCircuit.draw()`` method and the
+    ``qiskit.visualization.circuit_drawer()`` function has been deprecated. It
+    has been replaced by the ``fold`` kwarg on both functions. This kwarg
+    behaves identically to the field in the style dict.
