@@ -491,7 +491,7 @@ class ScheduleDrawer:
         y0 = 0
         prev_labels = []
         # Test if a channel has negative value
-        test = False
+        test1 = False
         test2 = False
         for channel, events in output_channels.items():
             if events.enable:
@@ -508,21 +508,18 @@ class ScheduleDrawer:
                 color = self._get_channel_color(channel)
 
                 # scaling and offset
-                print(min(re[~np.isnan(re)]))
-                if (min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0):
-                    test = True
-                else:
-                    test = False
-                print(test)
+              
+                test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
+                
                 # if the current channel and previous channel  have not negative values
-                if test and test2 and scaling is None:
+                if test1 and test2 and scaling is None:
                     re = v_max * re * 1.5 + y0
                     im = v_max * im * 1.5 + y0
                 else:
                     re = v_max * re + y0
                     im = v_max * im + y0
 
-                test2 = test
+                test2 = test1
 
                 offset = np.zeros_like(time) + y0
                 # plot
