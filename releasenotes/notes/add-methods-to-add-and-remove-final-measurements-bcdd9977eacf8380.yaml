@@ -1,0 +1,84 @@
+---
+features:
+  - |
+    Introduced new methods in ``QuantumCircuit`` which allows the seamless adding or removing
+    of measurements at the end of a circuit.
+
+    ``measure_all()``
+      Adds a ``barrier`` followed by a ``measure`` operation to all qubits in the circuit.
+      Creates a ``ClassicalRegister`` of size equal to the number of qubits in the circuit,
+      which store the measurements.
+
+    ``measure_active()``
+      Adds a ``barrier`` followed by a ``measure`` operation to all active qubits in the circuit.
+      A qubit is active if it has at least one other operation acting upon it.
+      Creates a ``ClassicalRegister`` of size equal to the number of active qubits in the circuit,
+      which store the measurements.
+
+    ``remove_final_measurements()``
+      Removes all final measurements and preceeding ``barrier`` from a circuit.
+      A measurement is considered "final" if it is not followed by any other operation,
+      excluding barriers and other measurements.
+      After the measurements are removed, if all of the classical bits in the ``ClassicalRegister``
+      are idle (have no operations attached to them), then the ``ClassicalRegister`` is removed.
+
+    Examples::
+
+          # Using measure_all()
+          circuit = QuantumCircuit(2)
+          circuit.h(0)
+          circuit.measure_all()
+          circuit.draw()
+
+          # A ClassicalRegister with prefix measure was created.
+          # It has 2 clbits because there are 2 qubits to measure
+
+                       ┌───┐ ░ ┌─┐
+               q_0: |0>┤ H ├─░─┤M├───
+                       └───┘ ░ └╥┘┌─┐
+               q_1: |0>──────░──╫─┤M├
+                             ░  ║ └╥┘
+          measure_0: 0 ═════════╩══╬═
+                                   ║
+          measure_1: 0 ════════════╩═
+
+
+          # Using measure_active()
+          circuit = QuantumCircuit(2)
+          circuit.h(0)
+          circuit.measure_active()
+          circuit.draw()
+
+          # This ClassicalRegister only has 1 clbit because only 1 qubit is active
+
+                       ┌───┐ ░ ┌─┐
+               q_0: |0>┤ H ├─░─┤M├
+                       └───┘ ░ └╥┘
+               q_1: |0>──────░──╫─
+                             ░  ║
+          measure_0: 0 ═════════╩═
+
+
+          # Using remove_final_measurements()
+          # Assuming circuit_all and circuit_active are the circuits from the measure_all and
+          # measure_active examples above respectively
+
+          circuit_all.remove_final_measurements()
+          circuit_all.draw()
+          # The ClassicalRegister is removed because, after the measurements were removed,
+          # all of its clbits were idle
+
+                  ┌───┐
+          q_0: |0>┤ H ├
+                  └───┘
+          q_1: |0>─────
+
+
+          circuit_active.remove_final_measurements()
+          circuit_active.draw()
+          # This will result in the same circuit
+
+                  ┌───┐
+          q_0: |0>┤ H ├
+                  └───┘
+          q_1: |0>─────
