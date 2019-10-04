@@ -33,6 +33,7 @@ class ToffoliGate(ControlledGate):
     def __init__(self):
         """Create new Toffoli gate."""
         super().__init__("ccx", 3, [], num_ctrl_qubits=2)
+        self.base_gate = CnotGate
 
     def _define(self):
         """

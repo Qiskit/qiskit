@@ -34,6 +34,7 @@ class CHGate(ControlledGate):
     def __init__(self):
         """Create new CH gate."""
         super().__init__("ch", 2, [], num_ctrl_qubits=1)
+        self.base_gate = h.HGate
 
     def _define(self):
         """

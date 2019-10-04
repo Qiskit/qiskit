@@ -23,6 +23,7 @@ from .ast_to_dag import ast_to_dag
 from .circuit_to_instruction import circuit_to_instruction
 from .instruction_to_gate import instruction_to_gate
 
+
 def isinstanceint(obj):
     """ Like isinstance(obj,int), but with casting. Except for strings."""
     if isinstance(obj, str):

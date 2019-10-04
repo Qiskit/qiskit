@@ -35,19 +35,27 @@ class ControlledGate(Gate):
             num_ctrl_qubits (int): Number of control qubits.
             definition (list): list of gate rules for implementing this gate.
         Raises:
-            QiskitError: num_ctrl_qubits < num_qubits
+            QiskitError: num_ctrl_qubits >= num_qubits
         """
         super().__init__(name, num_qubits, params, label=label)
         if num_ctrl_qubits < num_qubits:
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise QiskitError('number of control qubits must be less than the number of qubits')
+        self.base_gate = None
         if definition:
             self.definition = definition
+            if len(definition) == 1:
+                base_gate = definition[0]
+                if isinstance(base_gate, ControlledGate):
+                    self.base_gate = base_gate.base_gate
+                else:
+                    self.base_gate = base_gate.__class__
 
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):
             return False
         else:
             return (other.num_ctrl_qubits == self.num_ctrl_qubits and
+                    self.base_gate == other.base_gate and
                     super().__eq__(other))
