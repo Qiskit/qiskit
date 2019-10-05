@@ -24,12 +24,12 @@ class DefaultStyle:
 
     def __init__(self):
         # Set colors
-        basis_color = '#FA74A6'
-        clifford_color = '#6FA4FF'
-        non_gate_color = '#000000'
-        other_color = '#BB8BFF'
-        pauli_color = '#05BAB6'
-        iden_color = '#05BAB6'
+        basis_color = '#EE538B'
+        clifford_color = '#30b0ff'
+        non_gate_color = '#202529'
+        other_color = '#8A3FFC'
+        pauli_color = '#20D5D2'
+        iden_color = '#20D5D2'
 
         self.name = 'iqx'
         self.tc = '#000000'
@@ -85,7 +85,7 @@ class DefaultStyle:
             'rz': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
-            'swap': other_color,
+            'swap': clifford_color,
             'multi': other_color,
             'meas': non_gate_color
         }
