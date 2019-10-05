@@ -103,7 +103,7 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None):
+                 reverse_bits=False, layout=None, fold=25):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -145,6 +145,10 @@ class MatplotlibDrawer:
                 with open(style, 'r') as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
+
+        self.fold = self._style.fold or fold  # self._style.fold should be removed after 0.10
+        if self.fold < 2:
+            self.fold = -1
 
         self.figure = plt.figure()
         self.figure.patch.set_facecolor(color=self._style.bg)
@@ -457,8 +461,8 @@ class MatplotlibDrawer:
                 y_reg.append(qreg['y'])
         x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) + 0.5
+        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -616,7 +620,7 @@ class MatplotlibDrawer:
 
         # lf line
         if feedline_r:
-            self._linefeed_mark((self._style.fold + 1 - 0.1,
+            self._linefeed_mark((self.fold + 1 - 0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
         if feedline_l:
             self._linefeed_mark((0.1,
@@ -633,12 +637,12 @@ class MatplotlibDrawer:
         for key, qreg in self._qreg_dict.items():
             q_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=qreg['y'],
-                                    fold=self._style.fold)
+                                    fold=self.fold)
         c_anchors = {}
         for key, creg in self._creg_dict.items():
             c_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=creg['y'],
-                                    fold=self._style.fold)
+                                    fold=self.fold)
         #
         # draw gates
         #
@@ -947,10 +951,10 @@ class MatplotlibDrawer:
             max_anc = max(anchors)
         else:
             max_anc = 0
-        n_fold = max(0, max_anc - 1) // self._style.fold
+        n_fold = max(0, max_anc - 1) // self.fold
         # window size
-        if max_anc > self._style.fold > 0:
-            self._cond['xmax'] = self._style.fold + 1 + self.x_offset
+        if max_anc > self.fold > 0:
+            self._cond['xmax'] = self.fold + 1 + self.x_offset
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
             self._cond['xmax'] = max_anc + 1 + self.x_offset
@@ -963,9 +967,9 @@ class MatplotlibDrawer:
         # draw gate number
         if self._style.index:
             for ii in range(max_anc):
-                if self._style.fold > 0:
-                    x_coord = ii % self._style.fold + 1
-                    y_coord = - (ii // self._style.fold) * (self._cond['n_lines'] + 1) + 0.7
+                if self.fold > 0:
+                    x_coord = ii % self.fold + 1
+                    y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7
