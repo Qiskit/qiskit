@@ -17,7 +17,7 @@ Classical register reference object.
 """
 import itertools
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from .register import Register
 from .bit import Bit
 
@@ -29,7 +29,7 @@ class Clbit(Bit):
         if isinstance(register, ClassicalRegister):
             super().__init__(register, index)
         else:
-            raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
+            raise CircuitError('Clbit needs a ClassicalRegister and %s was provided' %
                               type(register).__name__)
 
 

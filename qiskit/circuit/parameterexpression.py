@@ -21,7 +21,7 @@ import operator
 import numpy
 import sympy
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class ParameterExpression():
@@ -54,7 +54,7 @@ class ParameterExpression():
                                      numeric value to which they will be bound.
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_values contains Parameters outside those in self.
                 - If a non-numeric value is passed in parameter_values.
             ZeroDivisionError:
@@ -98,7 +98,7 @@ class ParameterExpression():
                                   replaced.
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_map contains Parameters outside those in self.
                 - If the replacement Parameters in parameter_map would result in
                   a name conflict in the generated expression.
@@ -131,7 +131,7 @@ class ParameterExpression():
     def _raise_if_passed_unknown_parameters(self, parameters):
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
-            raise QiskitError('Cannot bind Parameters ({}) not present in '
+            raise CircuitError('Cannot bind Parameters ({}) not present in '
                               'expression.'.format(
                                   [str(p) for p in unknown_parameters]))
 
@@ -139,7 +139,7 @@ class ParameterExpression():
         nonreal_parameter_values = {p: v for p, v in parameter_values.items()
                                     if not isinstance(v, numbers.Real)}
         if nonreal_parameter_values:
-            raise QiskitError('Expression cannot bind non-real or non-numeric '
+            raise CircuitError('Expression cannot bind non-real or non-numeric '
                               'values ({}).'.format(nonreal_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, other_parameters):
@@ -150,7 +150,7 @@ class ParameterExpression():
         conflicting_names = {name for name in shared_names
                              if self_names[name] != other_names[name]}
         if conflicting_names:
-            raise QiskitError('Name conflict applying operation for parameters: '
+            raise CircuitError('Name conflict applying operation for parameters: '
                               '{}'.format(conflicting_names))
 
     def _apply_operation(self, operation, other, reflected=False):
@@ -166,7 +166,7 @@ class ParameterExpression():
                 to "other operator self". For use in e.g. __radd__, ...
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_map contains Parameters outside those in self.
                 - If the replacement Parameters in parameter_map would result in
                   a name conflict in the generated expression.
