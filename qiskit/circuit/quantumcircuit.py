@@ -84,7 +84,7 @@ class QuantumCircuit:
 
         if not isinstance(name, str):
             raise CircuitError("The circuit name should be a string "
-                              "(or None to auto-generate a name).")
+                               "(or None to auto-generate a name).")
 
         self.name = name
 
@@ -334,12 +334,12 @@ class QuantumCircuit:
                 ret = [in_array[index] for index in bit_representation]
             else:
                 raise CircuitError('Not able to expand a %s (%s)' % (bit_representation,
-                                                                    type(bit_representation)))
+                                                                     type(bit_representation)))
         except IndexError:
             raise CircuitError('Index out of range.')
         except TypeError:
             raise CircuitError('Type error handling %s (%s)' % (bit_representation,
-                                                               type(bit_representation)))
+                                                                type(bit_representation)))
         return ret
 
     def qbit_argument_conversion(self, qubit_representation):
@@ -463,13 +463,13 @@ class QuantumCircuit:
                 regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
             else:
                 raise CircuitError("QuantumCircuit parameters can be Registers or Integers."
-                                  " If Integers, up to 2 arguments. QuantumCircuit was called"
-                                  " with %s." % (regs,))
+                                   " If Integers, up to 2 arguments. QuantumCircuit was called"
+                                   " with %s." % (regs,))
 
         for register in regs:
             if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise CircuitError("register name \"%s\" already exists"
-                                  % register.name)
+                                   % register.name)
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
             elif isinstance(register, ClassicalRegister):
@@ -984,8 +984,8 @@ class QuantumCircuit:
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError('ParameterVector {} has length {}, which '
-                                      'differs from value list {} of '
-                                      'len {}'.format(param, len(param), value, len(value)))
+                                       'differs from value list {} of '
+                                       'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
         return unrolled_value_dict
 

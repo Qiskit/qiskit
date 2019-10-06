@@ -41,10 +41,10 @@ class Register:
             size = int(size)
         except Exception:
             raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
-                              % (type(size).__name__, size))
+                               % (type(size).__name__, size))
         if size <= 0:
             raise CircuitError("Register size must be positive (%s '%s' was provided)"
-                              % (type(size).__name__, size))
+                               % (type(size).__name__, size))
 
         # validate (or cast) name
         if name is None:
@@ -54,7 +54,7 @@ class Register:
                 name = str(name)
             except Exception:
                 raise CircuitError("The circuit name should be castable to a string "
-                                  "(or None for autogenerate a name).")
+                                   "(or None for autogenerate a name).")
             name_format = re.compile('[a-z][a-zA-Z0-9_]*')
             if name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)

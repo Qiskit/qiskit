@@ -135,7 +135,7 @@ class Gate(Instruction):
                 yield [arg0, qarg1[0]], []
         else:
             raise CircuitError('Not sure how to combine these two qubit arguments:\n %s\n %s' %
-                              (qarg0, qarg1))
+                               (qarg0, qarg1))
 
     @staticmethod
     def _broadcast_3_or_more_args(qargs):

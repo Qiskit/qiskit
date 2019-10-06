@@ -48,7 +48,7 @@ class QuantumCircuitData(MutableSequence):
 
         if len(broadcast_args) > 1:
             raise CircuitError('QuantumCircuit.data modification does not '
-                              'support argument broadcasting.')
+                               'support argument broadcasting.')
 
         qargs, cargs = broadcast_args[0]
 

@@ -44,7 +44,7 @@ class InstructionSet:
         """Add an instruction and its context (where it's attached)."""
         if not isinstance(gate, Instruction):
             raise CircuitError("attempt to add non-Instruction" +
-                              " to InstructionSet")
+                               " to InstructionSet")
         self.instructions.append(gate)
         self.qargs.append(qargs)
         self.cargs.append(cargs)

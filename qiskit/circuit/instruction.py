@@ -163,7 +163,7 @@ class Instruction:
                 self._params.append(sympy.Number(single_param.item()))
             else:
                 raise CircuitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), self.name))
+                                   "{1}".format(type(single_param), self.name))
 
     @property
     def definition(self):

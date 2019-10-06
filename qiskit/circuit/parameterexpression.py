@@ -132,7 +132,7 @@ class ParameterExpression():
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
             raise CircuitError('Cannot bind Parameters ({}) not present in '
-                              'expression.'.format(
+                               'expression.'.format(
                                   [str(p) for p in unknown_parameters]))
 
     def _raise_if_passed_non_real_value(self, parameter_values):
@@ -140,7 +140,7 @@ class ParameterExpression():
                                     if not isinstance(v, numbers.Real)}
         if nonreal_parameter_values:
             raise CircuitError('Expression cannot bind non-real or non-numeric '
-                              'values ({}).'.format(nonreal_parameter_values))
+                               'values ({}).'.format(nonreal_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, other_parameters):
         self_names = {p.name: p for p in self.parameters}
@@ -151,7 +151,7 @@ class ParameterExpression():
                              if self_names[name] != other_names[name]}
         if conflicting_names:
             raise CircuitError('Name conflict applying operation for parameters: '
-                              '{}'.format(conflicting_names))
+                               '{}'.format(conflicting_names))
 
     def _apply_operation(self, operation, other, reflected=False):
         """Base method implementing math operations between Parameters and
