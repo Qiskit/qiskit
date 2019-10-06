@@ -30,10 +30,13 @@ class DefaultStyle:
         other_color = '#8A3FFC'
         pauli_color = '#20D5D2'
         iden_color = '#20D5D2'
+        rot_color = '#006161'
+        dark_font = '#13171A'
+        light_font = '#F2F4F8'
 
         self.name = 'iqx'
-        self.tc = '#000000'
-        self.sc = '#000000'
+        self.tc = light_font
+        self.sc = light_font
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
@@ -63,7 +66,7 @@ class DefaultStyle:
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
-            'reset': '\\left|0\\right\\rangle'
+            'reset': '|0\\rangle'
         }
         self.dispcol = {
             'u0': basis_color,
@@ -80,14 +83,38 @@ class DefaultStyle:
             'sdg': clifford_color,
             't': other_color,
             'tdg': other_color,
-            'rx': other_color,
-            'ry': other_color,
-            'rz': other_color,
+            'rx': rot_color,
+            'ry': rot_color,
+            'rz': rot_color,
             'reset': non_gate_color,
-            'target': '#ffffff',
+            'cx_target': dark_font,
+            'other_target': light_font,
             'swap': clifford_color,
             'multi': other_color,
             'meas': non_gate_color
+        }
+        self.fontcol = {
+            'u0': light_font,
+            'u1': light_font,
+            'u2': light_font,
+            'u3': light_font,
+            'id': dark_font,
+            'x': dark_font,
+            'y': dark_font,
+            'z': dark_font,
+            'h': dark_font,
+            'cx': dark_font,
+            's': dark_font,
+            'sdg': dark_font,
+            't': light_font,
+            'tdg': light_font,
+            'rx': light_font,
+            'ry': light_font,
+            'rz': light_font,
+            'reset': light_font,
+            'multi': light_font,
+            'meas': light_font,
+            'other': light_font
         }
         self.latexmode = False
         self.fold = None  # To be removed after 0.10 is released
@@ -186,10 +213,34 @@ class BWStyle:
             'ry': '#ffffff',
             'rz': '#ffffff',
             'reset': '#ffffff',
-            'target': '#ffffff',
+            'cx_target': '#ffffff',
+            'other_target':'#ffffff',
             'meas': '#ffffff',
             'swap': '#000000',
             'multi': '#000000'
+        }
+        self.fontcol = {
+            'u0': '#000000',
+            'u1': '#000000',
+            'u2': '#000000',
+            'u3': '#000000',
+            'id': '#000000',
+            'x': '#000000',
+            'y': '#000000',
+            'z': '#000000',
+            'h': '#000000',
+            'cx': '#000000',
+            's': '#000000',
+            'sdg': '#000000',
+            't': '#000000',
+            'tdg': '#000000',
+            'rx': '#000000',
+            'ry': '#000000',
+            'rz': '#000000',
+            'reset': '#000000',
+            'multi': '#000000',
+            'meas': '#000000',
+            'other': '#000000',
         }
         self.latexmode = False
         self.fold = 25

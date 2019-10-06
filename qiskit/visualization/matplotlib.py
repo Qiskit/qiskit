@@ -236,7 +236,14 @@ class MatplotlibDrawer:
                              clip_on=True,
                              zorder=PORDER_TEXT)
 
-    def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
+    def _gate(self, xy, fc=None, wide=False, text=None, subtext=None,
+              disp_color=None, sub_color=None):
+
+        if not disp_color:
+            disp_color = self._style.gt
+        if not sub_color:
+            sub_color = self._style.sc
+
         xpos, ypos = xy
 
         if wide:
@@ -266,13 +273,9 @@ class MatplotlibDrawer:
             sub_font_size = self._style.sfs
             # check if gate is not unitary
             if text in ['reset']:
-                disp_color = self._style.not_gate_lc
-                sub_color = self._style.not_gate_lc
+                disp_color = self._style.fontcol['reset']
+                sub_color = self._style.fontcol['reset']
                 font_size = self._style.math_fs
-
-            else:
-                disp_color = self._style.gt
-                sub_color = self._style.sc
 
             if text in self._style.dispcol:
                 disp_text = "${}$".format(self._style.disptex[text])
@@ -414,7 +417,7 @@ class MatplotlibDrawer:
             fc = self._style.gc
             ec = self._style.gc
         if fc is None:
-            fc = self._style.dispcol['target']
+            fc = self._style.dispcol['other_target']
         if ec is None:
             ec = self._style.lc
         if ac is None:
@@ -424,8 +427,7 @@ class MatplotlibDrawer:
 
         linewidth = 2
 
-        if self._style.dispcol['target'] == '#ffffff':
-            add_width = self._style.colored_add_width
+        add_width = self._style.colored_add_width
 
         xpos, ypos = xy
 
@@ -442,9 +444,10 @@ class MatplotlibDrawer:
                      [ypos, ypos], color=ac, linewidth=linewidth,
                      zorder=PORDER_GATE+1)
 
-    def _swap(self, xy):
+    def _swap(self, xy, color=None):
         xpos, ypos = xy
-        color = self._style.dispcol['swap']
+        if not color:
+            color = self._style.dispcol['swap']
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
                      color=color, linewidth=2, zorder=PORDER_LINE+1)
@@ -805,34 +808,43 @@ class MatplotlibDrawer:
                 #
                 elif len(q_xy) == 1:
                     disp = op.name
+                    disp_color = None
+                    sub_color = None
+                    if disp in self._style.fontcol.keys():
+                        disp_color = self._style.fontcol[disp]
+                        sub_color = self._style.fontcol[disp]
                     if param:
                         prm = '({})'.format(param)
                         if len(prm) < 20:
                             self._gate(q_xy[0], wide=_iswide, text=disp,
-                                       subtext=prm)
+                                       subtext=prm, disp_color=disp_color,
+                                       sub_color=sub_color)
                         else:
-                            self._gate(q_xy[0], wide=_iswide, text=disp)
+                            self._gate(q_xy[0], wide=_iswide, text=disp,
+                                       disp_color=disp_color,
+                                       sub_color=sub_color)
                     else:
-                        self._gate(q_xy[0], wide=_iswide, text=disp)
+                        self._gate(q_xy[0], wide=_iswide, text=disp,
+                                   disp_color=disp_color,
+                                   sub_color=sub_color)
                 #
                 # draw multi-qubit gates (n=2)
                 #
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
-                        if self._style.dispcol['cx'] != '#ffffff':
-                            add_width = self._style.colored_add_width
-                        else:
-                            add_width = None
+                        
+                        add_width = self._style.colored_add_width
+                
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
                                          ec=self._style.dispcol['cx'])
                         if self._style.name != 'bw':
                             self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
                                             ec=self._style.dispcol['cx'],
-                                            ac=self._style.dispcol['target'],
+                                            ac=self._style.dispcol['cx_target'],
                                             add_width=add_width)
                         else:
-                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['target'],
+                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx_target'],
                                             ec=self._style.dispcol['cx'],
                                             ac=self._style.dispcol['cx'],
                                             add_width=add_width)
@@ -841,6 +853,7 @@ class MatplotlibDrawer:
                     # cz for latexmode
                     elif op.name == 'cz':
                         disp = op.name.replace('c', '')
+                        color = self._style.dispcol['z']
                         if self._style.name != 'bw':
                             color = self._style.dispcol['cx']
                             self._ctrl_qubit(q_xy[0],
@@ -848,7 +861,9 @@ class MatplotlibDrawer:
                                              ec=color)
                         else:
                             self._ctrl_qubit(q_xy[0])
-                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color)
+                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color,
+                                   disp_color=self._style.fontcol['cx'],
+                                   sub_color=self._style.fontcol['cx'])
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
                             self._line(qreg_b, qreg_t,
@@ -864,14 +879,20 @@ class MatplotlibDrawer:
                             color = self._style.dispcol['multi']
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
+
+                        disp_color = self._style.fontcol['other']
+                        sub_color = self._style.fontcol['other']
                         if param:
                             self._gate(q_xy[1], wide=_iswide,
                                        text=disp,
                                        fc=color,
-                                       subtext='{}'.format(param))
+                                       subtext='{}'.format(param),
+                                       disp_color=disp_color,
+                                       sub_color=sub_color)
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
-                                       fc=color)
+                                       fc=color, disp_color=disp_color,
+                                       sub_color=sub_color)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=color)
 
@@ -902,8 +923,8 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[0],
                                          fc=self._style.dispcol['multi'],
                                          ec=self._style.dispcol['multi'])
-                        self._swap(q_xy[1])
-                        self._swap(q_xy[2])
+                        self._swap(q_xy[1], color=self._style.dispcol['multi'])
+                        self._swap(q_xy[2], color=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # ccx gate
@@ -915,9 +936,9 @@ class MatplotlibDrawer:
                         if self._style.name != 'bw':
                             self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
                                             ec=self._style.dispcol['multi'],
-                                            ac=self._style.dispcol['target'])
+                                            ac=self._style.dispcol['other_target'])
                         else:
-                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'],
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['other_target'],
                                             ec=self._style.dispcol['multi'],
                                             ac=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
