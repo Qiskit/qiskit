@@ -20,7 +20,7 @@ import logging
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BaseProvider
-from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.exceptions import BackendNotFoundError
 from qiskit.providers.providerutils import resolve_backend_name, filter_backends
 
 from .qasm_simulator import QasmSimulatorPy
@@ -60,7 +60,7 @@ class BasicAerProvider(BaseProvider):
                 )
                 name = resolved_name
             except LookupError:
-                raise QiskitBackendNotFoundError(
+                raise BackendNotFoundError(
                     "The '{}' backend is not installed in your system.".format(name))
 
         return super().get_backend(name=name, **kwargs)

@@ -29,7 +29,7 @@ class JobTimeoutError(JobError):
     pass
 
 
-class QiskitBackendNotFoundError(QiskitError):
+class BackendNotFoundError(QiskitError):
     """Base class for errors raised while looking for a backend."""
 
     pass
