@@ -18,6 +18,7 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+import copy
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -171,6 +172,42 @@ class PassManager():
 
     def __setitem__(self, index, item):
         self.replace(index, item)
+
+    def __len__(self):
+        return len(self.working_list)
+
+    def __getitem__(self, index):
+        max_iteration = self.passmanager_options['max_iteration']
+        call_back = self.callback
+        new_passmanager = PassManager(passes=None, max_iteration=max_iteration, callback=call_back)
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            for i in range(start, stop, step):
+                new_passmanager.working_list.append(self.working_list[i])
+        elif isinstance(index, int):
+            new_passmanager.working_list.append(self.working_list[index])
+        elif isinstance(index, tuple):
+            raise NotImplementedError('Tuple as index')
+        else:
+            raise TypeError('Invalid argument type: {}'.format(type(index)))
+        return new_passmanager
+
+    def __add__(self, other):
+        if isinstance(other, PassManager):
+            new_passmanager = copy.deepcopy(self)
+            new_passmanager.reset()
+            new_passmanager.working_list += other.working_list
+            return new_passmanager
+        else:
+            try:
+                passes = PassManager._normalize_passes(other)
+                new_passmanager = copy.deepcopy(self)
+                new_passmanager.reset()
+                new_passmanager.append(passes)
+                return new_passmanager
+            except TranspilerError:
+                raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
+                                                                              other.__class__))
 
     @staticmethod
     def _normalize_passes(passes):
