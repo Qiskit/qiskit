@@ -833,9 +833,9 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
-                        
+
                         add_width = self._style.colored_add_width
-                
+
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
                                          ec=self._style.dispcol['cx'])
                         if self._style.name != 'bw':

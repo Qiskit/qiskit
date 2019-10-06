@@ -35,8 +35,8 @@ class DefaultStyle:
         light_font = '#F2F4F8'
 
         self.name = 'iqx'
-        self.tc = light_font
-        self.sc = light_font
+        self.tc = dark_font
+        self.sc = dark_font
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
@@ -214,7 +214,7 @@ class BWStyle:
             'rz': '#ffffff',
             'reset': '#ffffff',
             'cx_target': '#ffffff',
-            'other_target':'#ffffff',
+            'other_target': '#ffffff',
             'meas': '#ffffff',
             'swap': '#000000',
             'multi': '#000000'
