@@ -26,7 +26,6 @@ from qiskit import ClassicalRegister
 from qiskit import execute, BasicAer
 from qiskit.quantum_info import state_fidelity
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 

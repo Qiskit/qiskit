@@ -132,8 +132,7 @@ class ParameterExpression():
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
             raise CircuitError('Cannot bind Parameters ({}) not present in '
-                               'expression.'.format(
-                                  [str(p) for p in unknown_parameters]))
+                               'expression.'.format([str(p) for p in unknown_parameters]))
 
     def _raise_if_passed_non_real_value(self, parameter_values):
         nonreal_parameter_values = {p: v for p, v in parameter_values.items()
