@@ -36,7 +36,7 @@ class BaseProvider(ABC):
             BaseBackend: a backend matching the filtering.
 
         Raises:
-            QiskitBackendNotFoundError: if no backend could be found or
+            BackendNotFoundError: if no backend could be found or
                 more than one backend matches the filtering criteria.
         """
         backends = self.backends(name, **kwargs)
