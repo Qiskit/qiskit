@@ -113,7 +113,6 @@ def maybe_add_aer_expectation_instruction(qobj, options):
 
 def _split_qobj_to_qobjs(qobj, chunk_size):
     qobjs = []
-    temp_qobjs = []
     num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
     if num_chunks == 1:
         qobjs = [qobj]
@@ -125,49 +124,46 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 temp_qobj = copy.deepcopy(qobj_template)
                 temp_qobj.qobj_id = str(uuid.uuid4())
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
-                # Split more by gates
-                if MAX_GATES_PER_JOB is not None:
-                    max_gates_per_job = int(MAX_GATES_PER_JOB)
-                    num_gates = 0
-                    for j in range(len(temp_qobj.experiments)):
-                        num_gates += len(temp_qobj.experiments[j].instructions)
-                    if num_gates > max_gates_per_job:
-                        temp_qobjs = _split_qobj_to_qobjs_by_gate(temp_qobj, max_gates_per_job)
-                        for temp_qobj in temp_qobjs:
-                            qobjs.append(temp_qobj)
-                    else:
-                        qobjs.append(temp_qobj)
-                else:
-                    qobjs.append(temp_qobj)
+                qobjs = _maybe_split_qobj_by_gates(qobjs, temp_qobj)
         else:
             raise AquaError("Only support QasmQobj now.")
 
     return qobjs
 
 
-def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
-    tqobjs = []
-    num_gates = 0
-    qobj_template = QasmQobj(qobj_id=qobj.qobj_id,
-                             config=qobj.config, experiments=[], header=qobj.header)
-    temp_qobj = copy.deepcopy(qobj_template)
-    temp_qobj.qobj_id = str(uuid.uuid4())
-    temp_qobj.experiments = []
-    for i in range(len(qobj.experiments)):
-        num_gates += len(qobj.experiments[i].instructions)
-        if num_gates <= chunk_size:
-            temp_qobj.experiments.append(qobj.experiments[i])
-        else:
-            tqobjs.append(temp_qobj)
-            # Initialize for next temp_qobj
+def _maybe_split_qobj_by_gates(qobjs, qobj):
+    if MAX_GATES_PER_JOB is not None:
+        max_gates_per_job = int(MAX_GATES_PER_JOB)
+        total_num_gates = 0
+        for j in range(len(qobj.experiments)):
+            total_num_gates += len(qobj.experiments[j].instructions)
+        # split by gates if total number of gates in a qobj exceed MAX_GATES_PER_JOB
+        if total_num_gates > max_gates_per_job:
+            qobj_template = QasmQobj(qobj_id=qobj.qobj_id,
+                                     config=qobj.config, experiments=[], header=qobj.header)
             temp_qobj = copy.deepcopy(qobj_template)
             temp_qobj.qobj_id = str(uuid.uuid4())
-            temp_qobj.experiments.append(qobj.experiments[i])
-            num_gates = len(qobj.experiments[i].instructions)
+            temp_qobj.experiments = []
+            num_gates = 0
+            for i in range(len(qobj.experiments)):
+                num_gates += len(qobj.experiments[i].instructions)
+                if num_gates <= max_gates_per_job:
+                    temp_qobj.experiments.append(qobj.experiments[i])
+                else:
+                    qobjs.append(temp_qobj)
+                    # Initialize for next temp_qobj
+                    temp_qobj = copy.deepcopy(qobj_template)
+                    temp_qobj.qobj_id = str(uuid.uuid4())
+                    temp_qobj.experiments.append(qobj.experiments[i])
+                    num_gates = len(qobj.experiments[i].instructions)
 
-    tqobjs.append(temp_qobj)
+            qobjs.append(temp_qobj)
+        else:
+            qobjs.append(qobj)
+    else:
+        qobjs.append(qobj)
 
-    return tqobjs
+    return qobjs
 
 
 def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation):
