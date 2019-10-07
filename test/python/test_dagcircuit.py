@@ -211,13 +211,13 @@ class TestDagOperations(QiskitTestCase):
         # Single qubit gate conditional: qc.h(qr[2]).c_if(cr, 3)
 
         h_gate = HGate()
-        h_gate.control = self.condition
+        h_gate.condition = self.condition
         h_node = self.dag.apply_operation_back(
-            h_gate, [self.qubit2], [], h_gate.control)
+            h_gate, [self.qubit2], [], h_gate.condition)
 
         self.assertEqual(h_node.qargs, [self.qubit2])
         self.assertEqual(h_node.cargs, [])
-        self.assertEqual(h_node.condition, h_gate.control)
+        self.assertEqual(h_node.condition, h_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(h_node, data=True)),
@@ -253,13 +253,13 @@ class TestDagOperations(QiskitTestCase):
         self.dag.add_creg(new_creg)
 
         meas_gate = Measure()
-        meas_gate.control = (new_creg, 0)
+        meas_gate.condition = (new_creg, 0)
         meas_node = self.dag.apply_operation_back(
-            meas_gate, [self.qubit0], [self.clbit0], meas_gate.control)
+            meas_gate, [self.qubit0], [self.clbit0], meas_gate.condition)
 
         self.assertEqual(meas_node.qargs, [self.qubit0])
         self.assertEqual(meas_node.cargs, [self.clbit0])
-        self.assertEqual(meas_node.condition, meas_gate.control)
+        self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
@@ -292,13 +292,13 @@ class TestDagOperations(QiskitTestCase):
         # register. qc.measure(qr[0], cr[0]).c_if(cr, 3)
 
         meas_gate = Measure()
-        meas_gate.control = self.condition
+        meas_gate.condition = self.condition
         meas_node = self.dag.apply_operation_back(
             meas_gate, [self.qubit1], [self.clbit1], self.condition)
 
         self.assertEqual(meas_node.qargs, [self.qubit1])
         self.assertEqual(meas_node.cargs, [self.clbit1])
-        self.assertEqual(meas_node.condition, meas_gate.control)
+        self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
@@ -873,9 +873,9 @@ class TestDagSubstitute(QiskitTestCase):
         # case.
 
         instr = Instruction('opaque', 1, 1, [])
-        instr.control = self.condition
+        instr.condition = self.condition
         instr_node = self.dag.apply_operation_back(
-            instr, [self.qubit0], [self.clbit1], instr.control)
+            instr, [self.qubit0], [self.clbit1], instr.condition)
 
         sub_dag = DAGCircuit()
         sub_qr = QuantumRegister(1, 'sqr')

@@ -698,13 +698,13 @@ class QuantumCircuit:
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
-            # Assuming here that there is no controlled
+            # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instr.control:
+            if instr.condition:
                 # Controls operate over all bits in the
                 # classical register they use.
-                cint = reg_map[instr.control[0].name]
-                for off in range(instr.control[0].size):
+                cint = reg_map[instr.condition[0].name]
+                for off in range(instr.condition[0].size):
                     if cint + off not in reg_ints:
                         reg_ints.append(cint + off)
                         levels.append(op_stack[cint + off] + 1)
@@ -782,15 +782,15 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = qargs + cargs
-                num_qargs = len(args) + (1 if instr.control else 0)
+                num_qargs = len(args) + (1 if instr.condition else 0)
 
             if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.control and not unitary_only:
-                    creg = instr.control[0]
+                if instr.condition and not unitary_only:
+                    creg = instr.condition[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int + coff
