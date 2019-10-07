@@ -13,3 +13,4 @@
 # that they have been altered from the originals.
 
 """Module for functions for post processing results."""
+from .average import average_data
