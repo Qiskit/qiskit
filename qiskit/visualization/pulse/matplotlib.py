@@ -486,11 +486,10 @@ class ScheduleDrawer:
                 ax.axvline(tf*dt, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-        def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
                        label=False, framechange=True):
         y0 = 0
         prev_labels = []
-
         # Test if a channel has negative value
         test1 = True
         for channel, events in output_channels.items():
@@ -507,8 +506,8 @@ class ScheduleDrawer:
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
                 # if the current channel and previous channel  have not negative values
-                
                 test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
+               
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -536,6 +535,7 @@ class ScheduleDrawer:
 
             else:
                 continue
+
             # plot label
             ax.text(x=0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
