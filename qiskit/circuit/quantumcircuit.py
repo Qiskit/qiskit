@@ -560,8 +560,8 @@ class QuantumCircuit:
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True):
+             reverse_bits=False, justify=None, idle_wires=True, vertical_compression='medium',
+             with_layout=True, fold=None):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -604,6 +604,12 @@ class QuantumCircuit:
             idle_wires (bool): Include idle wires. Default is True.
             with_layout (bool): Include layout information, with labels on the physical
                 layout. Default is True.
+            fold (int): Sets pagination. It can be disabled using -1.
+                In `text`, sets the length of the lines. This useful when the
+                drawing does not fit in the console. If None (default), it will try to
+                guess the console width using `shutil.get_terminal_size()`. However, if
+                running in jupyter, the default line length is set to 80 characters.
+                In `mpl` is the amount of operations before folding. Default is 25.
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
                 * PIL.Image: (output `latex`) an in-memory representation of the
@@ -629,7 +635,7 @@ class QuantumCircuit:
                               justify=justify,
                               vertical_compression=vertical_compression,
                               idle_wires=idle_wires,
-                              with_layout=with_layout)
+                              with_layout=with_layout, fold=fold)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -692,13 +698,13 @@ class QuantumCircuit:
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
-            # Assuming here that there is no controlled
+            # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instr.control:
+            if instr.condition:
                 # Controls operate over all bits in the
                 # classical register they use.
-                cint = reg_map[instr.control[0].name]
-                for off in range(instr.control[0].size):
+                cint = reg_map[instr.condition[0].name]
+                for off in range(instr.condition[0].size):
                     if cint + off not in reg_ints:
                         reg_ints.append(cint + off)
                         levels.append(op_stack[cint + off] + 1)
@@ -776,15 +782,15 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = qargs + cargs
-                num_qargs = len(args) + (1 if instr.control else 0)
+                num_qargs = len(args) + (1 if instr.condition else 0)
 
             if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.control and not unitary_only:
-                    creg = instr.control[0]
+                if instr.condition and not unitary_only:
+                    creg = instr.condition[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int + coff
