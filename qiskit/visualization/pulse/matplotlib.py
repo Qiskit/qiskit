@@ -507,7 +507,6 @@ class ScheduleDrawer:
                 color = self._get_channel_color(channel)
                 # if the current channel and previous channel  have not negative values
                 test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
-               
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
