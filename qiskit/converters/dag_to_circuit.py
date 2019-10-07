@@ -50,8 +50,8 @@ def dag_to_circuit(dag):
         for clbit in node.cargs:
             clbits.append(cregs[clbit.register.name][clbit.index])
 
-        # Get arguments for classical control (if any)
+        # Get arguments for classical condition (if any)
         inst = node.op.copy()
-        inst.control = node.condition
+        inst.condition = node.condition
         circuit.append(inst, qubits, clbits)
     return circuit

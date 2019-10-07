@@ -139,10 +139,16 @@ def config_tab(backend):
 
     config_dict = {**status, **config}
 
-    upper_list = ['n_qubits', 'operational',
-                  'status_msg', 'pending_jobs',
-                  'backend_version', 'basis_gates',
-                  'max_shots', 'max_experiments']
+    upper_list = ['n_qubits']
+
+    if 'quantum_volume' in config.keys():
+        if config['quantum_volume']:
+            upper_list.append('quantum_volume')
+
+    upper_list.extend(['operational',
+                       'status_msg', 'pending_jobs',
+                       'backend_version', 'basis_gates',
+                       'max_shots', 'max_experiments'])
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
