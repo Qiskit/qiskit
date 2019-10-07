@@ -341,7 +341,6 @@ class Instruction:
     @property
     def control(self):
         """temporary classical control. Will be deprecated."""
-        import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
                       'to create quantum controlled gates')
@@ -349,7 +348,6 @@ class Instruction:
 
     @control.setter
     def control(self, value):
-        import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
                       'to create quantum controlled gates')
