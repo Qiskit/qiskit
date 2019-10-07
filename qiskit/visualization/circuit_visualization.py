@@ -106,7 +106,7 @@ def circuit_drawer(circuit,
             In `mpl` is the amount of operations before folding. Default is 25.
         latex_labels (bool): When set to true input labels from the circuit
             are treated as already encoded for latex and no conversion is
-            performed. (latex and latex_source only)            
+            performed. (latex and latex_source only)
 
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
