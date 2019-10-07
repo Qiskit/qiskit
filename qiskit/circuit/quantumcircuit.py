@@ -561,7 +561,7 @@ class QuantumCircuit:
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, latex_labels=False):
+             with_layout=True, fold=None, latex_labels=False):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -604,9 +604,15 @@ class QuantumCircuit:
             idle_wires (bool): Include idle wires. Default is True.
             with_layout (bool): Include layout information, with labels on the physical
                 layout. Default is True.
+            fold (int): Sets pagination. It can be disabled using -1.
+                In `text`, sets the length of the lines. This useful when the
+                drawing does not fit in the console. If None (default), it will try to
+                guess the console width using `shutil.get_terminal_size()`. However, if
+                running in jupyter, the default line length is set to 80 characters.
+                In `mpl` is the amount of operations before folding. Default is 25.
             latex_labels (bool): When set to true input labels from the circuit
                 are treated as already encoded for latex and no conversion is
-                performed. (latex and latex_source only)
+                performed. (latex and latex_source only)                
 
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
@@ -634,6 +640,7 @@ class QuantumCircuit:
                               vertical_compression=vertical_compression,
                               idle_wires=idle_wires,
                               with_layout=with_layout,
+                              fold=fold,
                               latex_labels=latex_labels)
 
     def size(self):
@@ -856,6 +863,69 @@ class QuantumCircuit:
         if name:
             cpy.name = name
         return cpy
+
+    def _create_creg(self, length, name):
+        """ Creates a creg, checking if ClassicalRegister with same name exists
+        """
+        if name in [creg.name for creg in self.cregs]:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = name
+            new_creg = ClassicalRegister(length)
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(length, name)
+        return new_creg
+
+    def measure_active(self):
+        """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
+        a size equal to the number of non-idle qubits being measured.
+        """
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        dag = circuit_to_dag(self)
+        qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
+        new_creg = self._create_creg(len(qubits_to_measure), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(qubits_to_measure, new_creg)
+
+    def measure_all(self):
+        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
+        size equal to the number of qubits being measured.
+        """
+        new_creg = self._create_creg(len(self.qubits), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(self.qubits, new_creg)
+
+    def remove_final_measurements(self):
+        """Removes final measurement on all qubits if they are present.
+        Deletes the ClassicalRegister that was used to store the values from these measurements
+        if it is idle.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
+        remove_final_meas = RemoveFinalMeasurements()
+        new_dag = remove_final_meas.run(dag)
+
+        # Set self's cregs and instructions to match the new DAGCircuit's
+        self.data.clear()
+        self.cregs = list(new_dag.cregs.values())
+
+        for node in new_dag.topological_op_nodes():
+            qubits = []
+            for qubit in node.qargs:
+                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
+
+            clbits = []
+            for clbit in node.cargs:
+                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
+
+            # Get arguments for classical condition (if any)
+            inst = node.op.copy()
+            inst.condition = node.condition
+            self.append(inst, qubits, clbits)
 
     @staticmethod
     def from_qasm_file(path):
