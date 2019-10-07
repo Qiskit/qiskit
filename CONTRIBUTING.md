@@ -549,20 +549,100 @@ it is necessary to first judge how widely used and/or important the feature
 is to end users and decided an obsolescence date based on that.
 
 3. An obsolescence date for the feature will be set. The feature must remain
-intact and working (although with proper warning being emitted) in all releases
-pushed until after that obsolescence date. At the very minimum the feature (or
-API, or configuration option) should be marked as deprecated (and still be
-supported) for at least three months of linear time from the release date of the
-first release to include the deprecation warning. For example, if a feature were
-deprecated in the 0.9.0 release of terra, which was released on August 22, 2019,
-then that feature should still appear in all releases until at least
-November 22, 2019. Since releases do not occur at fixed time intervals this may
-mean that a deprecation warning may only occur in one release prior to removal.
+intact and working (although with the proper warning being emitted) in all
+releases pushed until after that obsolescence date. At the very minimum the
+feature (or API, or configuration option) should be marked as deprecated (and
+still be supported) for at least three months of linear time from the release
+date of the first release to include the deprecation warning. For example, if a
+feature were deprecated in the 0.9.0 release of terra, which was released on
+August 22, 2019, then that feature should still appear in all releases until at
+least November 22, 2019. Since releases do not occur at fixed time intervals
+this may mean that a deprecation warning may only occur in one release prior to
+removal.
 
 Note that this delay is a minimum. For significant features, it is recommend
 that the deprecated feature appears for at least double that time. Also, per
 the stable branch policy, deprecation removals can only occur during minor
 version releases, they are not appropriate for backporting.
+
+### Deprecation Warnings
+
+The proper way to raise a deprecation warning is to use the ``warn`` function
+from the [`warnings` module](https://docs.python.org/3/library/warnings.html)
+in the python standard library should be used. The warning category class
+should be a ``DeprecationWarning``. An example would be:
+
+```python
+import warnings
+
+def foo(input):
+    warnings.warn('The foo module is deprecated and will be removed in the '
+                  'future. You should use the qiskit.bar() function instead.',
+                  DeprecationWarning, stack_level=2)
+```
+
+One thing to note here is the `stack_level` kwarg on the warn() call. This
+argument is used to specify which level in the call stack will be used as
+the line initiating the warning. Typically `stack_level` should be set to 2
+as this will show the line calling the context where the warning was raised.
+In the above example it would be the caller of `foo()`. If you did not set this
+the warning would show that the warning was caused by the line in the foo()
+function, which is not helpful for users when trying to determine the origin
+of a deprecated call. This value may be adjust though depending on the call
+stack and where `warn()` gets called from. For example, if the warning is always
+raised by a private method that only has one caller `stack_level=3` might be
+appropriate.
+
+### Deprecation Release Notes
+
+You can refer to the Release Notes section for the process of creating a
+new release note. One thing to keep in mind for deprecation release notes
+though is that we need to clear document a migration path in that release note.
+This should outline what the current deprecated behavior would look like and
+how users will need to update their code when that deprecated feature is
+removed. In addition it is also good to explain the reasoning behind why the
+change was being made. This provides context for users as to why they want
+to update their code using Qiskit. A simple example would be:
+
+```yaml
+
+deprecations:
+  - |
+    The function ``qiskit.foo()`` has been deprecated. An alternative function
+    ``qiskit.bar()`` can be used instead to provide the same functionality.
+    This alternative function provides the exact same functionality but with
+    better performance and more thorough validity checking.
+```
+
+In addition the `Changelog: Deprecation` label should be applied to any PRs
+adding deprecation warnings so that they are highlighted in the changelog for
+the release.
+
+#### Deprecation Removal Release Notes
+
+When an obsolecense date has passed and it's been determined safe to remove a
+deprecated feature from Qiskit we need to have an upgrade note in the release
+notes for this. We can copy the migration path from the deprecation release
+note but we should also indicate that the feature was deprecated and in which
+release. For example, building off the example in the previous section, if
+that deprecation occurred in the 0.9.0 release which occurred on August 22, 2019
+and the removal occurred in the **hypothetical** 0.11.0 release on December 2nd,
+2019 the release note would look like:
+
+```yaml
+upgrade:
+  - |
+    The previously deprecated function ``qiskit.foo()``, which was deprecated
+    in the 0.9.0 release, has been removed. The ``qiskit.bar()`` function
+    should be used instead. ``qiskit.bar()`` provides the exact same
+    functionality but with better performance and more thorough validity
+    checking.
+```
+
+Pull requests that remove a deprecated function will need to be tagged with the
+`Changelog: Removal` label so that they get highlighted in the changelog for
+the release.
+
 
 ## Stable Branch Policy
 
