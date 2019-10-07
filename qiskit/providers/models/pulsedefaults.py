@@ -20,9 +20,8 @@ from typing import Any, Dict, Iterable, List, Tuple, Union
 from marshmallow.validate import Length, Range
 
 from qiskit.util import _to_tuple
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
-from qiskit.validation.fields import Integer, List as QList, Nested, Number, String
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse import CmdDef
@@ -34,43 +33,43 @@ class MeasurementKernelSchema(BaseSchema):
     """Schema for MeasurementKernel."""
 
     # Optional properties.
-    name = String()
-    params = Nested(ObjSchema)
+    name = fields.String()
+    params = fields.Nested(ObjSchema)
 
 
 class DiscriminatorSchema(BaseSchema):
     """Schema for Discriminator."""
 
     # Optional properties.
-    name = String()
-    params = Nested(ObjSchema)
+    name = fields.String()
+    params = fields.Nested(ObjSchema)
 
 
 class CommandSchema(BaseSchema):
     """Schema for Command."""
 
     # Required properties.
-    name = String(required=True)
+    name = fields.String(required=True)
 
     # Optional properties.
-    qubits = QList(Integer(validate=Range(min=0)),
-                   validate=Length(min=1))
-    sequence = Nested(PulseQobjInstructionSchema, many=True)
+    qubits = fields.List(fields.Integer(validate=Range(min=0)),
+                         validate=Length(min=1))
+    sequence = fields.Nested(PulseQobjInstructionSchema, many=True)
 
 
 class PulseDefaultsSchema(BaseSchema):
     """Schema for PulseDefaults."""
 
     # Required properties.
-    qubit_freq_est = QList(Number(), required=True, validate=Length(min=1))
-    meas_freq_est = QList(Number(), required=True, validate=Length(min=1))
-    buffer = Integer(required=True, validate=Range(min=0))
-    pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
-    cmd_def = Nested(CommandSchema, many=True, required=True)
+    qubit_freq_est = fields.List(fields.Number(), required=True, validate=Length(min=1))
+    meas_freq_est = fields.List(fields.Number(), required=True, validate=Length(min=1))
+    buffer = fields.Integer(required=True, validate=Range(min=0))
+    pulse_library = fields.Nested(PulseLibraryItemSchema, required=True, many=True)
+    cmd_def = fields.Nested(CommandSchema, many=True, required=True)
 
     # Optional properties.
-    meas_kernel = Nested(MeasurementKernelSchema)
-    discriminator = Nested(DiscriminatorSchema)
+    meas_kernel = fields.Nested(MeasurementKernelSchema)
+    discriminator = fields.Nested(DiscriminatorSchema)
 
 
 @bind_schema(MeasurementKernelSchema)
