@@ -486,13 +486,13 @@ class ScheduleDrawer:
                 ax.axvline(tf*dt, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False, framechange=True, scaling=None):
+        def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
+                       label=False, framechange=True):
         y0 = 0
         prev_labels = []
+
         # Test if a channel has negative value
-        test1 = False
-        test2 = False
+        test1 = True
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -506,16 +506,12 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
-                # scaling and offset
-                test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
                 # if the current channel and previous channel  have not negative values
-                if test1 and test2 and scaling is None:
-                    re = v_max * re * 1.5 + y0
-                    im = v_max * im * 1.5 + y0
-                else:
-                    re = v_max * re + y0
-                    im = v_max * im + y0
-                test2 = test1
+                
+                test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
+                # scaling and offset
+                re = v_max * re + y0
+                im = v_max * im + y0
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
@@ -545,11 +541,15 @@ class ScheduleDrawer:
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
 
-            y0 -= 1
+            # change the y0 offset for removing spacing when a channel has negative values
+            if test1 and self.style.remove_spacing:
+                y0 -= 0.5
+            else:
+                y0 -= 1
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=1, channels_to_plot=None, plot_all=True,
+             scaling=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True):
         """Draw figure.
         Args:
@@ -606,7 +606,7 @@ class ScheduleDrawer:
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
                                  t0, tf, dt, v_max, label=label,
-                                 framechange=framechange, scaling=scaling)
+                                 framechange=framechange)
 
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
