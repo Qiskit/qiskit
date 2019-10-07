@@ -228,7 +228,8 @@ def check_commutativity(op_1, op_2, anti=False):
 
 def evolution_instruction(pauli_list, evo_time, num_time_slices,
                           controlled=False, power=1,
-                          use_basis_gates=True, shallow_slicing=False):
+                          use_basis_gates=True, shallow_slicing=False,
+                          barrier=False):
     """
     Construct the evolution circuit according to the supplied specification.
 
@@ -243,6 +244,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                                     gates when building circuit.
         shallow_slicing (bool, optional): boolean flag for indicating using shallow
                                     qc.data reference repetition for slicing
+        barrier (bool, optional): whether or not add barrier for every slice
     Returns:
         InstructionSet: The InstructionSet corresponding to specified evolution.
     Raises:
@@ -366,14 +368,16 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
         logger.info('Under shallow slicing mode, the qc.data reference is repeated shallowly. '
                     'Thus, changing gates of one slice of the output circuit might affect '
                     'other slices.')
-        qc_slice.barrier(state_registers)
+        if barrier:
+            qc_slice.barrier(state_registers)
         qc_slice.data *= (num_time_slices * power)
         qc = qc_slice
     else:
         qc = QuantumCircuit(name=inst_name)
         for _ in range(num_time_slices * power):
             qc += qc_slice
-            qc.barrier(state_registers)
+            if barrier:
+                qc.barrier(state_registers)
     return qc.to_instruction()
 
 
