@@ -382,6 +382,33 @@ c1_0: 0 ════════════════════════
         self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
+    def test_generate_latex_label_nomathmode(self):
+        self.assertEqual('abc', utils.generate_latex_label('abc'))
+
+    def test_generate_latex_label_nomathmode_utf8char(self):
+        self.assertEqual('{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+                         utils.generate_latex_label('∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_utf8char(self):
+        self.assertEqual(
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc_$∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_underscore_outside(self):
+        self.assertEqual(
+            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc$_∭X∀Y'))
+
+    def test_generate_latex_label_escaped_dollar_signs(self):
+        self.assertEqual(
+            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            utils.generate_latex_label('\$∀\$'))
+
+    def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
+        self.assertEqual(
+            'a\$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$a\$bc$_∭X∀Y'))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
