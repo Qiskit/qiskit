@@ -14,6 +14,7 @@
 
 """Node for an OPENQASM integer."""
 
+import warnings
 from sympy import N
 
 from .node import Node
@@ -36,18 +37,41 @@ class Int(Node):
         ind = indent * ' '
         print(ind, 'int', self.value)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return "%d" % self.value
 
-    def latex(self):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return "%d" % self.value
 
-    def sym(self):
+    def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
+
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return N(self.value)
 
-    def real(self):
+    def real(self, nested_scope=None):
         """Return the correspond floating point number."""
+
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return float(self.value)

@@ -16,6 +16,8 @@
 
 """Node for an OPENQASM indexed id."""
 
+import warnings
+
 from .node import Node
 
 
@@ -40,6 +42,11 @@ class IndexedId(Node):
         ind = indent * ' '
         print(ind, 'indexed_id', self.name, self.index)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return self.name + "[%d]" % self.index

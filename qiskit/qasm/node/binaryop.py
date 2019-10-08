@@ -14,6 +14,7 @@
 
 """Node for an OPENQASM binary operation expression."""
 
+import warnings
 import sympy
 
 from .node import Node
@@ -31,24 +32,50 @@ class BinaryOp(Node):
         """Create the binaryop node."""
         super().__init__('binop', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=None, nested_scope=None):
         """Return the corresponding OPENQASM string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return "(" + self.children[1].qasm() + self.children[0].value + \
                self.children[2].qasm() + ")"
 
-    def latex(self):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return sympy.latex(self.sym())
 
-    def real(self):
+    def real(self, nested_scope=None):
         """Return the correspond floating point number."""
+
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         operation = self.children[0].operation()
         lhs = self.children[1].real()
         rhs = self.children[2].real()
         return operation(lhs, rhs)
 
-    def sym(self):
+    def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
+
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         operation = self.children[0].operation()
         lhs = self.children[1].sym()
         rhs = self.children[2].sym()
