@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Boeblingen device (20 qubit).
+Fake Almaden device (20 qubit).
 """
 
 import os
@@ -24,8 +24,8 @@ from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
 from .fake_backend import FakeBackend
 
 
-class FakeBoeblingen(FakeBackend):
-    """A fake Boeblingen backend."""
+class FakeAlmaden(FakeBackend):
+    """A fake Almaden backend."""
 
     def __init__(self):
         """
@@ -47,7 +47,7 @@ class FakeBoeblingen(FakeBackend):
                 [19, 18]]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_boeblingen',
+            backend_name='fake_almaden',
             backend_version='0.0.0',
             n_qubits=20,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
@@ -67,7 +67,7 @@ class FakeBoeblingen(FakeBackend):
         """Returns a snapshot of device properties as recorded on 10/08/19.
         """
         dirname = os.path.dirname(__file__)
-        filename = "props_boeblingen.json"
+        filename = "props_almaden.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
