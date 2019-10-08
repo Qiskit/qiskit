@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -103,7 +103,7 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, fold=25):
+                 reverse_bits=False, layout=None, fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -145,14 +145,21 @@ class MatplotlibDrawer:
                 with open(style, 'r') as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
+        if ax is None:
+            self.return_fig = True
+            self.figure = plt.figure()
+            self.figure.patch.set_facecolor(color=self._style.bg)
+            self.ax = self.figure.add_subplot(111)
+        else:
+            self.return_fig = False
+            self.ax = ax
+            self.figure = ax.get_figure()
 
-        self.fold = self._style.fold or fold  # self._style.fold should be removed after 0.10
+        # TODO: self._style.fold should be removed after deprecation
+        self.fold = self._style.fold or fold
         if self.fold < 2:
             self.fold = -1
 
-        self.figure = plt.figure()
-        self.figure.patch.set_facecolor(color=self._style.bg)
-        self.ax = self.figure.add_subplot(111)
         self.ax.axis('off')
         self.ax.set_aspect('equal')
         self.ax.tick_params(labelbottom=False, labeltop=False,
@@ -503,10 +510,11 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(self.figure)
-        return self.figure
+        if self.return_fig:
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(self.figure)
+            return self.figure
 
     def _draw_regs(self):
 
