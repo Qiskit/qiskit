@@ -19,7 +19,7 @@ from qiskit.exceptions import QiskitError
 from deprecated import deprecated
 
 
-@deprecated(version="0.12.2",
+@deprecated(version="0.10.0",
             reason="Deprecated in favour of TranspilerError")
 class TranspilerAccessError(QiskitError):
     """Exception of access error in the transpiler passes."""
