@@ -69,4 +69,3 @@ class FakeJohannesburg(FakeBackend):
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
-
