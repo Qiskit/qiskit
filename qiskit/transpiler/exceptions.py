@@ -16,14 +16,17 @@
 Exception for errors raised by the transpiler.
 """
 from qiskit.exceptions import QiskitError
+from deprecated import deprecated
 
 
-class TranspilerError(QiskitError):
-    """Exceptions raised during transpilation"""
-
-
+@deprecated(version="0.12.2",
+            reason="Deprecated in favour of TranspilerError")
 class TranspilerAccessError(QiskitError):
     """Exception of access error in the transpiler passes."""
+
+
+class TranspilerError(TranspilerAccessError):
+    """Exceptions raised during transpilation"""
 
 
 class CouplingError(QiskitError):
