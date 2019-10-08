@@ -272,6 +272,8 @@ def circuit_drawer(circuit,
 # -----------------------------------------------------------------------------
 def qx_color_scheme():
     """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
+    warn('The qx_color_scheme function is deprecated and will be removed in a '
+         'future release.', DeprecationWarning, stacklevel=2)
     return {
         "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
         "textcolor": "#000000",
