@@ -569,7 +569,7 @@ version releases, they are not appropriate for backporting.
 
 The proper way to raise a deprecation warning is to use the ``warn`` function
 from the [`warnings` module](https://docs.python.org/3/library/warnings.html)
-in the python standard library should be used. The warning category class
+in the python standard library. The warning category class
 should be a ``DeprecationWarning``. An example would be:
 
 ```python
@@ -578,14 +578,14 @@ import warnings
 def foo(input):
     warnings.warn('The foo module is deprecated and will be removed in the '
                   'future. You should use the qiskit.bar() function instead.',
-                  DeprecationWarning, stack_level=2)
+                  DeprecationWarning, stacklevel=2)
 ```
 
 One thing to note here is the `stack_level` kwarg on the warn() call. This
 argument is used to specify which level in the call stack will be used as
 the line initiating the warning. Typically `stack_level` should be set to 2
 as this will show the line calling the context where the warning was raised.
-In the above example it would be the caller of `foo()`. If you did not set this
+In the above example it would be the caller of `foo()`. If you did not set this,
 the warning would show that the warning was caused by the line in the foo()
 function, which is not helpful for users when trying to determine the origin
 of a deprecated call. This value may be adjust though depending on the call
@@ -597,7 +597,7 @@ appropriate.
 
 You can refer to the Release Notes section for the process of creating a
 new release note. One thing to keep in mind for deprecation release notes
-though is that we need to clear document a migration path in that release note.
+though is that we need to clearly document a migration path in that release note.
 This should outline what the current deprecated behavior would look like and
 how users will need to update their code when that deprecated feature is
 removed. In addition it is also good to explain the reasoning behind why the
@@ -622,7 +622,7 @@ the release.
 
 When an obsolecense date has passed and it's been determined safe to remove a
 deprecated feature from Qiskit we need to have an upgrade note in the release
-notes for this. We can copy the migration path from the deprecation release
+notes. We can copy the migration path from the deprecation release
 note but we should also indicate that the feature was deprecated and in which
 release. For example, building off the example in the previous section, if
 that deprecation occurred in the 0.9.0 release which occurred on August 22, 2019
