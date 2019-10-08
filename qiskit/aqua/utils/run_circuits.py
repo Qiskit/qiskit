@@ -33,6 +33,7 @@ from qiskit.aqua.utils.backend_utils import (is_aer_provider,
                                              is_local_backend)
 
 MAX_CIRCUITS_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_CIRCUITS_PER_JOB', None)
+MAX_GATES_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_GATES_PER_JOB', None)
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +124,44 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 temp_qobj = copy.deepcopy(qobj_template)
                 temp_qobj.qobj_id = str(uuid.uuid4())
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
-                qobjs.append(temp_qobj)
+                qobjs = _maybe_split_qobj_by_gates(qobjs, temp_qobj)
         else:
             raise AquaError("Only support QasmQobj now.")
+
+    return qobjs
+
+
+def _maybe_split_qobj_by_gates(qobjs, qobj):
+    if MAX_GATES_PER_JOB is not None:
+        max_gates_per_job = int(MAX_GATES_PER_JOB)
+        total_num_gates = 0
+        for j in range(len(qobj.experiments)):
+            total_num_gates += len(qobj.experiments[j].instructions)
+        # split by gates if total number of gates in a qobj exceed MAX_GATES_PER_JOB
+        if total_num_gates > max_gates_per_job:
+            qobj_template = QasmQobj(qobj_id=qobj.qobj_id,
+                                     config=qobj.config, experiments=[], header=qobj.header)
+            temp_qobj = copy.deepcopy(qobj_template)
+            temp_qobj.qobj_id = str(uuid.uuid4())
+            temp_qobj.experiments = []
+            num_gates = 0
+            for i in range(len(qobj.experiments)):
+                num_gates += len(qobj.experiments[i].instructions)
+                if num_gates <= max_gates_per_job:
+                    temp_qobj.experiments.append(qobj.experiments[i])
+                else:
+                    qobjs.append(temp_qobj)
+                    # Initialize for next temp_qobj
+                    temp_qobj = copy.deepcopy(qobj_template)
+                    temp_qobj.qobj_id = str(uuid.uuid4())
+                    temp_qobj.experiments.append(qobj.experiments[i])
+                    num_gates = len(qobj.experiments[i].instructions)
+
+            qobjs.append(temp_qobj)
+        else:
+            qobjs.append(qobj)
+    else:
+        qobjs.append(qobj)
 
     return qobjs
 
