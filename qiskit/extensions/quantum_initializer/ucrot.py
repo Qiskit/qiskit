@@ -15,8 +15,6 @@
 # The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
 # which was supervised by Raban Iten and Prof. Renato Renner.
 
-# pylint: disable=invalid-name
-
 """
 (Abstract) base class for uniformly controlled (also called multiplexed) single-qubit rotations R_t.
 This class provides a basis for the decomposition of uniformly controlled R_x,R_y and R_z gates
@@ -55,9 +53,9 @@ class UCRot(Gate):
         if not isinstance(angle_list, list):
             raise QiskitError("The angles are not provided in a list.")
         # Check if the angles in angle_list are real numbers
-        for a in angle_list:
+        for angle in angle_list:
             try:
-                float(a)
+                float(angle)
             except TypeError:
                 raise QiskitError(
                     "An angle cannot be converted to type float (real angles are expected).")
@@ -165,5 +163,5 @@ def _dec_uc_rotations(angles, start_index, end_index, reversedDec):
 
 # Calculate the new rotation angles according to Shende's decomposition
 
-def _update_angles(a1, a2):
-    return (a1 + a2) / 2.0, (a1 - a2) / 2.0
+def _update_angles(angle1, angle2):
+    return (angle1 + angle2) / 2.0, (angle1 - angle2) / 2.0
