@@ -113,13 +113,20 @@ def q_if(operation, num_ctrl_qubits=1, label=None):
     import qiskit.extensions.standard.multi_control_toffoli_gate
     import qiskit.extensions.standard.multi_control_u1_gate
 
-    q_control = QuantumRegister(num_ctrl_qubits)
-    q_target = QuantumRegister(operation.num_qubits)
+    q_control = QuantumRegister(num_ctrl_qubits, name='control')
+    q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
 
     qc = QuantumCircuit(q_control, q_target)
 
-    if operation.name == 'rx':
+    if operation.name == 'x' or (
+            isinstance(operation, controlledgate.ControlledGate) and
+            operation.base_gate_name == 'x'):
+        qc.mct(q_control[:] + q_target[:-1],
+               q_target[-1],
+               None,
+               mode='noancilla')
+    elif operation.name == 'rx':
         qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     elif operation.name == 'ry':
@@ -160,13 +167,29 @@ def q_if(operation, num_ctrl_qubits=1, label=None):
             else:
                 raise QiskitError('gate contains non-controllable intructions')
     instr = qc.to_instruction()
-    cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
-        num_ctrl_qubits, operation.name),
+    if isinstance(operation, controlledgate.ControlledGate):
+        new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
+        base_name = operation.base_gate_name
+        base_gate = operation.base_gate
+        base_gate_name = operation.base_gate_name
+    else:
+        new_num_ctrl_qubits = num_ctrl_qubits
+        base_name = operation.name
+        base_gate = operation.__class__
+        base_gate_name = operation.name
+    if new_num_ctrl_qubits > 2:
+        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
+    else:
+        ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
+    new_name = '{0}{1}'.format(ctrl_substr, base_name)        
+    cgate = controlledgate.ControlledGate(new_name,
                                           instr.num_qubits,
                                           instr.params,
                                           label=label,
-                                          num_ctrl_qubits=num_ctrl_qubits,
+                                          num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition)
+    cgate.base_gate = base_gate
+    cgate.base_gate_name = base_gate_name
     return cgate
 
 

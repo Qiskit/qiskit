@@ -18,6 +18,7 @@ Fundamental controlled-NOT gate.
 import warnings
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
+from qiskit.extensions.standard.x import XGate
 
 
 class CXBase(ControlledGate):
@@ -28,6 +29,8 @@ class CXBase(ControlledGate):
         warnings.warn('CXBase is deprecated and it will be removed after 0.9. '
                       'Use CnotGate instead.', DeprecationWarning, 2)
         super().__init__("CX", 2, [], num_ctrl_qubits=1)
+        self.base_gate = XGate
+        self.base_gate_name = "x"
 
     def inverse(self):
         """Invert this gate."""

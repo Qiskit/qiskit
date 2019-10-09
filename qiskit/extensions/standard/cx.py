@@ -31,6 +31,7 @@ class CnotGate(ControlledGate):
         """Create new CNOT gate."""
         super().__init__("cx", 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate
+        self.base_gate_name = "x"
 
     def inverse(self):
         """Invert this gate."""

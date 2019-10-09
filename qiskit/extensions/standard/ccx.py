@@ -21,6 +21,7 @@ import numpy
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
@@ -33,7 +34,8 @@ class ToffoliGate(ControlledGate):
     def __init__(self):
         """Create new Toffoli gate."""
         super().__init__("ccx", 3, [], num_ctrl_qubits=2)
-        self.base_gate = CnotGate
+        self.base_gate = XGate
+        self.base_gate_name = "x"
 
     def _define(self):
         """

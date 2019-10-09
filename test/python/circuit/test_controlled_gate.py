@@ -22,6 +22,7 @@ import unittest
 from math import pi
 import numpy as np
 from ddt import ddt, data
+from inspect import signature
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
                     BasicAer)
@@ -37,7 +38,9 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
-                                        CyGate, CzGate, Cu1Gate, SwapGate)
+                                        CyGate, CzGate, Cu1Gate, SwapGate,
+                                        ToffoliGate, HGate, RZGate, FredkinGate,
+                                        U3Gate, CHGate, CrzGate, Cu3Gate)
 from qiskit.extensions.unitary import UnitaryGate
 
 
@@ -50,17 +53,40 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(XGate().q_if(), CnotGate())
 
     def test_controlled_y(self):
-        """Test creation of controlled x gate"""
+        """Test creation of controlled y gate"""
         self.assertEqual(YGate().q_if(), CyGate())
 
     def test_controlled_z(self):
-        """Test creation of controlled x gate"""
+        """Test creation of controlled z gate"""
         self.assertEqual(ZGate().q_if(), CzGate())
 
+    def test_controlled_h(self):
+        """Test creation of controlled h gate"""
+        self.assertEqual(HGate().q_if(), CHGate())
+
     def test_controlled_u1(self):
-        """Test creation of controlled x gate"""
+        """Test creation of controlled u1 gate"""
         theta = 0.5
         self.assertEqual(U1Gate(theta).q_if(), Cu1Gate(theta))
+
+    def test_controlled_rz(self):
+        """Test creation of controlled rz gate"""
+        theta = 0.5
+        self.assertEqual(RZGate(theta).q_if(), CrzGate(theta))
+
+    def test_controlled_u3(self):
+        """Test creation of controlled u3 gate"""
+        theta, phi, lamb = 0.1, 0.2, 0.3
+        self.assertEqual(U3Gate(theta, phi, lamb).q_if(),
+                         Cu3Gate(theta, phi, lamb))
+
+    def test_controlled_cx(self):
+        """Test creation of controlled cx gate"""
+        self.assertEqual(CnotGate().q_if(), ToffoliGate())
+
+    def test_controlled_swap(self):
+        """Test creation of controlled swap gate"""
+        self.assertEqual(SwapGate().q_if(), FredkinGate())
 
     def test_circuit_append(self):
         """Test appending controlled gate to quantum circuit"""
@@ -69,10 +95,11 @@ class TestControlledGate(QiskitTestCase):
         circ.append(inst.q_if(), qargs=[0, 2, 1])
         circ.append(inst.q_if(2), qargs=[0, 3, 1, 2])
         circ.append(inst.q_if().q_if(), qargs=[0, 3, 1, 2])  # should be same as above
+        self.assertEqual(circ[1][0], circ[2][0])
         self.assertEqual(circ.depth(), 3)
         self.assertEqual(circ[0][0].num_ctrl_qubits, 2)
-        self.assertEqual(circ[1][0].num_ctrl_qubits, 2)
-        self.assertEqual(circ[2][0].num_ctrl_qubits, 1)
+        self.assertEqual(circ[1][0].num_ctrl_qubits, 3)
+        self.assertEqual(circ[2][0].num_ctrl_qubits, 3)
         self.assertEqual(circ[0][0].num_qubits, 3)
         self.assertEqual(circ[1][0].num_qubits, 4)
         self.assertEqual(circ[2][0].num_qubits, 4)
@@ -138,7 +165,6 @@ class TestControlledGate(QiskitTestCase):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
         import qiskit.extensions.standard.cu3 as cu3
-        np.set_printoptions(linewidth=250, precision=2)
 
         num_ctrl = 3
         ctrl_dim = 2**num_ctrl
@@ -202,7 +228,6 @@ class TestControlledGate(QiskitTestCase):
         """Test multi controlled u1 gate"""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.cu1 as cu1
-        np.set_printoptions(linewidth=250, precision=2)
 
         num_ctrl = 3
         ctrl_dim = 2**num_ctrl
@@ -388,6 +413,16 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(Operator(cgate1).equiv(Operator(cgate2)))
         # not sure why following fails
         #self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
+
+    def test_base_gate_setting(self):
+        """Test all gates in standard extensions which are of type ControlledGate"""
+        params = [0.1 * i for i in range(10)]
+        for gate_class in ControlledGate.__subclasses__():
+            sig = signature(gate_class.__init__)
+            free_params = len(sig.parameters) - 1  # subtract "self"
+            base_gate = gate_class(*params[0:free_params])
+            cgate = base_gate.q_if()
+            self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits):

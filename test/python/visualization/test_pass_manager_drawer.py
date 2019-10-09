@@ -76,7 +76,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         """Test to see if the drawer draws a normal pass manager correctly"""
         filename = self._get_resource_path('current_standard.dot')
         self.pass_manager.draw(filename=filename, raw=True)
-
+        import ipdb;ipdb.set_trace()
         self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_standard.dot'))
         os.remove(filename)
 

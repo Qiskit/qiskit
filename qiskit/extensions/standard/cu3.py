@@ -30,6 +30,7 @@ class Cu3Gate(ControlledGate):
         """Create new cu3 gate."""
         super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate
+        self.base_gate_name = "u3"
 
     def _define(self):
         """

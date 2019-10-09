@@ -42,15 +42,16 @@ class ControlledGate(Gate):
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise QiskitError('number of control qubits must be less than the number of qubits')
-        self.base_gate = None
         if definition:
             self.definition = definition
             if len(definition) == 1:
-                base_gate = definition[0]
+                base_gate = definition[0][0]
                 if isinstance(base_gate, ControlledGate):
                     self.base_gate = base_gate.base_gate
                 else:
                     self.base_gate = base_gate.__class__
+
+                self.base_gate_name = base_gate.name
 
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):

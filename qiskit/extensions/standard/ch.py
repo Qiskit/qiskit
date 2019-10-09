@@ -22,10 +22,10 @@ import numpy as np
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.h as h
-import qiskit.extensions.standard.cx as cx
-import qiskit.extensions.standard.t as t
-import qiskit.extensions.standard.s as s
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.t import TGate, TdgGate
+from qiskit.extensions.standard.s import SGate, SdgGate
 
 
 class CHGate(ControlledGate):
@@ -34,7 +34,8 @@ class CHGate(ControlledGate):
     def __init__(self):
         """Create new CH gate."""
         super().__init__("ch", 2, [], num_ctrl_qubits=1)
-        self.base_gate = h.HGate
+        self.base_gate = HGate
+        self.base_gate_name = "h"
 
     def _define(self):
         """
@@ -51,13 +52,13 @@ class CHGate(ControlledGate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (s.SGate(), [q[1]], []),
-            (h.HGate(), [q[1]], []),
-            (t.TGate(), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (t.TdgGate(), [q[1]], []),
-            (h.HGate(), [q[1]], []),
-            (s.SdgGate(), [q[1]], [])
+            (SGate(), [q[1]], []),
+            (HGate(), [q[1]], []),
+            (TGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (TdgGate(), [q[1]], []),
+            (HGate(), [q[1]], []),
+            (SdgGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
