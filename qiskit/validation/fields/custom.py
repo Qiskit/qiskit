@@ -96,9 +96,7 @@ class InstructionParameter(ModelTypeValidator):
             return value
         if isinstance(value, ParameterExpression):
             if value.parameters:
-                bare_error = self.make_error('invalid', input=value)
-                raise ValidationError({self.name: bare_error.messages},
-                                      field_name=self.name)
+                raise self.make_error_serialize('invalid', input=value)
             return float(value)
         if isinstance(value, sympy.Symbol):
             return str(value)
