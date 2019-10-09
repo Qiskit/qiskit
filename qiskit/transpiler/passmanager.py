@@ -127,25 +127,68 @@ class PassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        passset_options = {'max_iteration': max_iteration}
+        options = self._join_options({'max_iteration': max_iteration})
 
-        options = self._join_options(passset_options)
+        passes = PassManager._normalize_passes(passes)
 
+        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
+
+        self.working_list.append(
+            FlowController.controller_factory(passes, options, **flow_controller_conditions))
+
+    def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
+        """Replace a particular pass in the scheduler
+
+        Args:
+            index (int): Pass index to replace, based on the position in passes().
+            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
+            max_iteration (int): max number of iterations of passes. Default: 1000
+            flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
+            control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
+        Raises:
+            TranspilerError: if a pass in passes is not a proper pass.
+        """
+        options = self._join_options({'max_iteration': max_iteration})
+
+        passes = PassManager._normalize_passes(passes)
+
+        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
+
+        controller = FlowController.controller_factory(passes, options,
+                                                       **flow_controller_conditions)
+        try:
+            self.working_list[index] = controller
+        except IndexError:
+            raise TranspilerError('Index to replace %s does not exists' % index)
+
+    def __setitem__(self, index, item):
+        self.replace(index, item)
+
+    @staticmethod
+    def _normalize_passes(passes):
         if isinstance(passes, BasePass):
             passes = [passes]
 
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
+        return passes
 
-        for name, param in flow_controller_conditions.items():
+    def _normalize_flow_controller(self, flow_controller):
+        for name, param in flow_controller.items():
             if callable(param):
-                flow_controller_conditions[name] = partial(param, self.fenced_property_set)
+                flow_controller[name] = partial(param, self.fenced_property_set)
             else:
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
-
-        self.working_list.append(
-            FlowController.controller_factory(passes, options, **flow_controller_conditions))
+        return flow_controller
 
     def reset(self):
         """Reset the pass manager instance"""
