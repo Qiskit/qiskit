@@ -223,7 +223,7 @@ class ByType(ModelTypeValidator):
             except (ValidationError, ValueError):
                 pass
 
-        raise self.make_error('invalid', value=value, types=self.choices)
+        raise self.make_error_serialize('invalid', value=value, types=self.choices)
 
     def _deserialize(self, value, attr, data, **kwargs):
         for field in self.choices:
