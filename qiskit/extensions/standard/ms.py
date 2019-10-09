@@ -15,7 +15,13 @@
 # pylint: disable=invalid-name
 
 """
-Molmer-Sorensen gate.
+Global Mølmer–Sørensen gate.
+
+The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
+applied to multiple ions to entangle multiple qubits simultaneously.
+
+In the two-qubit case, this is equivalent to an XX(theta) interaction,
+and is thus reduced to the RXXGate.
 """
 
 
