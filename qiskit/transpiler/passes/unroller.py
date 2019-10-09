@@ -17,7 +17,6 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ParameterExpression
 
 
 class Unroller(TransformationPass):
@@ -63,9 +62,6 @@ class Unroller(TransformationPass):
             try:
                 rule = node.op.definition
             except TypeError as err:
-                if any(isinstance(p, ParameterExpression) for p in node.op.params):
-                    raise QiskitError('Unrolling gates parameterized by expressions '
-                                      'is currently unsupported.')
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
             if not rule:
