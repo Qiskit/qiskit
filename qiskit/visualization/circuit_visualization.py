@@ -56,7 +56,8 @@ def circuit_drawer(circuit,
                    vertical_compression='medium',
                    idle_wires=True,
                    with_layout=True,
-                   fold=None):
+                   fold=None,
+                   ax=None):
     """Draw a quantum circuit to different formats (set by output parameter):
     0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
@@ -103,11 +104,17 @@ def circuit_drawer(circuit,
             guess the console width using `shutil.get_terminal_size()`. However, if
             running in jupyter, the default line length is set to 80 characters.
             In `mpl` is the amount of operations before folding. Default is 25.
+        ax (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. Additionally, if specified there
+            will be no returned Figure since it is redundant. This is only used
+            when the ``output`` kwarg is set to use the ``mpl`` backend. It
+            will be silently ignored with all other outputs.
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
             of the circuit diagram.
         matplotlib.figure: (output `mpl`) a matplotlib figure object for the
-            circuit diagram.
+            circuit diagram, if the ``ax`` kwarg is not set
         String: (output `latex_source`). The LaTeX source code.
         TextDrawing: (output `text`). A drawing that can be printed as ascii art
     Raises:
@@ -257,7 +264,8 @@ def circuit_drawer(circuit,
                                            justify=justify,
                                            idle_wires=idle_wires,
                                            with_layout=with_layout,
-                                           fold=fold)
+                                           fold=fold,
+                                           ax=ax)
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
@@ -538,7 +546,8 @@ def _matplotlib_circuit_drawer(circuit,
                                justify=None,
                                idle_wires=True,
                                with_layout=True,
-                               fold=None):
+                               fold=None,
+                               ax=None):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -558,8 +567,14 @@ def _matplotlib_circuit_drawer(circuit,
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
         fold (int): amount ops allowed before folding. Default is 25.
+        ax (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. Additionally, if specified there
+            will be no returned Figure since it is redundant.
+
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
+            if the ``ax`` kwarg is not set.
     """
 
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
@@ -576,5 +591,6 @@ def _matplotlib_circuit_drawer(circuit,
 
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
-                                       reverse_bits=reverse_bits, layout=layout, fold=fold)
+                                       reverse_bits=reverse_bits, layout=layout,
+                                       fold=fold, ax=ax)
     return qcd.draw(filename)

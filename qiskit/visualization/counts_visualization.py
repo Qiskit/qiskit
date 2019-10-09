@@ -52,7 +52,7 @@ DIST_MEAS = {'hamming': hamming_distance}
 
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                    sort='asc', target_string=None,
-                   legend=None, bar_labels=True, title=None):
+                   legend=None, bar_labels=True, title=None, ax=None):
     """Plot a histogram of data.
 
     Args:
@@ -69,9 +69,14 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             list or 1 if it's a dict)
         bar_labels (bool): Label each bar in histogram with probability value.
         title (str): A string to use for the plot title
+        ax (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. Additionally, if specified there
+            will be no returned Figure since it is redundant.
 
     Returns:
-        matplotlib.Figure: A figure for the rendered histogram.
+        matplotlib.Figure: A figure for the rendered histogram, if the ``ax``
+            kwarg is not set.
 
     Raises:
         ImportError: Matplotlib not available.
@@ -95,8 +100,11 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         raise VisualizationError("Length of legendL (%s) doesn't match "
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig = None
 
-    fig, ax = plt.subplots(figsize=figsize)
     labels = list(sorted(
         functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
     if number_to_keep is not None:
