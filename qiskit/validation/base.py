@@ -88,15 +88,22 @@ class ModelTypeValidator(_fields.Field):
         message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
 
-    def make_error_serialize(self, key: str, **kwargs):
+    def make_error_serialize(self, key, **kwargs):
         """Helper method to return a ValidationError from _serialize.
 
-        This method wraps the result of `make_error()`, adding contextual
+        This method wraps the result of ``make_error()``, adding contextual
         information in order to provide more informative information to users.
+
+        Args:
+            key (str): error key index.
+            **kwargs: additional arguments to ``make_error()``.
+
+        Returns:
+            ValidationError: an exception with the field name.
         """
         bare_error = self.make_error(key, **kwargs)
-        raise ValidationError({self.name: bare_error.messages},
-                              field_name=self.name)
+        return ValidationError({self.name: bare_error.messages},
+                               field_name=self.name)
 
 
 class BaseSchema(Schema):
