@@ -110,7 +110,7 @@ class TestControlledGate(QiskitTestCase):
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
         ref_mat = execute(qc, simulator).result().get_unitary(0)
-        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
+        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))        
 
     def test_single_controlled_composite_gate(self):
         """Test singly controlled composite gate"""
