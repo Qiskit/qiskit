@@ -16,7 +16,7 @@
 
 from qiskit import BasicAer
 from qiskit.providers.basicaer import BasicAerProvider
-from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.exceptions import BackendNotFoundError
 from qiskit.test import providers
 
 
@@ -36,7 +36,7 @@ class TestBasicAerBackends(providers.ProviderTestCase):
             for backend_name in backend_names:
                 try:
                     return provider.get_backend(backend_name).name()
-                except QiskitBackendNotFoundError:
+                except BackendNotFoundError:
                     pass
             return None
 
@@ -46,7 +46,7 @@ class TestBasicAerBackends(providers.ProviderTestCase):
                 try:
                     resolved_newname = _get_first_available_backend(BasicAer, newname)
                     real_backend = BasicAer.get_backend(resolved_newname)
-                except QiskitBackendNotFoundError:
+                except BackendNotFoundError:
                     # The real name of the backend might not exist
                     pass
                 else:
@@ -54,7 +54,7 @@ class TestBasicAerBackends(providers.ProviderTestCase):
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(QiskitBackendNotFoundError, BasicAer.get_backend, 'bad_name')
+        self.assertRaises(BackendNotFoundError, BasicAer.get_backend, 'bad_name')
 
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""

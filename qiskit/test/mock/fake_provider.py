@@ -17,7 +17,7 @@ Fake provider class that provides access to fake backends.
 """
 
 from qiskit.providers.baseprovider import BaseProvider
-from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.exceptions import BackendNotFoundError
 
 from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_yorktown import FakeYorktown
@@ -43,7 +43,7 @@ class FakeProvider(BaseProvider):
             filtered_backends = [backend for backend in self._backends
                                  if backend.name() == name]
             if not filtered_backends:
-                raise QiskitBackendNotFoundError()
+                raise BackendNotFoundError()
 
             backend = filtered_backends[0]
 
