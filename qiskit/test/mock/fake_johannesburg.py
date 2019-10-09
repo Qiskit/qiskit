@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Poughkeepsie device (20 qubit).
+Fake Johannesburg device (53 qubit).
 """
 
 import os
@@ -24,8 +24,8 @@ from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
 from .fake_backend import FakeBackend
 
 
-class FakePoughkeepsie(FakeBackend):
-    """A fake Poughkeepsie backend."""
+class FakeJohannesburg(FakeBackend):
+    """A fake Johannesburg backend."""
 
     def __init__(self):
         """
