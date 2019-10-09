@@ -15,6 +15,8 @@
 """Initialize the Jupyter routines.
 """
 
+import warnings
+
 from IPython import get_ipython          # pylint: disable=import-error
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
@@ -46,3 +48,9 @@ if _IP is not None:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends
             HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
+    else:
+        warnings.warn(
+            "matplotlib can't be found, ensure you have matplotlib and other "
+            "visualization dependencies installed. You can run "
+            "'!pip install qiskit-terra[visualization]' to install it from "
+            "jupyter", RuntimeWarning)
