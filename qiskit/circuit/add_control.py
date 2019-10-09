@@ -15,6 +15,7 @@
 Add control to operation if supported.
 """
 from qiskit import QiskitError
+from qiskit.extensions import UnitaryGate
 
 
 def add_control(operation, num_ctrl_qubits, label):
@@ -30,6 +31,9 @@ def add_control(operation, num_ctrl_qubits, label):
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
     """
+    if isinstance(operation, UnitaryGate):
+        # attempt decomposition
+        operation._define()
     if _control_definition_known(operation, num_ctrl_qubits):
         return _q_if_predefined(operation, num_ctrl_qubits)
     return q_if(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
