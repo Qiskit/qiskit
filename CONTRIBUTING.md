@@ -576,8 +576,9 @@ should be a ``DeprecationWarning``. An example would be:
 import warnings
 
 def foo(input):
-    warnings.warn('The foo module is deprecated and will be removed in the '
-                  'future. You should use the qiskit.bar() function instead.',
+    warnings.warn('The qiskit.foo() function is deprecated as of 0.9.0, and '
+                  'will be removed no earlier than 3 months after that release '
+                  'date. You should use the qiskit.bar() function instead.',
                   DeprecationWarning, stacklevel=2)
 ```
 
