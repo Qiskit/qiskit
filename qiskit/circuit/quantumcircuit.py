@@ -560,8 +560,8 @@ class QuantumCircuit:
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False, justify=None, idle_wires=True, vertical_compression='medium',
-             with_layout=True, fold=None):
+             reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
+             with_layout=True, fold=None, ax=None):
         """Draw the quantum circuit
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -624,6 +624,13 @@ class QuantumCircuit:
                 get_terminal_size()``. However, if running in jupyter, the
                 default line length is set to 80 characters. In ``mpl`` is the
                 number of (visual) layers before folding. Default is 25.
+            ax (matplotlib.axes.Axes): An optional Axes object to be used for
+                the visualization output. If none is specified a new matplotlib
+                Figure will be created and used. Additionally, if specified there
+                will be no returned Figure since it is redundant. This is only used
+                when the ``output`` kwarg is set to use the ``mpl`` backend. It
+                will be silently ignored with all other outputs.                
+                
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
             :class:`TextDrawing`:
@@ -637,6 +644,7 @@ class QuantumCircuit:
                 The LaTeX source code for visualizing the circuit diagram.
             * `TextDrawing` (output='text')
                 A drawing that can be printed as ascii art
+
         Raises:
             VisualizationError: when an invalid output method is selected
             ImportError: when the output methods requires non-installed
@@ -655,7 +663,9 @@ class QuantumCircuit:
                               justify=justify,
                               vertical_compression=vertical_compression,
                               idle_wires=idle_wires,
-                              with_layout=with_layout, fold=fold)
+                              with_layout=with_layout,
+                              fold=fold,
+                              ax=ax)
 
     def size(self):
         """Returns total number of gate operations in circuit.
