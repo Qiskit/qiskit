@@ -352,6 +352,8 @@ class Instruction:
                 as a Gate.
         """
         from qiskit.converters.instruction_to_gate import instruction_to_gate
+        #import qiskit
+        #import qiskit.converters
         return instruction_to_gate(self)
 
     @property

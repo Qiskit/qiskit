@@ -15,10 +15,7 @@
 """
 Convert Instruction object to Gate object.
 """
-
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate
-from qiskit.circuit import Instruction
 
 
 def instruction_to_gate(instruction):
@@ -33,6 +30,8 @@ def instruction_to_gate(instruction):
     Raises:
         QiskitError: Conversion fails if element of definition can't be converted.
     """
+    from qiskit.circuit.gate import Gate
+    from qiskit.circuit.instruction import Instruction
     gate_spec_list = []
     if instruction.definition is not None:
         for instr_spec in instruction.definition:

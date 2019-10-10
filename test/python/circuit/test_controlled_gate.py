@@ -20,16 +20,15 @@ import os
 import tempfile
 import unittest
 from math import pi
+from inspect import signature
 import numpy as np
 from ddt import ddt, data
-from inspect import signature
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
                     BasicAer)
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.compiler import transpile
-from qiskit.extensions.standard import CnotGate
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
@@ -116,7 +115,6 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_controlled_composite_gate(self):
         """Test multi controlled composite gate"""
         num_ctrl = 3
-        ctrl_dim = 2**num_ctrl
         # create composite gate
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
@@ -141,7 +139,6 @@ class TestControlledGate(QiskitTestCase):
     def test_single_controlled_composite_gate(self):
         """Test singly controlled composite gate"""
         num_ctrl = 1
-        ctrl_dim = 2**num_ctrl
         # create composite gate
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
@@ -166,7 +163,6 @@ class TestControlledGate(QiskitTestCase):
         import qiskit.extensions.standard.cu3 as cu3
 
         num_ctrl = 3
-        ctrl_dim = 2**num_ctrl
         # U3 gate params
         alpha, beta, gamma = 0.2, 0.3, 0.4
 
@@ -229,7 +225,6 @@ class TestControlledGate(QiskitTestCase):
         import qiskit.extensions.standard.cu1 as cu1
 
         num_ctrl = 3
-        ctrl_dim = 2**num_ctrl
         # U1 gate params
         theta = 0.2
 
@@ -295,7 +290,6 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl = 2
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
-        ctrl_dim = 2**num_ctrl
 
         gu1 = u1.U1Gate(pi)
         grx = rx.RXGate(pi)
@@ -374,8 +368,6 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""
         num_target = 1
-        n_qubits = num_ctrl_qubits + num_target
-        q_control = QuantumRegister(num_ctrl_qubits)
         q_target = QuantumRegister(num_target)
         qc1 = QuantumCircuit(q_target)
         # for h-rx(pi/2)
@@ -402,7 +394,6 @@ class TestControlledGate(QiskitTestCase):
         cgate2 = gate2.q_if(num_ctrl_qubits)
         cop_mat1 = _compute_control_matrix(mat1, num_ctrl_qubits)
         cop_mat2 = _compute_control_matrix(mat2, num_ctrl_qubits)
-        n_qubits = 1 + num_ctrl_qubits
         self.assertTrue(is_unitary_matrix(mat1))
         self.assertTrue(is_unitary_matrix(mat2))
         self.assertTrue(is_unitary_matrix(cop_mat1))
