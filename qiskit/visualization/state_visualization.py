@@ -378,8 +378,10 @@ def plot_state_city(rho, title="", figsize=None, color=None,
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.zaxis.set_major_locator(MaxNLocator(5))
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
+                                  ha='right', va='top')
+        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
+                                  ha='left', va='center')
         ax1.set_zlabel("Real[rho]", fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
@@ -400,8 +402,10 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                 ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
             else:
                 ax2.axes.set_zlim3d(auto=True)
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
+                                  ha='right', va='top')
+        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
+                                  ha='left', va='center')
         ax2.set_zlabel("Imag[rho]", fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
