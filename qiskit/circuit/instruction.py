@@ -43,7 +43,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.models.qasm import QasmQobjInstruction
-from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.parameter import ParameterExpression, Parameter
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -150,12 +150,12 @@ class Instruction:
                 self._params.append(single_param)
             # example: snapshot('label')
             elif isinstance(single_param, str):
-                self._params.append(float(single_param))
+                self._params.append(Parameter(single_param))
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
             elif isinstance(single_param, numpy.number):
-                self._params.append(single_param)
+                self._params.append(single_param.item())
             else:
                 try:
                     param = float(single_param)
