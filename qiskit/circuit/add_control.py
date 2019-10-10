@@ -177,6 +177,10 @@ def q_if(operation, num_ctrl_qubits=1, label=None):
         base_name = operation.name
         base_gate = operation.__class__
         base_gate_name = operation.name
+    # In order to maintain some backward compatibility with gate names this
+    # uses a naming convention where if the number of controls is <=2 the gate
+    # is named like "cc<base_gate_name>", else it is named like
+    # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
         ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
     else:

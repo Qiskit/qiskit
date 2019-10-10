@@ -23,7 +23,6 @@ from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.swap import SwapGate
 
 
-
 class FredkinGate(ControlledGate):
     """Fredkin gate."""
 

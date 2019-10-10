@@ -137,7 +137,7 @@ class TestControlledGate(QiskitTestCase):
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
         ref_mat = execute(qc, simulator).result().get_unitary(0)
-        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))        
+        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
         """Test singly controlled composite gate"""
@@ -394,9 +394,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_global_phase(self, num_ctrl_qubits):
-        """test controlled unitary"""
-        # create unitary gate
-        #mat1 = np.array([[1, 0], [0, -1]], dtype=float)
+        """test global phase"""
         mat1 = np.array([[0, 1], [1, 0]], dtype=float)
         mat2 = np.exp(1j) * mat1
         gate1 = UnitaryGate(mat1)
@@ -412,7 +410,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(is_unitary_matrix(cop_mat2))
         self.assertTrue(Operator(cgate1).equiv(Operator(cgate2)))
         # not sure why following fails
-        #self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
+        # self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
 
     def test_base_gate_setting(self):
         """Test all gates in standard extensions which are of type ControlledGate"""

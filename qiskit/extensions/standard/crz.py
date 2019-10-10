@@ -25,7 +25,7 @@ from qiskit.extensions.standard.rz import RZGate
 
 class CrzGate(ControlledGate):
     """controlled-rz gate."""
-        
+
     def __init__(self, theta):
         """Create new crz gate."""
         super().__init__("crz", 2, [theta], num_ctrl_qubits=1)
