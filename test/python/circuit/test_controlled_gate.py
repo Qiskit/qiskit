@@ -29,7 +29,6 @@ from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.compiler import transpile
-from qiskit.converters.instruction_to_gate import instruction_to_gate
 from qiskit.extensions.standard import CnotGate
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
@@ -127,7 +126,7 @@ class TestControlledGate(QiskitTestCase):
         cgate.u3(0.1, 0.2, 0.3, sub_q[1])
         cgate.t(sub_q[0])
         num_target = cgate.width()
-        gate = instruction_to_gate(cgate.to_instruction())
+        gate = cgate.to_instruction().to_gate()
         cont_gate = gate.q_if(num_ctrl_qubits=num_ctrl)
         control = QuantumRegister(num_ctrl)
         target = QuantumRegister(num_target)
@@ -149,7 +148,7 @@ class TestControlledGate(QiskitTestCase):
         cgate.h(sub_q[0])
         cgate.cx(sub_q[0], sub_q[1])
         num_target = cgate.width()
-        gate = instruction_to_gate(cgate.to_instruction())
+        gate = cgate.to_instruction().to_gate()
         cont_gate = gate.q_if(num_ctrl_qubits=num_ctrl)
         control = QuantumRegister(num_ctrl)
         target = QuantumRegister(num_target)
@@ -364,7 +363,7 @@ class TestControlledGate(QiskitTestCase):
         qc.cx(0, 1)
         qc.cx(1, 2)
         qc.rx(np.pi/4, [0, 1, 2])
-        gate = instruction_to_gate(qc.to_instruction())
+        gate = qc.to_instruction().to_gate()
         cgate = gate.q_if(num_ctrl_qubits)
         inv_cgate = cgate.inverse()
         result = Operator(cgate).compose(Operator(inv_cgate))
@@ -382,7 +381,7 @@ class TestControlledGate(QiskitTestCase):
         # for h-rx(pi/2)
         theta, phi, lamb = 1.57079632679490, 0.0, 4.71238898038469
         qc1.u3(theta, phi, lamb, q_target[0])
-        base_gate = instruction_to_gate(qc1.to_instruction())
+        base_gate = qc1.to_instruction().to_gate()
         # get UnitaryGate version of circuit
         base_op = Operator(qc1)
         base_mat = base_op.data
