@@ -384,7 +384,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         if min(dzi) < 0 < max(dzi):
             ax2.add_collection3d(pc2)
-    
 
         ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
         ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
