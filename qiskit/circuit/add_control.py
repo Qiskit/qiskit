@@ -185,7 +185,7 @@ def q_if(operation, num_ctrl_qubits=1, label=None):
         ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
     else:
         ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
-    new_name = '{0}{1}'.format(ctrl_substr, base_name)        
+    new_name = '{0}{1}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
                                           instr.num_qubits,
                                           instr.params,
