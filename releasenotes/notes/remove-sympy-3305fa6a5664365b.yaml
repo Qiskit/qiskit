@@ -1,11 +1,10 @@
 ---
 deprecations:
   - |
-    Passing in Sympy types as instruction parameters are now deprecated.
-    You'll need to convert the input to one of the supported types which
-    are:
+    Passing in sympy.Basic and sympy.Matrix types as instruction parameters are
+    now deprecated. You'll need to convert the input to one of the supported
+    types which are:
 
-     * ``qiskit.qasm.Node``
      * ``int``
      * ``float``
      * ``complex``
@@ -13,6 +12,6 @@ deprecations:
      * ``np.ndarray``
 other:
   - |
-    All sympy usage has been removed from qiskit-terra. If you were using
-    sympy classes as inputs to Terra it should still work for this release,
-    but it will likely stop working in ``0.11.0``.
+    All sympy parameter output type support have been been removed (or
+    deprecated as noted) from qiskit-terra. This includes sympy type
+    parameters in circuits, qasm ast nodes, or qobjs.

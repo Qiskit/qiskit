@@ -156,17 +156,34 @@ class Instruction:
                 self._params.append(single_param)
             elif isinstance(single_param, numpy.number):
                 self._params.append(single_param.item())
-            else:
-                try:
-                    param = float(single_param)
-                    self._params.append(param)
-                    warnings.warn("Passing messages of type %s is deprecated "
-                                  "ensure your parameters of type: "
-                                  "qasm.Node|int|float|complex|str|ndarray"
-                                  % type(single_param), DeprecationWarning)
-                except TypeError:
+            elif 'sympy' in str(type(single_param)):
+                import sympy
+                if isinstance(single_param, sympy.Basic):
+                    warnings.warn('Parameters of sympy.Basic is deprecated '
+                                  'as of the 0.10.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert this to a '
+                                  'supported type prior to using it as a '
+                                  'a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    self._params.append(single_param)
+                elif isinstance(single_param, sympy.Matrix):
+                    warnings.warn('Parameters of sympy.Matrix is deprecated '
+                                  'as of the 0.10.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert the sympy Matrix '
+                                  'to a numpy matrix with sympy.matrix2numpy '
+                                  'prior to using it as a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    matrix = sympy.matrix2numpy(single_param, dtype=complex)
+                    self._params.append(matrix)
+                else:
                     raise QiskitError("invalid param type {0} in instruction "
-                                      "{1}".format(type(single_param), self.name))
+                                      "{1}".format(type(single_param),
+                                                   self.name))
+            else:
+                raise QiskitError("invalid param type {0} in instruction "
+                                  "{1}".format(type(single_param), self.name))
 
     @property
     def definition(self):
@@ -185,7 +202,8 @@ class Instruction:
         instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
-            params = [x for x in self.params]
+            params = [
+                x.evalf(x) if hasattr(x, 'evalf') else x for x in self.params]
             instruction.params = params
         # Add placeholder for qarg and carg params
         if self.num_qubits:
