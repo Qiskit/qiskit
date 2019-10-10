@@ -579,7 +579,7 @@ class QuantumCircuit:
                 file. This option is only used by the ``mpl`` output type. If a
                 str is passed in that is the path to a json file which contains
                 that will be open, parsed, and then used just as the input
-                dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
+                dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``latex``,
@@ -626,10 +626,10 @@ class QuantumCircuit:
                 number of (visual) layers before folding. Default is 25.
             ax (matplotlib.axes.Axes): An optional Axes object to be used for
                 the visualization output. If none is specified a new matplotlib
-                Figure will be created and used. Additionally, if specified there
-                will be no returned Figure since it is redundant. This is only used
-                when the ``output`` kwarg is set to use the ``mpl`` backend. It
-                will be silently ignored with all other outputs.
+                Figure will be created and used. Additionally, if specified
+                there will be no returned Figure since it is redundant. This is
+                only used when the ``output`` kwarg is set to use the ``mpl``
+                backend. It will be silently ignored with all other outputs.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -649,6 +649,105 @@ class QuantumCircuit:
             VisualizationError: when an invalid output method is selected
             ImportError: when the output methods requires non-installed
                 libraries.
+
+        .. _style-dict-circ-doc:
+
+        **Style Dict Details**
+
+        The style dict kwarg contains numerous options that define the style of
+        the output circuit visualization. The style dict is only used by the
+        ``mpl`` output. The options available in the style dict are defined
+        below:
+
+        Args:
+            textcolor (str): The color code to use for text. Defaults to
+                `'#000000'`
+            subtextcolor (str): The color code to use for subtext. Defaults to
+                `'#000000'`
+            linecolor (str): The color code to use for lines. Defaults to
+                `'#000000'`
+            creglinecolor (str): The color code to use for classical register
+                lines. Defaults to `'#778899'`
+            gatetextcolor (str): The color code to use for gate text. Defaults
+                to `'#000000'`
+            gatefacecolor (str): The color code to use for gates. Defaults to
+                `'#ffffff'`
+            barrierfacecolor (str): The color code to use for barriers.
+                Defaults to `'#bdbdbd'`
+            backgroundcolor (str): The color code to use for the background.
+                Defaults to `'#ffffff'`
+            fontsize (int): The font size to use for text. Defaults to 13
+            subfontsize (int): The font size to use for subtext. Defaults to 8
+            displaytext (dict): A dictionary of the text to use for each
+                element type in the output visualization. The default values
+                are::
+
+                    {
+                        'id': 'id',
+                        'u0': 'U_0',
+                        'u1': 'U_1',
+                        'u2': 'U_2',
+                        'u3': 'U_3',
+                        'x': 'X',
+                        'y': 'Y',
+                        'z': 'Z',
+                        'h': 'H',
+                        's': 'S',
+                        'sdg': 'S^\\dagger',
+                        't': 'T',
+                        'tdg': 'T^\\dagger',
+                        'rx': 'R_x',
+                        'ry': 'R_y',
+                        'rz': 'R_z',
+                        'reset': '\\left|0\\right\\rangle'
+                    }
+
+                You must specify all the necessary values if using this. There
+                is no provision for passing an incomplete dict in.
+            displaycolor (dict): The color codes to use for each circuit
+                element. The default values are::
+
+                    {
+                        'id': '#F0E442',
+                        'u0': '#E7AB3B',
+                        'u1': '#E7AB3B',
+                        'u2': '#E7AB3B',
+                        'u3': '#E7AB3B',
+                        'x': '#58C698',
+                        'y': '#58C698',
+                        'z': '#58C698',
+                        'h': '#70B7EB',
+                        's': '#E0722D',
+                        'sdg': '#E0722D',
+                        't': '#E0722D',
+                        'tdg': '#E0722D',
+                        'rx': '#ffffff',
+                        'ry': '#ffffff',
+                        'rz': '#ffffff',
+                        'reset': '#D188B4',
+                        'target': '#70B7EB',
+                        'meas': '#D188B4'
+                    }
+
+               Also, just like  `displaytext` there is no provision for an
+               incomplete dict passed in.
+
+            latexdrawerstyle (bool): When set to True enable latex mode which
+                will draw gates like the `latex` output modes.
+            usepiformat (bool): When set to True use radians for output
+            fold (int): The number of circuit elements to fold the circuit at.
+                Defaults to 20
+            cregbundle (bool): If set True bundle classical registers
+            showindex (bool): If set True draw an index.
+            compress (bool): If set True draw a compressed circuit
+            figwidth (int): The maximum width (in inches) for the output figure.
+            dpi (int): The DPI to use for the output image. Defaults to 150
+            margin (list): A list of margin values to adjust spacing around
+                output image. Takes a list of 4 ints:
+                [x left, x right, y bottom, y top].
+            creglinestyle (str): The style of line to use for classical
+                registers. Choices are `'solid'`, `'doublet'`, or any valid
+                matplotlib `linestyle` kwarg value. Defaults to `doublet`
         """
 
         # pylint: disable=cyclic-import
