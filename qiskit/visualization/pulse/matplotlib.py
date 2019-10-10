@@ -507,6 +507,8 @@ class ScheduleDrawer:
                 color = self._get_channel_color(channel)
                 # if the current channel and previous channel  have not negative values
                 test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
+                # Minimum amplitude
+                amp_min = abs(min(np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -542,7 +544,7 @@ class ScheduleDrawer:
 
             # change the y0 offset for removing spacing when a channel has negative values
             if test1 and self.style.remove_spacing:
-                y0 -= 0.5
+                y0 -= 0.5 + amp_min
             else:
                 y0 -= 1
         return y0
