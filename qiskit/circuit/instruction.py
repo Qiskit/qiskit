@@ -245,7 +245,7 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical control on register classical and value val."""
+        """Add classical condition on register classical and value val."""
         if not isinstance(classical, ClassicalRegister):
             raise QiskitError("c_if must be used with a classical register")
         if val < 0:
