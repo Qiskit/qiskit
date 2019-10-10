@@ -629,8 +629,8 @@ class QuantumCircuit:
                 Figure will be created and used. Additionally, if specified there
                 will be no returned Figure since it is redundant. This is only used
                 when the ``output`` kwarg is set to use the ``mpl`` backend. It
-                will be silently ignored with all other outputs.                
-                
+                will be silently ignored with all other outputs.
+
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
             :class:`TextDrawing`:
