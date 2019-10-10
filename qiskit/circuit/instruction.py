@@ -52,6 +52,7 @@ class Instruction:
 
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
+
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width

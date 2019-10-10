@@ -26,7 +26,8 @@ class EnlargeWithAncilla(TransformationPass):
     the layout, but not present in the circuit."""
 
     def __init__(self, layout=None):
-        """
+        """EnlargeWithAncilla initializer.
+
         Args:
             layout (Layout): layout of qubits to consider
         """
@@ -34,8 +35,7 @@ class EnlargeWithAncilla(TransformationPass):
         self.layout = layout
 
     def run(self, dag):
-        """
-        Extends dag with virtual qubits that are in layout but not in the circuit yet.
+        """Extends dag with virtual qubits that are in layout but not in the circuit yet.
 
         Args:
             dag (DAGCircuit): DAG to extend.
