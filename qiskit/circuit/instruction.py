@@ -141,7 +141,7 @@ class Instruction:
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
-                self._params.append(single_param.num())
+                self._params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self._params.append(single_param)
