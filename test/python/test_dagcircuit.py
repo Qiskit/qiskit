@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """Test for the DAGCircuit object"""
 
@@ -680,10 +679,10 @@ class TestDagLayers(QiskitTestCase):
             qc = QuantumCircuit(qr)
             qc.x(0)
             dag = circuit_to_dag(qc)
-            d1 = list(dag.layers())[0]['graph']
-            d1.apply_operation_back(IdGate(), [qr[0]], [])
+            dag1 = list(dag.layers())[0]['graph']
+            dag1.apply_operation_back(IdGate(), [qr[0]], [])
 
-            comp = [(nd.type, nd.name, nd._node_id) for nd in d1.topological_nodes()]
+            comp = [(nd.type, nd.name, nd._node_id) for nd in dag1.topological_nodes()]
             self.assertEqual(comp, truth)
 
 
@@ -983,20 +982,20 @@ class TestDagProperties(QiskitTestCase):
     def test_dag_depth1(self):
         """Test DAG depth #1
         """
-        q1 = QuantumRegister(3, 'q1')
-        q2 = QuantumRegister(2, 'q2')
+        qr1 = QuantumRegister(3, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
         c = ClassicalRegister(5, 'c')
-        qc = QuantumCircuit(q1, q2, c)
-        qc.h(q1[0])
-        qc.h(q1[1])
-        qc.h(q1[2])
-        qc.h(q2[0])
-        qc.h(q2[1])
-        qc.ccx(q2[1], q1[0], q2[0])
-        qc.cx(q1[0], q1[1])
-        qc.cx(q1[1], q2[1])
-        qc.cx(q2[1], q1[2])
-        qc.cx(q1[2], q2[0])
+        qc = QuantumCircuit(qr1, qr2, c)
+        qc.h(qr1[0])
+        qc.h(qr1[1])
+        qc.h(qr1[2])
+        qc.h(qr2[0])
+        qc.h(qr2[1])
+        qc.ccx(qr2[1], qr1[0], qr2[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[1])
+        qc.cx(qr2[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
 
