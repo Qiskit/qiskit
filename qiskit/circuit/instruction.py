@@ -34,6 +34,8 @@ The circuit itself keeps this context.
 """
 import copy
 from itertools import zip_longest
+import warnings
+
 import sympy
 import numpy
 
@@ -52,11 +54,14 @@ class Instruction:
 
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
+
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
+            params (list[sympy.Basic||int|float|complex|str|ParameterExpressionndarray]): list of
+                parameters
+
         Raises:
             QiskitError: when the register is not in the correct format.
         """
@@ -140,6 +145,15 @@ class Instruction:
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
+                warnings.warn('Using qasm ast node as a circuit.Instruction '
+                              'parameter is deprecated as of the 0.10.0, and '
+                              'will be removed no earlier than 3 months after '
+                              'that release date. You should convert the qasm '
+                              'node to a supported type int, float, complex, '
+                              'str, circuit.ParameterExpression, or ndarray '
+                              'before setting Instruction.parameters',
+                              DeprecationWarning, stacklevel=3)
+
                 self._params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
@@ -344,7 +358,6 @@ class Instruction:
     @property
     def control(self):
         """temporary classical control. Will be deprecated."""
-        import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
                       'to create quantum controlled gates')
@@ -352,7 +365,6 @@ class Instruction:
 
     @control.setter
     def control(self, value):
-        import warnings
         warnings.warn('The instruction attribute, "control", will be renamed '
                       'to "condition". The "control" method will later be used '
                       'to create quantum controlled gates')
