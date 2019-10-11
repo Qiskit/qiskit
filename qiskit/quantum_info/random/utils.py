@@ -112,8 +112,8 @@ def __ginibre_matrix(nrow, ncol=None, seed=None):
         ncol = nrow
     if seed is not None:
         np.random.seed(seed)
-    ginibre = np.random.normal(size=(nrow, ncol)) + \
-              np.random.normal(size=(nrow, ncol)) * 1j
+
+    ginibre = np.random.normal(size=(nrow, ncol)) + np.random.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 
