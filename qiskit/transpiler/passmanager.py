@@ -128,14 +128,19 @@ class PassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
+        _flow_controller_conditions = copy.deepcopy(flow_controller_conditions)
+
         options = self._join_options({'max_iteration': max_iteration})
 
         passes = PassManager._normalize_passes(passes)
 
         flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
 
-        self.working_list.append(
-            FlowController.controller_factory(passes, options, **flow_controller_conditions))
+        controller = FlowController.controller_factory(passes, options,
+                                                       **flow_controller_conditions)
+        controller._flow_controller_conditions = _flow_controller_conditions
+
+        self.working_list.append(controller)
 
     def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
         """Replace a particular pass in the scheduler
@@ -157,6 +162,8 @@ class PassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
+        _flow_controller_conditions = copy.deepcopy(flow_controller_conditions)
+
         options = self._join_options({'max_iteration': max_iteration})
 
         passes = PassManager._normalize_passes(passes)
@@ -165,6 +172,8 @@ class PassManager():
 
         controller = FlowController.controller_factory(passes, options,
                                                        **flow_controller_conditions)
+        controller._flow_controller_conditions = _flow_controller_conditions
+
         try:
             self.working_list[index] = controller
         except IndexError:
@@ -183,9 +192,19 @@ class PassManager():
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self))
             for i in range(start, stop, step):
-                new_passmanager.working_list.append(self.working_list[i])
+                controller = self.working_list[i]
+                max_iteration = controller.options['max_iteration']
+                passes = controller._passes
+                flow_controller_conditions = controller._flow_controller_conditions
+                new_passmanager.append(passes, max_iteration,
+                                       **flow_controller_conditions)
         elif isinstance(index, int):
-            new_passmanager.working_list.append(self.working_list[index])
+            controller = self.working_list[index]
+            max_iteration = controller.options['max_iteration']
+            passes = controller._passes
+            flow_controller_conditions = controller._flow_controller_conditions
+            new_passmanager.append(passes, max_iteration,
+                                   **flow_controller_conditions)
         elif isinstance(index, tuple):
             raise NotImplementedError('Tuple as index')
         else:
@@ -193,17 +212,26 @@ class PassManager():
         return new_passmanager
 
     def __add__(self, other):
+        max_iteration = self.passmanager_options['max_iteration']
+        call_back = self.callback
+        new_passmanager = PassManager(passes=None, max_iteration=max_iteration, callback=call_back)
         if isinstance(other, PassManager):
-            new_passmanager = copy.deepcopy(self)
-            new_passmanager.reset()
-            new_passmanager.working_list += other.working_list
+            for controller in self.working_list + other.working_list:
+                max_iteration = controller.options['max_iteration']
+                passes = controller._passes
+                flow_controller_conditions = controller._flow_controller_conditions
+                new_passmanager.append(passes, max_iteration,
+                                       **flow_controller_conditions)
             return new_passmanager
         else:
             try:
-                passes = PassManager._normalize_passes(other)
-                new_passmanager = copy.deepcopy(self)
-                new_passmanager.reset()
-                new_passmanager.append(passes)
+                for controller in self.working_list:
+                    max_iteration = controller.options['max_iteration']
+                    passes = controller._passes
+                    flow_controller_conditions = controller._flow_controller_conditions
+                    new_passmanager.append(passes, max_iteration,
+                                           **flow_controller_conditions)
+                new_passmanager.append(other)
                 return new_passmanager
             except TranspilerError:
                 raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
@@ -457,6 +485,7 @@ class FlowControllerLinear(FlowController):
 
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
         self.passes = self._passes = passes
+        self._flow_controller_conditions = None
         self.options = options
 
 
