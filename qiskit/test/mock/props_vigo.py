@@ -13,14 +13,18 @@
 # that they have been altered from the originals.
 
 """
-Fake Valencia device (5 qubit).
+Fake Vigo device (5 qubit).
 """
 
-from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+import os
+import json
+
+from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
+                                     BackendProperties)
 from .fake_backend import FakeBackend
 
 
-class FakeValencia(FakeBackend):
+class FakeVigo(FakeBackend):
     """A fake 5 qubit backend."""
 
     def __init__(self):
@@ -32,7 +36,7 @@ class FakeValencia(FakeBackend):
         cmap = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_valencia',
+            backend_name='fake_vigo',
             backend_version='0.0.0',
             n_qubits=5,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
@@ -47,3 +51,12 @@ class FakeValencia(FakeBackend):
         )
 
         super().__init__(configuration)
+
+    def properties(self):
+        """Returns a snapshot of device properties as recorded on 8/30/19.
+        """
+        dirname = os.path.dirname(__file__)
+        filename = "props_vigo.json"
+        with open(os.path.join(dirname, filename), "r") as f_prop:
+            props = json.load(f_prop)
+        return BackendProperties.from_dict(props)

@@ -31,6 +31,7 @@ from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
+from .quantumcircuitdata import QuantumCircuitData
 
 
 def _is_bit(obj):
@@ -89,7 +90,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self.data = []
+        self._data = []
 
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
@@ -100,6 +101,38 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
+
+    @property
+    def data(self):
+        """Return the circuit data (instructions and context)
+
+        Returns:
+            QuantumCircuitData: a list-like object containing the tuples for the
+               circuit's data. Each tuple is in the format (instruction, qargs,
+               cargs). Where instruction is an Instruction (or subclass) object,
+               qargs is a list of Qubit objects, and cargs is a list of Clbit
+               objects.
+        """
+        return QuantumCircuitData(self)
+
+    @data.setter
+    def data(self, data_input):
+        """Sets the circuit data from a list of instructions and context.
+
+        Args:
+            data_input (list): A list of instructions with context
+                in the format (instruction, qargs, cargs). Where Instruction
+                is an Instruction (or subclass) object, qargs is a list of
+                Qubit objects, and cargs is a list of Clbit objects.
+        """
+
+        # If data_input is QuantumCircuitData(self), clearing self._data
+        # below will also empty data_input, so make a shallow copy first.
+        data_input = data_input.copy()
+        self._data = []
+
+        for inst, qargs, cargs in data_input:
+            self.append(inst, qargs, cargs)
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -153,9 +186,9 @@ class QuantumCircuit:
             QuantumCircuit: the mirrored circuit
         """
         reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ.data = []
+        reverse_circ._data = []
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.data.append((inst.mirror(), qargs, cargs))
+            reverse_circ.append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
@@ -170,9 +203,9 @@ class QuantumCircuit:
             QiskitError: if the circuit cannot be inverted.
         """
         inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ.data = []
-        for inst, qargs, cargs in reversed(self.data):
-            inverse_circ.data.append((inst.inverse(), qargs, cargs))
+        inverse_circ._data = []
+        for inst, qargs, cargs in reversed(self._data):
+            inverse_circ._data.append((inst.inverse(), qargs, cargs))
         return inverse_circ
 
     def combine(self, rhs):
@@ -201,7 +234,7 @@ class QuantumCircuit:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit.append(*instruction_context)
+            circuit._append(*instruction_context)
         return circuit
 
     def extend(self, rhs):
@@ -228,7 +261,7 @@ class QuantumCircuit:
 
         # Add new gates
         for instruction_context in rhs.data:
-            self.append(*instruction_context)
+            self._append(*instruction_context)
         return self
 
     @property
@@ -255,11 +288,11 @@ class QuantumCircuit:
 
     def __len__(self):
         """Return number of operations in circuit."""
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, item):
         """Return indexed operation."""
-        return self.data[item]
+        return self._data[item]
 
     @staticmethod
     def cast(value, _type):
@@ -355,24 +388,8 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet()
-
-        # When broadcasting was handled by decorators (prior to #2282), append
-        # received multiple distinct instruction instances, one for each expanded
-        # arg. With broadcasting as part of QuantumCircuit.append, the
-        # instruction instance is constructed before append is called. However,
-        # (at least) ParameterTable expects instruction instances to be unique
-        # within a circuit, so make instruction deepcopies for expanded_args[1:].
-
-        first_instruction = True
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            if first_instruction:
-                instructions.add(
-                    self._append(instruction, qarg, carg), qarg, carg)
-                first_instruction = False
-            else:
-                instructions.add(
-                    self._append(deepcopy(instruction), qarg, carg), qarg, carg)
-
+            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
 
     def _append(self, instruction, qargs, cargs):
@@ -401,16 +418,22 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self.data.append(instruction_context)
+        self._data.append(instruction_context)
 
-        # track variable parameters in instruction
+        self._update_parameter_table(instruction)
+
+        return instruction
+
+    def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
                 current_parameters = self.parameters
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
-                        self._parameter_table[parameter].append((instruction, param_index))
+                        if not self._check_dup_param_spec(self._parameter_table[parameter],
+                                                          instruction, param_index):
+                            self._parameter_table[parameter].append((instruction, param_index))
                     else:
                         if parameter.name in {p.name for p in current_parameters}:
                             raise QiskitError(
@@ -418,6 +441,12 @@ class QuantumCircuit:
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
         return instruction
+
+    def _check_dup_param_spec(self, parameter_spec_list, instruction, param_index):
+        for spec in parameter_spec_list:
+            if spec[0] is instruction and spec[1] == param_index:
+                return True
+        return False
 
     def add_register(self, *regs):
         """Add registers."""
@@ -516,7 +545,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
-        for instruction, qargs, cargs in self.data:
+        for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
@@ -532,7 +561,7 @@ class QuantumCircuit:
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True):
+             with_layout=True, fold=None, ax=None):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -575,12 +604,25 @@ class QuantumCircuit:
             idle_wires (bool): Include idle wires. Default is True.
             with_layout (bool): Include layout information, with labels on the physical
                 layout. Default is True.
+            fold (int): Sets pagination. It can be disabled using -1.
+                In `text`, sets the length of the lines. This useful when the
+                drawing does not fit in the console. If None (default), it will try to
+                guess the console width using `shutil.get_terminal_size()`. However, if
+                running in jupyter, the default line length is set to 80 characters.
+                In `mpl` is the amount of operations before folding. Default is 25.
+            ax (matplotlib.axes.Axes): An optional Axes object to be used for
+                the visualization output. If none is specified a new matplotlib
+                Figure will be created and used. Additionally, if specified there
+                will be no returned Figure since it is redundant. This is only used
+                when the ``output`` kwarg is set to use the ``mpl`` backend. It
+                will be silently ignored with all other outputs.
+
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
                 * PIL.Image: (output `latex`) an in-memory representation of the
                   image of the circuit diagram.
                 * matplotlib.figure: (output `mpl`) a matplotlib figure object
-                  for the circuit diagram.
+                  for the circuit diagram, if the ``ax`` kwarg is not set.
                 * str: (output `latex_source`). The LaTeX source code.
                 * TextDrawing: (output `text`). A drawing that can be printed as
                   ascii art
@@ -600,7 +642,9 @@ class QuantumCircuit:
                               justify=justify,
                               vertical_compression=vertical_compression,
                               idle_wires=idle_wires,
-                              with_layout=with_layout)
+                              with_layout=with_layout,
+                              fold=fold,
+                              ax=ax)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -609,7 +653,7 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         gate_ops = 0
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name not in ['barrier', 'snapshot']:
                 gate_ops += 1
         return gate_ops
@@ -648,7 +692,7 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
             # If count then add one to stack heights
@@ -663,13 +707,13 @@ class QuantumCircuit:
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
-            # Assuming here that there is no controlled
+            # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instr.control:
+            if instr.condition:
                 # Controls operate over all bits in the
                 # classical register they use.
-                cint = reg_map[instr.control[0].name]
-                for off in range(instr.control[0].size):
+                cint = reg_map[instr.condition[0].name]
+                for off in range(instr.condition[0].size):
                     if cint + off not in reg_ints:
                         reg_ints.append(cint + off)
                         levels.append(op_stack[cint + off] + 1)
@@ -706,7 +750,7 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name in count_ops.keys():
                 count_ops[instr.name] += 1
             else:
@@ -741,21 +785,21 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             if unitary_only:
                 args = qargs
                 num_qargs = len(args)
             else:
                 args = qargs + cargs
-                num_qargs = len(args) + (1 if instr.control else 0)
+                num_qargs = len(args) + (1 if instr.condition else 0)
 
             if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.control and not unitary_only:
-                    creg = instr.control[0]
+                if instr.condition and not unitary_only:
+                    creg = instr.condition[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int + coff
@@ -822,6 +866,69 @@ class QuantumCircuit:
         if name:
             cpy.name = name
         return cpy
+
+    def _create_creg(self, length, name):
+        """ Creates a creg, checking if ClassicalRegister with same name exists
+        """
+        if name in [creg.name for creg in self.cregs]:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = name
+            new_creg = ClassicalRegister(length)
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(length, name)
+        return new_creg
+
+    def measure_active(self):
+        """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
+        a size equal to the number of non-idle qubits being measured.
+        """
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        dag = circuit_to_dag(self)
+        qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
+        new_creg = self._create_creg(len(qubits_to_measure), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(qubits_to_measure, new_creg)
+
+    def measure_all(self):
+        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
+        size equal to the number of qubits being measured.
+        """
+        new_creg = self._create_creg(len(self.qubits), 'measure')
+        self.add_register(new_creg)
+        self.barrier()
+        self.measure(self.qubits, new_creg)
+
+    def remove_final_measurements(self):
+        """Removes final measurement on all qubits if they are present.
+        Deletes the ClassicalRegister that was used to store the values from these measurements
+        if it is idle.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
+        from qiskit.converters import circuit_to_dag
+        dag = circuit_to_dag(self)
+        remove_final_meas = RemoveFinalMeasurements()
+        new_dag = remove_final_meas.run(dag)
+
+        # Set self's cregs and instructions to match the new DAGCircuit's
+        self.data.clear()
+        self.cregs = list(new_dag.cregs.values())
+
+        for node in new_dag.topological_op_nodes():
+            qubits = []
+            for qubit in node.qargs:
+                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
+
+            clbits = []
+            for clbit in node.cargs:
+                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
+
+            # Get arguments for classical condition (if any)
+            inst = node.op.copy()
+            inst.condition = node.condition
+            self.append(inst, qubits, clbits)
 
     @staticmethod
     def from_qasm_file(path):
