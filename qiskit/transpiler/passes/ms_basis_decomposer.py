@@ -31,15 +31,11 @@ class MSBasisDecomposer(TransformationPass):
     """
 
     supported_input_gates = (U3Gate, CnotGate)
-    supported_basis_names = ('rx', 'ry', 'rxx', 'ms')
 
     def __init__(self, basis_gates):
         """
         Args:
             basis_gates (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
-
-        Raises:
-            QiskitError: if target basis is not [ 'rx', 'ry', 'rxx', 'ms' ]
 
         """
         super().__init__()
