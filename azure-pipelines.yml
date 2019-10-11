@@ -161,8 +161,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
