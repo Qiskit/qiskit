@@ -260,6 +260,18 @@ class BackendProperties(BaseModel):
         """
         return self.qubit_property(qubit, 'T1')[0]  # Throw away datetime at index 1
 
+    def t2(self, qubit: int) -> float:
+        """
+        Return the T2 time if the given qubit.
+
+        Args:
+            qubit: Qubit for which to return the T2 time of.
+
+        Returns:
+            T2 time of the given qubit.
+        """
+        return self.qubit_property(qubit, 'T2')[0]  # Throw away datetime at index 1
+
     def frequency(self, qubit: int) -> float:
         """
         Return the frequency of the given qubit.
@@ -271,6 +283,18 @@ class BackendProperties(BaseModel):
             Frequency of the given qubit.
         """
         return self.qubit_property(qubit, 'frequency')[0]  # Throw away datetime at index 1
+
+    def readout_error(self, qubit:int) -> float:
+        """
+        Return the readout error of the given qubit.
+
+        Args:
+            qubit: Qubit for which to return the readout error of.
+
+        Return:
+            Readout error of the given qubit,
+        """
+        return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
 
     def _apply_prefix(self, value: float, unit: str) -> float:
         """
