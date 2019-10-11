@@ -15,11 +15,16 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+## [0.9.1] - 2019-10-11
+
 ### Fixed
 
--   Classical registers are drawn to use the same parameters as the
-    quantum ones. (#3039)
--   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+-   Fix for #3106 gatefacecolor key on circuit diagrams (#3142)
+-   Fixed classical registers drawing offset (#3081)
+-   Fix mpl conditional drawing (#3049)
+-   Remove jsonschema cap (#3038)
+-   Make graphviz availability check at runtime (#3045)
+
 
 ## [0.9.0] - 2019-08-22
 
