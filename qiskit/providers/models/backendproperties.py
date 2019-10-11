@@ -260,7 +260,7 @@ class BackendProperties(BaseModel):
         """
         return self.qubit_property(qubit, 'T1')[0]  # Throw away datetime at index 1
 
-    def t2(self, qubit: int) -> float:
+    def t2(self, qubit: int) -> float:  # pylint: disable=invalid-name
         """
         Return the T2 time if the given qubit.
 
@@ -284,7 +284,7 @@ class BackendProperties(BaseModel):
         """
         return self.qubit_property(qubit, 'frequency')[0]  # Throw away datetime at index 1
 
-    def readout_error(self, qubit:int) -> float:
+    def readout_error(self, qubit: int) -> float:
         """
         Return the readout error of the given qubit.
 

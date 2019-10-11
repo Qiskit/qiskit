@@ -51,7 +51,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         """Test for getting the gate errors."""
         self.assertEqual(self.properties.gate_error('u1', 1),
                          self.properties._gates['u1'][(1,)]['gate_error'][0])
-        self.assertEqual(self.properties.gate_error('u1', [2,]),
+        self.assertEqual(self.properties.gate_error('u1', [2, ]),
                          self.properties._gates['u1'][(2,)]['gate_error'][0])
         self.assertEqual(self.properties.gate_error('cx', [0, 1]),
                          self.properties._gates['cx'][(0, 1)]['gate_error'][0])
@@ -66,7 +66,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.gate_length('cx', [4, 3]),
                          self.properties._gates['cx'][(4, 3)]['gate_length'][0])
 
-    def test_get_qubit_property(self):
+    def test_qubit_property(self):
         """Test for getting the qubit properties."""
         self.assertEqual(self.properties.qubit_property(0, 'T1'),
                          self.properties._qubits[0]['T1'])
