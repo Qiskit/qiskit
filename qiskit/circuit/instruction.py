@@ -177,6 +177,15 @@ class Instruction:
                                   DeprecationWarning, stacklevel=3)
                     matrix = sympy.matrix2numpy(single_param, dtype=complex)
                     self._params.append(matrix)
+                elif isinstance(single_param, sympy.Expr):
+                    warnings.warn('Parameters of sympy.Expr is deprecated '
+                                  'as of the 0.10.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert the sympy Expr '
+                                  'to a supported type prior to using it as '
+                                  'a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    self._params.append(single_param)
                 else:
                     raise QiskitError("invalid param type {0} in instruction "
                                       "{1}".format(type(single_param),
