@@ -41,7 +41,11 @@ class MSBasisDecomposer(TransformationPass):
         super().__init__()
 
         self.basis_gates = basis_gates
-        self.requires = [Unroller(list(set(basis_gates).union(['u3', 'cx'])))]
+
+        # Require all gates be unrolled to either a basis gate or U3,CX before
+        # running the decomposer.
+        input_basis = set(basis_gates).union(['u3', 'cx'])
+        self.requires = [Unroller(list(input_basis))]
 
     def run(self, dag):
         """Replace U3,CX nodes in input dag with equivalent Rx,Ry,Rxx gates.
