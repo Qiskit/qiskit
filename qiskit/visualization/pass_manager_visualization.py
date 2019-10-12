@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
@@ -65,17 +63,20 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+        _PROC = subprocess.Popen(['dot', '-V'],  # pylint: disable=invalid-name
+                                 stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         _PROC.communicate()
         if _PROC.returncode != 0:
-            HAS_GRAPHVIZ = False
+            has_graphviz = False
         else:
-            HAS_GRAPHVIZ = True
+            has_graphviz = True
     except Exception:  # pylint: disable=broad-except
         # this is raised when the dot command cannot be found, which means GraphViz
         # isn't installed
-        HAS_GRAPHVIZ = False
+        has_graphviz = False
+
+    HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
 
     try:
         import pydot

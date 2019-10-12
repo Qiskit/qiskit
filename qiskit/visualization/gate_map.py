@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """A module for visualizing device coupling maps"""
 
@@ -34,6 +33,7 @@ if HAS_MATPLOTLIB:
 class _GraphDist():
     """Transform the circles properly for non-square axes.
     """
+
     def __init__(self, size, ax, x=True):
         self.size = size
         self.ax = ax  # pylint: disable=invalid-name
@@ -168,7 +168,7 @@ def plot_gate_map(backend, figsize=None,
     max_dim = max(x_max, y_max)
 
     if figsize is None:
-        if x_max/max_dim > 0.33 and y_max/max_dim > 0.33:
+        if x_max / max_dim > 0.33 and y_max / max_dim > 0.33:
             figsize = (5, 5)
         else:
             figsize = (9, 3)
@@ -179,9 +179,9 @@ def plot_gate_map(backend, figsize=None,
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ['#648fff']*config.n_qubits
+        qubit_color = ['#648fff'] * config.n_qubits
     if line_color is None:
-        line_color = ['#648fff']*len(cmap)
+        line_color = ['#648fff'] * len(cmap)
 
     # Add lines for couplings
     for ind, edge in enumerate(cmap):
@@ -195,31 +195,31 @@ def plot_gate_map(backend, figsize=None,
 
         if is_symmetric:
             if y_start == y_end:
-                x_end = (x_end - x_start)/2+x_start
+                x_end = (x_end - x_start) / 2 + x_start
 
             elif x_start == x_end:
-                y_end = (y_end - y_start)/2+y_start
+                y_end = (y_end - y_start) / 2 + y_start
 
             else:
-                x_end = (x_end - x_start)/2+x_start
-                y_end = (y_end - y_start)/2+y_start
+                x_end = (x_end - x_start) / 2 + x_start
+                y_end = (y_end - y_start) / 2 + y_start
         ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
                                  color=line_color[ind], linewidth=line_width,
                                  zorder=0))
         if plot_directed:
-            dx = x_end-x_start  # pylint: disable=invalid-name
-            dy = y_end-y_start  # pylint: disable=invalid-name
+            dx = x_end - x_start  # pylint: disable=invalid-name
+            dy = y_end - y_start  # pylint: disable=invalid-name
             if is_symmetric:
-                x_arrow = x_start+dx*0.95
-                y_arrow = -y_start-dy*0.95
-                dx_arrow = dx*0.01
-                dy_arrow = -dy*0.01
+                x_arrow = x_start + dx * 0.95
+                y_arrow = -y_start - dy * 0.95
+                dx_arrow = dx * 0.01
+                dy_arrow = -dy * 0.01
                 head_width = 0.15
             else:
-                x_arrow = x_start+dx*0.5
-                y_arrow = -y_start-dy*0.5
-                dx_arrow = dx*0.2
-                dy_arrow = -dy*0.2
+                x_arrow = x_start + dx * 0.5
+                y_arrow = -y_start - dy * 0.5
+                dx_arrow = dx * 0.2
+                dy_arrow = -dy * 0.2
                 head_width = 0.2
             ax.add_patch(mpatches.FancyArrow(x_arrow,
                                              y_arrow,
@@ -244,8 +244,8 @@ def plot_gate_map(backend, figsize=None,
                     horizontalalignment='center',
                     verticalalignment='center',
                     color=font_color, size=font_size, weight='bold')
-    ax.set_xlim([-1, x_max+1])
-    ax.set_ylim([-(y_max+1), 1])
+    ax.set_xlim([-1, x_max + 1])
+    ax.set_ylim([-(y_max + 1), 1])
     if not input_axes:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
                              'nbAgg']:
@@ -277,7 +277,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     n_qubits = backend.configuration().n_qubits
 
     qubits = []
-    qubit_labels = [None]*n_qubits
+    qubit_labels = [None] * n_qubits
 
     if view == 'virtual':
         idx = 0
@@ -296,13 +296,13 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     else:
         raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
-    qcolors = ['#648fff']*n_qubits
+    qcolors = ['#648fff'] * n_qubits
     for k in qubits:
         qcolors[k] = 'k'
 
     cmap = backend.configuration().coupling_map
 
-    lcolors = ['#648fff']*len(cmap)
+    lcolors = ['#648fff'] * len(cmap)
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
@@ -338,10 +338,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     # U2 error rates
     single_gate_errors = [q['parameters'][0]['value']
-                          for q in props['gates'][1:3*n_qubits:3]]
+                          for q in props['gates'][1:3 * n_qubits:3]]
 
     # Convert to percent
-    single_gate_errors = 100*np.asarray(single_gate_errors)
+    single_gate_errors = 100 * np.asarray(single_gate_errors)
     avg_1q_err = np.mean(single_gate_errors)
 
     single_norm = matplotlib.colors.Normalize(
@@ -367,7 +367,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             continue
 
     # Convert to percent
-    cx_errors = 100*np.asarray(cx_errors)
+    cx_errors = 100 * np.asarray(cx_errors)
     avg_cx_err = np.mean(cx_errors)
 
     cx_norm = matplotlib.colors.Normalize(
@@ -383,21 +383,21 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             if item['name'] == 'readout_error':
                 read_err.append(item['value'])
 
-    read_err = 100*np.asarray(read_err)
+    read_err = 100 * np.asarray(read_err)
     avg_read_err = np.mean(read_err)
     max_read_err = np.max(read_err)
 
     fig = plt.figure(figsize=figsize)
     gridspec.GridSpec(nrows=2, ncols=3)
 
-    gs = gridspec.GridSpec(12, 12, height_ratios=[1]*11+[0.5],
-                           width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+    grid_spec = gridspec.GridSpec(12, 12, height_ratios=[1] * 11 + [0.5],
+                                  width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
 
-    left_ax = plt.subplot(gs[2:10, :1])
-    main_ax = plt.subplot(gs[:11, 1:11])
-    right_ax = plt.subplot(gs[2:10, 11:])
-    bleft_ax = plt.subplot(gs[-1, :5])
-    bright_ax = plt.subplot(gs[-1, 7:])
+    left_ax = plt.subplot(grid_spec[2:10, :1])
+    main_ax = plt.subplot(grid_spec[:11, 1:11])
+    right_ax = plt.subplot(grid_spec[2:10, 11:])
+    bleft_ax = plt.subplot(grid_spec[-1, :5])
+    bright_ax = plt.subplot(grid_spec[-1, 7:])
 
     plot_gate_map(backend, qubit_color=q_colors,
                   line_color=line_colors,
@@ -429,8 +429,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         num_left = n_qubits
         num_right = 0
     else:
-        num_left = math.ceil(n_qubits/2)
-        num_right = n_qubits-num_left
+        num_left = math.ceil(n_qubits / 2)
+        num_right = n_qubits - num_left
 
     left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#007d79')
     left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
