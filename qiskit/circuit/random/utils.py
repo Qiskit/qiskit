@@ -96,8 +96,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                possible_values = range(pow(2, n_qubits))
-                value = rng.choice(list(possible_values))
+                value = rng.randint(0, np.power(2, n_qubits))
                 op.condition = (cr, value)
 
             qc.append(op, register_operands)
