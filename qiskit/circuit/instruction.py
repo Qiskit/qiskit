@@ -53,11 +53,13 @@ class Instruction:
 
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
+
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[qasm.Node|int|float|complex|str|ndarray]): list of parameters
+            params (list[int|float|complex|str|ndarray|ParameterExpression]): list of parameters
+
         Raises:
             QiskitError: when the register is not in the correct format.
         """
@@ -141,6 +143,15 @@ class Instruction:
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
+                warnings.warn('Using qasm ast node as a circuit.Instruction '
+                              'parameter is deprecated as of the 0.10.0, and '
+                              'will be removed no earlier than 3 months after '
+                              'that release date. You should convert the qasm '
+                              'node to a supported type int, float, complex, '
+                              'str, circuit.ParameterExpression, or ndarray '
+                              'before setting Instruction.parameters',
+                              DeprecationWarning, stacklevel=3)
+
                 self._params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
