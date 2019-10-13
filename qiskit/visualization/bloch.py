@@ -548,7 +548,7 @@ class Bloch():
                     np.real(self.points[k][2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
-                    edgecolor='none',
+                    edgecolor=None,
                     zdir='z',
                     color=self.point_color[np.mod(k, len(self.point_color))],
                     marker=self.point_marker[np.mod(k,
@@ -566,7 +566,7 @@ class Bloch():
                 self.axes.scatter(np.real(self.points[k][1][indperm]),
                                   -np.real(self.points[k][0][indperm]),
                                   np.real(self.points[k][2][indperm]),
-                                  s=pnt_size, alpha=1, edgecolor='none',
+                                  s=pnt_size, alpha=1, edgecolor=None,
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 

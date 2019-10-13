@@ -26,8 +26,10 @@ import hypothesis.strategies as st
 from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate
-from qiskit.test.mock import \
-    FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
+from qiskit.test.mock import (FakeYorktown, FakeTenerife, FakeOurense, FakeVigo,
+                              FakeMelbourne, FakeRueschlikon,
+                              FakeTokyo, FakePoughkeepsie, FakeAlmaden, FakeSingapore,
+                              FakeJohannesburg, FakeBoeblingen)
 from qiskit.test.base import dicts_almost_equal
 
 
@@ -48,8 +50,10 @@ twoQ_threeP_gates = [Cu3Gate]
 oneQ_oneC_gates = [Measure]
 variadic_gates = [Barrier]
 
-mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
-                 FakeTokyo(), FakePoughkeepsie()]
+mock_backends = [FakeYorktown(), FakeTenerife(), FakeOurense(), FakeVigo(),
+                 FakeMelbourne(), FakeRueschlikon(),
+                 FakeTokyo(), FakePoughkeepsie(), FakeAlmaden(), FakeSingapore(),
+                 FakeJohannesburg(), FakeBoeblingen()]
 
 
 @settings(report_multiple_bugs=False,
