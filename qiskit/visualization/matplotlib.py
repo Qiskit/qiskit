@@ -189,10 +189,10 @@ class MatplotlibDrawer:
             ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
             else:
-                boxes_length = round(len(text) / 8) or 1
-            wid = WID * 2.2 * boxes_length
+                boxes_length = math.ceil(len(text) / 6) or 1
+            wid = WID * 2.5 * boxes_length
         else:
             wid = WID
 
@@ -224,6 +224,7 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
+
             disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.5 * height, disp_text, ha='center',
@@ -241,7 +242,8 @@ class MatplotlibDrawer:
                              fontsize=self._style.fs,
                              color=self._style.gt,
                              clip_on=True,
-                             zorder=PORDER_TEXT)
+                             zorder=PORDER_TEXT,
+                             wrap=True)
 
     def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
         xpos, ypos = xy
@@ -668,7 +670,8 @@ class MatplotlibDrawer:
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
                                      'noise', 'cswap', 'swap', 'measure'] and len(
                                          op.name) >= 4:
-                    box_width = round(len(op.name) / 8)
+                    box_width = math.ceil(len(op.name) / 6)
+
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
@@ -684,13 +687,7 @@ class MatplotlibDrawer:
                                     layer_width = 2
                             continue
                     # If more than 4 characters min width is 2
-                    if box_width <= 1:
-                        box_width = 2
-                    if layer_width < box_width:
-                        if box_width > 2:
-                            layer_width = box_width * 2
-                        else:
-                            layer_width = 2
+                    layer_width = math.ceil(box_width * WID * 2.5)
 
             this_anc = prev_anc + 1
 
