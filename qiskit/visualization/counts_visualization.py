@@ -85,9 +85,10 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
 
     Example:
         .. jupyter-execute::
-           
+
            from qiskit import QuantumCircuit, BasicAer, execute
            from qiskit.visualization import plot_histogram
+           %matplotlib inline
 
            qc = QuantumCircuit(2, 2)
            qc.h(0)
