@@ -337,8 +337,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     n_qubits = config['n_qubits']
 
     # U2 error rates
-    single_gate_errors = [q['parameters'][0]['value']
-                          for q in props['gates'][1:3 * n_qubits:3]]
+    single_gate_errors = [0]*n_qubits
+    for gate in props['gates']:
+        if gate['gate'] == 'u2':
+            _qubit = gate['qubits'][0]
+            single_gate_errors[_qubit] = gate['parameters'][0]['value']
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
