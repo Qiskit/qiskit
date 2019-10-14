@@ -15,7 +15,6 @@
 # The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
 # which was supervised by Raban Iten and Prof. Renato Renner.
 
-# pylint: disable=invalid-name
 # pylint: disable=missing-param-doc
 # pylint: disable=missing-type-doc
 
