@@ -1,3 +1,4 @@
+.. module:: qiskit
 
 =============
 API Reference
@@ -22,4 +23,4 @@ API Reference
    tools/tools
    transpiler/transpiler
    validation
-   visualization/visualization
+   visualization
