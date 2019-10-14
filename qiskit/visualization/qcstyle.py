@@ -90,7 +90,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = 25
+        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -113,18 +113,22 @@ class DefaultStyle:
         self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
+        if 'fold' in dic:
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
+
         if dic:
-            warn('style option/s ({}) is/are not '
-                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)
 
 
 class BWStyle:
@@ -213,15 +217,19 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
+        if 'fold' in dic:
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
+
         if dic:
-            warn('style option/s ({}) is/are not '
-                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)
