@@ -1,6 +1,8 @@
 ---
 deprecations:
   - |
-    The matplotlib drawer raises a warning when the `style` argument dictonary includes
-    a key that is not supported by the drawer. In the future, unsupported keys will raise
-    an exception.
+    When the ``mpl`` output is used for either ``qiskit.QuantumCircuit.draw()``
+    or ``qiskit.visualization.circuit_drawer()`` and the ``style`` kwarg is
+    used, passing in unsupported dictionary keys as part of the ``style```
+    dictionary is now deprecated. Where these unknown arguments were previously
+    silently ignored, in the future, unsupported keys will raise an exception.
