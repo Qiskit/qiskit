@@ -56,6 +56,7 @@ class QuantumCircuit:
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
+
         A circuit is a list of instructions bound to some registers.
 
         Args:

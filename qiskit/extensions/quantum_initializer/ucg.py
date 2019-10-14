@@ -57,7 +57,8 @@ class UCG(Gate):
     """
 
     def __init__(self, gate_list, up_to_diagonal=False):
-        """
+        """UCG Gate initializer.
+
         Args:
             gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
                 where each single-qubit unitary U_i is given as a 2*2 numpy array.
