@@ -56,7 +56,9 @@ class QuantumCircuit:
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
+
         A circuit is a list of instructions bound to some registers.
+
         Args:
             *regs (list(Register) or list(Int)): To be included in the circuit.
                   - If [Register], the QuantumRegister and/or ClassicalRegister
@@ -975,7 +977,8 @@ class QuantumCircuit:
         return self.num_unitary_factors()
 
     def copy(self, name=None):
-        """
+        """Copy the circuit.
+
         Args:
           name (str): name to be given to the copied circuit, if None then the name stays the same
         Returns:

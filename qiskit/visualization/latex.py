@@ -46,7 +46,8 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None):
-        """
+        """QCircuitImage initializer.
+
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
@@ -768,7 +769,8 @@ class QCircuitImage:
             column += num_cols_used
 
     def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit
+        """Get the index number for a quantum bit.
+
         Args:
             qubit (tuple): The tuple of the bit of the form
                 (register_name, bit_number)
