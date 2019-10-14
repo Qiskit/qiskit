@@ -184,8 +184,9 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(instr.name, 'unitary')
         self.assertEqual(instr.label, 'xy')
 
-    def test_qasm_unitary(self):
-        """test that a custom unitary can be converted to qasm"""
+    def test_qasm_unitary_only_one_def(self):
+        """test that a custom unitary can be converted to qasm and the
+        definition is only written once"""
         qr = QuantumRegister(2, 'q0')
         cr = ClassicalRegister(1, 'c0')
         qc = QuantumCircuit(qr, cr)
@@ -205,4 +206,29 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "}\n" \
                         "custom_gate q0[0];\n" \
                         "custom_gate q0[1];\n"
+        self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_qasm_unitary_twice(self):
+        """test that a custom unitary can be converted to qasm and that if
+        the qasm is called twice it is the same every time"""
+        qr = QuantumRegister(2, 'q0')
+        cr = ClassicalRegister(1, 'c0')
+        qc = QuantumCircuit(qr, cr)
+        matrix = numpy.array([[1, 0], [0, 1]])
+        unitary_gate = UnitaryGate(matrix, label="custom_gate")
+
+        qc.x(qr[0])
+        qc.append(unitary_gate, [qr[0]])
+        qc.append(unitary_gate, [qr[1]])
+
+        expected_qasm = "OPENQASM 2.0;\n" \
+                        "include \"qelib1.inc\";\n" \
+                        "qreg q0[2];\ncreg c0[1];\n" \
+                        "x q0[0];\n" \
+                        "gate custom_gate p0 {\n" \
+                        "\tu3(0.0,0.0,0.0) p0;\n" \
+                        "}\n" \
+                        "custom_gate q0[0];\n" \
+                        "custom_gate q0[1];\n"
+        self.assertEqual(expected_qasm, qc.qasm())
         self.assertEqual(expected_qasm, qc.qasm())

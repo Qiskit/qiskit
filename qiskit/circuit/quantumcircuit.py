@@ -562,7 +562,7 @@ class QuantumCircuit:
 
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
-            gate.qasm_def_written = False
+            gate._qasm_def_written = False
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
