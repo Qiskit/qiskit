@@ -6,7 +6,6 @@ features:
     ``qubit_property``, ``t1``, ``t2``, ``readout_error`` and ``frequency``.
     They return the specific values of backend properties. For example::
 
-      # `backend` is a pulse enabled `BaseBackend` instance
       from qiskit.test.mock import FakeOurense
       backend = FakeOurense()
       properties = backend.properties()
