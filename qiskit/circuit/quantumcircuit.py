@@ -59,11 +59,11 @@ class QuantumCircuit:
         A circuit is a list of instructions bound to some registers.
 
         Args:
-            regs (`list(Register)` or `list(int)`): The registers to be
+            regs: list(:class:`Register`) or list(``int``) The registers to be
                 included in the circuit.
 
                  * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
-                   and/or :class:`ClassicalRegister` to include in the circuit.
+                   and/or :class:`ClassicalRegister` objects to include in the circuit.
 
                    For example:
 
