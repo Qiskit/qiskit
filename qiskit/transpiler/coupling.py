@@ -172,6 +172,7 @@ class CouplingMap:
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
+
         Args:
             physical_qubit1 (int): A physical qubit
             physical_qubit2 (int): Another physical qubit

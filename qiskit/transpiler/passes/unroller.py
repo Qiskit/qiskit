@@ -27,7 +27,8 @@ class Unroller(TransformationPass):
     """
 
     def __init__(self, basis):
-        """
+        """Unroller initializer.
+
         Args:
             basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']` .
         """
