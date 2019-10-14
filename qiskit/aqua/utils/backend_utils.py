@@ -44,6 +44,7 @@ def has_ibmq():
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
+            # pylint: disable=syntax-error
             from qiskit.providers.ibmq.accountprovider import AccountProvider
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -107,6 +108,7 @@ def is_ibmq_provider(backend):
         bool: True is IBMQ
     """
     if has_ibmq():
+        # pylint: disable=syntax-error
         from qiskit.providers.ibmq.accountprovider import AccountProvider
         return isinstance(backend.provider(), AccountProvider)
 
