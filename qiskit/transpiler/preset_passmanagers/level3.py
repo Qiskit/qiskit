@@ -87,10 +87,16 @@ def level_3_pass_manager(transpile_config):
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
 
-    # 3. Extend dag/layout with ancillas using the full coupling map
+    # 3. Remove reset gates if qubit is in zero state and diagonal gates before measurement
+    def _remove_gates_condition(property_set):
+        return not property_set['depth_fixed_point']
+
+    _remove_gates = [RemoveResetInZeroState(), RemoveDiagonalGatesBeforeMeasure()]
+
+    # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 4. Unroll to 1q or 2q gates, swap to fit the coupling map
+    # 5. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -108,17 +114,16 @@ def level_3_pass_manager(transpile_config):
 
     _direction = [CXDirection(coupling_map)]
 
-    # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # 6. 1q rotation merge and commutative cancellation iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [RemoveResetInZeroState(),
-            Collect2qBlocks(), ConsolidateBlocks(),
+    _opt = [Collect2qBlocks(), ConsolidateBlocks(),
             Unroller(basis_gates),  # unroll unitaries
             Optimize1qGates(), CommutativeCancellation(),
-            OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+            OptimizeSwapBeforeMeasure()]
 
     if coupling_map and not coupling_map.is_symmetric:
         _opt.append(CXDirection(coupling_map))
@@ -129,6 +134,7 @@ def level_3_pass_manager(transpile_config):
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
+        pm3.append(_remove_gates, condition=_remove_gates_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
