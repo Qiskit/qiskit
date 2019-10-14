@@ -14,7 +14,7 @@ The workflow of using Qiskit consists of three high-level steps:
 Here is an example of the entire workflow, with each step explained in detail in
 subsequent sections:
 
-.. code-block:: python
+.. jupyter-execute::
 
     import numpy as np
     from qiskit import(
@@ -51,12 +51,6 @@ subsequent sections:
     # Draw the circuit
     circuit.draw()
 
-.. code-block:: text
-
-    Total count for 00 and 11 are: {'00': 479, '11': 521}
-
-.. image:: /images/figures/getting_started_0.png
-   :alt: Quantum Circuit with an H gate and controlled nots.
 
 .. note::
 
@@ -82,13 +76,10 @@ subsequent sections:
   You can use any of the valid circuit drawer backends as the value for this config, this includes
   text, mpl, latex, and latex_source.
 
-.. code-block:: python
+.. jupyter-execute::
 
     # Plot a histogram
     plot_histogram(counts)
-
-.. image:: /images/figures/getting_started_1.png
-   :alt: Probabilities of each state.
 
 
 
@@ -189,12 +180,9 @@ You can use ``QuantumCircuit.draw()`` to view the circuit that you have designed
 in the `various forms <api/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit.draw>`__
 used in many textbooks and research articles.
 
-.. code-block:: python
+.. jupyter-execute::
 
     circuit.draw()
-
-.. image:: images/figures/getting_started_0.png
-   :alt: Quantum circuit to make a Bell state.
 
 In this circuit, the qubits are ordered with qubit zero at the top and
 qubit one at the bottom. The circuit is read left-to-right, meaning that gates
@@ -213,18 +201,13 @@ to achieve different simulation goals.
 To simulate this circuit, you will use the ``qasm_simulator``. Each run of this
 circuit will yield either the bit string 00 or 11.
 
-.. code-block:: python
+.. jupyter-execute::
 
     simulator = Aer.get_backend('qasm_simulator')
     job = execute(circuit, simulator, shots=1000)
     result = job.result()
     counts = result.get_counts(circuit)
     print("\nTotal count for 00 and 11 are:",counts)
-
-
-.. code-block:: text
-
-    Total count for 00 and 11 are: {'00': 479, '11': 521}
 
 As expected, the output bit string is 00 approximately 50 percent of the time.
 The number of times the circuit is run can be specified via the ``shots``
@@ -245,12 +228,9 @@ Qiskit provides `many visualizations <apidoc/visualization/visualization.html>`_
 
 including the function ``plot_histogram``, to view your results.
 
-.. code-block:: python
+.. jupyter-execute::
 
-    plot_histogram(counts)
-
-.. image:: images/figures/getting_started_1.png
-   :alt: Histogram of results.
+  plot_histogram(counts)
 
 The observed probabilities :math:`Pr(00)` and :math:`Pr(11)` are computed by
 taking the respective counts and dividing by the total number of shots.
@@ -259,7 +239,6 @@ taking the respective counts and dividing by the total number of shots.
 
   Try changing the ``shots`` keyword in the ``execute`` method to see how
   the estimated probabilities change.
-
 
 
 ----------
