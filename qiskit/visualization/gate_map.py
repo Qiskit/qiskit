@@ -343,7 +343,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             _qubit = gate['qubits'][0]
             single_gate_errors[_qubit] = gate['parameters'][0]['value']
 
-
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
     avg_1q_err = np.mean(single_gate_errors)
