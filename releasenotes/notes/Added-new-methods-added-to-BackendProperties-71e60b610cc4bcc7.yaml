@@ -3,11 +3,12 @@ features:
   - |
     Added 5 new commands to easily retrieve user-specific data from
     ``BackendProperties``: ``gate_property``, ``gate_error``, ``gate_length``,
-    ``qubit_property``, ``t1`` and ``frequency``. They return the specific values
-    of backend properties. For example::
+    ``qubit_property``, ``t1``, ``t2``, ``readout_error`` and ``frequency``.
+    They return the specific values of backend properties. For example::
 
-      from qiskit.test.mock import FakeOpenPulse2Q
-      backend = FakeOpenPulse2Q()
+      # `backend` is a pulse enabled `BaseBackend` instance
+      from qiskit.test.mock import FakeOurense
+      backend = FakeOurense()
       properties = backend.properties()
 
       gate_property = properties.gate_property('u1')
@@ -15,4 +16,6 @@ features:
       gate_length = properties.gate_length('u1', 0)
       qubit_0_property = properties.qubit_property(0)
       t1_time_0 = properties.t1(0)
+      t2_time_0 = properties.t2(0)
+      readout_error_0 = properties.readout_error(0)
       frequency_0 = properties.frequency(0)
