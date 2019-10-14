@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 T=sqrt(S) phase gate or its inverse.
 """
@@ -85,7 +83,7 @@ class TdgGate(Gate):
                             [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-def t(self, q):
+def t(self, q):  # pylint: disable=invalid-name
     """Apply T to q."""
     return self.append(TGate(), [q], [])
 
