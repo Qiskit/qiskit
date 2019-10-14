@@ -42,8 +42,8 @@ class MCGupDiag(Gate):
     """
 
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
-        """
-        Initialize a multi controlled gate.
+        """Initialize a multi controlled gate.
+
             Args:
                 gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
                 num_controls (int): number of control qubits
