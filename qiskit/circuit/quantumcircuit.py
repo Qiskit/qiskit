@@ -58,7 +58,7 @@ class QuantumCircuit:
         """Create a new circuit.
         A circuit is a list of instructions bound to some registers.
         Args:
-            *regs (list(Register) or list(Int)): To be included in the circuit.
+            regs (list(Register) or list(Int)): To be included in the circuit.
                   - If [Register], the QuantumRegister and/or ClassicalRegister
                     to include in the circuit.
                     E.g.: QuantumCircuit(QuantumRegister(4))
