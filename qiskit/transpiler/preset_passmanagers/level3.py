@@ -77,7 +77,10 @@ def level_3_pass_manager(transpile_config):
     # 1. Unroll to the basis first, to prepare for noise-adaptive layout
     _unroll = Unroller(basis_gates)
 
-    # 2. Layout on good qubits if calibration info available, otherwise on dense links
+    # 2. Remove reset gates if qubit is in zero state and diagonal gates before measurement
+    _remove_gates = [RemoveResetInZeroState(), RemoveDiagonalGatesBeforeMeasure()]
+
+    # 3. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -86,12 +89,6 @@ def level_3_pass_manager(transpile_config):
     _choose_layout = DenseLayout(coupling_map)
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
-
-    # 3. Remove reset gates if qubit is in zero state and diagonal gates before measurement
-    def _remove_gates_condition(property_set):
-        return not property_set['depth_fixed_point']
-
-    _remove_gates = [RemoveResetInZeroState(), RemoveDiagonalGatesBeforeMeasure()]
 
     # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -120,10 +117,11 @@ def level_3_pass_manager(transpile_config):
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Collect2qBlocks(), ConsolidateBlocks(),
+    _opt = [RemoveResetInZeroState(),
+            Collect2qBlocks(), ConsolidateBlocks(),
             Unroller(basis_gates),  # unroll unitaries
             Optimize1qGates(), CommutativeCancellation(),
-            OptimizeSwapBeforeMeasure()]
+            RemoveDiagonalGatesBeforeMeasure(), OptimizeSwapBeforeMeasure()]
 
     if coupling_map and not coupling_map.is_symmetric:
         _opt.append(CXDirection(coupling_map))
@@ -131,10 +129,10 @@ def level_3_pass_manager(transpile_config):
 
     pm3 = PassManager()
     pm3.append(_unroll)
+    pm3.append(_remove_gates)
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
-        pm3.append(_remove_gates, condition=_remove_gates_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
