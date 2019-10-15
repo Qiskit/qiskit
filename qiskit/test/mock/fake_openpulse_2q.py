@@ -132,7 +132,10 @@ class FakeOpenPulse2Q(FakeBackend):
 
         super().__init__(configuration)
 
-    def defaults(self):  # pylint: disable=missing-docstring
+    def defaults(self):
+        """Return the default pulse-related settings provided by the backend (such as gate
+        to Schedule mappings).
+        """
         return self._defaults
 
     def properties(self):
