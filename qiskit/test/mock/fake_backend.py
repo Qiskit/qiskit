@@ -96,8 +96,7 @@ class FakeBackend(BaseBackend):
 
         return BackendProperties.from_dict(properties)
 
-    def run(self, qobj):
-        del qobj
+    def run(self, _):
         job_id = str(uuid.uuid4())
         job = FakeJob(self, job_id, self.run_job)
         job.submit()
