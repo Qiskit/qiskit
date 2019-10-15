@@ -30,7 +30,8 @@ class Instruction(ScheduleComponent):
 
     def __init__(self, command, *channels: List[Channel],
                  name: Optional[str] = None):
-        """
+        """Instruction initializer.
+
         Args:
             command: Pulse command to schedule
             *channels: List of pulse channels to schedule with command

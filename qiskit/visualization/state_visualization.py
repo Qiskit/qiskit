@@ -719,8 +719,10 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):
     """Generates shaded facecolors for shaded bars.
+
     This is here to work around a Matplotlib bug
     where alpha does not work in Bar3D.
+
     Args:
         x (array_like): The x- coordinates of the anchor point of the bars.
         y (array_like): The y- coordinates of the anchor point of the bars.
@@ -804,14 +806,15 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
 
 
 def _generate_normals(polygons):
-    """
-    Takes a list of polygons and return an array of their normals.
+    """Takes a list of polygons and return an array of their normals.
+
     Normals point towards the viewer for a face with its vertices in
     counterclockwise order, following the right hand rule.
     Uses three points equally spaced around the polygon.
     This normal of course might not make sense for polygons with more than
     three points not lying in a plane, but it's a plausible and fast
     approximation.
+
     Args:
         polygons (list): list of (M_i, 3) array_like, or (..., M, 3) array_like
             A sequence of polygons to compute normals for, which can have
