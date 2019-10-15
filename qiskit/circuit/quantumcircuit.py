@@ -60,18 +60,30 @@ class QuantumCircuit:
         A circuit is a list of instructions bound to some registers.
 
         Args:
-            *regs (list(Register) or list(Int)): To be included in the circuit.
-                  - If [Register], the QuantumRegister and/or ClassicalRegister
-                    to include in the circuit.
-                    E.g.: QuantumCircuit(QuantumRegister(4))
-                          QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))
-                          QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))
-                  - If [Int], the amount of qubits and/or classical bits to include
-                  in the circuit. It can be (Int, ) or (Int, Int).
-                    E.g.: QuantumCircuit(4) # A QuantumCircuit with 4 qubits
-                          QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits
-            name (str or None): the name of the quantum circuit. If
-                None, an automatically generated string will be assigned.
+            regs: list(:class:`Register`) or list(``int``) The registers to be
+                included in the circuit.
+
+                 * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
+                   and/or :class:`ClassicalRegister` objects to include in the circuit.
+
+                   For example:
+
+                    * ``QuantumCircuit(QuantumRegister(4))``
+                    * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
+                    * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
+
+                 * If a list of ``int``, the amount of qubits and/or classical
+                   bits to include in the circuit. It can either be a single
+                   int for just the number of quantum bits, or 2 ints for the number of
+                   quantum bits and classical bits respectively.
+
+                   For example:
+
+                    * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
+                    * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
+
+            name (str): the name of the quantum circuit. If not set, an
+                automatically generated string will be assigned.
 
         Raises:
             QiskitError: if the circuit name, if given, is not valid.
@@ -106,14 +118,15 @@ class QuantumCircuit:
 
     @property
     def data(self):
-        """Return the circuit data (instructions and context)
+        """Return the circuit data (instructions and context).
 
         Returns:
-            QuantumCircuitData: a list-like object containing the tuples for the
-               circuit's data. Each tuple is in the format (instruction, qargs,
-               cargs). Where instruction is an Instruction (or subclass) object,
-               qargs is a list of Qubit objects, and cargs is a list of Clbit
-               objects.
+            QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
+
+            Each tuple is in the format ``(instruction, qargs, cargs)``.
+            Where instruction is an Instruction (or subclass) object,
+            qargs is a list of Qubit objects, and cargs is a list of Clbit
+            objects.
         """
         return QuantumCircuitData(self)
 
@@ -211,8 +224,7 @@ class QuantumCircuit:
         return inverse_circ
 
     def combine(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -220,6 +232,15 @@ class QuantumCircuit:
         circuits.
 
         Return self + rhs as a new object.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns a new QuantumCircuit object
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -240,8 +261,7 @@ class QuantumCircuit:
         return circuit
 
     def extend(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append QuantumCircuit to the right hand side if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -249,6 +269,15 @@ class QuantumCircuit:
         circuits.
 
         Modify and return self.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns this QuantumCircuit object (which has been modified)
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -510,7 +539,7 @@ class QuantumCircuit:
 
         Returns:
             Instruction: a composite instruction encapsulating this circuit
-                (can be decomposed back)
+            (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
@@ -981,9 +1010,9 @@ class QuantumCircuit:
 
         Args:
           name (str): name to be given to the copied circuit, if None then the name stays the same
+
         Returns:
-          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
-                          it was provided
+          QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
         cpy = deepcopy(self)
         if name:
