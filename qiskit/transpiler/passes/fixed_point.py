@@ -25,7 +25,8 @@ class FixedPoint(AnalysisPass):
     """
 
     def __init__(self, property_to_check):
-        """
+        """FixedPoint initializer.
+
         Args:
             property_to_check (str): The property to check if a fixed point was reached.
         """
