@@ -135,5 +135,6 @@ class FakeOpenPulse2Q(FakeBackend):
     def defaults(self):  # pylint: disable=missing-docstring
         return self._defaults
 
-    def properties(self):  # pylint: disable=missing-docstring
+    def properties(self):
+        """Return the measured characteristics of the backend."""
         return self._properties
