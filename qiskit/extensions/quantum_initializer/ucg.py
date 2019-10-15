@@ -123,14 +123,6 @@ class UCG(Gate):
             theta, phi, lamb = euler_angles_1q(self.params[0])
             circuit.u3(theta, phi, lamb, q)
             return circuit, diag
-            # if self.up_to_diagonal:
-            #     squ = SingleQubitUnitary(self.params[0], mode="ZYZ", up_to_diagonal=True)
-            #     circuit.append(squ, [q_target])
-            #     return circuit, squ.get_diag()
-            # else:
-            #     squ = SingleQubitUnitary(self.params[0], mode="ZYZ")
-            #     circuit.append(squ, [q_target])
-            #     return circuit, diag
         # If there is at least one control, first,
         # we find the single qubit gates of the decomposition.
         (single_qubit_gates, diag) = self._dec_ucg_help()
