@@ -42,6 +42,7 @@ import math
 import numpy as np
 
 from qiskit.circuit.gate import Gate
+from qiskit.extensions.standard.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -138,11 +139,11 @@ class UCG(Gate):
         for i, gate in enumerate(single_qubit_gates):
             # Absorb Hadamards and Rz(pi/2) gates
             if i == 0:
-                squ = UCG._h().dot(gate)
+                squ = HGate().to_matrix().dot(gate)
             elif i == len(single_qubit_gates) - 1:
-                squ = gate.dot(UCG._rz(np.pi / 2)).dot(UCG._h())
+                squ = gate.dot(UCG._rz(np.pi / 2)).dot(HGate().to_matrix())
             else:
-                squ = UCG._h().dot(gate.dot(UCG._rz(np.pi / 2))).dot(UCG._h())
+                squ = HGate().to_matrix().dot(gate.dot(UCG._rz(np.pi / 2))).dot(HGate().to_matrix())
             # Add single-qubit gate
             circuit.squ(squ, q_target)
             # The number of the control qubit is given by the number of zeros at the end
@@ -251,10 +252,6 @@ class UCG(Gate):
     @staticmethod
     def _ct(m):
         return np.transpose(np.conjugate(m))
-
-    @staticmethod
-    def _h():
-        return 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
 
     @staticmethod
     def _rz(alpha):
