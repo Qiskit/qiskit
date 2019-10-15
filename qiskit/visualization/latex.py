@@ -46,7 +46,8 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None):
-        """
+        """QCircuitImage initializer.
+
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
@@ -220,7 +221,7 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {}_{} : \\ket{{0}} }}".format(
+                    self._latex[i][0] = "\\lstick{{ {}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
                     self._latex[i][0] = "\\lstick{{({}_{{{}}})~q_{{{}}} : \\ket{{0}} }}".format(
@@ -547,6 +548,17 @@ class QCircuitImage:
                                     (pi_check(op.op.params[0], output='latex'),
                                      pi_check(op.op.params[1], output='latex'),
                                      pi_check(op.op.params[2], output='latex'))
+                            elif nm == "rzz":
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
+                                    pos_2 - pos_1) + "}"
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                # Based on the \cds command of the qcircuit package
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
+                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -592,6 +604,17 @@ class QCircuitImage:
                                      (pi_check(op.op.params[0], output='latex'),
                                       pi_check(op.op.params[1], output='latex'),
                                       pi_check(op.op.params[2], output='latex')))
+                            elif nm == "rzz":
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
+                                    pos_2 - pos_1) + "}"
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                # Based on the \cds command of the qcircuit package
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
+                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
@@ -745,7 +768,8 @@ class QCircuitImage:
             column += num_cols_used
 
     def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit
+        """Get the index number for a quantum bit.
+
         Args:
             qubit (tuple): The tuple of the bit of the form
                 (register_name, bit_number)

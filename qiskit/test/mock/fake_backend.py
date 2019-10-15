@@ -29,7 +29,8 @@ class FakeBackend(BaseBackend):
     """This is a dummy backend just for testing purposes."""
 
     def __init__(self, configuration, time_alive=10):
-        """
+        """FakeBackend initializer.
+
         Args:
             configuration (BackendConfiguration): backend configuration
             time_alive (int): time to wait before returning result

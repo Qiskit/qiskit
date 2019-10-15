@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Node for an OPENQASM indexed id."""
 
 from .node import Node
@@ -29,7 +27,7 @@ class IndexedId(Node):
     def __init__(self, children):
         """Create the indexed id node."""
         super().__init__('indexed_id', children, None)
-        self.id = children[0]
+        self.id = children[0]  # pylint: disable=invalid-name
         self.name = self.id.name
         self.line = self.id.line
         self.file = self.id.file
