@@ -262,32 +262,32 @@ def _rz(alpha):
 
 
 def ucg(self, gate_list, q_controls, q_target, up_to_diagonal=False):
-    """
-    Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
+    """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
+
     The decomposition was introduced by Bergholm et al. in
     https://arxiv.org/pdf/quant-ph/0410066.pdf.
 
-        Args:
-            gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
-                where each single-qubit unitary U_i is a given as a 2*2 array
-            q_controls (QuantumRegister|list[(QuantumRegister,int)]): list of k control qubits.
-                The qubits are ordered according to their significance in the computational basis.
-                For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)),
-                the unitary U_0 is performed if q[1] and q[2] are in the state zero, U_1 is
-                performed if q[2] is in the state zero and q[1] is in the state one, and so on
-            q_target (QuantumRegister|(QuantumRegister,int)):  target qubit, where we act on with
-                the single-qubit gates.
-            up_to_diagonal (bool): If set to True, the uniformly controlled gate is decomposed up
-                to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
-                diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
-                controlled gate
+    Args:
+        gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
+            where each single-qubit unitary U_i is a given as a 2*2 array
+        q_controls (QuantumRegister|list[(QuantumRegister,int)]): list of k control qubits.
+            The qubits are ordered according to their significance in the computational basis.
+            For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)),
+            the unitary U_0 is performed if q[1] and q[2] are in the state zero, U_1 is
+            performed if q[2] is in the state zero and q[1] is in the state one, and so on
+        q_target (QuantumRegister|(QuantumRegister,int)):  target qubit, where we act on with
+            the single-qubit gates.
+        up_to_diagonal (bool): If set to True, the uniformly controlled gate is decomposed up
+            to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
+            diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
+            controlled gate
 
-        Returns:
-            QuantumCircuit: the uniformly controlled gate is attached to the circuit.
+    Returns:
+        QuantumCircuit: the uniformly controlled gate is attached to the circuit.
 
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
+    Raises:
+        QiskitError: if the list number of control qubits does not correspond to the provided
+            number of single-qubit unitaries; if an input is of the wrong type
     """
 
     if isinstance(q_controls, QuantumRegister):
