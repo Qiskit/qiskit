@@ -15,6 +15,7 @@
 """Node for an OPENQASM binary operator."""
 
 import operator
+import warnings
 
 from .node import Node
 from .nodeexception import NodeException
@@ -49,6 +50,11 @@ class BinaryOperator(Node):
             raise NodeException("internal error: undefined operator '%s'" %
                                 self.value)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the QASM representation."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return self.value

@@ -14,7 +14,9 @@
 
 """Node for an OPENQASM external function."""
 
+import warnings
 import sympy
+
 from .node import Node
 from .nodeexception import NodeException
 
@@ -35,8 +37,16 @@ class External(Node):
         return self.children[0].qasm() + "(" + \
             self.children[1].qasm() + ")"
 
-    def latex(self):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return sympy.latex(self.sym())
 
     def real(self):

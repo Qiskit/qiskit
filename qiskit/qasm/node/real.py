@@ -14,8 +14,10 @@
 
 """Node for an OPENQASM real number."""
 
+import warnings
 from sympy import latex, pi
 from sympy.printing.ccode import ccode
+
 from .node import Node
 
 
@@ -36,8 +38,13 @@ class Real(Node):
         ind = indent * ' '
         print(ind, 'real', self.value)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         if self.value == pi:
             return "pi"
 

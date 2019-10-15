@@ -14,6 +14,8 @@
 
 """Node for an OPENQASM id."""
 
+import warnings
+
 from .node import Node
 from .nodeexception import NodeException
 
@@ -41,12 +43,22 @@ class Id(Node):
         ind = indent * ' '
         print(ind, 'id', self.name)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return self.name
 
-    def latex(self, nested_scope=None):
+    def latex(self, prec=None, nested_scope=None):
         """Return the correspond math mode latex string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         if not nested_scope:
             return "\textrm{" + self.name + "}"
         else:

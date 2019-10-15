@@ -14,6 +14,7 @@
 
 """Node for an OPENQASM prefix expression."""
 
+import warnings
 import sympy
 
 from .node import Node
@@ -34,8 +35,16 @@ class Prefix(Node):
         """Return the corresponding OPENQASM string."""
         return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
-    def latex(self):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
+
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
+
         return sympy.latex(self.sym())
 
     def real(self):
