@@ -262,7 +262,7 @@ class BackendProperties(BaseModel):
 
     def t2(self, qubit: int) -> float:  # pylint: disable=invalid-name
         """
-        Return the T2 time if the given qubit.
+        Return the T2 time of the given qubit.
 
         Args:
             qubit: Qubit for which to return the T2 time of.
