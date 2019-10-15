@@ -64,4 +64,7 @@ except ImportError:
                   RuntimeWarning)
 
 from .version import __version__
-from .version import __qiskit_version__
+from .version import _get_qiskit_versions
+
+
+__qiskit_version__ = _get_qiskit_versions()
