@@ -701,11 +701,9 @@ class QCircuitImage:
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[(qarglist[0].register,
-                                                    qarglist[0].index)]]
+                        pos_array = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[(qarglist[i].register,
-                                                            qarglist[i].index)])
+                            pos_array.append(self.img_regs[qarglist[i]])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
