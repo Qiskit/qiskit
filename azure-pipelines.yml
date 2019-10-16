@@ -14,34 +14,35 @@ trigger:
 
 stages:
   - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
       pool: {vmImage: 'Ubuntu-16.04'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
         - task: UsePythonVersion@0
         - bash: |
             set -e
             python -m pip install --upgrade pip
             pip install cibuildwheel==0.11.1
+            pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - bash: |
-            twine upload wheelhouse/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#        - bash: |
+#            twine upload wheelhouse/*
+#          env:
+#        TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
       pool: {vmImage: 'Ubuntu-16.04'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
         python.version: '3.7'
@@ -50,67 +51,69 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
+            pip install -U twine
             python setup.py sdist
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'dist'}
           condition: succeededOrFailed()
-        - bash: |
-            twine upload dist/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#        - bash: |
+#            twine upload dist/*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-10.13'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
           pip install cibuildwheel==0.11.1
+          pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'Windows'
-      pool: {vmImage: 'vs2017-win2016'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
-        TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
-      steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
-        - script: choco install vcpython27 -f -y
-          displayName: Install Visual C++ for Python 2.7
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
-            pip install -U twine
-            cibuildwheel --output-dir wheelhouse
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'wheelhouse'}
-          condition: succeededOrFailed()
-        - bash: |
-            twine upload wheelhouse\*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#      - bash: |
+#          twine upload wheelhouse/*
+#        env:
+#          TWINE_PASSWORD: $(TWINE_PASSWORD)
+#    - job: 'Windows'
+#      pool: {vmImage: 'vs2017-win2016'}
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      variables:
+#        CIBW_BEFORE_BUILD: pip install -U Cython
+#        CIBW_SKIP: cp27-* cp34-*
+#        TWINE_USERNAME: qiskit
+#        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+#      steps:
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+#        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+#        - script: choco install vcpython27 -f -y
+#          displayName: Install Visual C++ for Python 2.7
+#        - bash: |
+#            set -e
+#            python -m pip install --upgrade pip
+#            pip install cibuildwheel==0.11.1
+#            pip install -U twine
+#            cibuildwheel --output-dir wheelhouse
+#        - task: PublishBuildArtifacts@1
+#          inputs: {pathtoPublish: 'wheelhouse'}
+#          condition: succeededOrFailed()
+#        - bash: |
+#            twine upload wheelhouse\*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:
