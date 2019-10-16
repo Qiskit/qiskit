@@ -1,5 +1,5 @@
 ---
 prelude: >
-    The 0.10.0 release includes many new features and bug fixes. The biggest
-    changes for this release are the addition of initial support for using
-    qiskit with trapped ion trap backends...
+    The 0.10.0 release includes several new features and bug fixes. The biggest
+    change for this release is the addition of initial support for using
+    Qiskit with trapped ion trap backends.
