@@ -39,7 +39,8 @@ class CXDirection(TransformationPass):
     """
 
     def __init__(self, coupling_map):
-        """
+        """CXDirection initializer.
+
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
         """

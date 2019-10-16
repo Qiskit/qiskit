@@ -32,6 +32,7 @@ class CheckCXDirection(AnalysisPass):
         """
         Checks if the CNOTs in DAGCircuit are in the allowed direction with
         respect to `coupling_map`.
+
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
         """
