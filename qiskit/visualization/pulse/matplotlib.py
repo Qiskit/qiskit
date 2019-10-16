@@ -491,8 +491,6 @@ class ScheduleDrawer:
                        label=False, framechange=True):
         y0 = 0
         prev_labels = []
-        # Test if a channel has negative value
-        test1 = True
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -506,10 +504,8 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
-                # if the current channel and previous channel  have not negative values
-                test1 = bool(min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0)
-                # Minimum amplitude
-                amp_min = abs(min(np.nanmin(re), np.nanmin(im)))
+                # Minimum amplitude scaled
+                amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -544,7 +540,7 @@ class ScheduleDrawer:
                     ha='right', va='center')
 
             # change the y0 offset for removing spacing when a channel has negative values
-            if test1 and self.style.remove_spacing:
+            if self.style.remove_spacing:
                 y0 -= 0.5 + amp_min
             else:
                 y0 -= 1
