@@ -46,7 +46,6 @@ stage_generic: &stage_generic
 stage_linux: &stage_linux
   <<: *stage_generic
   os: linux
-  dist: trusty
   language: python
   python: 3.5
 
@@ -98,6 +97,10 @@ jobs:
         - coverage xml || true
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
+
+    - name: Python 3.8 Tests
+      <<: *stage_linux
+      python: 3.8
 
     # Randomized testing
     - name: Randomized tests

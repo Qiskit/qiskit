@@ -18,7 +18,14 @@
 """Main Qiskit public functionality."""
 
 import pkgutil
+import sys
 import warnings
+
+if sys.version_info[0] == 3 and sys.version_info[1] == 5:
+    warnings.warn(
+        "Using Qiskit with Python 3.5 is deprecated as of the 0.11.0 release. "
+        "Support for running Qiskit with Python 3.5 will be removed at the "
+        "Python 3.5 EoL on 09/13/2020.", DeprecationWarning)
 
 # First, check for required Python and API version
 from . import util

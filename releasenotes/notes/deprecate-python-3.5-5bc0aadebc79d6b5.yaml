@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Python 3.5 support in qiskit-terra is deprecated. Support will be
+    removed on the upstream python community's end of life date for the version,
+    which is 09/13/2020.
