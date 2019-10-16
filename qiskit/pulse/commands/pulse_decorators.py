@@ -30,6 +30,7 @@ from .sample_pulse import SamplePulse
 
 def functional_pulse(func: Callable):
     """A decorator for generating SamplePulse from python callable.
+
     Args:
         func: A function describing pulse envelope.
     Raises:

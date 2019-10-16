@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Rotation around the y-axis.
 """
@@ -60,7 +58,7 @@ class RYGate(Gate):
                             [sin, cos]], dtype=complex)
 
 
-def ry(self, theta, q):
+def ry(self, theta, q):  # pylint: disable=invalid-name
     """Apply Ry to q."""
     return self.append(RYGate(theta), [q], [])
 

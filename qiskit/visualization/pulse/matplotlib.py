@@ -225,6 +225,7 @@ class SamplePulseDrawer:
 
     def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
+
         Args:
             pulse (SamplePulse): SamplePulse to draw
             dt (float): time interval
@@ -553,6 +554,7 @@ class ScheduleDrawer:
              scaling=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True):
         """Draw figure.
+
         Args:
             schedule (ScheduleComponent): Schedule to draw
             dt (float): time interval

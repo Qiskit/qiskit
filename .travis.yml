@@ -107,6 +107,7 @@ jobs:
         directories:
         - .hypothesis
       script:
+      - pip install -U pip
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
       - make test_randomized
