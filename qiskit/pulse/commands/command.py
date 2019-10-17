@@ -29,7 +29,7 @@ from .instruction import Instruction
 
 class MetaCount(ABCMeta):
     """Meta class to count class instances."""
-    def __new__(mcs, name, bases, namespace):
+    def __new__(mcs, name, bases, namespace, **_):
         new_cls = super(MetaCount, mcs).__new__(mcs, name, bases, namespace)
         new_cls.instances_counter = 0
         return new_cls
