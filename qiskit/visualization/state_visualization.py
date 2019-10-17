@@ -351,7 +351,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         if min(dzr) < 0 < max(dzr):
             ax1.add_collection3d(pc1)
-            
         ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
         ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
         if max_dzr != min_dzr:
@@ -387,7 +386,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         if min(dzi) < 0 < max(dzi):
             ax2.add_collection3d(pc2)
-            
         ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
         ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
         if min_dzi != max_dzi:
