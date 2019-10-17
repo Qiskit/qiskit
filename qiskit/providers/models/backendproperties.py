@@ -160,7 +160,7 @@ class BackendProperties(BaseModel):
             for param in gate.parameters:
                 value = self._apply_prefix(param.value, param.unit)
                 formatted_props[param.name] = (value, param.date)
-            self._gates[gate.gate][_to_tuple(gate.qubits)] = formatted_props
+            self._gates[gate.gate][tuple(gate.qubits)] = formatted_props
 
         super().__init__(**kwargs)
 
