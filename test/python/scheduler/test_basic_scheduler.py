@@ -17,7 +17,7 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import Schedule, DriveChannel
 
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
 
 from qiskit.pulse.cmd_def import CmdDef
@@ -28,8 +28,7 @@ class TestBasicSchedule(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(defaults.cmd_def, defaults.pulse_library)
+        self.cmd_def = self.backend.defaults().build_cmd_def()
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
@@ -172,6 +171,32 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('cx', [0, 1])),
             (50, self.cmd_def.get('measure', [0, 1])),
             (60, self.cmd_def.get('measure', [0, 1])))
+        for actual, expected in zip(sched.instructions, expected.instructions):
+            self.assertEqual(actual[0], expected[0])
+            self.assertEqual(actual[1].command, expected[1].command)
+            self.assertEqual(actual[1].channels, expected[1].channels)
+
+    def test_3q_schedule(self):
+        """Test a schedule that was recommended by David McKay :D """
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        qc = QuantumCircuit(q, c)
+        qc.cx(q[0], q[1])
+        qc.u2(0.778, 0.122, q[2])
+        qc.u3(3.14, 1.57, 0., q[0])
+        qc.u2(3.14, 1.57, q[1])
+        qc.cx(q[1], q[2])
+        qc.u2(0.778, 0.122, q[2])
+        sched = schedule(qc, backend)
+        expected = Schedule(
+            cmd_def.get('cx', [0, 1]),
+            (22, cmd_def.get('u2', [1], 3.14, 1.57)),
+            (46, cmd_def.get('u2', [2], 0.778, 0.122)),
+            (50, cmd_def.get('cx', [1, 2])),
+            (72, cmd_def.get('u2', [2], 0.778, 0.122)),
+            (74, cmd_def.get('u3', [0], 3.14, 1.57)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1].command, expected[1].command)
