@@ -310,6 +310,7 @@ class Bloch():
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
+
         Args:
             points (array_like):
                 Collection of data points.
@@ -601,6 +602,7 @@ class Bloch():
 
     def save(self, name=None, output='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
+
         Args:
             name (str):
                 Name of saved image. Must include path and format as well.

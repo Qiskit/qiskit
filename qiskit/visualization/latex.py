@@ -46,7 +46,8 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None):
-        """
+        """QCircuitImage initializer.
+
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
@@ -706,11 +707,9 @@ class QCircuitImage:
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[(qarglist[0].register,
-                                                    qarglist[0].index)]]
+                        pos_array = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[(qarglist[i].register,
-                                                            qarglist[i].index)])
+                            pos_array.append(self.img_regs[qarglist[i]])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
@@ -774,7 +773,8 @@ class QCircuitImage:
             column += num_cols_used
 
     def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit
+        """Get the index number for a quantum bit.
+
         Args:
             qubit (tuple): The tuple of the bit of the form
                 (register_name, bit_number)
