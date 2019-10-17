@@ -20,8 +20,6 @@ from qiskit.pulse import Schedule, DriveChannel
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
 
-from qiskit.pulse.cmd_def import CmdDef
-
 
 class TestBasicSchedule(QiskitTestCase):
     """Scheduling tests."""

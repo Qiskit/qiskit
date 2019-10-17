@@ -133,7 +133,8 @@ class FakeOpenPulse3Q(FakeBackend):
                                        PulseQobjInstruction(name='test_pulse_1', ch='m1', t0=0),
                                        PulseQobjInstruction(name='test_pulse_1', ch='m2', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                            qubits=[0, 1, 2], memory_slot=[0, 1, 2])])]
+                                                            qubits=[0, 1, 2],
+                                                            memory_slot=[0, 1, 2])])]
         )
 
         super().__init__(configuration)
