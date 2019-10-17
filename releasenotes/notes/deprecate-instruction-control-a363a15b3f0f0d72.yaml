@@ -1,7 +1,0 @@
----
-deprecations:
-  - |
-    Instruction.control is used for classical control. This usage is
-    being deprecated this can be used for quantum control in the
-    future. Classically conditioned operations will instead be handled
-    by Instruction.condition.

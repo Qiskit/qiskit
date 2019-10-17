@@ -37,6 +37,8 @@ stages:
           condition: succeededOrFailed()
         - bash: |
             twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
       pool: {vmImage: 'Ubuntu-16.04'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -54,6 +56,8 @@ stages:
           condition: succeededOrFailed()
         - bash: |
             twine upload dist/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-10.13'}
@@ -75,6 +79,8 @@ stages:
         condition: succeededOrFailed()
       - bash: |
           twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -103,6 +109,8 @@ stages:
           condition: succeededOrFailed()
         - bash: |
             twine upload wheelhouse\*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:

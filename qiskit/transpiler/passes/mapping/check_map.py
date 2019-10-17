@@ -27,8 +27,8 @@ class CheckMap(AnalysisPass):
     """
 
     def __init__(self, coupling_map):
-        """
-        Checks if a DAGCircuit is mapped to `coupling_map`.
+        """Checks if a DAGCircuit is mapped to `coupling_map`.
+
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
         """
