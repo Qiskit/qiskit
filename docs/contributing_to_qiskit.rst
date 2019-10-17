@@ -130,8 +130,8 @@ You can build a local copy of the documentation from your local clone of the
 
       tox -edocs
 
-  If you do not already have the `tox <https://tox.readthedocs.io/en/latest/>`_
-  command installed you can install by running:
+   If you do not already have the `tox <https://tox.readthedocs.io/en/latest/>`_
+   command installed you can install by running:
 
    .. code:: sh
 
