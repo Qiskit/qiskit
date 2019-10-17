@@ -32,9 +32,9 @@ cache: pip
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
-    - pip install -U -r requirements.txt
+    - pip install -U -r requirements.txt -c constraints.txt
     - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-    - pip install -e .
+    - pip install -c constraints.txt -e .
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
