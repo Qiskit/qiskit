@@ -24,13 +24,14 @@ stages:
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
         - task: UsePythonVersion@0
         - bash: |
             set -e
             python -m pip install --upgrade pip
             pip install cibuildwheel==0.11.1
+            pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
@@ -50,6 +51,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
+            pip install -U twine
             python setup.py sdist
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'dist'}
@@ -66,13 +68,14 @@ stages:
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
           pip install cibuildwheel==0.11.1
+          pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
@@ -107,7 +110,7 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - bash: |
+        - script: |
             twine upload wheelhouse\*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
