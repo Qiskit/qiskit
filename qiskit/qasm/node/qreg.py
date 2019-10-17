@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Node for an OPENQASM qreg statement."""
 
 from .node import Node
@@ -29,7 +27,7 @@ class Qreg(Node):
         """Create the qreg node."""
         super().__init__('qreg', children, None)
         # This is the indexed id, the full "id[n]" object
-        self.id = children[0]
+        self.id = children[0]  # pylint: disable=invalid-name
         # Name of the qreg
         self.name = self.id.name
         # Source line number

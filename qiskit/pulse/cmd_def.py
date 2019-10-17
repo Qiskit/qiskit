@@ -30,6 +30,7 @@ from .schedule import Schedule, ParameterizedSchedule
 
 def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
     """Convert argument to tuple.
+
     Args:
         qubit_tuple: Qubits to enforce as tuple.
 
@@ -68,6 +69,7 @@ class CmdDef:
                       pulse_library: Dict[str, SamplePulse],
                       buffer: int = 0) -> 'CmdDef':
         """Create command definition from backend defaults output.
+
         Args:
             flat_cmd_def: Command definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
@@ -121,6 +123,7 @@ class CmdDef:
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Get command from command definition.
+
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
@@ -145,6 +148,7 @@ class CmdDef:
 
     def get_parameters(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """Get command parameters from command definition.
+
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
