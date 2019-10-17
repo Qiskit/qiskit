@@ -130,7 +130,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -180,7 +180,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -233,7 +233,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -290,7 +290,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -342,7 +342,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -394,7 +394,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
