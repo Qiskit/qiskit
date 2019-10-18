@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 One-pulse single-qubit gate.
 """
@@ -59,7 +58,7 @@ class U2Gate(Gate):
                            dtype=complex)
 
 
-def u2(self, phi, lam, q):
+def u2(self, phi, lam, q):  # pylint: disable=invalid-name
     """Apply u2 to q."""
     return self.append(U2Gate(phi, lam), [q], [])
 

@@ -56,20 +56,34 @@ class QuantumCircuit:
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
+
         A circuit is a list of instructions bound to some registers.
+
         Args:
-            *regs (list(Register) or list(Int)): To be included in the circuit.
-                  - If [Register], the QuantumRegister and/or ClassicalRegister
-                    to include in the circuit.
-                    E.g.: QuantumCircuit(QuantumRegister(4))
-                          QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))
-                          QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))
-                  - If [Int], the amount of qubits and/or classical bits to include
-                  in the circuit. It can be (Int, ) or (Int, Int).
-                    E.g.: QuantumCircuit(4) # A QuantumCircuit with 4 qubits
-                          QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits
-            name (str or None): the name of the quantum circuit. If
-                None, an automatically generated string will be assigned.
+            regs: list(:class:`Register`) or list(``int``) The registers to be
+                included in the circuit.
+
+                 * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
+                   and/or :class:`ClassicalRegister` objects to include in the circuit.
+
+                   For example:
+
+                    * ``QuantumCircuit(QuantumRegister(4))``
+                    * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
+                    * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
+
+                 * If a list of ``int``, the amount of qubits and/or classical
+                   bits to include in the circuit. It can either be a single
+                   int for just the number of quantum bits, or 2 ints for the number of
+                   quantum bits and classical bits respectively.
+
+                   For example:
+
+                    * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
+                    * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
+
+            name (str): the name of the quantum circuit. If not set, an
+                automatically generated string will be assigned.
 
         Raises:
             QiskitError: if the circuit name, if given, is not valid.
@@ -104,14 +118,15 @@ class QuantumCircuit:
 
     @property
     def data(self):
-        """Return the circuit data (instructions and context)
+        """Return the circuit data (instructions and context).
 
         Returns:
-            QuantumCircuitData: a list-like object containing the tuples for the
-               circuit's data. Each tuple is in the format (instruction, qargs,
-               cargs). Where instruction is an Instruction (or subclass) object,
-               qargs is a list of Qubit objects, and cargs is a list of Clbit
-               objects.
+            QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
+
+            Each tuple is in the format ``(instruction, qargs, cargs)``.
+            Where instruction is an Instruction (or subclass) object,
+            qargs is a list of Qubit objects, and cargs is a list of Clbit
+            objects.
         """
         return QuantumCircuitData(self)
 
@@ -209,8 +224,7 @@ class QuantumCircuit:
         return inverse_circ
 
     def combine(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -218,6 +232,15 @@ class QuantumCircuit:
         circuits.
 
         Return self + rhs as a new object.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns a new QuantumCircuit object
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -238,8 +261,7 @@ class QuantumCircuit:
         return circuit
 
     def extend(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append QuantumCircuit to the right hand side if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -247,6 +269,15 @@ class QuantumCircuit:
         circuits.
 
         Modify and return self.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns this QuantumCircuit object (which has been modified)
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -508,7 +539,7 @@ class QuantumCircuit:
 
         Returns:
             Instruction: a composite instruction encapsulating this circuit
-                (can be decomposed back)
+            (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
@@ -564,72 +595,192 @@ class QuantumCircuit:
              with_layout=True, fold=None, ax=None):
         """Draw the quantum circuit
 
-        Using the output parameter you can specify the format. The choices are:
-        0. text: ASCII art string
-        1. latex: high-quality images, but heavy external software dependencies
-        2. matplotlib: purely in Python with no external dependencies
+        **text**: ASCII art TextDrawing that can be printed in the console.
 
-        Defaults to an overcomplete basis, in order to not alter gates.
+        **latex**: high-quality images compiled via latex.
+
+        **latex_source**: raw uncompiled latex output.
+
+        **matplotlib**: images with color rendered purely in Python.
 
         Args:
             scale (float): scale of image to draw (shrink if < 1)
             filename (str): file path to save image to
             style (dict or str): dictionary of style or file name of style
-                file. You can refer to the
-                :ref:`Style Dict Doc <style-dict-doc>` for more information
-                on the contents.
+                file. This option is only used by the ``mpl`` output type. If a
+                str is passed in that is the path to a json file which contains
+                that will be open, parsed, and then used just as the input
+                dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
+                information on the contents.
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are `text`, `latex`, `latex_source`,
-                `mpl`. By default the 'text' drawer is used unless a user
-                config file has an alternative backend set as the default. If
-                the output is passed in that backend will always be used.
+                circuit. Valid choices are ``text``, ``latex``,
+                ``latex_source``, or ``mpl``. By default the `'text`' drawer is
+                used unless a user config file has an alternative backend set
+                as the default. If the output kwarg is set, that backend
+                will always be used over the default in a user config file.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
                 `latex_source` output type this has no effect and will be
                 silently ignored.
-            line_length (int): sets the length of the lines generated by `text`
+            line_length (int): Deprecated, see `fold` which supersedes this
+                option. Sets the length of the lines generated by `text` output
+                type. This useful when the drawing does not fit in the console.
+                If None (default), it will try to guess the console width using
+                ``shutil.get_terminal_size()``. However, if you're running in
+                jupyter the default line length is set to 80 characters. If you
+                don't want pagination at all, set ``line_length=-1``.
             reverse_bits (bool): When set to True reverse the bit order inside
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
-            justify (string): Options are `left`, `right` or `none`, if anything
-                else is supplied it defaults to left justified. It refers to where
-                gates should be placed in the output circuit if there is an option.
-                `none` results in each gate being placed in its own column. Currently
-                only supported by text drawer.
-            vertical_compression (string): `high`, `medium` or `low`. It merges the
-                lines generated by `text` so the drawing will take less vertical room.
-                Default is `medium`. It is ignored if output is not `text`.
-            idle_wires (bool): Include idle wires. Default is True.
-            with_layout (bool): Include layout information, with labels on the physical
-                layout. Default is True.
+            justify (string): Options are ``left``, ``right`` or
+                ``none``, if anything else is supplied it defaults to left
+                justified. It refers to where gates should be placed in the
+                output circuit if there is an option. ``none`` results in
+                each gate being placed in its own column.
+            vertical_compression (string): ``high``, ``medium`` or ``low``. It
+                merges the lines generated by the ``text`` output so the
+                drawing will take less vertical room.  Default is ``medium``.
+                Only used by the ``text`` output, will be silently ignored
+                otherwise.
+            idle_wires (bool): Include idle wires (wires with no circuit
+                elements) in output visualization. Default is True.
+            with_layout (bool): Include layout information, with labels on the
+                physical layout. Default is True.
             fold (int): Sets pagination. It can be disabled using -1.
                 In `text`, sets the length of the lines. This useful when the
-                drawing does not fit in the console. If None (default), it will try to
-                guess the console width using `shutil.get_terminal_size()`. However, if
-                running in jupyter, the default line length is set to 80 characters.
-                In `mpl` is the amount of operations before folding. Default is 25.
+                drawing does not fit in the console. If None (default), it will
+                try to guess the console width using ``shutil.
+                get_terminal_size()``. However, if running in jupyter, the
+                default line length is set to 80 characters. In ``mpl`` is the
+                number of (visual) layers before folding. Default is 25.
             ax (matplotlib.axes.Axes): An optional Axes object to be used for
                 the visualization output. If none is specified a new matplotlib
-                Figure will be created and used. Additionally, if specified there
-                will be no returned Figure since it is redundant. This is only used
-                when the ``output`` kwarg is set to use the ``mpl`` backend. It
-                will be silently ignored with all other outputs.
+                Figure will be created and used. Additionally, if specified
+                there will be no returned Figure since it is redundant. This is
+                only used when the ``output`` kwarg is set to use the ``mpl``
+                backend. It will be silently ignored with all other outputs.
 
         Returns:
-            PIL.Image or matplotlib.figure or str or TextDrawing:
-                * PIL.Image: (output `latex`) an in-memory representation of the
-                  image of the circuit diagram.
-                * matplotlib.figure: (output `mpl`) a matplotlib figure object
-                  for the circuit diagram, if the ``ax`` kwarg is not set.
-                * str: (output `latex_source`). The LaTeX source code.
-                * TextDrawing: (output `text`). A drawing that can be printed as
-                  ascii art
+            :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextDrawing`:
+
+            * `PIL.Image` (output='latex')
+                an in-memory representation of the image of the circuit
+                diagram.
+            * `matplotlib.figure.Figure` (output='mpl')
+                a matplotlib figure object for the circuit diagram.
+            * `str` (output='latex_source')
+                The LaTeX source code for visualizing the circuit diagram.
+            * `TextDrawing` (output='text')
+                A drawing that can be printed as ascii art
 
         Raises:
             VisualizationError: when an invalid output method is selected
+            ImportError: when the output methods requires non-installed
+                libraries.
+
+        .. _style-dict-circ-doc:
+
+        **Style Dict Details**
+
+        The style dict kwarg contains numerous options that define the style of
+        the output circuit visualization. The style dict is only used by the
+        ``mpl`` output. The options available in the style dict are defined
+        below:
+
+        Args:
+            textcolor (str): The color code to use for text. Defaults to
+                `'#000000'`
+            subtextcolor (str): The color code to use for subtext. Defaults to
+                `'#000000'`
+            linecolor (str): The color code to use for lines. Defaults to
+                `'#000000'`
+            creglinecolor (str): The color code to use for classical register
+                lines. Defaults to `'#778899'`
+            gatetextcolor (str): The color code to use for gate text. Defaults
+                to `'#000000'`
+            gatefacecolor (str): The color code to use for gates. Defaults to
+                `'#ffffff'`
+            barrierfacecolor (str): The color code to use for barriers.
+                Defaults to `'#bdbdbd'`
+            backgroundcolor (str): The color code to use for the background.
+                Defaults to `'#ffffff'`
+            fontsize (int): The font size to use for text. Defaults to 13
+            subfontsize (int): The font size to use for subtext. Defaults to 8
+            displaytext (dict): A dictionary of the text to use for each
+                element type in the output visualization. The default values
+                are::
+
+                    {
+                        'id': 'id',
+                        'u0': 'U_0',
+                        'u1': 'U_1',
+                        'u2': 'U_2',
+                        'u3': 'U_3',
+                        'x': 'X',
+                        'y': 'Y',
+                        'z': 'Z',
+                        'h': 'H',
+                        's': 'S',
+                        'sdg': 'S^\\dagger',
+                        't': 'T',
+                        'tdg': 'T^\\dagger',
+                        'rx': 'R_x',
+                        'ry': 'R_y',
+                        'rz': 'R_z',
+                        'reset': '\\left|0\\right\\rangle'
+                    }
+
+                You must specify all the necessary values if using this. There
+                is no provision for passing an incomplete dict in.
+            displaycolor (dict): The color codes to use for each circuit
+                element. The default values are::
+
+                    {
+                        'id': '#F0E442',
+                        'u0': '#E7AB3B',
+                        'u1': '#E7AB3B',
+                        'u2': '#E7AB3B',
+                        'u3': '#E7AB3B',
+                        'x': '#58C698',
+                        'y': '#58C698',
+                        'z': '#58C698',
+                        'h': '#70B7EB',
+                        's': '#E0722D',
+                        'sdg': '#E0722D',
+                        't': '#E0722D',
+                        'tdg': '#E0722D',
+                        'rx': '#ffffff',
+                        'ry': '#ffffff',
+                        'rz': '#ffffff',
+                        'reset': '#D188B4',
+                        'target': '#70B7EB',
+                        'meas': '#D188B4'
+                    }
+
+               Also, just like  `displaytext` there is no provision for an
+               incomplete dict passed in.
+
+            latexdrawerstyle (bool): When set to True enable latex mode which
+                will draw gates like the `latex` output modes.
+            usepiformat (bool): When set to True use radians for output
+            fold (int): The number of circuit elements to fold the circuit at.
+                Defaults to 20
+            cregbundle (bool): If set True bundle classical registers
+            showindex (bool): If set True draw an index.
+            compress (bool): If set True draw a compressed circuit
+            figwidth (int): The maximum width (in inches) for the output figure.
+            dpi (int): The DPI to use for the output image. Defaults to 150
+            margin (list): A list of margin values to adjust spacing around
+                output image. Takes a list of 4 ints:
+                [x left, x right, y bottom, y top].
+            creglinestyle (str): The style of line to use for classical
+                registers. Choices are `'solid'`, `'doublet'`, or any valid
+                matplotlib `linestyle` kwarg value. Defaults to `doublet`
         """
+
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
         return circuit_drawer(self, scale=scale,
@@ -855,12 +1006,13 @@ class QuantumCircuit:
         return self.num_unitary_factors()
 
     def copy(self, name=None):
-        """
+        """Copy the circuit.
+
         Args:
           name (str): name to be given to the copied circuit, if None then the name stays the same
+
         Returns:
-          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
-                          it was provided
+          QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
         cpy = deepcopy(self)
         if name:
