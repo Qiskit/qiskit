@@ -119,16 +119,15 @@ class PassManager:
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        options = self._join_options({'max_iteration': max_iteration})
+        if max_iteration:
+            # TODO remove this argument from append
+            self.max_iteration = max_iteration
 
         passes = PassManager._normalize_passes(passes)
 
-        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
-
-        controller = FlowController.controller_factory(passes, options,
-                                                       **flow_controller_conditions)
         try:
-            self.working_list[index] = controller
+            self.pass_sets[index] = {'passes': passes,
+                                     'flow_controllers': flow_controller_conditions}
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 
@@ -195,6 +194,7 @@ class PassManager:
             if len(pass_set['flow_controllers']) == 0:
                 item['flow_controllers'] = {'linear'}
             else:
-                item['flow_controllers'] = {controller_name for controller_name in pass_set['flow_controllers'].keys()}
+                item['flow_controllers'] = {controller_name for controller_name in
+                                            pass_set['flow_controllers'].keys()}
             ret.append(item)
         return ret
