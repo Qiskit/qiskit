@@ -53,6 +53,7 @@ class QuantumAlgorithm(Pluggable):
         Returns:
             dict: results of an algorithm.
         """
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers import BaseBackend
 
         if not self.configuration.get('classical', False):
