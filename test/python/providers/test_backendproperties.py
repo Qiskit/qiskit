@@ -15,7 +15,6 @@
 """Base TestCase for testing Providers."""
 
 import unittest  # pylint: disable=unused-import
-# from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock import FakeOurense
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
@@ -25,15 +24,11 @@ from qiskit.pulse.exceptions import PulseError
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
-    # backend = FakeOpenPulse2Q()
-    # backend_name = 'fake_openpulse_2q'
-
     backend = FakeOurense()
     backend_name = 'fake_ourense'
 
     def setUp(self):
         self.provider = FakeProvider()
-        # self.backend = self.provider.get_backend('fake_openpulse_2q')
         self.backend = self.provider.get_backend('fake_ourense')
         self.properties = self.backend.properties()
 

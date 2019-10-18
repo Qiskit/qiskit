@@ -18,7 +18,6 @@ from typing import Any, Iterable, Tuple, Union, List
 
 from marshmallow.validate import Length, Regexp
 
-from qiskit.util import _to_tuple
 from qiskit.validation import fields
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.pulse.exceptions import PulseError
@@ -185,7 +184,9 @@ class BackendProperties(BaseModel):
         try:
             result = self._gates[gate]
             if qubits is not None:
-                result = result[_to_tuple(qubits)]
+                if isinstance(qubits, int):
+                    qubits = tuple([qubits])
+                result = result[tuple(qubits)]
                 if name:
                     result = result[name]
             elif name:
