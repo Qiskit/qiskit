@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class PassManager:
     """A PassManager schedules the passes"""
 
-    def __init__(self, passes=None, max_iteration=None, callback=None):
+    def __init__(self, passes=None, max_iteration=1000, callback=None):
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
@@ -154,9 +154,9 @@ class PassManager:
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        running_passmanager = RunningPassManager()
+        running_passmanager = RunningPassManager(max_iteration=self.max_iteration)
         for pass_set in self.pass_sets:
-            running_passmanager.append(pass_set['passes'], *pass_set['flow_controllers'])
+            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
 
         return running_passmanager.run(circuit)
 

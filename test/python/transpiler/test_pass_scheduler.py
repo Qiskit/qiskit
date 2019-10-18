@@ -25,7 +25,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerAccessError, TranspilerError
 from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
-    FlowController, FlowControllerLinear
+    FlowController
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
@@ -321,18 +321,6 @@ class TestUseCases(SchedulerTestCase):
                               'run transformation pass PassA_TP_NR_NP',
                               'run analysis pass PassE_AP_NR_NP',
                               'set property as 1'])
-
-    def test_pass_option_precedence(self):
-        """The precedence of options is, in order of priority:
-         - The passset option
-         - The Pass Manager option
-         - Default
-        """
-        passmanager = PassManager(max_iteration=10)
-        tp_pass = PassA_TP_NR_NP()
-        passmanager.append(tp_pass, max_iteration=5)
-        pass_in_workinglist = next(iter(passmanager.working_list))
-        self.assertEqual(pass_in_workinglist.options['max_iteration'], 5)
 
     def test_pass_no_return(self):
         """Transformation passes that don't return a DAG raise error."""
