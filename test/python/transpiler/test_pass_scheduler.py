@@ -494,12 +494,8 @@ class TestDumpPasses(SchedulerTestCase):
         passmanager.append(PassC_TP_RA_PA())
         passmanager.append(PassB_TP_RA_PA())
 
-        expected = [{'options': {'max_iteration': 1000},
-                     'passes': [PassC_TP_RA_PA()],
-                     'type': FlowControllerLinear},
-                    {'options': {'max_iteration': 1000},
-                     'passes': [PassB_TP_RA_PA()],
-                     'type': FlowControllerLinear}]
+        expected = [{'flow_controllers': {'linear'}, 'passes': [PassC_TP_RA_PA()]},
+                    {'flow_controllers': {'linear'}, 'passes': [PassB_TP_RA_PA()]}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_passes_in_linear(self):
@@ -510,12 +506,10 @@ class TestDumpPasses(SchedulerTestCase):
             PassD_TP_NR_NP(argument1=[1, 2]),
             PassB_TP_RA_PA()])
 
-        expected = [{'options': {'max_iteration': 1000},
-                     'passes': [PassC_TP_RA_PA(),
-                                PassB_TP_RA_PA(),
-                                PassD_TP_NR_NP(argument1=[1, 2]),
-                                PassB_TP_RA_PA()],
-                     'type': FlowControllerLinear}]
+        expected = [{'flow_controllers': {'linear'}, 'passes': [PassC_TP_RA_PA(),
+                                                                PassB_TP_RA_PA(),
+                                                                PassD_TP_NR_NP(argument1=[1, 2]),
+                                                                PassB_TP_RA_PA()]}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
@@ -525,10 +519,8 @@ class TestDumpPasses(SchedulerTestCase):
         passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
                            do_x_times=lambda x: 3)
 
-        expected = [{'options': {'max_iteration': 1000},
-                     'passes': [PassB_TP_RA_PA(),
-                                PassC_TP_RA_PA()],
-                     'type': DoXTimesController}]
+        expected = [{'passes': [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+                     'flow_controllers': {'do_x_times'}}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_conditional_and_loop(self):
@@ -542,14 +534,11 @@ class TestDumpPasses(SchedulerTestCase):
             do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property_fixed_point'])
 
-        expected = [{'options': {'max_iteration': 1000},
-                     'passes': [PassE_AP_NR_NP(True)],
-                     'type': FlowControllerLinear},
-                    {'options': {'max_iteration': 1000},
-                     'passes': [PassK_check_fixed_point_property(),
+        expected = [{'passes': [PassE_AP_NR_NP(True)], 'flow_controllers': {'linear'}},
+                    {'passes': [PassK_check_fixed_point_property(),
                                 PassA_TP_NR_NP(),
-                                PassF_reduce_dag_property()],
-                     'type': ConditionalController}]
+                                PassF_reduce_dag_property()], 'flow_controllers': {'condition',
+                                                                                   'do_while'}}]
         self.assertEqual(expected, passmanager.passes())
 
 

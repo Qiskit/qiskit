@@ -66,7 +66,7 @@ class PassManager:
                     PassManager(callback=callback_func)
 
         """
-        self.passesets = []
+        self.pass_sets = []
         if passes is not None:
             self.append(passes)
         self.max_iteration = max_iteration
@@ -97,7 +97,7 @@ class PassManager:
             self.max_iteration = max_iteration
 
         passes = PassManager._normalize_passes(passes)
-        self.passesets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
+        self.pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
 
     def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
         """Replace a particular pass in the scheduler
@@ -155,8 +155,8 @@ class PassManager:
             QuantumCircuit: Transformed circuit.
         """
         running_passmanager = RunningPassManager()
-        for passet in self.passesets:
-            running_passmanager.append(passet['passes'], *passet['flow_controllers'])
+        for pass_set in self.pass_sets:
+            running_passmanager.append(pass_set['passes'], *pass_set['flow_controllers'])
 
         return running_passmanager.run(circuit)
 
@@ -190,6 +190,11 @@ class PassManager:
         Returns (list): The appended passes.
         """
         ret = []
-        for pass_ in self.working_list:
-            ret.append(pass_.dump_passes())
+        for pass_set in self.pass_sets:
+            item = {'passes': pass_set['passes']}
+            if len(pass_set['flow_controllers']) == 0:
+                item['flow_controllers'] = {'linear'}
+            else:
+                item['flow_controllers'] = {controller_name for controller_name in pass_set['flow_controllers'].keys()}
+            ret.append(item)
         return ret
