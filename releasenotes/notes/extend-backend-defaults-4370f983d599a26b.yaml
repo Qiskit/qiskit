@@ -9,13 +9,14 @@ features:
       - remove(operation, qubits) like pop, but doesn't require parameters
     There are some differences from the CmdDef:
       - __init__ does not take any user input
-      - cmds and cmd_qubits are deprecated and replaced with ops and op_qubits
+      - cmds and cmd_qubits are deprecated and replaced with ops and
+        qubits_with_op
 
     Example:
         # Get data directly from backend defaults without using CmdDef
         backend = provider.get_backend(backend_name)
         defaults = backend.defaults()
-        qubit = defaults.op_qubits('u3')[0]
+        qubit = defaults.qubits_with_op('u3')[0]
         x_gate = defaults.get('u3', qubit, P0=np.pi, P1=0, P2=np.pi)
         pulse_schedule = x_gate(DriveChannel(qubit))
 

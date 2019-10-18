@@ -19,7 +19,6 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple, Union
 from marshmallow.validate import Length, Range
 
-from qiskit.util import _to_tuple
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
@@ -137,11 +136,8 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self._qubit_freq_est_ghz = qubit_freq_est
-        self._meas_freq_est_ghz = meas_freq_est
         self._qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
         self._meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
-        # TODO: These should be massaged for the user
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
 
@@ -191,7 +187,7 @@ class PulseDefaults(BaseModel):
         """
         return list(self._ops_def.keys())
 
-    def op_qubits(self, operation: str) -> List[Union[int, Tuple[int]]]:
+    def qubits_with_op(self, operation: str) -> List[Union[int, Tuple[int]]]:
         """
         Return a list of the qubits for which the given operation is defined. Single qubit
         operations return a flat list, and multiqubit operations return a list of ordered tuples.
@@ -203,8 +199,8 @@ class PulseDefaults(BaseModel):
             Qubit indices which have the given operation defined. This is a list of tuples if the
             operation has an arity greater than 1, or a flat list of ints otherwise.
         """
-        return [qs[0] if len(qs) == 1 else qs
-                for qs in sorted(self._ops_def[operation].keys())]
+        return [qubits[0] if len(qubits) == 1 else qubits
+                for qubits in sorted(self._ops_def[operation].keys())]
 
     def qubit_ops(self, qubits: Union[int, Iterable[int]]) -> List[str]:
         """
@@ -252,7 +248,8 @@ class PulseDefaults(BaseModel):
         if not self.has(operation, _to_tuple(qubits)):
             if operation in self._ops_def:
                 raise PulseError("Operation '{op}' exists, but is only defined for qubits "
-                                 "{qubits}.".format(op=operation, qubits=self.op_qubits(operation)))
+                                 "{qubits}.".format(op=operation,
+                                                    qubits=self.qubits_with_op(operation)))
             raise PulseError("Operation '{op}' is not defined for this "
                              "system.".format(op=operation))
 
@@ -383,8 +380,10 @@ class PulseDefaults(BaseModel):
             else:
                 multi_qops += "  {qubits}: {ops}\n".format(qubits=qubits, ops=ops)
         ops = single_qops + multi_qops
-        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=self._qubit_freq_est_ghz)
-        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=self._meas_freq_est_ghz)
+        qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
+        meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
+        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
+        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
         return ("<{name}({ops}{qfreq}\n{mfreq})>"
                 "".format(name=self.__class__.__name__, ops=ops, qfreq=qfreq, mfreq=mfreq))
 
@@ -409,8 +408,8 @@ class PulseDefaults(BaseModel):
             Qubit indices which have the given operation defined. This is a list of tuples if
             the operation has an arity greater than 1, or a flat list of ints otherwise.
         """
-        warnings.warn("Please use op_qubits() instead of cmd_qubits().", DeprecationWarning)
-        return self.op_qubits(cmd_name)
+        warnings.warn("Please use qubits_with_op() instead of cmd_qubits().", DeprecationWarning)
+        return self.qubits_with_op(cmd_name)
 
     def build_cmd_def(self) -> CmdDef:
         """
@@ -422,3 +421,18 @@ class PulseDefaults(BaseModel):
         warnings.warn("Please use this PulseDefaults instance instead of CmdDef.",
                       DeprecationWarning)
         return CmdDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
+
+
+def _to_tuple(values):
+    """
+    Return the input as a tuple, even if it is an integer.
+
+    Args:
+        values (Union[int, Iterable[int]]): An integer, or iterable of integers.
+    Returns:
+        tuple: The input values as a sorted tuple.
+    """
+    try:
+        return tuple(values)
+    except TypeError:
+        return (values,)

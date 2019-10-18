@@ -65,12 +65,12 @@ class TestPulseDefaults(QiskitTestCase):
         with self.assertRaises(PulseError):
             self.defs.assert_has('cx', 100)
 
-    def test_op_qubits(self):
-        """Test `op_qubits`."""
-        self.assertEqual(self.defs.op_qubits('u1'), [0])
-        self.assertEqual(self.defs.op_qubits('u3'), [0, 1])
-        self.assertEqual(self.defs.op_qubits('cx'), [(0, 1)])
-        self.assertEqual(self.defs.op_qubits('measure'), [(0, 1)])
+    def test_qubits_with_op(self):
+        """Test `qubits_with_op`."""
+        self.assertEqual(self.defs.qubits_with_op('u1'), [0])
+        self.assertEqual(self.defs.qubits_with_op('u3'), [0, 1])
+        self.assertEqual(self.defs.qubits_with_op('cx'), [(0, 1)])
+        self.assertEqual(self.defs.qubits_with_op('measure'), [(0, 1)])
 
     def test_qubit_ops(self):
         """Test `qubit_ops`."""
@@ -86,7 +86,7 @@ class TestPulseDefaults(QiskitTestCase):
         defs.add('tmp', 1, sched)
         defs.add('tmp', 0, sched)
         self.assertIn('tmp', defs.ops())
-        self.assertEqual(defs.op_qubits('tmp'), [0, 1])
+        self.assertEqual(defs.qubits_with_op('tmp'), [0, 1])
         with self.assertRaises(PulseError):
             defs.add('tmp', (), sched)
         with self.assertRaises(PulseError):
