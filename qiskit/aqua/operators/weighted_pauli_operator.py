@@ -599,6 +599,7 @@ class WeightedPauliOperator(BaseOperator):
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
         # convert to matrix first?
+        # pylint: disable=import-outside-toplevel
         from .op_converter import to_matrix_operator
         mat_op = to_matrix_operator(self)
         avg = np.vdot(quantum_state, mat_op._matrix.dot(quantum_state))
@@ -637,7 +638,7 @@ class WeightedPauliOperator(BaseOperator):
         """
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
-
+        # pylint: disable=import-outside-toplevel
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
 
         if qr is None:
