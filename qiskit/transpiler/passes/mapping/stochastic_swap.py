@@ -268,13 +268,6 @@ class StochasticSwap(TransformationPass):
                         raise TranspilerError("swap mapper failed: " +
                                               "layer %d, sublayer %d" % (i, j))
 
-                    # If this layer is only single-qubit gates,
-                    # and we have yet to see multi-qubit gates,
-                    # continue to the next inner iteration
-                    if trivial_flag:
-                        logger.debug("mapper: skip to next sublayer")
-                        continue
-
                     # Update the record of qubit positions
                     # for each inner iteration
                     layout = best_layout
