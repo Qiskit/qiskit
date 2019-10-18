@@ -71,6 +71,7 @@ class PassManager:
             self.append(passes)
         self.max_iteration = max_iteration
         self.callback = callback
+        self.property_set = None
 
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
@@ -158,7 +159,9 @@ class PassManager:
         for pass_set in self.pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
 
-        return running_passmanager.run(circuit)
+        result = running_passmanager.run(circuit)
+        self.property_set = running_passmanager.property_set
+        return result
 
     def draw(self, filename=None, style=None, raw=False):
         """
