@@ -35,7 +35,10 @@ import subprocess
 from docutils import nodes
 from docutils.parsers.rst.directives.tables import Table
 from docutils.parsers.rst import Directive, directives
+from sphinx.util import logging
 
+
+logger = logging.getLogger(__name__)
 
 # -- Project information -----------------------------------------------------
 
@@ -293,8 +296,9 @@ class VersionHistory(Table):
                                 cwd=self.repo_root)
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
-            raise RuntimeError("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
-                               % (cmd, stdout, stderr))
+            logger.warn("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
+                        % (cmd, stdout, stderr))
+            return ''
         return stdout.decode('utf8')
 
     def get_versions(self, tags):
@@ -363,9 +367,11 @@ class VersionHistory(Table):
                                 stderr=subprocess.PIPE, cwd=self.repo_root)
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
-            raise RuntimeError("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
-                               % (cmd, stdout, stderr))
-        tags = stdout.decode('utf8').splitlines()
+            logger.warn("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
+                        % (cmd, stdout, stderr))
+            tags = []
+        else:
+            tags = stdout.decode('utf8').splitlines()
         versions = self.get_versions(tags)
         self.max_cols = len(self.headers)
         self.col_widths = self.get_column_widths(self.max_cols)
