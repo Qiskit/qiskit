@@ -14,16 +14,10 @@
 
 """PassManager class for the transpiler."""
 
-from collections import OrderedDict
-import logging
-
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.visualization import pass_manager_drawer
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager
-
-logger = logging.getLogger(__name__)
 
 
 class PassManager:
@@ -195,10 +189,10 @@ class PassManager:
         ret = []
         for pass_set in self.pass_sets:
             item = {'passes': pass_set['passes']}
-            if len(pass_set['flow_controllers']) == 0:
-                item['flow_controllers'] = {'linear'}
-            else:
+            if pass_set['flow_controllers']:
                 item['flow_controllers'] = {controller_name for controller_name in
                                             pass_set['flow_controllers'].keys()}
+            else:
+                item['flow_controllers'] = {'linear'}
             ret.append(item)
         return ret

@@ -23,7 +23,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.visualization import pass_manager_drawer
 from .propertyset import PropertySet
-from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
 
@@ -267,30 +266,6 @@ class RunningPassManager():
         for pass_ in self.working_list:
             ret.append(pass_.dump_passes())
         return ret
-
-    def run(self, circuit):
-        """Run all the passes on a QuantumCircuit
-
-        Args:
-            circuit (QuantumCircuit): circuit to transform via all the registered passes
-
-        Returns:
-            QuantumCircuit: Transformed circuit.
-        """
-        name = circuit.name
-        dag = circuit_to_dag(circuit)
-        del circuit
-        self.reset()  # Reset passmanager instance before starting
-
-        self.count = 0
-        for passset in self.working_list:
-            for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
-
-        circuit = dag_to_circuit(dag)
-        circuit.name = name
-        circuit._layout = self.property_set['layout']
-        return circuit
 
 
 class FlowController():
