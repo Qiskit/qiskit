@@ -94,25 +94,11 @@ class RunningPassManager():
         if passes is not None:
             self.append(passes)
 
-    def _join_options(self, passset_options):
-        """Set the options of each passset, based on precedence rules.
-
-        Precedence rules:
-            * passset options (set via ``PassManager.append()``) override
-            * passmanager options (set via ``PassManager.__init__()``), which override Default.
-        """
-        default = {'max_iteration': 1000}  # Maximum allowed iteration on this pass
-
-        passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
-        passset_level = {k: v for k, v in passset_options.items() if v is not None}
-        return {**default, **passmanager_level, **passset_level}
-
-    def append(self, passes, max_iteration=None, **flow_controller_conditions):
+    def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
-            max_iteration (int): max number of iterations of passes. Default: 1000
+            passes (list[BasePass]): passes to be added to schedule
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
 
@@ -127,60 +113,12 @@ class RunningPassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        options = self._join_options({'max_iteration': max_iteration})
-
-        passes = RunningPassManager._normalize_passes(passes)
-
         flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
 
         self.working_list.append(
-            FlowController.controller_factory(passes, options, **flow_controller_conditions))
-
-    def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
-        """Replace a particular pass in the scheduler
-
-        Args:
-            index (int): Pass index to replace, based on the position in passes().
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
-            max_iteration (int): max number of iterations of passes. Default: 1000
-            flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
-            control flow plugins. Default:
-
-                * do_while (callable property_set -> boolean): The passes repeat until the
-                  callable returns False.
-                  Default: `lambda x: False # i.e. passes run once`
-
-                * condition (callable property_set -> boolean): The passes run only if the
-                  callable returns True.
-                  Default: `lambda x: True # i.e. passes run`
-        Raises:
-            TranspilerError: if a pass in passes is not a proper pass.
-        """
-        options = self._join_options({'max_iteration': max_iteration})
-
-        passes = PassManager._normalize_passes(passes)
-
-        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
-
-        controller = FlowController.controller_factory(passes, options,
-                                                       **flow_controller_conditions)
-        try:
-            self.working_list[index] = controller
-        except IndexError:
-            raise TranspilerError('Index to replace %s does not exists' % index)
-
-    def __setitem__(self, index, item):
-        self.replace(index, item)
-
-    @staticmethod
-    def _normalize_passes(passes):
-        if isinstance(passes, BasePass):
-            passes = [passes]
-
-        for pass_ in passes:
-            if not isinstance(pass_, BasePass):
-                raise TranspilerError('%s is not a pass instance' % pass_.__class__)
-        return passes
+            FlowController.controller_factory(passes,
+                                              self.passmanager_options,
+                                              **flow_controller_conditions))
 
     def _normalize_flow_controller(self, flow_controller):
         for name, param in flow_controller.items():
