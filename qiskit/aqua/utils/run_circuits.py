@@ -87,6 +87,7 @@ def maybe_add_aer_expectation_instruction(qobj, options):
         QasmQobj: a mutated qobj with aer expectation instruction inserted
     """
     if 'expectation' in options:
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers.aer.utils.qobj_utils \
             import snapshot_instr, append_instr, get_instr_pos
         # add others, how to derive the correct used number of qubits?
@@ -338,6 +339,7 @@ def run_on_backend(backend, qobj, backend_options=None,
     if skip_qobj_validation:
         job_id = str(uuid.uuid4())
         if is_aer_provider(backend):
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer.aerjob import AerJob
             temp_backend_options = \
                 backend_options['backend_options'] if backend_options != {} else None

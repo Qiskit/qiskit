@@ -237,6 +237,7 @@ class QuantumInstance:
         Returns:
             str: the info of the object.
         """
+        # pylint: disable=import-outside-toplevel
         from qiskit import __version__ as terra_version
 
         info = "\nQiskit Terra version: {}\n".format(terra_version)
@@ -285,6 +286,7 @@ class QuantumInstance:
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
+        # pylint: disable=import-outside-toplevel
         from .utils.run_circuits import (run_qobj,
                                          maybe_add_aer_expectation_instruction)
 
