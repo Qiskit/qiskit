@@ -25,6 +25,8 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.t import TGate
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
@@ -203,7 +205,25 @@ class TestInstructions(QiskitTestCase):
         hgate = HGate()
         self.assertEqual(hgate.mirror(), hgate)
 
-    def test_inverse_gate(self):
+    def test_inverse_and_append(self):
+        """test appending inverted gates to circuits"""
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q, name='circ')
+        circ.s(q)
+        circ.append(SGate().inverse(), q[:])
+        circ.append(TGate().inverse(), q[:])
+        circ.t(q)
+        gate = circ.to_instruction()
+        circ = QuantumCircuit(q, name='circ')
+        circ.inverse()
+        circ.tdg(q)
+        circ.t(q)
+        circ.s(q)
+        circ.sdg(q)
+        gate_inverse = circ.to_instruction()
+        self.assertEqual(gate.inverse().definition, gate_inverse.definition)
+
+    def test_inverse_composite_gate(self):
         """test inverse of composite gate"""
         q = QuantumRegister(4)
         circ = QuantumCircuit(q, name='circ')
@@ -271,6 +291,14 @@ class TestInstructions(QiskitTestCase):
         """test inverting opaque gate fails"""
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
         self.assertRaises(QiskitError, opaque_gate.inverse)
+
+    def test_inverse_empty(self):
+        """test inverting empty gate works"""
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        empty_circ = QuantumCircuit(q, c, name='empty_circ')
+        empty_gate = empty_circ.to_instruction()
+        self.assertEqual(empty_gate.inverse().definition, empty_gate.definition)
 
     def test_no_broadcast(self):
         """See https://github.com/Qiskit/qiskit-terra/issues/2777

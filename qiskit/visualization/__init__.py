@@ -12,8 +12,85 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Main Qiskit visualization methods."""
+"""
+============================================
+Visualizations (:mod:`qiskit.visualization`)
+============================================
 
+.. currentmodule:: qiskit.visualization
+
+Counts and State Visualizations
+===============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   plot_histogram
+   plot_bloch_vector
+   plot_bloch_multivector
+   plot_state_city
+   plot_state_hinton
+   plot_state_paulivec
+   plot_state_qsphere
+
+Interactive Visualizations
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   iplot_histogram
+   iplot_bloch_multivector
+   iplot_state_city
+   iplot_state_hinton
+   iplot_state_paulivec
+   iplot_state_qsphere
+
+Device Visualizations
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   plot_gate_map
+   plot_error_map
+   plot_circuit_layout
+
+Circuit Visualizations
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   circuit_drawer
+
+DAG Visualizations
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   dag_drawer
+
+Pass Manager Visualizations
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   pass_manager_drawer
+
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   VisualizationError
+"""
+
+import os
 import sys
 from qiskit.util import _has_connection
 from qiskit.visualization.counts_visualization import plot_histogram
@@ -33,7 +110,8 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
 from .exceptions import VisualizationError
 from .matplotlib import HAS_MATPLOTLIB
 
-if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
+        or os.getenv('QISKIT_DOCS') == 'TRUE':
     if _has_connection('qvisualization.mybluemix.net', 443):
         from qiskit.visualization.interactive import (iplot_bloch_multivector,
                                                       iplot_state_city,
