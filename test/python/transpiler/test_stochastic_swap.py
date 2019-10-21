@@ -512,6 +512,8 @@ class TestStochasticSwap(QiskitTestCase):
             _ = pass_.run(dag)
 
     def test_single_gates_omitted(self):
+        """Test if single qubit gates are omitted."""
+
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
         qr = QuantumRegister(5, 'q')
         cr = ClassicalRegister(5, 'c')
@@ -530,10 +532,10 @@ class TestStochasticSwap(QiskitTestCase):
         expected_dag = circuit_to_dag(expected)
 
         stochastic = StochasticSwap(CouplingMap(coupling_map), seed=0)
-        pm = PassManager(stochastic)
-        after = pm.run(circuit)
+        after = PassManager(stochastic).run(circuit)
         after = circuit_to_dag(after)
         self.assertEqual(expected_dag, after)
+
 
 if __name__ == '__main__':
     unittest.main()
