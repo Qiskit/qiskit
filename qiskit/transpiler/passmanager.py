@@ -148,8 +148,7 @@ class PassManager:
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        running_passmanager = RunningPassManager(max_iteration=self.max_iteration,
-                                                 callback=self.callback)
+        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
         for pass_set in self.pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
 
