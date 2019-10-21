@@ -190,4 +190,5 @@ class TestPulseDefaults(QiskitTestCase):
             repr(self.defs),
             "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u2', 'u3']\n  q1: ['u1', 'u2', "
             "'u3']\nMulti qubit operations:\n  (0, 1): ['cx', 'ParametrizedGate', 'measur"
-            "e']\nQubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")
+            "e']\nQubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5"
+            ", 6.6] )>")
