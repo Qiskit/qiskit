@@ -386,8 +386,8 @@ def qx_color_scheme():
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
                          idle_wires=True, with_layout=True, fold=None,):
-    """
-    Draws a circuit using ascii art.
+    """Draws a circuit using ascii art.
+
     Args:
         circuit (QuantumCircuit): Input circuit
         filename (str): optional filename to write the result

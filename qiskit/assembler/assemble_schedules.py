@@ -24,6 +24,7 @@ from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     """Assembles a list of schedules into a qobj which can be run on the backend.
+
     Args:
         schedules (list[Schedule]): schedules to assemble
         qobj_id (int): identifier for the generated qobj

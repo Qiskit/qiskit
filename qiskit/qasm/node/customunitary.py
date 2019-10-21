@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Node for an OPENQASM custom gate statement."""
 
 from .node import Node
@@ -36,7 +34,7 @@ class CustomUnitary(Node):
     def __init__(self, children):
         """Create the custom gate node."""
         super().__init__('custom_unitary', children, None)
-        self.id = children[0]
+        self.id = children[0]  # pylint: disable=invalid-name
         self.name = self.id.name
         if len(children) == 3:
             self.arguments = children[1]
