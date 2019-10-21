@@ -86,7 +86,6 @@ class RunningPassManager():
 
         self.count = 0
 
-
     def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
