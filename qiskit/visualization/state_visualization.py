@@ -28,7 +28,6 @@ from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
-    from matplotlib.ticker import MaxNLocator
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
     from matplotlib.patches import Circle
@@ -330,6 +329,10 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     y = [0, 0, max(ypos)+0.5, max(ypos)+0.5]
     z = [0, 0, 0, 0]
     verts = [list(zip(x, y, z))]
+    max_dzr = max(dzr)
+    min_dzr = min(dzr)
+    min_dzi = np.min(dzi)
+    max_dzi = np.max(dzi)
 
     if ax1 is not None:
         fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
@@ -348,6 +351,21 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         if min(dzr) < 0 < max(dzr):
             ax1.add_collection3d(pc1)
+        ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
+        ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+        if max_dzr != min_dzr:
+            ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr) + 1e-9, max_dzi))
+        else:
+            if min_dzr == 0:
+                ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
+            else:
+                ax1.axes.set_zlim3d(auto=True)
+        ax1.get_autoscalez_on()
+        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
+        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+        ax1.set_zlabel('Re[$\\rho$]', fontsize=14)
+        for tick in ax1.zaxis.get_major_ticks():
+            tick.label.set_fontsize(14)
 
     if ax2 is not None:
         fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
@@ -363,48 +381,29 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         pc2 = Poly3DCollection(verts, alpha=0.2, facecolor='k',
                                linewidths=1, zorder=1)
+
         if min(dzi) < 0 < max(dzi):
             ax2.add_collection3d(pc2)
-    if ax1 is not None:
-        ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
-        ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
-        max_dzr = max(dzr)
-        min_dzr = min(dzr)
-        if max_dzr != min_dzr:
-            ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
-        else:
-            if min_dzr == 0:
-                ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
-            else:
-                ax1.axes.set_zlim3d(auto=True)
-        ax1.zaxis.set_major_locator(MaxNLocator(5))
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-        ax1.set_zlabel("Real[rho]", fontsize=14)
-        for tick in ax1.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
-    if ax2 is not None:
+
         ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
         ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
-        min_dzi = np.min(dzi)
-        max_dzi = np.max(dzi)
         if min_dzi != max_dzi:
             eps = 0
-            ax2.zaxis.set_major_locator(MaxNLocator(5))
-            ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+            ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
         else:
-            ax2.axes.set_zlim3d(auto=True)
             if min_dzi == 0:
                 ax2.set_zticks([0])
                 eps = 1e-9
-                ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+                ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
             else:
                 ax2.axes.set_zlim3d(auto=True)
         ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
         ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-        ax2.set_zlabel("Imag[rho]", fontsize=14)
+        ax2.set_zlabel('Im[$\\rho$]', fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
+        ax2.get_autoscalez_on()
+
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -720,8 +719,10 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):
     """Generates shaded facecolors for shaded bars.
+
     This is here to work around a Matplotlib bug
     where alpha does not work in Bar3D.
+
     Args:
         x (array_like): The x- coordinates of the anchor point of the bars.
         y (array_like): The y- coordinates of the anchor point of the bars.
@@ -805,14 +806,15 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
 
 
 def _generate_normals(polygons):
-    """
-    Takes a list of polygons and return an array of their normals.
+    """Takes a list of polygons and return an array of their normals.
+
     Normals point towards the viewer for a face with its vertices in
     counterclockwise order, following the right hand rule.
     Uses three points equally spaced around the polygon.
     This normal of course might not make sense for polygons with more than
     three points not lying in a plane, but it's a plausible and fast
     approximation.
+
     Args:
         polygons (list): list of (M_i, 3) array_like, or (..., M, 3) array_like
             A sequence of polygons to compute normals for, which can have

@@ -71,6 +71,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     qregs and cregs are the quantum and classical registers
     in order (based on reverse_bits) and ops is a list
     of DAG nodes which type is "operation".
+
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
         reverse_bits (bool): If true the order of the bits in the registers is
