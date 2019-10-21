@@ -67,16 +67,16 @@ class TestPulseDefaults(QiskitTestCase):
 
     def test_qubits_with_op(self):
         """Test `qubits_with_op`."""
-        self.assertEqual(self.defs.qubits_with_op('u1'), [0])
+        self.assertEqual(self.defs.qubits_with_op('u1'), [0, 1])
         self.assertEqual(self.defs.qubits_with_op('u3'), [0, 1])
         self.assertEqual(self.defs.qubits_with_op('cx'), [(0, 1)])
         self.assertEqual(self.defs.qubits_with_op('measure'), [(0, 1)])
 
     def test_qubit_ops(self):
         """Test `qubit_ops`."""
-        self.assertEqual(self.defs.qubit_ops(0), ['u1', 'u3'])
-        self.assertEqual(self.defs.qubit_ops(1), ['u3'])
-        self.assertEqual(self.defs.qubit_ops((0, 1)), ['cx', 'measure'])
+        self.assertEqual(self.defs.qubit_ops(0), ['u1', 'u2', 'u3'])
+        self.assertEqual(self.defs.qubit_ops(1), ['u1', 'u2', 'u3'])
+        self.assertEqual(self.defs.qubit_ops((0, 1)), ['cx', 'ParametrizedGate', 'measure'])
 
     def test_add(self):
         """Test add, and that errors are raised when expected."""
@@ -188,6 +188,6 @@ class TestPulseDefaults(QiskitTestCase):
         """Test that __repr__ method works."""
         self.assertEqual(
             repr(self.defs),
-            "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u3']\n  q1: ['u3']\nMulti qubit "
-            "operations:\n  (0, 1): ['cx', 'measure']\nQubit Frequencies [GHz]\n[4.9, 5.0]"
-            "\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")
+            "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u2', 'u3']\n  q1: ['u1', 'u2', "
+            "'u3']\nMulti qubit operations:\n  (0, 1): ['cx', 'ParametrizedGate', 'measur"
+            "e']\nQubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")
