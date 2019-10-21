@@ -384,6 +384,24 @@ class TestParameters(QiskitTestCase):
 
         self.assertTrue(len(job.result().results), 2)
 
+    def test_repeated_gates_to_dag_and_back(self):
+        """Verify circuits with repeated parameterized gates can be converted
+        to DAG and back, maintaining consistency of circuit._parameter_table."""
+
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(theta, qr[0])
+
+        double_qc = qc + qc
+        test_qc = dag_to_circuit(circuit_to_dag(double_qc))
+
+        bound_test_qc = test_qc.bind_parameters({theta: 1})
+        self.assertEqual(len(bound_test_qc.parameters), 0)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
