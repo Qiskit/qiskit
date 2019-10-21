@@ -61,7 +61,7 @@ class TestPassManagerRun(QiskitTestCase):
 
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CnotGate):
-                self.assertIn([x[1] for x in qargs], coupling_map)
+                self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_default_pass_manager_two(self):
         """Test default_pass_manager.run(circuitS).
@@ -105,8 +105,9 @@ class TestPassManagerRun(QiskitTestCase):
             initial_layout=Layout.from_qubit_list(initial_layout),
             seed_transpiler=42,
             optimization_level=1))
-        new_circuit = pass_manager.run([circuit1, circuit2])
+        new_circuits = pass_manager.run([circuit1, circuit2])
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CnotGate):
-                self.assertIn([x[1] for x in qargs], coupling_map)
+        for new_circuit in new_circuits:
+            for gate, qargs, _ in new_circuit.data:
+                if isinstance(gate, CnotGate):
+                    self.assertIn([x.index for x in qargs], coupling_map)
