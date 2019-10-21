@@ -250,7 +250,7 @@ class Instruction:
             QiskitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
-        if not self.definition:
+        if self.definition is None:
             raise QiskitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
         inverse_gate._definition = []
