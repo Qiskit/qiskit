@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,7 +21,6 @@ from time import time
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.visualization import pass_manager_drawer
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
@@ -32,14 +31,10 @@ logger = logging.getLogger(__name__)
 class RunningPassManager():
     """A RunningPassManager is a running pass manager."""
 
-    def __init__(self, passes=None,
-                 max_iteration=None,
-                 callback=None):
+    def __init__(self, max_iteration, callback):
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
-                None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
@@ -90,8 +85,6 @@ class RunningPassManager():
 
         self.count = 0
 
-        if passes is not None:
-            self.append(passes)
 
     def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
@@ -127,11 +120,6 @@ class RunningPassManager():
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
         return flow_controller
 
-    def reset(self):
-        """Reset the pass manager instance"""
-        self.valid_passes = set()
-        self.property_set.clear()
-
     def run(self, circuit):
         """Run all the passes on a QuantumCircuit
 
@@ -144,9 +132,7 @@ class RunningPassManager():
         name = circuit.name
         dag = circuit_to_dag(circuit)
         del circuit
-        self.reset()  # Reset passmanager instance before starting
 
-        self.count = 0
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
@@ -155,30 +141,6 @@ class RunningPassManager():
         circuit.name = name
         circuit._layout = self.property_set['layout']
         return circuit
-
-    def draw(self, filename=None, style=None, raw=False):
-        """
-        Draws the pass manager.
-
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
-
-        Args:
-            filename (str or None): file path to save image to
-            style (dict or OrderedDict): keys are the pass classes and the values are
-                the colors to make them. An example can be seen in the DEFAULT_STYLE. An ordered
-                dict can be used to ensure a priority coloring when pass falls into multiple
-                categories. Any values not included in the provided dict will be filled in from
-                the default dict
-            raw (Bool) : True if you want to save the raw Dot output not an image. The
-                default is False.
-        Returns:
-            PIL.Image or None: an in-memory representation of the pass manager. Or None if
-                               no image was generated or PIL is not installed.
-        Raises:
-            ImportError: when nxpd or pydot not installed.
-        """
-        return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
@@ -256,16 +218,6 @@ class RunningPassManager():
         self.valid_passes.add(pass_)
         if not pass_.is_analysis_pass:  # Analysis passes preserve all
             self.valid_passes.intersection_update(set(pass_.preserves))
-
-    def passes(self):
-        """Return a list structure of the appended passes and its options.
-
-        Returns (list): The appended passes.
-        """
-        ret = []
-        for pass_ in self.working_list:
-            ret.append(pass_.dump_passes())
-        return ret
 
 
 class FlowController():
