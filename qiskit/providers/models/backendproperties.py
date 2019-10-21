@@ -20,7 +20,7 @@ from marshmallow.validate import Length, Regexp
 
 from qiskit.validation import fields
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.pulse.exceptions import PulseError
+from qiskit.providers.exceptions import BackendPropertyError
 
 
 class NduvSchema(BaseSchema):
@@ -179,7 +179,8 @@ class BackendProperties(BaseModel):
             Gate property as a tuple of the value and the time it was measured.
 
         Raises:
-            PulseError: If the property is not found or name is specified but qubit is not.
+            BackendPropertyError: If the property is not found or name is
+                                  specified but qubit is not.
         """
         try:
             result = self._gates[gate]
@@ -190,9 +191,10 @@ class BackendProperties(BaseModel):
                 if name:
                     result = result[name]
             elif name:
-                raise PulseError("Provide qubits to get {n} of '{g}'.".format(n=name, g=gate))
+                raise BackendPropertyError("Provide qubits to get {n} of {g}".format(n=name,
+                                                                                     g=gate))
         except KeyError:
-            raise PulseError("Could not find the desired property for {g}.".format(g=gate))
+            raise BackendPropertyError("Could not find the desired property for {g}".format(g=gate))
         return result
 
     def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
@@ -237,16 +239,16 @@ class BackendProperties(BaseModel):
             Qubit property as a tuple of the value and the time it was measured.
 
         Raises:
-            PulseError: If the property is not found.
+            BackendPropertyError: If the property is not found.
         """
         try:
             result = self._qubits[qubit]
             if name is not None:
                 result = result[name]
         except KeyError:
-            raise PulseError("Couldn't find the propert{name} for qubit "
-                             "{qubit}.".format(name="y '" + name + "'" if name else "ies",
-                                               qubit=qubit))
+            raise BackendPropertyError("Couldn't find the propert{name} for qubit "
+                                       "{qubit}.".format(name="y '" + name + "'" if name else "ies",
+                                                         qubit=qubit))
         return result
 
     def t1(self, qubit: int) -> float:  # pylint: disable=invalid-name
@@ -309,7 +311,7 @@ class BackendProperties(BaseModel):
             Converted value.
 
         Raises:
-            PulseError: If the units aren't recognized.
+            BackendPropertyError: If the units aren't recognized.
         """
         prefixes = {
             'p': 1e-12,
@@ -326,4 +328,4 @@ class BackendProperties(BaseModel):
         try:
             return value * prefixes[unit[0]]
         except KeyError:
-            raise PulseError("Could not understand units: {u}".format(u=unit))
+            raise BackendPropertyError("Could not understand units: {u}".format(u=unit))

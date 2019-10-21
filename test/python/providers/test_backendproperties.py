@@ -18,7 +18,7 @@ import unittest  # pylint: disable=unused-import
 from qiskit.test.mock import FakeOurense
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
-from qiskit.pulse.exceptions import PulseError
+from qiskit.providers.exceptions import BackendPropertyError
 
 
 class BackendpropertiesTestCase(QiskitTestCase):
@@ -39,7 +39,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.gate_property('cx'),
                          self.properties._gates['cx'])
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(BackendPropertyError):
             self.properties.gate_property('u1', None, 'gate_error')
 
     def test_gate_error(self):
@@ -51,7 +51,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.gate_error('cx', [0, 1]),
                          self.properties._gates['cx'][(0, 1)]['gate_error'][0])
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(BackendPropertyError):
             self.properties.gate_error('cx', 0)
 
     def test_gate_length(self):
@@ -70,7 +70,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.qubit_property(0),
                          self.properties._qubits[0])
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(BackendPropertyError):
             self.properties.qubit_property('T1')
 
     def test_t1(self):
@@ -100,5 +100,5 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'ms'),
                          0.0719500421005539)
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(BackendPropertyError):
             self.properties._apply_prefix(71.9500421005539, 'ws')
