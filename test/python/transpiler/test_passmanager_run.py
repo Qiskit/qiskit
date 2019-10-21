@@ -15,6 +15,7 @@ from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
 from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler.transpile_config import TranspileConfig
 
 
 class TestPassManagerRun(QiskitTestCase):
@@ -22,6 +23,7 @@ class TestPassManagerRun(QiskitTestCase):
 
     def test_default_pass_manager_single(self):
         """Test default_pass_manager.run(circuit).
+
         circuit:
         qr0:-[H]--.------------  -> 1
                   |
@@ -30,9 +32,12 @@ class TestPassManagerRun(QiskitTestCase):
         qr2:---------(+)--.----  -> 3
                           |
         qr3:-------------(+)---  -> 5
+
         device:
         0  -  1  -  2  -  3  -  4  -  5  -  6
+
               |     |     |     |     |     |
+
               13 -  12  - 11 -  10 -  9  -  8  -   7
         """
         qr = QuantumRegister(4, 'qr')
@@ -46,11 +51,12 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(basis_gates=basis_gates,
-                                           coupling_map=CouplingMap(coupling_map),
-                                           initial_layout=Layout.from_tuplelist(initial_layout),
-                                           skip_numeric_passes=False,
-                                           seed_mapper=42)
+        pass_manager = level_1_pass_manager(TranspileConfig(
+            basis_gates=basis_gates,
+            coupling_map=CouplingMap(coupling_map),
+            initial_layout=Layout.from_qubit_list(initial_layout),
+            seed_transpiler=42,
+            optimization_level=1))
         new_circuit = pass_manager.run(circuit)
 
         for gate, qargs, _ in new_circuit.data:
@@ -59,6 +65,7 @@ class TestPassManagerRun(QiskitTestCase):
 
     def test_default_pass_manager_two(self):
         """Test default_pass_manager.run(circuitS).
+
         circuit1 and circuit2:
         qr0:-[H]--.------------  -> 1
                   |
@@ -67,9 +74,12 @@ class TestPassManagerRun(QiskitTestCase):
         qr2:---------(+)--.----  -> 3
                           |
         qr3:-------------(+)---  -> 5
+
         device:
         0  -  1  -  2  -  3  -  4  -  5  -  6
+
               |     |     |     |     |     |
+
               13 -  12  - 11 -  10 -  9  -  8  -   7
         """
         qr = QuantumRegister(4, 'qr')
@@ -89,11 +99,12 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(basis_gates=basis_gates,
-                                           coupling_map=CouplingMap(coupling_map),
-                                           initial_layout=Layout.from_tuplelist(initial_layout),
-                                           skip_numeric_passes=False,
-                                           seed_mapper=42)
+        pass_manager = level_1_pass_manager(TranspileConfig(
+            basis_gates=basis_gates,
+            coupling_map=CouplingMap(coupling_map),
+            initial_layout=Layout.from_qubit_list(initial_layout),
+            seed_transpiler=42,
+            optimization_level=1))
         new_circuit = pass_manager.run([circuit1, circuit2])
 
         for gate, qargs, _ in new_circuit.data:
