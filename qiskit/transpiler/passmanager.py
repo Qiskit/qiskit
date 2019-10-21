@@ -15,6 +15,8 @@
 """PassManager class for the transpiler."""
 
 from qiskit.visualization import pass_manager_drawer
+from qiskit.tools.parallel import parallel_map
+from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager
@@ -139,7 +141,13 @@ class PassManager:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
         return passes
 
-    def run(self, circuit):
+    def run(self, circuit_or_circuits):
+        if isinstance(circuit_or_circuits, QuantumCircuit):
+            return self._run_single_circuit(circuit_or_circuits)
+        else:
+            return parallel_map(self._run_single_circuit, circuit_or_circuits)
+
+    def _run_single_circuit(self, circuit):
         """Run all the passes on a QuantumCircuit
 
         Args:
