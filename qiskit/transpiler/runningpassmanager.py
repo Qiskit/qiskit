@@ -12,7 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PassManager class for the transpiler."""
+"""RunningPassManager class for the transpiler.
+This object holds the state of a pass manager during running-time."""
 
 from functools import partial
 from collections import OrderedDict
