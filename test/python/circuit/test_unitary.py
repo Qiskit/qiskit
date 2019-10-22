@@ -157,7 +157,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmax = numpy.array([[0, 1], [1, 0]])
         sigmay = numpy.array([[0, -1j], [1j, 0]])
         matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
-        qc.rx(numpy.pi/4, qr[0])
+        qc.rx(numpy.pi / 4, qr[0])
         uni = UnitaryGate(matrix)
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
