@@ -15,9 +15,11 @@
 """
 Fake backend supporting OpenPulse.
 """
+import datetime
 
 from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
                                      PulseDefaults, Command, UchannelLO)
+from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from .fake_backend import FakeBackend
 
@@ -39,7 +41,7 @@ class FakeOpenPulse2Q(FakeBackend):
             memory=False,
             max_shots=65536,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=[[1, 0]],
+            coupling_map=[[0, 1]],
             n_registers=2,
             n_uchannels=2,
             u_channel_lo=[
@@ -119,7 +121,47 @@ class FakeOpenPulse2Q(FakeBackend):
                                                             qubits=[0, 1], memory_slot=[0, 1])])]
         )
 
+        mock_time = datetime.datetime.now()
+        dt = 1.3333  # pylint: disable=invalid-name
+        self._properties = BackendProperties(
+            backend_name='fake_openpulse_2q',
+            backend_version='0.0.0',
+            last_update_date=mock_time,
+            qubits=[
+                [Nduv(date=mock_time, name='T1', unit='µs', value=71.9500421005539),
+                 Nduv(date=mock_time, name='frequency', unit='MHz', value=4919.96800692)],
+                [Nduv(date=mock_time, name='T1', unit='µs', value=81.9500421005539),
+                 Nduv(date=mock_time, name='frequency', unit='GHz', value=5.01996800692)]
+            ],
+            gates=[
+                Gate(gate='u1', name='u1_0', qubits=[0],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=0.)]),
+                Gate(gate='u3', name='u3_0', qubits=[0],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=2 * dt)]),
+                Gate(gate='u3', name='u3_1', qubits=[1],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=4 * dt)]),
+                Gate(gate='cx', name='cx0_1', qubits=[0, 1],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=22 * dt)]),
+            ],
+            general=[]
+        )
+
         super().__init__(configuration)
 
-    def defaults(self):  # pylint: disable=missing-docstring
+    def defaults(self):
+        """Return the default pulse-related settings provided by the backend (such as gate
+        to Schedule mappings).
+        """
         return self._defaults
+
+    def properties(self):
+        """Return the measured characteristics of the backend."""
+        return self._properties
