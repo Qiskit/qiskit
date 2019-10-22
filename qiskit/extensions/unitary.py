@@ -65,7 +65,7 @@ class UnitaryGate(Gate):
                 "Input matrix is not an N-qubit operator.")
 
         self._qasm_name = None
-        self._qasm_definiton = None
+        self._qasm_definition = None
         self._qasm_def_written = False
         # Store instruction params
         super().__init__('unitary', n_qubits, [data], label=label)
@@ -123,9 +123,9 @@ class UnitaryGate(Gate):
 
         # we have worked out the definition before, but haven't written it yet
         # so we need to write definition + name
-        if self._qasm_definiton:
+        if self._qasm_definition:
             self._qasm_def_written = True
-            return self._qasm_definiton + self._qasmif(self._qasm_name)
+            return self._qasm_definition + self._qasmif(self._qasm_name)
 
         # need to work out the definition and then write it
 
@@ -156,9 +156,9 @@ class UnitaryGate(Gate):
                   " {\n" + gates_def + "}\n"
 
         self._qasm_def_written = True
-        self._qasm_definiton = overall
+        self._qasm_definition = overall
 
-        return self._qasm_definiton + self._qasmif(self._qasm_name)
+        return self._qasm_definition + self._qasmif(self._qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):

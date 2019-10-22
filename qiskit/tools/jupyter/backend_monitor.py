@@ -139,10 +139,16 @@ def config_tab(backend):
 
     config_dict = {**status, **config}
 
-    upper_list = ['n_qubits', 'operational',
-                  'status_msg', 'pending_jobs',
-                  'backend_version', 'basis_gates',
-                  'max_shots', 'max_experiments']
+    upper_list = ['n_qubits']
+
+    if 'quantum_volume' in config.keys():
+        if config['quantum_volume']:
+            upper_list.append('quantum_volume')
+
+    upper_list.extend(['operational',
+                       'status_msg', 'pending_jobs',
+                       'backend_version', 'basis_gates',
+                       'max_shots', 'max_experiments'])
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
@@ -562,5 +568,4 @@ def plot_job_history(jobs, interval='year'):
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
     ax.text(0, 0, total_jobs, horizontalalignment='center',
             verticalalignment='center', fontsize=26)
-    fig.tight_layout()
     return fig

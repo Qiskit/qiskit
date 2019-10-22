@@ -23,6 +23,7 @@ from warnings import warn
 
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
+from qiskit.converters import isinstanceint
 
 
 class Layout():
@@ -87,11 +88,11 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and isinstance(value2, (Qubit, type(None))):
-            physical = value1
+        if isinstanceint(value1) and isinstance(value2, (Qubit, type(None))):
+            physical = int(value1)
             virtual = value2
-        elif isinstance(value2, int) and isinstance(value1, (Qubit, type(None))):
-            physical = value2
+        elif isinstanceint(value2) and isinstance(value1, (Qubit, type(None))):
+            physical = int(value2)
             virtual = value1
         else:
             raise LayoutError('The map (%s -> %s) has to be a (Bit -> integer)'
@@ -158,6 +159,7 @@ class Layout():
         Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
         defined, `bit` will be mapped to a new physical bit (extending the length of the
         layout by one.)
+
         Args:
             virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
@@ -170,8 +172,8 @@ class Layout():
         self[virtual_bit] = physical_bit
 
     def add_register(self, reg):
-        """
-        Adds at the end physical_qubits that map each bit in reg.
+        """Adds at the end physical_qubits that map each bit in reg.
+
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
         """
@@ -202,6 +204,7 @@ class Layout():
 
     def swap(self, left, right):
         """Swaps the map between left and right.
+
         Args:
             left (tuple or int): Item to swap with right.
             right (tuple or int): Item to swap with left.
@@ -245,8 +248,8 @@ class Layout():
 
     @staticmethod
     def generate_trivial_layout(*regs):
-        """
-        Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+        """Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+
         Args:
             *regs (Registers): registers to include in the layout.
         Returns:
@@ -272,7 +275,7 @@ class Layout():
         Raises:
             LayoutError: Invalid input layout.
         """
-        if not all(isinstance(i, int) for i in int_list):
+        if not all(isinstanceint(i) for i in int_list):
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
@@ -297,6 +300,7 @@ class Layout():
         """
         Populates a Layout from a list containing virtual
         qubits---(QuantumRegister, int) tuples---, or None.
+
         Args:
             tuple_list (list):
                 e.g.: [(qr,0), None, (qr,2), (qr,3)]
