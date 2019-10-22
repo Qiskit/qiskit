@@ -17,7 +17,7 @@
 Scheduler (:mod:`qiskit.scheduler`)
 ===================================
 
-Module for scheduling pulse `Schedule`/s from `QuantumCircuit`/s.
+Module for scheduling pulse `Schedule`\'s from `QuantumCircuit`\'s.
 
 .. currentmodule:: qiskit.scheduler
 
