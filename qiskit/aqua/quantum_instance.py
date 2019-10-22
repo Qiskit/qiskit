@@ -287,8 +287,7 @@ class QuantumInstance:
               assembling to the qobj.
         """
         # pylint: disable=import-outside-toplevel
-        from .utils.run_circuits import (run_qobj,
-                                         maybe_add_aer_expectation_instruction)
+        from .utils.run_circuits import (run_qobj)
 
         from .utils.measurement_error_mitigation import (get_measured_qubits_from_qobj,
                                                          build_measurement_error_mitigation_qobj)
@@ -298,8 +297,6 @@ class QuantumInstance:
 
         # assemble
         qobj = compiler.assemble(circuits, **self._run_config.to_dict())
-        if is_aer_provider(self._backend):
-            qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
 
         if self._meas_error_mitigation_cls is not None:
             qubit_index = get_measured_qubits_from_qobj(qobj)
