@@ -68,6 +68,7 @@ extensions = [
     'sphinx_tabs.tabs',
     'jupyter_sphinx.execute',
     'reno.sphinxext',
+    'sphinx_autodoc_typehints',
 ]
 html_static_path = ['_static']
 html_css_files = [
@@ -88,6 +89,7 @@ autodoc_default_options = {
     'inherited-members': None,
 }
 
+autoclass_content = 'both'
 
 # If true, figures, tables and code-blocks are automatically numbered if they
 # have a caption.
