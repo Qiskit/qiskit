@@ -144,7 +144,7 @@ class Instruction:
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
                 warnings.warn('Using qasm ast node as a circuit.Instruction '
-                              'parameter is deprecated as of the 0.10.0, and '
+                              'parameter is deprecated as of the 0.11.0, and '
                               'will be removed no earlier than 3 months after '
                               'that release date. You should convert the qasm '
                               'node to a supported type int, float, complex, '
@@ -171,7 +171,7 @@ class Instruction:
                 import sympy
                 if isinstance(single_param, sympy.Basic):
                     warnings.warn('Parameters of sympy.Basic is deprecated '
-                                  'as of the 0.10.0, and will be removed no '
+                                  'as of the 0.11.0, and will be removed no '
                                   'earlier than 3 months after that release '
                                   'date. You should convert this to a '
                                   'supported type prior to using it as a '
@@ -180,7 +180,7 @@ class Instruction:
                     self._params.append(single_param)
                 elif isinstance(single_param, sympy.Matrix):
                     warnings.warn('Parameters of sympy.Matrix is deprecated '
-                                  'as of the 0.10.0, and will be removed no '
+                                  'as of the 0.11.0, and will be removed no '
                                   'earlier than 3 months after that release '
                                   'date. You should convert the sympy Matrix '
                                   'to a numpy matrix with sympy.matrix2numpy '
@@ -190,7 +190,7 @@ class Instruction:
                     self._params.append(matrix)
                 elif isinstance(single_param, sympy.Expr):
                     warnings.warn('Parameters of sympy.Expr is deprecated '
-                                  'as of the 0.10.0, and will be removed no '
+                                  'as of the 0.11.0, and will be removed no '
                                   'earlier than 3 months after that release '
                                   'date. You should convert the sympy Expr '
                                   'to a supported type prior to using it as '

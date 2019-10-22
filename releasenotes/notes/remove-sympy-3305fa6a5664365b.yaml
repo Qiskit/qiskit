@@ -2,8 +2,9 @@
 deprecations:
   - |
     Passing in ``sympy.Basic``, ``sympy.Expr`` and ``sympy.Matrix`` types as
-    instruction parameters are deprecated as of 0.10.0. You'll need to convert
-    the input to one of the supported types which are:
+    instruction parameters are deprecated and will be removed in a future
+    release. You'll need to convert the input to one of the supported types
+    which are:
      * ``int``
      * ``float``
      * ``complex``
