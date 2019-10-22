@@ -20,6 +20,7 @@ API Reference
    qobj
    quantum_info/quantum_info
    result
+   scheduler
    tools/tools
    transpiler/transpiler
    validation
