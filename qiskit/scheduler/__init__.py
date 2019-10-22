@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Providers, Backends and Jobs."""
+"""Module for scheduling pulse `Schedule`s from `QuantumCircuit`s."""
 
-import pkgutil
-
-from .basebackend import BaseBackend
-from .baseprovider import BaseProvider
-from .basejob import BaseJob
-from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError, BackendPropertyError
-from .jobstatus import JobStatus
-
-
-# Allow extending this namespace.
-__path__ = pkgutil.extend_path(__path__, __name__)
+from qiskit.scheduler.config import ScheduleConfig
+from qiskit.scheduler.schedule_circuit import schedule_circuit
