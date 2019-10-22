@@ -245,16 +245,15 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.append(unitary_gate, [qr[0], qr[1]])
         qc.append(unitary_gate, [qr[1], qr[0]])
 
-        expected_qasm = "OPENQASM 2.0;\n"\
-                        "include \"qelib1.inc\";\n"\
-                        "qreg q0[2];\n"\
-                        "creg c0[1];\n"\
-                        "x q0[0];\n"\
-                        "gate custom_gate p0,p1 {\n"\
-                            "\tu3(0.0,0.0,0.0) p0;\n"\
-                            "\tu3(0.0,0.0,0.0) p1;\n"\
-                        "}\n"\
-                        "custom_gate q0[0],q0[1];\n"\
+        expected_qasm = "OPENQASM 2.0;\n" \
+                        "include \"qelib1.inc\";\n" \
+                        "qreg q0[2];\n" \
+                        "creg c0[1];\n" \
+                        "x q0[0];\n" \
+                        "gate custom_gate p0,p1 {\n" \
+                        "\tu3(0.0,0.0,0.0) p0;\n" \
+                        "\tu3(0.0,0.0,0.0) p1;\n" \
+                        "}\n" \
+                        "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"
         self.assertEqual(expected_qasm, qc.qasm())
-
