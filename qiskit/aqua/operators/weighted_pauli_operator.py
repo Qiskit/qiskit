@@ -653,17 +653,21 @@ class WeightedPauliOperator(BaseOperator):
         n_qubits = self.num_qubits
         instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
         circuits = []
-        if statevector_mode:
-            if use_simulator_operator_mode:
-                circuits.append(wave_function.copy(name=circuit_name_prefix + 'aer_mode'))
-            else:
-                circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
-                for _, pauli in self._paulis:
-                    inst = instructions.get(pauli.to_label(), None)
-                    if inst is not None:
-                        circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                        circuit.append(inst, qr)
-                        circuits.append(circuit)
+        if use_simulator_operator_mode:
+            circuit = wave_function.copy(name=circuit_name_prefix + 'aer_mode')
+            # Add expectation value snapshot instruction
+            instr = instructions.get('expval_snapshot', None)
+            if instr is not None:
+                circuit.append(instr, qr)
+            circuits.append(circuit)
+        elif statevector_mode:
+            circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
+            for _, pauli in self._paulis:
+                inst = instructions.get(pauli.to_label(), None)
+                if inst is not None:
+                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                    circuit.append(inst, qr)
+                    circuits.append(circuit)
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -700,7 +704,11 @@ class WeightedPauliOperator(BaseOperator):
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
-        if statevector_mode and not use_simulator_operator_mode:
+        if use_simulator_operator_mode and self.paulis:
+            from qiskit.providers.aer.extensions import SnapshotExpectationValue
+            snapshot = SnapshotExpectationValue('expval', self.paulis, variance=True)
+            instructions = {'expval_snapshot': snapshot}
+        elif statevector_mode:
             for _, pauli in self._paulis:
                 tmp_qc = qc.copy(name="Pauli " + pauli.to_label())
                 if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
@@ -748,23 +756,24 @@ class WeightedPauliOperator(BaseOperator):
             raise AquaError("Operator is empty, check the operator.")
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
-        if statevector_mode:
-            if use_simulator_operator_mode:
-                temp = \
-                    result.data(
-                        circuit_name_prefix + 'aer_mode')[
-                            'snapshots']['expectation_value']['test'][0]['value']
-                avg = temp[0] + 1j * temp[1]
-            else:
-                quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
-                for weight, pauli in self._paulis:
-                    # all I
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):
-                        avg += weight
-                    else:
-                        quantum_state_i = \
-                            result.get_statevector(circuit_name_prefix + pauli.to_label())
-                        avg += (weight * (np.vdot(quantum_state, quantum_state_i)))
+        if use_simulator_operator_mode:
+            expval_data = result.data(
+                circuit_name_prefix + 'aer_mode')['snapshots']['expectation_value']['expval'][0]
+            expval = expval_data['value']
+            var = expval_data.get('variance', [0.0, 0.0])
+            avg = expval[0] + 1j * expval[1]
+            variance = var[0] + 1j * var[1]
+            std_dev = np.sqrt(variance)
+        elif statevector_mode:
+            quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
+            for weight, pauli in self._paulis:
+                # all I
+                if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):
+                    avg += weight
+                else:
+                    quantum_state_i = \
+                        result.get_statevector(circuit_name_prefix + pauli.to_label())
+                    avg += (weight * (np.vdot(quantum_state, quantum_state_i)))
         else:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("Computing the expectation from measurement results:")
