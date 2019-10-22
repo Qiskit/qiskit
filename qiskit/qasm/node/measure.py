@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM measure statement."""
+import warnings
 
 from .node import Node
 
@@ -28,7 +29,10 @@ class Measure(Node):
         """Create the measure node."""
         super().__init__('measure', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
         return "measure " + self.children[0].qasm() + " -> " + \
                self.children[1].qasm() + ";"
