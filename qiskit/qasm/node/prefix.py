@@ -31,8 +31,11 @@ class Prefix(Node):
         """Create the prefix node."""
         super().__init__('prefix', children, None)
 
-    def qasm(self):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+        if prec is not None:
+            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
         return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
     def latex(self, prec=None, nested_scope=None):
