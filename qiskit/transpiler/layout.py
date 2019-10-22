@@ -144,6 +144,7 @@ class Layout():
         Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
         defined, `bit` will be mapped to a new physical bit (extending the length of the
         layout by one.)
+
         Args:
             virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
@@ -156,8 +157,8 @@ class Layout():
         self[virtual_bit] = physical_bit
 
     def add_register(self, reg):
-        """
-        Adds at the end physical_qubits that map each bit in reg.
+        """Adds at the end physical_qubits that map each bit in reg.
+
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
         """
@@ -188,6 +189,7 @@ class Layout():
 
     def swap(self, left, right):
         """Swaps the map between left and right.
+
         Args:
             left (tuple or int): Item to swap with right.
             right (tuple or int): Item to swap with left.
@@ -231,8 +233,8 @@ class Layout():
 
     @staticmethod
     def generate_trivial_layout(*regs):
-        """
-        Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+        """Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+
         Args:
             *regs (Registers): registers to include in the layout.
         Returns:

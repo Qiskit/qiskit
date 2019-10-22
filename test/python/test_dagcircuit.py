@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """Test for the DAGCircuit object"""
 
@@ -211,13 +210,13 @@ class TestDagOperations(QiskitTestCase):
         # Single qubit gate conditional: qc.h(qr[2]).c_if(cr, 3)
 
         h_gate = HGate()
-        h_gate.control = self.condition
+        h_gate.condition = self.condition
         h_node = self.dag.apply_operation_back(
-            h_gate, [self.qubit2], [], h_gate.control)
+            h_gate, [self.qubit2], [], h_gate.condition)
 
         self.assertEqual(h_node.qargs, [self.qubit2])
         self.assertEqual(h_node.cargs, [])
-        self.assertEqual(h_node.condition, h_gate.control)
+        self.assertEqual(h_node.condition, h_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(h_node, data=True)),
@@ -253,13 +252,13 @@ class TestDagOperations(QiskitTestCase):
         self.dag.add_creg(new_creg)
 
         meas_gate = Measure()
-        meas_gate.control = (new_creg, 0)
+        meas_gate.condition = (new_creg, 0)
         meas_node = self.dag.apply_operation_back(
-            meas_gate, [self.qubit0], [self.clbit0], meas_gate.control)
+            meas_gate, [self.qubit0], [self.clbit0], meas_gate.condition)
 
         self.assertEqual(meas_node.qargs, [self.qubit0])
         self.assertEqual(meas_node.cargs, [self.clbit0])
-        self.assertEqual(meas_node.condition, meas_gate.control)
+        self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
@@ -292,13 +291,13 @@ class TestDagOperations(QiskitTestCase):
         # register. qc.measure(qr[0], cr[0]).c_if(cr, 3)
 
         meas_gate = Measure()
-        meas_gate.control = self.condition
+        meas_gate.condition = self.condition
         meas_node = self.dag.apply_operation_back(
             meas_gate, [self.qubit1], [self.clbit1], self.condition)
 
         self.assertEqual(meas_node.qargs, [self.qubit1])
         self.assertEqual(meas_node.cargs, [self.clbit1])
-        self.assertEqual(meas_node.condition, meas_gate.control)
+        self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
@@ -680,10 +679,10 @@ class TestDagLayers(QiskitTestCase):
             qc = QuantumCircuit(qr)
             qc.x(0)
             dag = circuit_to_dag(qc)
-            d1 = list(dag.layers())[0]['graph']
-            d1.apply_operation_back(IdGate(), [qr[0]], [])
+            dag1 = list(dag.layers())[0]['graph']
+            dag1.apply_operation_back(IdGate(), [qr[0]], [])
 
-            comp = [(nd.type, nd.name, nd._node_id) for nd in d1.topological_nodes()]
+            comp = [(nd.type, nd.name, nd._node_id) for nd in dag1.topological_nodes()]
             self.assertEqual(comp, truth)
 
 
@@ -873,9 +872,9 @@ class TestDagSubstitute(QiskitTestCase):
         # case.
 
         instr = Instruction('opaque', 1, 1, [])
-        instr.control = self.condition
+        instr.condition = self.condition
         instr_node = self.dag.apply_operation_back(
-            instr, [self.qubit0], [self.clbit1], instr.control)
+            instr, [self.qubit0], [self.clbit1], instr.condition)
 
         sub_dag = DAGCircuit()
         sub_qr = QuantumRegister(1, 'sqr')
@@ -983,20 +982,20 @@ class TestDagProperties(QiskitTestCase):
     def test_dag_depth1(self):
         """Test DAG depth #1
         """
-        q1 = QuantumRegister(3, 'q1')
-        q2 = QuantumRegister(2, 'q2')
+        qr1 = QuantumRegister(3, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
         c = ClassicalRegister(5, 'c')
-        qc = QuantumCircuit(q1, q2, c)
-        qc.h(q1[0])
-        qc.h(q1[1])
-        qc.h(q1[2])
-        qc.h(q2[0])
-        qc.h(q2[1])
-        qc.ccx(q2[1], q1[0], q2[0])
-        qc.cx(q1[0], q1[1])
-        qc.cx(q1[1], q2[1])
-        qc.cx(q2[1], q1[2])
-        qc.cx(q1[2], q2[0])
+        qc = QuantumCircuit(qr1, qr2, c)
+        qc.h(qr1[0])
+        qc.h(qr1[1])
+        qc.h(qr1[2])
+        qc.h(qr2[0])
+        qc.h(qr2[1])
+        qc.ccx(qr2[1], qr1[0], qr2[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[1])
+        qc.cx(qr2[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
 
