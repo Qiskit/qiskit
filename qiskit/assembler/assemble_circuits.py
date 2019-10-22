@@ -116,8 +116,7 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
                                                        mask="0x%X" % mask,
                                                        relation='==',
                                                        val="0x%X" % val,
-                                                       register=conditional_reg_idx,
-                                                       validate=False)
+                                                       register=conditional_reg_idx)
                 instructions.append(conversion_bfunc)
                 instruction.conditional = conditional_reg_idx
                 max_conditional_idx += 1

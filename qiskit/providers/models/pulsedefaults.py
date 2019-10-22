@@ -20,7 +20,7 @@ from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
-from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
+from qiskit.qobj.models.pulse import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import ParameterizedSchedule

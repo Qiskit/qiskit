@@ -37,6 +37,7 @@ REQUIREMENTS = [
     "scipy>=1.0",
     "sympy>=1.3",
     "dill>=0.3",
+    "fastjsonschema>=2.10"
 ]
 
 # Add Cython extensions here

@@ -14,15 +14,13 @@
 
 """The pulse qobj models."""
 
-from marshmallow.validate import Range, Regexp, Length, OneOf
+from marshmallow.validate import Range, Regexp, Length
 
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.validation import BaseSchema, bind_schema, BaseModel
 from qiskit.validation.fields import (Integer, String, Number, Float, Complex, List,
                                       Nested, DictParameters, ByType)
-from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
-                   QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
-                   QobjExperiment, QobjConfig)
+from .base import QobjInstructionSchema
 
 
 class QobjMeasurementOptionSchema(BaseSchema):

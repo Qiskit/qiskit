@@ -70,17 +70,20 @@ Validation
    validate_qobj_against_schema
 """
 
-from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
-                          QobjExperiment, QobjConfig, QobjHeader)
+from qiskit.qobj.pulse_qobj import PulseQobj
+from qiskit.qobj.pulse_qobj import PulseQobjInstruction
+from qiskit.qobj.pulse_qobj import PulseQobjExperimentConfig
+from qiskit.qobj.pulse_qobj import PulseQobjExperiment
+from qiskit.qobj.pulse_qobj import PulseQobjConfig
+from qiskit.qobj.pulse_qobj import QobjMeasurementOption
+from qiskit.qobj.pulse_qobj import PulseLibraryItem
 
-from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
-                           PulseQobjExperiment, PulseQobjConfig,
-                           QobjMeasurementOption, PulseLibraryItem,
-                           PulseLibraryItemSchema, PulseQobjInstructionSchema)
-
-from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
-                          QasmQobjExperiment, QasmQobjConfig)
-
-from .qobj import Qobj, QasmQobj, PulseQobj
+from qiskit.qobj.qasm_qobj import QasmQobj
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+from qiskit.qobj.qasm_qobj import QasmQobjExperiment
+from qiskit.qobj.qasm_qobj import QasmQobjConfig
+from qiskit.qobj.qasm_qobj import QobjExperimentHeader
+from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
+from qiskit.qobj.qasm_qobj import QobjHeader
 
 from .utils import validate_qobj_against_schema
