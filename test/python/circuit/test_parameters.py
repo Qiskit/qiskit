@@ -27,7 +27,7 @@ from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.tools import parallel_map
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestParameters(QiskitTestCase):
@@ -157,10 +157,10 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         qc.u1(0.1, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1})
 
         qc.u1(x, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1, y: 2})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
@@ -240,7 +240,7 @@ class TestParameters(QiskitTestCase):
 
         qc.u1(theta1, 0)
 
-        self.assertRaises(QiskitError, qc.u1, theta2, 0)
+        self.assertRaises(CircuitError, qc.u1, theta2, 0)
 
     def test_bind_ryrz_vector(self):
         """Test binding a list of floats to a ParamterVector"""
@@ -561,13 +561,13 @@ class TestParameterExpressions(QiskitTestCase):
         _ = x * x
         _ = x / x
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x + y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x - y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x * y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x / y
 
     def test_to_instruction_with_expresion(self):

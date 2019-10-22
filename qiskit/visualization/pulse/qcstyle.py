@@ -23,6 +23,7 @@ class SchedStyle:
                  m_ch_color=None, s_ch_color=None, s_ch_linestyle='-', table_color=None,
                  bg_color=None, num_points=1000, dpi=150):
         """Set style sheet for OpenPulse schedule drawer.
+
         Args:
             figsize (tuple): Size of figure.
             fig_unit_h_table (float): height of table row
@@ -72,6 +73,7 @@ class PulseStyle:
     def __init__(self, figsize=(7, 5), wave_color=None,
                  bg_color=None, num_points=None, dpi=None):
         """Set style sheet for OpenPulse sample pulse drawer.
+
         Args:
             figsize (tuple): Size of figure.
             wave_color (list[str]): colors for real and imaginary part of waveform.
