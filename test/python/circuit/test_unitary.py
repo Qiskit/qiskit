@@ -232,3 +232,29 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "custom_gate q0[1];\n"
         self.assertEqual(expected_qasm, qc.qasm())
         self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_qasm_2q_unitary(self):
+        """test that a 2 qubit custom unitary can be converted to qasm"""
+        qr = QuantumRegister(2, 'q0')
+        cr = ClassicalRegister(1, 'c0')
+        qc = QuantumCircuit(qr, cr)
+        matrix = numpy.eye(4)
+        unitary_gate = UnitaryGate(matrix, label="custom_gate")
+
+        qc.x(qr[0])
+        qc.append(unitary_gate, [qr[0], qr[1]])
+        qc.append(unitary_gate, [qr[1], qr[0]])
+
+        expected_qasm = "OPENQASM 2.0;\n"\
+                        "include \"qelib1.inc\";\n"\
+                        "qreg q0[2];\n"\
+                        "creg c0[1];\n"\
+                        "x q0[0];\n"\
+                        "gate custom_gate p0,p1 {\n"\
+                            "\tu3(0.0,0.0,0.0) p0;\n"\
+                            "\tu3(0.0,0.0,0.0) p1;\n"\
+                        "}\n"\
+                        "custom_gate q0[0],q0[1];\n"\
+                        "custom_gate q0[1],q0[0];\n"
+        self.assertEqual(expected_qasm, qc.qasm())
+
