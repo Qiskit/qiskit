@@ -56,8 +56,7 @@ class DAGNode:
     @property
     def qargs(self):
         """
-        Returns list of (QuantumRegister, int) tuples where the int is the index
-        of the qubit else an empty list
+        Returns list of Qubit else an empty list
         """
         return self.data_dict.get('qargs', [])
 
@@ -69,8 +68,7 @@ class DAGNode:
     @property
     def cargs(self):
         """
-        Returns list of (ClassicalRegister, int) tuples where the int is the index
-        of the cbit else an empty list
+        Returns list of Clbit else an empty list
         """
         return self.data_dict.get('cargs', [])
 
@@ -85,8 +83,7 @@ class DAGNode:
     @property
     def wire(self):
         """
-        Returns (Register, int) tuple where the int is the index of
-        the wire else None
+        Returns the Bit object else None
         """
         if self.data_dict['type'] not in ['in', 'out']:
             raise QiskitError('The node %s is not an input/output node' % str(self))
