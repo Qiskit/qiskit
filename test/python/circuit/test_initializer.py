@@ -20,12 +20,12 @@ import math
 import unittest
 import numpy as np
 
-from qiskit import QiskitError
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import execute, BasicAer
 from qiskit.quantum_info import state_fidelity
+from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
 
