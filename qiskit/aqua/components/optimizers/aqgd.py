@@ -60,8 +60,7 @@ class AQGD(Optimizer):
                     'type': 'number',
                     'default': 0.25,
                     'minimum': 0,
-                    'maximum': 1.0,
-                    'exclusiveMaximum': True
+                    'exclusiveMaximum': 1.0
                 }
             },
             'additionalProperties': False

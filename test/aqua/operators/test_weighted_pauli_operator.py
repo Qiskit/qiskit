@@ -497,6 +497,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
     def test_evaluate_with_aer_mode(self):
         """ evaluate with aer mode test """
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))

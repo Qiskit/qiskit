@@ -121,6 +121,7 @@ class TestVQE(QiskitAquaTestCase):
     def test_vqe_aer_mode(self):
         """ VQE Aer Mode test """
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
