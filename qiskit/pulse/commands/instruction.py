@@ -170,7 +170,7 @@ class Instruction(ScheduleComponent):
             name: Name of the new schedule. Defaults to name of self
         """
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return self.union((start_time, schedule), name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = False,
@@ -184,7 +184,7 @@ class Instruction(ScheduleComponent):
             name: Name of the new schedule. Defaults to name of self
         """
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)

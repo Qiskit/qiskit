@@ -57,7 +57,7 @@ class ScheduleComponent(metaclass=ABCMeta):
     @property
     def buffer(self) -> int:
         """Buffer for schedule. To be used when appending"""
-        warnings.warn("", DeprecationWarning)
+        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return 0
 
     @property

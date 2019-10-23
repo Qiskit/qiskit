@@ -43,7 +43,7 @@ class Channel(metaclass=ABCMeta):
         self._index = index
 
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
 
     @property
     def index(self) -> int:
@@ -53,7 +53,7 @@ class Channel(metaclass=ABCMeta):
     @property
     def buffer(self) -> int:
         """Return the buffer for this channel."""
-        warnings.warn("", DeprecationWarning)
+        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return 0
 
     @property

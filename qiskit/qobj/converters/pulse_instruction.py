@@ -238,7 +238,7 @@ class QobjToInstructionConverter:
              run_config (dict): experimental configuration.
         """
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._run_config = run_config
 
         # bind pulses to conversion methods

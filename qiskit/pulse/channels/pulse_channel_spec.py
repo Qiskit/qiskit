@@ -83,7 +83,7 @@ class PulseChannelSpec:
             buffer: Buffer that should be placed between instructions on channel.
         """
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._drives = [DriveChannel(idx) for idx in range(n_qubits)]
         self._controls = [ControlChannel(idx) for idx in range(n_control)]
         self._measures = [MeasureChannel(idx) for idx in range(n_qubits)]

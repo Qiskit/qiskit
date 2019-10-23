@@ -78,7 +78,7 @@ class CmdDef:
             buffer: Buffer between instructions on channel
         """
         if buffer:
-            warnings.warn("", DeprecationWarning)
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         converter = QobjToInstructionConverter(pulse_library)
         cmd_def = cls()
 
