@@ -192,6 +192,6 @@ class PassManager:
                 item['flow_controllers'] = {controller_name for controller_name in
                                             pass_set['flow_controllers'].keys()}
             else:
-                item['flow_controllers'] = {'linear'}
+                item['flow_controllers'] = {''}
             ret.append(item)
         return ret
