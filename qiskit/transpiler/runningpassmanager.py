@@ -367,6 +367,7 @@ class ConditionalController(FlowController):
             for pass_ in self.passes:
                 yield pass_
 
+
 class RollbackIfController(FlowController):
     """ The set of passes is rollbacked if the condition condition is true."""
 
@@ -383,6 +384,7 @@ class RollbackIfController(FlowController):
             pass_manager.property_set = original_property_set
             return dag
         return dag_copy
+
 
 # Default controllers
 FlowController.add_flow_controller('condition', ConditionalController)
