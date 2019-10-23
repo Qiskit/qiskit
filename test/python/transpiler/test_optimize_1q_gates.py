@@ -76,11 +76,11 @@ class TestOptimize1qGates(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.cx(qr[1], qr[0])
-        qc.u1(2 * sympy.pi, qr[0])
+        qc.u1(2 * np.pi, qr[0])
         qc.cx(qr[1], qr[0])
-        qc.u1(sympy.pi / 2, qr[0])  # these three should combine
-        qc.u1(sympy.pi, qr[0])      # to identity then
-        qc.u1(sympy.pi / 2, qr[0])  # optimized away.
+        qc.u1(np.pi / 2, qr[0])  # these three should combine
+        qc.u1(np.pi, qr[0])      # to identity then
+        qc.u1(np.pi / 2, qr[0])  # optimized away.
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi, qr[1])
         qc.u1(np.pi, qr[1])
@@ -121,10 +121,10 @@ class TestOptimize1qGates(QiskitTestCase):
         for node in simplified_dag.named_nodes('u1'):
             params.add(node.op.params[0])
 
-        expected_params = {sympy.Number(-3 * np.pi / 2),
-                           sympy.Number(1.0 + 0.55 * np.pi),
-                           sympy.Number(-0.479425538604203),
-                           sympy.Number(0.3 + np.pi + np.pi ** 2)}
+        expected_params = {-3 * np.pi / 2,
+                           1.0 + 0.55 * np.pi,
+                           -0.479425538604203,
+                           0.3 + np.pi + np.pi ** 2}
 
         self.assertEqual(params, expected_params)
 
