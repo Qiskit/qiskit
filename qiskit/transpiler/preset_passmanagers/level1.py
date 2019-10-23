@@ -38,6 +38,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import DenseLayout
 
 
 def level_1_pass_manager(transpile_config):
@@ -115,8 +116,9 @@ def level_1_pass_manager(transpile_config):
     pm1 = PassManager()
     if coupling_map:
         pm1.append(_given_layout)
-        pm1.append(_choose_layout, condition=_choose_layout_condition)
+        pm1.append([TrivialLayout(coupling_map)], condition=_choose_layout_condition)
         pm1.append(_layout_check)
+        pm1.append([DenseLayout(coupling_map)], condition=_choose_layout_condition, rollback_if=lambda x: False)
         pm1.append(_embed)
     pm1.append(_unroll)
     if coupling_map:
@@ -127,5 +129,4 @@ def level_1_pass_manager(transpile_config):
             pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
-
     return pm1
