@@ -43,7 +43,9 @@ def has_ibmq():
     """ Check if IBMQ is installed """
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.ibmq import IBMQFactory
+            # pylint: disable=syntax-error
             from qiskit.providers.ibmq.accountprovider import AccountProvider
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -59,6 +61,7 @@ def has_aer():
     """ check if Aer is installed """
     if not _PROVIDER_CHECK.checked_aer:
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import AerProvider
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -79,6 +82,7 @@ def is_aer_provider(backend):
         bool: True is AerProvider
     """
     if has_aer():
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers.aer import AerProvider
         return isinstance(backend.provider(), AerProvider)
 
@@ -93,6 +97,7 @@ def is_basicaer_provider(backend):
     Returns:
         bool: True is BasicAer
     """
+    # pylint: disable=import-outside-toplevel
     from qiskit.providers.basicaer import BasicAerProvider
 
     return isinstance(backend.provider(), BasicAerProvider)
@@ -107,6 +112,7 @@ def is_ibmq_provider(backend):
         bool: True is IBMQ
     """
     if has_ibmq():
+        # pylint: disable=syntax-error,import-outside-toplevel
         from qiskit.providers.ibmq.accountprovider import AccountProvider
         return isinstance(backend.provider(), AccountProvider)
 
@@ -218,6 +224,7 @@ def get_backends_from_provider(provider_name):
     provider_object = _load_provider(provider_name)
     is_ibmq = False
     if has_ibmq():
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers.ibmq import IBMQFactory
         if isinstance(provider_object, IBMQFactory):
             is_ibmq = True
@@ -259,6 +266,7 @@ def get_backend_from_provider(provider_name, backend_name):
     provider_object = _load_provider(provider_name)
     is_ibmq = False
     if has_ibmq():
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers.ibmq import IBMQFactory
         if isinstance(provider_object, IBMQFactory):
             is_ibmq = True
@@ -313,6 +321,7 @@ def get_provider_from_backend(backend):
     Raises:
         ImportError: Failed to find provider
     """
+    # pylint: disable=import-outside-toplevel
     from qiskit.providers import BaseBackend
 
     known_providers = {
@@ -371,7 +380,7 @@ def _refresh_ibmq_account():
     project = preferences.project
     provider = None
     try:
-        # pylint: disable=no-name-in-module, import-error
+        # pylint: disable=no-name-in-module,import-error,import-outside-toplevel
         from qiskit import IBMQ
         providers = IBMQ.providers()
         if token != '':

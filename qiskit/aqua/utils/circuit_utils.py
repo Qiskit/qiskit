@@ -22,6 +22,7 @@ from qiskit.transpiler.passes import Unroller
 
 def convert_to_basis_gates(circuit):
     """ unroll the circuit using the basis u1, u2, u3, cx, and id gates """
+    # pylint: disable=import-outside-toplevel
     from qiskit import BasicAer
     unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
     p_m = PassManager(passes=[unroller])
