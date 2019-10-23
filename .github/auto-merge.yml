@@ -32,7 +32,7 @@ blockingLabels:
 # Whenever required labels are configured, pull requests will only be automatically merged whenever
 # all of these labels are attached to a pull request.
 requiredLabels:
-- merge
+- automerge
 
 # Automatic merges will be blocked if there is a match between the regular expression and title
 blockingTitleRegex: '\bWIP\b'
