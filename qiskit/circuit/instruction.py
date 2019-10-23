@@ -199,8 +199,7 @@ class Instruction:
                     self._params.append(single_param)
                 else:
                     raise CircuitError("invalid param type {0} in instruction "
-                                      "{1}".format(type(single_param),
-                                                   self.name))
+                                       "{1}".format(type(single_param), self.name))
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
