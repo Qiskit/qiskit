@@ -18,7 +18,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions.standard import HGate, XGate, CnotGate
 
 from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
@@ -334,8 +334,8 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         self.assertEqual(qc, expected_qc)
 
-        self.assertRaises(QiskitError, qc.data.append, (HGate(), [qr[0], qr[1]], []))
-        self.assertRaises(QiskitError, qc.data.append, (HGate(), [], [qr[0]]))
+        self.assertRaises(CircuitError, qc.data.append, (HGate(), [qr[0], qr[1]], []))
+        self.assertRaises(CircuitError, qc.data.append, (HGate(), [], [qr[0]]))
 
     def test_insert_is_validated(self):
         """Verify inserting gates via circuit.data are broadcast and validated."""
@@ -354,8 +354,8 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         self.assertEqual(qc, expected_qc)
 
-        self.assertRaises(QiskitError, qc.data.insert, 0, (HGate(), [qr[0], qr[1]], []))
-        self.assertRaises(QiskitError, qc.data.insert, 0, (HGate(), [], [qr[0]]))
+        self.assertRaises(CircuitError, qc.data.insert, 0, (HGate(), [qr[0], qr[1]], []))
+        self.assertRaises(CircuitError, qc.data.insert, 0, (HGate(), [], [qr[0]]))
 
     def test_extend_is_validated(self):
         """Verify extending circuit.data is broadcast and validated."""
@@ -374,8 +374,8 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         self.assertEqual(qc, expected_qc)
 
-        self.assertRaises(QiskitError, qc.data.extend, [(HGate(), [qr[0], qr[1]], [])])
-        self.assertRaises(QiskitError, qc.data.extend, [(HGate(), [], [qr[0]])])
+        self.assertRaises(CircuitError, qc.data.extend, [(HGate(), [qr[0], qr[1]], [])])
+        self.assertRaises(CircuitError, qc.data.extend, [(HGate(), [], [qr[0]])])
 
     def test_setting_data_is_validated(self):
         """Verify setting circuit.data is broadcast and validated."""
@@ -394,7 +394,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         self.assertEqual(qc, expected_qc)
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             qc.data = [(HGate(), [qr[0], qr[1]], [])]
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             qc.data = [(HGate(), [], [qr[0]])]
