@@ -40,10 +40,6 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test that sample rate is 1/dt."""
         self.assertEqual(self.config.sample_rate, 1. / self.config.dt)
 
-    def test_coupling_map(self):
-        """Test that the coupling map is returned and in the proper format."""
-        self.assertEqual(self.config.coupling_map, {0: {1}})
-
     def test_hamiltonian(self):
         """Test the hamiltonian method."""
         self.assertEqual(self.config.hamiltonian(),
