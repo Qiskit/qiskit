@@ -14,7 +14,6 @@
 
 """Model and schema for backend configuration."""
 import warnings
-from collections import defaultdict
 from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
