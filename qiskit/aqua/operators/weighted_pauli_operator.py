@@ -599,6 +599,7 @@ class WeightedPauliOperator(BaseOperator):
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
         # convert to matrix first?
+        # pylint: disable=import-outside-toplevel
         from .op_converter import to_matrix_operator
         mat_op = to_matrix_operator(self)
         avg = np.vdot(quantum_state, mat_op._matrix.dot(quantum_state))
@@ -637,7 +638,7 @@ class WeightedPauliOperator(BaseOperator):
         """
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
-
+        # pylint: disable=import-outside-toplevel
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
 
         if qr is None:
@@ -662,8 +663,7 @@ class WeightedPauliOperator(BaseOperator):
                     if inst is not None:
                         circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
                         circuit.append(inst, qr)
-                        # TODO: this decompose is used because of cache
-                        circuits.append(circuit.decompose())
+                        circuits.append(circuit)
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -678,8 +678,7 @@ class WeightedPauliOperator(BaseOperator):
             for basis, _ in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
                 circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
-                # TODO: this decompose is used because of cache
-                circuits.append(circuit.decompose())
+                circuits.append(circuit)
 
         return circuits
 
@@ -709,8 +708,8 @@ class WeightedPauliOperator(BaseOperator):
                 # This explicit barrier is needed for statevector simulator since Qiskit-terra
                 # will remove global phase at default compilation level but the results here
                 # rely on global phase.
-                tmp_qc.barrier([x for x in range(self.num_qubits)])
-                tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
+                tmp_qc.barrier(list(range(self.num_qubits)))
+                tmp_qc.append(pauli, list(range(self.num_qubits)))
                 instructions[pauli.to_label()] = tmp_qc.to_instruction()
         else:
             cr = ClassicalRegister(self.num_qubits)
@@ -875,8 +874,7 @@ class WeightedPauliOperator(BaseOperator):
         instruction = self.evolve_instruction(evo_time, num_time_slices,
                                               expansion_mode, expansion_order)
         qc.append(instruction, quantum_registers)
-        # TODO: this decompose is used because of cache
-        return qc.decompose()
+        return qc
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
                            expansion_mode='trotter', expansion_order=1):

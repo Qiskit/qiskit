@@ -335,6 +335,7 @@ class MatrixOperator(BaseOperator):
             ValueError: Invalid arguments
             AquaError: if Operator is empty
         """
+        # pylint: disable=import-outside-toplevel
         from .op_converter import to_weighted_pauli_operator
 
         if self.is_empty():
