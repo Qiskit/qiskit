@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name, unused-argument
+# pylint: disable=unused-argument
 
 """A module for monitoring backends."""
 

@@ -116,6 +116,7 @@ class ScheduleComponent(metaclass=ABCMeta):
     def shift(self: 'ScheduleComponent', time: int,
               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
+
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of parent
