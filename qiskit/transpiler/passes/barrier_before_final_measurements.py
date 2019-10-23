@@ -23,7 +23,7 @@ other measurements or barriers.)
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from ..merge_adjacent_barriers import MergeAdjacentBarriers
+from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
 class BarrierBeforeFinalMeasurements(TransformationPass):

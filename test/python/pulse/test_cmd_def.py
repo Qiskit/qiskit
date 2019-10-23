@@ -153,7 +153,7 @@ class TestCmdDef(QiskitTestCase):
         defaults = self.backend.defaults()
         cmd_def = defaults.build_cmd_def()
 
-        cx_pv = cmd_def.get('cx', (0, 1), P2=0)
+        cx_pv = cmd_def.get('ParametrizedGate', (0, 1), P2=0)
         pv_found = False
         for _, instr in cx_pv.instructions:
             cmd = instr.command
