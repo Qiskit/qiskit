@@ -65,7 +65,10 @@ class FakeOpenPulse2Q(FakeBackend):
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ]
+            ],
+            hamiltonian={
+                'h_latex': "MOCK_HAMILTONIAN_STR"
+            }
         )
 
         self._defaults = PulseDefaults(

@@ -29,6 +29,7 @@ from .fake_tokyo import FakeTokyo
 from .fake_poughkeepsie import FakePoughkeepsie
 from .fake_boeblingen import FakeBoeblingen
 from .fake_openpulse_2q import FakeOpenPulse2Q
+from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
 class FakeProvider(BaseProvider):
@@ -55,6 +56,7 @@ class FakeProvider(BaseProvider):
     def __init__(self):
         self._backends = [FakeQasmSimulator(),
                           FakeOpenPulse2Q(),
+                          FakeOpenPulse3Q(),
                           FakeYorktown(),
                           FakeTenerife(),
                           FakeOurense(),
