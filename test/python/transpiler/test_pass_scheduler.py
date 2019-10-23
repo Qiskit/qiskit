@@ -741,7 +741,7 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassB_TP_RA_PA']
-        self.assertScheduler(self.circuit, self.passmanager, expected)
+        self.assertScheduler(self.passmanager, expected)
 
     def test_replace1(self):
         """ Test passmanager.replace(1, ...)."""
@@ -752,7 +752,7 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
-        self.assertScheduler(self.circuit, self.passmanager, expected)
+        self.assertScheduler(self.passmanager, expected)
 
     def test_setitem(self):
         """ Test passmanager[1] = ..."""
@@ -763,7 +763,7 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
-        self.assertScheduler(self.circuit, self.passmanager, expected)
+        self.assertScheduler(self.passmanager, expected)
 
     def test_replace_with_conditional(self):
         """ Replace a pass with a conditional pass. """
@@ -775,7 +775,7 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run analysis pass PassE_AP_NR_NP',
                     'set property as False']
-        self.assertScheduler(self.circuit, self.passmanager, expected)
+        self.assertScheduler(self.passmanager, expected)
 
     def test_replace_error(self):
         """ Replace a non-existing index. """
