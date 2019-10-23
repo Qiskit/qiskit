@@ -30,8 +30,8 @@ class ApplyLayout(TransformationPass):
     """
 
     def run(self, dag):
-        """
-        Runs the ApplyLayout pass on `dag`.
+        """Runs the ApplyLayout pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to map.
         Returns:
