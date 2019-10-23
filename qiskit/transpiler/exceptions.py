@@ -15,8 +15,8 @@
 """
 Exception for errors raised by the transpiler.
 """
-from qiskit.exceptions import QiskitError
 from deprecated import deprecated
+from qiskit.exceptions import QiskitError
 
 
 @deprecated(version="0.10.0",

@@ -50,7 +50,7 @@ class FencedObject():
         """
         if name in object.__getattribute__(self, '_attributes_to_fence'):
             raise TranspilerError("The fenced %s has the property %s protected" %
-                                        (type(object.__getattribute__(self, '_wrapped')), name))
+                                  (type(object.__getattribute__(self, '_wrapped')), name))
 
 
 class FencedPropertySet(FencedObject):
