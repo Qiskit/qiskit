@@ -31,8 +31,8 @@ class PassManager:
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
-                None.
+            passes (list[BasePass] or BasePass): A pass set (as defined in ``append()``)
+                to be added to the pass manager schedule. The default is None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
@@ -64,7 +64,7 @@ class PassManager:
                     PassManager(callback=callback_func)
 
         """
-        self.pass_sets = []
+        self._pass_sets = []
         if passes is not None:
             self.append(passes)
         self.max_iteration = max_iteration
@@ -72,10 +72,13 @@ class PassManager:
         self.property_set = None
 
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
-        """Append a Pass to the schedule of passes.
+        """Append a Pass Set to the schedule of passes.
 
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
+            passes (list[BasePass] or BasePass): A set of passes (a pass set) to be added
+               to schedule. A pass set is a list of passes that are controlled by the same
+               flow controller. If a single pass is provided, the pass set will only have that
+               pass a single element.
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
@@ -96,14 +99,15 @@ class PassManager:
             self.max_iteration = max_iteration
 
         passes = PassManager._normalize_passes(passes)
-        self.pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
+        self._pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
 
     def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
         """Replace a particular pass in the scheduler
 
         Args:
             index (int): Pass index to replace, based on the position in passes().
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
+            passes (list[BasePass] or BasePass): A pass set (as defined in ``append()``)
+                   to be added to the pass manager schedule
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
@@ -125,8 +129,8 @@ class PassManager:
         passes = PassManager._normalize_passes(passes)
 
         try:
-            self.pass_sets[index] = {'passes': passes,
-                                     'flow_controllers': flow_controller_conditions}
+            self._pass_sets[index] = {'passes': passes,
+                                      'flow_controllers': flow_controller_conditions}
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 
@@ -160,7 +164,7 @@ class PassManager:
 
     def _create_running_passmanager(self):
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
-        for pass_set in self.pass_sets:
+        for pass_set in self._pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
         return running_passmanager
 
@@ -224,15 +228,15 @@ class PassManager:
     def passes(self):
         """Return a list structure of the appended passes and its options.
 
-        Returns (list): The appended passes.
+        Returns (list): A list of pass sets as defined in ``append()``.
         """
         ret = []
-        for pass_set in self.pass_sets:
+        for pass_set in self._pass_sets:
             item = {'passes': pass_set['passes']}
             if pass_set['flow_controllers']:
                 item['flow_controllers'] = {controller_name for controller_name in
                                             pass_set['flow_controllers'].keys()}
             else:
-                item['flow_controllers'] = {'linear'}
+                item['flow_controllers'] = {}
             ret.append(item)
         return ret

@@ -482,8 +482,8 @@ class TestDumpPasses(SchedulerTestCase):
         passmanager.append(PassC_TP_RA_PA())
         passmanager.append(PassB_TP_RA_PA())
 
-        expected = [{'flow_controllers': {'linear'}, 'passes': [PassC_TP_RA_PA()]},
-                    {'flow_controllers': {'linear'}, 'passes': [PassB_TP_RA_PA()]}]
+        expected = [{'flow_controllers': {}, 'passes': [PassC_TP_RA_PA()]},
+                    {'flow_controllers': {}, 'passes': [PassB_TP_RA_PA()]}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_passes_in_linear(self):
@@ -494,10 +494,10 @@ class TestDumpPasses(SchedulerTestCase):
             PassD_TP_NR_NP(argument1=[1, 2]),
             PassB_TP_RA_PA()])
 
-        expected = [{'flow_controllers': {'linear'}, 'passes': [PassC_TP_RA_PA(),
-                                                                PassB_TP_RA_PA(),
-                                                                PassD_TP_NR_NP(argument1=[1, 2]),
-                                                                PassB_TP_RA_PA()]}]
+        expected = [{'flow_controllers': {}, 'passes': [PassC_TP_RA_PA(),
+                                                        PassB_TP_RA_PA(),
+                                                        PassD_TP_NR_NP(argument1=[1, 2]),
+                                                        PassB_TP_RA_PA()]}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
@@ -522,7 +522,7 @@ class TestDumpPasses(SchedulerTestCase):
             do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property_fixed_point'])
 
-        expected = [{'passes': [PassE_AP_NR_NP(True)], 'flow_controllers': {'linear'}},
+        expected = [{'passes': [PassE_AP_NR_NP(True)], 'flow_controllers': {}},
                     {'passes': [PassK_check_fixed_point_property(),
                                 PassA_TP_NR_NP(),
                                 PassF_reduce_dag_property()], 'flow_controllers': {'condition',
