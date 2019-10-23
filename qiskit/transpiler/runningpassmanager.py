@@ -15,7 +15,6 @@
 """RunningPassManager class for the transpiler.
 This object holds the state of a pass manager during running-time."""
 
-from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
