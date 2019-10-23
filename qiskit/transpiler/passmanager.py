@@ -60,7 +60,7 @@ class PassManager:
                     PassManager(callback=callback_func)
 
         """
-        self.pass_sets = []
+        self._pass_sets = []
         if passes is not None:
             self.append(passes)
         self.max_iteration = max_iteration
@@ -92,7 +92,7 @@ class PassManager:
             self.max_iteration = max_iteration
 
         passes = PassManager._normalize_passes(passes)
-        self.pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
+        self._pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
 
     def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
         """Replace a particular pass in the scheduler
@@ -121,7 +121,7 @@ class PassManager:
         passes = PassManager._normalize_passes(passes)
 
         try:
-            self.pass_sets[index] = {'passes': passes,
+            self._pass_sets[index] = {'passes': passes,
                                      'flow_controllers': flow_controller_conditions}
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
@@ -149,7 +149,7 @@ class PassManager:
             QuantumCircuit: Transformed circuit.
         """
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
-        for pass_set in self.pass_sets:
+        for pass_set in self._pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
 
         result = running_passmanager.run(circuit)
@@ -186,7 +186,7 @@ class PassManager:
         Returns (list): The appended passes.
         """
         ret = []
-        for pass_set in self.pass_sets:
+        for pass_set in self._pass_sets:
             item = {'passes': pass_set['passes']}
             if pass_set['flow_controllers']:
                 item['flow_controllers'] = {controller_name for controller_name in
