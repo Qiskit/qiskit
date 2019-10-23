@@ -126,7 +126,7 @@ class PassManager:
 
         try:
             self._pass_sets[index] = {'passes': passes,
-                                     'flow_controllers': flow_controller_conditions}
+                                      'flow_controllers': flow_controller_conditions}
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 

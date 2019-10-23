@@ -495,9 +495,9 @@ class TestDumpPasses(SchedulerTestCase):
             PassB_TP_RA_PA()])
 
         expected = [{'flow_controllers': {}, 'passes': [PassC_TP_RA_PA(),
-                                                                PassB_TP_RA_PA(),
-                                                                PassD_TP_NR_NP(argument1=[1, 2]),
-                                                                PassB_TP_RA_PA()]}]
+                                                        PassB_TP_RA_PA(),
+                                                        PassD_TP_NR_NP(argument1=[1, 2]),
+                                                        PassB_TP_RA_PA()]}]
         self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
