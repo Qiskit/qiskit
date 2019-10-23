@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utils for transpiler."""
+"""Exceptions for errors raised while handling Quantum Circuits."""
 
-from .runningpassmanager import FlowController
-from .passmanager import PassManager
-from .propertyset import PropertySet
-from .exceptions import TranspilerError, TranspilerAccessError
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
-from .basepasses import AnalysisPass, TransformationPass
-from .coupling import CouplingMap
-from .layout import Layout
-from .transpile_circuit import transpile_circuit
+from qiskit.exceptions import QiskitError
+
+
+class CircuitError(QiskitError):
+    """Base class for errors raised while processing a circuit."""
+
+    pass
