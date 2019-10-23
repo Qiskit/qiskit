@@ -198,7 +198,7 @@ class Instruction:
                                   DeprecationWarning, stacklevel=3)
                     self._params.append(single_param)
                 else:
-                    raise QiskitError("invalid param type {0} in instruction "
+                    raise CircuitError("invalid param type {0} in instruction "
                                       "{1}".format(type(single_param),
                                                    self.name))
             else:
