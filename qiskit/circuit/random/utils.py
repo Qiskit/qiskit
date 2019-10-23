@@ -24,7 +24,7 @@ from qiskit.extensions import (IdGate, U1Gate, U2Gate, U3Gate, XGate,
                                CyGate, CzGate, CHGate, CrzGate, Cu1Gate,
                                Cu3Gate, SwapGate, RZZGate,
                                ToffoliGate, FredkinGate)
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(n_qubits, depth, max_operands=3, measure=False,
@@ -44,10 +44,10 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
         QuantumCircuit: constructed circuit
 
     Raises:
-        QiskitError: when invalid options given
+        CircuitError: when invalid options given
     """
     if max_operands < 1 or max_operands > 3:
-        raise QiskitError("max_operands must be between 1 and 3")
+        raise CircuitError("max_operands must be between 1 and 3")
 
     one_q_ops = [IdGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
                  HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]

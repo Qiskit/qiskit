@@ -17,7 +17,7 @@ QuantumCircuit.data while maintaining the interface of a python list."""
 
 from collections.abc import MutableSequence
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 
 
@@ -47,13 +47,13 @@ class QuantumCircuitData(MutableSequence):
                                                               expanded_cargs))
 
         if len(broadcast_args) > 1:
-            raise QiskitError('QuantumCircuit.data modification does not '
-                              'support argument broadcasting.')
+            raise CircuitError('QuantumCircuit.data modification does not '
+                               'support argument broadcasting.')
 
         qargs, cargs = broadcast_args[0]
 
         if not isinstance(instruction, Instruction):
-            raise QiskitError('object is not an Instruction.')
+            raise CircuitError('object is not an Instruction.')
 
         self._circuit._check_dups(qargs)
         self._circuit._check_qargs(qargs)

@@ -44,3 +44,4 @@ from .fake_boeblingen import FakeBoeblingen
 
 
 from .fake_openpulse_2q import FakeOpenPulse2Q
+from .fake_openpulse_3q import FakeOpenPulse3Q
