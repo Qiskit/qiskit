@@ -35,8 +35,7 @@ class External(Node):
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-        return self.children[0].qasm() + "(" + \
-               self.children[1].qasm() + ")"
+        return self.children[0].qasm() + "(" + self.children[1].qasm() + ")"
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
