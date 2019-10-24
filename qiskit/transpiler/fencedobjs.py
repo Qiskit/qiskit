@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Fenced objects are wraps for raising TranspilerAccessError when they are modified."""
+""" Fenced objects are wraps for raising TranspilerError when they are modified."""
 
-from .exceptions import TranspilerAccessError
+from .exceptions import TranspilerError
 
 
 class FencedObject():
-    """ Given an instance and a list of attributes to fence, raises a TranspilerAccessError when one
+    """ Given an instance and a list of attributes to fence, raises a TranspilerError when one
     of these attributes is accessed."""
 
     def __init__(self, instance, attributes_to_fence):
@@ -40,17 +40,17 @@ class FencedObject():
     def _check_if_fenced(self, name):
         """
         Checks if the attribute name is in the list of attributes to protect. If so, raises
-        TranspilerAccessError.
+        TranspilerError.
 
         Args:
             name (string): the attribute name to check
 
         Raises:
-            TranspilerAccessError: when name is the list of attributes to protect.
+            TranspilerError: when name is the list of attributes to protect.
         """
         if name in object.__getattribute__(self, '_attributes_to_fence'):
-            raise TranspilerAccessError("The fenced %s has the property %s protected" %
-                                        (type(object.__getattribute__(self, '_wrapped')), name))
+            raise TranspilerError("The fenced %s has the property %s protected" %
+                                  (type(object.__getattribute__(self, '_wrapped')), name))
 
 
 class FencedPropertySet(FencedObject):
