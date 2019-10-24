@@ -52,7 +52,6 @@ class BinaryOp(Node):
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
@@ -60,14 +59,13 @@ class BinaryOp(Node):
                               "pylatexenc needs to be installed. Run "
                               "'pip install pylatexenc' before using this "
                               "method.")
-        return utf8tolatex(self.sym(nested_scope))
+        return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         operation = self.children[0].operation()
         lhs = self.children[1].real()
         rhs = self.children[2].real()
@@ -75,11 +73,9 @@ class BinaryOp(Node):
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         operation = self.children[0].operation()
         lhs = self.children[1].sym()
         rhs = self.children[2].sym()

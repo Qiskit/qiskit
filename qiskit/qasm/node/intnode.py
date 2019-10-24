@@ -41,7 +41,6 @@ class Int(Node):
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         return "%d" % self.value
 
     def latex(self, prec=None, nested_scope=None):
@@ -52,7 +51,6 @@ class Int(Node):
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         return "%d" % self.value
 
     def sym(self, nested_scope=None):

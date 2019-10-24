@@ -46,7 +46,7 @@ class Real(Node):
         if self.value == np.pi:
             return "pi"
 
-        return str(np.round(float(self.value), decimals=prec))
+        return str(np.round(float(self.value)))
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""

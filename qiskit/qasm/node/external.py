@@ -46,7 +46,6 @@ class External(Node):
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
-
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
