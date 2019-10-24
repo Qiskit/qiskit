@@ -15,7 +15,6 @@
 """
 Exception for errors raised by the transpiler.
 """
-import warnings
 from qiskit.exceptions import QiskitError
 
 
