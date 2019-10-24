@@ -14,8 +14,6 @@
 
 """Node for an OPENQASM integer."""
 
-from sympy import N
-
 from .node import Node
 
 
@@ -49,7 +47,7 @@ class Int(Node):
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
         del nested_scope  # ignored
-        return N(self.value)
+        return float(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""

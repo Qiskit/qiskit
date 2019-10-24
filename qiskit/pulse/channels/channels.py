@@ -15,6 +15,8 @@
 """
 Channels.
 """
+import warnings
+
 from abc import ABCMeta
 
 from qiskit.pulse.exceptions import PulseError
@@ -40,10 +42,8 @@ class Channel(metaclass=ABCMeta):
 
         self._index = index
 
-        if not isinstance(buffer, int):
-            raise PulseError('Channel buffer must be integer')
-
-        self._buffer = buffer
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
 
     @property
     def index(self) -> int:
@@ -53,7 +53,8 @@ class Channel(metaclass=ABCMeta):
     @property
     def buffer(self) -> int:
         """Return the buffer for this channel."""
-        return self._buffer
+        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        return 0
 
     @property
     def name(self) -> str:

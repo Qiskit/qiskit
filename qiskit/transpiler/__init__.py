@@ -14,7 +14,8 @@
 
 """Utils for transpiler."""
 
-from .passmanager import PassManager, FlowController
+from .runningpassmanager import FlowController
+from .passmanager import PassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
