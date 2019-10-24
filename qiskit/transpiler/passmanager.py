@@ -158,7 +158,7 @@ class PassManager:
                 max_iteration = self.max_iteration
                 call_back = self.callback
                 new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
-                new_passmanager._pass_sets = self._pass_sets
+                new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
             except TranspilerError:
