@@ -15,7 +15,6 @@
 """Node for an OPENQASM prefix expression."""
 
 import warnings
-import sympy
 
 from .node import Node
 
@@ -40,24 +39,35 @@ class Prefix(Node):
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
-
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
                           DeprecationWarning)
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
+        try:
+            from pylatexenc.latexencode import utf8tolatex
+        except ImportError:
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.")
+        return utf8tolatex(self.sym())
 
-        return sympy.latex(self.sym())
-
-    def real(self):
+    def real(self, nested_scope=None):
         """Return the correspond floating point number."""
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
         operation = self.children[0].operation()
         expr = self.children[1].real()
         return operation(expr)
 
-    def sym(self):
+    def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
+        if nested_scope is not None:
+            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
+                          DeprecationWarning)
         operation = self.children[0].operation()
         expr = self.children[1].sym()
         return operation(expr)

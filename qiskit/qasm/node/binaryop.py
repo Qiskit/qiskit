@@ -15,7 +15,6 @@
 """Node for an OPENQASM binary operation expression."""
 
 import warnings
-import sympy
 
 from .node import Node
 
@@ -47,7 +46,6 @@ class BinaryOp(Node):
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
-
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
                           DeprecationWarning)
@@ -55,11 +53,17 @@ class BinaryOp(Node):
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
 
-        return sympy.latex(self.sym())
+        try:
+            from pylatexenc.latexencode import utf8tolatex
+        except ImportError:
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.")
+        return utf8tolatex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-
         if nested_scope is not None:
             warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
                           DeprecationWarning)
