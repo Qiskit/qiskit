@@ -203,8 +203,8 @@ def circuit_drawer(circuit,
 
             You must specify all the necessary values if using this. There is
             no provision for passing an incomplete dict in.
-        displaycolor (dict): The color codes to use for each circuit element.
-            The default values are::
+        displaycolor (dict):
+            The color codes to use for each circuit element. The default values are::
 
                 {
                     'id': '#F0E442',
@@ -246,6 +246,18 @@ def circuit_drawer(circuit,
         creglinestyle (str): The style of line to use for classical registers.
             Choices are `'solid'`, `'doublet'`, or any valid matplotlib
             `linestyle` kwarg value. Defaults to `doublet`
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.tools.visualization import circuit_drawer
+            q = QuantumRegister(1)
+            c = ClassicalRegister(1)
+            qc = QuantumCircuit(q, c)
+            qc.h(q)
+            qc.measure(q, c)
+            circuit_drawer(qc)
     """
     image = None
     config = user_config.get_config()
