@@ -76,7 +76,6 @@ class RunningPassManager():
         # as it runs through its scheduled passes. Analysis passes may update the property_set,
         # but transformation passes have read-only access (via the fenced_property_set).
         self.property_set = PropertySet()
-        self.fenced_property_set = FencedPropertySet(self.property_set)
 
         # passes already run that have not been invalidated
         self.valid_passes = set()
@@ -116,7 +115,6 @@ class RunningPassManager():
         for name, param in flow_controller.items():
             if callable(param):
                 flow_controller[name] = param
-                flow_controller[name].fenced_property_set = self.fenced_property_set
             else:
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
         return flow_controller
@@ -135,7 +133,7 @@ class RunningPassManager():
         del circuit
 
         for passset in self.working_list:
-            dag = passset.do_passes(self, dag)
+            dag = passset.do_passes(self, dag, FencedPropertySet(self.property_set))
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
@@ -170,7 +168,7 @@ class RunningPassManager():
 
     def _run_this_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
-            pass_.property_set = self.fenced_property_set
+            pass_.property_set = FencedPropertySet(self.property_set)
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
@@ -237,14 +235,16 @@ class FlowController():
         for pass_ in self.passes:
             yield pass_
 
-    def do_passes(self, pass_manager, dag):
+    def do_passes(self, pass_manager, dag, property_set):
         """ In the context of pass_manager, runs the pass on the dag
         Args:
             pass_manager (PassManager): A PassManager object.
             dag (DAGCircuit): The dag on which the pass is ran.
+            property_set (PropertySet): It will be use for parametrizing the flow controller
         Returns:
             DAGCircuit: The dag after the pass.
         """
+        self.property_set = property_set
         for pass_ in self:
             dag = pass_manager._do_pass(pass_, dag)
         return dag
@@ -322,7 +322,7 @@ class FlowControllerLinear(FlowController):
         self.passes = self._passes = passes
         self.options = options
 
-    def do_passes(self, pass_manager, dag):
+    def do_passes(self, pass_manager, dag, property_set):
         """ In the context of pass_manager, runs the pass on the dag
         Args:
             pass_manager (PassManager): A PassManager object.
@@ -330,6 +330,7 @@ class FlowControllerLinear(FlowController):
         Returns:
             DAGCircuit: The dag after the pass.
         """
+        self.property_set = property_set
         for pass_ in self:
             dag = pass_manager._do_pass(pass_, dag)
         return dag
@@ -341,6 +342,7 @@ class DoWhileController(FlowController):
     def __init__(self, passes, options, do_while=None, **flow_controller):
         self.do_while = do_while
         self.max_iteration = options['max_iteration']
+        self.property_set = None
         super().__init__(passes, options, **flow_controller)
 
     def __iter__(self):
@@ -348,9 +350,9 @@ class DoWhileController(FlowController):
             for pass_ in self.passes:
                 yield pass_
 
-            if not self.do_while(self.do_while.fenced_property_set):
+            if not self.do_while(self.property_set):
                 return
-
+        print([pass_ for pass_ in self.passes])
         raise TranspilerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
 
 
@@ -362,7 +364,7 @@ class ConditionalController(FlowController):
         super().__init__(passes, options, **flow_controller)
 
     def __iter__(self):
-        if self.condition(self.condition.fenced_property_set):
+        if self.condition(self.property_set):
             for pass_ in self.passes:
                 yield pass_
 
@@ -374,7 +376,7 @@ class RollbackIfController(FlowController):
         self.rollback_if = rollback_if
         super().__init__(passes, options)
 
-    def do_passes(self, pass_manager, dag):
+    def do_passes(self, pass_manager, dag, property_set):
         original_property_set = deepcopy(pass_manager.property_set)
         dag_copy = deepcopy(dag)
         for pass_ in self:
