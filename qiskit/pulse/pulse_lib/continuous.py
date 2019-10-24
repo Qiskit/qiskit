@@ -113,7 +113,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     amp: Pulse amplitude at `2\times center+1`.
     center: Center (mean) of pulse.
     sigma: Width (standard deviation) of pulse.
-    zeroed_width: Subtract baseline to gaussian pulses to make sure
+    zeroed_width: Subtract baseline from gaussian pulses to make sure
              $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
              large discontinuities at the start of a gaussian pulse. If unsupplied,
              defaults to $2*(center+1)$ such that the samples are zero at $\Omega_g(-1)$.
@@ -124,7 +124,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     if zeroed_width is None:
         zeroed_width = 2*(center+1)
 
-    zero_offset = gaussian(np.array([-zeroed_width/2]), amp, center, sigma)
+    zero_offset = gaussian(np.array([zeroed_width]), amp, center, sigma)
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
@@ -258,7 +258,7 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
     funclist = [functools.partial(gaussian, amp=amp, center=square_start, sigma=sigma,
                                   zeroed_width=gauss_zeroed_width, rescale_amp=True),
                 functools.partial(gaussian, amp=amp, center=square_stop, sigma=sigma,
-                                  zeroed_width=gauss_zeroed_width, rescale_amp=True),
+                                  zeroed_width=width+gauss_zeroed_width, rescale_amp=True),
                 functools.partial(constant, amp=amp)]
     condlist = [times <= square_start, times >= square_stop]
     return np.piecewise(times.astype(np.complex_), condlist, funclist)
