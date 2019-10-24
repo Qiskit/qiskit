@@ -73,9 +73,26 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
             sort (string): Could be 'asc' or 'desc'
             legend (list): A list of strings to use for labels of the data.
                 The number of entries must match the length of data.
+
         Raises:
             VisualizationError: When legend is provided and the length doesn't
                 match the input data.
+
+        Example:
+            .. code-block::
+
+                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit.visualization import iplot_histogram
+                %matplotlib inline
+
+                qc = QuantumCircuit(2, 2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure([0, 1], [0, 1])
+
+                backend = BasicAer.get_backend('qasm_simulator')
+                job = execute(qc, backend)
+                iplot_histogram(job.result().get_counts())
     """
 
     # HTML
