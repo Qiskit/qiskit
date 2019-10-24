@@ -20,7 +20,7 @@ from qiskit.exceptions import QiskitError
 
 
 class TranspilerAccessError(QiskitError):
-    """Exception of access error in the transpiler passes."""
+    """DEPRECATED: Exception of access error in the transpiler passes."""
 
 
 class TranspilerError(TranspilerAccessError):
