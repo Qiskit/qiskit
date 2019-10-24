@@ -292,9 +292,10 @@ run the example with the following command.
     If you do not intend to install any other components qiskit-terra will
     emit a ``RuntimeWarning`` warning that both qiskit-aer and
     qiskit-ibmq-provider are not installed. This is done because the more
-    common case is to have users who intend to use the additional elements
-    but not realize their not installed, or have the installation fail. If
-    you wish to suppress these warnings this is easy to do by adding::
+    common case is to have users that intend to use the additional elements
+    but do not realize they are not installed, or that the installation
+    of either Aer or the IBMQ provider failed for some reason. If you wish
+    to suppress these warnings this is easy to do by adding::
 
         import warnings
         warnings.filterwarnings('ignore', category=RuntimeWarning,
