@@ -347,12 +347,12 @@ class DoWhileController(FlowController):
 
     def __iter__(self):
         for _ in range(self.max_iteration):
+            self.passes.property_set = self.property_set
             for pass_ in self.passes:
                 yield pass_
 
             if not self.do_while(self.property_set):
                 return
-        print([pass_ for pass_ in self.passes])
         raise TranspilerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
 
 
@@ -365,6 +365,7 @@ class ConditionalController(FlowController):
 
     def __iter__(self):
         if self.condition(self.property_set):
+            self.passes.property_set = self.property_set
             for pass_ in self.passes:
                 yield pass_
 
