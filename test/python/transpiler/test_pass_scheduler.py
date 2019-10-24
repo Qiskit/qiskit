@@ -885,7 +885,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
             self.passmanager = self.passmanager[99]
 
 
-class TestPassManagerconcatenation(SchedulerTestCase):
+class TestPassManagerConcatenation(SchedulerTestCase):
     """test PassManager concatenation by + operator."""
 
     def setUp(self):
