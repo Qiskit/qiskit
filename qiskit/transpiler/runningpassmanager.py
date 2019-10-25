@@ -230,6 +230,7 @@ class FlowController():
         self._passes = passes
         self.passes = FlowController.controller_factory(passes, options, **flow_controller)
         self.options = options
+        self.property_set = None
 
     def __iter__(self):
         for pass_ in self.passes:
@@ -321,12 +322,14 @@ class FlowControllerLinear(FlowController):
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
         self.passes = self._passes = passes
         self.options = options
+        self.property_set = None
 
     def do_passes(self, pass_manager, dag, property_set):
         """ In the context of pass_manager, runs the pass on the dag
         Args:
             pass_manager (PassManager): A PassManager object.
             dag (DAGCircuit): The dag on which the pass is ran.
+            property_set (PropertySet): It will be use for parametrizing the flow controller
         Returns:
             DAGCircuit: The dag after the pass.
         """
