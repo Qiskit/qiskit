@@ -38,6 +38,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import LayoutScore
 
 
 def level_1_pass_manager(transpile_config):
@@ -68,13 +69,8 @@ def level_1_pass_manager(transpile_config):
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
-    def _choose_layout_condition(property_set):
-        return not property_set['layout']
-
-    _choose_layout = TrivialLayout(coupling_map)
-
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    _layout_check = CheckMap(coupling_map)
+    _layout_check = LayoutScore(coupling_map)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -114,9 +110,10 @@ def level_1_pass_manager(transpile_config):
 
     pm1 = PassManager()
     if coupling_map:
-        pm1.append(_given_layout)
-        pm1.append(_choose_layout, condition=_choose_layout_condition)
-        pm1.append(_layout_check)
+        if initial_layout:
+            pm1.append(_given_layout)
+        else:
+            pm1.append(TrivialLayout(coupling_map))
         pm1.append(_embed)
     pm1.append(_unroll)
     if coupling_map:

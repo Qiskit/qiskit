@@ -108,7 +108,6 @@ class TestPassesInspection(QiskitTestCase):
 
         _ = transpile(qc, backend, optimization_level=level, callback=self.callback)
 
-        self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
         self.assertIn('CheckCXDirection', self.passes)
 
