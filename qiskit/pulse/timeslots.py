@@ -295,7 +295,8 @@ class TimeslotCollection:
                 break
             elif interval.has_overlap(ch_interval):
                 overlap_start, overlap_end = interval.get_overlap(ch_interval)
-                raise PulseError("Overlap in {0} t=[{1}, {2}]".format(timeslot.channel, overlap_start, overlap_end))
+                raise PulseError("Overlap in {0} t=[{1}, {2}]"
+                                 "".format(timeslot.channel, overlap_start, overlap_end))
 
             insert_idx -= 1
 

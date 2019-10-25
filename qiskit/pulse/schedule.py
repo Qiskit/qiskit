@@ -62,7 +62,8 @@ class Schedule(ScheduleComponent):
         try:
             self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
-            raise PulseError('Schedules overlap: {0} for {1}'.format(ts_err.message, schedules)) from ts_err
+            raise PulseError('Schedules overlap: {0} for {1}'
+                             ''.format(ts_err.message, schedules)) from ts_err
 
         self.__children = tuple(_children)
 
