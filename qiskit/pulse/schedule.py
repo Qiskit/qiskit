@@ -62,7 +62,7 @@ class Schedule(ScheduleComponent):
         try:
             self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
-            raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+            raise PulseError('Schedules overlap: {0} for {1}'.format(ts_err.message, schedules)) from ts_err
 
         self.__children = tuple(_children)
 
@@ -397,13 +397,12 @@ class Schedule(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
-        res += '%d, ' % self.start_time
-        instructions = [repr(instr) for instr in self.instructions]
-        res += ', '.join([str(i) for i in instructions[:50]])
-        if len(instructions) > 50:
-            return res + ', ...)'
-        return res + ')'
+        return "Schedule(name={}, t=[{}, {}], n_instructions={})".format(
+            self._name,
+            self.start_time,
+            self.stop_time,
+            len(self.instructions)
+        )
 
 
 class ParameterizedSchedule:
