@@ -576,6 +576,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
+        unitary_gates = []
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
@@ -587,6 +588,12 @@ class QuantumCircuit:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
+            if instruction.name == 'unitary':
+                unitary_gates.append(instruction)
+
+        # this resets them, so if another call to qasm() is made the gate def is added again
+        for gate in unitary_gates:
+            gate._qasm_def_written = False
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
