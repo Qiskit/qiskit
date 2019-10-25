@@ -74,7 +74,7 @@ class Interval:
         """
         return self.start < interval.stop and interval.start < self.stop
 
-    def get_overlap(self, interval: 'Interval') -> Tuple[int, int]:
+    def get_overlap(self, interval: 'Interval') -> Optional[Tuple[int, int]]:
         """Return overlap with `interval`.
 
         Args:
@@ -86,6 +86,7 @@ class Interval:
             start = self.start if self.start > interval.start else interval.start
             stop = interval.stop if self.stop > interval.stop else self.stop
             return start, stop
+        return None
 
     def shift(self, time: int) -> 'Interval':
         """Return a new interval shifted by `time` from self
