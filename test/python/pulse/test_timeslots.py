@@ -43,15 +43,6 @@ class TestInterval(QiskitTestCase):
         self.assertEqual(False, Interval(1, 3).has_overlap(Interval(0, 1)))
         self.assertEqual(False, Interval(1, 3).has_overlap(Interval(3, 4)))
 
-    def test_get_overlap(self):
-        """Test valid overlap calculation without error.
-        """
-        self.assertEqual(None, Interval(1, 3).get_overlap(Interval(1, 1)))
-        self.assertEqual((2, 3), Interval(1, 3).get_overlap(Interval(2, 4)))
-        self.assertEqual((2, 3), Interval(2, 4).get_overlap(Interval(1, 3)))
-        self.assertEqual((2, 3), Interval(1, 4).get_overlap(Interval(2, 3)))
-        self.assertEqual((2, 3), Interval(2, 3).get_overlap(Interval(1, 4)))
-
     def test_shift_interval(self):
         """Test valid interval creation without error.
         """

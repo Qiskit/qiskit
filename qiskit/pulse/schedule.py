@@ -398,12 +398,11 @@ class Schedule(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        return "Schedule(name={}, t=[{}, {}], n_instructions={})".format(
-            self._name,
-            self.start_time,
-            self.stop_time,
-            len(self.instructions)
-        )
+        name = "name={}, ".format(self._name) if self._name else ""
+        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
+        if len(self.instructions) > 50:
+            instructions += ", ..."
+        return "Schedule({0}{1} {2})".format(name, self.start_time, instructions)
 
 
 class ParameterizedSchedule:

@@ -74,20 +74,6 @@ class Interval:
         """
         return self.start < interval.stop and interval.start < self.stop
 
-    def get_overlap(self, interval: 'Interval') -> Optional[Tuple[int, int]]:
-        """Return overlap with `interval`.
-
-        Args:
-            interval: interval to calculate overlap on
-        Returns:
-            Tuple[int, int]: intervals overlap
-        """
-        if self.has_overlap(interval):
-            start = self.start if self.start > interval.start else interval.start
-            stop = interval.stop if self.stop > interval.stop else self.stop
-            return start, stop
-        return None
-
     def shift(self, time: int) -> 'Interval':
         """Return a new interval shifted by `time` from self
 
@@ -295,8 +281,11 @@ class TimeslotCollection:
             if interval.start >= ch_interval.stop:
                 break
             elif interval.has_overlap(ch_interval):
-                overlap_start, overlap_end = interval.get_overlap(ch_interval)
-                raise PulseError("Overlap in {0} t=[{1}, {2}]"
+                overlap_start = interval.start if interval.start > ch_interval.start \
+                    else ch_interval.start
+                overlap_end = ch_interval.stop if interval.stop > ch_interval.stop \
+                    else interval.stop
+                raise PulseError("Overlap on channel {0} over time range [{1}, {2}]"
                                  "".format(timeslot.channel, overlap_start, overlap_end))
 
             insert_idx -= 1
