@@ -12,7 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass to evaluate how good the layout selection was. No CX direction is considered.
+"""A pass to evaluate how good the layout selection was.
+No CX direction is considered.
+Saves in `layout_score` the sum of the distance off for each CX.
+The lower the number, the better the selection.
+Therefore, 0 is a perfect layout selection.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -20,7 +24,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 class LayoutScore(AnalysisPass):
     """
-    Saves in `layout_score` the sum of the .
+    Saves in `layout_score` the sum of the distance off for each CX.
     """
     def __init__(self, coupling_map, initial_layout=None):
         super().__init__()
