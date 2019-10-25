@@ -33,7 +33,7 @@ if HAS_MATPLOTLIB:
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
     backends = list(filter(lambda x:
-                           not (x.configuration().simulator or x.configuration().n_qubits == 2),
+                           not (x.configuration().simulator or x.configuration().n_qubits <= 5),
                            FakeProvider().backends()))
 
     @data(*backends)
