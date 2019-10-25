@@ -28,7 +28,7 @@ from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestParameters(QiskitTestCase):
@@ -158,10 +158,10 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         qc.u1(0.1, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1})
 
         qc.u1(x, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1, y: 2})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
@@ -241,7 +241,7 @@ class TestParameters(QiskitTestCase):
 
         qc.u1(theta1, 0)
 
-        self.assertRaises(QiskitError, qc.u1, theta2, 0)
+        self.assertRaises(CircuitError, qc.u1, theta2, 0)
 
     def test_bind_ryrz_vector(self):
         """Test binding a list of floats to a ParamterVector"""
@@ -402,6 +402,24 @@ class TestParameters(QiskitTestCase):
 
         for i in [0, 1, 2, 3]:
             transpile(qc, FakeOurense(), optimization_level=i)
+
+    def test_repeated_gates_to_dag_and_back(self):
+        """Verify circuits with repeated parameterized gates can be converted
+        to DAG and back, maintaining consistency of circuit._parameter_table."""
+
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(theta, qr[0])
+
+        double_qc = qc + qc
+        test_qc = dag_to_circuit(circuit_to_dag(double_qc))
+
+        bound_test_qc = test_qc.bind_parameters({theta: 1})
+        self.assertEqual(len(bound_test_qc.parameters), 0)
 
 
 def _construct_circuit(param, qr):
@@ -580,13 +598,13 @@ class TestParameterExpressions(QiskitTestCase):
         _ = x * x
         _ = x / x
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x + y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x - y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x * y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x / y
 
     def test_to_instruction_with_expresion(self):
