@@ -19,7 +19,7 @@ Fake Burlington device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
+from qiskit.providers.models import (PulseBackendConfiguration,
                                      BackendProperties, PulseDefaults)
 from .fake_backend import FakeBackend
 
