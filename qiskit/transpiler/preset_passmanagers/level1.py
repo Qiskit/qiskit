@@ -66,6 +66,7 @@ def level_1_pass_manager(transpile_config):
     coupling_map = transpile_config.coupling_map
     initial_layout = transpile_config.initial_layout
     seed_transpiler = transpile_config.seed_transpiler
+    backend_properties = transpile_config.backend_properties
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -116,7 +117,7 @@ def level_1_pass_manager(transpile_config):
         else:
             pm1.append(TrivialLayout(coupling_map))
             pm1.append(LayoutScore(coupling_map, property='trivial_score'))
-            pm1.append([DenseLayout(coupling_map),
+            pm1.append([DenseLayout(coupling_map, backend_properties),
                         LayoutScore(coupling_map, property='dense_score')],
                        rollback_if=_didnt_improve)
         pm1.append(_embed)
