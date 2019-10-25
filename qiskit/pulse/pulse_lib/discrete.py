@@ -167,7 +167,8 @@ _sampled_gaussian_pulse = samplers.left(continuous.gaussian)
 def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None) -> SamplePulse:
     r"""Generates unnormalized gaussian `SamplePulse`.
 
-    Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
+    Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent large
+    initial/final discontinuities.
 
     Applies `left` sampling strategy to generate discrete pulse from continuous function.
 
@@ -180,7 +181,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
         name: Name of pulse.
     """
     center = duration/2
-    zeroed_width = duration + 2
+    zeroed_width = duration
     return _sampled_gaussian_pulse(duration, amp, center, sigma,
                                    zeroed_width=zeroed_width, rescale_amp=True, name=name)
 
@@ -250,7 +251,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                     risefall: int, name: Optional[str] = None) -> SamplePulse:
     """Generates gaussian square `SamplePulse`.
 
-    Centered at `duration/2` and zeroed at `t=-1` and `t=duration+1` to prevent
+    Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent
     large initial/final discontinuities.
 
     Applies `left` sampling strategy to generate discrete pulse from continuous function.
@@ -258,14 +259,14 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude.
-        sigma: Width (standard deviation) of gaussian rise/fall portion of the pulse.
+        sigma: Width (standard deviation) of Gaussian rise/fall portion of the pulse.
         risefall: Number of samples over which pulse rise and fall happen. Width of
             square portion of pulse will be `duration-2*risefall`.
         name: Name of pulse.
     """
     center = duration/2
     width = duration-2*risefall
-    zeroed_width = duration + 2
+    zeroed_width = duration
     return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
