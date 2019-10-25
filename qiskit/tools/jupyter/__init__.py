@@ -81,6 +81,7 @@ Qiskit version table
     import qiskit.tools.jupyter
     %qiskit_version_table
 
+
 Qiskit copyright
 ================
 
@@ -88,6 +89,7 @@ Qiskit copyright
 
     import qiskit.tools.jupyter
     %qiskit_copyright
+
 """
 import warnings
 
