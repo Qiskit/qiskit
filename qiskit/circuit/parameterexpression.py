@@ -19,7 +19,6 @@ import numbers
 import operator
 
 import numpy
-import sympy
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -111,7 +110,8 @@ class ParameterExpression():
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
         self._raise_if_parameter_names_conflict(parameter_map.keys())
 
-        new_parameter_symbols = {p: sympy.Symbol(p.name)
+        from sympy import Symbol
+        new_parameter_symbols = {p: Symbol(p.name)
                                  for p in parameter_map.values()}
 
         # Include existing parameters in self not set to be replaced.
