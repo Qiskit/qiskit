@@ -8,57 +8,41 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
-   :show-inheritance:
-
-   {% if '__init__' in methods %}
-     {% set caught_result = methods.remove('__init__') %}
-   {% endif %}
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
    {% block attributes_summary %}
    {% if attributes %}
 
-   .. rubric:: Attributes Summary
+   .. rubric:: Attributes
 
    .. autosummary::
-   {% for item in attributes %}
-      ~{{ name }}.{{ item }}
+      :toctree: ../stubs/
+   {% for item in all_attributes %}
+      {%- if not item.startswith('_') %}
+      {{ name }}.{{ item }}
+      {%- endif -%}
    {%- endfor %}
-
    {% endif %}
    {% endblock %}
 
    {% block methods_summary %}
    {% if methods %}
 
-   .. rubric:: Methods Summary
+   .. rubric:: Methods
 
    .. autosummary::
-   {% for item in methods %}
-      ~{{ name }}.{{ item }}
+      :toctree: ../stubs/
+   {% for item in all_methods %}
+      {%- if not item.startswith('_') or item in ['__call__', '__mul__', '__getitem__', '__len__'] %}
+      {{ name }}.{{ item }}
+      {%- endif -%}
    {%- endfor %}
-
-   {% endif %}
-   {% endblock %}
-
-   {% block attributes_documentation %}
-   {% if attributes %}
-
-   .. rubric:: Attributes Documentation
-
-   {% for item in attributes %}
-   .. autoattribute:: {{ item }}
-   {%- endfor %}
-
-   {% endif %}
-   {% endblock %}
-
-   {% block methods_documentation %}
-   {% if methods %}
-
-   .. rubric:: Methods Documentation
-
-   {% for item in methods %}
-   .. automethod:: {{ item }}
+   {% for item in inherited_members %}
+      {%- if item in ['__call__', '__mul__', '__getitem__', '__len__'] %}
+      {{ name }}.{{ item }}
+      {%- endif -%}
    {%- endfor %}
 
    {% endif %}
