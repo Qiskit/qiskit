@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,12 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tools for QASM.
+"""Exceptions for errors raised while handling Quantum Circuits."""
 
-Use Unrollers in qiskit.unroll to convert a QASM specification to a qiskit circuit.
-"""
+from qiskit.exceptions import QiskitError
 
-from numpy import pi
 
-from .qasm import Qasm
-from .exceptions import QasmError
+class CircuitError(QiskitError):
+    """Base class for errors raised while processing a circuit."""
+
+    pass
