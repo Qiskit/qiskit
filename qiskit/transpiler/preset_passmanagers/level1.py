@@ -38,6 +38,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import LayoutScore
 
 
@@ -69,8 +70,8 @@ def level_1_pass_manager(transpile_config):
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
-    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    _layout_check = LayoutScore(coupling_map)
+    def _didnt_improve(property_set):
+        return property_set['trivial_score'] < property_set['dense_score']
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -114,6 +115,10 @@ def level_1_pass_manager(transpile_config):
             pm1.append(_given_layout)
         else:
             pm1.append(TrivialLayout(coupling_map))
+            pm1.append(LayoutScore(coupling_map, property='trivial_score'))
+            pm1.append([DenseLayout(coupling_map),
+                        LayoutScore(coupling_map, property='dense_score')],
+                       rollback_if=_didnt_improve)
         pm1.append(_embed)
     pm1.append(_unroll)
     if coupling_map:
