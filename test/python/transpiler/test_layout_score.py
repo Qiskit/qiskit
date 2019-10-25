@@ -24,6 +24,8 @@ from qiskit.test import QiskitTestCase
 
 
 class TestLayoutScoreError(QiskitTestCase):
+    """Test error-ish of Layout Score"""
+
     def test_no_layout(self):
         """No Layout. Empty Circuit CouplingMap map: None. Result: None
         """
@@ -37,6 +39,7 @@ class TestLayoutScoreError(QiskitTestCase):
         pass_.run(dag)
 
         self.assertIsNone(pass_.property_set['layout_score'])
+
 
 class TestTrivialLayoutScore(QiskitTestCase):
     """ Trivial layout scenarios"""

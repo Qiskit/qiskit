@@ -19,6 +19,9 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class LayoutScore(AnalysisPass):
+    """
+    Saves in `layout_score` the sum of the .
+    """
     def __init__(self, coupling_map, initial_layout=None):
         super().__init__()
         self.layout = initial_layout
@@ -28,7 +31,6 @@ class LayoutScore(AnalysisPass):
         self.layout = self.layout or self.property_set["layout"]
 
         if self.layout is None:
-            self.property_set['layout_score'] = None
             return
 
         distances = []
