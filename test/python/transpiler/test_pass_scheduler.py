@@ -419,6 +419,26 @@ class TestUseCases(SchedulerTestCase):
                               'run analysis pass PassM_AP_NR_NP',
                               'self.argument1 = 2'])
 
+    def test_rollback_if_const_true(self):
+        """ Dump passes with a rollback_if true"""
+        self.passmanager.append(PassE_AP_NR_NP(3))
+        self.passmanager.append(PassE_AP_NR_NP(2), rollback_if=lambda property_set: True)
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3',
+                                                'run analysis pass PassE_AP_NR_NP',
+                                                'set property as 2'])
+        self.assertEqual(self.passmanager.property_set['property'], 3)
+
+    def test_rollback_if_const_false(self):
+        """ Dump passes with a rollback_if false"""
+        self.passmanager.append(PassE_AP_NR_NP(3))
+        self.passmanager.append(PassE_AP_NR_NP(2), rollback_if=lambda property_set: True)
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3',
+                                                'run analysis pass PassE_AP_NR_NP',
+                                                'set property as 2'])
+        self.assertEqual(self.passmanager.property_set['property'], 2)
+
     def test_rollback_if_true(self):
         """ Dump passes with a rollback_if 2 < 3"""
         self.passmanager.append(PassE_AP_NR_NP(3))
