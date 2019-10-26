@@ -184,6 +184,24 @@ def execute(experiments, backend,
 
     Raises:
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
+
+    Example:
+        Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
+
+            provider = IBMQ.load_account()
+            accountProvider = IBMQ.get_provider(hub='ibm-q')
+            backend = accountProvider.get_backend('ibmq_vigo')
+
+            qc = QuantumCircuit(5, 5)
+            qc.h(0)
+            qc.cx(0, range(1, 5))
+            qc.measure_all()
+
+            job = execute(qc, backend, shots=4321)
     """
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
