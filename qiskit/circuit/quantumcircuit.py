@@ -82,7 +82,7 @@ class QuantumCircuit:
     Examples:
 
         Construct a simple Bell state circuit.
-        
+
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
@@ -94,7 +94,7 @@ class QuantumCircuit:
             qc.draw()
 
         Construct a 5 qubit GHZ circuit.
-        
+
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
@@ -105,7 +105,7 @@ class QuantumCircuit:
             qc.measure_all()
 
         Construct a 4 qubit Berstein-Vazirani circuit using registers.
-        
+
         .. jupyter-execute::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -118,7 +118,7 @@ class QuantumCircuit:
             qc.x(anc[0])
             qc.h(anc[0])
             qc.h(qr[0:3])
-            qc.cx(qr[0:3], anc[0]) 
+            qc.cx(qr[0:3], anc[0])
             qc.h(qr[0:3])
             qc.barrier(qr)
             qc.measure(qr, cr)
