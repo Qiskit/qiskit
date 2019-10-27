@@ -14,6 +14,7 @@ API Reference
    dagcircuit
    execute
    extensions/extensions
+   providers_basicaer
    providers/providers
    pulse/pulse
    qasm
