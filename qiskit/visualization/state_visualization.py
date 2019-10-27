@@ -385,10 +385,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
         ax1 = None
         ax2 = ax_imag
 
-    x = [0, max(xpos)+0.5, max(xpos)+0.5, 0]
-    y = [0, 0, max(ypos)+0.5, max(ypos)+0.5]
-    z = [0, 0, 0, 0]
-    verts = [list(zip(x, y, z))]
     max_dzr = max(dzr)
     min_dzr = min(dzr)
     min_dzi = np.min(dzi)
@@ -405,6 +401,12 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                            dx[idx], dy[idx], dzr[idx],
                            alpha=alpha, zorder=zorder)
             b1.set_facecolors(fc1[6*idx:6*idx+6])
+
+        xlim, ylim = ax1.get_xlim(), ax1.get_ylim()
+        x = [xlim[0], xlim[1], xlim[1], xlim[0]]
+        y = [ylim[0], ylim[0], ylim[1], ylim[1]]
+        z = [0, 0, 0, 0]
+        verts = [list(zip(x, y, z))]
 
         pc1 = Poly3DCollection(verts, alpha=0.15, facecolor='k',
                                linewidths=1, zorder=1)
@@ -438,6 +440,12 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                            dx[idx], dy[idx], dzi[idx],
                            alpha=alpha, zorder=zorder)
             b2.set_facecolors(fc2[6*idx:6*idx+6])
+
+        xlim, ylim = ax2.get_xlim(), ax2.get_ylim()
+        x = [xlim[0], xlim[1], xlim[1], xlim[0]]
+        y = [ylim[0], ylim[0], ylim[1], ylim[1]]
+        z = [0, 0, 0, 0]
+        verts = [list(zip(x, y, z))]
 
         pc2 = Poly3DCollection(verts, alpha=0.2, facecolor='k',
                                linewidths=1, zorder=1)
