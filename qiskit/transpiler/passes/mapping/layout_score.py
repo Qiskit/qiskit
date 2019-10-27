@@ -14,7 +14,7 @@
 
 """A pass to evaluate how good the layout selection was.
 No CX direction is considered.
-Saves in `layout_score` the sum of the distance off for each CX.
+Saves in property_set[`layout_score`] the sum of distances for each circuit CX.
 The lower the number, the better the selection.
 Therefore, 0 is a perfect layout selection.
 """
