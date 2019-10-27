@@ -18,3 +18,5 @@ rules:
     OWNER: 1
 - requiredLabels:
   - automerge
+- blockingTitleRegex:
+  - '\bWIP\b'
