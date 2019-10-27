@@ -18,3 +18,4 @@
 
 from .assemble import assemble
 from .transpile import transpile
+from .schedule import schedule
