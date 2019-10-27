@@ -43,64 +43,52 @@ class TestFields(QiskitTestCase):
         """Test InstructionParameter with types equivalent to float."""
         dog = Dog(barking=0.1)
         dog_numpy = Dog(barking=numpy.dtype('float').type(0.1))
-        dog_sympy = Dog(barking=sympy.Float(0.1))
 
         self.assertEqual(dog_numpy.barking,
                          numpy.dtype('float').type(0.1))
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
 
     def test_parameter_field_complex(self):
         """Test InstructionParameter with types equivalent to complex."""
         dog = Dog(barking=(0.1+0.2j))
         dog_numpy = Dog(barking=numpy.dtype('complex').type(0.1+0.2j))
-        dog_sympy = Dog(barking=sympy.sympify(0.1+0.2j))
 
         self.assertEqual(dog_numpy.barking,
                          numpy.dtype('complex').type(0.1+0.2j))
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
         self.assertEqual(dog.to_dict()['barking'], [0.1, 0.2])
 
     def test_parameter_field_int(self):
         """Test InstructionParameter with types equivalent to int."""
         dog = Dog(barking=1)
         dog_numpy = Dog(barking=numpy.dtype('int').type(1))
-        dog_sympy = Dog(barking=sympy.Integer(1))
 
         self.assertEqual(dog_numpy.barking,
                          numpy.dtype('int').type(1))
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
 
     def test_parameter_field_str(self):
         """Test InstructionParameter with types equivalent to str."""
         dog = Dog(barking='woof')
-        dog_sympy = Dog(barking=sympy.Symbol('woof'))
 
-        self.assertEqual(dog_sympy.barking, sympy.Symbol('woof'))
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
+        self.assertEqual(dog.barking, 'woof')
+        self.assertEqual(dog.to_dict(), {'barking': 'woof'})
 
     def test_parameter_field_container(self):
         """Test InstructionParameter with container types."""
         dog = Dog(barking=[0.1, 2.3])
         dog_numpy = Dog(barking=numpy.array([0.1, 2.3]))
-        dog_sympy = Dog(barking=[sympy.Float(0.1), sympy.Float(2.3)])
         dog_complex = Dog(barking=complex(0.1, 2.3))
 
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
         self.assertEqual(dog.to_dict(), dog_complex.to_dict())
 
     def test_parameter_field_container_nested(self):
         """Test InstructionParameter with nested container types."""
         dog = Dog(barking=[[1, 2]])
         dog_numpy = Dog(barking=numpy.array([[1, 2]]))
-        dog_sympy = Dog(barking=[[sympy.Integer(1),
-                                  sympy.Integer(2)]])
 
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
-        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
 
     def test_parameter_field_from_dict(self):
         """Test InstructionParameter from_dict."""

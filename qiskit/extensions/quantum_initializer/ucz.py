@@ -43,27 +43,28 @@ class UCZ(UCRot):
 
 
 def ucz(self, angle_list, q_controls, q_target):
-    """
-    Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
+    """Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
+
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
-        Args:
-            angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
-            q_controls (QuantumRegister|list[Qubit]): list of k control qubits
-                (or empty list if no controls). The control qubits are ordered according to their
-                significance in increasing order: For example if q_controls=[q[1],q[2]]
-                (with q = QuantumRegister(2)), the rotation Rz(a_0)is performed if q[1] and q[2]
-                are in the state zero, the rotation  Rz(a_1) is performed if q[1] is in
-                the state one and q[2] is in the state zero, and so on
-            q_target (QuantumRegister|Qubit): target qubit, where we act on with
-                the single-qubit rotation gates
+    Args:
+        angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
+        q_controls (QuantumRegister|list[Qubit]): list of k control qubits
+            (or empty list if no controls). The control qubits are ordered according to their
+            significance in increasing order: For example if q_controls=[q[1],q[2]]
+            (with q = QuantumRegister(2)), the rotation Rz(a_0)is performed if q[1] and q[2]
+            are in the state zero, the rotation  Rz(a_1) is performed if q[1] is in
+            the state one and q[2] is in the state zero, and so on
+        q_target (QuantumRegister|Qubit): target qubit, where we act on with
+            the single-qubit rotation gates
 
-        Returns:
-            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
+    Returns:
+        QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
 
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
+    Raises:
+        QiskitError: if the list number of control qubits does not correspond to
+            the provided number of single-qubit unitaries; if an input is of
+            the wrong type
     """
 
     if isinstance(q_controls, QuantumRegister):

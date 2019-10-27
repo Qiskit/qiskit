@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The transpiler default passmanager for optimization level 2 now uses the
+    ``DenseLayout`` layout selection mechanism by default instead of
+    ``NoiseAdaptiveLayout``. The ``Denselayout`` pass has also been modified
+    to be made noise-aware.
