@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 controlled-NOT gate.
 """
@@ -43,9 +41,10 @@ class CnotGate(Gate):
                             [0, 1, 0, 0]], dtype=complex)
 
 
-def cx(self, ctl, tgt):
+def cx(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CX from ctl to tgt."""
     return self.append(CnotGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cx = cx
+QuantumCircuit.cnot = cx
