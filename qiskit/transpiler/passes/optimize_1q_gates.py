@@ -241,12 +241,9 @@ def _split_runs_on_parameters(runs):
     runs excluding the parameterized gates.
     """
 
-    def _is_dagnode_parameterized(node):
-        return any(isinstance(param, ParameterExpression) for param in node.op.params)
-
     out = []
     for run in runs:
-        groups = groupby(run, _is_dagnode_parameterized)
+        groups = groupby(run, lambda x: x.op.is_parameterized())
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:

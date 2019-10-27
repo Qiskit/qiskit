@@ -63,7 +63,7 @@ class Unroller(TransformationPass):
             try:
                 rule = node.op.definition
             except TypeError as err:
-                if any(isinstance(p, ParameterExpression) for p in node.op.params):
+                if node.op.is_parameterized():
                     raise QiskitError('Unrolling gates parameterized by expressions '
                                       'is currently unsupported.')
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
