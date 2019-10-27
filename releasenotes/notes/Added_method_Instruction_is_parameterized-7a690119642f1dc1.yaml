@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added method Instruction.is_parameterized() reducing repeated code.
