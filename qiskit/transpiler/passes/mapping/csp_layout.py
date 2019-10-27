@@ -18,11 +18,10 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
-from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
-
+from qiskit.transpiler import TranspilerError
 
 class CSPLayout(AnalysisPass):
     """
@@ -45,6 +44,11 @@ class CSPLayout(AnalysisPass):
         self.seed = seed
 
     def run(self, dag):
+        try:
+            from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
+        except ImportError:
+            raise TranspilerError('CSPLayout requires python-constraint to run. '
+                                  'Run pip install python-constraint')
         qubits = dag.qubits()
         cxs = set()
 
