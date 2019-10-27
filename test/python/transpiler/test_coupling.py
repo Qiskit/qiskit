@@ -42,6 +42,7 @@ class CouplingTest(QiskitTestCase):
         self.assertTrue(coupling.is_connected())
         physical_qubits = coupling.physical_qubits
         result = coupling.distance(physical_qubits[0], physical_qubits[1])
+        self.assertIsInstance(result, int)
         self.assertEqual(1, result)
 
     def test_add_physical_qubits(self):
