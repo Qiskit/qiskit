@@ -139,7 +139,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration)
         gaussian_ref = continuous.gaussian(times, amp, center, sigma,
-                                           zeroed_width=2*(center+1), rescale_amp=True)
+                                           zeroed_width=2*center, rescale_amp=True)
         gaussian_pulse = pulse_lib.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_pulse.samples, gaussian_ref)

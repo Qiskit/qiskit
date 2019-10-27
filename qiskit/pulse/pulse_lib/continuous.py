@@ -20,6 +20,7 @@ import functools
 from typing import Union, Tuple, Optional
 
 import numpy as np
+from qiskit.pulse import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:
@@ -116,9 +117,8 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     zeroed_width: Subtract baseline from gaussian pulses to make sure
             $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
             large discontinuities at the start of a gaussian pulse. If unsupplied,
-            defaults to $2*center$ such that the samples are zero at $\Omega_g(0)$.
-    rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
-            be rescaled so that $\Omega_g(center)-\Omega_g(center\pm zeroed_width/2)=amp$.
+            defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+    rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
@@ -246,13 +246,18 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, square_width
         sigma: Standard deviation of Gaussian rise/fall portion of the pulse.
         zeroed_width: Subtract baseline of gaussian square pulse
                 to enforce $\OmegaSquare(center \pm zeroed_width/2)=0$.
+
+    Raises:
+        PulseError: if zeroed_width is not compatible with square_width.
     """
     square_start = center-square_width/2
     square_stop = center+square_width/2
     if zeroed_width:
-        gaussian_zeroed_width = max(zeroed_width-square_width, 0)
+        if zeroed_width < square_width:
+            raise PulseError("zeroed_width cannot be smaller than square_width.")
+        gaussian_zeroed_width = zeroed_width-square_width
     else:
-        gaussian_zeroed_width = 0
+        gaussian_zeroed_width = None
 
     funclist = [functools.partial(gaussian, amp=amp, center=square_start, sigma=sigma,
                                   zeroed_width=gaussian_zeroed_width, rescale_amp=True),

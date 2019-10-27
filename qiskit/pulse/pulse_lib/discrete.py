@@ -265,9 +265,9 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
         name: Name of pulse.
     """
     center = duration/2
-    width = duration-2*risefall
+    square_width = duration-2*risefall
     zeroed_width = duration
-    return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
+    return _sampled_gaussian_square_pulse(duration, amp, center, square_width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
 
