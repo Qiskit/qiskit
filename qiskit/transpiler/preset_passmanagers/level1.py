@@ -116,9 +116,9 @@ def level_1_pass_manager(transpile_config):
             pm1.append(_given_layout)
         else:
             pm1.append(TrivialLayout(coupling_map))
-            pm1.append(LayoutScore(coupling_map, property='trivial_score'))
+            pm1.append(LayoutScore(coupling_map, property_='trivial_score'))
             pm1.append([DenseLayout(coupling_map, backend_properties),
-                        LayoutScore(coupling_map, property='dense_score')],
+                        LayoutScore(coupling_map, property_='dense_score')],
                        rollback_if=_didnt_improve)
         pm1.append(_embed)
     pm1.append(_unroll)

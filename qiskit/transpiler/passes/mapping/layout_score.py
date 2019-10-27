@@ -27,11 +27,11 @@ class LayoutScore(AnalysisPass):
     Saves in `layout_score` (or `property` param) the
     sum of the distance off for each CX.
     """
-    def __init__(self, coupling_map, initial_layout=None, property=None):
+    def __init__(self, coupling_map, initial_layout=None, property_=None):
         super().__init__()
         self.layout = initial_layout
         self.coupling_map = coupling_map
-        self.property = property
+        self.property = property_
 
     def run(self, dag):
         self.layout = self.layout or self.property_set["layout"]
