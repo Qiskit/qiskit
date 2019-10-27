@@ -13,10 +13,13 @@
 # that they have been altered from the originals.
 
 """
-Helper module for simplified Qiskit usage.
+=============================================
+Executing Experiments (:mod:`qiskit.execute`)
+=============================================
 
-In general we recommend using the SDK modules directly. However, to get something
-running quickly we have provided this wrapper module.
+.. currentmodule:: qiskit.execute
+
+.. autofunction:: execute
 """
 from qiskit.compiler import transpile, assemble
 
@@ -31,7 +34,8 @@ def execute(experiments, backend,
             schedule_los=None, meas_level=2, meas_return='avg',
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
-    """Execute a list of circuits or pulse schedules on a backend.
+    """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
+    :class:`qiskit.pulse.Schedule` on a backend.
 
     The execution is asynchronous, and a handle to a job instance is returned.
 
@@ -104,10 +108,10 @@ def execute(experiments, backend,
             How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
-                0: no optimization
-                1: light optimization
-                2: heavy optimization
-                3: even heavier optimization
+                0: No optimization
+                1: Light optimization
+                2: Heavy optimization
+                3: Highest optimization
             If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):

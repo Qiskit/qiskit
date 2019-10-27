@@ -1,9 +1,6 @@
 .. _qiskit-execute:
 
-**************
-qiskit.execute
-**************
-
-.. currentmodule:: qiskit.execute
-
-.. autofunction:: execute
+.. automodule:: qiskit.execute
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:

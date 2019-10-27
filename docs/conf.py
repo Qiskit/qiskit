@@ -67,6 +67,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
     'jupyter_sphinx.execute',
+    'sphinx_autodoc_typehints',
     'reno.sphinxext',
 ]
 html_static_path = ['_static']
@@ -148,4 +149,3 @@ html_theme_options = {
     'style_external_links': True,
     'style_nav_header_background': '#212121',
 }
-
