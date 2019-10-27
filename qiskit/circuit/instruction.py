@@ -204,6 +204,10 @@ class Instruction:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
 
+    def is_parameterized(self):
+        """Return True .IFF. instruction is parameterized else False"""
+        return any(isinstance(param, ParameterExpression) for param in self.params)
+
     @property
     def definition(self):
         """Return definition in terms of other basic gates."""
