@@ -12,7 +12,48 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Circuits."""
+"""
+========================================
+Quantum Circuits (:mod:`qiskit.circuit`)
+========================================
+
+.. currentmodule:: qiskit.circuit
+
+Quantum Circuit Construction
+============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumCircuit
+   QuantumRegister
+   Qubit
+   ClassicalRegister
+   Clbit
+
+Gates and Instructions
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Gate
+   Measure
+   Reset
+   Instruction
+   InstructionSet
+
+Parametric Quantum Circuits
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+    Parameter
+    ParameterVector
+    ParameterExpression
+
+"""
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit
