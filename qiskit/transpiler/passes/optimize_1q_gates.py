@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, ParameterExpression
+from qiskit.circuit import QuantumRegister
 
 _CHOP_THRESHOLD = 1e-15
 

@@ -17,7 +17,6 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ParameterExpression
 
 
 class Unroller(TransformationPass):

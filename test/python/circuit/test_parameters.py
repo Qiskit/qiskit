@@ -70,8 +70,8 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('θ')
         rxg = RXGate(theta)
         self.assertTrue(rxg.is_parameterized())
-        h = HGate()
-        self.assertFalse(h.is_parameterized())
+        h_gate = HGate()
+        self.assertFalse(h_gate.is_parameterized())
 
     def test_fix_variable(self):
         """Test setting a variable to a constant value"""
