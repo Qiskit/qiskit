@@ -19,6 +19,7 @@ from operator import add, sub, mul, truediv
 
 import numpy
 
+import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
@@ -26,7 +27,7 @@ from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.tools import parallel_map
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestParameters(QiskitTestCase):
@@ -156,10 +157,10 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         qc.u1(0.1, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1})
 
         qc.u1(x, qr[0])
-        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
+        self.assertRaises(CircuitError, qc.bind_parameters, {x: 1, y: 2})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
@@ -239,7 +240,7 @@ class TestParameters(QiskitTestCase):
 
         qc.u1(theta1, 0)
 
-        self.assertRaises(QiskitError, qc.u1, theta2, 0)
+        self.assertRaises(CircuitError, qc.u1, theta2, 0)
 
     def test_bind_ryrz_vector(self):
         """Test binding a list of floats to a ParamterVector"""
@@ -383,6 +384,24 @@ class TestParameters(QiskitTestCase):
 
         self.assertTrue(len(job.result().results), 2)
 
+    def test_repeated_gates_to_dag_and_back(self):
+        """Verify circuits with repeated parameterized gates can be converted
+        to DAG and back, maintaining consistency of circuit._parameter_table."""
+
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(theta, qr[0])
+
+        double_qc = qc + qc
+        test_qc = dag_to_circuit(circuit_to_dag(double_qc))
+
+        bound_test_qc = test_qc.bind_parameters({theta: 1})
+        self.assertEqual(len(bound_test_qc.parameters), 0)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -522,6 +541,32 @@ class TestParameterExpressions(QiskitTestCase):
 
         self.assertEqual(float(bound_expr2), 5)
 
+    def test_negated_expression(self):
+        """Verify ParameterExpressions can be negated."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+
+        expr1 = -x + y
+        expr2 = -expr1 * (-z)
+        bound_expr2 = expr2.bind({x: 1, y: 2, z: 3})
+
+        self.assertEqual(float(bound_expr2), 3)
+
+    def test_standard_cu3(self):
+        """This tests parameter negation in standard extension gate cu3."""
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        qc = qiskit.QuantumCircuit(2)
+        qc.cu3(x, y, z, 0, 1)
+        try:
+            qc.decompose()
+        except TypeError:
+            self.fail('failed to decompose cu3 gate with negated parameter '
+                      'expression')
+
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
 
@@ -534,13 +579,13 @@ class TestParameterExpressions(QiskitTestCase):
         _ = x * x
         _ = x / x
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x + y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x - y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x * y
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             _ = x / y
 
     def test_to_instruction_with_expresion(self):

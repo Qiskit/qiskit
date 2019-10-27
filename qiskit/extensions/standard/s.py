@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 S=diag(1,i) Clifford phase gate or its inverse.
 """
@@ -39,7 +37,7 @@ class SGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(pi/2), [q[0]], [])
+            (U1Gate(pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -69,7 +67,7 @@ class SdgGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(-pi/2), [q[0]], [])
+            (U1Gate(-pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -85,7 +83,7 @@ class SdgGate(Gate):
                             [0, -1j]], dtype=complex)
 
 
-def s(self, q):
+def s(self, q):  # pylint: disable=invalid-name
     """Apply S to q."""
     return self.append(SGate(), [q], [])
 
@@ -97,3 +95,5 @@ def sdg(self, q):
 
 QuantumCircuit.s = s
 QuantumCircuit.sdg = sdg
+QuantumCircuit.p = s
+QuantumCircuit.pdg = sdg
