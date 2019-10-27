@@ -13,7 +13,9 @@
 # that they have been altered from the originals.
 
 """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
-Constraint Satisfaction Problem.
+Constraint Satisfaction Problem. It tries to find a solution that fully
+satisfy the circuit, i.e. no further swap is needed. If no solution is
+found, no ``property_set['layout']`` is set.
 """
 import random
 from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
