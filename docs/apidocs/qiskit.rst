@@ -15,12 +15,13 @@ API Reference
    execute
    extensions
    providers_basicaer
-   providers/providers
+   providers
+   providers_models
    pulse
    scheduler
    qasm
    qobj
-   quantum_info/quantum_info
+   quantum_info
    result
    tools/tools
    transpiler/transpiler
