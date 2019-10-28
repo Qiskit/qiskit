@@ -15,6 +15,8 @@
 """
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
+import warnings
+
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, List, Union, Optional
 
@@ -55,7 +57,8 @@ class ScheduleComponent(metaclass=ABCMeta):
     @property
     def buffer(self) -> int:
         """Buffer for schedule. To be used when appending"""
-        pass
+        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        return 0
 
     @property
     @abstractmethod
@@ -116,6 +119,7 @@ class ScheduleComponent(metaclass=ABCMeta):
     def shift(self: 'ScheduleComponent', time: int,
               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
+
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of parent
@@ -137,7 +141,7 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def append(self, schedule: 'ScheduleComponent', buffer: bool = True,
+    def append(self, schedule: 'ScheduleComponent', buffer: bool = False,
                name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.

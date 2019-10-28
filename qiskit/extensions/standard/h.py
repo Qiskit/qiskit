@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Hadamard gate.
 """
@@ -56,7 +54,7 @@ class HGate(Gate):
                             [1, -1]], dtype=complex) / numpy.sqrt(2)
 
 
-def h(self, q):
+def h(self, q):  # pylint: disable=invalid-name
     """Apply H to q."""
     return self.append(HGate(), [q], [])
 

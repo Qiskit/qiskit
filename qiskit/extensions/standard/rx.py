@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Rotation around the x-axis.
 """
@@ -61,7 +59,7 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-def rx(self, theta, q):
+def rx(self, theta, q):  # pylint: disable=invalid-name
     """Apply Rx to q."""
     return self.append(RXGate(theta), [q], [])
 
