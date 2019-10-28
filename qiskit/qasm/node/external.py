@@ -14,7 +14,8 @@
 
 """Node for an OPENQASM external function."""
 
-import sympy
+import numpy as np
+
 from .node import Node
 from .nodeexception import NodeException
 
@@ -38,22 +39,29 @@ class External(Node):
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
         del prec  # TODO prec ignored
-        return sympy.latex(self.sym(nested_scope))
+        try:
+            from pylatexenc.latexencode import utf8tolatex
+        except ImportError:
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.")
+        return utf8tolatex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': sympy.sin,
-            'cos': sympy.cos,
-            'tan': sympy.tan,
-            'asin': sympy.asin,
-            'acos': sympy.acos,
-            'atan': sympy.atan,
-            'exp': sympy.exp,
-            'ln': sympy.log,
-            'sqrt': sympy.sqrt
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
         }
         if op in dispatch:
             arg = expr.real(nested_scope)
@@ -66,15 +74,15 @@ class External(Node):
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': sympy.sin,
-            'cos': sympy.cos,
-            'tan': sympy.tan,
-            'asin': sympy.asin,
-            'acos': sympy.acos,
-            'atan': sympy.atan,
-            'exp': sympy.exp,
-            'ln': sympy.log,
-            'sqrt': sympy.sqrt
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
         }
         if op in dispatch:
             arg = expr.sym(nested_scope)
