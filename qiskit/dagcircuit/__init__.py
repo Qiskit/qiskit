@@ -12,7 +12,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for DAG Circuits."""
+"""
+=======================================
+DAG Circuits (:mod:`qiskit.dagcircuit`)
+=======================================
+
+.. currentmodule:: qiskit.dagcircuit
+
+DAG Circuits
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DAGCircuit
+   DAGNode
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DAGCircuitError
+"""
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode
 from .exceptions import DAGCircuitError
