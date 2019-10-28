@@ -16,7 +16,9 @@ features:
     you escape it in the label string (ie `'\$'`).
 
     You can mix and match this passthrough with the utf8 -> latex conversion to
-    create the exact label you want, for example::
+    create the exact label you want, for example:
+
+    .. jupyter-execute::
 
         from qiskit import circuit
         circ = circuit.QuantumCircuit(2)
@@ -25,7 +27,3 @@ features:
         circ.append(circuit.Gate(name='α_gate$_2$', num_qubits=1, params=[0]), [1])
         circ.append(circuit.Gate(name='\$α\$_gate', num_qubits=1, params=[0]), [1])
         circ.draw(output='latex')
-
-    will now render the first custom gate's label as ``α_gate``, the second
-    will be ``α_gate`` with a 2 subscript, and the last custom gate's label
-    will be ``$α$_gate``.
