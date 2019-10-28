@@ -21,7 +21,7 @@ import random
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class CSPLayout(AnalysisPass):
