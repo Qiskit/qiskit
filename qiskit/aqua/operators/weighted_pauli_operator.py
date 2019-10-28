@@ -1171,7 +1171,10 @@ class Z2Symmetries:
         tapering_values = tapering_values if tapering_values is not None else self._tapering_values
 
         def _taper(op, curr_tapering_values):
-            operator_out = []
+            z2_symmetries = self.copy()
+            z2_symmetries.tapering_values = curr_tapering_values
+            operator_out = WeightedPauliOperator(paulis=[], z2_symmetries=z2_symmetries,
+                                                 name=operator.name)
             for pauli_term in op.paulis:
                 coeff_out = pauli_term[0]
                 for idx, qubit_idx in enumerate(self._sq_list):
@@ -1179,13 +1182,9 @@ class Z2Symmetries:
                         coeff_out = curr_tapering_values[idx] * coeff_out
                 z_temp = np.delete(pauli_term[1].z.copy(), np.asarray(self._sq_list))
                 x_temp = np.delete(pauli_term[1].x.copy(), np.asarray(self._sq_list))
-                pauli_term_out = [coeff_out, Pauli(z_temp, x_temp)]
-                operator_out.extend([pauli_term_out])
-
-            z2_symmetries = self.copy()
-            z2_symmetries.tapering_values = curr_tapering_values
-            return WeightedPauliOperator(operator_out,
-                                         z2_symmetries=z2_symmetries, name=operator.name)
+                pauli_term_out = WeightedPauliOperator(paulis=[[coeff_out, Pauli(z_temp, x_temp)]])
+                operator_out += pauli_term_out
+            return operator_out
 
         if tapering_values is None:
             tapered_ops = []
