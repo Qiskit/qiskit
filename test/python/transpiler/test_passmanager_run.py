@@ -95,9 +95,8 @@ class TestPassManagerRun(QiskitTestCase):
         circuit1.cx(qr[2], qr[3])
 
         circuit2 = QuantumCircuit(qr)
-        circuit2.h(qr[0])
-        circuit2.cx(qr[0], qr[1])
         circuit2.cx(qr[1], qr[2])
+        circuit2.cx(qr[0], qr[1])
         circuit2.cx(qr[2], qr[3])
 
         coupling_map = FakeMelbourne().configuration().coupling_map
