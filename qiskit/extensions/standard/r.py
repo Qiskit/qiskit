@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2019
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Rotation around the x-axis.
+Rotation around an axis in x-y plane.
 """
 import math
 import numpy
@@ -21,25 +21,26 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.r import RGate
 from qiskit.extensions.standard.u3 import U3Gate
 
 
-class RXGate(Gate):
-    """rotation around the x-axis."""
+class RGate(Gate):
+    """Rotation θ around the cos(φ)x + sin(φ)y axis."""
 
-    def __init__(self, theta):
-        """Create new rx single qubit gate."""
-        super().__init__("rx", 1, [theta])
+    def __init__(self, theta, phi):
+        """Create new r single qubit gate."""
+        super().__init__("r", 1, [theta, phi])
 
     def _define(self):
         """
-        gate rx(theta) a {r(theta, 0) a;}
+        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
         definition = []
         q = QuantumRegister(1, "q")
+        theta = self.params[0]
+        phi = self.params[1]
         rule = [
-            (RGate(self.params[0], 0), [q[0]], [])
+            (U3Gate(theta, phi - pi / 2, -phi - pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -48,21 +49,23 @@ class RXGate(Gate):
     def inverse(self):
         """Invert this gate.
 
-        rx(theta)^dagger = rx(-theta)
+        r(θ, φ)^dagger = r(-θ, φ)
         """
-        return RXGate(-self.params[0])
+        return RGate(-self.params[0], self.params[1])
 
     def to_matrix(self):
-        """Return a Numpy.array for the RX gate."""
+        """Return a Numpy.array for the R gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -1j * sin],
-                            [-1j * sin, cos]], dtype=complex)
+        exp_m = numpy.exp(-1j * self.params[1])
+        exp_p = numpy.exp(1j * self.params[1])
+        return numpy.array([[cos, -1j * exp_m * sin],
+                            [-1j * exp_p * sin, cos]], dtype=complex)
 
 
-def rx(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Rx to q."""
-    return self.append(RXGate(theta), [q], [])
+def r(self, theta, phi, q):  # pylint: disable=invalid-name
+    """Apply R to q."""
+    return self.append(RGate(theta, phi), [q], [])
 
 
-QuantumCircuit.rx = rx
+QuantumCircuit.r = r
