@@ -22,17 +22,11 @@ import json
 import math
 import re
 
-try:
-    from pylatexenc.latexencode import utf8tolatex
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
-
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from .tools.pi_check import pi_check
+from .utils import generate_latex_label
 
 
 class QCircuitImage:
@@ -63,11 +57,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        if not HAS_PYLATEX:
-            raise ImportError('The latex and latex_source drawers need '
-                              'pylatexenc installed. Run "pip install '
-                              'pylatexenc" before using the latex or '
-                              'latex_source drawers.')
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
@@ -374,7 +363,7 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = utf8tolatex(op.name).replace(" ", "\\,")
+                    nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)

@@ -12,9 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=anomalous-backslash-in-string
+
 """Common visualization utilities."""
 
+import re
+
 import numpy as np
+
 from qiskit.converters import circuit_to_dag
 from qiskit.visualization.exceptions import VisualizationError
 
@@ -23,6 +28,36 @@ try:
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
+
+try:
+    from pylatexenc.latexencode import utf8tolatex
+
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
+
+
+def generate_latex_label(label):
+    """Convert a label to a valid latex string."""
+    if not HAS_PYLATEX:
+        raise ImportError('The latex and latex_source drawers need '
+                          'pylatexenc installed. Run "pip install '
+                          'pylatexenc" before using the latex or '
+                          'latex_source drawers.')
+
+    regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
+    match = regex.search(label)
+    if not match:
+        label = label.replace('\$', '$')  # noqa
+        return utf8tolatex(label)
+    else:
+        mathmode_string = match.group(1).replace('\$', '$')  # noqa
+        before_match = label[:match.start()]
+        before_match = before_match.replace('\$', '$')  # noqa
+        after_match = label[match.end():]
+        after_match = after_match.replace('\$', '$')  # noqa
+        return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
+            after_match)
 
 
 def _validate_input_state(quantum_state):
