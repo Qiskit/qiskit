@@ -28,6 +28,7 @@ Based on implementation by Andrew Cross.
 
 from collections import defaultdict
 
+from qiskit.circuit import ParameterExpression
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -68,7 +69,8 @@ class Collect2qBlocks(AnalysisPass):
                         pnd = pred[0]
                         if pnd.name in good_names:
                             if (pnd.name == "cx" and set(pnd.qargs) == these_qubits) or \
-                                    pnd.name != "cx":
+                                pnd.name != "cx" and not any(isinstance(param, ParameterExpression)
+                                                             for param in pnd.op.params):
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
                                 pred_next.extend(dag.quantum_predecessors(pnd))
@@ -101,7 +103,8 @@ class Collect2qBlocks(AnalysisPass):
                                                     set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
-                            if pnd.name != "cx":
+                            if pnd.name != "cx" and not any(isinstance(param, ParameterExpression)
+                                                            for param in pnd.op.params):
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
@@ -140,7 +143,8 @@ class Collect2qBlocks(AnalysisPass):
                         snd = succ[0]
                         if snd.name in good_names:
                             if (snd.name == "cx" and set(snd.qargs) == these_qubits) or \
-                                    snd.name != "cx":
+                                snd.name != "cx" and not any(isinstance(param, ParameterExpression)
+                                                             for param in snd.op.params):
                                 group.append(snd)
                                 nodes_seen[snd] = True
                                 succ_next.extend(dag.quantum_successors(snd))
@@ -177,7 +181,8 @@ class Collect2qBlocks(AnalysisPass):
                             # If a successor is a single qubit gate, add it
                             # NB as we have eliminated all gates with names not in
                             # good_names, this check guarantees they are single qubit
-                            if snd.name != "cx":
+                            if snd.name != "cx" and not any(isinstance(param, ParameterExpression)
+                                                            for param in snd.op.params):
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True
