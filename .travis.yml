@@ -59,7 +59,7 @@ stage_linux: &stage_linux
   os: linux
   dist: bionic
   language: python
-  python: 3.5
+  python: 3.7
 
 stage_osx: &stage_osx
   <<: *stage_generic
@@ -103,7 +103,7 @@ jobs:
   include:
     # "lint and and pure python test" stage
     ###########################################################################
-    # Linter and style check (GNU/Linux, Python 3.5)
+    # Linter and style check (GNU/Linux, Python 3.7)
     - stage: lint and pure python test
       name: Python Style and Linter
       <<: *stage_linux
@@ -111,9 +111,9 @@ jobs:
         - pycodestyle --max-line-length=100 qiskit test
         - pylint -rn qiskit test
 
-    # Run the tests against without compilation (GNU/Linux, Python 3.5)
+    # Run the tests against without compilation (GNU/Linux, Python 3.7)
     - stage: lint and pure python test
-      name: Python 3.5 Tests Linux
+      name: Python 3.7 Tests Linux
       <<: *stage_linux
 
     # "test" stage
@@ -133,11 +133,11 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    # GNU/Linux, Python 3.7
+    # GNU/Linux, Python 3.5
     - stage: test
-      name: Python 3.7 Tests Linux
+      name: Python 3.5 Tests Linux
       <<: *stage_linux
-      python: 3.7
+      python: 3.5
 
     # OSX, Python 3.5.6 (via pyenv)
     - stage: test
