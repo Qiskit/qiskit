@@ -33,8 +33,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
     Prakash Murali, Jonathan M. Baker, Ali Javadi-Abhari, Frederic T. Chong, Margaret R. Martonosi
     ASPLOS 2019 (arXiv:1901.11054).
 
-    Greedy mapping heuristic
-    ------------------------
+   Methods:
 
     Ordering of edges:
     Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
@@ -50,7 +49,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
     participate in any CNOT), map them to any available
     hardware qubit.
 
-    Note:
+    Notes:
         even though a `layout` is not strictly a property of the DAG,
         in the transpiler architecture it is best passed around between passes
         by being set in `property_set`.

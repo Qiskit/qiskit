@@ -12,7 +12,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Models and schemas for Terra."""
+"""
+=============================================
+Models and Schemas (:mod:`qiskit.validation`)
+=============================================
+
+.. currentmodule:: qiskit.validation
+
+Base
+====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BaseModel
+   BaseSchema
+   bind_schema
+   ModelTypeValidator
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ModelValidationError
+"""
 
 from .base import BaseModel, BaseSchema, bind_schema, ModelTypeValidator
 from .exceptions import ModelValidationError

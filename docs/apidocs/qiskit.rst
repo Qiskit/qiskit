@@ -7,12 +7,13 @@ API Reference
 .. toctree::
    :maxdepth: 1
 
-   assembler
    circuit
    compiler
-   converters
-   dagcircuit
    execute
+   visualization
+   converters
+   assembler
+   dagcircuit
    extensions
    providers_basicaer
    providers

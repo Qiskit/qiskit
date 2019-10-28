@@ -12,7 +12,63 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for the Qobj structure."""
+"""
+=========================
+Qobj (:mod:`qiskit.qobj`)
+=========================
+
+.. currentmodule:: qiskit.qobj
+
+Base
+====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Qobj
+   QobjInstruction
+   QobjExperimentHeader
+   QobjExperimentConfig
+   QobjExperiment
+   QobjConfig
+   QobjHeader
+
+Qasm
+====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QasmQobj
+   QasmQobjInstruction
+   QasmQobjExperimentConfig
+   QasmQobjExperiment
+   QasmQobjConfig
+
+Pulse
+=====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PulseQobj
+   PulseQobjInstruction
+   PulseQobjExperimentConfig
+   PulseQobjExperiment
+   PulseQobjConfig
+   QobjMeasurementOption
+   PulseLibraryItem
+   PulseLibraryItemSchema
+   PulseQobjInstructionSchema
+
+Validation
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   validate_qobj_against_schema
+"""
 
 from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
                           QobjExperiment, QobjConfig, QobjHeader)
