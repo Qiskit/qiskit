@@ -1,5 +1,12 @@
 # Configuration for probot-auto-merge - https://github.com/bobvanderlinden/probot-auto-merge
 
+minApprovals:
+  OWNER: 1
+
+maxRequestedChanges:
+  COLLABORATOR: 0
+
+
 # Whether an out-of-date pull request is automatically updated.
 # It does so by merging its base on top of the head of the pull request.
 # This is the equivalent of clicking the 'Update branch' button.
