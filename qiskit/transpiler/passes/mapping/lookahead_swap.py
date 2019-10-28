@@ -12,40 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Implementation of Sven Jandura's swap mapper submission for the 2018 Qiskit
-Developer Challenge, adapted to integrate into the transpiler architecture.
-
-The role of the swapper pass is to modify the starting circuit to be compatible
-with the target device's topology (the set of two-qubit gates available on the
-hardware.) To do this, the pass will insert SWAP gates to relocate the virtual
-qubits for each upcoming gate onto a set of coupled physical qubits. However, as
-SWAP gates are particularly lossy, the goal is to accomplish this remapping while
-introducing the fewest possible additional SWAPs.
-
-This algorithm searches through the available combinations of SWAP gates by means
-of a narrowed best first/beam search, described as follows:
-
-- Start with a layout of virtual qubits onto physical qubits.
-- Find any gates in the input circuit which can be performed with the current
-  layout and mark them as mapped.
-- For all possible SWAP gates, calculate the layout that would result from their
-  application and rank them according to the distance of the resulting layout
-  over upcoming gates (see _calc_layout_distance.)
-- For the four (SEARCH_WIDTH) highest-ranking SWAPs, repeat the above process on
-  the layout that would be generated if they were applied.
-- Repeat this process down to a depth of four (SEARCH_DEPTH) SWAPs away from the
-  initial layout, for a total of 256 (SEARCH_WIDTH^SEARCH_DEPTH) prospective
-  layouts.
-- Choose the layout which maximizes the number of two-qubit which could be
-  performed. Add its mapped gates, including the SWAPs generated, to the
-  output circuit.
-- Repeat the above until all gates from the initial circuit are mapped.
-
-For more details on the algorithm, see Sven's blog post:
-https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
-
-"""
+"""Map input circuit onto a backend topology via insertion of SWAPs."""
 
 from copy import deepcopy
 
@@ -63,10 +30,43 @@ SEARCH_WIDTH = 4
 
 
 class LookaheadSwap(TransformationPass):
-    """Map input circuit onto a backend topology via insertion of SWAPs."""
+    """Map input circuit onto a backend topology via insertion of SWAPs.
+
+    Implementation of Sven Jandura's swap mapper submission for the 2018 Qiskit
+    Developer Challenge, adapted to integrate into the transpiler architecture.
+
+    The role of the swapper pass is to modify the starting circuit to be compatible
+    with the target device's topology (the set of two-qubit gates available on the
+    hardware.) To do this, the pass will insert SWAP gates to relocate the virtual
+    qubits for each upcoming gate onto a set of coupled physical qubits. However, as
+    SWAP gates are particularly lossy, the goal is to accomplish this remapping while
+    introducing the fewest possible additional SWAPs.
+
+    This algorithm searches through the available combinations of SWAP gates by means
+    of a narrowed best first/beam search, described as follows:
+
+    - Start with a layout of virtual qubits onto physical qubits.
+    - Find any gates in the input circuit which can be performed with the current
+      layout and mark them as mapped.
+    - For all possible SWAP gates, calculate the layout that would result from their
+      application and rank them according to the distance of the resulting layout
+      over upcoming gates (see _calc_layout_distance.)
+    - For the four (SEARCH_WIDTH) highest-ranking SWAPs, repeat the above process on
+      the layout that would be generated if they were applied.
+    - Repeat this process down to a depth of four (SEARCH_DEPTH) SWAPs away from the
+      initial layout, for a total of 256 (SEARCH_WIDTH^SEARCH_DEPTH) prospective
+      layouts.
+    - Choose the layout which maximizes the number of two-qubit which could be
+      performed. Add its mapped gates, including the SWAPs generated, to the
+      output circuit.
+    - Repeat the above until all gates from the initial circuit are mapped.
+
+    For more details on the algorithm, see Sven's blog post:
+    https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
+    """
 
     def __init__(self, coupling_map):
-        """Initialize a LookaheadSwap instance.
+        """LookaheadSwap initializer.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
@@ -76,7 +76,7 @@ class LookaheadSwap(TransformationPass):
         self.coupling_map = coupling_map
 
     def run(self, dag):
-        """Run one pass of the lookahead mapper on the provided DAG.
+        """Run the LookaheadSwap pass on `dag`.
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to be mapped
@@ -139,7 +139,6 @@ def _search_forward_n_swaps(layout, gates, coupling_map,
             gates_mapped (list): Gates that were mapped, including added SWAPs.
 
     """
-
     gates_mapped, gates_remaining = _map_free_gates(layout, gates, coupling_map)
 
     base_step = {'layout': layout,
@@ -192,9 +191,7 @@ def _map_free_gates(layout, gates, coupling_map):
         tuple:
             mapped_gates (list): ops for gates that can be executed, mapped onto layout.
             remaining_gates (list): gates that cannot be executed on the layout.
-
     """
-
     blocked_qubits = set()
 
     mapped_gates = []
@@ -239,7 +236,6 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
     """Return the sum of the distances of two-qubit pairs in each CNOT in gates
     according to the layout and the coupling.
     """
-
     if max_gates is None:
         max_gates = 50 + 10 * len(coupling_map.physical_qubits)
 
@@ -249,7 +245,6 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
 
 def _score_step(step):
-
     """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
@@ -258,9 +253,10 @@ def _score_step(step):
 
 def _copy_circuit_metadata(source_dag, coupling_map):
     """Return a copy of source_dag with metadata but empty.
-    Generate only a single qreg in the output DAG, matching the size of the
-    coupling_map."""
 
+    Generate only a single qreg in the output DAG, matching the size of the
+    coupling_map.
+    """
     target_dag = DAGCircuit()
     target_dag.name = source_dag.name
 
@@ -275,7 +271,6 @@ def _copy_circuit_metadata(source_dag, coupling_map):
 
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
-
     mapped_op_node = deepcopy([n for n in gate['graph'].nodes() if n.type == 'op'][0])
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
@@ -287,7 +282,6 @@ def _transform_gate_for_layout(gate, layout):
 
 def _swap_ops_from_edge(edge, layout):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
-
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     qreg_edge = [device_qreg[i] for i in edge]
 
