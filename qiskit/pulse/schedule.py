@@ -42,6 +42,7 @@ class Schedule(ScheduleComponent):
         Raises:
             PulseError: If timeslots intercept.
         """
+
         self._name = name
 
         timeslots = []
@@ -230,9 +231,21 @@ class Schedule(ScheduleComponent):
                channels: Optional[Iterable[Channel]] = None,
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
+               intervals: Optional[Iterable[Interval]] = None,
+               filter_type: Optional[int] = 0) -> Union['Schedule', ('Schedule', 'Schedule')]:
         """
-        Return a new Schedule with only the instructions which pass though the provided filters.
+        Filters the Schedule according to the specified filters, with behavior
+        depending on the filter_type argument
+
+        If filter_type == 0:
+            Returns a schedule with only instructions passing all provided filters
+        elif filter_type == 1:
+            Returns a schedule with only instructions failing at least one filter
+        elif filter_type == 2:
+            Returns a tuple of Schedules, the first being the output to the
+            filter_type == 0 case, and the second being the output to the
+            filter_type == 1 case.
+
         Custom filters may be provided. If a list of channel indices is provided, only the
         instructions that involve that channel (and maybe also others) will be included in the new
         schedule. Similarly for instruction_types, only the instructions which are instances of the
@@ -248,6 +261,8 @@ class Schedule(ScheduleComponent):
             instruction_types: For example, [PulseInstruction, AcquireInstruction]
             time_ranges: Time intervals to keep, e.g. [(0, 5), (6, 10)]
             intervals: Time intervals to keep, e.g. [Interval(0, 5), Interval(6, 10)]
+            filter_type: Specifies the kind of filtering, as described above
+
         """
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
@@ -283,13 +298,12 @@ class Schedule(ScheduleComponent):
         if not filter_funcs:
             return self
 
-        return self._filter(filter_funcs)
+        return self._filter(filter_funcs, filter_type)
 
-    def _filter(self, filter_funcs: List[Callable]) -> 'Schedule':
+    def _filter(self, filter_funcs: List[Callable], filter_type: Optional[int] = 0) -> Union['Schedule', ('Schedule', 'Schedule')]:
         """
-        Return a new Schedule with only the instructions which pass through every filter in
-        filter_funcs (i.e. when each function is applied to it, as described below, the function
-        returns True).
+        Filters the Schedule according to the specified filter_funcs, with
+        behavior specified by filter_type, as described in the filter() method.
 
         Expected function signature for each function in filter_funcs:
             function(time_and_inst_tuple: Tuple[int, Instruction]) -> bool
@@ -307,11 +321,35 @@ class Schedule(ScheduleComponent):
 
         Args:
             filter_funcs: A list of Callables which follow the above format
+            filter_type: An int, either 0, 1, or 2, specifying the type of filtering,
+                         as described in the filter() method
         """
-        valid_subschedules = self.flatten()._children
-        for filter_func in filter_funcs:
-            valid_subschedules = [sched for sched in valid_subschedules if filter_func(sched)]
-        return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+
+        if filter_type == 0:
+            # keep schedules passing all filters
+            valid_subschedules = self.flatten()._children
+            for filter_func in filter_funcs:
+                valid_subschedules = [sched for sched in valid_subschedules if filter_func(sched)]
+            return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+
+        elif filter_type == 1:
+            # keep schedules failing at least one filter
+            valid_subschedules = self.flatten()._children
+            for filter_func in filter_funcs:
+                valid_subschedules = [sched for sched in valid_subschedules if not filter_func(sched)]
+            return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+
+        elif filter_type == 2:
+            type0_subschedules = [] # subschedules passing all filters
+            type1_subschedules = [] # subschedules failing at least one filter
+
+            for sched in self.flatten()._children:
+                if all( [filter_func(sched) for filter_func in filter_funcs] ):
+                    type0_subschedules.append(sched)
+                else:
+                    type1_subschedules.append(sched)
+
+            return type0_subschedules, type1_subschedules
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
