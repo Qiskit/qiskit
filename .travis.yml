@@ -180,6 +180,7 @@ jobs:
     - stage: test
       name: Benchmarks
       <<: *stage_linux
+      python: 3.5
       script:
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
