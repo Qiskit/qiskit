@@ -194,11 +194,9 @@ def execute(experiments, backend,
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit import QuantumCircuit, execute, BasicAer
 
-            provider = IBMQ.load_account()
-            accountProvider = IBMQ.get_provider(hub='ibm-q')
-            backend = accountProvider.get_backend('ibmq_vigo')
+            backend = BasicAer.get_backend('qasm_simulator')
 
             qc = QuantumCircuit(5, 5)
             qc.h(0)

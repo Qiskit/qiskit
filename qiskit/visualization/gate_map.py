@@ -102,7 +102,7 @@ def plot_gate_map(backend, figsize=None,
         ImportError: if matplotlib not installed.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
            from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
            from qiskit.visualization import plot_gate_map
@@ -283,7 +283,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         VisualizationError: Circuit has no layout attribute.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import *
@@ -302,8 +302,8 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
 
             provider = IBMQ.get_provider(hub='ibm-q')
             backend = provider.get_backend('ibmq_vigo')
-            new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=3)
-            plot_circuit_layout(new_circ_lv0, backend)
+            new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
+            plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
         raise QiskitError('Circuit has no layout. '
@@ -365,7 +365,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         VisualizationError: Input is not IBMQ backend.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
             from qiskit.visualization import plot_error_map

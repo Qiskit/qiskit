@@ -62,17 +62,18 @@ class QuantumCircuit:
                 * ``QuantumCircuit(QuantumRegister(4))``
                 * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
                 * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
-
                 * If a list of ``int``, the amount of qubits and/or classical
                 bits to include in the circuit. It can either be a single
                 int for just the number of quantum bits, or 2 ints for the number of
                 quantum bits and classical bits respectively.
+
 
                 For example:
 
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
+        
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
 
