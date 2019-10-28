@@ -73,7 +73,7 @@ class QuantumCircuit:
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
-        
+
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
 
