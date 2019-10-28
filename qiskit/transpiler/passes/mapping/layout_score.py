@@ -38,7 +38,6 @@ class LayoutScore(AnalysisPass):
             return
 
         distances = []
-        self.property_set['layout_score'] = 0
 
         for gate in dag.twoQ_gates():
             physical_q0 = self.layout[gate.qargs[0]]
@@ -46,4 +45,4 @@ class LayoutScore(AnalysisPass):
 
             distances.append(self.coupling_map.distance(physical_q0, physical_q1)-1)
 
-        self.property_set['layout_score'] += sum(distances)
+        self.property_set['layout_score'] = sum(distances)
