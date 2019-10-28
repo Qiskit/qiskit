@@ -291,6 +291,7 @@ stages:
             # Remove post merge:
             wget http://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty
             popd
+            sudo apt-get update
             sudo apt-get install -y build-essential libopenblas-dev texlive-full graphviz poppler-utils
           displayName: 'Clone tutorials'
         - bash: |
