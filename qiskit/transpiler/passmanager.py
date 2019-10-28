@@ -147,20 +147,20 @@ class PassManager:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
         return passes
 
-    def run(self, circuit_or_circuits):
+    def run(self, circuits):
         """Run all the passes on circuit or circuits
 
         Args:
-            circuit_or_circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
+            circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
             transform via all the registered passes.
 
         Returns:
             QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
         """
-        if isinstance(circuit_or_circuits, QuantumCircuit):
-            return self._run_single_circuit(circuit_or_circuits)
+        if isinstance(circuits, QuantumCircuit):
+            return self._run_single_circuit(circuits)
         else:
-            return self._run_several_circuits(circuit_or_circuits)
+            return self._run_several_circuits(circuits)
 
     def _create_running_passmanager(self):
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
