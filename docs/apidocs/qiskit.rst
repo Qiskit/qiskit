@@ -24,6 +24,8 @@ API Reference
    quantum_info
    result
    tools/tools
-   transpiler/transpiler
+   transpiler
+   transpiler_passes
+   transpiler_preset
    validation
    visualization

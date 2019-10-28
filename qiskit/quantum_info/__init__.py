@@ -74,7 +74,7 @@ Synthesis
 
 .. autosummary::
    :toctree: ../stubs/
-   
+
    euler_angles_1q
    two_qubit_cnot_decompose
    TwoQubitBasisDecomposer
@@ -89,5 +89,5 @@ from .states import Statevector, DensityMatrix
 from .states.states import basis_state, projector, purity
 from .states.measures import state_fidelity
 from .random import random_unitary, random_state, random_density_matrix
-from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q, 
+from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
                         two_qubit_cnot_decompose)

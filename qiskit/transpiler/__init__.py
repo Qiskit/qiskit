@@ -12,7 +12,58 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utils for transpiler."""
+"""
+=====================================
+Transpiler (:mod:`qiskit.transpiler`)
+=====================================
+
+.. currentmodule:: qiskit.transpiler
+
+Circuit Transpilation
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   transpile_circuit
+
+Pass Managment
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PassManager
+   PropertySet
+   FlowController
+
+Layout and Topology
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Layout
+   CouplingMap
+
+Fenced Objects
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FencedDAGCircuit
+   FencedPropertySet
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TranspilerError
+   TranspilerAccessError
+"""
 
 from .runningpassmanager import FlowController
 from .passmanager import PassManager
