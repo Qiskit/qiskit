@@ -12,9 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass to evaluate how good the layout selection was.
+"""Evaluate how good the layout selection was.
+
 No CX direction is considered.
-Saves in property_set[`layout_score`] the sum of distances for each circuit CX.
+Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
 The lower the number, the better the selection.
 Therefore, 0 is a perfect layout selection.
 """
@@ -23,15 +24,29 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class LayoutScore(AnalysisPass):
-    """
-    Saves in `layout_score` the sum of the distance off for each CX.
+    """Evaluate how good the layout selection was.
+
+    Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
+    The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
+    No CX direction is considered.
     """
     def __init__(self, coupling_map, initial_layout=None):
+        """LayoutScore initializer.
+
+        Args:
+            coupling_map (CouplingMap): Directed graph represented a coupling map.
+            initial_layout (Layout): The layout to evaluate.
+        """
         super().__init__()
         self.layout = initial_layout
         self.coupling_map = coupling_map
 
     def run(self, dag):
+        """
+        Run the LayoutScore pass on `dag`.
+        Args:
+            dag (DAGCircuit): DAG to evaluate.
+        """
         self.layout = self.layout or self.property_set["layout"]
 
         if self.layout is None:
