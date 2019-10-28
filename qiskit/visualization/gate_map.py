@@ -103,6 +103,21 @@ def plot_gate_map(backend, figsize=None,
 
     Example:
         .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from unittest.mock import MagicMock
+            import qiskit
+            from qiskit.test.mock import FakeVigo
+
+            mock_ibmq = MagicMock()
+            mock_provider = MagicMock()
+            fake_vigo = FakeVigo()
+            mock_provider.get_backend.return_value = fake_vigo
+            mock_ibmq.get_provider.return_value = mock_provider
+            qiskit.IBMQ = mock_ibmq
+
+        .. jupyter-execute::
 
            from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
            from qiskit.visualization import plot_gate_map
