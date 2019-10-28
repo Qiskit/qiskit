@@ -12,10 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-This pass checks if the CNOTs (or any other 2Q) in the DAG follow the right
-direction with respect to the coupling map.
-"""
+"""Check if the CNOTs follow the right direction with respect to the coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.extensions.standard.cx import CnotGate
@@ -23,13 +20,15 @@ from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CheckCXDirection(AnalysisPass):
-    """
-    Checks if the CNOTs in the DAG circuit follow the right
+    """Check if the CNOTs follow the right direction with respect to the coupling map.
+
+    This pass checks if the CNOTs (or any other 2Q) in the DAG follow the right
     direction with respect to the coupling map.
     """
 
     def __init__(self, coupling_map):
-        """
+        """CheckCXDirection initializer.
+
         Checks if the CNOTs in DAGCircuit are in the allowed direction with
         respect to `coupling_map`.
 
@@ -40,7 +39,8 @@ class CheckCXDirection(AnalysisPass):
         self.coupling_map = coupling_map
 
     def run(self, dag):
-        """
+        """Run the CheckCXDirection pass on `dag`.
+
         If `dag` is mapped and the direction is correct the property
         `is_direction_mapped` is set to True (or to False otherwise).
 
