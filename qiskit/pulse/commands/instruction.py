@@ -15,6 +15,8 @@
 """
 Instruction = Leaf node of schedule.
 """
+import warnings
+
 from typing import Tuple, List, Iterable, Callable, Optional
 
 from qiskit.pulse.channels import Channel
@@ -46,8 +48,6 @@ class Instruction(ScheduleComponent):
                                                for channel in channels))
 
         channels = self.channels
-
-        self._buffer = max(chan.buffer for chan in channels) if channels else 0
 
     @property
     def name(self) -> str:
@@ -86,11 +86,6 @@ class Instruction(ScheduleComponent):
     def duration(self) -> int:
         """Duration of this instruction."""
         return self.timeslots.duration
-
-    @property
-    def buffer(self) -> int:
-        """Buffer for schedule. To be used when appending"""
-        return self._buffer
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
@@ -174,11 +169,11 @@ class Instruction(ScheduleComponent):
             buffer: Whether to obey buffer when inserting
             name: Name of the new schedule. Defaults to name of self
         """
-        if buffer and schedule.buffer and start_time > 0:
-            start_time += self.buffer
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return self.union((start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent, buffer: bool = True,
+    def append(self, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
@@ -188,9 +183,11 @@ class Instruction(ScheduleComponent):
             buffer: Whether to obey buffer when appending
             name: Name of the new schedule. Defaults to name of self
         """
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, buffer=buffer, name=name)
+        return self.insert(time, schedule, name=name)
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
