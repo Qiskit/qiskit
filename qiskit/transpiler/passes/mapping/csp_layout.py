@@ -23,10 +23,12 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler import TranspilerError
 
+
 class CSPLayout(AnalysisPass):
     """
     If possible, chooses a Layout as a CSP, using backtracking.
     """
+
     def __init__(self, coupling_map, strict_direction=False, seed=None):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
