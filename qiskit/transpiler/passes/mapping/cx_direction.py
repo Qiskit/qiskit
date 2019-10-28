@@ -52,6 +52,7 @@ class CXDirection(TransformationPass):
 
         Args:
             dag (DAGCircuit): DAG to map.
+
         Returns:
             DAGCircuit: The rearranged dag for the coupling map
 

@@ -35,5 +35,13 @@ class SetLayout(AnalysisPass):
         self.layout = layout
 
     def run(self, dag):
+        """Run the SetLayout pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): DAG to map.
+
+        Returns:
+            DAGCircuit: the original DAG.
+        """
         self.property_set['layout'] = self.layout
         return dag
