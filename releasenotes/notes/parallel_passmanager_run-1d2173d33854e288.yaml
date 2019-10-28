@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    When ``passmanager.run(...)`` is invoked with more than one circuit, the transpilation of
+    these circuits will run in parallel. Because of this upgrade, the module ``dill`` is a
+    Terra requirement now.
