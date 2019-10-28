@@ -13,7 +13,7 @@ API Reference
    converters
    dagcircuit
    execute
-   extensions/extensions
+   extensions
    providers_basicaer
    providers/providers
    pulse/pulse
