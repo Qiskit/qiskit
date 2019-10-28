@@ -16,7 +16,8 @@ API Reference
    extensions
    providers_basicaer
    providers/providers
-   pulse/pulse
+   pulse
+   scheduler
    qasm
    qobj
    quantum_info/quantum_info

@@ -12,8 +12,44 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for Qiskit assembler.
+"""
+========================================================
+Circuit and Schedule Assembler (:mod:`qiskit.assembler`)
+========================================================
 
+.. currentmodule:: qiskit.assembler
+
+Circuit Assembler
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   assemble_circuits
+
+Schedule Assembler
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   assemble_schedules
+
+Disassembler
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   disassemble
+
+RunConfig
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   RunConfig
 """
 
 from .assemble_circuits import assemble_circuits

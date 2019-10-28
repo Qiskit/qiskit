@@ -1,6 +1,6 @@
-.. _qiskit-assembler:
+.. _qiskit-scheduler:
 
-.. automodule:: qiskit.assembler
+.. automodule:: qiskit.scheduler
    :no-members:
    :no-inherited-members:
    :no-special-members:
