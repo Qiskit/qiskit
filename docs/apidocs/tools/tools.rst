@@ -20,6 +20,5 @@ Submodules
    :maxdepth: 1
 
    events/events
-   jupyter
    monitor/monitor
    qi/qi

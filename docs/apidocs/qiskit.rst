@@ -25,6 +25,7 @@ API Reference
    quantum_info
    result
    tools/tools
+   tools_jupyter
    transpiler
    transpiler_passes
    transpiler_preset
