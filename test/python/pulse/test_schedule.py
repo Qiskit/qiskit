@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.pulse.channels import (PulseChannelSpec, MemorySlot, DriveChannel, AcquireChannel,
-                                   MeasureChannel, SnapshotChannel)
+                                   SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
@@ -296,38 +296,22 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_buffering(self):
         """Test channel buffering."""
         buffer_chan = DriveChannel(0, buffer=5)
-        measure_chan = MeasureChannel(0, buffer=10)
-        acquire_chan = AcquireChannel(0, buffer=10)
-        memory_slot = MemorySlot(0)
         gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
         fc_pi_2 = FrameChange(phase=1.57)
 
         # no initial buffer
         sched = Schedule()
         sched += gp0(buffer_chan)
-
         self.assertEqual(sched.duration, 10)
-
-        # this pulse should be buffered
+        # this pulse should not be buffered
         sched += gp0(buffer_chan)
-
-        self.assertEqual(sched.duration, 25)
-
+        self.assertEqual(sched.duration, 20)
         # should not be buffered as framechange
         sched += fc_pi_2(buffer_chan)
-
-        self.assertEqual(sched.duration, 25)
-
+        self.assertEqual(sched.duration, 20)
         # use buffer with insert
         sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
-
-        self.assertEqual(sched.duration, 40)
-
-        sched = Schedule()
-
-        sched = gp0(measure_chan) + Acquire(duration=10)(acquire_chan, memory_slot)
-
-        self.assertEqual(sched.duration, 10)
+        self.assertEqual(sched.duration, 30)
 
     def test_multiple_parameters_not_returned(self):
         """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
