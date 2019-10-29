@@ -92,15 +92,29 @@ To contribute to Qiskit localization, please follow these steps:
    <https://github.com/Qiskit/qiskit/blob/master/docs/
    LOCALIZATION_CONTRIBUTORS>`__ file.
 #. Create a pull request (PR) to merge your change.
+
+   .. note::
+
+      - Each contributor has to create their own PR and sign the CLA.
+      - Please mention the Language that you'd like to contribute to in the PR
+        summary.
+      - If you have an open issue for language request, please add the issue link
+        to the PR.
 #. You will be asked to sign the Qiskit Contributors License Agreement (CLA);
    please do so.
 #. In the `Qiskit-Docs <https://crowdin.com/project/qiskit-docs>`__
-   Crowdin project, choose the language that you want to contribute to. If you
-   don't see the language you're looking for, `create a new issue
-   <https://github.com/Qiskit/qiskit/issues>`__ to request its addition.
-#. Click the **Join** button.
-#. In the dialog box where you are asked why you want to join the Crowdin
-   project, paste the URL of your PR.
+   Crowdin project, choose the language that you want to contribute to.
+
+   .. note::
+
+      As mentioned in the blog post, `Qiskit in my language is Qiskit <https://medium.com/qiskit/qiskit-in-my-language-is-qiskit-73d4626a99d3>`__,
+      we want to make sure that translated languages have enough community support
+      to build a translation team with translators, proofreaders, and translation leads.
+      If you want to be a translation lead or would be willing to join a new
+      translation project team, you can open a `Github issue <https://github.com/Qiskit/qiskit/issues>`__
+      to start a discussion with the Qiskit team and recruit translation project members.
+#. Click the **Join** button and **paste the URL of your PR** in the dialog box where you
+   are asked why you want to join the Crowdin project.
 
 The administrators of the Crowdin project will review your request and give you
 access as quickly as they can.
