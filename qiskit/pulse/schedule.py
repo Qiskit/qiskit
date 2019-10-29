@@ -235,22 +235,26 @@ class Schedule(ScheduleComponent):
                filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
         """
         Filters the Schedule according to the specified filters, with behavior
-        depending on the filter_type argument
+        depending on the filter_type argument (described below). Each filter is
+        a function taking (int, ScheduleComponent) and returning bool. The purpose is
+        to return a new Schedule containing only the parts of self that satisfy
+        a list of criteria.
+
+        filter_funcs are custom filters. If a list of channel indices is provided,
+        a filter returning True on those channels is created. Similarly, for
+        instruction_types, a filter returning True on those instruction types will
+        be created. For intervals, a filter returning True on instructions wholly
+        contained within *any* of the given intervals will be created.
+
+        The behaviour types:
 
         If filter_type == 0:
-            Returns a schedule with only instructions passing all provided filters
-        elif filter_type == 1:
-            Returns a schedule with only instructions failing at least one filter
-        elif filter_type == 2:
-            Returns a tuple of Schedules, the first being the output to the
-            filter_type == 0 case, and the second being the output to the
-            filter_type == 1 case.
-
-        Custom filters may be provided. If a list of channel indices is provided, only the
-        instructions that involve that channel (and maybe also others) will be included in the new
-        schedule. Similarly for instruction_types, only the instructions which are instances of the
-        provided types will be included. For intervals, instructions will be retained if their
-        timeslots are all wholly contained within *any* of the given intervals.
+            returns a Schedule containing instructions returning True on all filters.
+        If filter_type == 1:
+            returns a Schedule containing the instructions excluded by filter_type==0
+        If filter_type == 2:
+            returns a tuple of Schedules corresponding to the output of
+            filter_type == 0 and filter_type == 1.
 
         If no arguments are provided, this schedule is returned.
 
@@ -300,7 +304,8 @@ class Schedule(ScheduleComponent):
 
         return self._filter(filter_funcs, filter_type)
 
-    def _filter(self, filter_funcs: List[Callable], filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
+    def _filter(self, filter_funcs: List[Callable],
+                filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
         """
         Filters the Schedule according to the specified filter_funcs, with
         behavior specified by filter_type, as described in the filter() method.
@@ -329,13 +334,12 @@ class Schedule(ScheduleComponent):
         def total_filter(x):
 
             # return False if some filter returns False
-            for filter in filter_funcs:
-                if not filter(x):
+            for filter_func in filter_funcs:
+                if not filter_func(x):
                     return False
 
             # return True if no filter returns False
             return True
-
 
         subschedules = self.flatten()._children
 
@@ -346,14 +350,14 @@ class Schedule(ScheduleComponent):
 
         elif filter_type == 1:
             # return schedules failing total_filter
-            valid_subschedules = [sched for sched in valid_subschedules if not total_filter(sched)]
+            valid_subschedules = [sched for sched in subschedules if not total_filter(sched)]
             return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
 
         elif filter_type == 2:
             # create separate schedules for those passing total_filter
             # and failing total_filter
-            filtered_subschedules = [] # subschedules passing total_filter
-            excluded_subschedules = [] # subschedules failing total_filter
+            filtered_subschedules = []  # subschedules passing total_filter
+            excluded_subschedules = []  # subschedules failing total_filter
 
             for sched in subschedules:
                 if total_filter(sched):
@@ -361,8 +365,8 @@ class Schedule(ScheduleComponent):
                 else:
                     excluded_subschedules.append(sched)
 
-            return ( Schedule(*filtered_subschedules, name="{name}-excluded".format(name=self.name)),
-                     Schedule(*excluded_subschedules, name="{name}-excluded".format(name=self.name)) )
+            return (Schedule(*filtered_subschedules, name="{name}-filtered".format(name=self.name)),
+                    Schedule(*excluded_subschedules, name="{name}-excluded".format(name=self.name)))
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
