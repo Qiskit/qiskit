@@ -66,7 +66,6 @@ class WeightedPauliOperator(BaseOperator):
             [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
         # combine the paulis and remove those with zero weight
         self.simplify()
-        self._aer_paulis = None
         self._atol = atol
 
     @classmethod
@@ -120,20 +119,6 @@ class WeightedPauliOperator(BaseOperator):
         else:
             logger.warning("Operator is empty, Return 0.")
             return 0
-
-    @property
-    def aer_paulis(self):
-        """
-        Returns: the weighted paulis formatted for the aer simulator.
-        """
-        if getattr(self, '_aer_paulis', None) is None:
-            aer_paulis = []
-            for weight, pauli in self._paulis:
-                new_weight = [weight.real, weight.imag]
-                new_pauli = pauli.to_label()
-                aer_paulis.append([new_weight, new_pauli])
-            self._aer_paulis = aer_paulis
-        return self._aer_paulis
 
     def __eq__(self, other):
         """Overload == operation"""
@@ -705,6 +690,7 @@ class WeightedPauliOperator(BaseOperator):
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
         if use_simulator_operator_mode and self.paulis:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer.extensions import SnapshotExpectationValue
             snapshot = SnapshotExpectationValue('expval', self.paulis, variance=True)
             instructions = {'expval_snapshot': snapshot}
@@ -757,13 +743,10 @@ class WeightedPauliOperator(BaseOperator):
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
         if use_simulator_operator_mode:
-            expval_data = result.data(
-                circuit_name_prefix + 'aer_mode')['snapshots']['expectation_value']['expval'][0]
-            expval = expval_data['value']
-            var = expval_data.get('variance', [0.0, 0.0])
+            snapshot_data = result.data(
+                circuit_name_prefix + 'aer_mode')['snapshots']
+            expval = snapshot_data['expectation_value']['expval'][0]['value']
             avg = expval[0] + 1j * expval[1]
-            variance = var[0] + 1j * var[1]
-            std_dev = np.sqrt(variance)
         elif statevector_mode:
             quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
             for weight, pauli in self._paulis:
