@@ -40,7 +40,7 @@ class RGate(Gate):
         theta = self.params[0]
         phi = self.params[1]
         rule = [
-            (U3Gate(theta, phi - pi / 2, -phi - pi / 2), [q[0]], [])
+            (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
