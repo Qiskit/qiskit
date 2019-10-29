@@ -4,6 +4,7 @@ updateBranch: true
 deleteBranchAfterMerge: true
 reportStatus: true
 mergeMethod: squash
+reportStatus: true
 
 minApprovals:
   COLLABORATOR: 0
