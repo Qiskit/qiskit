@@ -317,6 +317,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             rep_times: Supported repetition times for device in microseconds.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
+            hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
             **kwargs: Optional fields.
         """
         self.n_uchannels = n_uchannels
