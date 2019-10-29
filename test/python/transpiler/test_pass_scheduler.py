@@ -22,7 +22,7 @@ import unittest.mock
 import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, TranspilerAccessError, TranspilerError
+from qiskit.transpiler import PassManager, TranspilerError
 from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
     FlowController
@@ -282,7 +282,7 @@ class TestUseCases(SchedulerTestCase):
         self.passmanager.append(PassH_Bad_TP())
         self.assertSchedulerRaises(self.circuit, self.passmanager,
                                    ['run transformation pass PassH_Bad_TP'],
-                                   TranspilerAccessError)
+                                   TranspilerError)
 
     def test_fenced_dag(self):
         """Analysis passes are not allowed to modified the DAG."""
@@ -297,7 +297,7 @@ class TestUseCases(SchedulerTestCase):
         self.assertSchedulerRaises(circ, self.passmanager,
                                    ['run analysis pass PassI_Bad_AP',
                                     'cx_runs: {(5, 6, 7, 8)}'],
-                                   TranspilerAccessError)
+                                   TranspilerError)
 
     def test_analysis_pass_is_idempotent(self):
         """Analysis passes are idempotent."""

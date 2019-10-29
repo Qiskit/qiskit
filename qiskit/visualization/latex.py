@@ -22,17 +22,11 @@ import json
 import math
 import re
 
-try:
-    from pylatexenc.latexencode import utf8tolatex
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
-
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from .tools.pi_check import pi_check
+from .utils import generate_latex_label
 
 
 class QCircuitImage:
@@ -63,11 +57,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        if not HAS_PYLATEX:
-            raise ImportError('The latex and latex_source drawers need '
-                              'pylatexenc installed. Run "pip install '
-                              'pylatexenc" before using the latex or '
-                              'latex_source drawers.')
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
@@ -276,8 +265,14 @@ class QCircuitImage:
         # wires in the beginning and end
         columns = 2
 
-        # all gates take up 1 column except from those with labels (cu1) which take 2
-        columns += sum([2 if nd.name == 'cu1' else 1 for layer in self.ops for nd in layer])
+        # all gates take up 1 column except from those with labels (ie cu1)
+        # which take 2 columns
+        for layer in self.ops:
+            column_width = 1
+            for nd in layer:
+                if nd.name in ['cu1', 'rzz']:
+                    column_width = 2
+            columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
@@ -368,7 +363,7 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = utf8tolatex(op.name).replace(" ", "\\,")
+                    nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
