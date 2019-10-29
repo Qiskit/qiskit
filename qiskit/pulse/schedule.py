@@ -232,7 +232,7 @@ class Schedule(ScheduleComponent):
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None,
-               filter_type: Optional[int] = 0) -> Union['Schedule', ('Schedule', 'Schedule')]:
+               filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
         """
         Filters the Schedule according to the specified filters, with behavior
         depending on the filter_type argument
@@ -300,7 +300,7 @@ class Schedule(ScheduleComponent):
 
         return self._filter(filter_funcs, filter_type)
 
-    def _filter(self, filter_funcs: List[Callable], filter_type: Optional[int] = 0) -> Union['Schedule', ('Schedule', 'Schedule')]:
+    def _filter(self, filter_funcs: List[Callable], filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
         """
         Filters the Schedule according to the specified filter_funcs, with
         behavior specified by filter_type, as described in the filter() method.
@@ -325,31 +325,44 @@ class Schedule(ScheduleComponent):
                          as described in the filter() method
         """
 
+        # define a filter return True if all filter_funcs return True
+        def total_filter(x):
+
+            # return False if some filter returns False
+            for filter in filter_funcs:
+                if not filter(x):
+                    return False
+
+            # return True if no filter returns False
+            return True
+
+
+        subschedules = self.flatten()._children
+
         if filter_type == 0:
-            # keep schedules passing all filters
-            valid_subschedules = self.flatten()._children
-            for filter_func in filter_funcs:
-                valid_subschedules = [sched for sched in valid_subschedules if filter_func(sched)]
+            # return schedules passing total_filter
+            valid_subschedules = [sched for sched in subschedules if total_filter(sched)]
             return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
 
         elif filter_type == 1:
-            # keep schedules failing at least one filter
-            valid_subschedules = self.flatten()._children
-            for filter_func in filter_funcs:
-                valid_subschedules = [sched for sched in valid_subschedules if not filter_func(sched)]
-            return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+            # return schedules failing total_filter
+            valid_subschedules = [sched for sched in valid_subschedules if not total_filter(sched)]
+            return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
 
         elif filter_type == 2:
-            type0_subschedules = [] # subschedules passing all filters
-            type1_subschedules = [] # subschedules failing at least one filter
+            # create separate schedules for those passing total_filter
+            # and failing total_filter
+            filtered_subschedules = [] # subschedules passing total_filter
+            excluded_subschedules = [] # subschedules failing total_filter
 
-            for sched in self.flatten()._children:
-                if all( [filter_func(sched) for filter_func in filter_funcs] ):
-                    type0_subschedules.append(sched)
+            for sched in subschedules:
+                if total_filter(sched):
+                    filtered_subschedules.append(sched)
                 else:
-                    type1_subschedules.append(sched)
+                    excluded_subschedules.append(sched)
 
-            return type0_subschedules, type1_subschedules
+            return ( Schedule(*filtered_subschedules, name="{name}-excluded".format(name=self.name)),
+                     Schedule(*excluded_subschedules, name="{name}-excluded".format(name=self.name)) )
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
