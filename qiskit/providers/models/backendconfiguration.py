@@ -289,6 +289,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                  rep_times: List[float],
                  meas_kernels: List[str],
                  discriminators: List[str],
+                 hamiltonian: Dict[str, str] = None,
                  **kwargs):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
@@ -323,13 +324,12 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self._dt = dt  # pylint: disable=invalid-name
-        self._dtm = dtm
+        self._dt = dt * 1.e-9  # pylint: disable=invalid-name
+        self._dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
-        if 'hamiltonian' in kwargs:
-            self._hamiltonian = kwargs.pop('hamiltonian')
+        self.hamiltonian = hamiltonian
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -345,30 +345,18 @@ class PulseBackendConfiguration(BackendConfiguration):
     def dt(self) -> float:  # pylint: disable=invalid-name
         """Time delta between samples on the signal channels in seconds."""
         warnings.warn("The time delta is now returned in units of [s] rather than [ns].")
-        return self._dt * 1.e-9
+        return self._dt
 
     @property
     def dtm(self) -> float:
         """Time delta between samples on the acquisition channels in seconds."""
         warnings.warn("The time delta is now returned in units of [s] rather than [ns].")
-        return self._dtm * 1e-9
+        return self._dtm
 
     @property
     def sample_rate(self) -> float:
         """Sample rate of the signal channels in Hz (1/dt)."""
         return 1.0 / self.dt
-
-    def hamiltonian(self) -> str:
-        """
-        Return the LaTeX Hamiltonian string for this device if provided.
-        """
-        return getattr(self, '_hamiltonian', {}).get('h_latex', None)
-
-    def hamiltonian_description(self) -> str:
-        """
-        Return the Hamiltonian description for this device if provided.
-        """
-        return getattr(self, '_hamiltonian', {}).get('description', None)
 
     def drive(self, qubit: int) -> DriveChannel:
         """

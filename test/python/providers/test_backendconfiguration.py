@@ -14,6 +14,7 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
+import warnings
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
@@ -25,15 +26,24 @@ from qiskit.providers import BackendConfigurationError
 class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
 
+    @classmethod
+    def setUpClass(cls):
+        # TODO: these two class methods can be removed when the warnings
+        # in backend config are removed.
+        warnings.filterwarnings("ignore")
+
+    @classmethod
+    def tearDownClass(cls):
+        warnings.resetwarnings()
+
     def setUp(self):
         self.provider = FakeProvider()
         self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
 
     def test_simple_config(self):
         """Test the most basic getters."""
-        self.assertEqual(self.config._dt, self.config.dt / 1.e-9)
         self.assertEqual(self.config.dt, 1.3333 * 1.e-9)
-        self.assertEqual(self.config._dtm, self.config.dtm / 1.e-9)
+        self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
         self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
     def test_sample_rate(self):
@@ -42,13 +52,11 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_hamiltonian(self):
         """Test the hamiltonian method."""
-        self.assertEqual(self.config.hamiltonian(),
-                         self.config._hamiltonian['h_latex'])
-        self.assertEqual(self.config.hamiltonian_description(), None)
-        # 3Q doesn't offer a hamiltonian -- test that we get a graceful response
+        self.assertEqual(self.config.hamiltonian['description'],
+                         "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
+        # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
-        self.assertEqual(backend_3q.configuration().hamiltonian(), None)
-        self.assertEqual(backend_3q.configuration().hamiltonian_description(), None)
+        self.assertEqual(backend_3q.configuration().hamiltonian, None)
 
     def test_get_channels(self):
         """Test requesting channels from the system."""
