@@ -47,3 +47,4 @@ def cx(self, ctl, tgt):  # pylint: disable=invalid-name
 
 
 QuantumCircuit.cx = cx
+QuantumCircuit.cnot = cx

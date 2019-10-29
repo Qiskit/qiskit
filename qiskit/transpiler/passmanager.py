@@ -14,7 +14,11 @@
 
 """PassManager class for the transpiler."""
 
+import dill
+
 from qiskit.visualization import pass_manager_drawer
+from qiskit.tools.parallel import parallel_map
+from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager
@@ -143,7 +147,47 @@ class PassManager:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
         return passes
 
-    def run(self, circuit):
+    def run(self, circuits):
+        """Run all the passes on circuit or circuits
+
+        Args:
+            circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
+            transform via all the registered passes.
+
+        Returns:
+            QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
+        """
+        if isinstance(circuits, QuantumCircuit):
+            return self._run_single_circuit(circuits)
+        else:
+            return self._run_several_circuits(circuits)
+
+    def _create_running_passmanager(self):
+        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
+        for pass_set in self._pass_sets:
+            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
+        return running_passmanager
+
+    @staticmethod
+    def _in_parallel(circuit, pm_dill=None):
+        """ Used by _run_several_circuits. """
+        running_passmanager = dill.loads(pm_dill)._create_running_passmanager()
+        result = running_passmanager.run(circuit)
+        return result
+
+    def _run_several_circuits(self, circuits):
+        """Run all the passes on each of the circuits in the circuits list
+
+        Args:
+            circuits (list[QuantumCircuit]): circuit to transform via all the registered passes
+
+        Returns:
+            list[QuantumCircuit]: Transformed circuits.
+        """
+        return parallel_map(PassManager._in_parallel, circuits,
+                            task_kwargs={'pm_dill': dill.dumps(self)})
+
+    def _run_single_circuit(self, circuit):
         """Run all the passes on a QuantumCircuit
 
         Args:
@@ -152,10 +196,7 @@ class PassManager:
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
-        for pass_set in self._pass_sets:
-            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
-
+        running_passmanager = self._create_running_passmanager()
         result = running_passmanager.run(circuit)
         self.property_set = running_passmanager.property_set
         return result
