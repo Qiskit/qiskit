@@ -25,7 +25,6 @@ from qiskit import compiler
 
 from .aqua_error import AquaError
 from .utils.backend_utils import (is_ibmq_provider,
-                                  is_aer_provider,
                                   is_statevector_backend,
                                   is_simulator_backend,
                                   is_local_backend,
@@ -271,14 +270,13 @@ class QuantumInstance:
 
         return transpiled_circuits
 
-    def execute(self, circuits, had_transpiled=False, **kwargs):
+    def execute(self, circuits, had_transpiled=False):
         """
         A wrapper to interface with quantum backend.
 
         Args:
             circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
             had_transpiled (bool, optional): whether or not circuits had been transpiled
-            kwargs (dict, optional): additional parameters
 
         Returns:
             Result: Result object
