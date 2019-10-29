@@ -88,7 +88,7 @@ class OneQubitEulerDecomposer:
 
     def _angles(self, unitary_mat, atol=DEFAULT_ATOL):
         """Return Euler angles for given basis."""
-        if self._basis in ['U3', 'U1X', 'ZYZ']:
+        if self._basis in ['U3', 'U1X', 'ZYZ', 'RR']:
             return self._angles_zyz(unitary_mat)
         if self._basis == 'XYX':
             return self._angles_xyx(unitary_mat, atol=atol)
@@ -256,7 +256,7 @@ class OneQubitEulerDecomposer:
         b = -theta/2
         c = -(phi-lam)/2
         circuit = QuantumCircuit(1)
-        circuit.r(-pi, -c-pi/2, 0)
-        if not simplify or not np.isclose(2*b, -pi, atol=atol):
-            circuit.r(2*b+pi, a-c-pi/2)
+        if not simplify or not np.isclose(2*b, -np.pi, atol=atol):
+            circuit.r(2*b+np.pi, a-c-np.pi/2, 0)
+        circuit.r(-np.pi, -c-np.pi/2, 0)
         return circuit
