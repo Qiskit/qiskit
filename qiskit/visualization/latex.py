@@ -276,8 +276,14 @@ class QCircuitImage:
         # wires in the beginning and end
         columns = 2
 
-        # all gates take up 1 column except from those with labels (cu1) which take 2
-        columns += sum([2 if nd.name == 'cu1' else 1 for layer in self.ops for nd in layer])
+        # all gates take up 1 column except from those with labels (ie cu1)
+        # which take 2 columns
+        for layer in self.ops:
+            column_width = 1
+            for nd in layer:
+                if nd.name in ['cu1', 'rzz']:
+                    column_width = 2
+            columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
