@@ -519,7 +519,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         actual_value = self.qubit_op.evaluate_with_result(
             result=quantum_instance_statevector.execute(circuits),
             statevector_mode=True,
-            use_simulator_operator_mode=True)
+            use_simulator_snapshot_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
 
     @parameterized.expand([
