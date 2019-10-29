@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for converting a circuit targeting U3,CX basis to Rx,Ry,Rxx."""
+"""Pass for converting a circuit targeting U3,CX basis to R,Rxx."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
@@ -27,7 +27,9 @@ from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 class MSBasisDecomposer(TransformationPass):
     """
-    Convert a circuit in U3,CX to Rx,Ry,Rxx without unrolling or simplification.
+    Pass for converting a circuit targeting U3,CX basis to R,Rx,Ry,Rxx.
+
+    No unrolling or simplification is done.
     """
 
     supported_input_gates = (U3Gate, CnotGate)
@@ -35,7 +37,8 @@ class MSBasisDecomposer(TransformationPass):
     def __init__(self, basis_gates):
         """
         Args:
-            basis_gates (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
+            basis_gates (list[str]): Target basis names,
+                e.g. `['r', 'rx', 'ry', 'rxx', 'ms']`.
 
         """
         super().__init__()
@@ -48,7 +51,7 @@ class MSBasisDecomposer(TransformationPass):
         self.requires = [Unroller(list(input_basis))]
 
     def run(self, dag):
-        """Replace U3,CX nodes in input dag with equivalent Rx,Ry,Rxx gates.
+        """Replace U3,CX nodes in input dag with equivalent R,Rx,Ry,Rxx gates.
 
         Args:
             dag(DAGCircuit): input dag
@@ -60,7 +63,7 @@ class MSBasisDecomposer(TransformationPass):
             DAGCircuit: output dag
         """
 
-        one_q_decomposer = OneQubitEulerDecomposer(basis='XYX')
+        one_q_decomposer = OneQubitEulerDecomposer(basis='RR')
         cnot_decomposition = cnot_rxx_decompose()
 
         for node in dag.op_nodes():

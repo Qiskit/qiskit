@@ -38,10 +38,11 @@ class OneQubitEulerDecomposer:
         U1X: U -> phase * U1(lam).RX(pi/2).U1(theta+pi).RX(pi/2).U1(phi+pi)
         ZYZ: U -> phase * RZ(phi).RY(theta).RZ(lam)
         XYX: U -> phase * RX(phi).RY(theta).RX(lam)
+        RR: U -> phase * R(-pi,(phi-lam-pi)/2).R(-theta+pi,-lam+pi/2)
     """
 
     def __init__(self, basis='U3'):
-        if basis not in ['U3', 'U1X', 'ZYZ', 'XYX']:
+        if basis not in ['U3', 'U1X', 'ZYZ', 'XYX', 'RR']:
             raise QiskitError("OneQubitEulerDecomposer: unsupported basis")
         self._basis = basis
 
@@ -105,6 +106,8 @@ class OneQubitEulerDecomposer:
             return self._circuit_zyz(angles, simplify=simplify, atol=atol)
         if self._basis == 'XYX':
             return self._circuit_xyx(angles, simplify=simplify, atol=atol)
+        if self._basis == 'RR':
+            return self._circuit_rr(angles, simplify=simplify, atol=atol)
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
 
     @staticmethod
@@ -242,4 +245,18 @@ class OneQubitEulerDecomposer:
             circuit.ry(theta, 0)
         if not simplify or not np.isclose(phi, 0.0, atol=atol):
             circuit.rx(phi, 0)
+        return circuit
+
+    @staticmethod
+    def _circuit_rr(angles, simplify=True, atol=DEFAULT_ATOL):
+        """Based on https://arxiv.org/pdf/1603.07678.pdf (Eq. 7)
+        """
+        theta, phi, lam = angles
+        a = -(phi+lam)/2
+        b = -theta/2
+        c = -(phi-lam)/2
+        circuit = QuantumCircuit(1)
+        circuit.r(-pi, -c-pi/2, 0)
+        if not simplify or not np.isclose(2*b, -pi, atol=atol):
+            circuit.r(2*b+pi, a-c-pi/2)
         return circuit
