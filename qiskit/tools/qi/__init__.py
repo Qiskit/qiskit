@@ -13,3 +13,7 @@
 # that they have been altered from the originals.
 
 """A collection of useful quantum information functions"""
+
+from .qi import (qft, partial_trace, vectorize, devectorize, choi_to_pauli,
+                 chop, outer, entropy, shannon_entropy, concurrence,
+                 entanglement_of_formation, mutual_information, is_pos_def)

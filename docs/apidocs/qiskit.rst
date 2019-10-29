@@ -24,7 +24,7 @@ API Reference
    qobj
    quantum_info
    result
-   tools/tools
+   tools
    tools_jupyter
    transpiler
    transpiler_passes
