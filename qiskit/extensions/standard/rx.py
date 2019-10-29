@@ -20,8 +20,7 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.r import RGate
 
 
 class RXGate(Gate):
@@ -33,12 +32,12 @@ class RXGate(Gate):
 
     def _define(self):
         """
-        gate rx(theta) a {u3(theta, -pi/2, pi/2) a;}
+        gate rx(theta) a {r(theta, 0) a;}
         """
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U3Gate(self.params[0], -pi/2, pi/2), [q[0]], [])
+            (RGate(self.params[0], 0), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
