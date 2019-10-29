@@ -287,7 +287,7 @@ class QuantumInstance:
               assembling to the qobj.
         """
         # pylint: disable=import-outside-toplevel
-        from .utils.run_circuits import (run_qobj)
+        from .utils.run_circuits import run_qobj
 
         from .utils.measurement_error_mitigation import (get_measured_qubits_from_qobj,
                                                          build_measurement_error_mitigation_qobj)
