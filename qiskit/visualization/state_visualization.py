@@ -423,8 +423,10 @@ def plot_state_city(rho, title="", figsize=None, color=None,
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
+                                   ha='right', va='top')
+        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
+                                   ha='left', va='center')
         ax1.set_zlabel('Re[$\\rho$]', fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
@@ -452,7 +454,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
         if min(dzi) < 0 < max(dzi):
             ax2.add_collection3d(pc2)
-
         ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
         ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
         if min_dzi != max_dzi:
@@ -465,8 +466,11 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                 ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
             else:
                 ax2.axes.set_zlim3d(auto=True)
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
+
+        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
+                                   ha='right', va='top')
+        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
+                                   ha='left', va='center')
         ax2.set_zlabel('Im[$\\rho$]', fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)

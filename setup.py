@@ -33,7 +33,8 @@ REQUIREMENTS = [
     "ply>=3.10",
     "psutil>=5",
     "scipy>=1.0",
-    "sympy>=1.3"
+    "sympy>=1.3",
+    "dill>=0.3",
 ]
 
 # Add Cython extensions here

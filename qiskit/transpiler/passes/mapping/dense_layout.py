@@ -12,15 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass for choosing a Layout of a circuit onto a Coupling graph.
+"""Choose a Layout by finding the most connected subset of qubits."""
 
-This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit).
-
-Note: even though a 'layout' is not strictly a property of the DAG,
-in the transpiler architecture it is best passed around between passes by
-being set in `property_set`.
-"""
 
 import numpy as np
 import scipy.sparse as sp
@@ -32,20 +25,23 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class DenseLayout(AnalysisPass):
-    """
-    Chooses a Layout by finding the most connected subset of qubits.
+    """Choose a Layout by finding the most connected subset of qubits.
+
+    This pass associates a physical qubit (int) to each virtual qubit
+    of the circuit (Qubit).
+
+    Note:
+        Even though a 'layout' is not strictly a property of the DAG,
+        in the transpiler architecture it is best passed around between passes
+        by being set in `property_set`.
     """
 
     def __init__(self, coupling_map, backend_prop=None):
-        """
-        Chooses a DenseLayout
+        """DenseLayout initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
             backend_prop (BackendProperties): backend properties object
-
-        Raises:
-            TranspilerError: if invalid options
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -56,7 +52,8 @@ class DenseLayout(AnalysisPass):
         self.num_meas = 0
 
     def run(self, dag):
-        """
+        """Run the DenseLayout pass on `dag`.
+
         Pick a convenient layout depending on the best matching
         qubit connectivity, and set the property `layout`.
 
