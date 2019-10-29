@@ -24,6 +24,7 @@ from matplotlib.patches import Circle                   # pylint: disable=import
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
+from qiskit.test.mock import FakeBackend
 
 try:
     # pylint: disable=import-error
@@ -76,12 +77,12 @@ def _backend_monitor(backend):
     for a IBMQ bakend repr.
 
     Args:
-        backend (IBMQbackend): The backend.
+        backend (IBMQBackend | FakeBackend): The backend.
 
     Raises:
         QiskitError: Input is not an IBMQBackend
     """
-    if not isinstance(backend, IBMQBackend):
+    if not isinstance(backend, IBMQBackend) and not isinstance(backend, FakeBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
     title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
     title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
@@ -129,7 +130,7 @@ def config_tab(backend):
     """The backend configuration widget.
 
     Args:
-        backend (IBMQbackend): The backend.
+        backend (IBMQBackend | FakeBackend): The backend.
 
     Returns:
         grid: A GridBox widget.
@@ -241,7 +242,7 @@ def qubits_tab(backend):
     """The qubits properties widget
 
     Args:
-        backend (IBMQbackend): The backend.
+        backend (IBMQBackend | FakeBackend): The backend.
 
     Returns:
         VBox: A VBox widget.
@@ -320,7 +321,7 @@ def gates_tab(backend):
     """The multiple qubit gate error widget.
 
     Args:
-        backend (IBMQbackend): The backend.
+        backend (IBMQBackend | FakeBackend): The backend.
 
     Returns:
         VBox: A VBox widget.
@@ -427,7 +428,7 @@ def detailed_map(backend):
     """Widget for displaying detailed noise map.
 
     Args:
-        backend (IBMQbackend): The backend.
+        backend (IBMQBackend | FakeBackend): The backend.
 
     Returns:
         GridBox: Widget holding noise map images.
@@ -443,7 +444,7 @@ def job_history(backend):
     """Widget for displaying job history
 
     Args:
-     backend (IBMQbackend): The backend.
+     backend (IBMQBackend | FakeBackend): The backend.
 
     Returns:
         Tab: A tab widget for history images.
