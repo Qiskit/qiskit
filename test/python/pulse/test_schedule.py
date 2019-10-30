@@ -431,13 +431,18 @@ class TestDelay(BaseTestSchedule):
 
 
 class TestScheduleFilter(BaseTestSchedule):
-    """Test Schedule filtering methods. """
-
     """
-    First block corresponds to the filter_type = 0 case
+    Test Schedule filtering methods.
+
+    Note: each test in this class uses one of two helper methods:
+    self.filter_and_test_consistency and self._filter_and_test_consistency
+    the purpose of which is to behave like filter() or _filter() with the option
+    filter_type = 2; however each time it is called it also checks the consistency
+    of this output with the filter_type=0,1 cases, so that all cases can be tested
+    at the same time.
     """
     def test_filter_channels(self):
-        """Test filtering over channels."""
+        """Test filtering over channels"""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         acquire = Acquire(5)
@@ -448,11 +453,20 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
         sched = sched.insert(90, lp0(device.drives[0]))
 
-        self.assertEqual(len(sched.filter(channels=[AcquireChannel(1)]).instructions), 1)
+        # split instructions for those on AcquireChannel(1) and those not
+        filtered, excluded = self.filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
+        self.assertEqual(len(filtered.instructions), 1)
+        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(filtered | excluded, sched)
+
+        # Split schedule into the part with channels on 1 and into a part without
         channels = [AcquireChannel(1), DriveChannel(1)]
-        has_chan_1 = sched.filter(channels=channels)
-        for _, inst in has_chan_1.instructions:
+        filtered, excluded = self.filter_and_test_consistency(sched, channels=channels)
+        for _, inst in filtered.instructions:
             self.assertTrue(any([chan in channels for chan in inst.channels]))
+
+        for _, inst in excluded.instructions:
+            self.assertFalse(any([chan in channels for chan in inst.channels]))
 
     def test_filter_inst_types(self):
         """Test filtering on instruction types."""
@@ -466,16 +480,30 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
         sched = sched.insert(90, lp0(device.drives[0]))
 
-        only_acquires = sched.filter(instruction_types=[AcquireInstruction])
-        for _, inst in only_acquires.instructions:
+        # split into parts with and without AcquireInstruction
+        only_acquire, no_acquire = \
+            self.filter_and_test_consistency(sched, instruction_types=[AcquireInstruction])
+        for _, inst in only_acquire.instructions:
             self.assertIsInstance(inst, AcquireInstruction)
-        only_pulse_and_fc = sched.filter(instruction_types=[PulseInstruction,
-                                                            FrameChangeInstruction])
+        for _, inst in no_acquire.instructions:
+            self.assertFalse(isinstance(inst, AcquireInstruction))
+
+        # split according to PulseInstruction or Framechange, verify change
+        only_pulse_and_fc, no_pulse_and_fc = \
+            self.filter_and_test_consistency(sched, instruction_types=[PulseInstruction,
+                                                                       FrameChangeInstruction])
         for _, inst in only_pulse_and_fc.instructions:
             self.assertIsInstance(inst, (PulseInstruction, FrameChangeInstruction))
+        for _, inst in no_pulse_and_fc.instructions:
+            self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        only_fc = sched.filter(instruction_types={FrameChangeInstruction})
+        self.assertEqual(len(no_pulse_and_fc.instructions), 1)
+
+        # split according to FrameChangeInstruction
+        only_fc, no_fc = \
+            self.filter_and_test_consistency(sched, instruction_types={FrameChangeInstruction})
         self.assertEqual(len(only_fc.instructions), 1)
+        self.assertEqual(len(no_fc.instructions), 4)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
@@ -489,25 +517,43 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
         sched = sched.insert(90, lp0(device.drives[0]))
 
-        intervals_a = sched.filter(time_ranges=((0, 13),))
-        for time, inst in intervals_a.instructions:
-            self.assertTrue(0 <= time <= 13)
-            self.assertTrue(inst.timeslots.timeslots[0].interval.stop <= 13)
-        self.assertEqual(len(intervals_a.instructions), 2)
+        # split schedule into instructions occuring in (0,13), and those outside
+        filtered, excluded = self.filter_and_test_consistency(sched, time_ranges=((0, 13),))
+        for start_time, inst in filtered.instructions:
+            self.assertTrue((start_time >= 0) and (start_time + inst.stop_time <= 13))
+        for start_time, inst in excluded.instructions:
+            self.assertFalse((start_time >= 0) and (start_time + inst.stop_time <= 13))
+        self.assertEqual(len(filtered.instructions), 2)
+        self.assertEqual(len(excluded.instructions), 3)
 
-        intervals_b = sched.filter(time_ranges=[(59, 65)])
-        self.assertEqual(len(intervals_b.instructions), 1)
-        self.assertEqual(intervals_b.instructions[0][0], 60)
-        self.assertIsInstance(intervals_b.instructions[0][1], AcquireInstruction)
+        # split into schedule occuring in and outside of interval (59,65)
+        filtered, excluded = self.filter_and_test_consistency(sched, time_ranges=[(59, 65)])
+        self.assertEqual(len(filtered.instructions), 1)
+        self.assertEqual(filtered.instructions[0][0], 60)
+        self.assertIsInstance(filtered.instructions[0][1], AcquireInstruction)
+        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(excluded.instructions[3][0], 90)
+        self.assertIsInstance(excluded.instructions[3][1], PulseInstruction)
 
-        non_full_intervals = sched.filter(time_ranges=[(0, 2), (8, 11), (61, 70)])
-        self.assertEqual(len(non_full_intervals.instructions), 0)
+        # split instructions based on the interval
+        # (none should be, though they have some overlap with some of the instructions)
+        filtered, excluded = \
+            self.filter_and_test_consistency(sched, time_ranges=[(0, 2), (8, 11), (61, 70)])
+        self.assertEqual(len(filtered.instructions), 0)
+        self.assertEqual(len(excluded.instructions), 5)
 
-        multi_interval = sched.filter(time_ranges=[(10, 15), (63, 93)])
-        self.assertEqual(len(multi_interval.instructions), 2)
+        # split instructions from multiple non-overlapping intervals, specified
+        # as time ranges
+        filtered, excluded = \
+            self.filter_and_test_consistency(sched, time_ranges=[(10, 15), (63, 93)])
+        self.assertEqual(len(filtered.instructions), 2)
+        self.assertEqual(len(excluded.instructions), 3)
 
-        multi_interval = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)])
-        self.assertEqual(len(multi_interval.instructions), 2)
+        # split instructions from non-overlapping intervals, specified as Intervals
+        filtered, excluded = \
+            self.filter_and_test_consistency(sched, intervals=[Interval(10, 15), Interval(63, 93)])
+        self.assertEqual(len(filtered.instructions), 2)
+        self.assertEqual(len(excluded.instructions), 3)
 
     def test_filter_multiple(self):
         """Test filter composition."""
@@ -521,18 +567,30 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
         sched = sched.insert(90, lp0(device.drives[0]))
 
-        filtered = sched.filter(channels={0}, instruction_types=[PulseInstruction],
-                                time_ranges=[(25, 100)])
+        # split instructions with filters on channel 0, of type PulseInstruction,
+        # occuring in the time interval (25, 100)
+        filtered, excluded = self.filter_and_test_consistency(sched,
+                                                              channels={device.drives[0]},
+                                                              instruction_types=[PulseInstruction],
+                                                              time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, PulseInstruction)
             self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
+        self.assertEqual(len(excluded.instructions), 4)
+        self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
+        self.assertTrue(excluded.instructions[2][0] == 30)
 
-        filtered_b = sched.filter(instruction_types=[PulseInstruction, FrameChangeInstruction],
-                                  time_ranges=[(25, 100), (0, 30)])
-        for time, inst in filtered_b.instructions:
+        # split based on PulseInstructions in the specified intervals
+        filtered, excluded = self.filter_and_test_consistency(sched,
+                                                              instruction_types=[PulseInstruction],
+                                                              time_ranges=[(25, 100), (0, 11)])
+        self.assertTrue(len(excluded.instructions), 3)
+        for time, inst in filtered.instructions:
             self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
-        self.assertTrue(len(filtered_b.instructions), 4)
+        self.assertTrue(len(filtered.instructions), 4)
+        # make sure the PulseInstruction not in the intervals is maintained
+        self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
 
     def test_filter(self):
         """Test _filter method."""
@@ -542,336 +600,22 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(0, lp0(device.drives[0]))
         sched = sched.insert(10, lp0(device.drives[1]))
         sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        for i in sched._filter([lambda x: True]).instructions:
-            self.assertTrue(i in sched.instructions)
-        self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
-        self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions), 2)
 
-    """
-    This block corresponds to the filter_type == 1 case.
-
-    These are directly copied and then slightly modified from filter_type==0
-    tests
-    """
-    def test_filter_channels_type1(self):
-        """Test filtering over channels with filter_type==1"""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # Verify 4 instructions not associated with AcquireChannel(1)
-        self.assertEqual(len(sched.filter(channels=[AcquireChannel(1)], filter_type = 1).instructions), 4)
-
-        # Filter out instructions for the following, and verify they are
-        # not present in the new Schedule
-        channels = [AcquireChannel(1), DriveChannel(1)]
-        has_chan_1 = sched.filter(channels=channels, filter_type=1)
-        for _, inst in has_chan_1.instructions:
-            self.assertFalse(any([chan in channels for chan in inst.channels]))
-
-
-    def test_filter_inst_types_type1(self):
-        """Test filtering on instruction types with filter_type==1."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # remove acquire instructions, then verify none are from acquire channel
-        acquire_removed = sched.filter(instruction_types=[AcquireInstruction],filter_type=1)
-        for _, inst in acquire_removed.instructions:
-            self.assertFalse( isinstance(inst, AcquireInstruction))
-
-        # remove pulse and framechange, verify change
-        pulse_and_fc_removed = sched.filter(instruction_types=[PulseInstruction,
-                                                            FrameChangeInstruction], filter_type =1)
-        for _, inst in pulse_and_fc_removed.instructions:
-            self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
-
-        self.assertEqual(len(pulse_and_fc_removed.instructions), 1)
-        fc_removed = sched.filter(instruction_types={FrameChangeInstruction}, filter_type=1)
-        self.assertEqual(len(fc_removed.instructions), 4)
-
-    def test_filter_intervals_type1(self):
-        """Test filtering on intervals with filter_type == 1."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # remove instructions completely contained in the interval (0,13)
-        # verify that none of the instructions are completely contained in this
-        # interval, and that there are 3 remaining
-        intervals_a = sched.filter(time_ranges=((0, 13),), filter_type = 1)
-        for start_time, inst in intervals_a.instructions:
-            self.assertFalse( (start_time >= 0) and (start_time + inst.stop_time <= 13) )
-        self.assertEqual(len(intervals_a.instructions), 3)
-
-        # remove instructions occuring in (59,65)
-        intervals_b = sched.filter(time_ranges=[(59, 65)], filter_type = 1)
-        self.assertEqual(len(intervals_b.instructions), 4)
-        self.assertEqual(intervals_b.instructions[3][0], 90)
-        self.assertIsInstance(intervals_b.instructions[3][1], PulseInstruction )
-
-        # remove instructions occuring in the following intervals
-        # (none should be, though they have some overlap with some of the instructions)
-        non_full_intervals = sched.filter(time_ranges=[(0, 2), (8, 11), (61, 70)], filter_type =1)
-        self.assertEqual(len(non_full_intervals.instructions), 5)
-
-        # remove instructions from multiple non-overlapping intervals, specified
-        # as time ranges
-        multi_interval = sched.filter(time_ranges=[(10, 15), (63, 93)],filter_type = 1)
-        self.assertEqual(len(multi_interval.instructions), 3)
-
-        # remove instructions from non-overlapping intervals, specified as Intervals
-        multi_interval = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)], filter_type = 1)
-        self.assertEqual(len(multi_interval.instructions), 3)
-
-    def test_filter_multiple_type1(self):
-        """Test filter composition for filter_type = 1"""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # remove instructions on channel 0, of type PulseInstruction or FrameChangeInstruction,
-        # occuring in the time interval (25, 100)
-        filtered = sched.filter(channels={device.drives[0]},
-                                instruction_types=[PulseInstruction, FrameChangeInstruction],
-                                time_ranges=[(25, 100)], filter_type = 1)
-        self.assertEqual(len(filtered.instructions), 3)
-        self.assertTrue(filtered.instructions[0][1].channels[0] == DriveChannel(0))
-        self.assertTrue(filtered.instructions[2][0] == 60)
-
-        # remove all PulseInstructions in the specified intervals
-        filtered_b = sched.filter(instruction_types=[PulseInstruction],
-                                  time_ranges=[(25, 100), (0, 11)], filter_type = 1)
-        self.assertTrue(len(filtered_b.instructions), 3)
-        # make sure the PulseInstruction not in the intervals is maintained
-        self.assertIsInstance(filtered_b.instructions[0][1],PulseInstruction)
-
-
-    def test_filter_type1(self):
-        """Test _filter method for filter_type=1."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        for i in sched._filter([lambda x: True], filter_type =1).instructions:
-            self.assertFalse(i in sched.instructions)
-        self.assertEqual(len(sched._filter([lambda x: False],filter_type = 1).instructions), 3)
-        self.assertEqual(len(sched._filter([lambda x: x[0] < 30], filter_type = 1).instructions), 1)
-
-    """
-    This block corresponds to the filter_type == 2 case.
-
-    This is directly combining the filter_type ==0 and 1 cases, as they are
-    computed slightly differently
-    """
-    def test_filter_channels_type2(self):
-        """Test filtering over channels with filter_type==2"""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        #filtered has instructions for AcquireChannel(1), excluded has the rest
-        filtered,excluded = sched.filter(channels=[AcquireChannel(1)], filter_type = 2)
-        self.assertEqual(len(filtered.instructions), 1)
-        self.assertEqual(len(excluded.instructions), 4)
-        self.assertEqual(filtered | excluded, sched)
-
-        # Split schedule into the part with channels on 1 and into a part without
-        channels = [AcquireChannel(1), DriveChannel(1)]
-        has_chan_1,no_chan_1 = sched.filter(channels=channels, filter_type=2)
-        for _, inst in has_chan_1.instructions:
-            self.assertTrue(any([chan in channels for chan in inst.channels]))
-
-        for _, inst in no_chan_1.instructions:
-            self.assertFalse(any([chan in channels for chan in inst.channels]))
-
-        self.assertEqual(has_chan_1 | no_chan_1, sched)
-
-    def test_filter_inst_types_type2(self):
-        """Test filtering on instruction types with filter_type==1."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # split into parts with and without AcquireInstruction
-        only_acquire,no_acquire = sched.filter(instruction_types=[AcquireInstruction],filter_type=2)
-        for _, inst in only_acquire.instructions:
-            self.assertIsInstance(inst, AcquireInstruction)
-        for _, inst in no_acquire.instructions:
-            self.assertFalse( isinstance(inst, AcquireInstruction))
-        self.assertEqual(only_acquire | no_acquire, sched)
-
-        # split according to PulseInstruction or Framechange, verify change
-        only_pulse_and_fc, no_pulse_and_fc = sched.filter(instruction_types=[PulseInstruction,
-                                                            FrameChangeInstruction], filter_type =2)
-        for _, inst in only_pulse_and_fc.instructions:
-            self.assertIsInstance(inst, (PulseInstruction, FrameChangeInstruction))
-        for _, inst in no_pulse_and_fc.instructions:
-            self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
-        self.assertEqual(len(only_pulse_and_fc.instructions),4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 1)
-        self.assertEqual(only_pulse_and_fc | no_pulse_and_fc, sched)
-
-        # split according to FrameChangeInstruction
-        only_fc,no_fc = sched.filter(instruction_types={FrameChangeInstruction}, filter_type=2)
-        self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 4)
-        self.assertEqual(only_fc | no_fc, sched)
-
-    def test_filter_intervals_type2(self):
-        """Test filtering on intervals with filter_type == 2."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # split schedule into instructions occuring in (0,13), and those outside
-        in_interval,outside_interval = sched.filter(time_ranges=((0, 13),), filter_type = 2)
-        for start_time, inst in in_interval.instructions:
-            self.assertTrue( (start_time >= 0) and (start_time + inst.stop_time <= 13) )
-        for start_time, inst in outside_interval.instructions:
-            self.assertFalse( (start_time >= 0) and (start_time + inst.stop_time <= 13) )
-        self.assertEqual(len(in_interval.instructions),2)
-        self.assertEqual(len(outside_interval.instructions), 3)
-        self.assertEqual(in_interval | outside_interval, sched)
-
-        # split into schedule occuring in and outside of interval (59,65)
-        in_interval, outside_interval = sched.filter(time_ranges=[(59, 65)], filter_type = 2)
-        self.assertEqual(len(in_interval.instructions), 1)
-        self.assertEqual(in_interval.instructions[0][0], 60)
-        self.assertIsInstance(in_interval.instructions[0][1], AcquireInstruction)
-        self.assertEqual(len(outside_interval.instructions), 4)
-        self.assertEqual(outside_interval.instructions[3][0], 90)
-        self.assertIsInstance(outside_interval.instructions[3][1], PulseInstruction )
-        self.assertTrue(in_interval | outside_interval, sched)
-
-        # split instructions based on the interval
-        # (none should be, though they have some overlap with some of the instructions)
-        partial_int_keep,partial_int_exclude = sched.filter(time_ranges=[(0, 2), (8, 11), (61, 70)], filter_type =2)
-        self.assertEqual(len(partial_int_keep.instructions), 0)
-        self.assertEqual(len(partial_int_exclude.instructions), 5)
-        self.assertEqual(partial_int_keep | partial_int_exclude, sched)
-
-        # split instructions from multiple non-overlapping intervals, specified
-        # as time ranges
-        multi_int_keep,multi_int_exclude = sched.filter(time_ranges=[(10, 15), (63, 93)],filter_type = 2)
-        self.assertEqual(len(multi_int_keep.instructions), 2)
-        self.assertEqual(len(multi_int_exclude.instructions), 3)
-        self.assertEqual(multi_int_keep | multi_int_exclude, sched)
-
-        # split instructions from non-overlapping intervals, specified as Intervals
-        multi_int_keep,multi_int_exclude = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)], filter_type = 1)
-        self.assertEqual(len(multi_int_keep.instructions), 2)
-        self.assertEqual(len(multi_int_exclude.instructions), 3)
-        self.assertEqual(multi_int_keep | multi_int_exclude, sched)
-
-    def test_filter_multiple_type2(self):
-        """Test filter composition for filter_type = 2"""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-        sched = sched.insert(60, acquire(device.acquires, device.memoryslots))
-        sched = sched.insert(90, lp0(device.drives[0]))
-
-        # split instructions with filters on channel 0, of type PulseInstruction,
-        # occuring in the time interval (25, 100)
-        filtered,excluded = sched.filter(channels={device.drives[0]},
-                                instruction_types=[PulseInstruction],
-                                time_ranges=[(25, 100)], filter_type = 2)
-        for time, inst in filtered.instructions:
-            self.assertIsInstance(inst, PulseInstruction)
-            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
-            self.assertTrue(25 <= time <= 100)
-        self.assertEqual(len(excluded.instructions), 4)
-        self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
-        self.assertTrue(excluded.instructions[2][0] == 30)
-        self.assertEqual(filtered | excluded, sched)
-
-        # split based on PulseInstructions in the specified intervals
-        filtered,excluded = sched.filter(instruction_types=[PulseInstruction],
-                                  time_ranges=[(25, 100), (0, 11)], filter_type = 2)
-        self.assertTrue(len(excluded.instructions), 3)
-        for time, inst in filtered.instructions:
-            self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
-        self.assertTrue(len(filtered.instructions), 4)
-        # make sure the PulseInstruction not in the intervals is maintained
-        self.assertIsInstance(excluded.instructions[0][1],PulseInstruction)
-        self.assertEqual(filtered | excluded, sched)
-
-
-    def test_filter_type2(self):
-        """Test _filter method for filter_type=2."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.drives[0]))
-        sched = sched.insert(10, lp0(device.drives[1]))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
-
-        filtered,excluded = sched._filter([lambda x: True], filter_type =2)
+        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: True])
         for i in filtered.instructions:
             self.assertTrue(i in sched.instructions)
         for i in excluded.instructions:
             self.assertFalse(i in sched.instructions)
 
-        filtered,excluded = sched._filter([lambda x: False],filter_type=2)
-        self.assertEqual(len(filtered.instructions),0)
-        self.assertEqual(len(excluded.instructions),3)
+        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: False])
+        self.assertEqual(len(filtered.instructions), 0)
+        self.assertEqual(len(excluded.instructions), 3)
 
-        filtered,excluded = sched._filter([lambda x: x[0] < 30], filter_type=2)
+        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: x[0] < 30])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 1)
 
-
-    def filter_and_test_consistency(self,schedule, *args, **kwargs):
+    def filter_and_test_consistency(self, schedule, *args, **kwargs):
         """
         This is a helper function, which returns the output of
         schedule.filter(*args, **kwargs, filter_type = 2), while also checking
@@ -883,11 +627,24 @@ class TestScheduleFilter(BaseTestSchedule):
         filter_type=2 reproduces the original schedule
         """
 
-        filtered,excluded = schedule.filter(*args,**kwargs,filter_type=2)
-        self.assertEqual(filtered, schedule.filter(*args,**kwargs, filter_type=0))
-        self.assertEqual(excluded, schedule.filter(*args,**kwargs, filter_type=1))
+        filtered, excluded = schedule.filter(*args, **kwargs, filter_type=2)
+        self.assertEqual(filtered, schedule.filter(*args, **kwargs, filter_type=0))
+        self.assertEqual(excluded, schedule.filter(*args, **kwargs, filter_type=1))
         self.assertEqual(filtered | excluded, schedule)
-        return filtered,excluded
+        return filtered, excluded
+
+    def _filter_and_test_consistency(self, schedule, *args, **kwargs):
+        """
+        Same idea as self.filter_and_test_consistency, but for calling the
+        schedule._filter(*args,**kwargs,filter_type=2), while checking consistency
+        """
+
+        filtered, excluded = schedule._filter(*args, **kwargs, filter_type=2)
+        self.assertEqual(filtered, schedule._filter(*args, **kwargs, filter_type=0))
+        self.assertEqual(excluded, schedule._filter(*args, **kwargs, filter_type=1))
+        self.assertEqual(filtered | excluded, schedule)
+        return filtered, excluded
+
 
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
