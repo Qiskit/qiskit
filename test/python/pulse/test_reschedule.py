@@ -20,6 +20,7 @@ import numpy as np
 from qiskit import pulse
 from qiskit.pulse.cmd_def import CmdDef
 from qiskit.pulse.commands import AcquireInstruction
+from qiskit.pulse.channels import MeasureChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -34,9 +35,7 @@ class TestAutoMerge(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.device = pulse.PulseChannelSpec.from_backend(self.backend)
         self.config = self.backend.configuration()
-        self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.cmd_def = self.backend.defaults().build_cmd_def()
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -47,6 +46,8 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
         sched = sched.insert(1, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         sched = sched.insert(10, acquire(self.device.acquires[1], self.device.memoryslots[1]))
+        sched = sched.insert(10, self.short_pulse(self.device.measures[0]))
+        sched = sched.insert(10, self.short_pulse(self.device.measures[1]))
         sched = align_measures([sched], self.cmd_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
@@ -54,6 +55,8 @@ class TestAutoMerge(QiskitTestCase):
         sched = align_measures([sched], self.cmd_def, align_time=20)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 20)
+            if isinstance(inst.channels[0], MeasureChannel):
                 self.assertEqual(time, 20)
 
     def test_align_post_u3(self):
@@ -72,7 +75,7 @@ class TestAutoMerge(QiskitTestCase):
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
 
-    def test_error_multi_acquire(self):
+    def test_multi_acquire(self):
         """Test that an error is raised if multiple acquires occur on the same channel."""
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
@@ -81,6 +84,21 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(10, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
+
+        # Test for measure channel
+        sched = pulse.Schedule(name='fake_experiment')
+        sched = sched.insert(10, self.short_pulse(self.device.measures[0]))
+        sched = sched.insert(30, self.short_pulse(self.device.measures[0]))
+        with self.assertRaises(PulseError):
+            align_measures([sched], self.cmd_def)
+
+        # Test both using cmd_def
+        sched = pulse.Schedule()
+        sched += self.cmd_def.get('measure', (0, 1))
+        align_measures([sched], align_time=50)
+        sched += self.cmd_def.get('measure', (0, 1))
+        with self.assertRaises(PulseError):
+            align_measures([sched], align_time=50)
 
     def test_error_post_acquire_pulse(self):
         """Test that an error is raised if a pulse occurs on a channel after an acquire."""

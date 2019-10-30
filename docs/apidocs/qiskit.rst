@@ -8,7 +8,7 @@ API Reference
    :maxdepth: 1
 
    assembler
-   circuit/circuit
+   circuit
    compiler
    converters
    dagcircuit

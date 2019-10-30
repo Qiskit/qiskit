@@ -60,8 +60,8 @@ release = '0.12.0'
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
     'sphinx_automodapi.automodapi',
+    'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
@@ -70,6 +70,7 @@ extensions = [
     'reno.sphinxext',
 ]
 html_static_path = ['_static']
+templates_path = ['_templates']
 html_css_files = [
     'style.css',
 ]

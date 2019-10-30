@@ -370,7 +370,7 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True):

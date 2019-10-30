@@ -21,7 +21,7 @@ class SchedStyle:
                  label_font_size=10, icon_font_size=18, label_ch_linestyle='--',
                  label_ch_color=None, label_ch_alpha=0.3, d_ch_color=None, u_ch_color=None,
                  m_ch_color=None, s_ch_color=None, s_ch_linestyle='-', table_color=None,
-                 bg_color=None, num_points=1000, dpi=150):
+                 bg_color=None, num_points=1000, dpi=150, remove_spacing=True):
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
@@ -45,6 +45,7 @@ class SchedStyle:
             bg_color(str): color for figure background
             num_points (int): number of points for interpolation
             dpi (int): dpi to save image
+            remove_spacing(bool): Remove redundant spacing when the waveform has no negative values
         """
         self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
@@ -67,6 +68,7 @@ class SchedStyle:
         self.bg_color = bg_color or '#f2f3f4'
         self.num_points = num_points
         self.dpi = dpi
+        self.remove_spacing = remove_spacing
 
 
 class PulseStyle:
