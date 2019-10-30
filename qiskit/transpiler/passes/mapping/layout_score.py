@@ -30,15 +30,13 @@ class LayoutScore(AnalysisPass):
     The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
     No CX direction is considered.
     """
-    def __init__(self, coupling_map, initial_layout=None):
+    def __init__(self, coupling_map):
         """LayoutScore initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            initial_layout (Layout): The layout to evaluate.
         """
         super().__init__()
-        self.layout = initial_layout
         self.coupling_map = coupling_map
 
     def run(self, dag):
@@ -47,16 +45,16 @@ class LayoutScore(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to evaluate.
         """
-        self.layout = self.layout or self.property_set["layout"]
+        layout = self.property_set["layout"]
 
-        if self.layout is None:
+        if layout is None:
             return
 
         distances = []
 
         for gate in dag.twoQ_gates():
-            physical_q0 = self.layout[gate.qargs[0]]
-            physical_q1 = self.layout[gate.qargs[1]]
+            physical_q0 = layout[gate.qargs[0]]
+            physical_q1 = layout[gate.qargs[1]]
 
             distances.append(self.coupling_map.distance(physical_q0, physical_q1)-1)
 
