@@ -100,7 +100,7 @@ class QuantumCircuit:
 
             from qiskit import QuantumCircuit
 
-            qc = QuantumCircuit(5, 5)
+            qc = QuantumCircuit(5)
             qc.h(0)
             qc.cx(0, range(1, 5))
             qc.measure_all()

@@ -70,6 +70,14 @@ Simulator Extensions
    :toctree: ../stubs/
 
    Snapshot
+
+Initialization
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Initialize
 """
 
 from qiskit.extensions.quantum_initializer.initializer import Initialize
