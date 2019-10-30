@@ -19,6 +19,7 @@
 
 import pkgutil
 import warnings
+import os
 
 # First, check for required Python and API version
 from . import util
@@ -51,9 +52,10 @@ from qiskit.providers.basicaer import BasicAer
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
-    warnings.warn('Could not import the Aer provider from the qiskit-aer '
-                  'package. Install qiskit-aer or check your installation.',
-                  RuntimeWarning)
+    if os.environ.get('QISKIT_SUPPRESS_AER_WARNINGS') != 'Y':
+        warnings.warn('Could not import the Aer provider from the qiskit-aer '
+                      'package. Install qiskit-aer or check your installation.',
+                      RuntimeWarning)
 # Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
