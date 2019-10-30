@@ -320,6 +320,18 @@ class TestInstructions(QiskitTestCase):
         self.assertEqual(circuit.qubits, [qr[0], qr[1]])
         self.assertEqual(circuit.clbits, [cr[0], cr[1]])
 
+    def test_modifying_copied_params_leaves_orig(self):
+        """Verify modifying the parameters of a copied instruction does not
+        affect the original."""
+
+        inst = Instruction('test', 2, 1, [0, 1, 2])
+
+        cpy = inst.copy()
+
+        cpy.params[1] = 7
+
+        self.assertEqual(inst.params, [0, 1, 2])
+
 
 if __name__ == '__main__':
     unittest.main()

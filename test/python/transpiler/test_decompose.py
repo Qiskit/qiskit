@@ -14,7 +14,7 @@
 
 """Test the decompose pass"""
 
-from sympy import pi
+from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose

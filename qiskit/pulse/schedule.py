@@ -16,6 +16,7 @@
 
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+import warnings
 
 from .timeslots import Interval
 from .channels import Channel
@@ -64,7 +65,6 @@ class Schedule(ScheduleComponent):
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
 
         self.__children = tuple(_children)
-        self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
     @property
     def name(self) -> str:
@@ -85,10 +85,6 @@ class Schedule(ScheduleComponent):
     @property
     def stop_time(self) -> int:
         return self.timeslots.stop_time
-
-    @property
-    def buffer(self) -> int:
-        return self._buffer
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -182,7 +178,6 @@ class Schedule(ScheduleComponent):
 
         sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
         self._timeslots = self.timeslots.merge(sched_timeslots)
-        self._buffer = max(self.buffer, sched.buffer)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
@@ -205,11 +200,11 @@ class Schedule(ScheduleComponent):
             buffer: Whether to obey buffer when inserting
             name: Name of the new schedule. Defaults to name of self
         """
-        if buffer and schedule.buffer and start_time > 0:
-            start_time += self.buffer
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return self.union((start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent, buffer: bool = True,
+    def append(self, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         r"""Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
@@ -221,9 +216,11 @@ class Schedule(ScheduleComponent):
             buffer: Whether to obey buffer when appending
             name: Name of the new schedule. Defaults to name of self
         """
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, buffer=buffer, name=name)
+        return self.insert(time, schedule, name=name)
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
@@ -318,7 +315,7 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True):

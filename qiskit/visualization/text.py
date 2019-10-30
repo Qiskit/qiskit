@@ -18,7 +18,6 @@ A module for drawing circuits in ascii art or some other text representation
 
 from shutil import get_terminal_size
 import sys
-import sympy
 from numpy import ndarray
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
@@ -681,10 +680,11 @@ class TextDrawing():
 
         ret = []
         for param in instruction.op.params:
-            if isinstance(param, (sympy.Number, float)):
+            try:
+                param = float(param)
                 str_param = pi_check(param, ndigits=5)
                 ret.append('%s' % str_param)
-            else:
+            except TypeError:
                 ret.append('%s' % param)
         return ret
 
