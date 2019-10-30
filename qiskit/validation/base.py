@@ -205,12 +205,14 @@ class _SchemaBinder:
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            try:
-                _ = self.shallow_schema._do_load(kwargs,
-                                                 postprocess=False)
-            except ValidationError as ex:
-                raise ModelValidationError(
-                    ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
+            do_validation = kwargs.pop('validate', True)
+            if do_validation:
+                try:
+                    _ = self.shallow_schema._do_load(kwargs,
+                                                     postprocess=False)
+                except ValidationError as ex:
+                    raise ModelValidationError(
+                        ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
             init_method(self, **kwargs)
 
