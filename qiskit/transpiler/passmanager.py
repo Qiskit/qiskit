@@ -122,6 +122,38 @@ class PassManager:
     def __setitem__(self, index, item):
         self.replace(index, item)
 
+    def __len__(self):
+        return len(self._pass_sets)
+
+    def __getitem__(self, index):
+        max_iteration = self.max_iteration
+        call_back = self.callback
+        new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+        _pass_sets = self._pass_sets[index]
+        if isinstance(_pass_sets, dict):
+            _pass_sets = [_pass_sets]
+        new_passmanager._pass_sets = _pass_sets
+        return new_passmanager
+
+    def __add__(self, other):
+        if isinstance(other, PassManager):
+            max_iteration = self.max_iteration
+            call_back = self.callback
+            new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
+            return new_passmanager
+        else:
+            try:
+                max_iteration = self.max_iteration
+                call_back = self.callback
+                new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+                new_passmanager._pass_sets += self._pass_sets
+                new_passmanager.append(other)
+                return new_passmanager
+            except TranspilerError:
+                raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
+                                                                              other.__class__))
+
     @staticmethod
     def _normalize_passes(passes):
         if isinstance(passes, BasePass):
