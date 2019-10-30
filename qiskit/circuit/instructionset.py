@@ -15,7 +15,7 @@
 """
 Instruction collection.
 """
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
 
@@ -43,8 +43,8 @@ class InstructionSet:
     def add(self, gate, qargs, cargs):
         """Add an instruction and its context (where it's attached)."""
         if not isinstance(gate, Instruction):
-            raise QiskitError("attempt to add non-Instruction" +
-                              " to InstructionSet")
+            raise CircuitError("attempt to add non-Instruction" +
+                               " to InstructionSet")
         self.instructions.append(gate)
         self.qargs.append(qargs)
         self.cargs.append(cargs)
@@ -62,7 +62,7 @@ class InstructionSet:
         return self
 
     def c_if(self, classical, val):
-        """Add classical control register to all instructions."""
+        """Add condition on classical register to all instructions."""
         for gate in self.instructions:
             gate.c_if(classical, val)
         return self

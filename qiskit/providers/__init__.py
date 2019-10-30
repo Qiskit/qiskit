@@ -19,7 +19,7 @@ import pkgutil
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
-from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError
+from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError, BackendPropertyError
 from .jobstatus import JobStatus
 
 

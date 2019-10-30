@@ -12,15 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass for choosing a Layout of a circuit onto a Coupling graph.
+"""Choose a Layout by finding the most connected subset of qubits."""
 
-This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit).
-
-Note: even though a 'layout' is not strictly a property of the DAG,
-in the transpiler architecture it is best passed around between passes by
-being set in `property_set`.
-"""
 
 import numpy as np
 import scipy.sparse as sp
@@ -32,25 +25,35 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class DenseLayout(AnalysisPass):
-    """
-    Chooses a Layout by finding the most connected subset of qubits.
+    """Choose a Layout by finding the most connected subset of qubits.
+
+    This pass associates a physical qubit (int) to each virtual qubit
+    of the circuit (Qubit).
+
+    Note:
+        Even though a 'layout' is not strictly a property of the DAG,
+        in the transpiler architecture it is best passed around between passes
+        by being set in `property_set`.
     """
 
-    def __init__(self, coupling_map):
-        """
-        Chooses a DenseLayout
+    def __init__(self, coupling_map, backend_prop=None):
+        """DenseLayout initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
-
-        Raises:
-            TranspilerError: if invalid options
+            backend_prop (BackendProperties): backend properties object
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.backend_prop = backend_prop
+        self.cx_mat = None
+        self.meas_arr = None
+        self.num_cx = 0
+        self.num_meas = 0
 
     def run(self, dag):
-        """
+        """Run the DenseLayout pass on `dag`.
+
         Pick a convenient layout depending on the best matching
         qubit connectivity, and set the property `layout`.
 
@@ -63,6 +66,46 @@ class DenseLayout(AnalysisPass):
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError('Number of qubits greater than device.')
+
+        # Get avg number of cx and meas per qubit
+        ops = dag.count_ops()
+        if 'cx' in ops.keys():
+            self.num_cx = ops['cx']
+        if 'measure' in ops.keys():
+            self.num_meas = ops['measure']
+
+        # Compute the sparse cx_err matrix and meas array
+        device_qubits = self.coupling_map.size()
+        if self.backend_prop:
+            rows = []
+            cols = []
+            cx_err = []
+
+            for edge in self.coupling_map.get_edges():
+                for gate in self.backend_prop.gates:
+                    if gate.qubits == edge:
+                        rows.append(edge[0])
+                        cols.append(edge[1])
+                        cx_err.append(gate.parameters[0].value)
+                        break
+                else:
+                    continue
+
+            self.cx_mat = sp.coo_matrix((cx_err, (rows, cols)),
+                                        shape=(device_qubits,
+                                               device_qubits)).tocsr()
+
+            # Set measurement array
+            meas_err = []
+            for qubit_data in self.backend_prop.qubits:
+                for item in qubit_data:
+                    if item.name == 'readout_error':
+                        meas_err.append(item.value)
+                        break
+                else:
+                    continue
+            self.meas_arr = np.asarray(meas_err)
+
         best_sub = self._best_subset(num_dag_qubits)
         layout = Layout()
         map_iter = 0
@@ -83,6 +126,8 @@ class DenseLayout(AnalysisPass):
         """
         if n_qubits == 1:
             return np.array([0])
+        if n_qubits == 0:
+            return []
 
         device_qubits = self.coupling_map.size()
 
@@ -92,6 +137,8 @@ class DenseLayout(AnalysisPass):
                                 shape=(device_qubits, device_qubits)).tocsr()
         best = 0
         best_map = None
+        best_error = np.inf
+        best_sub = None
         # do bfs with each node as starting point
         for k in range(sp_cmap.shape[0]):
             bfs = cs.breadth_first_order(sp_cmap, i_start=k, directed=False,
@@ -110,19 +157,40 @@ class DenseLayout(AnalysisPass):
                             sub_graph.append([node_idx, node])
                             break
 
-            if connection_count > best:
-                best = connection_count
-                best_map = bfs[0:n_qubits]
-                # Return a best mapping that has reduced bandwidth
-                mapping = {}
-                for edge in range(best_map.shape[0]):
-                    mapping[best_map[edge]] = edge
-                new_cmap = [[mapping[c[0]], mapping[c[1]]] for c in sub_graph]
-                rows = [edge[0] for edge in new_cmap]
-                cols = [edge[1] for edge in new_cmap]
-                data = [1]*len(rows)
-                sp_sub_graph = sp.coo_matrix((data, (rows, cols)),
-                                             shape=(n_qubits, n_qubits)).tocsr()
-                perm = cs.reverse_cuthill_mckee(sp_sub_graph)
-                best_map = best_map[perm]
+            if self.backend_prop:
+                curr_error = 0
+                # commpute meas error for subset
+                avg_meas_err = np.mean(self.meas_arr)
+                meas_diff = np.mean(self.meas_arr[bfs[0:n_qubits]])-avg_meas_err
+                if meas_diff > 0:
+                    curr_error += self.num_meas*meas_diff
+
+                cx_err = np.mean([self.cx_mat[edge[0], edge[1]] for edge in sub_graph])
+                if self.coupling_map.is_symmetric:
+                    cx_err /= 2
+                curr_error += self.num_cx*cx_err
+                if connection_count >= best and curr_error < best_error:
+                    best = connection_count
+                    best_error = curr_error
+                    best_map = bfs[0:n_qubits]
+                    best_sub = sub_graph
+
+            else:
+                if connection_count > best:
+                    best = connection_count
+                    best_map = bfs[0:n_qubits]
+                    best_sub = sub_graph
+
+        # Return a best mapping that has reduced bandwidth
+        mapping = {}
+        for edge in range(best_map.shape[0]):
+            mapping[best_map[edge]] = edge
+        new_cmap = [[mapping[c[0]], mapping[c[1]]] for c in best_sub]
+        rows = [edge[0] for edge in new_cmap]
+        cols = [edge[1] for edge in new_cmap]
+        data = [1]*len(rows)
+        sp_sub_graph = sp.coo_matrix((data, (rows, cols)),
+                                     shape=(n_qubits, n_qubits)).tocsr()
+        perm = cs.reverse_cuthill_mckee(sp_sub_graph)
+        best_map = best_map[perm]
         return best_map

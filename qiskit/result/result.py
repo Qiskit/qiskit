@@ -231,7 +231,7 @@ class Result(BaseModel):
 
         Args:
             key (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             ExperimentResult: the results for an experiment.
@@ -240,32 +240,34 @@ class Result(BaseModel):
             QiskitError: if there is no data for the experiment, or an unhandled
                 error occurred while fetching the data.
         """
-        if not self.success:
-            raise QiskitError(getattr(self, 'status',
-                                      'Result was not successful'))
-
         # Automatically return the first result if no key was provided.
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
                     'You have to select a circuit or schedule when there is more than '
                     'one available')
-
             key = 0
-
-        # Key is an integer: return result by index.
-        if isinstance(key, int):
-            return self.results[key]
 
         # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
         if isinstance(key, (QuantumCircuit, Schedule)):
             key = key.name
+        # Key is an integer: return result by index.
+        if isinstance(key, int):
+            exp = self.results[key]
+        else:
+            try:
+                # Look into `result[x].header.name` for the names.
+                exp = next(result for result in self.results
+                           if getattr(getattr(result, 'header', None),
+                                      'name', '') == key)
+            except StopIteration:
+                raise QiskitError('Data for experiment "%s" could not be found.' %
+                                  key)
 
-        try:
-            # Look into `result[x].header.name` for the names.
-            return next(result for result in self.results
-                        if getattr(getattr(result, 'header', None),
-                                   'name', '') == key)
-        except StopIteration:
-            raise QiskitError('Data for experiment "%s" could not be found.' %
-                              key)
+        # Check that the retrieved experiment was successful
+        if getattr(exp, 'success', False):
+            return exp
+        # If unsuccessful check experiment and result status and raise exception
+        result_status = getattr(self, 'status', 'Result was not successful')
+        exp_status = getattr(exp, 'status', 'Experiment was not successful')
+        raise QiskitError(result_status, ", ", exp_status)

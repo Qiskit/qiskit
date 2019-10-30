@@ -17,6 +17,8 @@
 """
 Pulse channel wrapper object for the system.
 """
+import warnings
+
 from typing import List
 
 from qiskit.pulse.exceptions import PulseError
@@ -80,10 +82,12 @@ class PulseChannelSpec:
             n_registers: Number of classical registers.
             buffer: Buffer that should be placed between instructions on channel.
         """
-        self._drives = [DriveChannel(idx, buffer) for idx in range(n_qubits)]
-        self._controls = [ControlChannel(idx, buffer) for idx in range(n_control)]
-        self._measures = [MeasureChannel(idx, buffer) for idx in range(n_qubits)]
-        self._acquires = [AcquireChannel(idx, buffer) for idx in range(n_qubits)]
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        self._drives = [DriveChannel(idx) for idx in range(n_qubits)]
+        self._controls = [ControlChannel(idx) for idx in range(n_control)]
+        self._measures = [MeasureChannel(idx) for idx in range(n_qubits)]
+        self._acquires = [AcquireChannel(idx) for idx in range(n_qubits)]
         self._mem_slots = [MemorySlot(idx) for idx in range(n_qubits)]
         self._reg_slots = [RegisterSlot(idx) for idx in range(n_registers)]
 
@@ -106,7 +110,6 @@ class PulseChannelSpec:
             PulseError: When OpenPulse is not supported.
         """
         configuration = backend.configuration()
-        defaults = backend.defaults()
 
         if not configuration.open_pulse:
             raise PulseError(configuration.backend_name + ' does not support OpenPulse.')
@@ -115,10 +118,9 @@ class PulseChannelSpec:
         n_qubits = configuration.n_qubits
         n_controls = configuration.n_uchannels
         n_registers = configuration.n_registers
-        buffer = defaults.buffer
 
         return PulseChannelSpec(n_qubits=n_qubits, n_control=n_controls,
-                                n_registers=n_registers, buffer=buffer)
+                                n_registers=n_registers)
 
     @property
     def drives(self) -> List[DriveChannel]:

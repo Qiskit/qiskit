@@ -16,7 +16,7 @@
 
 """Test the Unroller pass"""
 
-from sympy import pi
+from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.simulator import snapshot

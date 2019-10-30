@@ -24,7 +24,8 @@ class Decompose(TransformationPass):
     """
 
     def __init__(self, gate=None):
-        """
+        """Decompose initializer.
+
         Args:
             gate (qiskit.circuit.gate.Gate): Gate to decompose.
         """

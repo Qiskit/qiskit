@@ -18,6 +18,7 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
+from qiskit.transpiler.passes.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -40,6 +41,20 @@ def transpile_circuit(transpile_args):
     # or we choose an appropriate one based on desired optimization level (default: level 1)
     else:
         level = transpile_args['optimization_level']
+
+        # Workaround for ion trap support: If basis gates includes
+        # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
+        # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
+        basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+        device_insts = set(transpile_args['basis_gates']).union(basic_insts)
+
+        ms_basis_swap = None
+        if 'rxx' in transpile_args['basis_gates'] and \
+                not device_insts >= transpile_args['circuit'].count_ops().keys():
+            ms_basis_swap = transpile_args['basis_gates']
+            transpile_args['basis_gates'] = list(set(['u3', 'cx']).union(
+                transpile_args['basis_gates']))
+
         if level is None:
             level = 1
 
@@ -53,6 +68,9 @@ def transpile_circuit(transpile_args):
             pass_manager = level_3_pass_manager(transpile_args['pass_manager_config'])
         else:
             raise TranspilerError("optimization_level can range from 0 to 3.")
+
+        if ms_basis_swap is not None:
+            pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
     out_circuit = pass_manager.run(transpile_args['circuit'],
                                    callback=transpile_args['callback'],

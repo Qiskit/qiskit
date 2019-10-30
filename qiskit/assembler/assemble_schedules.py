@@ -24,6 +24,7 @@ from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     """Assembles a list of schedules into a qobj which can be run on the backend.
+
     Args:
         schedules (list[Schedule]): schedules to assemble
         qobj_id (int): identifier for the generated qobj
@@ -53,8 +54,6 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
 
-    max_memory_slot = 0
-
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
@@ -62,12 +61,16 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                                      meas_lo_range=meas_lo_range,
                                      **qobj_config)
 
+    memory_slot_size = 0
+
     # Pack everything into the Qobj
     qobj_schedules = []
     user_pulselib = {}
     for idx, schedule in enumerate(schedules):
         # instructions
+        max_memory_slot = 0
         qobj_instructions = []
+
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
@@ -86,7 +89,6 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                         channel=instruction.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
-
             elif isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
@@ -97,8 +99,14 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
 
+        # memory slot size is memory slot index + 1 because index starts from zero
+        exp_memory_slot_size = max_memory_slot + 1
+        memory_slot_size = max(memory_slot_size, exp_memory_slot_size)
+
         # experiment header
+        # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = QobjExperimentHeader(
+            memory_slots=exp_memory_slot_size,
             name=schedule.name or 'Experiment-%d' % idx
         )
 
@@ -108,7 +116,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         })
 
     # set number of memoryslots
-    qobj_config['memory_slots'] = max_memory_slot + 1
+    qobj_config['memory_slots'] = memory_slot_size
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)

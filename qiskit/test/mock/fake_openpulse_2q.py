@@ -15,9 +15,11 @@
 """
 Fake backend supporting OpenPulse.
 """
+import datetime
 
 from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
                                      PulseDefaults, Command, UchannelLO)
+from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from .fake_backend import FakeBackend
 
@@ -39,7 +41,7 @@ class FakeOpenPulse2Q(FakeBackend):
             memory=False,
             max_shots=65536,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=[[1, 0]],
+            coupling_map=[[0, 1]],
             n_registers=2,
             n_uchannels=2,
             u_channel_lo=[
@@ -73,10 +75,27 @@ class FakeOpenPulse2Q(FakeBackend):
             pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
                            PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j]),
                            PulseLibraryItem(name='test_pulse_3',
-                                            samples=[0.j, 0.1j, 1j, 0.5 + 0j])],
+                                            samples=[0.j, 0.1j, 1j, 0.5 + 0j]),
+                           PulseLibraryItem(name='test_pulse_4',
+                                            samples=7*[0.j, 0.1j, 1j, 0.5 + 0j])],
             cmd_def=[Command(name='u1', qubits=[0],
                              sequence=[PulseQobjInstruction(name='fc', ch='d0',
                                                             t0=0, phase='-P1*np.pi')]),
+                     Command(name='u1', qubits=[1],
+                             sequence=[PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=0, phase='-P1*np.pi')]),
+                     Command(name='u2', qubits=[0],
+                             sequence=[PulseQobjInstruction(name='fc', ch='d0',
+                                                            t0=0, phase='-P0*np.pi'),
+                                       PulseQobjInstruction(name='test_pulse_4', ch='d0', t0=0),
+                                       PulseQobjInstruction(name='fc', ch='d0',
+                                                            t0=0, phase='-P1*np.pi')]),
+                     Command(name='u2', qubits=[1],
+                             sequence=[PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=0, phase='-P0*np.pi'),
+                                       PulseQobjInstruction(name='test_pulse_4', ch='d1', t0=0),
+                                       PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=0, phase='-P0*np.pi')]),
                      Command(name='u3', qubits=[0],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0)]),
                      Command(name='u3', qubits=[1],
@@ -84,18 +103,65 @@ class FakeOpenPulse2Q(FakeBackend):
                      Command(name='cx', qubits=[0, 1],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
                                        PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
+                                       PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
+                                       PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=20, phase=2.1)]),
+                     Command(name='ParametrizedGate', qubits=[0, 1],
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
                                        PulseQobjInstruction(name='pv', ch='d1',
                                                             t0=2, val='cos(P2)'),
                                        PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
                                        PulseQobjInstruction(name='fc', ch='d1',
                                                             t0=20, phase=2.1)]),
-                     Command(name='measure', qubits=[0],
+                     Command(name='measure', qubits=[0, 1],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_1', ch='m1', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                            qubits=[0], memory_slot=[0])])]
+                                                            qubits=[0, 1], memory_slot=[0, 1])])]
+        )
+
+        mock_time = datetime.datetime.now()
+        dt = 1.3333  # pylint: disable=invalid-name
+        self._properties = BackendProperties(
+            backend_name='fake_openpulse_2q',
+            backend_version='0.0.0',
+            last_update_date=mock_time,
+            qubits=[
+                [Nduv(date=mock_time, name='T1', unit='µs', value=71.9500421005539),
+                 Nduv(date=mock_time, name='frequency', unit='MHz', value=4919.96800692)],
+                [Nduv(date=mock_time, name='T1', unit='µs', value=81.9500421005539),
+                 Nduv(date=mock_time, name='frequency', unit='GHz', value=5.01996800692)]
+            ],
+            gates=[
+                Gate(gate='u1', name='u1_0', qubits=[0],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=0.)]),
+                Gate(gate='u3', name='u3_0', qubits=[0],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=2 * dt)]),
+                Gate(gate='u3', name='u3_1', qubits=[1],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=4 * dt)]),
+                Gate(gate='cx', name='cx0_1', qubits=[0, 1],
+                     parameters=[
+                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_length', unit='ns', value=22 * dt)]),
+            ],
+            general=[]
         )
 
         super().__init__(configuration)
 
-    def defaults(self):  # pylint: disable=missing-docstring
+    def defaults(self):
+        """Return the default pulse-related settings provided by the backend (such as gate
+        to Schedule mappings).
+        """
         return self._defaults
+
+    def properties(self):
+        """Return the measured characteristics of the backend."""
+        return self._properties

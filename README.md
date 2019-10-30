@@ -46,7 +46,7 @@ In this case, the output will be:
 {'00': 513, '11': 511}
 ```
 
-A script is available [here](examples/python/hello_quantum.py), where we also show how to
+A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
 run the same program on a real quantum computer via IBMQ.  
 
 ### Executing your code on a real quantum chip

@@ -18,7 +18,6 @@ A module for drawing circuits in ascii art or some other text representation
 
 from shutil import get_terminal_size
 import sys
-import sympy
 from numpy import ndarray
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
@@ -92,8 +91,8 @@ class DrawElement():
         self._width = value
 
     def connect(self, wire_char, where, label=None):
-        """
-        Connects boxes and elements using wire_char and setting proper connectors.
+        """Connects boxes and elements using wire_char and setting proper connectors.
+
         Args:
             wire_char (char): For example '║' or '│'.
             where (list["top", "bot"]): Where the connector should be set.
@@ -198,8 +197,8 @@ class MultiBox(DrawElement):
     """Elements that is draw on over multiple wires."""
 
     def center_label(self, input_length, order):
-        """
-        In multi-bit elements, the label is centered vertically.
+        """In multi-bit elements, the label is centered vertically.
+
         Args:
             input_length (int): Rhe amount of wires affected.
             order (int): Which middle element is this one?
@@ -404,8 +403,8 @@ class EmptyWire(DrawElement):
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
-        """
-        Given a layer, replace the Nones in it with EmptyWire elements.
+        """Given a layer, replace the Nones in it with EmptyWire elements.
+
         Args:
             layer (list): The layer that contains Nones.
             first_clbit (int): The first wire that is classic.
@@ -430,8 +429,8 @@ class BreakWire(DrawElement):
 
     @staticmethod
     def fillup_layer(layer_length, arrow_char):
-        """
-        Creates a layer with BreakWire elements.
+        """Creates a layer with BreakWire elements.
+
         Args:
             layer_length (int): The length of the layer to create
             arrow_char (char): The char used to create the BreakWire element.
@@ -453,8 +452,8 @@ class InputWire(DrawElement):
 
     @staticmethod
     def fillup_layer(names):
-        """
-        Creates a layer with InputWire elements.
+        """Creates a layer with InputWire elements.
+
         Args:
             names (list): List of names for the wires.
 
@@ -504,8 +503,8 @@ class TextDrawing():
         return "\n".join(self.lines())
 
     def dump(self, filename, encoding="utf8"):
-        """
-        Dumps the ascii art in the file.
+        """Dumps the ascii art in the file.
+
         Args:
             filename (str): File to dump the ascii art.
             encoding (str): Optional. Default "utf-8".
@@ -627,8 +626,8 @@ class TextDrawing():
         return True
 
     def draw_wires(self, wires):
-        """
-        Given a list of wires, creates a list of lines with the text drawing.
+        """Given a list of wires, creates a list of lines with the text drawing.
+
         Args:
             wires (list): A list of wires with instructions.
         Returns:
@@ -681,10 +680,11 @@ class TextDrawing():
 
         ret = []
         for param in instruction.op.params:
-            if isinstance(param, (sympy.Number, float)):
+            try:
+                param = float(param)
                 str_param = pi_check(param, ndigits=5)
                 ret.append('%s' % str_param)
-            else:
+            except TypeError:
                 ret.append('%s' % param)
         return ret
 
@@ -699,8 +699,8 @@ class TextDrawing():
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
-        """
-        Merges two lines (top and bot) in the way that the overlapping make senses.
+        """Merges two lines (top and bot) in the way that the overlapping make senses.
+
         Args:
             top (str): the top line
             bot (str): the bottom line
@@ -754,6 +754,7 @@ class TextDrawing():
     def normalize_width(layer):
         """
         When the elements of the layer have different widths, sets the width to the max elements.
+
         Args:
             layer (list): A list of elements.
         """
@@ -938,8 +939,8 @@ class Layer:
         return self.qubit_layer + self.clbit_layer
 
     def set_qubit(self, qubit, element):
-        """
-        Sets the qubit to the element
+        """Sets the qubit to the element.
+
         Args:
             qubit (qbit): Element of self.qregs.
             element (DrawElement): Element to set in the qubit
@@ -947,8 +948,8 @@ class Layer:
         self.qubit_layer[self.qregs.index(qubit)] = element
 
     def set_clbit(self, clbit, element):
-        """
-        Sets the clbit to the element
+        """Sets the clbit to the element.
+
         Args:
             clbit (cbit): Element of self.cregs.
             element (DrawElement): Element to set in the clbit
@@ -1031,8 +1032,8 @@ class Layer:
                                            conditional=conditional))
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
-        """
-        Sets the multi clbit box.
+        """Sets the multi clbit box.
+
         Args:
             creg (string): The affected classical register.
             label (string): The label for the multi clbit box.
@@ -1042,8 +1043,8 @@ class Layer:
         self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):
-        """
-        Sets the multi qubit box.
+        """Sets the multi qubit box.
+
         Args:
             bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
@@ -1052,8 +1053,8 @@ class Layer:
         self._set_multibox(label, qubits=bits, conditional=conditional)
 
     def connect_with(self, wire_char):
-        """
-        Connects the elements in the layer using wire_char.
+        """Connects the elements in the layer using wire_char.
+
         Args:
             wire_char (char): For example '║' or '│'.
         """

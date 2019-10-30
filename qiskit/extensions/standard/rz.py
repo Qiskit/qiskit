@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Rotation around the z-axis.
 """
@@ -51,7 +49,7 @@ class RZGate(Gate):
         return RZGate(-self.params[0])
 
 
-def rz(self, phi, q):
+def rz(self, phi, q):  # pylint: disable=invalid-name
     """Apply Rz to q."""
     return self.append(RZGate(phi), [q], [])
 

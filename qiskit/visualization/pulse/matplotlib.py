@@ -225,6 +225,7 @@ class SamplePulseDrawer:
 
     def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
+
         Args:
             pulse (SamplePulse): SamplePulse to draw
             dt (float): time interval
@@ -365,7 +366,7 @@ class ScheduleDrawer:
         if scaling:
             v_max = 0.5 * scaling
         else:
-            v_max = 0.5 / (1.2 * v_max)
+            v_max = 0.5 / (v_max)
 
         return n_valid_waveform, v_max
 
@@ -503,6 +504,8 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
+                # Minimum amplitude scaled
+                amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -530,18 +533,24 @@ class ScheduleDrawer:
 
             else:
                 continue
+
             # plot label
             ax.text(x=0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
 
-            y0 -= 1
+            # change the y0 offset for removing spacing when a channel has negative values
+            if self.style.remove_spacing:
+                y0 -= 0.5 + amp_min
+            else:
+                y0 -= 1
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=1, channels_to_plot=None, plot_all=True,
+             scaling=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True):
         """Draw figure.
+
         Args:
             schedule (ScheduleComponent): Schedule to draw
             dt (float): time interval

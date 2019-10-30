@@ -22,17 +22,11 @@ import json
 import math
 import re
 
-try:
-    from pylatexenc.latexencode import utf8tolatex
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
-
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from .tools.pi_check import pi_check
+from .utils import generate_latex_label
 
 
 class QCircuitImage:
@@ -46,7 +40,8 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None):
-        """
+        """QCircuitImage initializer.
+
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
@@ -62,11 +57,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        if not HAS_PYLATEX:
-            raise ImportError('The latex and latex_source drawers need '
-                              'pylatexenc installed. Run "pip install '
-                              'pylatexenc" before using the latex or '
-                              'latex_source drawers.')
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
@@ -221,7 +211,7 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {}_{} : \\ket{{0}} }}".format(
+                    self._latex[i][0] = "\\lstick{{ {}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
                     self._latex[i][0] = "\\lstick{{({}_{{{}}})~q_{{{}}} : \\ket{{0}} }}".format(
@@ -275,8 +265,14 @@ class QCircuitImage:
         # wires in the beginning and end
         columns = 2
 
-        # all gates take up 1 column except from those with labels (cu1) which take 2
-        columns += sum([2 if nd.name == 'cu1' else 1 for layer in self.ops for nd in layer])
+        # all gates take up 1 column except from those with labels (ie cu1)
+        # which take 2 columns
+        for layer in self.ops:
+            column_width = 1
+            for nd in layer:
+                if nd.name in ['cu1', 'rzz']:
+                    column_width = 2
+            columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
@@ -367,7 +363,7 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = utf8tolatex(op.name).replace(" ", "\\,")
+                    nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
@@ -700,11 +696,9 @@ class QCircuitImage:
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[(qarglist[0].register,
-                                                    qarglist[0].index)]]
+                        pos_array = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[(qarglist[i].register,
-                                                            qarglist[i].index)])
+                            pos_array.append(self.img_regs[qarglist[i]])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
@@ -768,7 +762,8 @@ class QCircuitImage:
             column += num_cols_used
 
     def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit
+        """Get the index number for a quantum bit.
+
         Args:
             qubit (tuple): The tuple of the bit of the form
                 (register_name, bit_number)

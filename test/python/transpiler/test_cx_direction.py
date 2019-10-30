@@ -156,6 +156,52 @@ class TestCXDirection(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_preserves_conditions(self):
+        """Verify CXDirection preserves conditional on CX gates.
+
+                        ┌───┐      ┌───┐
+        q_0: |0>───■────┤ X ├───■──┤ X ├
+                 ┌─┴─┐  └─┬─┘ ┌─┴─┐└─┬─┘
+        q_1: |0>─┤ X ├────■───┤ X ├──■──
+                 └─┬─┘    │   └───┘
+                ┌──┴──┐┌──┴──┐
+         c_0: 0 ╡ = 0 ╞╡ = 0 ╞══════════
+                └─────┘└─────┘
+        """
+
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(1, 'c')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[0], qr[1]).c_if(cr, 0)
+        circuit.cx(qr[1], qr[0]).c_if(cr, 0)
+
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
+
+        coupling = CouplingMap([[0, 1]])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.cx(qr[0], qr[1]).c_if(cr, 0)
+
+        # Ordering of u2 is important because DAG comparision will consider
+        # different condional order on a creg to be a different circuit.
+        # See https://github.com/Qiskit/qiskit-terra/issues/3164
+        expected.u2(0, pi, [qr[1], qr[0]]).c_if(cr, 0)
+        expected.cx(qr[0], qr[1]).c_if(cr, 0)
+        expected.u2(0, pi, [qr[1], qr[0]]).c_if(cr, 0)
+
+        expected.cx(qr[0], qr[1])
+        expected.u2(0, pi, [qr[1], qr[0]])
+        expected.cx(qr[0], qr[1])
+        expected.u2(0, pi, [qr[1], qr[0]])
+
+        pass_ = CXDirection(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 if __name__ == '__main__':
     unittest.main()

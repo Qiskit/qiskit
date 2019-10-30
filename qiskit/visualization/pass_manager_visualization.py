@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
@@ -60,22 +58,45 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     Raises:
         ImportError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
+
+    Example:
+        .. code-block::
+
+            from qiskit import QuantumCircuit
+            from qiskit.compiler import transpile
+            from qiskit.transpiler import PassManager
+            from qiskit.visualization import pass_manager_drawer
+            from qiskit.transpiler.passes import Unroller
+
+            circ = QuantumCircuit(3)
+            circ.ccx(0, 1, 2)
+            circ.draw()
+
+            pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
+            pm = PassManager(pass_)
+            new_circ = pm.run(circ)
+            new_circ.draw(output='mpl')
+
+            pass_manager_drawer(pm, "passmanager.jpg")
     """
 
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+        _PROC = subprocess.Popen(['dot', '-V'],  # pylint: disable=invalid-name
+                                 stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         _PROC.communicate()
         if _PROC.returncode != 0:
-            HAS_GRAPHVIZ = False
+            has_graphviz = False
         else:
-            HAS_GRAPHVIZ = True
+            has_graphviz = True
     except Exception:  # pylint: disable=broad-except
         # this is raised when the dot command cannot be found, which means GraphViz
         # isn't installed
-        HAS_GRAPHVIZ = False
+        has_graphviz = False
+
+    HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
 
     try:
         import pydot
@@ -102,13 +123,14 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
     prev_node = None
 
-    for controller_group in passes:
+    for index, controller_group in enumerate(passes):
 
-        # label is the name of the flow controller (without the word controller)
-        label = controller_group['type'].__name__.replace('Controller', '')
+        # label is the name of the flow controller parameter
+        label = "[%s] %s" % (index, ', '.join(controller_group['flow_controllers']))
 
         # create the subgraph for this controller
-        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica')
+        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica',
+                                 labeljust='l')
         component_id += 1
 
         for pass_ in controller_group['passes']:

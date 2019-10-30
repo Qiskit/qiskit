@@ -53,6 +53,22 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
             figsize (tuple): Figure size in pixels.
             slider (bool): activate slider
             show_legend (bool): show legend of graph content
+
+        Example:
+            .. code-block::
+
+                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit.visualization import iplot_state_paulivec
+                %matplotlib inline
+
+                qc = QuantumCircuit(2, 2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure([0, 1], [0, 1])
+
+                backend = BasicAer.get_backend('statevector_simulator')
+                job = execute(qc, backend).result()
+                iplot_state_paulivec(job.get_statevector(qc))
     """
 
     # HTML

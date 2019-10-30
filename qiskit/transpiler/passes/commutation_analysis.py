@@ -28,6 +28,7 @@ import numpy as np
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
+from qiskit.circuit import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -102,6 +103,9 @@ def _commute(node1, node2):
         return False
 
     if node1.condition or node2.condition:
+        return False
+
+    if any(isinstance(param, ParameterExpression) for param in node1.op.params + node2.op.params):
         return False
 
     qarg = list(set(node1.qargs + node2.qargs))

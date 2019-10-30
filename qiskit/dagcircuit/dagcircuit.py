@@ -751,7 +751,7 @@ class DAGCircuit:
             to_replay = []
             for sorted_node in input_dag.topological_nodes():
                 if sorted_node.type == "op":
-                    sorted_node.op.control = condition
+                    sorted_node.op.condition = condition
                     to_replay.append(sorted_node)
             for input_node in input_dag.op_nodes():
                 input_dag.remove_op_node(input_node)
@@ -784,7 +784,7 @@ class DAGCircuit:
         # Replace the node by iterating through the input_circuit.
         # Constructing and checking the validity of the wire_map.
         # If a gate is conditioned, we expect the replacement subcircuit
-        # to depend on those control bits as well.
+        # to depend on those condition bits as well.
         if node.type != "op":
             raise DAGCircuitError("expected node type \"op\", got %s"
                                   % node.type)

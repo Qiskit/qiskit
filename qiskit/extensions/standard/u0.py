@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Single qubit gate cycle idle.
 """
@@ -54,7 +52,7 @@ class U0Gate(Gate):
                             [0, 1]], dtype=complex)
 
 
-def u0(self, m, q):
+def u0(self, m, q):  # pylint: disable=invalid-name
     """Apply u0 with length m to q."""
     return self.append(U0Gate(m), [q], [])
 
