@@ -139,10 +139,6 @@ class SingleQubitUnitary(Gate):
         return -a, -b, -c, d
 
 
-def _ct(m):
-    return np.transpose(np.conjugate(m))
-
-
 def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):
     """ Decompose an arbitrary 2*2 unitary into three rotation gates :math:`U=R_zR_yR_z`.
 
