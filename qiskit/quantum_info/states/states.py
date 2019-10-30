@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=invalid-name,anomalous-backslash-in-string
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 A collection of useful quantum information functions for states.
 
 
 """
-import logging
 import numpy as np
 from qiskit.exceptions import QiskitError
-
-logger = logging.getLogger(__name__)
 
 
 def basis_state(str_state, num):
@@ -38,31 +40,6 @@ def basis_state(str_state, num):
         return state
     else:
         raise QiskitError('size of bitstring is greater than num.')
-
-
-def random_state(dim, seed=None):
-    """
-    Return a random quantum state from the uniform (Haar) measure on
-    state space.
-
-    Args:
-        dim (int): the dim of the state spaxe
-        seed (int): Optional. To set a random seed.
-
-    Returns:
-        ndarray:  state(2**num) a random quantum state.
-    """
-    if seed is None:
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
-    rng = np.random.RandomState(seed)
-    logger.debug("random_state RandomState seeded with seed=%s", seed)
-    # Random array over interval (0, 1]
-    x = rng.rand(dim)
-    x += x == 0
-    x = -np.log(x)
-    sumx = sum(x)
-    phases = rng.rand(dim)*2.0*np.pi
-    return np.sqrt(x/sumx)*np.exp(1j*phases)
 
 
 def projector(state, flatten=False):

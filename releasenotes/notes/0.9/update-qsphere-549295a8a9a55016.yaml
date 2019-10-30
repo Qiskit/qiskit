@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    `seaborn`_ is now a dependency for the function
+    ``qiskit.visualization.plot_state_qsphere()``. It is needed to generate
+    proper angular color maps for the visualization. The
+    ``qiskit-terra[visualization]`` extras install target has been updated to
+    install ``seaborn>=0.9.0`` If you are using visualizations and specifically
+    the ``plot_state_qsphere()`` function you can use that to install
+    ``seaborn`` or just manually run ``pip install seaborn>=0.9.0``
+
+    .. _seaborn: https://seaborn.pydata.org/
+fixes:
+  - |
+    The ``qiskit.visualization.plost_state_qsphere()`` has been updated to fix
+    several issues with it. Now output Q Sphere visualization will be correctly
+    generated and the following aspects have been updated:
+
+     * All complementary basis states are antipodal
+     * Phase is indicated by color of line and marker on sphere's surface
+     * Probability is indicated by translucency of line and volume of marker on
+       sphere's surface

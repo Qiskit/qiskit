@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
@@ -57,8 +64,8 @@ os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 CPU_COUNT = local_hardware_info()['cpus']
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-                 num_processes=CPU_COUNT):
+def parallel_map(  # pylint: disable=dangerous-default-value
+        task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -69,7 +76,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     overhead from spawning processes in Windows.
 
     Args:
-        task (func): Function that is to be called for each value in ``task_vec``.
+        task (func): Function that is to be called for each value in ``values``.
         values (array_like): List or array of values for which the ``task``
                             function is to be evaluated.
         task_args (list): Optional additional arguments to the ``task`` function.
@@ -116,11 +123,16 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
             pool.terminate()
             pool.join()
 
-        except KeyboardInterrupt:
-            pool.terminate()
-            pool.join()
-            Publisher().publish("terra.parallel.finish")
-            raise QiskitError('Keyboard interrupt in parallel_map.')
+        except (KeyboardInterrupt, Exception) as error:
+            if isinstance(error, KeyboardInterrupt):
+                pool.terminate()
+                pool.join()
+                Publisher().publish("terra.parallel.finish")
+                os.environ['QISKIT_IN_PARALLEL'] = 'False'
+                raise QiskitError('Keyboard interrupt in parallel_map.')
+            # Otherwise just reset parallel flag and error
+            os.environ['QISKIT_IN_PARALLEL'] = 'False'
+            raise error
 
         Publisher().publish("terra.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'

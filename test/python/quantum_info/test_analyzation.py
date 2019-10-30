@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""Tests for qiskit.quantum_info.analyzation"""
+"""Tests for qiskit.quantum_info.analysis"""
 
 import unittest
 
 import qiskit
 from qiskit import BasicAer
-from qiskit.quantum_info.analyzation.average import average_data
-from qiskit.quantum_info.analyzation.make_observable import make_dict_observable
+from qiskit.quantum_info.analysis.average import average_data
+from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.test import QiskitTestCase
 
 

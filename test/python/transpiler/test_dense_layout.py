@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the DenseLayout pass"""
 
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -38,11 +45,11 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set['layout']
-        self.assertEqual(layout[qr[0]], 5)
-        self.assertEqual(layout[qr[1]], 0)
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 10)
         self.assertEqual(layout[qr[2]], 6)
-        self.assertEqual(layout[qr[3]], 10)
-        self.assertEqual(layout[qr[4]], 11)
+        self.assertEqual(layout[qr[3]], 5)
+        self.assertEqual(layout[qr[4]], 0)
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map.
@@ -58,12 +65,12 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set['layout']
-        self.assertEqual(layout[qr0[0]], 5)
-        self.assertEqual(layout[qr0[1]], 0)
+        self.assertEqual(layout[qr0[0]], 11)
+        self.assertEqual(layout[qr0[1]], 10)
         self.assertEqual(layout[qr0[2]], 6)
-        self.assertEqual(layout[qr1[0]], 10)
-        self.assertEqual(layout[qr1[1]], 11)
-        self.assertEqual(layout[qr1[2]], 1)
+        self.assertEqual(layout[qr1[0]], 5)
+        self.assertEqual(layout[qr1[1]], 1)
+        self.assertEqual(layout[qr1[2]], 0)
 
 
 if __name__ == '__main__':

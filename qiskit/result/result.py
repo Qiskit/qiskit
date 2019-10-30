@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Model for schema-conformant Results."""
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
-from .postprocess import (format_counts, format_statevector,
-                          format_unitary, format_memory)
+from qiskit.result import postprocess
 from .models import ResultSchema
 
 
@@ -45,24 +52,26 @@ class Result(BaseModel):
 
         super().__init__(**kwargs)
 
-    def data(self, circuit=None):
+    def data(self, experiment=None):
         """Get the raw data for an experiment.
 
         Note this data will be a single classical and quantum register and in a
-        format required by the results schema. We recomened that most users use
+        format required by the results schema. We recommend that most users use
         the get_xxx method, and the data will be post-processed for the data type.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment. Several types are accepted for convenience::
                 * str: the name of the experiment.
-                * QuantumCircuit: the name of the instance will be used.
+                * QuantumCircuit: the name of the circuit instance will be used.
+                * Schedule: the name of the schedule instance will be used.
                 * int: the position of the experiment.
                 * None: if there is only one experiment, returns it.
 
         Returns:
             dict: A dictionary of results data for an experiment. The data
-            depends on the backend it ran on.
+            depends on the backend it ran on and the settings of `meas_level`,
+            `meas_return` and `memory`.
 
             QASM backends return a dictionary of dictionary with the key
             'counts' and  with the counts, with the second dictionary keys
@@ -92,40 +101,65 @@ class Result(BaseModel):
             QiskitError: if data for the experiment could not be retrieved.
         """
         try:
-            return self._get_experiment(circuit).data.to_dict()
+            return self._get_experiment(experiment).data.to_dict()
         except (KeyError, TypeError):
-            raise QiskitError('No data for circuit "{0}"'.format(circuit))
+            raise QiskitError('No data for experiment "{0}"'.format(experiment))
 
-    def get_memory(self, circuit=None):
+    def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
         The data from the experiment is a list of format
         ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:
-            List[str]: the list of each outcome, formatted according to
-                registers in circuit.
+            List[str] or np.ndarray: Either the list of each outcome, formatted according to
+                registers in circuit or a complex numpy np.darray with shape:
+
+                ============  =============  =====
+                `meas_level`  `meas_return`  shape
+                ============  =============  =====
+                0             `single`       np.ndarray[shots, memory_slots, memory_slot_size]
+                0             `avg`          np.ndarray[memory_slots, memory_slot_size]
+                1             `single`       np.ndarray[shots, memory_slots]
+                1             `avg`          np.ndarray[memory_slots]
+                2             `memory=True`  list
+                ============  =============  =====
 
         Raises:
             QiskitError: if there is no memory data for the circuit.
         """
         try:
-            header = self._get_experiment(circuit).header.to_dict()
-            memory_list = []
-            for memory in self.data(circuit)['memory']:
-                memory_list.append(format_memory(memory, header))
-            return memory_list
-        except KeyError:
-            raise QiskitError('No memory for circuit "{0}".'.format(circuit))
+            exp_result = self._get_experiment(experiment)
 
-    def get_counts(self, circuit=None):
+            try:  # header is not available
+                header = exp_result.header.to_dict()
+            except (AttributeError, QiskitError):
+                header = None
+
+            meas_level = exp_result.meas_level
+
+            memory = self.data(experiment)['memory']
+
+            if meas_level == 2:
+                return postprocess.format_level_2_memory(memory, header)
+            elif meas_level == 1:
+                return postprocess.format_level_1_memory(memory)
+            elif meas_level == 0:
+                return postprocess.format_level_0_memory(memory)
+            else:
+                raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
+
+        except KeyError:
+            raise QiskitError('No memory for experiment "{0}".'.format(experiment))
+
+    def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``get_data()``.
 
         Returns:
@@ -138,16 +172,22 @@ class Result(BaseModel):
             QiskitError: if there are no counts for the experiment.
         """
         try:
-            return format_counts(self.data(circuit)['counts'],
-                                 self._get_experiment(circuit).header.to_dict())
-        except KeyError:
-            raise QiskitError('No counts for circuit "{0}"'.format(circuit))
+            exp = self._get_experiment(experiment)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
 
-    def get_statevector(self, circuit=None, decimals=None):
+            return postprocess.format_counts(self.data(experiment)['counts'],
+                                             header)
+        except KeyError:
+            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+
+    def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
@@ -159,16 +199,16 @@ class Result(BaseModel):
             QiskitError: if there is no statevector for the experiment.
         """
         try:
-            return format_statevector(self.data(circuit)['statevector'],
-                                      decimals=decimals)
+            return postprocess.format_statevector(self.data(experiment)['statevector'],
+                                                  decimals=decimals)
         except KeyError:
-            raise QiskitError('No statevector for circuit "{0}"'.format(circuit))
+            raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
 
-    def get_unitary(self, circuit=None, decimals=None):
+    def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the unitary.
                 If None, does not round.
@@ -181,51 +221,53 @@ class Result(BaseModel):
             QiskitError: if there is no unitary for the experiment.
         """
         try:
-            return format_unitary(self.data(circuit)['unitary'],
-                                  decimals=decimals)
+            return postprocess.format_unitary(self.data(experiment)['unitary'],
+                                              decimals=decimals)
         except KeyError:
-            raise QiskitError('No unitary for circuit "{0}"'.format(circuit))
+            raise QiskitError('No unitary for experiment "{0}"'.format(experiment))
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.
 
         Args:
-            key (str or QuantumCircuit or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+            key (str or QuantumCircuit or Schedule or int or None): the index of the
+                experiment, as specified by ``data()``.
 
         Returns:
             ExperimentResult: the results for an experiment.
 
         Raises:
-            QiskitError: if there is no data for the circuit, or an unhandled
+            QiskitError: if there is no data for the experiment, or an unhandled
                 error occurred while fetching the data.
         """
-        if not self.success:
-            raise QiskitError(getattr(self, 'status',
-                                      'Result was not successful'))
-
         # Automatically return the first result if no key was provided.
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
-                    'You have to select a circuit when there is more than '
+                    'You have to select a circuit or schedule when there is more than '
                     'one available')
-            else:
-                key = 0
+            key = 0
 
+        # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
+        if isinstance(key, (QuantumCircuit, Schedule)):
+            key = key.name
         # Key is an integer: return result by index.
         if isinstance(key, int):
-            return self.results[key]
+            exp = self.results[key]
+        else:
+            try:
+                # Look into `result[x].header.name` for the names.
+                exp = next(result for result in self.results
+                           if getattr(getattr(result, 'header', None),
+                                      'name', '') == key)
+            except StopIteration:
+                raise QiskitError('Data for experiment "%s" could not be found.' %
+                                  key)
 
-        # Key is a QuantumCircuit or str: retrieve result by name.
-        if isinstance(key, QuantumCircuit):
-            key = key.name
-
-        try:
-            # Look into `result[x].header.name` for the names.
-            return next(result for result in self.results
-                        if getattr(getattr(result, 'header', None),
-                                   'name', '') == key)
-        except StopIteration:
-            raise QiskitError('Data for experiment "%s" could not be found.' %
-                              key)
+        # Check that the retrieved experiment was successful
+        if getattr(exp, 'success', False):
+            return exp
+        # If unsuccessful check experiment and result status and raise exception
+        result_status = getattr(self, 'status', 'Result was not successful')
+        exp_status = getattr(exp, 'status', 'Experiment was not successful')
+        raise QiskitError(result_status, ", ", exp_status)

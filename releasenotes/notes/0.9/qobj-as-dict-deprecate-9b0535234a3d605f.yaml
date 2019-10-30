@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``as_dict()`` method for the Qobj class has been deprecated and will
+    be removed in the future. You should replace calls to it with ``to_dict()``
+    instead.

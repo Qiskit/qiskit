@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Initialize qubit registers to desired arbitrary state.
@@ -16,24 +23,25 @@ import scipy
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Gate
+from qiskit.circuit import Instruction
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-
+from qiskit.circuit.reset import Reset
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(Gate):  # pylint: disable=abstract-method
+class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
     """
+
     def __init__(self, params):
-        """Create new initialize composite gate.
+        """Create new initialize composite.
 
         params (list): vector of complex amplitudes to initialize to
         """
@@ -50,7 +58,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, params)
+        super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization
@@ -67,13 +75,13 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        initialize_gate = disentangling_circuit.to_instruction().inverse()
+        initialize_instr = disentangling_circuit.to_instruction().inverse()
 
-        q = QuantumRegister(self.num_qubits)
-        initialize_circuit = QuantumCircuit(q)
-        # TODO: make initialize an Instruction, and insert reset
-        # TODO: avoid explicit reset if compiler determines a |0> state
-        initialize_circuit.append(initialize_gate, q[:])
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
+        for qubit in q:
+            initialize_circuit.append(Reset(), [qubit])
+        initialize_circuit.append(initialize_instr, q[:])
 
         self.definition = initialize_circuit.data
 
@@ -86,7 +94,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             QuantumCircuit: circuit to take self.params vector to |00..0>
         """
         q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
+        circuit = QuantumCircuit(q, name='disentangler')
 
         # kick start the peeling loop, and disentangle one-by-one from LSB to MSB
         remaining_param = self.params
@@ -96,7 +104,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             # qubit (we peel away one qubit at a time)
             (remaining_param,
              thetas,
-             phis) = InitializeGate._rotations_to_disentangle(remaining_param)
+             phis) = Initialize._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -134,8 +142,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             # multiplexor being in state |i>)
             (remains,
              add_theta,
-             add_phi) = InitializeGate._bloch_angles(
-                 local_param[2*i: 2*(i + 1)])
+             add_phi) = Initialize._bloch_angles(local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
@@ -170,7 +177,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * np.exp(1.J * final_t/2), theta, phi
+        return final_r * np.exp(1.J * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles):
         """
@@ -192,8 +199,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         local_num_qubits = int(math.log2(list_len)) + 1
 
         q = QuantumRegister(local_num_qubits)
-        circuit = QuantumCircuit(q)
-        circuit.name = "multiplex" + local_num_qubits.__str__()
+        circuit = QuantumCircuit(q, name="multiplex" + local_num_qubits.__str__())
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
@@ -232,12 +238,21 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         return circuit
 
+    def broadcast_arguments(self, qargs, cargs):
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+
+        if self.num_qubits != len(flat_qargs):
+            raise QiskitError("Initialize parameter vector has %d elements, therefore expects %s "
+                              "qubits. However, %s were provided." %
+                              (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
+        yield flat_qargs, []
+
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    # TODO: make initialize an Instruction, and insert reset
-    # TODO: avoid explicit reset if compiler determines a |0> state
-    return self.append(InitializeGate(params), qubits, [])
+    if not isinstance(qubits, list):
+        qubits = [qubits]
+    return self.append(Initialize(params), qubits)
 
 
 QuantumCircuit.initialize = initialize

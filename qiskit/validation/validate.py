@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Validators for Qiskit validated classes."""
+
+from collections.abc import Mapping
 
 from marshmallow import ValidationError
 from marshmallow.validate import Validator
@@ -23,7 +32,8 @@ class Or(Validator):
     """
 
     def __init__(self, validators):
-        """
+        """Or initializer.
+
         Args:
             validators (list[Validator]): list of Validators.
         """
@@ -59,7 +69,8 @@ class PatternProperties(Validator):
     """
 
     def __init__(self, pattern_properties):
-        """
+        """PatternProperties initializer.
+
         Args:
             pattern_properties (dict[Validator: Field]): dictionary of the
                 valid mappings.
@@ -68,7 +79,13 @@ class PatternProperties(Validator):
 
     def __call__(self, value):
         errors = {}
-        for key, value_ in value.__dict__.items():
+
+        if isinstance(value, Mapping):
+            _dict = value
+        else:
+            _dict = value.__dict__
+
+        for key, value_ in _dict.items():
             # Attempt to validate the keys against any field.
             field = None
             for validator, candidate in self.pattern_properties.items():

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Utilities for providers."""
 
@@ -23,7 +30,7 @@ def filter_backends(backends, filters=None, **kwargs):
     Args:
         backends (list[BaseBackend]): list of backends.
         filters (callable): filtering conditions as a callable.
-        **kwargs (dict): dict of criteria.
+        **kwargs: dict of criteria.
 
     Returns:
         list[BaseBackend]: a list of backend instances matching the
@@ -91,6 +98,7 @@ def resolve_backend_name(name, backends, deprecated, aliased):
         raise LookupError("backend '{}' not found.".format(name))
 
     if name in deprecated:
-        logger.warning("WARNING: '%s' is deprecated. Use '%s'.", name, resolved_name)
+        logger.warning("Backend '%s' is deprecated. Use '%s'.", name,
+                       resolved_name)
 
     return resolved_name

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    A ``DAGCircuit`` object (i.e. the graph representation of a QuantumCircuit where
+    operation dependencies are explicit) can now be visualized with the ``.draw()``
+    method. This is in line with Qiskit's philosophy of easy visualization.
+    Other objects which support a ``.draw()`` method are ``QuantumCircuit``,
+    ``PassManager``, and ``Schedule``.
+

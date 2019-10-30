@@ -1,4 +1,5 @@
 include qiskit/qasm/libs/*.inc
 include qiskit/schemas/*json
 include qiskit/VERSION.txt
-include setup.py.in
+include qiskit/transpiler/passes/mapping/cython/stochastic_swap/*pyx
+include qiskit/transpiler/passes/mapping/cython/stochastic_swap/*pxd

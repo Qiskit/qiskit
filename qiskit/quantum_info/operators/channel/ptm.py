@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 
@@ -31,43 +39,82 @@ from numbers import Number
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
-from .basechannel import QuantumChannel
-from .choi import Choi
-from .superop import SuperOp
-from .transformations import _to_ptm
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
-    """Pauli transfer matrix (PTM) representation of a quantum channel.
+    """Initialize a quantum channel Pauli-Transfer Matrix operator.
 
-    The PTM is the Pauli-basis representation of the PTM.
-    """
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
 
-    def __init__(self, data, input_dim=None, output_dim=None):
-        # Check if input is a quantum channel object
-        # If so we disregard the dimension kwargs
-        if issubclass(data.__class__, QuantumChannel):
-            input_dim, output_dim = data.dims
-            ptm = _to_ptm(data.rep, data._data, input_dim, output_dim)
-        else:
+        Raises:
+            QiskitError: if input data is not an N-qubit channel or
+            cannot be initialized as a PTM.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. The PTM
+        representation is only valid for N-qubit channels.
+        """
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a PTM quantum channel operator."""
+        # If the input is a raw list or matrix we assume that it is
+        # already a Chi matrix.
+        if isinstance(data, (list, np.ndarray)):
             # Should we force this to be real?
             ptm = np.array(data, dtype=complex)
             # Determine input and output dimensions
             dout, din = ptm.shape
-            if output_dim is None:
-                output_dim = int(np.sqrt(dout))
-            if input_dim is None:
+            if input_dims:
+                input_dim = np.product(input_dims)
+            else:
                 input_dim = int(np.sqrt(din))
-            # Check dimensions
+            if output_dims:
+                output_dim = np.product(input_dims)
+            else:
+                output_dim = int(np.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
-                raise QiskitError(
-                    "Invalid input and output dimension for PTM input.")
-            nqubits = int(np.log2(input_dim))
-            if 2**nqubits != input_dim:
-                raise QiskitError(
-                    "Input is not an n-qubit Pauli transfer matrix.")
-        super().__init__('PTM', ptm, input_dim, output_dim)
+                raise QiskitError("Invalid shape for PTM matrix.")
+        else:
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._init_instruction(data)
+            else:
+                # We use the QuantumChannel init transform to initialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a PTM object
+            ptm = _to_ptm(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
+        # Check input is N-qubit channel
+        n_qubits = int(np.log2(input_dim))
+        if 2**n_qubits != input_dim:
+            raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
+        # Check and format input and output dimensions
+        input_dims = self._automatic_dims(input_dims, input_dim)
+        output_dims = self._automatic_dims(output_dims, output_dim)
+        super().__init__('PTM', ptm, input_dims, output_dims)
 
     @property
     def _bipartite_shape(self):
@@ -75,82 +122,26 @@ class PTM(QuantumChannel):
         return (self._output_dim, self._output_dim, self._input_dim,
                 self._input_dim)
 
-    def _evolve(self, state):
-        """Evolve a quantum state by the QuantumChannel.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-
-        Returns:
-            DensityMatrix: the output quantum state as a density matrix.
-        """
-        return SuperOp(self)._evolve(state)
-
-    def is_cptp(self):
-        """Return True if completely-positive trace-preserving."""
-        # We convert to the Choi representation to check if CPTP
-        tmp = Choi(self)
-        return tmp.is_cptp()
-
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            PTM: the conjugate of the quantum channel as a PTM object.
-        """
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         # Since conjugation is basis dependent we transform
         # to the SuperOp representation to compute the
         # conjugate channel
-        tmp = PTM(SuperOp(self).conjugate(inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-        return tmp
+        return PTM(SuperOp(self).conjugate())
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            PTM: the transpose of the quantum channel as a PTM object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         # Since conjugation is basis dependent we transform
         # to the SuperOp representation to compute the
         # conjugate channel
-        tmp = PTM(SuperOp(self).transpose(inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-        return tmp
+        return PTM(SuperOp(self).transpose())
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            PTM: the adjoint of the quantum channel as a PTM object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -159,11 +150,16 @@ class PTM(QuantumChannel):
             PTM: The composition channel as a PTM object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
+        if qargs is not None:
+            return PTM(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+
+        # Convert other to PTM
+        if not isinstance(other, PTM):
+            other = PTM(other)
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
             raise QiskitError(
@@ -171,141 +167,116 @@ class PTM(QuantumChannel):
         if not front and self._output_dim != other._input_dim:
             raise QiskitError(
                 'input_dim of other must match output_dim of self')
-        # Convert other to PTM
-        if not isinstance(other, PTM):
-            other = PTM(other)
-
         if front:
             # Composition A(B(input))
             input_dim = other._input_dim
             output_dim = self._output_dim
-            if inplace:
-                np.dot(self._data, other.data, out=self._data)
-                self._input_dim = input_dim
-                self._output_dim = output_dim
-                return self
             return PTM(np.dot(self._data, other.data), input_dim, output_dim)
         # Composition B(A(input))
         input_dim = self._input_dim
         output_dim = other._output_dim
-        if inplace:
-            np.dot(other.data, self._data, out=self._data)
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
         return PTM(np.dot(other.data, self._data), input_dim, output_dim)
 
-    def power(self, n, inplace=False):
-        """Return the compose of a QuantumChannel with itself n times.
+    def power(self, n):
+        """The matrix power of the channel.
 
         Args:
-            n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            n (int): compute the matrix power of the superoperator matrix.
 
         Returns:
-            PTM: the n-times composition channel as a PTM object.
+            PTM: the matrix power of the SuperOp converted to a PTM channel.
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
+            QuantumChannel are not equal, or the power is not an integer.
         """
-        return super().power(n, inplace=inplace)
+        if n > 0:
+            return super().power(n)
+        return PTM(SuperOp(self).power(n))
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             PTM: the tensor product channel self ⊗ other as a PTM object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        input_dims = other.input_dims() + self.input_dims()
+        output_dims = other.output_dims() + self.output_dims()
+        data = np.kron(self._data, other.data)
+        return PTM(data, input_dims, output_dims)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             PTM: the tensor product channel other ⊗ self as a PTM object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        input_dims = self.input_dims() + other.input_dims()
+        output_dims = self.output_dims() + other.output_dims()
+        data = np.kron(other.data, self._data)
+        return PTM(data, input_dims, output_dims)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             PTM: the linear addition self + other as a PTM object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
-        if self.dims != other.dims:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, PTM):
             other = PTM(other)
-        if inplace:
-            self._data += other._data
-            return self
-        input_dim, output_dim = self.dims
-        return PTM(self._data + other.data, input_dim, output_dim)
+        if self.dim != other.dim:
+            raise QiskitError("other QuantumChannel dimensions are not equal")
+        return PTM(self._data + other.data, self._input_dims,
+                   self._output_dims)
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             PTM: the linear subtraction self - other as PTM object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
-        if self.dims != other.dims:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, PTM):
             other = PTM(other)
-        if inplace:
-            self._data -= other.data
-            return self
-        input_dim, output_dim = self.dims
-        return PTM(self._data - other.data, input_dim, output_dim)
+        if self.dim != other.dim:
+            raise QiskitError("other QuantumChannel dimensions are not equal")
+        return PTM(self._data - other.data, self._input_dims,
+                   self._output_dims)
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             PTM: the scalar multiplication other * self as a PTM object.
@@ -315,45 +286,21 @@ class PTM(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        if inplace:
-            self._data *= other
-            return self
-        input_dim, output_dim = self.dims
-        return PTM(other * self._data, input_dim, output_dim)
+        return PTM(other * self._data, self._input_dims, self._output_dims)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
-        """Return the tensor product channel.
+    def _evolve(self, state, qargs=None):
+        """Evolve a quantum state by the quantum channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
+
         Returns:
-            PTM: the tensor product channel as a PTM object.
+            DensityMatrix: the output quantum state as a density matrix.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
         """
-        # Convert other to PTM
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        # Combined channel dimensions
-        a_in, a_out = self.dims
-        b_in, b_out = other.dims
-        input_dim = a_in * b_in
-        output_dim = a_out * b_out
-        if reverse:
-            data = np.kron(other.data, self._data)
-        else:
-            data = np.kron(self._data, other.data)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        # return new object
-        return PTM(data, input_dim, output_dim)
+        return SuperOp(self)._evolve(state, qargs)

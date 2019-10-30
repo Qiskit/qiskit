@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""This module implements the base pass."""
+"""Base transpiler passes."""
 
 from abc import abstractmethod
 from collections.abc import Hashable
@@ -14,9 +21,10 @@ from .propertyset import PropertySet
 
 
 class MetaPass(type):
-    """
-    Enforces the creation of some fields in the pass
-    while allowing passes to override __init__
+    """Metaclass for transpiler passes.
+
+    Enforces the creation of some fields in the pass while allowing passes to
+    override ``__init__``.
     """
 
     def __call__(cls, *args, **kwargs):
@@ -56,13 +64,13 @@ class BasePass(metaclass=MetaPass):
         return hash(self) == hash(other)
 
     def name(self):
-        """ The name of the pass. """
+        """Return the name of the pass."""
         return self.__class__.__name__
 
     @abstractmethod
     def run(self, dag):
-        """
-        Run a pass on the DAGCircuit. This is implemented by the pass developer.
+        """Run a pass on the DAGCircuit. This is implemented by the pass developer.
+
         Args:
             dag (DAGCircuit): the dag on which the pass is run.
         Raises:
@@ -72,23 +80,29 @@ class BasePass(metaclass=MetaPass):
 
     @property
     def is_transformation_pass(self):
-        """ If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
-        but cannot modify the property set (but it can be read). """
+        """Check if the pass is a transformation pass.
+
+        If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
+        but cannot modify the property set (but it can be read).
+        """
         return isinstance(self, TransformationPass)
 
     @property
     def is_analysis_pass(self):
-        """ If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
+        """Check if the pass is an analysis pass.
+
+        If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
         the results of that analysis in the property set. Modifications on the DAG are not allowed
-        by this kind of pass. """
+        by this kind of pass.
+        """
         return isinstance(self, AnalysisPass)
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
-    """ An analysis pass: change property set, not DAG. """
+    """An analysis pass: change property set, not DAG."""
     pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
-    """ A transformation pass: change DAG, not property set. """
+    """A transformation pass: change DAG, not property set."""
     pass

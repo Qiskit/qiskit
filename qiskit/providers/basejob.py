@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""This module implements the abstract base class for backend jobs
+"""This module implements the abstract base class for backend jobs.
 
 When creating a new backend module it is also necessary to implement this
 job interface.
@@ -33,25 +40,25 @@ class BaseJob(ABC):
         return self._job_id
 
     def backend(self):
-        """Return the backend for this job."""
+        """Return the backend where this job was executed."""
         return self._backend
 
     @abstractmethod
     def submit(self):
-        """Submit the job to the backend."""
+        """Submit the job to the backend for execution."""
         pass
 
     @abstractmethod
     def result(self):
-        """Return backend result"""
+        """Return the results of the job."""
         pass
 
     @abstractmethod
     def cancel(self):
-        """Attempt to cancel job."""
+        """Attempt to cancel the job."""
         pass
 
     @abstractmethod
     def status(self):
-        """Return one of the values of ``JobStatus``"""
+        """Return the status of the job, among the values of ``JobStatus``."""
         pass

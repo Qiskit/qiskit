@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Polymorphic fields that represent one of several schemas or types."""
 
@@ -50,27 +57,28 @@ class BasePolyField(PolyField, ModelTypeValidator):
 
         super().__init__(to_dict_selector, from_dict_selector, many=many, **metadata)
 
-    def to_dict_selector(self, choices, *args, **kwargs):
+    def to_dict_selector(self, choices, *args, **_):
         """Return an schema in ``choices`` for serialization."""
         raise NotImplementedError
 
-    def from_dict_selector(self, choices, *args, **kwargs):
+    def from_dict_selector(self, choices, *args, **_):
         """Return an schema in ``choices`` for deserialization."""
         raise NotImplementedError
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         """Override ``_deserialize`` for customizing the exception raised."""
+        # pylint: disable=arguments-differ
         try:
-            return super()._deserialize(value, attr, data)
+            return super()._deserialize(value, attr, data, **kwargs)
         except ValidationError as ex:
             if 'deserialization_schema_selector' in ex.messages[0]:
                 ex.messages[0] = 'Cannot find a valid schema among the choices'
             raise
 
-    def _serialize(self, value, key, obj):
+    def _serialize(self, value, key, obj, **kwargs):
         """Override ``_serialize`` for customizing the exception raised."""
         try:
-            return super()._serialize(value, key, obj)
+            return super()._serialize(value, key, obj, **kwargs)
         except TypeError as ex:
             if 'serialization_schema_selector' in str(ex):
                 raise ValidationError('Data from an invalid schema')
@@ -79,7 +87,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
     def _expected_types(self):
         return tuple(schema.model_cls for schema in self._choices)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Check if the type of the value is one of the possible choices.
 
         Possible choices are the model classes bound to the possible schemas.
@@ -94,7 +102,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
         values = value if self.many else [value]
         for idx, v in enumerate(values):
             try:
-                _check_type(v, idx, values)
+                _check_type(v, idx, values, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 
@@ -137,7 +145,7 @@ class TryFrom(BasePolyField):
         # pylint: disable=arguments-differ
         for schema_cls in choices:
             try:
-                schema = schema_cls(strict=True)
+                schema = schema_cls()
                 schema.load(base_dict)
 
                 return schema_cls()
@@ -196,8 +204,8 @@ class ByType(ModelTypeValidator):
 
     Args:
         choices (list[Field]): list of accepted `Fields` instances.
-        *args (tuple): args for Field.
-        **kwargs (dict): kwargs for Field.
+        *args: args for Field.
+        **kwargs: kwargs for Field.
     """
 
     default_error_messages = {
@@ -208,25 +216,25 @@ class ByType(ModelTypeValidator):
         self.choices = choices
         super().__init__(*args, **kwargs)
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         for field in self.choices:
             try:
-                return field._serialize(value, attr, obj)
-            except ValidationError:
+                return field._serialize(value, attr, obj, **kwargs)
+            except (ValidationError, ValueError):
                 pass
 
-        self.fail('invalid', value=value, types=self.choices)
+        raise self.make_error('invalid', value=value, types=self.choices)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         for field in self.choices:
             try:
-                return field._deserialize(value, attr, data)
-            except ValidationError:
+                return field._deserialize(value, attr, data, **kwargs)
+            except (ValidationError, ValueError):
                 pass
 
-        self.fail('invalid', value=value, types=self.choices)
+        raise self.make_error('invalid', value=value, types=self.choices)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Check if at least one of the possible choices validates the value.
 
         Possible choices are assumed to be ``ModelTypeValidator`` fields.
@@ -234,7 +242,7 @@ class ByType(ModelTypeValidator):
         for field in self.choices:
             if isinstance(field, ModelTypeValidator):
                 try:
-                    return field.check_type(value, attr, data)
+                    return field.check_type(value, attr, data, **kwargs)
                 except ValidationError:
                     pass
 

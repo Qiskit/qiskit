@@ -1,81 +1,84 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018, IBM.
+
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """PassManager class for the transpiler."""
 
-from functools import partial
-from collections import OrderedDict
-from qiskit.dagcircuit import DAGCircuit
-from .propertyset import PropertySet
+import dill
+
+from qiskit.visualization import pass_manager_drawer
+from qiskit.tools.parallel import parallel_map
+from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
-from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from .runningpassmanager import RunningPassManager
 
 
-class PassManager():
-    """ A PassManager schedules the passes """
+class PassManager:
+    """A PassManager schedules the passes"""
 
-    def __init__(self, passes=None,
-                 ignore_requires=None,
-                 ignore_preserves=None,
-                 max_iteration=None):
-        """
-        Initialize an empty PassManager object (with no passes scheduled).
+    def __init__(self, passes=None, max_iteration=1000, callback=None):
+        """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
-                None.
-            ignore_requires (bool): The schedule ignores the requires field in the passes. The
-                default setting in the pass is False.
-            ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
-                default setting in the pass is False.
+            passes (list[BasePass] or BasePass): A pass set (as defined in ``append()``)
+                to be added to the pass manager schedule. The default is None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
+            callback (func): A callback function that will be called after each
+                pass execution. The function will be called with 5 keyword
+                arguments:
+                    pass_ (Pass): the pass being run
+                    dag (DAGCircuit): the dag output of the pass
+                    time (float): the time to execute the pass
+                    property_set (PropertySet): the property set
+                    count (int): the index for the pass execution
+
+                The exact arguments pass expose the internals of the pass
+                manager and are subject to change as the pass manager internals
+                change. If you intend to reuse a callback function over
+                multiple releases be sure to check that the arguments being
+                passed are the same.
+
+                To use the callback feature you define a function that will
+                take in kwargs dict and access the variables. For example::
+
+                    def callback_func(**kwargs):
+                        pass_ = kwargs['pass_']
+                        dag = kwargs['dag']
+                        time = kwargs['time']
+                        property_set = kwargs['property_set']
+                        count = kwargs['count']
+                        ...
+
+                    PassManager(callback=callback_func)
+
         """
-        # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.append().
-        self.working_list = []
-
-        # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. Analysis passes may update the property_set,
-        # but transformation passes have read-only access (via the fenced_property_set).
-        self.property_set = PropertySet()
-        self.fenced_property_set = FencedPropertySet(self.property_set)
-
-        # passes already run that have not been invalidated
-        self.valid_passes = set()
-
-        # pass manager's overriding options for the passes it runs (for debugging)
-        self.passmanager_options = {'ignore_requires': ignore_requires,
-                                    'ignore_preserves': ignore_preserves,
-                                    'max_iteration': max_iteration}
+        self._pass_sets = []
         if passes is not None:
             self.append(passes)
+        self.max_iteration = max_iteration
+        self.callback = callback
+        self.property_set = None
 
-    def _join_options(self, passset_options):
-        """ Set the options of each passset, based on precedence rules:
-        passset options (set via ``PassManager.append()``) override
-        passmanager options (set via ``PassManager.__init__()``), which override Default.
-        .
-        """
-        default = {'ignore_preserves': False,  # Ignore preserves for this pass
-                   'ignore_requires': False,  # Ignore requires for this pass
-                   'max_iteration': 1000}  # Maximum allowed iteration on this pass
+    def append(self, passes, max_iteration=None, **flow_controller_conditions):
+        """Append a Pass Set to the schedule of passes.
 
-        passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
-        passset_level = {k: v for k, v in passset_options.items() if v is not None}
-        return {**default, **passmanager_level, **passset_level}
-
-    def append(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-               **flow_controller_conditions):
-        """
         Args:
-            passes (list[BasePass] or BasePass): pass(es) to be added to schedule
-            ignore_preserves (bool): ignore the preserves claim of passes. Default: False
-            ignore_requires (bool): ignore the requires need of passes. Default: False
+            passes (list[BasePass] or BasePass): A set of passes (a pass set) to be added
+               to schedule. A pass set is a list of passes that are controlled by the same
+               flow controller. If a single pass is provided, the pass set will only have that
+               pass a single element.
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
@@ -91,201 +94,181 @@ class PassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
+        if max_iteration:
+            # TODO remove this argument from append
+            self.max_iteration = max_iteration
 
-        passset_options = {'ignore_requires': ignore_requires,
-                           'ignore_preserves': ignore_preserves,
-                           'max_iteration': max_iteration}
+        passes = PassManager._normalize_passes(passes)
+        self._pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
 
-        options = self._join_options(passset_options)
+    def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
+        """Replace a particular pass in the scheduler
 
+        Args:
+            index (int): Pass index to replace, based on the position in passes().
+            passes (list[BasePass] or BasePass): A pass set (as defined in ``append()``)
+                   to be added to the pass manager schedule
+            max_iteration (int): max number of iterations of passes. Default: 1000
+            flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
+            control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
+        Raises:
+            TranspilerError: if a pass in passes is not a proper pass.
+        """
+        if max_iteration:
+            # TODO remove this argument from append
+            self.max_iteration = max_iteration
+
+        passes = PassManager._normalize_passes(passes)
+
+        try:
+            self._pass_sets[index] = {'passes': passes,
+                                      'flow_controllers': flow_controller_conditions}
+        except IndexError:
+            raise TranspilerError('Index to replace %s does not exists' % index)
+
+    def __setitem__(self, index, item):
+        self.replace(index, item)
+
+    def __len__(self):
+        return len(self._pass_sets)
+
+    def __getitem__(self, index):
+        max_iteration = self.max_iteration
+        call_back = self.callback
+        new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+        _pass_sets = self._pass_sets[index]
+        if isinstance(_pass_sets, dict):
+            _pass_sets = [_pass_sets]
+        new_passmanager._pass_sets = _pass_sets
+        return new_passmanager
+
+    def __add__(self, other):
+        if isinstance(other, PassManager):
+            max_iteration = self.max_iteration
+            call_back = self.callback
+            new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
+            return new_passmanager
+        else:
+            try:
+                max_iteration = self.max_iteration
+                call_back = self.callback
+                new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+                new_passmanager._pass_sets += self._pass_sets
+                new_passmanager.append(other)
+                return new_passmanager
+            except TranspilerError:
+                raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
+                                                                              other.__class__))
+
+    @staticmethod
+    def _normalize_passes(passes):
         if isinstance(passes, BasePass):
             passes = [passes]
 
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
+        return passes
 
-        for name, param in flow_controller_conditions.items():
-            if callable(param):
-                flow_controller_conditions[name] = partial(param, self.fenced_property_set)
-            else:
-                raise TranspilerError('The flow controller parameter %s is not callable' % name)
-
-        self.working_list.append(
-            FlowController.controller_factory(passes, options, **flow_controller_conditions))
-
-    def run_passes(self, dag):
-        """Run all the passes on a DAG.
+    def run(self, circuits):
+        """Run all the passes on circuit or circuits
 
         Args:
-            dag (DAGCircuit): DAG circuit to transform via all the registered passes
+            circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
+            transform via all the registered passes.
 
         Returns:
-            DAGCircuit: Transformed DAG.
+            QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
         """
-        for passset in self.working_list:
-            for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
-        return dag
-
-    def _do_pass(self, pass_, dag, options):
-        """Do a pass and its "requires".
-
-        Args:
-            pass_ (BasePass): Pass to do.
-            dag (DAGCircuit): The dag on which the pass is ran.
-            options (dict): PassManager options.
-        Returns:
-            DAGCircuit: The transformed dag in case of a transformation pass.
-            The same input dag in case of an analysis pass.
-        Raises:
-            TranspilerError: If the pass is not a proper pass instance.
-        """
-
-        # First, do the requires of pass_
-        if not options["ignore_requires"]:
-            for required_pass in pass_.requires:
-                dag = self._do_pass(required_pass, dag, options)
-
-        # Run the pass itself, if not already run
-        if pass_ not in self.valid_passes:
-            if pass_.is_transformation_pass:
-                pass_.property_set = self.fenced_property_set
-                new_dag = pass_.run(dag)
-                if not isinstance(new_dag, DAGCircuit):
-                    raise TranspilerError("Transformation passes should return a transformed dag."
-                                          "The pass %s is returning a %s" % (type(pass_).__name__,
-                                                                             type(new_dag)))
-                dag = new_dag
-            elif pass_.is_analysis_pass:
-                pass_.property_set = self.property_set
-                pass_.run(FencedDAGCircuit(dag))
-            else:
-                raise TranspilerError("I dont know how to handle this type of pass")
-
-            # update the valid_passes property
-            self._update_valid_passes(pass_, options['ignore_preserves'])
-
-        return dag
-
-    def _update_valid_passes(self, pass_, ignore_preserves):
-        self.valid_passes.add(pass_)
-        if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            if ignore_preserves:
-                self.valid_passes.clear()
-            else:
-                self.valid_passes.intersection_update(set(pass_.preserves))
-
-
-class FlowController():
-    """This class is a base class for multiple types of working list. When you iterate on it, it
-    returns the next pass to run. """
-
-    registered_controllers = OrderedDict()
-
-    def __init__(self, passes, options, **partial_controller):
-        self.passes = FlowController.controller_factory(passes, options, **partial_controller)
-        self.options = options
-
-    def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
-
-    @classmethod
-    def add_flow_controller(cls, name, controller):
-        """
-        Adds a flow controller.
-        Args:
-            name (string): Name of the controller to add.
-            controller (type(FlowController)): The class implementing a flow controller.
-        """
-        cls.registered_controllers[name] = controller
-
-    @classmethod
-    def remove_flow_controller(cls, name):
-        """
-        Removes a flow controller.
-        Args:
-            name (string): Name of the controller to remove.
-        Raises:
-            KeyError: If the controller to remove was not registered.
-        """
-        if name not in cls.registered_controllers:
-            raise KeyError("Flow controller not found: %s" % name)
-        del cls.registered_controllers[name]
-
-    @classmethod
-    def controller_factory(cls, passes, options, **partial_controller):
-        """
-        Constructs a flow controller based on the partially evaluated controller arguments.
-
-        Args:
-            passes (list[BasePass]): passes to add to the flow controller.
-            options (dict): PassManager options.
-            **partial_controller (dict): Partially evaluated controller arguments in the form
-                `{name:partial}`
-
-        Raises:
-            TranspilerError: When partial_controller is not well-formed.
-
-        Returns:
-            FlowController: A FlowController instance.
-        """
-        if None in partial_controller.values():
-            raise TranspilerError('The controller needs a condition.')
-
-        if partial_controller:
-            for registered_controller in cls.registered_controllers.keys():
-                if registered_controller in partial_controller:
-                    return cls.registered_controllers[registered_controller](passes, options,
-                                                                             **partial_controller)
-            raise TranspilerError("The controllers for %s are not registered" % partial_controller)
+        if isinstance(circuits, QuantumCircuit):
+            return self._run_single_circuit(circuits)
         else:
-            return FlowControllerLinear(passes, options)
+            return self._run_several_circuits(circuits)
 
+    def _create_running_passmanager(self):
+        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
+        for pass_set in self._pass_sets:
+            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
+        return running_passmanager
 
-class FlowControllerLinear(FlowController):
-    """ The basic controller run the passes one after the other one. """
+    @staticmethod
+    def _in_parallel(circuit, pm_dill=None):
+        """ Used by _run_several_circuits. """
+        running_passmanager = dill.loads(pm_dill)._create_running_passmanager()
+        result = running_passmanager.run(circuit)
+        return result
 
-    def __init__(self, passes, options):  # pylint: disable=super-init-not-called
-        self.passes = passes
-        self.options = options
+    def _run_several_circuits(self, circuits):
+        """Run all the passes on each of the circuits in the circuits list
 
+        Args:
+            circuits (list[QuantumCircuit]): circuit to transform via all the registered passes
 
-class DoWhileController(FlowController):
-    """Implements a set of passes in a do while loop. """
+        Returns:
+            list[QuantumCircuit]: Transformed circuits.
+        """
+        return parallel_map(PassManager._in_parallel, circuits,
+                            task_kwargs={'pm_dill': dill.dumps(self)})
 
-    def __init__(self, passes, options, do_while=None,
-                 **partial_controller):
-        self.do_while = do_while
-        self.max_iteration = options['max_iteration']
-        super().__init__(passes, options, **partial_controller)
+    def _run_single_circuit(self, circuit):
+        """Run all the passes on a QuantumCircuit
 
-    def __iter__(self):
-        for _ in range(self.max_iteration):
-            for pass_ in self.passes:
-                yield pass_
+        Args:
+            circuit (QuantumCircuit): circuit to transform via all the registered passes
 
-            if not self.do_while():
-                return
+        Returns:
+            QuantumCircuit: Transformed circuit.
+        """
+        running_passmanager = self._create_running_passmanager()
+        result = running_passmanager.run(circuit)
+        self.property_set = running_passmanager.property_set
+        return result
 
-        raise TranspilerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
+    def draw(self, filename=None, style=None, raw=False):
+        """
+        Draws the pass manager.
 
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
 
-class ConditionalController(FlowController):
-    """Implements a set of passes under certain condition. """
+        Args:
+            filename (str or None): file path to save image to
+            style (dict or OrderedDict): keys are the pass classes and the values are
+                the colors to make them. An example can be seen in the DEFAULT_STYLE. An ordered
+                dict can be used to ensure a priority coloring when pass falls into multiple
+                categories. Any values not included in the provided dict will be filled in from
+                the default dict
+            raw (Bool) : True if you want to save the raw Dot output not an image. The
+                default is False.
+        Returns:
+            PIL.Image or None: an in-memory representation of the pass manager. Or None if
+                               no image was generated or PIL is not installed.
+        Raises:
+            ImportError: when nxpd or pydot not installed.
+        """
+        return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
-    def __init__(self, passes, options, condition=None,
-                 **partial_controller):
-        self.condition = condition
-        super().__init__(passes, options, **partial_controller)
+    def passes(self):
+        """Return a list structure of the appended passes and its options.
 
-    def __iter__(self):
-        if self.condition():
-            for pass_ in self.passes:
-                yield pass_
-
-
-# Default controllers
-FlowController.add_flow_controller('condition', ConditionalController)
-FlowController.add_flow_controller('do_while', DoWhileController)
+        Returns (list): A list of pass sets as defined in ``append()``.
+        """
+        ret = []
+        for pass_set in self._pass_sets:
+            item = {'passes': pass_set['passes']}
+            if pass_set['flow_controllers']:
+                item['flow_controllers'] = {controller_name for controller_name in
+                                            pass_set['flow_controllers'].keys()}
+            else:
+                item['flow_controllers'] = {}
+            ret.append(item)
+        return ret

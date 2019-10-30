@@ -1,19 +1,27 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Fields custom to Terra to be used with Qiskit validated classes."""
 
+from collections.abc import Mapping
+
 import numpy
-import sympy
 
 from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError
-from marshmallow.compat import Mapping, Iterable
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.validation import ModelTypeValidator
 
 
@@ -32,20 +40,20 @@ class Complex(ModelTypeValidator):
         'format': '"{input}" cannot be formatted as complex number.',
     }
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **_):
         try:
             return [value.real, value.imag]
         except AttributeError:
-            self.fail('format', input=value)
+            raise self.make_error('format', input=value)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **_):
         if not is_collection(value) or len(value) != 2:
-            self.fail('invalid', input=value)
+            raise self.make_error('invalid', input=value)
 
         try:
             return complex(*value)
         except (ValueError, TypeError):
-            self.fail('invalid', input=value)
+            raise self.make_error('invalid', input=value)
 
 
 class InstructionParameter(ModelTypeValidator):
@@ -55,16 +63,15 @@ class InstructionParameter(ModelTypeValidator):
     qobj.experiments.instructions.parameters:
     * basic Python types: complex, int, float, str, list
     * ``numpy``: integer, float, ndarray
-    * ``sympy``: Symbol, Basic
 
     Note that by using this field, serialization-deserialization round-tripping
     becomes not possible, as certain types serialize to the same Python basic
     type (for example, numpy.float and regular float). If possible, it is
     recommended that more specific and defined fields are used instead.
     """
-
     valid_types = (complex, int, float, str,
-                   numpy.integer, numpy.float, sympy.Basic, sympy.Symbol,
+                   ParameterExpression,
+                   numpy.integer, numpy.float,
                    list, numpy.ndarray)
 
     default_error_messages = {
@@ -72,10 +79,10 @@ class InstructionParameter(ModelTypeValidator):
         'format': '"{input}" cannot be formatted as a parameter.'
     }
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         # pylint: disable=too-many-return-statements
         if is_collection(value):
-            return [self._serialize(item, attr, obj) for item in value]
+            return [self._serialize(item, attr, obj, **kwargs) for item in value]
 
         if isinstance(value, complex):
             return [value.real, value.imag]
@@ -85,103 +92,114 @@ class InstructionParameter(ModelTypeValidator):
             return float(value)
         if isinstance(value, (float, int, str)):
             return value
-        if isinstance(value, sympy.Symbol):
-            return str(value)
-        if isinstance(value, sympy.Basic):
-            if value.is_imaginary:
-                return [float(sympy.re(value)), float(sympy.im(value))]
-            if value.is_Integer:
-                return int(value.evalf())
-            else:
-                return float(value.evalf())
+        if isinstance(value, ParameterExpression):
+            if value.parameters:
+                bare_error = self.make_error('invalid', input=value)
+                raise ValidationError({self.name: bare_error.messages},
+                                      field_name=self.name)
+            return float(value)
 
         # Fallback for attempting serialization.
-        if hasattr(value, 'as_dict'):
-            return value.as_dict()
+        if hasattr(value, 'to_dict'):
+            return value.to_dict()
 
-        return self.fail('format', input=value)
+        raise self.make_error('format', input=value)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if is_collection(value):
-            return [self._deserialize(item, attr, data) for item in value]
+            return [self._deserialize(item, attr, data, **kwargs) for item in value]
 
         if isinstance(value, (float, int, str)):
             return value
 
-        return self.fail('invalid', input=value)
+        raise self.make_error('invalid', input=value)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Customize check_type for handling containers."""
         # Check the type in the standard way first, in order to fail quickly
         # in case of invalid values.
-        root_value = super(InstructionParameter, self).check_type(
-            value, attr, data)
+        root_value = super().check_type(value, attr, data, **kwargs)
 
         if is_collection(value):
-            _ = [super(InstructionParameter, self).check_type(item, attr, data)
+            _ = [super(InstructionParameter, self).check_type(item, attr, data, **kwargs)
                  for item in value]
 
         return root_value
 
 
-class MeasurementParameter(ModelTypeValidator):
+class DictParameters(ModelTypeValidator):
     """Field for objects used in measurement kernel and discriminator parameters.
     """
     default_error_messages = {
-        'invalid': 'Not a valid mapping type.',
-        'invalid_sub': 'Not a valid value.'
+        'invalid_mapping': 'Not a valid mapping type.',
+        'invalid': '{input} cannot be parsed as a parameter.'
     }
 
-    valid_types = (int, float, str, bool, Iterable, Mapping, type(None))
+    def __init__(self, valid_value_types, **kwargs):
+        """Create new model.
 
-    def check_type(self, value, attr, data):
+        Args:
+            valid_value_types (tuple): valid types as values.
+        """
+        # pylint: disable=missing-param-doc
+
+        super().__init__(**kwargs)
+        self.valid_value_types = valid_value_types
+
+    def _expected_types(self):
+        return self.valid_value_types
+
+    def check_type(self, value, attr, data, **kwargs):
         if value is None:
             return None
 
         _check_type = super().check_type
 
         errors = []
-        if isinstance(value, Mapping):
-            for v in value.values():
-                try:
-                    _check_type(v, None, value)
-                except ValidationError as err:
-                    errors.append(err.messages)
-        else:
-            errors.append('Not a valid mapping type.')
+        if not isinstance(data[attr], Mapping):
+            raise self.make_error('invalid_mapping')
+
+        try:
+            if isinstance(value, Mapping):
+                for v in value.values():
+                    self.check_type(v, attr, data, **kwargs)
+            elif is_collection(value):
+                for v in value:
+                    self.check_type(v, attr, data, **kwargs)
+            else:
+                _check_type(value, attr, data, **kwargs)
+        except ValidationError as err:
+            errors.append(err.messages)
 
         if errors:
             raise ValidationError(errors)
 
         return value
 
-    def _serialize_sub(self, value):
-        # pylint: disable=too-many-return-statements
+    def _validate_values(self, value):
         if value is None:
             return None
-        if isinstance(value, (int, float, str, bool)):
+        if isinstance(value, self.valid_value_types):
             return value
-        if isinstance(value, Iterable):
-            return [self._serialize_sub(each) for each in value]
+        if is_collection(value):
+            return [self._validate_values(each) for each in value]
         if isinstance(value, Mapping):
-            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+            return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        return self.fail('invalid_sub', input=value)
+        raise self.make_error('invalid', input=value)
 
-    def _serialize(self, value, attr, obj):
-        # pylint: disable=too-many-return-statements
+    def _serialize(self, value, attr, obj, **_):
         if value is None:
             return None
         if isinstance(value, Mapping):
-            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+            return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        return self.fail('invalid')
+        raise self.make_error('invalid_mapping')
 
-    def _deserialize(self, value, attr, data):
-        # pylint: disable=too-many-return-statements
+    def _deserialize(self, value, attr, data, **_):
         if value is None:
             return None
         if isinstance(value, Mapping):
             return value
 
-        return self.fail('invalid')
+        raise self.make_error('invalid_mapping')

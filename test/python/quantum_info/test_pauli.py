@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
@@ -15,6 +22,45 @@ import numpy as np
 
 from qiskit.quantum_info import Pauli, pauli_group
 from qiskit.test import QiskitTestCase
+
+
+class TestPauliAPI(QiskitTestCase):
+    """Tests for Pauli class API."""
+
+    def check(self, result):
+        """checks for result to be a Pauli 'IY' """
+        self.assertIsInstance(result, Pauli)
+        self.assertEqual(result.numberofqubits, 2)
+        self.assertEqual(result.to_label(), 'IY')
+
+    def test_ndarray_bool(self):
+        """Test creation from np.bool."""
+        x = np.asarray([1, 0]).astype(np.bool)
+        z = np.asarray([1, 0]).astype(np.bool)
+        pauli = Pauli(x=x, z=z)
+        self.check(pauli)
+
+    def test_ndarray_int(self):
+        """Test creation from np.int."""
+        x = np.asarray([2, 0]).astype(np.int)
+        z = np.asarray([2, 0]).astype(np.int)
+        pauli = Pauli(x=x, z=z)
+        self.check(pauli)
+
+    def test_list(self):
+        """Test creation from lists."""
+        pauli = Pauli(x=[1, 0], z=[1, 0])
+        self.check(pauli)
+
+    def test_tuple(self):
+        """Test creation from tuples."""
+        pauli = Pauli(x=(1, 0), z=(1, 0))
+        self.check(pauli)
+
+    def test_mix(self):
+        """Test creation from tuples and list."""
+        pauli = Pauli(x=(1, 0), z=[1, 0])
+        self.check(pauli)
 
 
 class TestPauli(QiskitTestCase):
@@ -214,7 +260,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'IZX')
 
     def test_delete_qubits(self):
-        """Test deleting mulitple qubits."""
+        """Test deleting multiple qubits."""
         p1 = self.ref_p
         p2 = deepcopy(p1)
 
@@ -244,7 +290,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), self.ref_label + self.ref_label)
 
     def test_insert_pauli_labels_1(self):
-        """Test inseting paulis via labels."""
+        """Test inserting paulis via labels."""
         p2 = deepcopy(self.ref_p)
 
         p2.insert_paulis(indices=[1, 2], pauli_labels=['Y', 'I'])
@@ -253,7 +299,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'IZIXYY')
 
     def test_insert_pauli_labels_2(self):
-        """Test inseting paulis via labels."""
+        """Test inserting paulis via labels."""
         p2 = deepcopy(self.ref_p)
 
         p2.insert_paulis(indices=[3, 2], pauli_labels=['Y', 'I'])

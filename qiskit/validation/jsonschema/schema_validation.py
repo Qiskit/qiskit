@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Validation module for validation against JSON schemas."""
 
@@ -65,7 +72,7 @@ def _get_validator(name, schema=None, check_schema=True,
         validator_class (jsonschema.IValidator): jsonschema IValidator instance.
             Default behavior is to determine this from the schema `$schema`
             field.
-        **validator_kwargs (dict): Additional keyword arguments for validator.
+        **validator_kwargs: Additional keyword arguments for validator.
 
     Return:
         jsonschema.IValidator: Validator for JSON schema.
@@ -81,19 +88,16 @@ def _get_validator(name, schema=None, check_schema=True,
                                         "be provided.")
 
     if name not in _VALIDATORS:
-
         # Resolve JSON spec from schema if needed
         if validator_class is None:
             validator_class = jsonschema.validators.validator_for(schema)
 
         # Generate and store validator in _VALIDATORS
         _VALIDATORS[name] = validator_class(schema, **validator_kwargs)
+        if check_schema:
+            _VALIDATORS[name].check_schema(schema)
 
     validator = _VALIDATORS[name]
-
-    if check_schema:
-        validator.check_schema(schema)
-
     return validator
 
 

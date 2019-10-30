@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """Test Qiskit's QuantumCircuit class."""
@@ -11,7 +18,7 @@
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
@@ -31,7 +38,7 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -49,7 +56,8 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)
@@ -58,7 +66,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test combining two circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
-        it should raise a QiskitError.
+        it should raise a CircuitError.
         """
         qr1 = QuantumRegister(1, "q")
         qr2 = QuantumRegister(2, "q")
@@ -67,8 +75,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__add__, qc2)
-        self.assertRaises(QiskitError, qc1.__add__, qcr3)
+        self.assertRaises(CircuitError, qc1.__add__, qc2)
+        self.assertRaises(CircuitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
         """Test extending a circuit with same registers.
@@ -83,7 +91,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -101,7 +110,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)
@@ -110,7 +120,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test extending a circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
-        it should raise a QiskitError.
+        it should raise a CircuitError.
         """
         qr1 = QuantumRegister(1, "q")
         qr2 = QuantumRegister(2, "q")
@@ -119,8 +129,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__iadd__, qc2)
-        self.assertRaises(QiskitError, qc1.__iadd__, qcr3)
+        self.assertRaises(CircuitError, qc1.__iadd__, qc2)
+        self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
@@ -132,7 +142,7 @@ class TestCircuitOperations(QiskitTestCase):
                                          classical_reg_1)
         quantum_circuit.h(quantum_reg)
 
-        with self.assertRaises(QiskitError) as ctx:
+        with self.assertRaises(CircuitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
                          'register size error')
@@ -147,6 +157,133 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(qr[1], cr[1])
 
         self.assertEqual(qc, qc.copy())
+
+    def test_measure_active(self):
+        """Test measure_active
+        Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
+        the amount of non-idle qubits to store the measured values.
+        """
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[2])
+        circuit.measure_active()
+
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[2])
+        expected.add_register(cr)
+        expected.barrier()
+        expected.measure([qr[0], qr[2]], [cr[0], cr[1]])
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_active_repetition(self):
+        """Test measure_active in a circuit with a 'measure' creg.
+        measure_active should be aware that the creg 'measure' might exists.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        circuit.measure_active()
+
+        self.assertEqual(len(circuit.cregs), 2)  # Two cregs
+        self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
+        self.assertEqual(len(circuit.cregs[1]), 2)
+
+    def test_measure_all(self):
+        """Test measure_all applies measurements to all qubits.
+        Creates a ClassicalRegister of size equal to the total amount of qubits to
+        store those measured values.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr)
+        circuit.measure_all()
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_all_repetition(self):
+        """Test measure_all in a circuit with a 'measure' creg.
+        measure_all should be aware that the creg 'measure' might exists.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all()
+
+        self.assertEqual(len(circuit.cregs), 2)  # Two cregs
+        self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
+        self.assertEqual(len(circuit.cregs[1]), 2)
+
+    def test_remove_final_measurements(self):
+        """Test remove_final_measurements
+        Removes all measurements at end of circuit.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+
+        expected = QuantumCircuit(qr)
+
+        self.assertEqual(expected, circuit)
+
+    def test_remove_final_measurements_multiple_measures(self):
+        """Test remove_final_measurements only removes measurements at the end of the circuit
+        remove_final_measurements should not remove measurements in the beginning or middle of the
+        circuit.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr[0], cr)
+        circuit.h(0)
+        circuit.measure(qr[0], cr)
+        circuit.h(0)
+        circuit.measure(qr[0], cr)
+        circuit.remove_final_measurements()
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr)
+        expected.h(0)
+        expected.measure(qr[0], cr)
+        expected.h(0)
+
+        self.assertEqual(expected, circuit)
+
+    def test_mirror(self):
+        """Test mirror method reverses but does not invert."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.s(1)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.x(0)
+        qc.y(1)
+
+        expected = QuantumCircuit(2, 2)
+        expected.y(1)
+        expected.x(0)
+        expected.measure([0, 1], [0, 1])
+        expected.cx(0, 1)
+        expected.s(1)
+        expected.h(0)
+
+        self.assertEqual(qc.mirror(), expected)
 
 
 class TestCircuitBuilding(QiskitTestCase):

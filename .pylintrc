@@ -21,7 +21,10 @@ persistent=yes
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
 load-plugins=pylint.extensions.docparams, # enable checking of docstring args
-    pylint.extensions.docstyle  # basic docstring stle checks
+    pylint.extensions.docstyle,  # basic docstring style checks
+    pylintfileheader  # Check license comments
+
+file-header=(?:(?:#[^\n]*)?\n)*# This code is part of Qiskit.\n#\n# \(C\) Copyright IBM [0-9, -]*.\n#\n# This code is licensed under the Apache License, Version 2.0. You may\n# obtain a copy of this license in the LICENSE.txt file in the root directory\n# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.\n#\n# Any modifications or derivative works of this code must retain this\n# copyright notice, and modified files need to carry a notice indicating\n# that they have been altered from the originals.\n
 
 # Use multiple processes to speed up Pylint.
 jobs=1
@@ -115,7 +118,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # pi = the PI constant
 # op = operation iterator
 # b = basis iterator
-good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,pi,op,b,ar,br,
+good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
     __unittest
 
 # Bad variable names which should always be refused, separated by a comma
@@ -169,7 +172,7 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 attr-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{2,30}|ax$
 
 # Naming hint for argument names
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$
@@ -299,15 +302,12 @@ ignored-modules=matplotlib.cm,numpy.random
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
 # qualified names.
-ignored-classes=optparse.Values,thread._local,_thread._local
+ignored-classes=optparse.Values,thread._local,_thread._local,QuantumCircuit
 
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=self.circuit.*,qc.*,qcs.h,qc1.h,qc2.cx,self.u1,self.cx,self.ccx,trial_circuit,requests.codes.ok
-# self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
-# provides a "__getitem__" dynamic method and gate definition is dynamic.
-# For qiskit.extensions.standard, self.foo is also needed.
+generated-members=
 
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that
@@ -334,7 +334,7 @@ callbacks=cb_,_cb
 
 # List of qualified module names which can have objects that can redefine
 # builtins.
-redefining-builtins-modules=six.moves,future.builtins,tools.compiler
+redefining-builtins-modules=six.moves,future.builtins
 
 
 [CLASSES]

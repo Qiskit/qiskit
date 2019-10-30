@@ -1,133 +1,222 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Helper module for simplified Qiskit usage.
 
-This module includes
-    execute_circuits: compile and run a list of quantum circuits.
-    execute: simplified usage of either execute_circuits or execute_schedules
-
-In general we recommend using the SDK functions directly. However, to get something
-running quickly we have provider this wrapper module.
+In general we recommend using the SDK modules directly. However, to get something
+running quickly we have provided this wrapper module.
 """
-
-import logging
-import warnings
-
-from qiskit.compiler import assemble_circuits, transpile
-from qiskit.compiler import RunConfig, TranspileConfig
-from qiskit.qobj import QobjHeader
-
-logger = logging.getLogger(__name__)
+from qiskit.compiler import transpile, assemble
 
 
-def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
-            coupling_map=None, initial_layout=None, shots=1024, max_credits=10,
-            seed=None, qobj_id=None, seed_mapper=None, pass_manager=None,
-            memory=False, **kwargs):
-    """Executes a set of circuits.
+def execute(experiments, backend,
+            basis_gates=None, coupling_map=None,  # circuit transpile options
+            backend_properties=None, initial_layout=None,
+            seed_transpiler=None, optimization_level=None, pass_manager=None,
+            qobj_id=None, qobj_header=None, shots=1024,  # common run options
+            memory=False, max_credits=10, seed_simulator=None,
+            default_qubit_los=None, default_meas_los=None,  # schedule run options
+            schedule_los=None, meas_level=2, meas_return='avg',
+            memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
+            **run_config):
+    """Execute a list of circuits or pulse schedules on a backend.
+
+    The execution is asynchronous, and a handle to a job instance is returned.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-        backend (BaseBackend): a backend to execute the circuits on
-        qobj_header (QobjHeader): user input to go into the header
-        config (dict): dictionary of parameters (e.g. noise) used by runner
-        basis_gates (list[str]): list of basis gate names supported by the
-            target. Default: ['u1','u2','u3','cx','id']
-        coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
-        shots (int): number of repetitions of each circuit, for sampling
-        max_credits (int): maximum credits to use
-        seed (int): random seed for simulators
-        seed_mapper (int): random seed for swapper mapper
-        qobj_id (int): identifier for the generated qobj
-        pass_manager (PassManager): a pass manger for the transpiler pipeline
-        memory (bool): if True, per-shot measurement bitstrings are returned as well.
-        kwargs: extra arguments used by AER for running configurable backends.
-                Refer to the backend documentation for details on these arguments
+        experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
+            Circuit(s) or pulse schedule(s) to execute
+
+        backend (BaseBackend):
+            Backend to execute circuits on.
+            Transpiler options are automatically grabbed from
+            backend.configuration() and backend.properties().
+            If any other option is explicitly set (e.g. coupling_map), it
+            will override the backend's.
+
+        basis_gates (list[str]):
+            List of basis gate names to unroll to.
+            e.g:
+                ['u1', 'u2', 'u3', 'cx']
+            If None, do not unroll.
+
+        coupling_map (CouplingMap or list):
+            Coupling map (perhaps custom) to target in mapping.
+            Multiple formats are supported:
+            a. CouplingMap instance
+
+            b. list
+                Must be given as an adjacency matrix, where each entry
+                specifies all two-qubit interactions supported by backend
+                e.g:
+                    [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
+
+        backend_properties (BackendProperties):
+            Properties returned by a backend, including information on gate
+            errors, readout errors, qubit coherence times, etc. For a backend
+            that provides this information, it can be obtained with:
+            ``backend.properties()``
+
+        initial_layout (Layout or dict or list):
+            Initial position of virtual qubits on physical qubits.
+            If this layout makes the circuit compatible with the coupling_map
+            constraints, it will be used.
+            The final layout is not guaranteed to be the same, as the transpiler
+            may permute qubits through swaps or other means.
+
+            Multiple formats are supported:
+            a. Layout instance
+
+            b. dict
+                virtual to physical:
+                    {qr[0]: 0,
+                     qr[1]: 3,
+                     qr[2]: 5}
+
+                physical to virtual:
+                    {0: qr[0],
+                     3: qr[1],
+                     5: qr[2]}
+
+            c. list
+                virtual to physical:
+                    [0, 3, 5]  # virtual qubits are ordered (in addition to named)
+
+                physical to virtual:
+                    [qr[0], None, None, qr[1], None, qr[2]]
+
+        seed_transpiler (int):
+            Sets random seed for the stochastic parts of the transpiler
+
+        optimization_level (int):
+            How much optimization to perform on the circuits.
+            Higher levels generate more optimized circuits,
+            at the expense of longer transpilation time.
+                0: no optimization
+                1: light optimization
+                2: heavy optimization
+                3: even heavier optimization
+            If None, level 1 will be chosen as default.
+
+        pass_manager (PassManager):
+            The pass manager to use during transpilation. If this arg is present,
+            auto-selection of pass manager based on the transpile options will be
+            turned off and this pass manager will be used directly.
+
+        qobj_id (str):
+            String identifier to annotate the Qobj
+
+        qobj_header (QobjHeader or dict):
+            User input that will be inserted in Qobj header, and will also be
+            copied to the corresponding Result header. Headers do not affect the run.
+
+        shots (int):
+            Number of repetitions of each circuit, for sampling. Default: 1024
+
+        memory (bool):
+            If True, per-shot measurement bitstrings are returned as well
+            (provided the backend supports it). For OpenPulse jobs, only
+            measurement level 2 supports this option. Default: False
+
+        max_credits (int):
+            Maximum credits to spend on job. Default: 10
+
+        seed_simulator (int):
+            Random seed to control sampling, for when backend is a simulator
+
+        default_qubit_los (list):
+            List of default qubit lo frequencies
+
+        default_meas_los (list):
+            List of default meas lo frequencies
+
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+                      Union[Dict[PulseChannel, float], LoConfig]):
+            Experiment LO configurations
+
+        meas_level (int):
+            Set the appropriate level of the measurement output for pulse experiments.
+
+        meas_return (str):
+            Level of measurement data for the backend to return
+            For `meas_level` 0 and 1:
+                "single" returns information from every shot.
+                "avg" returns average measurement output (averaged over number of shots).
+
+        memory_slots (int):
+            Number of classical memory slots used in this job.
+
+        memory_slot_size (int):
+            Size of each memory slot if the output is Level 0.
+
+        rep_time (int): repetition time of the experiment in μs.
+            The delay between experiments will be rep_time.
+            Must be from the list provided by the device.
+
+        parameter_binds (list[dict{Parameter: Value}]):
+            List of Parameter bindings over which the set of experiments will be
+            executed. Each list element (bind) should be of the form
+            {Parameter1: value1, Parameter2: value2, ...}. All binds will be
+            executed across all experiments, e.g. if parameter_binds is a
+            length-n list, and there are m experiments, a total of m x n
+            experiments will be run (one for each experiment/bind pair).
+
+        run_config (dict):
+            Extra arguments used to configure the run (e.g. for Aer configurable backends)
+            Refer to the backend documentation for details on these arguments
+            Note: for now, these keyword arguments will both be copied to the
+            Qobj config, and passed to backend.run()
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
+
+    Raises:
+        QiskitError: if the execution cannot be interpreted as either circuits or schedules
     """
-
-    transpile_config = TranspileConfig()
-    run_config = RunConfig()
-
-    if config:
-        warnings.warn('config is deprecated in terra 0.8', DeprecationWarning)
-    if qobj_id:
-        warnings.warn('qobj_id is deprecated in terra 0.8', DeprecationWarning)
-    if basis_gates:
-        transpile_config.basis_gate = basis_gates
-    if coupling_map:
-        transpile_config.coupling_map = coupling_map
-    if initial_layout:
-        transpile_config.initial_layout = initial_layout
-    if seed_mapper:
-        transpile_config.seed_mapper = seed_mapper
-    if shots:
-        run_config.shots = shots
-    if max_credits:
-        run_config.max_credits = max_credits
-    if seed:
-        run_config.seed = seed
-    if memory:
-        run_config.memory = memory
-    if pass_manager:
-        warnings.warn('pass_manager in the execute function is deprecated in terra 0.8.',
-                      DeprecationWarning)
-
-    job = execute_circuits(circuits, backend, qobj_header=qobj_header,
-                           run_config=run_config,
-                           transpile_config=transpile_config, **kwargs)
-
-    return job
-
-
-def execute_circuits(circuits, backend, qobj_header=None,
-                     transpile_config=None, run_config=None, **kwargs):
-    """Executes a list of circuits.
-
-    Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-        backend (BaseBackend): a backend to execute the circuits on
-        qobj_header (QobjHeader): User input to go in the header
-        transpile_config (TranspileConfig): Configurations for the transpiler
-        run_config (RunConfig): Run Configuration
-        kwargs: extra arguments used by AER for running configurable backends.
-                Refer to the backend documentation for details on these arguments
-
-    Returns:
-        BaseJob: returns job instance derived from BaseJob
-    """
-
-    # TODO: a hack, remove when backend is not needed in transpile
-    # ------
-    transpile_config = transpile_config or TranspileConfig()
-    transpile_config.backend = backend
-    # ------
-
-    # filling in the header with the backend name the qobj was run on
-    qobj_header = qobj_header or QobjHeader()
-    qobj_header.backend_name = backend.name()
-
-    # default values
-    if not run_config:
-        # TODO remove max_credits from the default when it is not
-        # required by by the backend.
-        run_config = RunConfig(shots=1024, max_credits=10, memory=False)
-
-    # transpiling the circuits using the transpiler_config
-    new_circuits = transpile(circuits, transpile_config=transpile_config)
+    # transpiling the circuits using given transpile options
+    experiments = transpile(experiments,
+                            basis_gates=basis_gates,
+                            coupling_map=coupling_map,
+                            backend_properties=backend_properties,
+                            initial_layout=initial_layout,
+                            seed_transpiler=seed_transpiler,
+                            optimization_level=optimization_level,
+                            backend=backend,
+                            pass_manager=pass_manager,
+                            )
 
     # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble_circuits(new_circuits, qobj_header=qobj_header,
-                             run_config=run_config)
+    qobj = assemble(experiments,
+                    qobj_id=qobj_id,
+                    qobj_header=qobj_header,
+                    shots=shots,
+                    memory=memory,
+                    max_credits=max_credits,
+                    seed_simulator=seed_simulator,
+                    default_qubit_los=default_qubit_los,
+                    default_meas_los=default_meas_los,
+                    schedule_los=schedule_los,
+                    meas_level=meas_level,
+                    meas_return=meas_return,
+                    memory_slots=memory_slots,
+                    memory_slot_size=memory_slot_size,
+                    rep_time=rep_time,
+                    parameter_binds=parameter_binds,
+                    backend=backend,
+                    **run_config
+                    )
 
     # executing the circuits on the backend and returning the job
-    return backend.run(qobj, **kwargs)
+    return backend.run(qobj, **run_config)

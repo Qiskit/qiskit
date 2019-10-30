@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-docstring
 
@@ -16,7 +23,7 @@ import unittest
 
 from unittest.mock import patch
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
+from qiskit.test.mock import FakeQobj, FakeRueschlikon
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -32,10 +39,9 @@ class TestSimulatorsJob(QiskitTestCase):
 
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
-                job = SimulatorJob(backend, job_id, target_tasks[index], new_fake_qobj())
+                job = SimulatorJob(backend, job_id, target_tasks[index], FakeQobj())
                 job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -52,9 +58,8 @@ class TestSimulatorsJob(QiskitTestCase):
 
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (BasicAerJob, executor):
-            job = BasicAerJob(backend, job_id, lambda: None, new_fake_qobj())
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
             job.submit()
             job.cancel()
 

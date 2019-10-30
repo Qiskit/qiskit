@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=invalid-name
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Rotation around the x-axis.
 """
-from qiskit.circuit import CompositeGate
+import math
+import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
-from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.r import RGate
 
 
 class RXGate(Gate):
@@ -28,12 +32,12 @@ class RXGate(Gate):
 
     def _define(self):
         """
-        gate rx(theta) a {u3(theta, -pi/2, pi/2) a;}
+        gate rx(theta) a {r(theta, 0) a;}
         """
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U3Gate(self.params[0], -pi/2, pi/2), [q[0]], [])
+            (RGate(self.params[0], 0), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -46,12 +50,17 @@ class RXGate(Gate):
         """
         return RXGate(-self.params[0])
 
+    def to_matrix(self):
+        """Return a Numpy.array for the RX gate."""
+        cos = math.cos(self.params[0] / 2)
+        sin = math.sin(self.params[0] / 2)
+        return numpy.array([[cos, -1j * sin],
+                            [-1j * sin, cos]], dtype=complex)
 
-@_op_expand(1)
-def rx(self, theta, q):
+
+def rx(self, theta, q):  # pylint: disable=invalid-name
     """Apply Rx to q."""
     return self.append(RXGate(theta), [q], [])
 
 
 QuantumCircuit.rx = rx
-CompositeGate.rx = rx

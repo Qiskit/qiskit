@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name,super-init-not-called
 
@@ -73,7 +80,7 @@ class PassC_TP_RA_PA(DummyTP):
 
 
 class PassD_TP_NR_NP(DummyTP):
-    """ A dummy transfomation pass that takes an argument.
+    """ A dummy transformation pass that takes an argument.
     TP: Transformation Pass
     NR: No Requires
     NP: No Preserves
@@ -164,7 +171,7 @@ class PassI_Bad_AP(DummyAP):
         super().run(dag)
         cx_runs = dag.collect_runs(["cx"])
 
-        # Convert to ID so thatcan be checked if in correct order
+        # Convert to ID so that can be checked if in correct order
         cx_runs_ids = set()
         for run in cx_runs:
             curr = []
@@ -173,7 +180,7 @@ class PassI_Bad_AP(DummyAP):
             cx_runs_ids.add(tuple(curr))
 
         logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)
-        dag._remove_op_node(cx_runs.pop()[0])
+        dag.remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
 
 

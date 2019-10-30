@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=len-as-condition
+
 """
 Kraus representation of a Quantum Channel.
 
 
-The Kraus representation for a quantum channel E is given by a set of matrics [A_i] such that
+The Kraus representation for a quantum channel E is given by a set of matrices [A_i] such that
 
     E(ρ) = sum_i A_i.ρ.A_i^dagger
 
@@ -30,24 +38,48 @@ from numbers import Number
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
-from .basechannel import QuantumChannel
-from .choi import Choi
-from .transformations import _to_kraus
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.choi import Choi
+from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 
 
 class Kraus(QuantumChannel):
     """Kraus representation of a quantum channel."""
 
-    def __init__(self, data, input_dim=None, output_dim=None):
-        # Check if input is a quantum channel object
-        # If so we disregard the dimension kwargs
-        if issubclass(data.__class__, QuantumChannel):
-            input_dim, output_dim = data.dims
-            kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a quantum channel Kraus operator.
 
-        else:
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            a list of Kraus matrices.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
+        the input does not correspond to an N-qubit channel, it will assign a
+        single subsystem with dimension specified by the shape of the input.
+        """
+        # If the input is a list or tuple we assume it is a list of Kraus
+        # matrices, if it is a numpy array we assume that it is a single Kraus
+        # operator
+        if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
             if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
@@ -96,18 +128,37 @@ class Kraus(QuantumChannel):
                     kraus = (kraus_left, kraus_right)
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
-        dout, din = kraus[0][0].shape
-        if (input_dim and input_dim != din) or (output_dim
-                                                and output_dim != dout):
-            raise QiskitError("Invalid dimensions for Kraus input.")
+        else:
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._init_instruction(data)
+            else:
+                # We use the QuantumChannel init transform to initialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a Kraus
+            kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
 
+        output_dim, input_dim = kraus[0][0].shape
+        # Check and format input and output dimensions
+        input_dims = self._automatic_dims(input_dims, input_dim)
+        output_dims = self._automatic_dims(output_dims, output_dim)
+        # Initialize either single or general Kraus
         if kraus[1] is None or np.allclose(kraus[0], kraus[1]):
             # Standard Kraus map
-            super().__init__(
-                'Kraus', (kraus[0], None), input_dim=din, output_dim=dout)
+            super().__init__('Kraus', (kraus[0], None), input_dims,
+                             output_dims)
         else:
             # General (non-CPTP) Kraus map
-            super().__init__('Kraus', kraus, input_dim=din, output_dim=dout)
+            super().__init__('Kraus', kraus, input_dims, output_dims)
 
     @property
     def data(self):
@@ -120,114 +171,43 @@ class Kraus(QuantumChannel):
             # Otherwise return the tuple of both kraus sets
             return self._data
 
-    def is_cptp(self):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if self._data[1] is not None:
             return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
         accum = 0j
         for op in self._data[0]:
             accum += np.dot(np.transpose(np.conj(op)), op)
-        return is_identity_matrix(accum, rtol=self.rtol, atol=self.atol)
+        return is_identity_matrix(accum, rtol=rtol, atol=atol)
 
-    def _evolve(self, state):
-        """Evolve a quantum state by the QuantumChannel.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-
-        Returns:
-            QuantumState: the output quantum state.
-        """
-        state = self._check_state(state)
-        if state.ndim == 1 and self._data[1] is None and len(
-                self._data[0]) == 1:
-            # If we only have a single Kraus operator we can implement unitary-type
-            # evolution of a state vector psi -> K[0].psi
-            return np.dot(self._data[0][0], state)
-        # Otherwise we always return a density matrix
-        state = self._format_density_matrix(state)
-        kraus_l, kraus_r = self._data
-        if kraus_r is None:
-            kraus_r = kraus_l
-        return np.einsum('AiB,BC,AjC->ij', kraus_l, state,
-                         np.conjugate(kraus_r))
-
-    def canonical(self, inplace=False):
-        """Convert to canonical Kraus representation.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Kraus: the canonical Kraus decomposition.
-        """
-        tmp = Kraus(Choi(self))
-        if inplace:
-            self._data = tmp._data
-            return self
-        return tmp
-
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Kraus: the conjugate of the quantum channel as a Kraus object.
-        """
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         kraus_l, kraus_r = self._data
         kraus_l = [k.conj() for k in kraus_l]
         if kraus_r is not None:
             kraus_r = [k.conj() for k in kraus_r]
-        if inplace:
-            self._data = (kraus_l, kraus_r)
-            return self
-        return Kraus((kraus_l, kraus_r), *self.dims)
+        return Kraus((kraus_l, kraus_r), self.input_dims(), self.output_dims())
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Kraus: the transpose of the quantum channel as a Kraus object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         kraus_l, kraus_r = self._data
         kraus_l = [k.T for k in kraus_l]
         if kraus_r is not None:
             kraus_r = [k.T for k in kraus_r]
-        dout, din = self.dims
-        if inplace:
-            self._data = (kraus_l, kraus_r)
-            self._output_dim = dout
-            self._input_dim = din
-            return self
-        return Kraus((kraus_l, kraus_r), din, dout)
+        return Kraus((kraus_l, kraus_r),
+                     input_dims=self.output_dims(),
+                     output_dims=self.input_dims())
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Kraus: the adjoint of the quantum channel as a Kraus object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -236,11 +216,15 @@ class Kraus(QuantumChannel):
             Kraus: The composition channel as a Kraus object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel, or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
+        if qargs is not None:
+            return Kraus(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+
+        if not isinstance(other, Kraus):
+            other = Kraus(other)
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
             raise QiskitError(
@@ -248,9 +232,6 @@ class Kraus(QuantumChannel):
         if not front and self._output_dim != other._input_dim:
             raise QiskitError(
                 'input_dim of other must match output_dim of self')
-        # Convert to Choi matrix
-        if not isinstance(other, Kraus):
-            other = Kraus(other)
 
         if front:
             ka_l, ka_r = self._data
@@ -272,127 +253,96 @@ class Kraus(QuantumChannel):
             kab_r = [np.dot(a, b) for a in ka_r for b in kb_l]
         else:
             kab_r = [np.dot(a, b) for a in ka_r for b in kb_r]
-        data = (kab_l, kab_r)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        return Kraus(data, input_dim, output_dim)
+        return Kraus((kab_l, kab_r), input_dim, output_dim)
 
-    def power(self, n, inplace=False):
-        """Return the compose of a QuantumChannel with itself n times.
+    def power(self, n):
+        """The matrix power of the channel.
 
         Args:
-            n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            n (int): compute the matrix power of the superoperator matrix.
 
         Returns:
-            Kraus: the n-times composition channel as a Kraus object.
+            Kraus: the matrix power of the SuperOp converted to a Kraus channel.
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
+            QuantumChannel are not equal, or the power is not an integer.
         """
-        return super().power(n, inplace=inplace)
+        if n > 0:
+            return super().power(n)
+        return Kraus(SuperOp(self).power(n))
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Kraus: the tensor product channel self ⊗ other as a Kraus
             object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Kraus: the tensor product channel other ⊗ self as a Kraus
             object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Kraus: the linear addition self + other as a Kraus object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel, or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
         # Since we cannot directly add two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
-        tmp = Kraus(Choi(self).add(other, inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Kraus(Choi(self).add(other))
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Kraus: the linear subtraction self - other as Kraus object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
+            QiskitError: if other cannot be converted to a channel, or
             has incompatible dimensions.
         """
         # Since we cannot directly subtract two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
-        tmp = Kraus(Choi(self).subtract(other, inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Kraus(Choi(self).subtract(other))
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             Kraus: the scalar multiplication other * self as a Kraus object.
@@ -406,47 +356,47 @@ class Kraus(QuantumChannel):
         # kraus channel so we multiply via Choi representation
         if isinstance(other, complex) or other < 0:
             # Convert to Choi-matrix
-            tmp = Kraus(Choi(self).multiply(other, inplace=True))
-            if inplace:
-                self._data = tmp._data
-                self._input_dim = tmp._input_dim
-                self._output_dim = tmp._output_dim
-                return self
-            return tmp
+            return Kraus(Choi(self).multiply(other))
         # If the number is real we can update the Kraus operators
         # directly
         val = np.sqrt(other)
-        if inplace:
-            for j, _ in enumerate(self._data[0]):
-                self._data[0][j] *= val
-            if self._data[1] is not None:
-                for j, _ in enumerate(self._data[1]):
-                    self._data[1][j] *= val
-            return self
         kraus_r = None
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:
             kraus_r = [val * k for k in self._data[1]]
         return Kraus((kraus_l, kraus_r), self._input_dim, self._output_dim)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _evolve(self, state, qargs=None):
+        """Evolve a quantum state by the quantum channel.
+
+        Args:
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
+
+        Returns:
+            DensityMatrix: the output quantum state as a density matrix.
+
+        Raises:
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
+        """
+        return SuperOp(self)._evolve(state, qargs)
+
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
+            other (QuantumChannel): a quantum channel subclass.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
             Kraus: the tensor product channel as a Kraus object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
+            QiskitError: if other cannot be converted to a channel.
         """
         # Convert other to Kraus
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
         if not isinstance(other, Kraus):
             other = Kraus(other)
 
@@ -454,8 +404,12 @@ class Kraus(QuantumChannel):
         ka_l, ka_r = self._data
         kb_l, kb_r = other._data
         if reverse:
+            input_dims = self.input_dims() + other.input_dims()
+            output_dims = self.output_dims() + other.output_dims()
             kab_l = [np.kron(b, a) for a in ka_l for b in kb_l]
         else:
+            input_dims = other.input_dims() + self.input_dims()
+            output_dims = other.output_dims() + self.output_dims()
             kab_l = [np.kron(a, b) for a in ka_l for b in kb_l]
         if ka_r is None and kb_r is None:
             kab_r = None
@@ -469,11 +423,4 @@ class Kraus(QuantumChannel):
             else:
                 kab_r = [np.kron(a, b) for a in ka_r for b in kb_r]
         data = (kab_l, kab_r)
-        input_dim = self._input_dim * other._input_dim
-        output_dim = self._output_dim * other._output_dim
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        return Kraus(data, input_dim, output_dim)
+        return Kraus(data, input_dims, output_dims)

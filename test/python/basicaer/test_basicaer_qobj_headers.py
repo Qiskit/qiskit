@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Tests for all BasicAer  simulators."""
 
 from qiskit import BasicAer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import transpile, TranspileConfig
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit.compiler import transpile
+from qiskit.compiler import assemble
 from qiskit.qobj import QobjHeader
 from qiskit.test import QiskitTestCase
 
@@ -32,8 +39,8 @@ class TestBasicAerQobj(QiskitTestCase):
 
         for backend in BasicAer.backends():
             with self.subTest(backend=backend):
-                new_circ = transpile(self.qc1, TranspileConfig(backend=backend))
-                qobj = assemble_circuits(new_circ, RunConfig(shots=1024))
+                new_circ = transpile(self.qc1, backend=backend)
+                qobj = assemble(new_circ, shots=1024)
 
                 # Update the Qobj header.
                 qobj.header = QobjHeader.from_dict(custom_qobj_header)
@@ -48,6 +55,6 @@ class TestBasicAerQobj(QiskitTestCase):
         """Test job.qobj()."""
         for backend in BasicAer.backends():
             with self.subTest(backend=backend):
-                qobj = assemble_circuits(self.qc1, TranspileConfig(backend=backend))
+                qobj = assemble(self.qc1)
                 job = backend.run(qobj)
                 self.assertEqual(job.qobj(), qobj)

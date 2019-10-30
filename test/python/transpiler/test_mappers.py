@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Meta tests for mappers.
 
@@ -24,9 +31,9 @@ To make a new swapper pass throw all the common tests, create a new class inside
 For example::
 
     class TestsSomeSwap(SwapperCommonTestCases, QiskitTestCase):
-        pass_class = SomeSwap           # The pass class
-        additional_args = {'seed': 42}  # In case SomeSwap.__init__ requires
-                                        # additional arguments
+        pass_class = SomeSwap                      # The pass class
+        additional_args = {'seed_transpiler': 42}  # In case SomeSwap.__init__ requires
+                                                   # additional arguments
 
 To **add a test for all the swappers**, add a new method ``test_foo``to the
 ``SwapperCommonTestCases`` class:
@@ -70,9 +77,10 @@ import os
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
-from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SetLayout
+from qiskit.transpiler import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
 
@@ -90,18 +98,19 @@ class CommonUtilitiesMixin:
     """
 
     regenerate_expected = False
-    seed = 42
-    seed_mapper = 42
+    seed_simulator = 42
+    seed_transpiler = 42
     additional_args = {}
     pass_class = None
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
-        passmanager = PassManager(
-            self.pass_class(CouplingMap(coupling_map),  # pylint: disable=not-callable
-                            **self.additional_args))
+        passmanager = PassManager()
         if initial_layout:
-            passmanager.property_set['layout'] = Layout(initial_layout)
+            passmanager.append(SetLayout(Layout(initial_layout)))
+
+        # pylint: disable=not-callable
+        passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 
     def create_backend(self):
@@ -119,8 +128,8 @@ class CommonUtilitiesMixin:
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
-                      seed_mapper=self.seed_mapper)
+        job = execute(transpiled_result, sim_backend, seed_simulator=self.seed_simulator,
+                      seed_transpiler=self.seed_transpiler, shots=self.shots)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:
@@ -186,7 +195,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 
@@ -221,10 +230,10 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        layout = [qr[3], qr[0], qr[1], qr[2]]
+        layout = {qr[3]: 0, qr[0]: 1, qr[1]: 2, qr[2]: 3}
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map, layout))
         self.assertResult(result, circuit)
 
@@ -264,7 +273,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 

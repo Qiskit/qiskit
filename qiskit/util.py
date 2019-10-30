@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Common utilities for Qiskit."""
 
-import logging
 import platform
 import re
 import socket
@@ -14,9 +20,6 @@ import sys
 import warnings
 
 import psutil
-from marshmallow.warnings import ChangedInMarshmallow3Warning
-
-logger = logging.getLogger(__name__)
 
 
 def _check_python_version():
@@ -49,11 +52,6 @@ def _filter_deprecation_warnings():
     except AttributeError:
         # ._add_filter is internal and not available in some Python versions.
         pass
-
-    # Add a filter for ignoring ChangedInMarshmallow3Warning, as we depend on
-    # marhsmallow 2 explicitly. 2.17.0 introduced new deprecation warnings that
-    # are useful for eventually migrating, but too verbose for our purposes.
-    warnings.simplefilter('ignore', category=ChangedInMarshmallow3Warning)
 
 
 _check_python_version()
@@ -93,7 +91,7 @@ def _has_connection(hostname, port):
     """
     try:
         host = socket.gethostbyname(hostname)
-        socket.create_connection((host, port), 2)
+        socket.create_connection((host, port), 2).close()
         return True
     except Exception:  # pylint: disable=broad-except
         return False

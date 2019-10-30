@@ -1,8 +1,8 @@
 # Qiskit Terra
 
-[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=master)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=master)
 
-**Qiskit** is an open-source framework for working with Noisy Intermediate-Scale Quantum (NISQ) computers at the level of pulses, circuits, and algorithms.
+**Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
 Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
 
@@ -16,7 +16,7 @@ pip install qiskit
 
 PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [contribution guidelines](.github/CONTRIBUTING.rst).
+To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-terra-from-source).
 
 ## Creating Your First Quantum Program in Qiskit Terra
 
@@ -31,12 +31,10 @@ $ python
 
 ```python
 >>> from qiskit import *
->>> q = QuantumRegister(2)
->>> c = ClassicalRegister(2)
->>> qc = QuantumCircuit(q, c)
->>> qc.h(q[0])
->>> qc.cx(q[0], q[1])
->>> qc.measure(q, c)
+>>> qc = QuantumCircuit(2, 2)
+>>> qc.h(0)
+>>> qc.cx(0, 1)
+>>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
 >>> result = execute(qc, backend_sim).result()
 >>> print(result.get_counts(qc))
@@ -48,7 +46,7 @@ In this case, the output will be:
 {'00': 513, '11': 511}
 ```
 
-A script is available [here](examples/python/hello_quantum.py), where we also show how to
+A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
 run the same program on a real quantum computer via IBMQ.  
 
 ### Executing your code on a real quantum chip
@@ -60,19 +58,16 @@ your IBM Q account:
 
 #### Configure your IBMQ credentials
 
-1. Create an _[IBM Q](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
+1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > Advanced > API Token_. 
+2. Get an API token from the IBM Q website under _My Account > API Token_ and the URL for the account.
 
-3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
+3. Take your token and url from step 2, here called `MY_API_TOKEN`, `MY_URL`, and run:
 
    ```python
    >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN')
+   >>> IBMQ.save_account('MY_API_TOKEN', 'MY_URL')
     ```
-
-4. If you have access to the IBM Q Network features, you also need to pass the
-   URL listed on your IBM Q account page to `save_account`.
 
 After calling `IBMQ.save_account()`, your credentials will be stored on disk.
 Once they are stored, at any point in the future you can load and use them
@@ -80,7 +75,7 @@ in your program simply via:
 
 ```python
 >>> from qiskit import IBMQ
->>> IBMQ.load_accounts()
+>>> IBMQ.load_account()
 ```
 
 Those who do not want to save their credentials to disk should use instead:
@@ -97,10 +92,10 @@ the levels.
 ## Contribution Guidelines
 
 If you'd like to contribute to Qiskit Terra, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expected to uphold this code.
+[contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
-[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk)
+[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtNjQ5OTc5ODM1ODYyLTc2YWJhOWViZDA2OWI5N2EyMjIxN2YwODM5MWQyN2Q3MjczOGRlMDU4MzMxMWE5MzZjMzEzYzM3MmJiMzU5MzU)
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
 For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
@@ -113,6 +108,27 @@ Now you're set up and ready to check out some of the other examples from our
 
 Qiskit Terra is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
 to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
+
+## Changelog and Release Notes
+
+The changelog for a particular release is dynamically generated and gets
+written to the release page on Github for each release. For example, you can
+find the page for the `0.9.0` release here:
+
+https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
+
+The changelog for the current release can be found in the releases tab:
+![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
+The changelog provides a quick overview of noteable changes for a given
+release.
+
+Additionally, as part of each release detailed release notes are written to
+document in detail what has changed as part of a release. This includes any
+documentation on potential breaking changes on upgrade and new features.
+For example, You can find the release notes for the `0.9.0` release in the
+Qiskit documentation here:
+
+https://qiskit.org/documentation/release_notes.html#terra-0-9
 
 ## License
 

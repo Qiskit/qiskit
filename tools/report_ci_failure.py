@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """Utility module to open an issue on the repository when CIs fail."""
 
 import os
@@ -13,11 +20,7 @@ from github import Github
 class CIFailureReporter:
     """Instances of this class can report to GitHub that the CI is failing.
 
-    Properties:
-        key_label (str): the label that identifies CI failures reports.
     """
-
-    key_label = 'master failing'
 
     def __init__(self, repository, token):
         """
@@ -30,7 +33,7 @@ class CIFailureReporter:
         self._repo = repository
         self._api = Github(token)
 
-    def report(self, branch, commit, infourl=None):
+    def report(self, branch, commit, infourl=None, job_name=None):
         """Report on GitHub that the specified branch is failing to build at
         the specified commit. The method will open an issue indicating that
         the branch is failing. If there is an issue already open, it will add a
@@ -41,15 +44,30 @@ class CIFailureReporter:
             commit (str): commit hash at which the build fails.
             infourl (str): URL with extra info about the failure such as the
                 build logs.
+            job_name (str): name of the failed ci job.
         """
-        issue_number = self._get_report_issue_number()
+        key_label = self._key_label(branch, job_name)
+        issue_number = self._get_report_issue_number(key_label)
         if issue_number:
             self._report_as_comment(issue_number, branch, commit, infourl)
         else:
-            self._report_as_issue(branch, commit, infourl)
+            self._report_as_issue(branch, commit, infourl, job_name)
 
-    def _get_report_issue_number(self):
-        query = 'state:open label:"{}" repo:{}'.format(self.key_label, self._repo)
+    def _key_label(self, branch_name, job_name):
+        if job_name == 'Randomized tests':
+            return 'randomized test'
+        elif job_name == 'Benchmarks':
+            return 'benchmarks failing'
+        elif branch_name == 'master':
+            return 'master failing'
+        elif branch_name == 'stable':
+            return 'stable failing'
+        else:
+            return ''
+
+    def _get_report_issue_number(self, key_label):
+        query = 'state:open label:"{}" repo:{}'.format(
+            key_label, self._repo)
         results = self._api.search_issues(query=query)
         try:
             return results[0].number
@@ -57,10 +75,10 @@ class CIFailureReporter:
             return None
 
     def _report_as_comment(self, issue_number, branch, commit, infourl):
-        stamp = _master_is_failing_stamp(branch, commit)
+        stamp = _branch_is_failing_stamp(branch, commit)
         report_exists = self._check_report_existence(issue_number, stamp)
         if not report_exists:
-            _, body = _master_is_failing_template(branch, commit, infourl)
+            _, body = _branch_is_failing_template(branch, commit, infourl)
             message_body = '{}\n{}'.format(stamp, body)
             self._post_new_comment(issue_number, message_body)
 
@@ -76,12 +94,13 @@ class CIFailureReporter:
 
         return False
 
-    def _report_as_issue(self, branch, commit, infourl):
+    def _report_as_issue(self, branch, commit, infourl, key_label):
         repo = self._api.get_repo(self._repo)
-        stamp = _master_is_failing_stamp(branch, commit)
-        title, body = _master_is_failing_template(branch, commit, infourl)
+        stamp = _branch_is_failing_stamp(branch, commit)
+        title, body = _branch_is_failing_template(branch, commit, infourl)
         message_body = '{}\n{}'.format(stamp, body)
-        repo.create_issue(title=title, body=message_body, labels=[self.key_label])
+        repo.create_issue(title=title, body=message_body,
+                          labels=[key_label])
 
     def _post_new_comment(self, issue_number, body):
         repo = self._api.get_repo(self._repo)
@@ -89,7 +108,7 @@ class CIFailureReporter:
         issue.create_comment(body)
 
 
-def _master_is_failing_template(branch, commit, infourl):
+def _branch_is_failing_template(branch, commit, infourl):
     title = 'Branch `{}` is failing'.format(branch)
     body = 'Trying to build `{}` at commit {} failed.'.format(branch, commit)
     if infourl:
@@ -97,7 +116,7 @@ def _master_is_failing_template(branch, commit, infourl):
     return title, body
 
 
-def _master_is_failing_stamp(branch, commit):
+def _branch_is_failing_stamp(branch, commit):
     return '<!-- commit {}@{} -->'.format(commit, branch)
 
 
@@ -117,6 +136,10 @@ def _get_commit_hash():
     return os.getenv('TRAVIS_COMMIT') or os.getenv('APPVEYOR_REPO_COMMIT')
 
 
+def _get_job_name():
+    return os.getenv('TRAVIS_JOB_NAME') or os.getenv('APPVEYOR_JOB_NAME')
+
+
 def _get_info_url():
     if os.getenv('TRAVIS'):
         job_id = os.getenv('TRAVIS_JOB_ID')
@@ -131,4 +154,5 @@ def _get_info_url():
 
 if __name__ == '__main__':
     _REPORTER = CIFailureReporter(_get_repo_name(), _GH_TOKEN)
-    _REPORTER.report(_get_branch_name(), _get_commit_hash(), _get_info_url())
+    _REPORTER.report(_get_branch_name(), _get_commit_hash(),
+                     _get_info_url(), _get_job_name())

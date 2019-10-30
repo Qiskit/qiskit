@@ -1,0 +1,205 @@
+---
+prelude: >
+    The 0.9 release includes many new features and many bug fixes. The biggest
+    changes for this release are new debugging capabilities for PassManagers.
+    This includes a function to visualize a PassManager, the ability to add
+    a callback function to a PassManager, and logging of passes run in the
+    PassManager. Additionally, this release standardizes the way that
+    you can set an initial layout for your circuit. So now you can leverage
+    ``initial_layout`` the kwarg parameter on ``qiskit.compiler.transpile()``
+    and ``qiskit.execute()`` and the qubits in the circuit will get laid
+    out on the desire qubits on the device. Visualization of circuits will
+    now also show this clearly when visualizing a circuit that has been
+    transpiled with a layout.
+features:
+  - |
+    A new analysis pass ``CountOpsLongest`` was added to retrieve the number
+    of operations on the longest path of the DAGCircuit. When used it will
+    add a ``count_ops_longest_path`` key to the property set dictionary.
+    You can add it to your a passmanager with something like::
+
+        from qiskit.transpiler.passes import CountOpsLongestPath
+        from qiskit.transpiler.passes import CxCancellation
+        from qiskit.transpiler import PassManager
+
+        pm = PassManager()
+        pm.append(CountOpsLongestPath())
+
+    and then access the longest path via the property set value with something
+    like::
+
+        pm.append(
+            CxCancellation(),
+            condition=lambda property_set: property_set[
+                'count_ops_longest_path'] < 5)
+
+    which will set a condition on that pass based on the longest path.
+  - |
+    Two new functions, ``sech()`` and ``sech_deriv()`` were added to the pulse
+    library module ``qiskit.pulse.pulse_lib`` for creating an unnormalized
+    hyperbolic secant ``SamplePulse`` object and an unnormalized hyperbolic
+    secant derviative ``SamplePulse`` object resepctively.
+  - |
+    A new kwarg option ``vertical_compression`` was added to the
+    ``QuantumCircuit.draw()`` method and the
+    ``qiskit.visualization.circuit_drawer()`` function. This option only works
+    with the ``text`` backend. This option can be set to either ``high``,
+    ``medium`` (the default), or ``low`` to adjust how much vertical space is
+    used by the output visualization.
+  - |
+    A new kwarg boolean option ``idle_wires`` was added to the
+    ``QuantumCircuit.draw()`` method and the
+    ``qiskit.visualization.circuit_drawer()`` function. It works for all drawer
+    backends. When ``idle_wires`` is set False in a drawer call the drawer will
+    not draw any bits that do not have any circuit elements in the output
+    quantum circuit visualization.
+  - |
+    A new PassManager visualizer function
+    ``qiskit.visualization.pass_mamanger_drawer()`` was added. This function
+    takes in a PassManager object and will generate a flow control diagram
+    of all the passes run in the PassManager.
+  - |
+    When creating a PassManager you can now specify a callback function that
+    if specified will be run after each pass is executed. This function gets
+    passed a set of kwargs on each call with the state of the pass maanger after
+    each pass execution. Currently these kwargs are:
+
+     * pass_ (Pass): the pass being run
+     * dag (DAGCircuit): the dag output of the pass
+     * time (float): the time to execute the pass
+     * property_set (PropertySet): the property set
+     * count (int): the index for the pass execution
+
+    However, it's worth noting that while these arguments are set for the 0.9
+    release they expose the internals of the pass manager and are subject to
+    change in future release.
+
+    For example you can use this to create a callback function that will
+    visualize the circuit output after each pass is executed::
+
+        from qiskit.transpiler import PassManager
+
+        def my_callback(**kwargs):
+            print(kwargs['dag'])
+
+        pm = PassManager(callback=my_callback)
+
+    Additionally you can specify the callback function when using
+    ``qiskit.compiler.transpile()``::
+
+        from qiskit.compiler import transpile
+
+        def my_callback(**kwargs):
+            print(kwargs['pass'])
+
+        transpile(circ, callback=my_callback)
+  - |
+    A new method ``filter()`` was added to the ``qiskit.pulse.Schedule`` class.
+    This enables filtering the instructions in a schedule. For example,
+    filtering by instruction type::
+
+        from qiskit.pulse import Schedule
+        from qiskit.pulse.commands import Acquire
+        from qiskit.pulse.commands import AcquireInstruction
+        from qiskit.pulse.commands import FrameChange
+
+        sched = Schedule(name='MyExperiment')
+        sched.insert(0, FrameChange(phase=-1.57)(device))
+        sched.insert(60, Acquire(5))
+        acquire_sched = sched.filter(instruction_types=[AcquireInstruction])
+  - |
+    Additonal decomposition methods for several types of gates. These methods
+    will use different decomposition techniques to break down a gate into
+    a squence of CNOTs and single qubit gates. The following methods are
+    added:
+
+    +--------------------------------+---------------------------------------+
+    | Method                         | Description                           |
+    +================================+=======================================+
+    | ``QuantumCircuit.iso()``       | Add an arbitrary isometry from m to n |
+    |                                | qubits to a circuit. This allows for  |
+    |                                | attaching arbitrary unitaries on n    |
+    |                                | qubits (m=n) or to prepare any state  |
+    |                                | of n qubits (m=0)                     |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.diag_gate()`` | Add a diagonal gate to the circuit    |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.squ()``       | Decompose an arbitrary 2x2 unitary    |
+    |                                | into three rotation gates and add to  |
+    |                                |  a circuit                            |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.ucg()``       | Attach an uniformly controlled gate   |
+    |                                | (also called a multiplexed gate) to a |
+    |                                | circuit                               |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.ucx()``       | Attach a uniformly controlled (also   |
+    |                                | called multiplexed) Rx rotation gate  |
+    |                                | to a circuit                          |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.ucy()``       | Attach a uniformly controlled (also   |
+    |                                | called multiplexed) Ry rotation gate  |
+    |                                | to a circuit                          |
+    +--------------------------------+---------------------------------------+
+    | ``QuantumCircuit.ucz()``       | Attach a uniformly controlled (also   |
+    |                                | called multiplexed) Rz rotation gate  |
+    |                                | to a circuit                          |
+    +--------------------------------+---------------------------------------+
+  - |
+    Addition of Gray-Synth and Patel–Markov–Hayes algorithms for
+    synthesis of CNOT-Phase and CNOT-only linear circuits. These functions
+    allow the synthesis of circuits that consist of only CNOT gates given
+    a linear function or a circuit that consists of only CNOT and phase gates
+    given a matrix description.
+  - |
+    A new function ``random_circuit`` was added to the
+    ``qiskit.circuit.random`` module. This function will generate a random
+    circuit of a specified size by randomly selecting different gates and
+    adding them to the circuit. For example, you can use this to generate a
+    5 qubit circuit with a depth of 10 using::
+
+        from qiskit.circuit.random import random_circuit
+
+        circ = random_circuit(5, 10)
+  - |
+    A new kwarg ``output_names`` was added to the
+    ``qiskit.compiler.transpile()`` function. This kwarg takes in a string
+    or a list of strings and uses those as the value of the circuit name for
+    the output circuits that get returned by the ``transpile()`` call. For
+    example::
+
+        from qiskit.compiler import transpile
+        my_circs = [circ_a, circ_b]
+        tcirc_a, tcirc_b = transpile(my_circs,
+                                     output_names=['Circuit A', 'Circuit B'])
+
+    the ``name`` attribute on tcirc_a and tcirc_b will be ``'Circuit A'`` and
+    ``'Circuit B'`` respectively.
+  - |
+    A new method ``equiv()`` was added to the ``qiskit.quantum_info.Operator``
+    and ``qiskit.quantum_info.Statevector`` classes. These methods are used
+    to check whether a second ``Operator`` object or ``Statevector`` is
+    equivalent up to global phase.
+
+fixes:
+  - |
+    Support for n-qubit unitaries was added to the BasicAer simulator and
+    ``unitary`` (arbitrary unitary gates) was added to the set of basis gates
+    for the simulators
+other:
+  - |
+    Calls to ``PassManager.run()`` now will emit python logging messages at the
+    INFO level for each pass execution. These messages will include the Pass
+    name and the total execution time of the pass. Python's standard logging
+    was used because it allows Qiskit-Terra's logging to integrate in a standard
+    way with other applications and libraries. All logging for the transpiler
+    occurs under the ``qiskit.transpiler`` namespace, as used by
+    ``logging.getLogger('qiskit.transpiler``). For example, to turn on DEBUG
+    level logging for the transpiler you can run::
+
+        import logging
+
+        logging.basicConfig()
+        logging.getLogger('qiskit.transpiler').setLevel(logging.DEBUG)
+
+    which will set the log level for the transpiler to DEBUG and configure
+    those messages to be printed to stderr.

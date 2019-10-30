@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Model for Qobj."""
 
+from marshmallow import pre_load
 from marshmallow.validate import Equal, OneOf
 
 from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
@@ -31,13 +39,19 @@ class QobjSchema(BaseSchema):
     """Schema for Qobj."""
     # Required properties.
     qobj_id = String(required=True)
-    schema_version = String(required=True, missing=QOBJ_VERSION)
+    schema_version = String(required=True)
 
     # Required properties depend on Qobj type.
     config = Nested(QobjConfigSchema, required=True)
     experiments = Nested(QobjExperimentSchema, required=True, many=True)
     header = Nested(QobjHeaderSchema, required=True)
     type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
+
+    @pre_load
+    def add_schema_version(self, data, **_):
+        """Add the schema version on loading."""
+        data['schema_version'] = QOBJ_VERSION
+        return data
 
 
 class QasmQobjSchema(QobjSchema):
@@ -47,8 +61,13 @@ class QasmQobjSchema(QobjSchema):
     config = Nested(QasmQobjConfigSchema, required=True)
     experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
 
-    type = String(required=True, validate=Equal(QobjType.QASM),
-                  missing=QobjType.QASM)
+    type = String(required=True, validate=Equal(QobjType.QASM))
+
+    @pre_load
+    def add_type(self, data, **_):
+        """Add the Qobj type (QASM) on loading."""
+        data['type'] = QobjType.QASM.value
+        return data
 
 
 class PulseQobjSchema(QobjSchema):
@@ -58,8 +77,13 @@ class PulseQobjSchema(QobjSchema):
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
 
-    type = String(required=True, validate=Equal(QobjType.PULSE),
-                  missing=QobjType.PULSE)
+    type = String(required=True, validate=Equal(QobjType.PULSE))
+
+    @pre_load
+    def add_type(self, data, **_):
+        """Add the Qobj type (PULSE) on loading."""
+        data['type'] = QobjType.PULSE.value
+        return data
 
 
 @bind_schema(QobjSchema)
@@ -83,7 +107,6 @@ class Qobj(BaseModel):
         self.experiments = experiments
         self.header = header
         self.type = type
-        self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
 
@@ -102,15 +125,10 @@ class QasmQobj(Qobj):
         header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
-
-        # to avoid specifying 'type' here within from_dict()
-        kwargs.pop('type', None)
-
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type=QobjType.QASM.value,
                          **kwargs)
 
 
@@ -128,13 +146,8 @@ class PulseQobj(Qobj):
         header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
-
-        # to avoid specifying 'type' here within from_dict()
-        kwargs.pop('type', None)
-
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type=QobjType.PULSE.value,
                          **kwargs)

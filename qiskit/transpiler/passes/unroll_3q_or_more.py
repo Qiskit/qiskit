@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Pass for decomposing 3q (or more) gates into 2q or 1q gates."""
 
@@ -28,7 +35,7 @@ class Unroll3qOrMore(TransformationPass):
         Raises:
             QiskitError: if a 3q+ gate is not decomposable
         """
-        for node in dag.threeQ_or_more_nodes():
+        for node in dag.threeQ_or_more_gates():
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition
             if not rule:
@@ -39,7 +46,12 @@ class Unroll3qOrMore(TransformationPass):
             # hacky way to build a dag on the same register as the rule is defined
             # TODO: need anonymous rules to address wires by index
             decomposition = DAGCircuit()
-            decomposition.add_qreg(rule[0][1][0][0])
+            qregs = {qb.register for inst in rule for qb in inst[1]}
+            cregs = {cb.register for inst in rule for cb in inst[2]}
+            for qreg in qregs:
+                decomposition.add_qreg(qreg)
+            for creg in cregs:
+                decomposition.add_creg(creg)
             for inst in rule:
                 decomposition.apply_operation_back(*inst)
             decomposition = self.run(decomposition)  # recursively unroll

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Schema and helper models for schema-conformant Results."""
 
@@ -13,6 +20,7 @@ from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
 from qiskit.validation.fields import Complex, ByType
 from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
 from qiskit.validation.validate import PatternProperties
+from qiskit.qobj.utils import MeasReturnType
 
 
 class ExperimentResultDataSchema(BaseSchema):
@@ -44,7 +52,9 @@ class ExperimentResultSchema(BaseSchema):
     # Optional fields.
     status = String()
     seed = Integer()
-    meas_return = String(validate=OneOf(['single', 'avg']))
+    meas_level = Integer(validate=Range(min=0, max=2))
+    meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
+                                                 MeasReturnType.SINGLE)))
     header = Nested(ObjSchema)
 
 
@@ -88,11 +98,13 @@ class ExperimentResult(BaseModel):
         shots (int or tuple): the starting and ending shot for this data.
         success (bool): if true, we can trust results for this experiment.
         data (ExperimentResultData): results information.
+        meas_level (int): Measurement result level.
     """
 
-    def __init__(self, shots, success, data, **kwargs):
+    def __init__(self, shots, success, data, meas_level=2, **kwargs):
         self.shots = shots
         self.success = success
         self.data = data
+        self.meas_level = meas_level
 
         super().__init__(**kwargs)

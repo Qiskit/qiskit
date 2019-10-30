@@ -1,51 +1,58 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""
-The CX direction rearrenges the direction of the cx nodes to make the circuit
-compatible with the coupling_map.
-"""
+"""Rearrange the direction of the cx nodes to match the directed coupling map."""
+
+from math import pi
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
-from qiskit.extensions.standard import HGate
+from qiskit.extensions.standard import U2Gate, CnotGate
 
 
 class CXDirection(TransformationPass):
-    """
-     Rearranges the direction of the cx nodes to make the circuit
-     compatible with the directed coupling map.
+    """Rearrange the direction of the cx nodes to match the directed coupling map.
 
-     It uses this equivalence::
+    Flip the cx nodes to match the directed coupling map. This pass makes use
+    of the following equivalence::
 
         ---(+)---      --[H]---.---[H]--
             |      =           |
         ----.----      --[H]--(+)--[H]--
     """
 
-    def __init__(self, coupling_map, initial_layout=None):
-        """
+    def __init__(self, coupling_map):
+        """CXDirection initializer.
+
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            initial_layout (Layout): The initial layout of the DAG.
         """
-
         super().__init__()
         self.coupling_map = coupling_map
-        self.layout = initial_layout
 
     def run(self, dag):
-        """
-        Flips the cx nodes to match the directed coupling map.
+        """Run the CXDirection pass on `dag`.
+
+        Flips the cx nodes to match the directed coupling map. Modifies the
+        input dag.
+
         Args:
             dag (DAGCircuit): DAG to map.
+
         Returns:
             DAGCircuit: The rearranged dag for the coupling map
 
@@ -53,45 +60,43 @@ class CXDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
-        new_dag = DAGCircuit()
+        cmap_edges = set(self.coupling_map.get_edges())
 
-        if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
-            else:
-                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if len(dag.qregs) > 1:
+            raise TranspilerError('CXDirection expects a single qreg input DAG,'
+                                  'but input DAG had qregs: {}.'.format(
+                                      dag.qregs))
 
-        for layer in dag.serial_layers():
-            subdag = layer['graph']
+        for cnot_node in dag.named_nodes('cx', 'CX'):
+            control = cnot_node.qargs[0]
+            target = cnot_node.qargs[1]
 
-            for cnot_node in subdag.named_nodes('cx', 'CX'):
-                control = cnot_node.qargs[0]
-                target = cnot_node.qargs[1]
+            physical_q0 = control.index
+            physical_q1 = target.index
 
-                physical_q0 = self.layout[control]
-                physical_q1 = self.layout[target]
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    raise TranspilerError('The circuit requires a connection between physical '
-                                          'qubits %s and %s' % (physical_q0, physical_q1))
+            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                raise TranspilerError('The circuit requires a connection between physical '
+                                      'qubits %s and %s' % (physical_q0, physical_q1))
 
-                if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
-                    # A flip needs to be done
+            if (physical_q0, physical_q1) not in cmap_edges:
+                # A flip needs to be done
 
-                    # Create the involved registers
-                    if control[0] not in subdag.qregs.values():
-                        subdag.add_qreg(control[0])
-                    if target[0] not in subdag.qregs.values():
-                        subdag.add_qreg(target[0])
+                # Create the replacement dag and associated register.
+                sub_dag = DAGCircuit()
+                sub_qr = QuantumRegister(2)
+                sub_dag.add_qreg(sub_qr)
 
-                    # Add H gates around
-                    subdag.apply_operation_back(HGate(), [target], [])
-                    subdag.apply_operation_back(HGate(), [control], [])
-                    subdag.apply_operation_front(HGate(), [target], [])
-                    subdag.apply_operation_front(HGate(), [control], [])
+                # Add H gates before
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
 
-                    # Flips the CX
-                    cnot_node.qargs[0], cnot_node.qargs[1] = target, control
+                # Flips the cx
+                sub_dag.apply_operation_back(CnotGate(), [sub_qr[1], sub_qr[0]], [])
 
-            new_dag.extend_back(subdag)
+                # Add H gates after
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
 
-        return new_dag
+                dag.substitute_node_with_dag(cnot_node, sub_dag)
+
+        return dag

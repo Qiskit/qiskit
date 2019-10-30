@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """Qobj tests."""
@@ -13,15 +20,14 @@ import uuid
 
 import jsonschema
 
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit.compiler import assemble
 from qiskit.providers.basicaer import basicaerjob
 
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
-                         QobjPulseLibrary, QasmQobjInstruction,
+                         PulseLibraryItem, QasmQobjInstruction,
                          QasmQobjExperiment, QasmQobjConfig)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
@@ -63,7 +69,7 @@ class TestQASMQobj(QiskitTestCase):
         self.bad_qobj = copy.deepcopy(self.valid_qobj)
         self.bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
 
-    def test_as_dict_against_schema(self):
+    def test_to_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         try:
             validate_qobj_against_schema(self.valid_qobj)
@@ -120,8 +126,7 @@ class TestQASMQobj(QiskitTestCase):
         qc1.measure(qr, cr)
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
-        backend = BasicAer.get_backend('qasm_simulator')
-        qobj1 = assemble_circuits(circuits, RunConfig(backend=backend, shots=1024, seed=88))
+        qobj1 = assemble(circuits, shots=1024, seed=88)
         qobj1.experiments[0].config.shots = 50
         qobj1.experiments[1].config.shots = 1
         self.assertTrue(qobj1.experiments[0].config.shots == 50)
@@ -141,7 +146,7 @@ class TestPulseQobj(QiskitTestCase):
                                    memory_slot_size=8192,
                                    meas_return='avg',
                                    pulse_library=[
-                                       QobjPulseLibrary(name='pulse0',
+                                       PulseLibraryItem(name='pulse0',
                                                         samples=[0.0 + 0.0j,
                                                                  0.5 + 0.0j,
                                                                  0.0 + 0.0j])
@@ -153,7 +158,10 @@ class TestPulseQobj(QiskitTestCase):
                 PulseQobjExperiment(instructions=[
                     PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
+                    PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=0.),
+                    PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
                     PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
+                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
                                          qubits=[0], memory_slot=[0],
                                          kernels=[
@@ -180,13 +188,15 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 1000
-                       },
+                       'rep_time': 1000},
             'experiments': [
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
+                    {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 0},
+                    {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': [0.1, 0.0]},
+                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
                     {'name': 'acquire', 't0': 15, 'duration': 5,
                      'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',
@@ -198,7 +208,7 @@ class TestPulseQobj(QiskitTestCase):
             ]
         }
 
-    def test_as_dict_against_schema(self):
+    def test_to_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         try:
             validate_qobj_against_schema(self.valid_qobj)
@@ -206,7 +216,7 @@ class TestPulseQobj(QiskitTestCase):
             self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
-        """Test Qobj and its subclass representations given a dictionary."""
+        """Test converting to Qobj and its subclass representations given a dictionary."""
         test_parameters = {
             PulseQobj: (
                 self.valid_qobj,
@@ -217,7 +227,7 @@ class TestPulseQobj(QiskitTestCase):
                                 memory_slot_size=8192,
                                 meas_return='avg',
                                 pulse_library=[
-                                    QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j])
+                                    PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
                                 rep_time=1000),
@@ -227,10 +237,10 @@ class TestPulseQobj(QiskitTestCase):
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 1000}
+                 'rep_time': 1000},
             ),
-            QobjPulseLibrary: (
-                QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),
+            PulseLibraryItem: (
+                PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
                 {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
             ),
             PulseQobjExperiment: (
@@ -247,6 +257,49 @@ class TestPulseQobj(QiskitTestCase):
         for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
+
+    def test_to_dict_per_class(self):
+        """Test converting from Qobj and its subclass representations given a dictionary."""
+        test_parameters = {
+            PulseQobj: (
+                self.valid_qobj,
+                self.valid_dict
+            ),
+            PulseQobjConfig: (
+                PulseQobjConfig(meas_level=1,
+                                memory_slot_size=8192,
+                                meas_return='avg',
+                                pulse_library=[
+                                    PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
+                                ],
+                                qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
+                                rep_time=1000),
+                {'meas_level': 1,
+                 'memory_slot_size': 8192,
+                 'meas_return': 'avg',
+                 'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
+                 'qubit_lo_freq': [4.9],
+                 'meas_lo_freq': [6.9],
+                 'rep_time': 1000},
+            ),
+            PulseLibraryItem: (
+                PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
+                {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
+            ),
+            PulseQobjExperiment: (
+                PulseQobjExperiment(
+                    instructions=[PulseQobjInstruction(name='pulse0', t0=0, ch='d0')]),
+                {'instructions': [{'name': 'pulse0', 't0': 0, 'ch': 'd0'}]}
+            ),
+            PulseQobjInstruction: (
+                PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
+                {'name': 'pulse0', 't0': 0, 'ch': 'd0'}
+            )
+        }
+
+        for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
+            with self.subTest(msg=str(qobj_class)):
+                self.assertEqual(qobj_item.to_dict(), expected_dict)
 
 
 def _nop():

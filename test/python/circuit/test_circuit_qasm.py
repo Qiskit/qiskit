@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=unused-import
 
@@ -53,9 +60,9 @@ include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
 creg cr[3];
-u1(0.300000000000000) qr1[0];
-u2(0.200000000000000,0.100000000000000) qr2[0];
-u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
+u1(0.3) qr1[0];
+u2(0.2,0.1) qr2[0];
+u3(0.3,0.2,0.1) qr2[1];
 s qr2[1];
 sdg qr2[1];
 cx qr1[0],qr2[1];

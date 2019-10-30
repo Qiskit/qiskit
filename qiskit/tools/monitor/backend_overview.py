@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 """ A module for viewing the details of all available devices.
 """
@@ -27,7 +35,10 @@ def get_unique_backends():
     Raises:
         QiskitError: No backends available.
     """
-    backends = IBMQ.backends()
+    backends = []
+    for provider in IBMQ.providers():
+        for backend in provider.backends():
+            backends.append(backend)
     unique_hardware_backends = []
     unique_names = []
     for back in backends:
@@ -63,7 +74,8 @@ def backend_monitor(backend):
 
     upper_list = ['n_qubits', 'operational',
                   'status_msg', 'pending_jobs',
-                  'basis_gates', 'local', 'simulator']
+                  'backend_version', 'basis_gates',
+                  'local', 'simulator']
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
@@ -84,23 +96,30 @@ def backend_monitor(backend):
     for qub in range(len(props['qubits'])):
         name = 'Q%s' % qub
         qubit_data = props['qubits'][qub]
-        gate_data = props['gates'][3*qub:3*qub+3]
+        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
         t1_info = qubit_data[0]
         t2_info = qubit_data[1]
         freq_info = qubit_data[2]
         readout_info = qubit_data[3]
 
         freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],  # pylint: disable=invalid-name
+        T1 = str(round(t1_info['value'],
                        5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],  # pylint: disable=invalid-name
+        T2 = str(round(t2_info['value'],
                        5))+' ' + t2_info['unit']
-        # pylint: disable=invalid-name
-        U1 = str(round(gate_data[0]['parameters'][0]['value'], 5))
-        # pylint: disable=invalid-name
-        U2 = str(round(gate_data[1]['parameters'][0]['value'], 5))
-        # pylint: disable=invalid-name
-        U3 = str(round(gate_data[2]['parameters'][0]['value'], 5))
+        for gd in gate_data:
+            if gd['gate'] == 'u1':
+                U1 = str(round(gd['parameters'][0]['value'], 5))
+                break
+
+        for gd in gate_data:
+            if gd['gate'] == 'u2':
+                U2 = str(round(gd['parameters'][0]['value'], 5))
+                break
+        for gd in gate_data:
+            if gd['gate'] == 'u3':
+                U3 = str(round(gd['parameters'][0]['value'], 5))
+                break
 
         readout_error = str(round(readout_info['value'], 5))
 
@@ -108,16 +127,17 @@ def backend_monitor(backend):
         print(offset+qstr)
 
     print()
-    multi_qubit_gates = props['gates'][3*config['n_qubits']:]
+    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
     multi_header = 'Multi-Qubit Gates [Name / Type / Gate Error]'
     print(multi_header)
     print('-'*len(multi_header))
 
-    for gate in multi_qubit_gates:
-        name = gate['name']
+    for qub, gate in enumerate(multi_qubit_gates):
+        gate = multi_qubit_gates[qub]
+        qubits = gate['qubits']
         ttype = gate['gate']
-        error = str(round(gate['parameters'][0]['value'], 5))
-        mstr = sep.join([name, ttype, error])
+        error = round(gate['parameters'][0]['value'], 5)
+        mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
         print(offset+mstr)
 
 

@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Non-string identifiers for circuit and record identifiers test"""
 
 import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
@@ -43,7 +50,7 @@ class TestAnonymousIds(QiskitTestCase):
         """Several Registers with no name."""
         cr0 = ClassicalRegister(size=3)
         qr0 = QuantumRegister(size=3)
-        # Get the current index counte of the registers
+        # Get the current index count of the registers
         cr_index = int(cr0.name[1:])
         qr_index = int(qr0.name[1:])
 
@@ -72,23 +79,23 @@ class TestInvalidIds(QiskitTestCase):
         """QuantumCircuit() with invalid type name."""
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
-        self.assertRaises(QiskitError, QuantumCircuit, qr, cr, name=1)
+        self.assertRaises(CircuitError, QuantumCircuit, qr, cr, name=1)
 
     def test_invalid_type_qr_name(self):
         """QuantumRegister() with an invalid type name."""
-        self.assertRaises(QiskitError, QuantumRegister, size=3, name=1)
+        self.assertRaises(CircuitError, QuantumRegister, size=3, name=1)
 
     def test_invalid_type_cr_name(self):
         """ClassicalRegister() with an invalid type name."""
-        self.assertRaises(QiskitError, ClassicalRegister, size=3, name=1)
+        self.assertRaises(CircuitError, ClassicalRegister, size=3, name=1)
 
     def test_invalid_qasmname_qr(self):
         """QuantumRegister() with invalid name."""
-        self.assertRaises(QiskitError, QuantumRegister, size=3, name='Qr')
+        self.assertRaises(CircuitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
         """ClassicalRegister() with invalid name."""
-        self.assertRaises(QiskitError, ClassicalRegister, size=3, name='Cr')
+        self.assertRaises(CircuitError, ClassicalRegister, size=3, name='Cr')
 
 
 if __name__ == '__main__':

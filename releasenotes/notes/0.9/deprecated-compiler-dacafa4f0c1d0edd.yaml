@@ -1,0 +1,37 @@
+---
+upgrade:
+  - |
+    The previously deprecated kwargs, ``seed`` and ``config`` for
+    ``qiskit.compiler.assemble()`` have been removed use ``seed_simulator`` and
+    ``run_config`` respectively instead.
+  - |
+    The previously deprecated converters
+    ``qiskit.converters.qobj_to_circuits()`` and
+    ``qiskit.converters.circuits_to_qobj()`` have been removed. Use
+    ``qiskit.assembler.disassemble()`` and ``qiskit.compiler.assemble()``
+    respectively instead.
+  - |
+    The previously deprecated kwarg ``seed_mapper`` for
+    ``qiskit.compiler.transpile()`` has been removed. Instead you should use
+    ``seed_transpiler``
+  - |
+    The previously deprecated kwargs ``seed``, ``seed_mapper``, ``config``,
+    and ``circuits`` for the ``qiskit.execute()`` function have been removed.
+    Use ``seed_simulator``, ``seed_transpiler``, ``run_config``, and
+    ``experiments`` arguments respectively instead.
+  - |
+    The previously deprecated ``qiskit.tools.qcvv`` module has been removed
+    use qiskit-ignis instead.
+  - |
+    The previously deprecated functions ``qiskit.transpiler.transpile()`` and
+    ``qiskit.transpiler.transpile_dag()`` have been removed. Instead you should
+    use ``qiskit.compiler.transpile``. If you were using ``transpile_dag()``
+    this can be replaced by running::
+
+        circ = qiskit.converters.dag_to_circuit(dag)
+        out_circ = qiskit.compiler.transpile(circ)
+        qiskit.converters.circuit_to_dag(out_circ)
+  - |
+    The previously deprecated function ``qiskit.compile()`` has been removed
+    instead you should use ``qiskit.compiler.transpile()`` and
+    ``qiskit.compiler.assemble()``.
