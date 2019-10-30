@@ -89,7 +89,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc = QuantumCircuit(40)
         for gate in range(39):
             qc.h(gate)
-            qc.cx(gate,39)
+            qc.cx(gate, 39)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
