@@ -57,17 +57,17 @@ class ModelTypeValidator(_fields.Field):
 
         Subclasses can do one of the following:
 
-            1. They can override the ``valid_types`` property with a tuple with
-            the expected types for this field.
+        1. Override the ``valid_types`` property with a tuple with the expected
+           types for this field.
 
-            2. They can override the ``_expected_types`` method to return a
-            tuple of expected types for the field.
+        2. Override the ``_expected_types`` method to return a tuple of
+           expected types for the field.
 
-            3. They can change ``check_type`` completely to customize
-            validation.
+        3. Change ``check_type`` completely to customize validation.
 
-        This method or the overrides must return the ``value`` parameter
-        untouched.
+        Note:
+            This method or the overrides must return the ``value`` parameter
+            untouched.
         """
         expected_types = self._expected_types()
         if not isinstance(value, expected_types):
@@ -179,9 +179,8 @@ class _SchemaBinder:
         """Create a patched Schema for validating models.
 
         Model validation is not part of Marshmallow. Schemas have a ``validate``
-        method but this delegates execution on ``load`` and discards the result.
-        Similarly, ``load`` will call ``_deserialize`` on every field in the
-        schema.
+        method but this delegates execution on ``load``. Similarly, ``load``
+        will call ``_deserialize`` on every field in the schema.
 
         This function patches the ``_deserialize`` instance method of each
         field to make it call a custom defined method ``check_type``
@@ -220,10 +219,6 @@ class _SchemaBinder:
 
 def bind_schema(schema):
     """Class decorator for adding schema validation to its instances.
-
-    Instances of the decorated class are automatically validated after
-    instantiation and they are augmented to allow further validations with the
-    private method ``_validate()``.
 
     The decorator also adds the class attribute ``schema`` with the schema used
     for validation, along with a class attribute ``shallow_schema`` used for
