@@ -74,7 +74,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         """Test draw deep circuit."""
         filename = self._get_resource_path('test_deep.tex')
         qc = QuantumCircuit(1)
-        for gate in range(100):
+        for _ in range(100):
             qc.h(0)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
