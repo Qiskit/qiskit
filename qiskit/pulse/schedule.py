@@ -231,30 +231,14 @@ class Schedule(ScheduleComponent):
                channels: Optional[Iterable[Channel]] = None,
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None,
-               filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
+               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
-        Filters the Schedule according to the specified filters, with behavior
-        depending on the filter_type argument (described below). Each filter is
-        a function taking (int, ScheduleComponent) and returning bool. The purpose is
-        to return a new Schedule containing only the parts of self that satisfy
-        a list of criteria.
-
-        filter_funcs are custom filters. If a list of channel indices is provided,
-        a filter returning True on those channels is created. Similarly, for
-        instruction_types, a filter returning True on those instruction types will
-        be created. For intervals, a filter returning True on instructions wholly
-        contained within *any* of the given intervals will be created.
-
-        The behaviour types:
-
-        If filter_type == 0:
-            returns a Schedule containing instructions returning True on all filters.
-        If filter_type == 1:
-            returns a Schedule containing the instructions excluded by filter_type==0
-        If filter_type == 2:
-            returns a tuple of Schedules corresponding to the output of
-            filter_type == 0 and filter_type == 1.
+        Return a new Schedule with only the instructions which pass though the provided filters.
+        Custom filters may be provided. If a list of channel indices is provided, only the
+        instructions that involve that channel (and maybe also others) will be included in the new
+        schedule. Similarly for instruction_types, only the instructions which are instances of the
+        provided types will be included. For intervals, instructions will be retained if their
+        timeslots are all wholly contained within *any* of the given intervals.
 
         If no arguments are provided, this schedule is returned.
 
@@ -265,9 +249,61 @@ class Schedule(ScheduleComponent):
             instruction_types: For example, [PulseInstruction, AcquireInstruction]
             time_ranges: Time intervals to keep, e.g. [(0, 5), (6, 10)]
             intervals: Time intervals to keep, e.g. [Interval(0, 5), Interval(6, 10)]
-            filter_type: Specifies the kind of filtering, as described above
+        """
+        total_filter = self._construct_filter(*filter_funcs,
+                                              channels = channels,
+                                              instruction_types = instruction_types,
+                                              time_ranges = time_ranges,
+                                              intervals = intervals)
+        subschedules = self.flatten()._children
+        valid_subschedules = [sched for sched in subschedules if total_filter(sched)]
+        return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+
+    def exclude(self, *filter_funcs: List[Callable],
+                channels: Optional[Iterable[Channel]] = None,
+                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
+        """
+        Return a Schedule with only the instructions *failing* at least one of the provided filters.
+        That is, this function has the same inputs as self.filter, but returns the complement
+        schedule, so that self.filter(args) | self.exclude(args) == self
+        """
+
+        total_filter = self._construct_filter(*filter_funcs,
+                                              channels = channels,
+                                              instruction_types = instruction_types,
+                                              time_ranges = time_ranges,
+                                              intervals = intervals)
+        subschedules = self.flatten()._children
+        valid_subschedules = [sched for sched in subschedules if not total_filter(sched)]
+        return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
+
+    def _construct_filter(self, *filter_funcs: List[Callable],
+                          channels: Optional[Iterable[Channel]] = None,
+                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                          time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+                          intervals: Optional[Iterable[Interval]] = None) -> Callable:
+        """
+        Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
+        if the input satisfies all of the criteria specified by the arguments, described below.
+
+        Args:
+           filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
+                         return a bool. (For the returned function to return True, all must return
+                         True.)
+           channels: For example, [DriveChannel(0), AcquireChannel(0)] (The returned function can
+                     only return True on instructions from one of these channels)
+           instruction_types: For example, [PulseInstruction, AcquireInstruction] (The returned
+                              function only returns True on instruction types from this list)
+           time_ranges: Time intervals to keep, e.g. [(0, 5), (6, 10)] (The returned function only
+                        returns True on instructions completely contained in one of these time
+                        intervals)
+           intervals: Time intervals to keep, e.g. [Interval(0, 5), Interval(6, 10)] (Same as
+                      time_ranges, but specified as Interval objects)
 
         """
+
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
@@ -288,7 +324,11 @@ class Schedule(ScheduleComponent):
                 return False
             return interval_filter
 
+        print('before...')
+        print(filter_funcs)
         filter_funcs = list(filter_funcs)
+        print('after...')
+        print(filter_funcs)
         if channels:
             filter_funcs.append(only_channels(set(channels)))
         if instruction_types:
@@ -300,73 +340,12 @@ class Schedule(ScheduleComponent):
             filter_funcs.append(only_intervals(intervals))
 
         if not filter_funcs:
-            return self
-
-        return self._filter(filter_funcs, filter_type)
-
-    def _filter(self, filter_funcs: List[Callable],
-                filter_type: Optional[int] = 0) -> Union['Schedule', Tuple['Schedule', 'Schedule']]:
-        """
-        Filters the Schedule according to the specified filter_funcs, with
-        behavior specified by filter_type, as described in the filter() method.
-
-        Expected function signature for each function in filter_funcs:
-            function(time_and_inst_tuple: Tuple[int, Instruction]) -> bool
-
-        For example:
-
-            def only_channel_one(time_and_inst_tuple) -> bool:
-                for chan in time_and_inst_tuple[1].channels:
-                    if chan.index == 1:
-                        return True
-                return False
-
-        Note:
-            The new schedule's name is the previous name appended with "-filtered".
-
-        Args:
-            filter_funcs: A list of Callables which follow the above format
-            filter_type: An int, either 0, 1, or 2, specifying the type of filtering,
-                         as described in the filter() method
-        """
-
-        # define a filter return True if all filter_funcs return True
-        def total_filter(x):
-
-            # return False if some filter returns False
-            for filter_func in filter_funcs:
-                if not filter_func(x):
-                    return False
-
-            # return True if no filter returns False
-            return True
-
-        subschedules = self.flatten()._children
-
-        if filter_type == 0:
-            # return schedules passing total_filter
-            valid_subschedules = [sched for sched in subschedules if total_filter(sched)]
-            return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
-
-        elif filter_type == 1:
-            # return schedules failing total_filter
-            valid_subschedules = [sched for sched in subschedules if not total_filter(sched)]
-            return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
-
-        elif filter_type == 2:
-            # create separate schedules for those passing total_filter
-            # and failing total_filter
-            filtered_subschedules = []  # subschedules passing total_filter
-            excluded_subschedules = []  # subschedules failing total_filter
-
-            for sched in subschedules:
-                if total_filter(sched):
-                    filtered_subschedules.append(sched)
-                else:
-                    excluded_subschedules.append(sched)
-
-            return (Schedule(*filtered_subschedules, name="{name}-filtered".format(name=self.name)),
-                    Schedule(*excluded_subschedules, name="{name}-excluded".format(name=self.name)))
+            # if no filters criteria were specified, return the function that always returns True
+            return lambda x: True
+        else:
+            # create the total filter function, returning True only if everything in filter_funcs
+            # returns True
+            return lambda x: all([filter_func(x) for filter_func in filter_funcs])
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

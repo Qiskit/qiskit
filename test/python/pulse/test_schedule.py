@@ -432,7 +432,7 @@ class TestDelay(BaseTestSchedule):
 
 class TestScheduleFilter(BaseTestSchedule):
     """
-    Test Schedule filtering methods.
+    Test Schedule filtering methods: Schedule.filter and Schedule.exclude
 
     Note: each test in this class uses one of two helper methods:
     self.filter_and_test_consistency and self._filter_and_test_consistency
@@ -455,6 +455,8 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split instructions for those on AcquireChannel(1) and those not
         filtered, excluded = self.filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
+        #filtered = sched.filter(channels=[AcquireChannel(1)])
+        #excluded = sched.exclude(channels=[AcquireChannel(1)])
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(len(excluded.instructions), 4)
         self.assertEqual(filtered | excluded, sched)
@@ -575,7 +577,7 @@ class TestScheduleFilter(BaseTestSchedule):
                                                               time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, PulseInstruction)
-            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
+            self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
         self.assertEqual(len(excluded.instructions), 4)
         self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
@@ -592,7 +594,7 @@ class TestScheduleFilter(BaseTestSchedule):
         # make sure the PulseInstruction not in the intervals is maintained
         self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
 
-    def test_filter(self):
+    def test_custom_filters(self):
         """Test _filter method."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
@@ -601,17 +603,19 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(10, lp0(device.drives[1]))
         sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
 
-        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: True])
+        filtered, excluded = self.filter_and_test_consistency(sched, [lambda x: True])
+        #filtered = sched.filter([lambda x: True])
+        #excluded = sched.exclude([lambda x: True])
         for i in filtered.instructions:
             self.assertTrue(i in sched.instructions)
         for i in excluded.instructions:
             self.assertFalse(i in sched.instructions)
 
-        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: False])
+        filtered, excluded = self.filter_and_test_consistency(sched, [lambda x: False])
         self.assertEqual(len(filtered.instructions), 0)
         self.assertEqual(len(excluded.instructions), 3)
 
-        filtered, excluded = self._filter_and_test_consistency(sched, [lambda x: x[0] < 30])
+        filtered, excluded = self.filter_and_test_consistency(sched, [lambda x: x[0] < 30])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 1)
 
@@ -626,25 +630,10 @@ class TestScheduleFilter(BaseTestSchedule):
         It also verifies that taking the union of the two outputs of filter with
         filter_type=2 reproduces the original schedule
         """
-
-        filtered, excluded = schedule.filter(*args, **kwargs, filter_type=2)
-        self.assertEqual(filtered, schedule.filter(*args, **kwargs, filter_type=0))
-        self.assertEqual(excluded, schedule.filter(*args, **kwargs, filter_type=1))
+        filtered = schedule.filter(*args, **kwargs)
+        excluded = schedule.exclude(*args, **kwargs)
         self.assertEqual(filtered | excluded, schedule)
         return filtered, excluded
-
-    def _filter_and_test_consistency(self, schedule, *args, **kwargs):
-        """
-        Same idea as self.filter_and_test_consistency, but for calling the
-        schedule._filter(*args,**kwargs,filter_type=2), while checking consistency
-        """
-
-        filtered, excluded = schedule._filter(*args, **kwargs, filter_type=2)
-        self.assertEqual(filtered, schedule._filter(*args, **kwargs, filter_type=0))
-        self.assertEqual(excluded, schedule._filter(*args, **kwargs, filter_type=1))
-        self.assertEqual(filtered | excluded, schedule)
-        return filtered, excluded
-
 
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
