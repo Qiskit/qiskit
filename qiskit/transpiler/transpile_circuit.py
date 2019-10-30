@@ -36,7 +36,7 @@ def transpile_circuit(circuit, transpile_config):
         TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
     # either the pass manager is already selected...
-    if transpile_config.pass_manager:
+    if transpile_config.pass_manager is not None:
         pass_manager = transpile_config.pass_manager
 
     # or we choose an appropriate one based on desired optimization level (default: level 1)
