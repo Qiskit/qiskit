@@ -222,7 +222,7 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        instruction = QasmQobjInstruction(name=self.name, validate=False)
         # Evaluate parameters
         if self.params:
             params = [
