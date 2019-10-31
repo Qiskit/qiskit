@@ -26,11 +26,12 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class Layout2qDistance(AnalysisPass):
     """Evaluate how good the layout selection was.
 
-    Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
+    Saves in `property_set['layout_score']` (or the property name in property_name)
+    the sum of distances for each circuit CX.
     The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
     No CX direction is considered.
     """
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, property_name='layout_score'):
         """Layout2qDistance initializer.
 
         Args:
@@ -38,6 +39,7 @@ class Layout2qDistance(AnalysisPass):
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.property_name = property_name
 
     def run(self, dag):
         """
@@ -58,4 +60,4 @@ class Layout2qDistance(AnalysisPass):
 
             sum_distance += self.coupling_map.distance(physical_q0, physical_q1)-1
 
-        self.property_set['layout_score'] = sum_distance
+        self.property_set[self.property_name] = sum_distance
