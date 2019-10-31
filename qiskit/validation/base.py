@@ -204,8 +204,8 @@ class _SchemaBinder:
     def _validate_after_init(init_method):
         """Add validation during instantiation.
 
-        The validation is performed depending on the `validate` parameter
-        passed to the `init_method`. If `False`, the validation will not be
+        The validation is performed depending on the ``validate`` parameter
+        passed to the ``init_method``. If ``False``, the validation will not be
         performed.
         """
         @wraps(init_method)
@@ -220,7 +220,7 @@ class _SchemaBinder:
                     raise ModelValidationError(
                         ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
-            # Set the 'validate' parameter to `False`, assuming that if a
+            # Set the 'validate' parameter to False, assuming that if a
             # subclass has been validated, it superclasses will also be valid.
             return init_method(self, **kwargs, validate=False)
 
@@ -255,7 +255,7 @@ def bind_schema(schema):
 
     Note:
         By default, models decorated with this decorator are validated during
-        instantiation. If `validate=False` is passed to the constructor, this
+        instantiation. If ``validate=False`` is passed to the constructor, this
         validation will not be performed.
 
     Raises:
