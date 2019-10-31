@@ -120,7 +120,7 @@ class RunningPassManager():
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
         return flow_controller
 
-    def run(self, circuit):
+    def run(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
 
         Args:
@@ -133,12 +133,18 @@ class RunningPassManager():
         dag = circuit_to_dag(circuit)
         del circuit
 
+        if callback:
+            self.callback = callback
+
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
         circuit = dag_to_circuit(dag)
-        circuit.name = name
+        if output_name:
+            circuit.name = output_name
+        else:
+            circuit.name = name
         circuit._layout = self.property_set['layout']
         return circuit
 

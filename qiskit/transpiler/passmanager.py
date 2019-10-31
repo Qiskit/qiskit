@@ -126,9 +126,7 @@ class PassManager:
         return len(self._pass_sets)
 
     def __getitem__(self, index):
-        max_iteration = self.max_iteration
-        call_back = self.callback
-        new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+        new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]
@@ -137,16 +135,13 @@ class PassManager:
 
     def __add__(self, other):
         if isinstance(other, PassManager):
-            max_iteration = self.max_iteration
-            call_back = self.callback
-            new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+            new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
             new_passmanager._pass_sets = self._pass_sets + other._pass_sets
             return new_passmanager
         else:
             try:
-                max_iteration = self.max_iteration
-                call_back = self.callback
-                new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+                new_passmanager = PassManager(max_iteration=self.max_iteration,
+                                              callback=self.callback)
                 new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
@@ -164,7 +159,7 @@ class PassManager:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
         return passes
 
-    def run(self, circuits):
+    def run(self, circuits, output_name=None, callback=None):
         """Run all the passes on circuit or circuits
 
         Args:
@@ -175,9 +170,9 @@ class PassManager:
             QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
         """
         if isinstance(circuits, QuantumCircuit):
-            return self._run_single_circuit(circuits)
+            return self._run_single_circuit(circuits, output_name, callback)
         else:
-            return self._run_several_circuits(circuits)
+            return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self):
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
@@ -192,7 +187,7 @@ class PassManager:
         result = running_passmanager.run(circuit)
         return result
 
-    def _run_several_circuits(self, circuits):
+    def _run_several_circuits(self, circuits, output_name=None, callback=None):
         """Run all the passes on each of the circuits in the circuits list
 
         Args:
@@ -204,7 +199,7 @@ class PassManager:
         return parallel_map(PassManager._in_parallel, circuits,
                             task_kwargs={'pm_dill': dill.dumps(self)})
 
-    def _run_single_circuit(self, circuit):
+    def _run_single_circuit(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
 
         Args:
@@ -244,7 +239,7 @@ class PassManager:
             QuantumCircuit: Transformed circuit.
         """
         running_passmanager = self._create_running_passmanager()
-        result = running_passmanager.run(circuit)
+        result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
         self.property_set = running_passmanager.property_set
         return result
 
