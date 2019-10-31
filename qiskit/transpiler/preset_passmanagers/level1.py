@@ -39,7 +39,7 @@ from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import DenseLayout
-from qiskit.transpiler.passes import LayoutScore
+from qiskit.transpiler.passes import Layout2qDistance
 
 
 def level_1_pass_manager(transpile_config):
@@ -116,9 +116,9 @@ def level_1_pass_manager(transpile_config):
             pm1.append(_given_layout)
         else:
             pm1.append(TrivialLayout(coupling_map))
-            pm1.append(LayoutScore(coupling_map, property_='trivial_score'))
+            pm1.append(Layout2qDistance(coupling_map, property_name='trivial_score'))
             pm1.append([DenseLayout(coupling_map, backend_properties),
-                        LayoutScore(coupling_map, property_='dense_score')],
+                        Layout2qDistance(coupling_map, property_name='dense_score')],
                        rollback_if=_didnt_improve)
         pm1.append(_embed)
     pm1.append(_unroll)
