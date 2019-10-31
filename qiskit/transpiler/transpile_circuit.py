@@ -50,9 +50,9 @@ def transpile_circuit(transpile_args):
         ms_basis_swap = None
         if 'rxx' in transpile_args['pass_manager_config'].basis_gates and \
                 not device_insts >= transpile_args['circuit'].count_ops().keys():
-            ms_basis_swap = transpile_args['basis_gates']
-            transpile_args['basis_gates'] = list(set(['u3', 'cx']).union(
-                transpile_args['basis_gates']))
+            ms_basis_swap = transpile_args['pass_manager_config'].basis_gates
+            transpile_args['pass_manager_config'].basis_gates = list(set(['u3', 'cx']).union(
+                transpile_args['pass_manager_config'].basis_gates))
 
         if level is None:
             level = 1
