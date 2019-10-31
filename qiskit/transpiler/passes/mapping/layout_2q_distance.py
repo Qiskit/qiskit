@@ -23,7 +23,7 @@ Therefore, 0 is a perfect layout selection.
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
-class LayoutScore(AnalysisPass):
+class Layout2qDistance(AnalysisPass):
     """Evaluate how good the layout selection was.
 
     Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
@@ -31,7 +31,7 @@ class LayoutScore(AnalysisPass):
     No CX direction is considered.
     """
     def __init__(self, coupling_map):
-        """LayoutScore initializer.
+        """Layout2qDistance initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
@@ -41,7 +41,7 @@ class LayoutScore(AnalysisPass):
 
     def run(self, dag):
         """
-        Run the LayoutScore pass on `dag`.
+        Run the Layout2qDistance pass on `dag`.
         Args:
             dag (DAGCircuit): DAG to evaluate.
         """
@@ -50,12 +50,12 @@ class LayoutScore(AnalysisPass):
         if layout is None:
             return
 
-        distances = []
+        sum_distance = 0
 
         for gate in dag.twoQ_gates():
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
 
-            distances.append(self.coupling_map.distance(physical_q0, physical_q1)-1)
+            sum_distance += self.coupling_map.distance(physical_q0, physical_q1)-1
 
-        self.property_set['layout_score'] = sum(distances)
+        self.property_set['layout_score'] = sum_distance

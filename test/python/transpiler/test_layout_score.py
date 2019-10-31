@@ -17,7 +17,7 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler.passes import LayoutScore
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -35,7 +35,7 @@ class TestLayoutScoreError(QiskitTestCase):
         layout = None
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling)
+        pass_ = Layout2qDistance(coupling)
         pass_.property_set['layout'] = layout
         pass_.run(dag)
 
@@ -54,7 +54,7 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling)
+        pass_ = Layout2qDistance(coupling)
         pass_.property_set['layout'] = layout
         pass_.run(dag)
 
@@ -78,7 +78,7 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling)
+        pass_ = Layout2qDistance(coupling)
         pass_.property_set['layout'] = layout
         pass_.run(dag)
 
@@ -99,7 +99,7 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling)
+        pass_ = Layout2qDistance(coupling)
         pass_.property_set['layout'] = layout
         pass_.run(dag)
 
