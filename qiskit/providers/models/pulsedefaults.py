@@ -296,7 +296,10 @@ class PulseDefaults(BaseModel):
         self.assert_has(operation, qubits)
         return self._ops_def[operation][_to_tuple(qubits)].parameters
 
-    def add(self, operation: str, qubits: Union[int, Iterable[int]], schedule: Schedule) -> None:
+    def add(self,
+            operation: str,
+            qubits: Union[int, Iterable[int]],
+            schedule: [Schedule, ParameterizedSchedule]) -> None:
         """
         Add a new known operation.
 
