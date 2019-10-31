@@ -14,6 +14,7 @@
 # pylint: disable=invalid-name
 
 """A module for monitoring backends."""
+import warnings
 
 import types
 import math
@@ -136,7 +137,10 @@ def config_tab(backend):
         grid: A GridBox widget.
     """
     status = backend.status().to_dict()
+    # TODO: remove filters when dt warnings are removed
+    warnings.filterwarnings("ignore")
     config = backend.configuration().to_dict()
+    warnings.resetwarnings()
 
     config_dict = {**status, **config}
 
@@ -158,6 +162,13 @@ def config_tab(backend):
     if 'hamiltonian' in lower_list:
         htex = config_dict['hamiltonian']['h_latex']
         config_dict['hamiltonian'] = "$$%s$$" % htex
+
+    # Can also be removed when dt warnings are removed
+    lower_list.remove('_dt')
+    lower_list.remove('_dtm')
+
+    config_dict['dt'] = "{} s".format(config_dict['dt'])
+    config_dict['dtm'] = "{} s".format(config_dict['dtm'])
 
     upper_str = "<table>"
     upper_str += """<style>

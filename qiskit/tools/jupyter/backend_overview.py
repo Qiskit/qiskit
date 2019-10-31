@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """A module for monitoring backends."""
+import warnings
 
 import time
 import threading
@@ -125,7 +126,10 @@ class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
 def backend_widget(backend):
     """Creates a backend widget.
     """
+    # TODO: remove filters when dt warnings are removed
+    warnings.filterwarnings("ignore")
     config = backend.configuration().to_dict()
+    warnings.resetwarnings()
     props = backend.properties().to_dict()
 
     name = widgets.HTML(value="<h4>{name}</h4>".format(name=backend.name()),

@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """A module for visualizing device coupling maps"""
+import warnings
 
 import math
 import numpy as np
@@ -374,7 +375,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     color_map = cm.viridis
 
     props = backend.properties().to_dict()
+
+    # TODO: remove filters when dt warnings are removed
+    warnings.filterwarnings("ignore")
     config = backend.configuration().to_dict()
+    warnings.resetwarnings()
 
     n_qubits = config['n_qubits']
 
