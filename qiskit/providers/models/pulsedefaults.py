@@ -134,4 +134,4 @@ class PulseDefaults(BaseModel):
         Returns:
             CmdDef: `CmdDef` instance generated from defaults
         """
-        return CmdDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
+        return CmdDef.from_defaults(self.cmd_def, self.pulse_library)

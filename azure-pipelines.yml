@@ -136,6 +136,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -348,6 +349,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e

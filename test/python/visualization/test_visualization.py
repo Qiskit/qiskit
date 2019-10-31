@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=anomalous-backslash-in-string
+
 """Tests for visualization tools."""
 
 import os
@@ -381,6 +383,39 @@ c1_0: 0 ════════════════════════
 
         self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_generate_latex_label_nomathmode(self):
+        """Test generate latex label default."""
+        self.assertEqual('abc', utils.generate_latex_label('abc'))
+
+    def test_generate_latex_label_nomathmode_utf8char(self):
+        """Test generate latex label utf8 characters."""
+        self.assertEqual('{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+                         utils.generate_latex_label('∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_utf8char(self):
+        """Test generate latex label mathtext with utf8."""
+        self.assertEqual(
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc_$∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_underscore_outside(self):
+        """Test generate latex label with underscore outside mathmode."""
+        self.assertEqual(
+            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc$_∭X∀Y'))
+
+    def test_generate_latex_label_escaped_dollar_signs(self):
+        """Test generate latex label with escaped dollarsign."""
+        self.assertEqual(
+            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            utils.generate_latex_label('\$∀\$'))  # noqa
+
+    def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
+        """Test generate latex label with escaped dollar sign in mathmode."""
+        self.assertEqual(
+            'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$a$bc$_∭X∀Y'))  # noqa
 
 
 if __name__ == '__main__':
