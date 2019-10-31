@@ -48,8 +48,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
         """Test draw normal size circuit."""
         filename = self._get_resource_path('test_normal.tex')
         qc = QuantumCircuit(5)
-        for gate in range(5):
-            qc.h(gate)
+        for qubit in range(5):
+            qc.h(qubit)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -87,9 +87,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
         """Test draw huge circuit."""
         filename = self._get_resource_path('test_huge.tex')
         qc = QuantumCircuit(40)
-        for gate in range(39):
-            qc.h(gate)
-            qc.cx(gate, 39)
+        for qubit in range(39):
+            qc.h(qubit)
+            qc.cx(qubit, 39)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
