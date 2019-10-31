@@ -149,6 +149,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
+        import ipdb; ipdb.set_trace()
         measures = set()
         all_qubits = set()
         sched = Schedule()
@@ -157,6 +158,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         for qubits in measures:
             all_qubits.update(qubits)
             # TODO (Issue #2704): Respect MemorySlots from the input circuit
+            # Take sched.non_implemented_filter(measure.difference(measured_qubits)
             sched |= cmd_def.get('measure', qubits)
         measured_qubits.clear()
         return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
@@ -170,6 +172,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
             measured_qubits.update(inst_qubits)
+
         else:
             try:
                 circ_pulse_defs.append(
