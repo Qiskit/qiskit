@@ -619,8 +619,9 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(excluded.instructions), 2)
 
         # multiple custom filters specified as unkeyed arguments
-        filtered, excluded = self.filter_and_test_consistency(sched, lambda x: x[0] > 0,
-                                                                      lambda x: x[0] < 30)
+        filtered, excluded = self.filter_and_test_consistency(sched,
+                                                              lambda x: x[0] > 0,
+                                                              lambda x: x[0] < 30)
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(len(excluded.instructions), 2)
 
@@ -634,6 +635,7 @@ class TestScheduleFilter(BaseTestSchedule):
         excluded = schedule.exclude(*args, **kwargs)
         self.assertEqual(filtered | excluded, schedule)
         return filtered, excluded
+
 
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""

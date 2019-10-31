@@ -251,10 +251,10 @@ class Schedule(ScheduleComponent):
             intervals: Time intervals to keep, e.g. [Interval(0, 5), Interval(6, 10)]
         """
         total_filter = self._construct_filter(*filter_funcs,
-                                              channels = channels,
-                                              instruction_types = instruction_types,
-                                              time_ranges = time_ranges,
-                                              intervals = intervals)
+                                              channels=channels,
+                                              instruction_types=instruction_types,
+                                              time_ranges=time_ranges,
+                                              intervals=intervals)
         subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if total_filter(sched)]
         return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
@@ -271,10 +271,10 @@ class Schedule(ScheduleComponent):
         """
 
         total_filter = self._construct_filter(*filter_funcs,
-                                              channels = channels,
-                                              instruction_types = instruction_types,
-                                              time_ranges = time_ranges,
-                                              intervals = intervals)
+                                              channels=channels,
+                                              instruction_types=instruction_types,
+                                              time_ranges=time_ranges,
+                                              intervals=intervals)
         subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if not total_filter(sched)]
         return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
