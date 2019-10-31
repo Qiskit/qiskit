@@ -347,7 +347,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
 
 
 def plot_error_map(backend, figsize=(12, 9), show_title=True,
-                   remove_badcal_edges=False):
+                   remove_badcal_edges=True):
     """Plots the error map of a given backend.
 
     Args:
