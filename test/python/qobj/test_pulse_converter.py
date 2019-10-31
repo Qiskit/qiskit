@@ -23,7 +23,8 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Discriminator, Kernel)
-from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel)
+from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
+                                   MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.pulse import LoConfig
 

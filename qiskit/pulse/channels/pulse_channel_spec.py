@@ -25,7 +25,6 @@ from qiskit.pulse.exceptions import PulseError
 from .channels import (AcquireChannel, MemorySlot, RegisterSlot, DriveChannel, ControlChannel,
                        MeasureChannel)
 from .qubit import Qubit
-from .system_topology import SystemTopology
 
 
 class PulseChannelSpec:
@@ -98,10 +97,10 @@ class PulseChannelSpec:
         # create mapping information from channels
         warnings.simplefilter("ignore")  # Suppress Qubit deprecation warnings
         self._qubits = [
-            Qubit(ii, drive, measure, acquire, controls) for ii, (drive, measure, acquire)
-            in enumerate(zip(drives, measures, acquires))
-        ]
-        warnings.simplefilter("default")
+            Qubit(ii, DriveChannel(ii), MeasureChannel(ii),
+                  AcquireChannel(ii), [ControlChannel(ii)])
+            for ii in range(n_qubits)]
+        warnings.resetwarnings()
 
     @classmethod
     def from_backend(cls, backend):

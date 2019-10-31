@@ -114,9 +114,9 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     def test_truncate_acquisition(self):
         sched = Schedule()
         acquire = Acquire(30)
-        sched = sched.insert(0, acquire(self.device.acquires[1],
-                                        self.device.memoryslots[1],
-                                        self.device.registers[1]))
+        sched = sched.insert(0, acquire(AcquireChannel(1),
+                                        MemorySlot(1),
+                                        RegisterSlot(1)))
         # Check ValueError is not thrown
         sched.draw(plot_range=(0, 15))
 

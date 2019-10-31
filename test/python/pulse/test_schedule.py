@@ -17,7 +17,7 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse.channels import (PulseChannelSpec, MemorySlot, DriveChannel, AcquireChannel,
+from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
@@ -50,7 +50,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.append(lp0(self.config.drives(0)))
+        sched = sched.append(lp0(self.config.drive(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
@@ -59,8 +59,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.append(lp0(self.config.drives(0)))
-        sched = sched.append(lp0(self.config.drives[1]))
+        sched = sched.append(lp0(self.config.drive(0)))
+        sched = sched.append(lp0(self.config.drive(1)))
         self.assertEqual(0, sched.start_time)
         # appending to separate channel so should be at same time.
         self.assertEqual(3, sched.stop_time)
@@ -70,7 +70,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, lp0(self.config.drives(0)))
+        sched = sched.insert(10, lp0(self.config.drive(0)))
         self.assertEqual(10, sched.start_time)
         self.assertEqual(13, sched.stop_time)
 
@@ -79,8 +79,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, lp0(self.config.drives(0)))
-        sched = sched.insert(5, lp0(self.config.drives(0)))
+        sched = sched.insert(10, lp0(self.config.drive(0)))
+        sched = sched.insert(5, lp0(self.config.drive(0)))
         self.assertEqual(5, sched.start_time)
         self.assertEqual(13, sched.stop_time)
 
@@ -89,9 +89,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, lp0(self.config.drives(0)))
+        sched = sched.insert(10, lp0(self.config.drive(0)))
         with self.assertRaises(PulseError):
-            sched.insert(11, lp0(self.config.drives(0)))
+            sched.insert(11, lp0(self.config.drive(0)))
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
@@ -102,16 +102,16 @@ class TestScheduleBuilding(BaseTestSchedule):
         acquire = Acquire(10)
 
         sched = Schedule()
-        sched = sched.append(gp0(self.config.drives(0)))
-        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.controls(0)))
-        sched = sched.insert(60, FrameChange(phase=-1.57)(self.config.drives(0)))
-        sched = sched.insert(30, gp1(self.config.drives(0)))
-        sched = sched.insert(60, gp0(self.config.controls(0)))
+        sched = sched.append(gp0(self.config.drive(0)))
+        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.control(0)))
+        sched = sched.insert(60, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, gp1(self.config.drive(0)))
+        sched = sched.insert(60, gp0(self.config.control(0)))
         sched = sched.insert(80, Snapshot("label", "snap_type"))
-        sched = sched.insert(90, fc_pi_2(self.config.drives(0)))
-        sched = sched.insert(90, acquire(self.config.acquires(0),
-                                         self.config.memoryslots(0),
-                                         self.config.registers(0)))
+        sched = sched.insert(90, fc_pi_2(self.config.drive(0)))
+        sched = sched.insert(90, acquire(self.config.acquire(0),
+                                         MemorySlot(0),
+                                         RegisterSlot(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(100, sched.stop_time)
         self.assertEqual(100, sched.duration)
@@ -131,16 +131,16 @@ class TestScheduleBuilding(BaseTestSchedule):
         acquire = Acquire(10)
 
         sched = Schedule()
-        sched += gp0(self.config.drives(0))
-        sched |= PersistentValue(value=0.2 + 0.4j)(self.config.controls(0))
-        sched |= FrameChange(phase=-1.57)(self.config.drives(0)) << 60
-        sched |= gp1(self.config.drives(0)) << 30
-        sched |= gp0(self.config.controls(0)) << 60
+        sched += gp0(self.config.drive(0))
+        sched |= PersistentValue(value=0.2 + 0.4j)(self.config.control(0))
+        sched |= FrameChange(phase=-1.57)(self.config.drive(0)) << 60
+        sched |= gp1(self.config.drive(0)) << 30
+        sched |= gp0(self.config.control(0)) << 60
         sched |= Snapshot("label", "snap_type") << 60
-        sched |= fc_pi_2(self.config.drives(0)) << 90
-        sched |= acquire(self.config.acquires(0),
-                         self.config.memoryslots(0),
-                         self.config.registers(0)) << 90
+        sched |= fc_pi_2(self.config.drive(0)) << 90
+        sched |= acquire(self.config.acquire(0),
+                         MemorySlot(0),
+                         RegisterSlot(0)) << 90
         sched += sched
 
     def test_immutability(self):
@@ -148,11 +148,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
         gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
 
-        sched = gp1(self.config.drives(0)) << 100
+        sched = gp1(self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
         # would be raised.
-        sched.union(gp0(self.config.drives(0)))
-        sched.union(gp0(self.config.drives(0)))
+        sched.union(gp0(self.config.drive(0)))
+        sched.union(gp0(self.config.drive(0)))
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
@@ -160,9 +160,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
-        sched = sched + gp1(self.config.drives(0))
+        sched = sched + gp1(self.config.drive(0))
         sched2 = sched
-        sched += gp0(self.config.drives(0))
+        sched += gp0(self.config.drive(0))
         self.assertNotEqual(sched, sched2)
 
     def test_empty_schedule(self):
@@ -186,11 +186,11 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         # normal schedule
         subsched = Schedule()
-        subsched = subsched.insert(20, lp0(self.config.drives(0)))  # grand child 1
-        subsched = subsched.append(lp0(self.config.drives(0)))      # grand child 2
+        subsched = subsched.insert(20, lp0(self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(lp0(self.config.drive(0)))      # grand child 2
 
         sched = Schedule()
-        sched = sched.append(lp0(self.config.drives(0)))   # child
+        sched = sched.append(lp0(self.config.drive(0)))   # child
         sched = sched.append(subsched)
         for _, instr in sched.instructions:
             self.assertIsInstance(instr, Instruction)
@@ -200,11 +200,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
-        subsched = subsched.insert(20, lp0(self.config.drives(0)))  # grand child 1
-        subsched = subsched.append(lp0(self.config.drives(0)))      # grand child 2
+        subsched = subsched.insert(20, lp0(self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(lp0(self.config.drive(0)))      # grand child 2
 
         sched = Schedule()
-        sched = sched.append(lp0(self.config.drives(0)))   # child
+        sched = sched.append(lp0(self.config.drive(0)))   # child
         sched = sched.append(subsched)
 
         start_times = sorted([shft+instr.start_time for shft, instr in sched.instructions])
@@ -215,11 +215,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
-        subsched = subsched.insert(20, lp0(self.config.drives(0)))  # grand child 1
-        subsched = subsched.append(lp0(self.config.drives(0)))      # grand child 2
+        subsched = subsched.insert(20, lp0(self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(lp0(self.config.drive(0)))      # grand child 2
 
         sched = Schedule()
-        sched = sched.append(lp0(self.config.drives(0)))   # child
+        sched = sched.append(lp0(self.config.drive(0)))   # child
         sched = sched.append(subsched)
 
         shift = sched.shift(100)
@@ -231,17 +231,17 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
         """Test if a schedule keeps its _children after attached to another schedule."""
         acquire = Acquire(10)
-        _children = (acquire(self.config.acquires(0), self.config.memoryslots(0)).shift(20) +
-                     acquire(self.config.acquires(0), self.config.memoryslots(0)))
+        _children = (acquire(self.config.acquire(0), MemorySlot(0)).shift(20) +
+                     acquire(self.config.acquire(0), MemorySlot(0)))
         self.assertEqual(2, len(list(_children.instructions)))
 
-        sched = acquire(self.config.acquires(0), self.config.memoryslots(0)).append(_children)
+        sched = acquire(self.config.acquire(0), MemorySlot(0)).append(_children)
         self.assertEqual(3, len(list(sched.instructions)))
 
         # add 2 instructions to _children (2 instructions -> 4 instructions)
-        _children = _children.append(acquire(self.config.acquires(0), self.config.memoryslots(0)))
-        _children = _children.insert(100, acquire(self.config.acquires(0),
-                                                  self.config.memoryslots(0)))
+        _children = _children.append(acquire(self.config.acquire(0), MemorySlot(0)))
+        _children = _children.insert(100, acquire(self.config.acquire(0),
+                                                  MemorySlot(0)))
         self.assertEqual(4, len(list(_children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
@@ -259,18 +259,18 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched3 = sched1 | sched2
         self.assertEqual(sched3.name, 'test_name')
 
-        sched_acq = acquire(self.config.acquires(1),
-                            self.config.memoryslots(1),
+        sched_acq = acquire(self.config.acquire(1),
+                            MemorySlot(1),
                             name='acq_name') | sched1
         self.assertEqual(sched_acq.name, 'acq_name')
 
-        sched_pulse = gp0(self.config.drives(0)) | sched1
+        sched_pulse = gp0(self.config.drive(0)) | sched1
         self.assertEqual(sched_pulse.name, 'pulse_name')
 
-        sched_pv = pv0(self.config.drives(0), name='pv_name') | sched1
+        sched_pv = pv0(self.config.drive(0), name='pv_name') | sched1
         self.assertEqual(sched_pv.name, 'pv_name')
 
-        sched_fc = fc0(self.config.drives(0), name='fc_name') | sched1
+        sched_fc = fc0(self.config.drive(0), name='fc_name') | sched1
         self.assertEqual(sched_fc.name, 'fc_name')
 
         sched_snapshot = snapshot | sched1
@@ -303,14 +303,14 @@ class TestScheduleBuilding(BaseTestSchedule):
         def my_test_par_sched_one(x, y, z):
             result = PulseInstruction(
                 SamplePulse(np.array([x, y, z]), name='sample'),
-                self.config.drives(0)
+                self.config.drive(0)
             )
             return 0, result
 
         def my_test_par_sched_two(x, y, z):
             result = PulseInstruction(
                 SamplePulse(np.array([x, y, z]), name='sample'),
-                self.config.drives(0)
+                self.config.drive(0)
             )
             return 5, result
 
@@ -344,7 +344,7 @@ class TestDelay(BaseTestSchedule):
 
     def test_delay_drive_channel(self):
         """Test Delay on DriveChannel"""
-        drive_ch = self.config.drives(0)
+        drive_ch = self.config.drive(0)
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
         sched = self.delay(drive_ch) + pulse(drive_ch)
@@ -353,7 +353,7 @@ class TestDelay(BaseTestSchedule):
         # assert last instruction is pulse
         self.assertIsInstance(pulse_instr[1], PulseInstruction)
         # assert pulse is scheduled at time 10
-        self.assertEqual(pulse_instr(0), 10)
+        self.assertEqual(pulse_instr[0], 10)
         # should fail due to overlap
         with self.assertRaises(PulseError):
             sched = self.delay(drive_ch) | pulse(drive_ch)
@@ -361,7 +361,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_measure_channel(self):
         """Test Delay on MeasureChannel"""
 
-        measure_ch = self.config.measures(0)
+        measure_ch = self.config.measure(0)
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
         sched = self.delay(measure_ch) + pulse(measure_ch)
@@ -373,7 +373,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_control_channel(self):
         """Test Delay on ControlChannel"""
 
-        control_ch = self.config.controls(0)
+        control_ch = self.config.control(0)
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
         sched = self.delay(control_ch) + pulse(control_ch)
@@ -386,7 +386,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_acquire_channel(self):
         """Test Delay on DriveChannel"""
 
-        acquire_ch = self.config.acquires(0)
+        acquire_ch = self.config.acquire(0)
         acquire = Acquire(10)
         # should pass as is an append
         sched = self.delay(acquire_ch) + acquire(acquire_ch, MemorySlot(0))
@@ -418,11 +418,12 @@ class TestScheduleFilter(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         acquire = Acquire(5)
         sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(self.config.drives(0)))
-        sched = sched.insert(10, lp0(self.config.drives(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drives(0)))
-        sched = sched.insert(60, acquire(self.config.acquires, self.config.memoryslots))
-        sched = sched.insert(90, lp0(self.config.drives(0)))
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, acquire([AcquireChannel(0), AcquireChannel(1)],
+                                         [MemorySlot(0), MemorySlot(1)]))
+        sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split instructions for those on AcquireChannel(1) and those not
         filtered, excluded = self._filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
@@ -443,11 +444,12 @@ class TestScheduleFilter(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         acquire = Acquire(5)
         sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(self.config.drives(0)))
-        sched = sched.insert(10, lp0(self.config.drives(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drives(0)))
-        sched = sched.insert(60, acquire(self.config.acquires, self.config.memoryslots))
-        sched = sched.insert(90, lp0(self.config.drives(0)))
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
+                                         [MemorySlot(i) for i in range(2)]))
+        sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # test on Acquire
         only_acquire, no_acquire = \
@@ -479,11 +481,12 @@ class TestScheduleFilter(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         acquire = Acquire(5)
         sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(self.config.drives(0)))
-        sched = sched.insert(10, lp0(self.config.drives(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drives(0)))
-        sched = sched.insert(60, acquire(self.config.acquires, self.config.memoryslots))
-        sched = sched.insert(90, lp0(self.config.drives(0)))
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
+                                         [MemorySlot(i) for i in range(2)]))
+        sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split schedule into instructions occuring in (0,13), and those outside
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=((0, 13),))
@@ -528,11 +531,12 @@ class TestScheduleFilter(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         acquire = Acquire(5)
         sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(self.config.drives(0)))
-        sched = sched.insert(10, lp0(self.config.drives(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drives(0)))
-        sched = sched.insert(60, acquire(self.config.acquires, self.config.memoryslots))
-        sched = sched.insert(90, lp0(self.config.drives(0)))
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
+                                         [MemorySlot(i) for i in range(2)]))
+        sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split instructions with filters on channel 0, of type PulseInstruction,
         # occuring in the time interval (25, 100)
@@ -563,9 +567,9 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test custom filters."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(self.config.drives(0)))
-        sched = sched.insert(10, lp0(self.config.drives(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drives(0)))
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: True)
         for i in filtered.instructions:

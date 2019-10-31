@@ -39,14 +39,14 @@ class TestCmdDef(QiskitTestCase):
     def test_init(self):
         """Test `init`, `has`."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.config.drives(0)))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef({('tmp', 0): sched})
         self.assertTrue(cmd_def.has('tmp', 0))
 
     def test_add(self):
         """Test `add`, `has`, `get`, `cmdss`."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.config.drives(0)))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 1, sched)
         cmd_def.add('tmp', 0, sched)
@@ -58,7 +58,7 @@ class TestCmdDef(QiskitTestCase):
     def test_pop(self):
         """Test pop with default."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.config.drives(0)))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
         cmd_def.pop('tmp', 0)
@@ -70,7 +70,7 @@ class TestCmdDef(QiskitTestCase):
     def test_repr(self):
         """Test repr."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.config.drives(0)))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)
 
