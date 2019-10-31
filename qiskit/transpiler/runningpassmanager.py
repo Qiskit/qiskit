@@ -374,7 +374,7 @@ class ConditionalController(FlowController):
 
 
 class RollbackIfController(FlowController):
-    """ The set of passes is rollbacked if the condition condition is true."""
+    """ The set of passes is rolled back if a condition is true."""
 
     def __init__(self, passes, options, rollback_if=None, **_):
         self.rollback_if = rollback_if
@@ -384,7 +384,7 @@ class RollbackIfController(FlowController):
         original_property_set = deepcopy(pass_manager.property_set)
         dag_copy = deepcopy(dag)
         for pass_ in self:
-            dag = pass_manager._do_pass(pass_, dag_copy)
+            dag_copy = pass_manager._do_pass(pass_, dag_copy)
         if self.rollback_if(pass_manager.property_set):
             pass_manager.property_set = original_property_set
             return dag
