@@ -23,7 +23,6 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.pulse import CmdDef
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 from qiskit.pulse.exceptions import PulseError
 
@@ -135,24 +134,17 @@ class PulseDefaults(BaseModel):
         """
         super().__init__(**kwargs)
 
-        self.buffer = buffer
         self._qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
         self._meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-
-        # The processed and reformatted circuit operation definitions
-        self._ops_def = defaultdict(dict)
-        # A backwards mapping from qubit to supported operation
-        self._qubit_ops = defaultdict(list)
-
-        # Build the above dictionaries from pulse_library and cmd_def
-        self.converter = QobjToInstructionConverter(pulse_library, buffer)
-        for op in cmd_def:
-            qubits = tuple(op.qubits)
-            self._qubit_ops[qubits].append(op.name)
-            pulse_insts = [self.converter(inst) for inst in op.sequence]
-            self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
+        self.op_map = CircuitOperationToScheduleMap(cmd_def, pulse_library)
+        self.buffer = buffer
+        # if buffer != 0:
+        #     warnings.warn("The value {} was passed for buffer, but buffers are no longer "
+        #                   "supported. Please use an explicit Delay.".format(buffer),
+        #                   DeprecationWarning)
+        # Fail silently?
 
     @property
     def qubit_freq_est(self) -> List[float]:
@@ -176,6 +168,69 @@ class PulseDefaults(BaseModel):
         warnings.warn("The measurement frequency estimation was previously in GHz, "
                       "and now is in Hz.")
         return self._meas_freq_est_hz
+
+    def __getattr__(self, attr: str) -> Any:
+        """
+        Pass through magic to pull Circuit operation -> Schedule methods and attributes into
+        defaults.
+
+        Args:
+            attr: The attribute of the OperationToScheduleMap to look for.
+
+        Returns:
+            The return value of the OperationToScheduleMap method. See methods below.
+
+        Raises:
+            AttributeError: If the attribute is also not found in the op_map.
+        """
+        try:
+            return getattr(self.op_map, attr)
+        except AttributeError:
+            raise AttributeError("Test: {}".format(attr))
+
+    def __str__(self):
+        return ('{name}(operations=[{ops}], n_qubits={n_qubits})'.format(
+            name=self.__class__.__name__,
+            ops=self.ops(),
+            n_qubits=len(self._qubit_freq_est_hz)))
+
+    def __repr__(self):
+        ops = repr(self.op_map)
+        qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
+        meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
+        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
+        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
+        return ("<{name}({ops}{qfreq}\n{mfreq})>"
+                "".format(name=self.__class__.__name__, ops=ops, qfreq=qfreq, mfreq=mfreq))
+
+
+class CircuitOperationToScheduleMap():
+    """Class to maintain mappings from Quantum Circuit `Instruction`s to `Schedule`s.
+
+    Operates mostly like a nested dictionary, from quantum operation, to qubits, to Pulse
+    Schedules. This object should be accessed through the PulseDefaults.
+    """
+
+    def __init__(self, cmd_def: List[Command], pulse_library: List[PulseLibraryItem]):
+        """
+        Instantiate this to track the operations which have defined Pulse Schedules.
+
+        Args:
+            cmd_def: Operation name and definition in terms of Commands.
+            pulse_library: Pulse name and sample definitions.
+        """
+        # The processed and reformatted circuit operation definitions
+        self._ops_def = defaultdict(dict)
+        # A backwards mapping from qubit to supported operation
+        self._qubit_ops = defaultdict(list)
+
+        # Build the above dictionaries from pulse_library and cmd_def
+        self.converter = QobjToInstructionConverter(pulse_library)
+        for op in cmd_def:
+            qubits = _to_tuple(op.qubits)
+            self._qubit_ops[qubits].append(op.name)
+            pulse_insts = [self.converter(inst) for inst in op.sequence]
+            self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     def ops(self) -> List[str]:
         """
@@ -299,7 +354,7 @@ class PulseDefaults(BaseModel):
     def add(self,
             operation: str,
             qubits: Union[int, Iterable[int]],
-            schedule: [Schedule, ParameterizedSchedule]) -> None:
+            schedule: Union[Schedule, ParameterizedSchedule]) -> None:
         """
         Add a new known operation.
 
@@ -368,12 +423,6 @@ class PulseDefaults(BaseModel):
             return schedule.bind_parameters(*params, **kwparams)
         return schedule
 
-    def __str__(self):
-        return ('{name}(operations=[{ops}], n_qubits={n_qubits})'.format(
-            name=self.__class__.__name__,
-            ops=self.ops(),
-            n_qubits=len(self._qubit_freq_est_hz)))
-
     def __repr__(self):
         single_qops = "1Q operations:\n"
         multi_qops = "Multi qubit operations:\n"
@@ -382,13 +431,7 @@ class PulseDefaults(BaseModel):
                 single_qops += "  q{qubit}: {ops}\n".format(qubit=qubits[0], ops=ops)
             else:
                 multi_qops += "  {qubits}: {ops}\n".format(qubits=qubits, ops=ops)
-        ops = single_qops + multi_qops
-        qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
-        meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
-        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
-        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
-        return ("<{name}({ops}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, ops=ops, qfreq=qfreq, mfreq=mfreq))
+        return single_qops + multi_qops
 
     def cmds(self) -> List[str]:
         """
@@ -411,10 +454,12 @@ class PulseDefaults(BaseModel):
             Qubit indices which have the given operation defined. This is a list of tuples if
             the operation has an arity greater than 1, or a flat list of ints otherwise.
         """
-        warnings.warn("Please use qubits_with_op() instead of cmd_qubits().", DeprecationWarning)
-        return self.qubits_with_op(cmd_name)
+        warnings.warn("Please use qubits_with_op() instead of cmd_qubits(). The new method will "
+                      "return flattened 1Q operands, i.e. [0, 1] rather than [(0,), (1,)]",
+                      DeprecationWarning)
+        return sorted(self._ops_def[cmd_name].keys())
 
-    def build_cmd_def(self) -> CmdDef:
+    def build_cmd_def(self) -> 'CircuitOperationToScheduleMap':
         """
         Construct the `CmdDef` object for the backend.
 
