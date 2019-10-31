@@ -604,8 +604,6 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(30, FrameChange(phase=-1.57)(device.drives[0]))
 
         filtered, excluded = self.filter_and_test_consistency(sched, [lambda x: True])
-        #filtered = sched.filter([lambda x: True])
-        #excluded = sched.exclude([lambda x: True])
         for i in filtered.instructions:
             self.assertTrue(i in sched.instructions)
         for i in excluded.instructions:

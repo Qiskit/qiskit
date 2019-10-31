@@ -324,28 +324,32 @@ class Schedule(ScheduleComponent):
                 return False
             return interval_filter
 
-        print('before...')
-        print(filter_funcs)
-        filter_funcs = list(filter_funcs)
-        print('after...')
-        print(filter_funcs)
+        # Below deals with the way custom filter_funcs might be specified; i.e. either in a list
+        # or in unkeyed arguments
+        filter_func_list = []
+        for entry in filter_funcs:
+            if isinstance(entry, Callable):
+                filter_func_list.append(entry)
+            elif isinstance(entry, Iterable):
+                filter_func_list = filter_func_list + list(entry)
+
         if channels:
-            filter_funcs.append(only_channels(set(channels)))
+            filter_func_list.append(only_channels(set(channels)))
         if instruction_types:
-            filter_funcs.append(only_instruction_types(instruction_types))
+            filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges:
-            filter_funcs.append(
+            filter_func_list.append(
                 only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals:
-            filter_funcs.append(only_intervals(intervals))
+            filter_func_list.append(only_intervals(intervals))
 
-        if not filter_funcs:
+        if not filter_func_list:
             # if no filters criteria were specified, return the function that always returns True
             return lambda x: True
         else:
             # create the total filter function, returning True only if everything in filter_funcs
             # returns True
-            return lambda x: all([filter_func(x) for filter_func in filter_funcs])
+            return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
