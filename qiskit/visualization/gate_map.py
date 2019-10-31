@@ -387,7 +387,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True,
         if err != 100.0 or not remove_badcal_edges:
             line_colors.append(color_map(cx_norm(err)))
         else:
-            line_colors.append('#FFffffff')
+            # All bad edges red
+            line_colors.append('#ff0011')
     # Measurement errors
 
     read_err = []
