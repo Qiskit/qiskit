@@ -29,7 +29,7 @@ from .exceptions import TranspilerError
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager():
+class RunningPassManager:
     """A RunningPassManager is a running pass manager."""
 
     def __init__(self, max_iteration, callback):
@@ -38,34 +38,6 @@ class RunningPassManager():
         Args:
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
-            callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments:
-                    pass_ (Pass): the pass being run
-                    dag (DAGCircuit): the dag output of the pass
-                    time (float): the time to execute the pass
-                    property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
-
-                The exact arguments pass expose the internals of the pass
-                manager and are subject to change as the pass manager internals
-                change. If you intend to reuse a callback function over
-                multiple releases be sure to check that the arguments being
-                passed are the same.
-
-                To use the callback feature you define a function that will
-                take in kwargs dict and access the variables. For example::
-
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-
-                    PassManager(callback=callback_func)
-
         """
         self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
@@ -125,7 +97,8 @@ class RunningPassManager():
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
-
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
         Returns:
             QuantumCircuit: Transformed circuit.
         """
