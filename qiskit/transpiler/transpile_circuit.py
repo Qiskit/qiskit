@@ -45,10 +45,10 @@ def transpile_circuit(transpile_args):
         # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
         # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
         basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
-        device_insts = set(transpile_args['basis_gates']).union(basic_insts)
+        device_insts = set(transpile_args['pass_manager_config'].basis_gates).union(basic_insts)
 
         ms_basis_swap = None
-        if 'rxx' in transpile_args['basis_gates'] and \
+        if 'rxx' in transpile_args['pass_manager_config'].basis_gates and \
                 not device_insts >= transpile_args['circuit'].count_ops().keys():
             ms_basis_swap = transpile_args['basis_gates']
             transpile_args['basis_gates'] = list(set(['u3', 'cx']).union(
