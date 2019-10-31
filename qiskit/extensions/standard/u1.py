@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Diagonal single qubit gate.
 """
@@ -52,7 +50,7 @@ class U1Gate(Gate):
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
-def u1(self, theta, q):
+def u1(self, theta, q):  # pylint: disable=invalid-name
     """Apply u1 with angle theta to q."""
     return self.append(U1Gate(theta), [q], [])
 

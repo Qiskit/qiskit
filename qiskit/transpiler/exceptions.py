@@ -15,15 +15,24 @@
 """
 Exception for errors raised by the transpiler.
 """
+import warnings
 from qiskit.exceptions import QiskitError
-
-
-class TranspilerError(QiskitError):
-    """Exceptions raised during transpilation"""
 
 
 class TranspilerAccessError(QiskitError):
     """Exception of access error in the transpiler passes."""
+
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(' '.join(message))
+        warnings.warn('The exception TranspilerAccessError is deprecated as of 0.11.0 '
+                      'and will be removed no earlier than 3 months after that release '
+                      'date. You should use the exception TranspilerError instead.',
+                      DeprecationWarning, stacklevel=2)
+
+
+class TranspilerError(TranspilerAccessError):
+    """Exceptions raised during transpilation."""
 
 
 class CouplingError(QiskitError):

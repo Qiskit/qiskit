@@ -34,6 +34,7 @@ REQUIREMENTS = [
     "psutil>=5",
     "scipy>=1.0",
     "sympy>=1.3",
+    "dill>=0.3",
 ]
 
 # Add Cython extensions here
@@ -70,7 +71,7 @@ for ext in CYTHON_EXTS:
 
 setup(
     name="qiskit-terra",
-    version="0.10.0",
+    version="0.11.0",
     description="Software for developing quantum computing programs",
     long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",

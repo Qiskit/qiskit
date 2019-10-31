@@ -31,7 +31,7 @@ from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile, assemble, schedule
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
@@ -64,4 +64,7 @@ except ImportError:
                   RuntimeWarning)
 
 from .version import __version__
-from .version import __qiskit_version__
+from .version import _get_qiskit_versions
+
+
+__qiskit_version__ = _get_qiskit_versions()

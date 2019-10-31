@@ -12,10 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 Two-pulse single-qubit gate.
 """
+
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -51,7 +51,7 @@ class U3Gate(Gate):
             dtype=complex)
 
 
-def u3(self, theta, phi, lam, q):
+def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
     """Apply u3 to q."""
     return self.append(U3Gate(theta, phi, lam), [q], [])
 

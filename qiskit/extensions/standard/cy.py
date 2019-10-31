@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 controlled-Y gate.
 """
@@ -52,7 +50,7 @@ class CyGate(Gate):
         return CyGate()  # self-inverse
 
 
-def cy(self, ctl, tgt):
+def cy(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CY to circuit."""
     return self.append(CyGate(), [ctl, tgt], [])
 

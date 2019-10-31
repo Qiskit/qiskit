@@ -14,7 +14,10 @@
 
 """Unitary gate."""
 
-from qiskit.exceptions import QiskitError
+import numpy as np
+from scipy.linalg import schur
+
+from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
 
@@ -37,10 +40,39 @@ class Gate(Instruction):
         """Return a Numpy.array for the gate unitary matrix.
 
         Raises:
-            QiskitError: If a Gate subclass does not implement this method an
+            CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
-        raise QiskitError("to_matrix not defined for this {}".format(type(self)))
+        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+
+    def power(self, exponent):
+        """Creates a unitary gate as `gate^exponent`.
+
+        Args:
+            exponent (float): Gate^exponent
+
+        Returns:
+            UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+
+        Raises:
+            CircuitError: If Gate is not unitary
+        """
+        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        # Should be diagonalized because it's a unitary.
+        decomposition, unitary = schur(self.to_matrix(), output='complex')
+        # Raise the diagonal entries to the specified power
+        decomposition_power = list()
+
+        decomposition_diagonal = decomposition.diagonal()
+        # assert off-diagonal are 0
+        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
+            raise CircuitError('The matrix is not diagonal')
+
+        for element in decomposition_diagonal:
+            decomposition_power.append(pow(element, exponent))
+        # Then reconstruct the resulting gate.
+        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+        return UnitaryGate(unitary_power, label='%s^%s' % (self.name, exponent))
 
     def _return_repeat(self, exponent):
         return Gate(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
@@ -102,8 +134,8 @@ class Gate(Instruction):
             for arg0 in qarg0:
                 yield [arg0, qarg1[0]], []
         else:
-            raise QiskitError('Not sure how to combine these two qubit arguments:\n %s\n %s' %
-                              (qarg0, qarg1))
+            raise CircuitError('Not sure how to combine these two qubit arguments:\n %s\n %s' %
+                               (qarg0, qarg1))
 
     @staticmethod
     def _broadcast_3_or_more_args(qargs):
@@ -111,7 +143,7 @@ class Gate(Instruction):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
-            raise QiskitError(
+            raise CircuitError(
                 'Not sure how to combine these qubit arguments:\n %s\n' % qargs)
 
     def broadcast_arguments(self, qargs, cargs):
@@ -148,15 +180,15 @@ class Gate(Instruction):
             Tuple(List, List): A tuple with single arguments.
 
         Raises:
-            QiskitError: If the input is not valid. For example, the number of
+            CircuitError: If the input is not valid. For example, the number of
                 arguments does not match the gate expectation.
         """
         if len(qargs) != self.num_qubits or cargs:
-            raise QiskitError(
+            raise CircuitError(
                 'The amount of qubit/clbit arguments does not match the gate expectation.')
 
         if any([not qarg for qarg in qargs]):
-            raise QiskitError('One or more of the arguments are empty')
+            raise CircuitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:
             return Gate._broadcast_single_argument(qargs[0])
@@ -165,4 +197,4 @@ class Gate(Instruction):
         elif len(qargs) >= 3:
             return Gate._broadcast_3_or_more_args(qargs)
         else:
-            raise QiskitError('This gate cannot handle %i arguments' % len(qargs))
+            raise CircuitError('This gate cannot handle %i arguments' % len(qargs))

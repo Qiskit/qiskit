@@ -62,7 +62,7 @@ class FakePoughkeepsie(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 8/30/19.
+        """Returns a snapshot of device properties as recorded on 10/08/19.
         """
         dirname = os.path.dirname(__file__)
         filename = "props_poughkeepsie.json"

@@ -57,7 +57,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
                               params=sorted(parameter_dict.values(), key=lambda p: p.name))
-    instruction.control = None
+    instruction.condition = None
 
     def find_bit_position(bit):
         """find the index of a given bit (Register, int) within

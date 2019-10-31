@@ -37,7 +37,8 @@ class ConsolidateBlocks(TransformationPass):
     it reads is given such that blocks are in topological order.
     """
     def __init__(self, kak_basis_gate=CnotGate(), force_consolidate=False):
-        """
+        """ConsolidateBlocks initializer.
+
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
@@ -125,8 +126,8 @@ class ConsolidateBlocks(TransformationPass):
         return new_dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
-        """
-        Map each qubit in block_qargs to its wire position among the block's wires.
+        """Map each qubit in block_qargs to its wire position among the block's wires.
+
         Args:
             block_qargs (list): list of qubits that a block acts on
             global_index_map (dict): mapping from each qubit in the

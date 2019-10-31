@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -103,7 +103,7 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None):
+                 reverse_bits=False, layout=None, fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -145,10 +145,21 @@ class MatplotlibDrawer:
                 with open(style, 'r') as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
+        if ax is None:
+            self.return_fig = True
+            self.figure = plt.figure()
+            self.figure.patch.set_facecolor(color=self._style.bg)
+            self.ax = self.figure.add_subplot(111)
+        else:
+            self.return_fig = False
+            self.ax = ax
+            self.figure = ax.get_figure()
 
-        self.figure = plt.figure()
-        self.figure.patch.set_facecolor(color=self._style.bg)
-        self.ax = self.figure.add_subplot(111)
+        # TODO: self._style.fold should be removed after deprecation
+        self.fold = self._style.fold or fold
+        if self.fold < 2:
+            self.fold = -1
+
         self.ax.axis('off')
         self.ax.set_aspect('equal')
         self.ax.tick_params(labelbottom=False, labeltop=False,
@@ -178,10 +189,10 @@ class MatplotlibDrawer:
             ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
             else:
-                boxes_length = round(len(text) / 8) or 1
-            wid = WID * 2.2 * boxes_length
+                boxes_length = math.ceil(len(text) / 6) or 1
+            wid = WID * 2.5 * boxes_length
         else:
             wid = WID
 
@@ -213,6 +224,7 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
+
             disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.5 * height, disp_text, ha='center',
@@ -230,14 +242,16 @@ class MatplotlibDrawer:
                              fontsize=self._style.fs,
                              color=self._style.gt,
                              clip_on=True,
-                             zorder=PORDER_TEXT)
+                             zorder=PORDER_TEXT,
+                             wrap=True)
 
     def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
         xpos, ypos = xy
 
         if wide:
             if subtext:
-                wid = WID * 2.2
+                boxes_wide = round(max(len(subtext), len(text)) / 10, 1) or 1
+                wid = WID * 1.5 * boxes_wide
             else:
                 boxes_wide = round(len(text) / 10) or 1
                 wid = WID * 2.2 * boxes_wide
@@ -457,8 +471,8 @@ class MatplotlibDrawer:
                 y_reg.append(qreg['y'])
         x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self._style.fold) * (self._cond['n_lines'] + 1) + 0.5
+        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -499,10 +513,11 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(self.figure)
-        return self.figure
+        if self.return_fig:
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(self.figure)
+            return self.figure
 
     def _draw_regs(self):
 
@@ -616,14 +631,14 @@ class MatplotlibDrawer:
 
         # lf line
         if feedline_r:
-            self._linefeed_mark((self._style.fold + 1 - 0.1,
+            self._linefeed_mark((self.fold + 1 - 0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
         if feedline_l:
             self._linefeed_mark((0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary']
+        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary', 'r']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -633,12 +648,12 @@ class MatplotlibDrawer:
         for key, qreg in self._qreg_dict.items():
             q_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=qreg['y'],
-                                    fold=self._style.fold)
+                                    fold=self.fold)
         c_anchors = {}
         for key, creg in self._creg_dict.items():
             c_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=creg['y'],
-                                    fold=self._style.fold)
+                                    fold=self.fold)
         #
         # draw gates
         #
@@ -649,18 +664,42 @@ class MatplotlibDrawer:
             for op in layer:
 
                 if op.name in _wide_gate:
+                    if op.type == 'op' and hasattr(op.op, 'params'):
+                        param = self.param_parse(op.op.params)
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (5 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
+                            box_width = round(len(param) / 10)
+                            # If more than 4 characters min width is 2
+                            if box_width <= 1:
+                                box_width = 2
+                            if layer_width < box_width:
+                                if box_width > 2:
+                                    layer_width = box_width * 2
+                                else:
+                                    layer_width = 2
                     if layer_width < 2:
                         layer_width = 2
+
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
                                      'noise', 'cswap', 'swap', 'measure'] and len(
                                          op.name) >= 4:
-                    box_width = round(len(op.name) / 8)
+                    box_width = math.ceil(len(op.name) / 6)
+
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
-                        if len(param) > len(op.name):
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (5 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
                             box_width = round(len(param) / 8)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
@@ -672,13 +711,7 @@ class MatplotlibDrawer:
                                     layer_width = 2
                             continue
                     # If more than 4 characters min width is 2
-                    if box_width <= 1:
-                        box_width = 2
-                    if layer_width < box_width:
-                        if box_width > 2:
-                            layer_width = box_width * 2
-                        else:
-                            layer_width = 2
+                    layer_width = math.ceil(box_width * WID * 2.5)
 
             this_anc = prev_anc + 1
 
@@ -802,12 +835,8 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        prm = '({})'.format(param)
-                        if len(prm) < 20:
-                            self._gate(q_xy[0], wide=_iswide, text=disp,
-                                       subtext=prm)
-                        else:
-                            self._gate(q_xy[0], wide=_iswide, text=disp)
+                        self._gate(q_xy[0], wide=_iswide, text=disp,
+                                   subtext=str(param))
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
@@ -947,10 +976,10 @@ class MatplotlibDrawer:
             max_anc = max(anchors)
         else:
             max_anc = 0
-        n_fold = max(0, max_anc - 1) // self._style.fold
+        n_fold = max(0, max_anc - 1) // self.fold
         # window size
-        if max_anc > self._style.fold > 0:
-            self._cond['xmax'] = self._style.fold + 1 + self.x_offset
+        if max_anc > self.fold > 0:
+            self._cond['xmax'] = self.fold + 1 + self.x_offset
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
             self._cond['xmax'] = max_anc + 1 + self.x_offset
@@ -963,9 +992,9 @@ class MatplotlibDrawer:
         # draw gate number
         if self._style.index:
             for ii in range(max_anc):
-                if self._style.fold > 0:
-                    x_coord = ii % self._style.fold + 1
-                    y_coord = - (ii // self._style.fold) * (self._cond['n_lines'] + 1) + 0.7
+                if self.fold > 0:
+                    x_coord = ii % self.fold + 1
+                    y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7
@@ -980,7 +1009,7 @@ class MatplotlibDrawer:
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
             try:
-                param_parts[i] = pi_check(e, output='mpl')
+                param_parts[i] = pi_check(e, output='mpl', ndigits=3)
             except TypeError:
                 param_parts[i] = str(e)
 
