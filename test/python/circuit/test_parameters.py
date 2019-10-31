@@ -64,6 +64,19 @@ class TestParameters(QiskitTestCase):
         self.assertIs(theta, next(iter(vparams)))
         self.assertIs(rxg, vparams[theta][0][0])
 
+    def test_is_parameterized(self):
+        """Test checking if a gate is parameterized (bound/unbound)"""
+        from qiskit.extensions.standard.h import HGate
+        from qiskit.extensions.standard.rx import RXGate
+        theta = Parameter('θ')
+        rxg = RXGate(theta)
+        self.assertTrue(rxg.is_parameterized())
+        theta_bound = theta.bind({theta: 3.14})
+        rxg = RXGate(theta_bound)
+        self.assertTrue(rxg.is_parameterized())
+        h_gate = HGate()
+        self.assertFalse(h_gate.is_parameterized())
+
     def test_fix_variable(self):
         """Test setting a variable to a constant value"""
         theta = Parameter('θ')
