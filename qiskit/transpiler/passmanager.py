@@ -14,9 +14,8 @@
 
 """PassManager class for the transpiler."""
 
-from collections import OrderedDict
-import dill
 import warnings
+import dill
 
 from qiskit.visualization import pass_manager_drawer
 from qiskit.tools.parallel import parallel_map
@@ -221,6 +220,9 @@ class PassManager:
             list[QuantumCircuit]: Transformed circuits.
         """
         # TODO support for List(output_name) and List(callback)
+        del output_name
+        del callback
+
         return parallel_map(PassManager._in_parallel, circuits,
                             task_kwargs={'pm_dill': dill.dumps(self)})
 

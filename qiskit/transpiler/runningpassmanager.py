@@ -99,6 +99,7 @@ class RunningPassManager:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
             output_name (str): The output circuit name. If not given, the same as the
                                input circuit
+            callback (callable): A callback function that will be called after each pass execution.
         Returns:
             QuantumCircuit: Transformed circuit.
         """
