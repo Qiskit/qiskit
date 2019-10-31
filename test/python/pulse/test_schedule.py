@@ -434,12 +434,10 @@ class TestScheduleFilter(BaseTestSchedule):
     """
     Test Schedule filtering methods: Schedule.filter and Schedule.exclude
 
-    Note: each test in this class uses one of two helper methods:
-    self.filter_and_test_consistency and self._filter_and_test_consistency
-    the purpose of which is to behave like filter() or _filter() with the option
-    filter_type = 2; however each time it is called it also checks the consistency
-    of this output with the filter_type=0,1 cases, so that all cases can be tested
-    at the same time.
+    Note: each test in this class uses the helper: self.filter_and_test_consistency
+    the purpose of which is to return the outputs of both Schedule.filter and Schedule.exclude
+    in a tuple, while simultaneously testing that for a given Schedule sched,
+    sched.filter | sched.exclude == sched
     """
     def test_filter_channels(self):
         """Test filtering over channels"""
@@ -455,11 +453,8 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split instructions for those on AcquireChannel(1) and those not
         filtered, excluded = self.filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
-        #filtered = sched.filter(channels=[AcquireChannel(1)])
-        #excluded = sched.exclude(channels=[AcquireChannel(1)])
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(len(excluded.instructions), 4)
-        self.assertEqual(filtered | excluded, sched)
 
         # Split schedule into the part with channels on 1 and into a part without
         channels = [AcquireChannel(1), DriveChannel(1)]
@@ -595,7 +590,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
 
     def test_custom_filters(self):
-        """Test _filter method."""
+        """Test custom filters."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name='fake_experiment')
@@ -617,16 +612,23 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 1)
 
+        # multiple custom filters
+        filtered, excluded = self.filter_and_test_consistency(sched, [lambda x: x[0] > 0,
+                                                                      lambda x: x[0] < 30])
+        self.assertEqual(len(filtered.instructions), 1)
+        self.assertEqual(len(excluded.instructions), 2)
+
+        # multiple custom filters specified as unkeyed arguments
+        filtered, excluded = self.filter_and_test_consistency(sched, lambda x: x[0] > 0,
+                                                                      lambda x: x[0] < 30)
+        self.assertEqual(len(filtered.instructions), 1)
+        self.assertEqual(len(excluded.instructions), 2)
+
     def filter_and_test_consistency(self, schedule, *args, **kwargs):
         """
-        This is a helper function, which returns the output of
-        schedule.filter(*args, **kwargs, filter_type = 2), while also checking
-        the consistency of this with the outputs of
-        schedule.filter(*args,**kwargs, filter_type = 0) and
-        schedule.filter(*args,**kwargs,filter_type=1).
-
-        It also verifies that taking the union of the two outputs of filter with
-        filter_type=2 reproduces the original schedule
+        This is a helper function which returns the tuple
+        (schedule.filter(*args, **kwargs), schedule.exclude(*args, **kwargs)),
+        including a check that schedule.filter | schedule.exclude == schedule
         """
         filtered = schedule.filter(*args, **kwargs)
         excluded = schedule.exclude(*args, **kwargs)
