@@ -384,7 +384,7 @@ class RollbackIfController(FlowController):
         original_property_set = deepcopy(pass_manager.property_set)
         dag_copy = deepcopy(dag)
         for pass_ in self:
-            dag = pass_manager._do_pass(pass_, dag_copy)
+            dag_copy = pass_manager._do_pass(pass_, dag_copy)
         if self.rollback_if(pass_manager.property_set):
             pass_manager.property_set = original_property_set
             return dag
