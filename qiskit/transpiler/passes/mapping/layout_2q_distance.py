@@ -50,12 +50,12 @@ class Layout2qDistance(AnalysisPass):
         if layout is None:
             return
 
-        distances = []
+        sum_distance = 0
 
         for gate in dag.twoQ_gates():
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
 
-            distances.append(self.coupling_map.distance(physical_q0, physical_q1)-1)
+            sum_distance += self.coupling_map.distance(physical_q0, physical_q1)-1
 
-        self.property_set['layout_score'] = sum(distances)
+        self.property_set['layout_score'] = sum_distance
