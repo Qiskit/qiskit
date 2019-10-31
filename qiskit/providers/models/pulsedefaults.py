@@ -299,7 +299,7 @@ class PulseDefaults(BaseModel):
     def add(self,
             operation: str,
             qubits: Union[int, Iterable[int]],
-            schedule: [Schedule, ParameterizedSchedule]) -> None:
+            schedule: Union[Schedule, ParameterizedSchedule]) -> None:
         """
         Add a new known operation.
 
