@@ -12,9 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass to evaluate how good the layout selection was.
+"""Evaluate how good the layout selection was.
+
 No CX direction is considered.
-Saves in `layout_score` (or `property` param) the sum of the distance off for each CX.
+Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
 The lower the number, the better the selection.
 Therefore, 0 is a perfect layout selection.
 """
@@ -23,31 +24,38 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class LayoutScore(AnalysisPass):
+    """Evaluate how good the layout selection was.
+
+    Saves in `property_set['layout_score']` the sum of distances for each circuit CX.
+    The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
+    No CX direction is considered.
     """
-    Saves in `layout_score` (or `property` param) the
-    sum of the distance off for each CX.
-    """
-    def __init__(self, coupling_map, initial_layout=None, property_=None):
+    def __init__(self, coupling_map):
+        """LayoutScore initializer.
+
+        Args:
+            coupling_map (CouplingMap): Directed graph represented a coupling map.
+        """
         super().__init__()
-        self.layout = initial_layout
         self.coupling_map = coupling_map
-        self.property = property_
 
     def run(self, dag):
-        self.layout = self.layout or self.property_set["layout"]
+        """
+        Run the LayoutScore pass on `dag`.
+        Args:
+            dag (DAGCircuit): DAG to evaluate.
+        """
+        layout = self.property_set["layout"]
 
-        property_name = self.property or 'layout_score'
-
-        if self.layout is None:
+        if layout is None:
             return
 
         distances = []
-        self.property_set[property_name] = 0
 
         for gate in dag.twoQ_gates():
-            physical_q0 = self.layout[gate.qargs[0]]
-            physical_q1 = self.layout[gate.qargs[1]]
+            physical_q0 = layout[gate.qargs[0]]
+            physical_q1 = layout[gate.qargs[1]]
 
             distances.append(self.coupling_map.distance(physical_q0, physical_q1)-1)
 
-        self.property_set[property_name] += sum(distances)
+        self.property_set['layout_score'] = sum(distances)

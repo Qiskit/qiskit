@@ -35,7 +35,8 @@ class TestLayoutScoreError(QiskitTestCase):
         layout = None
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling, layout)
+        pass_ = LayoutScore(coupling)
+        pass_.property_set['layout'] = layout
         pass_.run(dag)
 
         self.assertIsNone(pass_.property_set['layout_score'])
@@ -53,7 +54,8 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling, layout)
+        pass_ = LayoutScore(coupling)
+        pass_.property_set['layout'] = layout
         pass_.run(dag)
 
         self.assertEqual(pass_.property_set['layout_score'], 0)
@@ -76,7 +78,8 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling, layout)
+        pass_ = LayoutScore(coupling)
+        pass_.property_set['layout'] = layout
         pass_.run(dag)
 
         self.assertEqual(pass_.property_set['layout_score'], 0)
@@ -96,7 +99,8 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = LayoutScore(coupling, layout)
+        pass_ = LayoutScore(coupling)
+        pass_.property_set['layout'] = layout
         pass_.run(dag)
 
         self.assertEqual(pass_.property_set['layout_score'], 1)
