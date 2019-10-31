@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
 class RunningPassManager:
     """A RunningPassManager is a running pass manager."""
 
-    def __init__(self, max_iteration, callback):
+    def __init__(self, max_iteration):
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
         """
-        self.callback = callback
+        self.callback = None
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []

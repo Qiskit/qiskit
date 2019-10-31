@@ -165,7 +165,8 @@ class PassManager:
         Args:
             circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
                 transform via all the registered passes.
-            output_name (str):
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 5 keyword
                 arguments:
@@ -202,7 +203,7 @@ class PassManager:
             return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self):
-        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
+        running_passmanager = RunningPassManager(self.max_iteration)
         for pass_set in self._pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
         return running_passmanager
@@ -216,13 +217,10 @@ class PassManager:
 
     def _run_several_circuits(self, circuits, output_name=None, callback=None):
         """Run all the passes on each of the circuits in the circuits list
-
-        Args:
-            circuits (list[QuantumCircuit]): circuit to transform via all the registered passes
-
         Returns:
             list[QuantumCircuit]: Transformed circuits.
         """
+        # TODO support for List(output_name) and List(callback)
         return parallel_map(PassManager._in_parallel, circuits,
                             task_kwargs={'pm_dill': dill.dumps(self)})
 
@@ -266,6 +264,8 @@ class PassManager:
             QuantumCircuit: Transformed circuit.
         """
         running_passmanager = self._create_running_passmanager()
+        if callback is None and self.callback:  # TODO to remove with __init__(callback)
+            callback = self.callback
         result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
         self.property_set = running_passmanager.property_set
         return result
