@@ -3,29 +3,20 @@ features:
   - |
     A new pass manager controller `rollback_if` allows to "undo" passes under certain conditions.
     If the condition is true the passes appended in that set are rolled back. Take for example a
-    pass that sets a property with a particular value `set_property(value)`.
-    The following pass manager schedule sets a property `property` to `3` in the first append.
+    pass the processes of choosing the best swapper for a particular situation.
+    The following pass manager applies ``Swapper1`` and calculates the depth of the swapper, saving
+    The result in ``property_set['depth_swapper1']``:
 
     ```python
     passmanager = PassManager()
-    passmanager.append(set_property(3))
+    passmanager.append([Swapper1(), depth('depth_swapper1')])
     ```
 
-    Following, the next stage will be unrolled if the update is less than the valued set (`3`). For
-    that, the pass `copy_property` copies the value of `property_set['property']` into
-    `property_set['previous']` and then `property` is updated.
+    Following, the next stage will apply and calculate the depth using ``Swapper2``. If the result is
+    not better, this stage is unrolled, leaving the circuit as it was after applying ``Swapper1`` :
 
     ```python
-    passmanager.append([copy_property(), set_property(2)],
+    passmanager.append([Swapper2(), depth('depth_swapper2')],
                        rollback_if=lambda property_set:
-                       property_set['property'] < property_set['previous'])
+                       property_set['depth_swapper2'] < property_set['depth_swapper1'])
     ```
-    The last `set_property(2)` is undone and the property preserves the value from before.
-
-    ```python
-    print(passmanager.property_set['property'])
-    ```
-    ```python
-    3
-    ```
-
