@@ -515,16 +515,11 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             result=quantum_instance_statevector.execute(circuits), statevector_mode=True)
 
         circuits = self.qubit_op.construct_evaluation_circuit(
-            wave_function=wave_function, statevector_mode=True, use_simulator_operator_mode=True)
-        extra_args = {
-            'expectation': {
-                'params': [self.qubit_op.aer_paulis],
-                'num_qubits': self.qubit_op.num_qubits}
-        }
+            wave_function=wave_function, statevector_mode=True, use_simulator_snapshot_mode=True)
         actual_value = self.qubit_op.evaluate_with_result(
-            result=quantum_instance_statevector.execute(circuits, **extra_args),
+            result=quantum_instance_statevector.execute(circuits),
             statevector_mode=True,
-            use_simulator_operator_mode=True)
+            use_simulator_snapshot_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
 
     @parameterized.expand([
