@@ -324,20 +324,6 @@ class FlowControllerLinear(FlowController):
         self.options = options
         self.property_set = None
 
-    def do_passes(self, pass_manager, dag, property_set):
-        """ In the context of pass_manager, runs the pass on the dag
-        Args:
-            pass_manager (PassManager): A PassManager object.
-            dag (DAGCircuit): The dag on which the pass is ran.
-            property_set (PropertySet): It will be use for parametrizing the flow controller
-        Returns:
-            DAGCircuit: The dag after the pass.
-        """
-        self.property_set = property_set
-        for pass_ in self:
-            dag = pass_manager._do_pass(pass_, dag)
-        return dag
-
 
 class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
