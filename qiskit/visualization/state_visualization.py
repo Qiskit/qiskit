@@ -347,7 +347,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
 def plot_process_city(channel, title="", figsize=None, color=None,
                       alpha=1, ax_real=None, ax_imag=None,
-                      oper_name=None, basis=('i', 'x', 'y', 'z')):
+                      oper_name=None, basis=None):
     """Plot the cityscape of quantum channel.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
@@ -395,6 +395,7 @@ def plot_process_city(channel, title="", figsize=None, color=None,
                 title="New Process City")
 
     """
+    basis = basis or ['i', 'x', 'y', 'z']
     num = int(math.log(channel.shape[0], len(basis)))
 
     # get the labels
