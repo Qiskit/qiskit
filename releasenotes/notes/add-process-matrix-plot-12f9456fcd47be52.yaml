@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Add ``plot_process_city`` function to visualization module.
+    This function visualize process matrix given by ndarray in a cityscape fashion,
+    for example::
+
+        from qiskit import QuantumCircuit
+        from qiskit import quantum_info as qi
+        from qiskit.visualization import plot_process_city
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+
+        plot_process_city(qi.Chi(qc).data)
