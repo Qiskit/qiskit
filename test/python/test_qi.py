@@ -120,12 +120,10 @@ class TestQI(QiskitTestCase):
                 [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
-        test_pass = (concurrence(psi1) == 0.0 and
-                     concurrence(rho1) == 1.0 and
-                     concurrence(rho2) == 1.0 and
-                     concurrence(rho3) == 0.0 and
-                     concurrence(rho4) == 0.5)
-        self.assertTrue(test_pass)
+        concurrences = [concurrence(state) for state
+                        in [psi1, rho1, rho2, rho3, rho4]]
+        targets = [0.0, 1.0, 1.0, 0.0, 0.5]
+        self.assertTrue(np.allclose(concurrences, targets))
 
     def test_concurrence_not_two_qubits(self):
         input_state = np.array([[0, 1], [1, 0]])
@@ -187,12 +185,16 @@ class TestQI(QiskitTestCase):
         self.assertAlmostEqual(-0.15821825498448047, res)
 
     def test_entanglement_of_formation(self):
-        input_state = np.array([[0.5, 0.25, 0.75, 1],
-                                [1, 0, 1, 0],
-                                [0.5, 0.5, 0.5, 0.5],
-                                [0, 1, 0, 1]])
-        res = entanglement_of_formation(input_state, 2)
-        self.assertAlmostEqual(0.6985340217364572, res)
+        psi1 = [1, 0, 0, 0]
+        rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
+        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0],
+                [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
+        rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
+        rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
+        eofs = [entanglement_of_formation(state, 2)
+                for state in [psi1, rho1, rho2, rho3, rho4]]
+        targets = [0.0, 1.0, 1.0, 0.0, 0.35457890266527003]
+        self.assertTrue(np.allclose(eofs, targets))
 
     def test_entanglement_of_formation_1d_input(self):
         input_state = np.array([0.5, 0.25, 0.75, 1])
@@ -206,14 +208,6 @@ class TestQI(QiskitTestCase):
             res = entanglement_of_formation(input_state, 1)
         self.assertEqual(fake_stout.getvalue().strip(), expected)
         self.assertIsNone(res)
-
-    def test__eof_qubit(self):
-        input_rho = np.array([[0.5, 0.25, 0.75, 1],
-                              [1, 0, 1, 0],
-                              [0.5, 0.5, 0.5, 0.5],
-                              [0, 1, 0, 1]])
-        res = eof_qubit(input_rho)
-        self.assertAlmostEqual(0.6985340217364572, res)
 
     def test_is_pos_def(self):
         input_x = np.array([[1, 0],
