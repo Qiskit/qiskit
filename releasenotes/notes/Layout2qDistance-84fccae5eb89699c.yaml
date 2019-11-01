@@ -3,7 +3,7 @@ features:
   - |
     A new analysis pass is added: ``Layout2qDistance``. This pass allows to "score" a
     layout selection, once ``property_set['layout']`` is set.
-    The score will be the sum of distances for each entanglement in the circuit,
+    The score will be the sum of distances for each two-qubit gate in the circuit,
     when they are not directly connected.
     This scoring does not consider direction in the coupling map. 
     The lower the number, the better the layout selection is.
