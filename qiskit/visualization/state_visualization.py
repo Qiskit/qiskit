@@ -391,7 +391,7 @@ def plot_process_city(channel, title="", figsize=None, color=None,
            qc = QuantumCircuit(2)
            qc.cx(0, 1)
 
-           plot_process_city(qi.Chi(qc), color=['midnightblue', 'midnightblue'],
+           plot_process_city(qi.Chi(qc).data, color=['midnightblue', 'midnightblue'],
                 title="New Process City")
 
     """
