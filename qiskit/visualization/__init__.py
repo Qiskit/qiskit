@@ -28,6 +28,7 @@ Counts and State Visualizations
    plot_histogram
    plot_bloch_vector
    plot_bloch_multivector
+   plot_process_city
    plot_state_city
    plot_state_hinton
    plot_state_paulivec
@@ -97,6 +98,7 @@ from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_bloch_vector,
                                                       plot_bloch_multivector,
+                                                      plot_process_city,
                                                       plot_state_city,
                                                       plot_state_paulivec,
                                                       plot_state_qsphere)
