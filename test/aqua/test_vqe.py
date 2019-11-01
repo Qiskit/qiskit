@@ -118,8 +118,8 @@ class TestVQE(QiskitAquaTestCase):
         result = algo.run(quantum_instance)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=2)
 
-    def test_vqe_aer_mode(self):
-        """ VQE Aer Mode test """
+    def test_vqe_statevector_snapshot_mode(self):
+        """ VQE Aer statevector_simulator snapshot mode test """
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
@@ -133,6 +133,24 @@ class TestVQE(QiskitAquaTestCase):
         optimizer = L_BFGS_B()
         algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
         quantum_instance = QuantumInstance(backend)
+        result = algo.run(quantum_instance)
+        self.assertAlmostEqual(result['energy'], -1.85727503, places=6)
+
+    def test_vqe_qasm_snapshot_mode(self):
+        """ VQE Aer qasm_simulator snapshot mode test """
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+        backend = Aer.get_backend('qasm_simulator')
+        num_qubits = self.algo_input.qubit_op.num_qubits
+        init_state = Zero(num_qubits)
+        var_form = RY(num_qubits, 3, initial_state=init_state)
+        optimizer = L_BFGS_B()
+        algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
+        quantum_instance = QuantumInstance(backend, shots=1)
         result = algo.run(quantum_instance)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=6)
 
