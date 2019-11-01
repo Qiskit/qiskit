@@ -76,42 +76,6 @@ def _combine_result_objects(results):
     return new_result
 
 
-# pylint: disable=invalid-name
-def maybe_add_aer_expectation_instruction(qobj, options):
-    """
-    Add aer expectation instruction if `expectation` in the options.
-    Args:
-        qobj (QasmQobj): qobj
-        options (dict): the setting for aer expectation instruction
-    Returns:
-        QasmQobj: a mutated qobj with aer expectation instruction inserted
-    """
-    if 'expectation' in options:
-        # pylint: disable=import-outside-toplevel
-        from qiskit.providers.aer.utils.qobj_utils \
-            import snapshot_instr, append_instr, get_instr_pos
-        # add others, how to derive the correct used number of qubits?
-        # the compiled qobj could be wrong if coupling map is used.
-        params = options['expectation']['params']
-        num_qubits = options['expectation']['num_qubits']
-
-        for idx in range(len(qobj.experiments)):
-            # if multiple params are provided, we assume
-            # that each circuit is corresponding one param
-            # otherwise, params are used for all circuits.
-            param_idx = idx if len(params) > 1 else 0
-            snapshot_pos = get_instr_pos(qobj, idx, 'snapshot')
-            if not snapshot_pos:  # does not append the instruction yet.
-                new_ins = snapshot_instr('expectation_value_pauli', 'test',
-                                         list(range(num_qubits)), params=params[param_idx])
-                qobj = append_instr(qobj, idx, new_ins)
-            else:
-                for i in snapshot_pos:  # update all expectation_value_snapshot
-                    if qobj.experiments[idx].instructions[i].type == 'expectation_value_pauli':
-                        qobj.experiments[idx].instructions[i].params = params[param_idx]
-    return qobj
-
-
 def _split_qobj_to_qobjs(qobj, chunk_size):
     qobjs = []
     num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
