@@ -18,7 +18,7 @@ import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler.transpile_config import TranspileConfig
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
@@ -179,47 +179,19 @@ def transpile(circuits,
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', None)
 
-    # Get TranspileConfig(s) to configure the circuit transpilation job(s)
+    # Get transpiler argument(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                              backend_properties, initial_layout,
-                                              seed_transpiler, optimization_level,
-                                              pass_manager, callback, output_name)
-    # Check circuit width against number of qubits in coupling_map(s)
-    coupling_maps_list = list(config.coupling_map for config in transpile_configs)
-    for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
-        # If coupling_map is not None
-        if isinstance(parsed_coupling_map, CouplingMap):
-            n_qubits = len(circuit.qubits)
-            max_qubits = parsed_coupling_map.size()
-            if n_qubits > max_qubits:
-                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '.format(circuit.name) +
-                                      'is greater than maximum ({}) '.format(max_qubits) +
-                                      'in the coupling_map')
+    transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
+                                           backend_properties, initial_layout,
+                                           seed_transpiler, optimization_level,
+                                           pass_manager, callback, output_name)
+
     # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
+    circuits = parallel_map(transpile_circuit, transpile_args)
 
     if len(circuits) == 1:
         return circuits[0]
     return circuits
-
-
-# FIXME: This is a helper function because of parallel tools.
-def _transpile_circuit(circuit_config_tuple):
-    """Select a PassManager and run a single circuit through it.
-
-    Args:
-        circuit_config_tuple (tuple):
-            circuit (QuantumCircuit): circuit to transpile
-            transpile_config (TranspileConfig): configuration dictating how to transpile
-
-    Returns:
-        QuantumCircuit: transpiled circuit
-    """
-    circuit, transpile_config = circuit_config_tuple
-
-    return transpile_circuit(circuit, transpile_config)
 
 
 def _parse_transpile_args(circuits, backend,
@@ -235,45 +207,38 @@ def _parse_transpile_args(circuits, backend,
     arg has more priority than the arg set by backend)
 
     Returns:
-        list[TranspileConfig]: a transpile config for each circuit, which is a standardized
-            object that configures the transpiler and determines the pass manager to use.
+        list[dicts]: a list of transpile parameters.
     """
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
-
-    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
-
+    coupling_map = _parse_coupling_map(coupling_map, backend, circuits)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
-
     initial_layout = _parse_initial_layout(initial_layout, circuits)
-
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
-
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
-
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
+    output_name = _parse_output_name(output_name, num_circuits)
 
-    output_name = _parse_output_name(output_name, circuits)
-
-    transpile_configs = []
+    transpile_args_circuits = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, seed_transpiler, optimization_level,
-                    pass_manager, output_name):
-        transpile_config = TranspileConfig(basis_gates=args[0],
-                                           coupling_map=args[1],
-                                           backend_properties=args[2],
-                                           initial_layout=args[3],
-                                           seed_transpiler=args[4],
-                                           optimization_level=args[5],
-                                           pass_manager=args[6],
-                                           callback=callback,
-                                           output_name=args[7])
-        transpile_configs.append(transpile_config)
+                    pass_manager, output_name, circuits):
+        transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
+                                                                   coupling_map=args[1],
+                                                                   backend_properties=args[2],
+                                                                   initial_layout=args[3],
+                                                                   seed_transpiler=args[4]),
+                          'optimization_level': args[5],
+                          'pass_manager': args[6],
+                          'output_name': args[7],
+                          'circuit': args[8],
+                          'callback': callback}
+        transpile_args_circuits.append(transpile_args)
 
-    return transpile_configs
+    return transpile_args_circuits
 
 
 def _parse_basis_gates(basis_gates, backend, circuits):
@@ -302,18 +267,31 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     return basis_gates
 
 
-def _parse_coupling_map(coupling_map, backend, num_circuits):
+def _parse_coupling_map(coupling_map, backend, circuits):
+    num_circuits = len(circuits)
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         if getattr(backend, 'configuration', None):
-            coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-    # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
-    if coupling_map is None or isinstance(coupling_map, CouplingMap):
-        coupling_map = [coupling_map] * num_circuits
-    elif isinstance(coupling_map, list) and all(isinstance(i, list) and len(i) == 2
-                                                for i in coupling_map):
-        coupling_map = [coupling_map] * num_circuits
-    coupling_map = [CouplingMap(cm) if isinstance(cm, list) else cm for cm in coupling_map]
+            configuration = backend.configuration()
+            if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
+                coupling_map = CouplingMap(configuration.coupling_map)
+
+    coupling_map = [coupling_map] * num_circuits
+
+    for index, parsed_coupling_map in enumerate(coupling_map):
+        if isinstance(parsed_coupling_map, list):
+            parsed_coupling_map = CouplingMap(parsed_coupling_map)
+        # If coupling_map is not None
+        if isinstance(parsed_coupling_map, CouplingMap):
+            n_qubits = len(circuits[index].qubits)
+            max_qubits = parsed_coupling_map.size()
+            if n_qubits > max_qubits:
+                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                      'in {} '.format(circuits[index].name) +
+                                      'is greater than maximum ({}) '.format(max_qubits) +
+                                      'in the coupling_map')
+        coupling_map[index] = parsed_coupling_map
+
     return coupling_map
 
 
@@ -375,13 +353,13 @@ def _parse_pass_manager(pass_manager, num_circuits):
     return pass_manager
 
 
-def _parse_output_name(output_name, circuits):
+def _parse_output_name(output_name, num_circuits):
     # naming and returning circuits
     # output_name could be either a string or a list
     if output_name is not None:
         if isinstance(output_name, str):
             # single circuit
-            if len(circuits) == 1:
+            if num_circuits == 1:
                 return [output_name]
             # multiple circuits
             else:
@@ -389,7 +367,7 @@ def _parse_output_name(output_name, circuits):
                                       "to that of the number of circuits " +
                                       "being transpiled")
         elif isinstance(output_name, list):
-            if len(circuits) == len(output_name) and \
+            if num_circuits == len(output_name) and \
                     all(isinstance(name, str) for name in output_name):
                 return output_name
             else:
@@ -401,4 +379,4 @@ def _parse_output_name(output_name, circuits):
             raise TranspilerError("The parameter output_name should be a string or a"
                                   "list of strings: %s was used." % type(output_name))
     else:
-        return [circuit.name for circuit in circuits]
+        return [None] * num_circuits
