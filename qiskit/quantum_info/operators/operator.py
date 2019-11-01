@@ -137,10 +137,10 @@ class Operator(BaseOperator):
             'T': TGate().to_matrix(),
             '0': np.array([[1, 0], [0, 0]], dtype=complex),
             '1': np.array([[0, 0], [0, 1]], dtype=complex),
-            '+': np.array([[0.5, 0.5], [0.5 , 0.5]], dtype=complex),
-            '-': np.array([[0.5, -0.5], [-0.5 , 0.5]], dtype=complex),
-            'r': np.array([[0.5, -0.5j], [0.5j , 0.5]], dtype=complex),
-            'l': np.array([[0.5, 0.5j], [-0.5j , 0.5]], dtype=complex),
+            '+': np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
+            '-': np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
+            'r': np.array([[0.5, -0.5j], [0.5j, 0.5]], dtype=complex),
+            'l': np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=complex),
         }
         if re.match(r'^[IXYZHST01rl\-+]+$', label) is None:
             raise QiskitError('Label contains invalid characters.')
