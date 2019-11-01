@@ -210,32 +210,32 @@ class MatrixOperator(BaseOperator):
 
     # pylint: disable=arguments-differ
     def construct_evaluation_circuit(self, wave_function, statevector_mode=True,
-                                     use_simulator_operator_mode=None, circuit_name_prefix=''):
+                                     use_simulator_snapshot_mode=None, circuit_name_prefix=''):
         """
         Construct the circuits for evaluation.
 
         Args:
             wave_function (QuantumCircuit): the quantum circuit.
             statevector_mode (bool): mode
-            use_simulator_operator_mode (bool): uses simulator operator mode
+            use_simulator_snapshot_mode (bool): uses simulator operator mode
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
             list[QuantumCircuit]: the circuits for computing the expectation of the operator over
                               the wavefunction evaluation.
         """
-        del use_simulator_operator_mode  # unused
+        del use_simulator_snapshot_mode  # unused
         return [wave_function.copy(name=circuit_name_prefix + 'psi')]
 
     def evaluate_with_result(self, result, statevector_mode=True,
-                             use_simulator_operator_mode=None, circuit_name_prefix=''):
+                             use_simulator_snapshot_mode=None, circuit_name_prefix=''):
         """
         Use the executed result with operator to get the evaluated value.
 
         Args:
             result (qiskit.Result): the result from the backend
             statevector_mode (bool): mode
-            use_simulator_operator_mode (bool): uses simulator operator mode
+            use_simulator_snapshot_mode (bool): uses simulator operator mode
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
@@ -247,7 +247,7 @@ class MatrixOperator(BaseOperator):
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
 
-        del use_simulator_operator_mode  # unused
+        del use_simulator_snapshot_mode  # unused
         avg, std_dev = 0.0, 0.0
         quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
