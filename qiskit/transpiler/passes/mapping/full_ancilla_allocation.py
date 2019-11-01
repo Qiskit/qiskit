@@ -33,17 +33,14 @@ class FullAncillaAllocation(AnalysisPass):
         circuit.
     """
 
-    def __init__(self, coupling_map, layout=None):
+    def __init__(self, coupling_map):
         """FullAncillaAllocation initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
-            layout (Layout): an existing layout. ancilla allocation occurs if
-                the layout is smaller than the coupling_map.
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.layout = layout
         self.ancilla_name = 'ancilla'
 
     def run(self, dag):
@@ -65,13 +62,12 @@ class FullAncillaAllocation(AnalysisPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        self.layout = self.layout or self.property_set.get('layout')
+        layout = self.property_set.get('layout')
 
-        if self.layout is None:
-            raise TranspilerError('FullAncilla pass requires property_set["layout"] or '
-                                  ' "layout" parameter to run')
+        if layout is None:
+            raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
 
-        layout_physical_qubits = self.layout.get_physical_bits().keys()
+        layout_physical_qubits = layout.get_physical_bits().keys()
         coupling_physical_qubits = self.coupling_map.physical_qubits
         idle_physical_qubits = [q for q in coupling_physical_qubits
                                 if q not in layout_physical_qubits]
