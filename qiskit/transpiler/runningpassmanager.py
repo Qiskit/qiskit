@@ -36,8 +36,8 @@ class RunningPassManager():
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            max_iteration (int): The schedule looping iterates until the condition is met or until
-                max_iteration is reached.
+            max_iteration (int): The schedule looping iterates until the condition
+                is met or until max_iteration is reached.
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 5 keyword
                 arguments:
@@ -363,12 +363,17 @@ class RollbackIfController(FlowController):
     """ The set of passes is rolled back if a condition is true."""
 
     def __init__(self, passes, options, rollback_if=None, **_):
+        self.dag_might_have_modifications = False
+        for pass_ in passes:
+            if pass_.is_transformation_pass:
+                self.dag_might_have_modifications = True
+                break
         self.rollback_if = rollback_if
         super().__init__(passes, options)
 
     def do_passes(self, pass_manager, dag, property_set):
         original_property_set = deepcopy(pass_manager.property_set)
-        dag_copy = deepcopy(dag)
+        dag_copy = deepcopy(dag) if self.dag_might_have_modifications else dag
         for pass_ in self:
             dag_copy = pass_manager._do_pass(pass_, dag_copy)
         if self.rollback_if(pass_manager.property_set):
