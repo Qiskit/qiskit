@@ -27,7 +27,6 @@ from qiskit.tools.qi.qi import concurrence, qft, chop
 from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
 from qiskit.tools.qi.qi import choi_to_rauli
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
-from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
 from qiskit.quantum_info import purity
 from qiskit.quantum_info.random import random_density_matrix
 from qiskit.exceptions import QiskitError
