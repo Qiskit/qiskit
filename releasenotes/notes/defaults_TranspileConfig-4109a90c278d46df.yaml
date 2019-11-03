@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    The ``TranspileConfig`` was restructured to include only the information
+    needed to construct a ``PassManager`` and it was renamed to ``PassManagerConfig``.
