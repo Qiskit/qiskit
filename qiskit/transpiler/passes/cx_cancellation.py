@@ -12,20 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for peep-hole cancellation of consecutive CX gates.
-"""
+"""Cancel back-to-back `cx` gates in dag."""
+
 from qiskit.transpiler.basepasses import TransformationPass
 
 
 class CXCancellation(TransformationPass):
-    """Cancel back-to-back 'cx' gates in dag."""
+    """Cancel back-to-back `cx` gates in dag."""
 
     def run(self, dag):
-        """
-        Run one pass of cx cancellation on the circuit
+        """Run the CXCancellation pass on `dag`.
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
+
         Returns:
             DAGCircuit: Transformed DAG.
         """
