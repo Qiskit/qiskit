@@ -204,7 +204,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     ax.yaxis.set_major_locator(MaxNLocator(5))
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
-    ax.set_facecolor('#eeeeee')
     plt.grid(which='major', axis='y', zorder=0, linestyle='--')
     if title:
         plt.title(title)
