@@ -313,12 +313,10 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     qubit_labels = [None] * n_qubits
 
     if view == 'virtual':
-        idx = 0
         for key, val in circuit._layout.get_virtual_bits().items():
             if key.register.name != 'ancilla':
                 qubits.append(val)
-                qubit_labels[val] = idx
-            idx += 1
+                qubit_labels[val] = key.index
 
     elif view == 'physical':
         for key, val in circuit._layout.get_physical_bits().items():

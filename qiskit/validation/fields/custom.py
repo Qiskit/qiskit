@@ -44,7 +44,7 @@ class Complex(ModelTypeValidator):
         try:
             return [value.real, value.imag]
         except AttributeError:
-            raise self.make_error('format', input=value)
+            raise self.make_error_serialize('format', input=value)
 
     def _deserialize(self, value, attr, data, **_):
         if not is_collection(value) or len(value) != 2:
@@ -94,16 +94,14 @@ class InstructionParameter(ModelTypeValidator):
             return value
         if isinstance(value, ParameterExpression):
             if value.parameters:
-                bare_error = self.make_error('invalid', input=value)
-                raise ValidationError({self.name: bare_error.messages},
-                                      field_name=self.name)
+                raise self.make_error_serialize('invalid', input=value)
             return float(value)
 
         # Fallback for attempting serialization.
         if hasattr(value, 'to_dict'):
             return value.to_dict()
 
-        raise self.make_error('format', input=value)
+        raise self.make_error_serialize('format', input=value)
 
     def _deserialize(self, value, attr, data, **kwargs):
         if is_collection(value):
@@ -194,7 +192,7 @@ class DictParameters(ModelTypeValidator):
         if isinstance(value, Mapping):
             return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        raise self.make_error('invalid_mapping')
+        raise self.make_error_serialize('invalid_mapping')
 
     def _deserialize(self, value, attr, data, **_):
         if value is None:
