@@ -148,7 +148,7 @@ class CmdDef:
         if self.has(cmd_name, qubits):
             schedule_generator = self._cmd_dict[cmd_name][qubits]
 
-            if callable(schedule_generator):
+            if callable(schedule_generator) and call:
                 return schedule_generator(*params, **kwparams)
 
             return schedule_generator
