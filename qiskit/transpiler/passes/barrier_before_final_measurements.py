@@ -13,12 +13,7 @@
 # that they have been altered from the originals.
 
 
-"""
-This pass adds a barrier before the set of final measurements. Measurements
-are considered final if they are followed by no other operations (aside from
-other measurements or barriers.)
-
-"""
+"""Add a barrier before final measurements."""
 
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
@@ -27,11 +22,15 @@ from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
 class BarrierBeforeFinalMeasurements(TransformationPass):
-    """Adds a barrier before final measurements."""
+    """Add a barrier before final measurements.
+
+    This pass adds a barrier before the set of final measurements. Measurements
+    are considered final if they are followed by no other operations (aside from
+    other measurements or barriers.)
+    """
 
     def run(self, dag):
-        """Return a circuit with a barrier before last measurements."""
-
+        """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
         final_ops = []

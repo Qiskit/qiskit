@@ -12,16 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for one layer of decomposing the gates in a circuit."""
+"""Expand a gate in a circuit using its decomposition rules."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 
 class Decompose(TransformationPass):
-    """
-    Expand a gate in a circuit using its decomposition rules.
-    """
+    """Expand a gate in a circuit using its decomposition rules."""
 
     def __init__(self, gate=None):
         """Decompose initializer.
@@ -33,10 +31,11 @@ class Decompose(TransformationPass):
         self.gate = gate
 
     def run(self, dag):
-        """Expand a given gate into its decomposition.
+        """Run the Decompose pass on `dag`.
 
         Args:
             dag(DAGCircuit): input dag
+
         Returns:
             DAGCircuit: output dag where gate was expanded.
         """
