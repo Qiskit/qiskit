@@ -31,11 +31,11 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     `nxpd <https://github.com/chebee7i/nxpd`_) to generate the graph, which
     means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
     system is required for this to work.
-    
+
     The current release of Graphviz can be downloaded here: <https://graphviz.gitlab.io/download/>.
-    Download the version of the sotware that matches your environment and follow the instructions to 
+    Download the version of the sotware that matches your environment and follow the instructions to
     install Graph Visualization Software (Graphviz) on your operating system.
-    
+
     Args:
         dag (DAGCircuit): The dag to draw.
         scale (float): scaling factor
