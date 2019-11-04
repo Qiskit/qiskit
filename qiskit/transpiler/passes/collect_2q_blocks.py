@@ -68,7 +68,7 @@ class Collect2qBlocks(AnalysisPass):
                         pnd = pred[0]
                         if pnd.name in good_names:
                             if (pnd.name == "cx" and set(pnd.qargs) == these_qubits) or \
-                                    pnd.name != "cx":
+                                    pnd.name != "cx" and not pnd.op.is_parameterized():
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
                                 pred_next.extend(dag.quantum_predecessors(pnd))
@@ -101,7 +101,7 @@ class Collect2qBlocks(AnalysisPass):
                                                     set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
-                            if pnd.name != "cx":
+                            if pnd.name != "cx" and not pnd.op.is_parameterized():
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
@@ -140,7 +140,7 @@ class Collect2qBlocks(AnalysisPass):
                         snd = succ[0]
                         if snd.name in good_names:
                             if (snd.name == "cx" and set(snd.qargs) == these_qubits) or \
-                                    snd.name != "cx":
+                                    snd.name != "cx" and not snd.op.is_parameterized():
                                 group.append(snd)
                                 nodes_seen[snd] = True
                                 succ_next.extend(dag.quantum_successors(snd))
@@ -177,7 +177,7 @@ class Collect2qBlocks(AnalysisPass):
                             # If a successor is a single qubit gate, add it
                             # NB as we have eliminated all gates with names not in
                             # good_names, this check guarantees they are single qubit
-                            if snd.name != "cx":
+                            if snd.name != "cx" and not snd.op.is_parameterized():
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True
