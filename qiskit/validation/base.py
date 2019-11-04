@@ -29,6 +29,7 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
+
 from functools import wraps
 from types import SimpleNamespace, MethodType
 
@@ -55,17 +56,17 @@ class ModelTypeValidator(_fields.Field):
 
         Subclasses can do one of the following:
 
-            1. They can override the ``valid_types`` property with a tuple with
-            the expected types for this field.
+        1. Override the ``valid_types`` property with a tuple with the expected
+           types for this field.
 
-            2. They can override the ``_expected_types`` method to return a
-            tuple of expected types for the field.
+        2. Override the ``_expected_types`` method to return a tuple of
+           expected types for the field.
 
-            3. They can change ``check_type`` completely to customize
-            validation.
+        3. Change ``check_type`` completely to customize validation.
 
-        This method or the overrides must return the ``value`` parameter
-        untouched.
+        Note:
+            This method or the overrides must return the ``value`` parameter
+            untouched.
         """
         expected_types = self._expected_types()
         if not isinstance(value, expected_types):
@@ -85,6 +86,23 @@ class ModelTypeValidator(_fields.Field):
 
         message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
+
+    def make_error_serialize(self, key, **kwargs):
+        """Helper method to return a ValidationError from _serialize.
+
+        This method wraps the result of ``make_error()``, adding contextual
+        information in order to provide more informative information to users.
+
+        Args:
+            key (str): error key index.
+            **kwargs: additional arguments to ``make_error()``.
+
+        Returns:
+            ValidationError: an exception with the field name.
+        """
+        bare_error = self.make_error(key, **kwargs)
+        return ValidationError({self.name: bare_error.messages},
+                               field_name=self.name)
 
 
 class BaseSchema(Schema):
@@ -177,9 +195,8 @@ class _SchemaBinder:
         """Create a patched Schema for validating models.
 
         Model validation is not part of Marshmallow. Schemas have a ``validate``
-        method but this delegates execution on ``load`` and discards the result.
-        Similarly, ``load`` will call ``_deserialize`` on every field in the
-        schema.
+        method but this delegates execution on ``load``. Similarly, ``load``
+        will call ``_deserialize`` on every field in the schema.
 
         This function patches the ``_deserialize`` instance method of each
         field to make it call a custom defined method ``check_type``
@@ -200,18 +217,27 @@ class _SchemaBinder:
 
     @staticmethod
     def _validate_after_init(init_method):
-        """Add validation after instantiation."""
+        """Add validation during instantiation.
 
+        The validation is performed depending on the ``validate`` parameter
+        passed to the ``init_method``. If ``False``, the validation will not be
+        performed.
+        """
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            try:
-                _ = self.shallow_schema._do_load(kwargs,
-                                                 postprocess=False)
-            except ValidationError as ex:
-                raise ModelValidationError(
-                    ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
+            # Extract the 'validate' parameter.
+            do_validation = kwargs.pop('validate', True)
+            if do_validation:
+                try:
+                    _ = self.shallow_schema._do_load(kwargs,
+                                                     postprocess=False)
+                except ValidationError as ex:
+                    raise ModelValidationError(
+                        ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
-            init_method(self, **kwargs)
+            # Set the 'validate' parameter to False, assuming that if a
+            # subclass has been validated, it superclasses will also be valid.
+            return init_method(self, **kwargs, validate=False)
 
         return _decorated
 
@@ -219,17 +245,10 @@ class _SchemaBinder:
 def bind_schema(schema):
     """Class decorator for adding schema validation to its instances.
 
-    Instances of the decorated class are automatically validated after
-    instantiation and they are augmented to allow further validations with the
-    private method ``_validate()``.
-
-    The decorator also adds the class attribute ``schema`` with the schema used
-    for validation, along with a class attribute ``shallow_schema`` used for
-    validation during instantiation.
-
-    It also allows using the ``to_dict`` and ``from_dict`` in the model class,
-    with perform serialization/deserialization to/from simple Python objects
-    respectively.
+    The decorator acts on the model class by adding:
+    * a class attribute ``schema`` with the schema used for validation
+    * a class attribute ``shallow_schema`` used for validation during
+      instantiation.
 
     The same schema cannot be bound more than once. If you need to reuse a
     schema for a different class, create a new schema subclassing the one you
@@ -249,6 +268,11 @@ def bind_schema(schema):
         class AnotherModel(BaseModel):
             pass
 
+    Note:
+        By default, models decorated with this decorator are validated during
+        instantiation. If ``validate=False`` is passed to the constructor, this
+        validation will not be performed.
+
     Raises:
         ValueError: when trying to bind the same schema more than once.
 
@@ -265,6 +289,17 @@ def _base_model_from_kwargs(cls, kwargs):
 
 class BaseModel(SimpleNamespace):
     """Base class for Models for validated Qiskit classes."""
+
+    def __init__(self, validate=True, **kwargs):
+        """BaseModel initializer.
+
+        Note:
+            The ``validate`` argument is used for controlling the behavior of
+            the schema binding, and will not be present on the created object.
+        """
+        # pylint: disable=unused-argument
+        super().__init__(**kwargs)
+
     def __reduce__(self):
         """Custom __reduce__ for allowing pickling and unpickling.
 

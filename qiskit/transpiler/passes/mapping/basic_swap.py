@@ -12,13 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A pass implementing a basic swapper.
-
-The basic mapper is a minimum effort to insert swap gates to map the DAG onto
-a coupling map. When a cx is not in the coupling map possibilities, it inserts
-one or more swaps in front to make it compatible.
-"""
+"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -28,13 +22,15 @@ from qiskit.extensions.standard import SwapGate
 
 
 class BasicSwap(TransformationPass):
-    """
-    Maps (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
+    """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
+
+    The basic mapper is a minimum effort to insert swap gates to map the DAG onto
+    a coupling map. When a cx is not in the coupling map possibilities, it inserts
+    one or more swaps in front to make it compatible.
     """
 
     def __init__(self, coupling_map):
-        """
-        Maps a DAGCircuit onto a `coupling_map` using swap gates.
+        """BasicSwap initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
@@ -43,8 +39,7 @@ class BasicSwap(TransformationPass):
         self.coupling_map = coupling_map
 
     def run(self, dag):
-        """
-        Runs the BasicSwap pass on `dag`.
+        """Run the BasicSwap pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -54,7 +49,7 @@ class BasicSwap(TransformationPass):
 
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG.
         """
         new_dag = DAGCircuit()
 

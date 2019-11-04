@@ -189,7 +189,7 @@ class TestCompiler(QiskitTestCase):
 
         self.assertEqual(compiled_instruction.name, 'u2')
         self.assertEqual(compiled_instruction.qubits, [12])
-        self.assertEqual(str(compiled_instruction.params), str([0, 3.14159265358979]))
+        self.assertEqual(compiled_instruction.params, [0, 3.141592653589793])
 
     def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""

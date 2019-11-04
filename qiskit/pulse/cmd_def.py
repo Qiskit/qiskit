@@ -15,6 +15,8 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
+import warnings
+
 from typing import List, Tuple, Iterable, Union, Dict, Optional
 
 from qiskit.qobj import PulseQobjInstruction
@@ -75,7 +77,9 @@ class CmdDef:
             pulse_library: Dictionary of `SamplePulse`s
             buffer: Buffer between instructions on channel
         """
-        converter = QobjToInstructionConverter(pulse_library, buffer=buffer)
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        converter = QobjToInstructionConverter(pulse_library)
         cmd_def = cls()
 
         for cmd in flat_cmd_def:
