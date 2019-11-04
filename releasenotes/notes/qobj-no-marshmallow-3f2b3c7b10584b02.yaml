@@ -31,7 +31,7 @@ upgrade:
 
     from ``qiskit.qobj`` do not validate their inputs by default anymore. If
     you would like to validate them against the qobj schema this can be done
-    by using setting the ``validate`` kwarg to ``True`` on to_dict() method
+    by setting the ``validate`` kwarg to ``True`` on to_dict() method
     from the top level classes ``QasmQobj`` and ``PulseQobj``. For example:
 
     .. code-block:
@@ -60,9 +60,9 @@ upgrade:
     The output from ``qiskit.qobj.QasmQobj.to_dict()`` and
     ``qiskit.qobj.PulseQobj.to_dict()`` is no longer in a dictionary format
     for json serialization as expected by IBMQ's API. These Qobj objects are
-    the current format we pass runs to providers/backends and while having a
+    the current format we pass to providers/backends and while having a
     dictionary format that could just be passed to the IBMQ api directly was
-    moderatly useful for the qiskit-ibmq-provider it made things more difficult
+    moderately useful for the qiskit-ibmq-provider it made things more difficult
     for other providers. Especially for providers that wrap local simulators.
     Moving forward the definitions of what is passed between providers and
     the IBMQ API requests will be further decoupled (in a backwards compatible
