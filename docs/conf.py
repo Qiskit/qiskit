@@ -148,3 +148,5 @@ html_theme_options = {
     'style_external_links': True,
     'style_nav_header_background': '#212121',
 }
+
+autoclass_content = 'both'
