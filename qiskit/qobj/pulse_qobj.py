@@ -85,11 +85,10 @@ class QobjMeasurementOption:
         return cls(**data)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, QobjMeasurementOption):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseQobjInstruction:
@@ -346,11 +345,10 @@ class PulseQobjInstruction:
         return cls(name, t0, **data)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseQobjInstruction):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseQobjConfig:
@@ -492,11 +490,10 @@ class PulseQobjConfig:
             raise AttributeError
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseQobjConfig):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseQobjExperiment:
@@ -561,11 +558,10 @@ class PulseQobjExperiment:
         return cls(config, header, instructions)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseQobjExperiment):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseQobjExperimentConfig:
@@ -610,11 +606,10 @@ class PulseQobjExperimentConfig:
         return cls(**data)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseQobjExperimentConfig):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseLibraryItem:
@@ -653,11 +648,10 @@ class PulseLibraryItem:
         return cls(**data)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseLibraryItem):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class PulseQobj:
@@ -766,8 +760,7 @@ class PulseQobj:
                    experiments=experiments, header=header)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, PulseQobj):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False

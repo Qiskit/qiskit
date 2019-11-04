@@ -272,11 +272,10 @@ class QasmQobjInstruction:
         return cls(name, **data)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, QasmQobjInstruction):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class QasmQobjExperiment:
@@ -336,11 +335,10 @@ class QasmQobjExperiment:
         return cls(config, header, instructions)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, QasmQobjExperiment):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class QasmQobjConfig:
@@ -473,139 +471,14 @@ class QasmQobjConfig:
             raise AttributeError
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, QasmQobjConfig):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
-class QasmQobjExperimentHeader:
-    """A header for a single QASM experiment in the qobj.
-
-    Exists as a backwards compatibility shim around a dictionary for Qobjs
-    previously constructed using marshmallow.
-    """
-    _data = {}
-
-    def __init__(self, **kwargs):
-        """Instantiate a new QasmQobjExperimentHeader object.
-
-        Args:
-            kwargs: arbitrary keyword arguments that can be accessed as
-                attributes of the object.
-        """
-        self._data = kwargs
-
-    def __getstate__(self):
-        return self._data
-
-    def __setstate__(self, state):
-        self._data = state
-
-    def __getattr__(self, attr):
-        try:
-            return self._data[attr]
-        except KeyError:
-            raise AttributeError
-
-    def __setattr__(self, name, value):
-        if not hasattr(self, name):
-            self._data[name] = value
-        else:
-            super().__setattr__(name, value)
-
-    def to_dict(self):
-        """Return a dict representation of the QASM Qobj experiment header.
-
-        Returns:
-            dict: The dictionary form of the QasmQobjExperimentHeader.
-        """
-        return self._data
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new QasmQobjExperimentHeader object from a dictionary.
-
-        Args:
-            data (dict): A dictionary for the experiment header
-
-        Returns:
-            QasmQobjExperimentHeader: The object from the input dictionary.
-        """
-        return cls(**data)
-
-    def __eq__(self, other):
-        return_val = False
-        if isinstance(other, QasmQobjExperimentHeader):
-            if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
-
-
-class QasmQobjExperimentConfig:
-    """Configuration for a single QASM experiment in the qobj."""
-    _data = {}
-
-    def __init__(self, **kwargs):
-        """Instantiate a new QasmQobjExperimentConfig object.
-
-        Args:
-            kwargs: arbitrary keyword arguments that can be accessed as
-                attributes of the object.
-        """
-
-        self._data = kwargs
-
-    def __getstate__(self):
-        return self._data
-
-    def __setstate__(self, state):
-        self._data = state
-
-    def __getattr__(self, attr):
-        try:
-            return self._data[attr]
-        except KeyError:
-            raise AttributeError
-
-    def __setattr__(self, name, value):
-        if not hasattr(self, name):
-            self._data[name] = value
-        else:
-            super().__setattr__(name, value)
-
-    def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj.
-
-        Returns:
-            dict: The dictionary form of the QobjHeader.
-        """
-
-        return self._data
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new QasmQobjExperimentConfig object from a dictionary.
-
-        Args:
-            data (dict): A dictionary for the experiment config
-
-        Returns:
-            QasmQobjExperimentConfig: The object from the input dictionary.
-        """
-        return cls(**data)
-
-    def __eq__(self, other):
-        return_val = False
-        if isinstance(other, QasmQobjExperimentConfig):
-            if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
-
-
-class QobjHeader:
-    """A class used to represent a dictionary header in Qobj objects.
+class QobjDictField:
+    """A class used to represent a dictionary field in Qobj
 
     Exists as a backwards compatibility shim around a dictionary for Qobjs
     previously constructed using marshmallow.
@@ -614,7 +487,7 @@ class QobjHeader:
     _data = {}
 
     def __init__(self, **kwargs):
-        """Instantiate a new Qobj header object.
+        """Instantiate a new Qobj dict field object.
 
         Args:
             kwargs: arbitrary keyword arguments that can be accessed as
@@ -664,16 +537,48 @@ class QobjHeader:
         return cls(**data)
 
     def __eq__(self, other):
-        return_val = False
+        if isinstance(other, QobjDictField):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+
+class QasmQobjExperimentHeader(QobjDictField):
+    """A header for a single QASM experiment in the qobj."""
+
+    def __eq__(self, other):
+        if isinstance(other, QasmQobjExperimentHeader):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+
+class QasmQobjExperimentConfig(QobjDictField):
+    """Configuration for a single QASM experiment in the qobj."""
+
+    def __eq__(self, other):
+        if isinstance(other, QasmQobjExperimentConfig):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+
+class QobjHeader(QobjDictField):
+    """A class used to represent a dictionary header in Qobj objects."""
+    def __eq__(self, other):
         if isinstance(other, QobjHeader):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
 
 
 class QobjExperimentHeader(QobjHeader):
     """A class representing a header dictionary for a Qobj Experiment."""
-    pass
+    def __eq__(self, other):
+        if isinstance(other, QobjExperimentHeader):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
 
 
 class QasmQobj:
@@ -771,8 +676,7 @@ class QasmQobj:
                    experiments=experiments, header=header)
 
     def __eq__(self, other):
-        return_val = False
         if isinstance(other, QasmQobj):
             if self.to_dict() == other.to_dict():
-                return_val = True
-        return return_val
+                return True
+        return False
