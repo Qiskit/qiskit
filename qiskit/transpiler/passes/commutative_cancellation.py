@@ -93,12 +93,12 @@ class CommutativeCancellation(TransformationPass):
 
         for cancel_set_key in cancellation_sets:
             set_len = len(cancellation_sets[cancel_set_key])
-            if ((set_len) > 1 and cancel_set_key[0] in q_gate_list):
+            if set_len > 1 and cancel_set_key[0] in q_gate_list:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
                 for c_node in gates_to_cancel[:(set_len // 2) * 2]:
                     dag.remove_op_node(c_node)
 
-            elif((set_len) > 1 and cancel_set_key[0] in ['z_rotation', 'x_rotation']):
+            elif set_len > 1 and cancel_set_key[0] in ['z_rotation', 'x_rotation']:
                 run = cancellation_sets[cancel_set_key]
                 run_qarg = run[0].qargs[0]
                 total_angle = 0.0  # lambda
