@@ -44,7 +44,8 @@ class Collect2qBlocks(AnalysisPass):
         by examining predecessors and successors of "cx" gates in
         the circuit. u1, u2, u3, cx, id gates will be included.
 
-        Return a list of tuples of "op" node labels.
+        After the execution, ``property_set['block_list']`` is set to
+        a list of tuples of "op" node labels.
         """
         # Initiate the commutation set
         self.property_set['commutation_set'] = defaultdict(list)
