@@ -133,187 +133,32 @@ class PulseQobjInstruction:
             label (str): Label of instruction
             type (str): Type of instruction
         """
-        self._data = {}
-        self._data['name'] = name
-        self._data['t0'] = t0
+        self.name = name
+        self.t0 = t0
         if ch is not None:
-            self._data['ch'] = ch
+            self.ch = ch
         if conditional is not None:
-            self._data['conditional'] = conditional
+            self.conditional = conditional
         if val is not None:
-            self._data['val'] = val
+            self.val = val
         if phase is not None:
-            self._data['phase'] = phase
+            self.phase = phase
         if duration is not None:
-            self._data['duration'] = duration
+            self.duration = duration
         if qubits is not None:
-            self._data['qubits'] = qubits
+            self.qubits = qubits
         if memory_slot is not None:
-            self._data['memory_slot'] = memory_slot
+            self.memory_slot = memory_slot
         if register_slot is not None:
-            self._data['register_slot'] = register_slot
+            self.register_slot = register_slot
         if kernels is not None:
             self.kernels = kernels
         if discriminators is not None:
-            self._data['discriminators'] = discriminators
+            self.discriminators = discriminators
         if label is not None:
             self.label = label
         if type is not None:
-            self._data['type'] = type
-
-    @property
-    def name(self):
-        """The name of the instruction."""
-        if 'name' not in self._data:
-            raise AttributeError
-        return self._data['name']
-
-    @name.setter
-    def name(self, value):
-        self._data['name'] = value
-
-    @property
-    def t0(self):
-        """Pulse start time in integer **dt** units."""
-        if 't0' not in self._data:
-            raise AttributeError
-        return self._data['t0']
-
-    @t0.setter
-    def t0(self, value):
-        self._data['t0'] = value
-
-    @property
-    def ch(self):
-        """The channel to apply the pulse instruction."""
-        _ch = self._data.get('ch')
-        if _ch is None:
-            raise AttributeError
-        return _ch
-
-    @ch.setter
-    def ch(self, value):
-        self._data['ch'] = value
-
-    @property
-    def conditional(self):
-        """The register to use for a conditional for this instruction."""
-        cond = self._data.get('conditional')
-        if cond is None:
-            raise AttributeError
-        return cond
-
-    @conditional.setter
-    def conditional(self, value):
-        self._data['conditional'] = value
-
-    @property
-    def val(self):
-        """Complex value to apply, bounded by an absolute value of 1."""
-        _val = self._data.get('val')
-        if _val is None:
-            raise AttributeError
-        return _val
-
-    @val.setter
-    def val(self, value):
-        self._data['val'] = value
-
-    @property
-    def duration(self):
-        """The duration of the pulse in **dt** units."""
-        dur = self._data.get('duration')
-        if dur is None:
-            raise AttributeError
-        return dur
-
-    @duration.setter
-    def duration(self, value):
-        self._data['duration'] = value
-
-    @property
-    def qubits(self):
-        """The qubits the instruction operates on."""
-        qbits = self._data.get('qubits')
-        if qbits is None:
-            raise AttributeError
-        return qbits
-
-    @qubits.setter
-    def qubits(self, value):
-        self._data['qubits'] = value
-
-    @property
-    def phase(self):
-        """The frame change phase in radians."""
-        ph = self._data.get('phase')
-        if ph is None:
-            raise AttributeError
-        return ph
-
-    @phase.setter
-    def phase(self, value):
-        self._data['phase'] = value
-
-    @property
-    def memory_slot(self):
-        """The memory slot for the instruction."""
-        mem_slot = self._data.get('memory_slot')
-        if mem_slot is None:
-            raise AttributeError
-        return mem_slot
-
-    @memory_slot.setter
-    def memory_slot(self, value):
-        self._data['memory_slot'] = value
-
-    @property
-    def register_slot(self):
-        """The register slot for the instruction."""
-        reg_slot = self._data.get('register_slot')
-        if reg_slot is None:
-            raise AttributeError
-        return reg_slot
-
-    @register_slot.setter
-    def register_slot(self, value):
-        self._data['register_slot'] = value
-
-    @property
-    def discriminators(self):
-        """The discriminators for the instruction."""
-        discrim = self._data.get('discriminators')
-        if discrim is None:
-            raise AttributeError
-        return discrim
-
-    @discriminators.setter
-    def discriminators(self, value):
-        self._data['discriminators'] = value
-
-    @property
-    def label(self):
-        """The label for the instruction."""
-        lab = self._data.get('label')
-        if lab is None:
-            raise AttributeError
-        return lab
-
-    @label.setter
-    def label(self, value):
-        self._data['label'] = value
-
-    @property
-    def type(self):
-        """The type for the instruction."""
-        _type = self._data.get('type')
-        if _type is None:
-            raise AttributeError
-        return _type
-
-    @type.setter
-    def type(self, value):
-        self._data['type'] = value
+            self.type = type
 
     def to_dict(self):
         """Return a dictionary format representation of the Instruction.
@@ -321,7 +166,15 @@ class PulseQobjInstruction:
         Returns:
             dict: The dictionary form of the PulseQobjInstruction.
         """
-        out_dict = copy.copy(self._data)
+        out_dict = {
+            'name': self.name,
+            't0': self.t0
+        }
+        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
+                     'qubits', 'memory_slot', 'register_slot',
+                     'discriminators', 'label', 'type']:
+            if hasattr(self, attr):
+                out_dict[attr] = getattr(self, attr)
         if hasattr(self, 'kernels'):
             out_dict['kernels'] = [x.to_dict() for x in self.kernels]
         return out_dict

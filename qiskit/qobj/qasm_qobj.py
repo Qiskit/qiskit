@@ -35,8 +35,8 @@ class QasmQobjInstruction:
     """A class representing a single instruction in an QasmQobj Experiment."""
 
     def __init__(self, name, params=None, qubits=None, register=None,
-                 memory=None, condition=None, label=None, mask=None,
-                 relation=None, val=None):
+                 memory=None, condition=None, conditional=None, label=None,
+                 mask=None, relation=None, val=None):
         """Instatiate a new QasmQobjInstruction object.
 
         Args:
@@ -54,8 +54,10 @@ class QasmQobjInstruction:
                 measurement results in (must be the same length as qubits).
                 If a ``bfunc`` instruction this is a single `int` of the
                 memory slot to store the boolean function result in.
-            condition (bool): Set to true if the gate has a conditional set
-                on it
+            condition (tuple): A tuple of the form ``(int, int)`` where the
+                first `int` is the control register and the second `int` is
+                the control value if the gate has a condition.
+            conditional (int):  The register index of the cobndition
             label (str): An optional label assigned to the instruction
             mask (int): For a ``bfunc`` instruction the hex value which is
                 applied as an ``AND`` to the register bits.
@@ -67,188 +69,27 @@ class QasmQobjInstruction:
                 relation val.
         """
         super(QasmQobjInstruction, self).__init__()
-        self._data = {}
-        self._data['name'] = name
+        self.name = name
         if params:
-            self._data['params'] = params
+            self.params = params
         if qubits:
-            self._data['qubits'] = qubits
+            self.qubits = qubits
         if register:
-            self._data['register'] = register
+            self.register = register
         if memory:
-            self._data['memory'] = memory
+            self.memory = memory
         if condition:
-            self._data['_condition'] = condition
+            self._condition = condition
+        if conditional:
+            self.conditional = conditional
         if label:
-            self._data['label'] = label
+            self.label = label
         if mask:
-            self._data['mask'] = mask
+            self.mask = mask
         if relation:
-            self._data['relation'] = relation
+            self.relation = relation
         if val:
-            self._data['val'] = val
-
-    @property
-    def name(self):
-        """The name of the instruction."""
-        return self._data['name']
-
-    @name.setter
-    def name(self, value):
-        """Set the name of the instruction."""
-        self._data['name'] = value
-
-    @property
-    def params(self):
-        """The paramters of the circuit.
-
-        Raises:
-            AttributeError: If params not set for instruction.
-        Returns:
-            list: The parameters for the instruction
-        """
-        param = self._data.get('params')
-        if param is None:
-            raise AttributeError
-        return param
-
-    @params.setter
-    def params(self, value):
-        """Set the parameters of the circuit."""
-        self._data['params'] = value
-
-    @property
-    def qubits(self):
-        """The qubits the instruction operates on."""
-        qbits = self._data.get('qubits')
-        if qbits is None:
-            raise AttributeError
-        return qbits
-
-    @qubits.setter
-    def qubits(self, value):
-        """Set the qubits the instruction operates on."""
-        self._data['qubits'] = value
-
-    @property
-    def register(self):
-        """The register used by the instruction.
-
-        If a ``measure`` instruction this is a list of `int`s containing the
-        list of register slots in which to store the measurement results
-        If a ``bfunc`` instruction this is a single `int` of the register
-        slot in which to store the result.
-
-        Returns:
-            int: The register used by the instruction
-
-        Raises:
-            AttributeError: if register is not set
-        """
-        reg = self._data.get('register')
-        if reg is None:
-            raise AttributeError
-        return reg
-
-    @register.setter
-    def register(self, value):
-        """Set the value of register for the instruction."""
-        self._data['register'] = value
-
-    @property
-    def memory(self):
-        """The memory slot used by the instruction.
-
-        If a ``measure`` instruction this is a list of `int`s containing the
-        list of memory slots to store the measurement results in. If a
-        ``bfunc`` instruction this is a single `int` of the memory slot to
-        store the boolean function result in.
-
-        Raises:
-            AttributeError: if memory is not set
-
-        Returns:
-            list: The memory slot(s) used by the instruction
-        """
-        mem = self._data.get('memory')
-        if mem is None:
-            raise AttributeError
-        return mem
-
-    @memory.setter
-    def memory(self, value):
-        self._data['memory'] = value
-
-    @property
-    def _condition(self):
-        cond = self._data.get('_condition')
-        if cond is None:
-            raise AttributeError
-        return cond
-
-    @_condition.setter
-    def _condition(self, value):
-        self._data['_condition'] = value
-
-    @_condition.deleter
-    def _condition(self):
-        del self._data['_condition']
-
-    @property
-    def conditional(self):
-        """The register index used as a conditional for this instruction."""
-        cond = self._data.get('conditional')
-        if cond is None:
-            raise AttributeError
-        return cond
-
-    @conditional.setter
-    def conditional(self, value):
-        self._data['conditional'] = value
-
-    @property
-    def label(self):
-        """The instruction's label."""
-        return self._data.get('label')
-
-    @label.setter
-    def label(self, value):
-        self._data['label'] = value
-
-    @property
-    def mask(self):
-        """The register mask used for conditionals on the instruction.
-
-        The hex value which is applied as an ``AND`` to the register bits
-        for ``bfunc`` instructions.
-        """
-        return self._data.get('mask')
-
-    @mask.setter
-    def mask(self, value):
-        self._data['mask'] = value
-
-    @property
-    def relation(self):
-        """The relation of the conditional to ``val``.
-
-        Can be either ``==`` (equals) or ``!=`` (not equals).
-
-        """
-        return self._data.get('relation')
-
-    @relation.setter
-    def relation(self, value):
-        self._data['relation'] = value
-
-    @property
-    def val(self):
-        """The value which to compare the masked register."""
-        return self._data.get('val')
-
-    @val.setter
-    def val(self, value):
-        self._data['val'] = value
+            self.val = val
 
     def to_dict(self):
         """Return a dictionary format representation of the Instruction.
@@ -256,7 +97,13 @@ class QasmQobjInstruction:
         Returns:
             dict: The dictionary form of the QasmQobjInstruction.
         """
-        return self._data
+        out_dict = {'name': self.name}
+        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
+                     'conditional', 'label', 'mask', 'relation', 'val']:
+            if hasattr(self, attr):
+                out_dict[attr] = getattr(self, attr)
+
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
