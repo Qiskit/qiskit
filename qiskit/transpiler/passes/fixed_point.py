@@ -12,16 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" The FixedPoint pass detects fixed points in properties.
-"""
+"""Check if a property reached a fixed point."""
+
 from copy import deepcopy
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class FixedPoint(AnalysisPass):
-    """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
-        in property_set['<property>_fixed_point'] as a boolean.
+    """Check if a property reached a fixed point.
+
+    A dummy analysis pass that checks if a property reached a fixed point.
+    The results is saved in ``property_set['<property>_fixed_point']``
+    as a boolean.
     """
 
     def __init__(self, property_to_check):
@@ -34,6 +37,7 @@ class FixedPoint(AnalysisPass):
         self._property = property_to_check
 
     def run(self, dag):
+        """Run the FixedPoint pass on `dag`."""
         current_value = self.property_set[self._property]
         fixed_point_previous_property = '_fixed_point_previous_%s' % self._property
 
