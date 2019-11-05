@@ -283,7 +283,7 @@ class Schedule(ScheduleComponent):
         return self._apply_filter(lambda x: not composed_filter(x),
                                   new_sched_name="{name}-excluded".format(name=self.name))
 
-    def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> Schedule:
+    def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """
         Return a Schedule containing only the instructions from this Schedule that
         filter_func returns True on
