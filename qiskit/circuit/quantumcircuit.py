@@ -128,7 +128,7 @@ class QuantumCircuit:
 
         Args:
             data_input (list): A list of instructions with context
-                in the format (instruction, qargs, cargs). Where Instruction
+                in the format (instruction, qargs, cargs), where Instruction
                 is an Instruction (or subclass) object, qargs is a list of
                 Qubit objects, and cargs is a list of Clbit objects.
         """
