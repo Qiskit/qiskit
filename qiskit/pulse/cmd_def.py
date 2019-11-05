@@ -127,17 +127,12 @@ class CmdDef:
 
     def get(self, cmd_name: str, qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
-            call: bool = True,
-            **kwparams: Dict[str, Union[int, float, complex]]) \
-            -> Union[Schedule, Callable[..., Schedule]]:
+            **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Get command from command definition.
-
-        If no `*params` or `**kwparams` supplied the raw stored object will be returned.
 
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
-            call: If the command is a callable, call it. Otherwise return the raw callable.
             *params: Command parameters to be used to generate schedule
             **kwparams: Keyworded command parameters to be used to generate schedule
 
@@ -148,10 +143,29 @@ class CmdDef:
         if self.has(cmd_name, qubits):
             schedule_generator = self._cmd_dict[cmd_name][qubits]
 
-            if callable(schedule_generator) and call:
+            if callable(schedule_generator):
                 return schedule_generator(*params, **kwparams)
 
             return schedule_generator
+
+        else:
+            raise PulseError('Command {0} for qubits {1} is not present '
+                             'in CmdDef'.format(cmd_name, qubits))
+
+    def get_unevaluated(self, cmd_name: str, qubits: Union[int, Iterable[int]]) \
+            -> Union[Schedule, Callable[..., Schedule]]:
+        """Get raw unevaluated command from command definition.
+
+        Args:
+            cmd_name: Name of the command
+            qubits: Ordered list of qubits command applies to
+
+        Raises:
+            PulseError: If command for qubits is not available
+        """
+        qubits = _to_qubit_tuple(qubits)
+        if self.has(cmd_name, qubits):
+            return self._cmd_dict[cmd_name][qubits]
 
         else:
             raise PulseError('Command {0} for qubits {1} is not present '
