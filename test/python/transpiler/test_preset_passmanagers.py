@@ -263,12 +263,6 @@ class TestFinalLayouts(QiskitTestCase):
                           13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
                           17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
 
-        dense_layout = {2: qr1[0], 6: qr1[1], 1: qr1[2], 5: qr2[0], 0: qr2[1], 3: ancilla[0],
-                        4: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
-                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
-                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-                        19: ancilla[14]}
-
         csp_layout = {0: qr1[1], 1: qr1[2], 2: qr2[0], 5: qr1[0], 3: qr2[1], 4: ancilla[0],
                       6: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
                       11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
@@ -278,9 +272,8 @@ class TestFinalLayouts(QiskitTestCase):
         # Trivial layout
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = trivial_layout
-        # Dense layout
-        expected_layout_level2 = dense_layout
         # CSP layout
+        expected_layout_level2 = csp_layout
         expected_layout_level3 = csp_layout
 
         expected_layouts = [expected_layout_level0,
