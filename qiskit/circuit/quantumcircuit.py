@@ -118,10 +118,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
 
-            Each tuple is in the format ``(instruction, qargs, cargs)``.
-            Where instruction is an Instruction (or subclass) object,
-            qargs is a list of Qubit objects, and cargs is a list of Clbit
-            objects.
+            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a list of Clbit objects.
         """
         return QuantumCircuitData(self)
 
