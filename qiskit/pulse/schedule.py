@@ -265,7 +265,7 @@ class Schedule(ScheduleComponent):
         """
         Return a Schedule with only the instructions from this Schedule *failing* at least one of
         the provided filters. That is, this function has the same inputs as self.filter, but returns
-        the complement schedule, so that self.filter(args) | self.exclude(args) == self
+        the complement Schedule, so that self.filter(args) | self.exclude(args) == self
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
@@ -290,7 +290,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             filter_func: function of the form (int, ScheduleComponent) -> bool
-            new_sched_name: name of the returned schedule
+            new_sched_name: name of the returned Schedule
         """
         subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
