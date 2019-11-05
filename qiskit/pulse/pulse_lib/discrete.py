@@ -16,7 +16,7 @@
 
 """Module for builtin discrete pulses.
 
-Note the sampling strategy use for all discrete pulses is `left`.
+Note the sampling strategy use for all discrete pulses is `midpoint`.
 """
 from typing import Optional
 
@@ -26,13 +26,13 @@ from qiskit.pulse.pulse_lib import continuous
 from . import samplers
 
 
-_sampled_constant_pulse = samplers.left(continuous.constant)
+_sampled_constant_pulse = samplers.midpoint(continuous.constant)
 
 
 def constant(duration: int, amp: complex, name: Optional[str] = None) -> SamplePulse:
     """Generates constant-sampled `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -42,7 +42,7 @@ def constant(duration: int, amp: complex, name: Optional[str] = None) -> SampleP
     return _sampled_constant_pulse(duration, amp, name=name)
 
 
-_sampled_zero_pulse = samplers.left(continuous.zero)
+_sampled_zero_pulse = samplers.midpoint(continuous.zero)
 
 
 def zero(duration: int, name: Optional[str] = None) -> SamplePulse:
@@ -55,14 +55,14 @@ def zero(duration: int, name: Optional[str] = None) -> SamplePulse:
     return _sampled_zero_pulse(duration, name=name)
 
 
-_sampled_square_pulse = samplers.left(continuous.square)
+_sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
 def square(duration: int, amp: complex, period: float = None,
            phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates square wave `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -77,7 +77,7 @@ def square(duration: int, amp: complex, period: float = None,
     return _sampled_square_pulse(duration, amp, period, phase=phase, name=name)
 
 
-_sampled_sawtooth_pulse = samplers.left(continuous.sawtooth)
+_sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
 def sawtooth(duration: int, amp: complex, period: float = None,
@@ -97,14 +97,14 @@ def sawtooth(duration: int, amp: complex, period: float = None,
     return _sampled_sawtooth_pulse(duration, amp, period, phase=phase, name=name)
 
 
-_sampled_triangle_pulse = samplers.left(continuous.triangle)
+_sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
 def triangle(duration: int, amp: complex, period: float = None,
              phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates triangle wave `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -119,14 +119,14 @@ def triangle(duration: int, amp: complex, period: float = None,
     return _sampled_triangle_pulse(duration, amp, period, phase=phase, name=name)
 
 
-_sampled_cos_pulse = samplers.left(continuous.cos)
+_sampled_cos_pulse = samplers.midpoint(continuous.cos)
 
 
 def cos(duration: int, amp: complex, freq: float = None,
         phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates cosine wave `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -141,7 +141,7 @@ def cos(duration: int, amp: complex, freq: float = None,
     return _sampled_cos_pulse(duration, amp, freq, phase=phase, name=name)
 
 
-_sampled_sin_pulse = samplers.left(continuous.sin)
+_sampled_sin_pulse = samplers.midpoint(continuous.sin)
 
 
 def sin(duration: int, amp: complex, freq: float = None,
@@ -161,7 +161,7 @@ def sin(duration: int, amp: complex, freq: float = None,
     return _sampled_sin_pulse(duration, amp, freq, phase=phase, name=name)
 
 
-_sampled_gaussian_pulse = samplers.left(continuous.gaussian)
+_sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
 def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None) -> SamplePulse:
@@ -170,7 +170,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent large
     initial/final discontinuities.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Integrated area under curve is $\Omega_g(amp, sigma) = amp \times np.sqrt(2\pi \sigma^2)$
 
@@ -186,14 +186,14 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
                                    zeroed_width=zeroed_width, rescale_amp=True, name=name)
 
 
-_sampled_gaussian_deriv_pulse = samplers.left(continuous.gaussian_deriv)
+_sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
 
 
 def gaussian_deriv(duration: int, amp: complex, sigma: float,
                    name: Optional[str] = None) -> SamplePulse:
     r"""Generates unnormalized gaussian derivative `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -205,7 +205,7 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
     return _sampled_gaussian_deriv_pulse(duration, amp, center, sigma, name=name)
 
 
-_sampled_sech_pulse = samplers.left(continuous.sech)
+_sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
 def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
@@ -213,7 +213,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SampleP
 
     Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -226,13 +226,13 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SampleP
                                name=name)
 
 
-_sampled_sech_deriv_pulse = samplers.left(continuous.sech_deriv)
+_sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
 
 
 def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
     r"""Generates unnormalized sech derivative `SamplePulse`.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -244,7 +244,7 @@ def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> S
     return _sampled_sech_deriv_pulse(duration, amp, center, sigma, name=name)
 
 
-_sampled_gaussian_square_pulse = samplers.left(continuous.gaussian_square)
+_sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
@@ -254,7 +254,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent
     large initial/final discontinuities.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -271,7 +271,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                                           zeroed_width=zeroed_width, name=name)
 
 
-_sampled_drag_pulse = samplers.left(continuous.drag)
+_sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float,
@@ -280,7 +280,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
 
     Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
 
-    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
