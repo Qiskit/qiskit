@@ -280,8 +280,54 @@ class TestFinalLayouts(QiskitTestCase):
         expected_layout_level1 = trivial_layout
         # Dense layout
         expected_layout_level2 = dense_layout
-        # Noise adaptive layout
+        # CSP layout
         expected_layout_level3 = csp_layout
+
+        expected_layouts = [expected_layout_level0,
+                            expected_layout_level1,
+                            expected_layout_level2,
+                            expected_layout_level3]
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_layout_tokyo_fully_connected_cx(self, level):
+        """Test that final layout in tokyo in a fully connected circuit
+        """
+        qr = QuantumRegister(5, 'qr')
+        qc = QuantumCircuit(qr)
+        for qubit_target in qr:
+            for qubit_control in qr:
+                if qubit_control != qubit_target:
+                    qc.cx(qubit_control, qubit_target)
+
+        ancilla = QuantumRegister(15, 'ancilla')
+        trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
+                          5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                          9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                          13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                          17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+
+        dense_layout = {2: qr[0], 6: qr[1], 1: qr[2], 5: qr[3], 0: qr[4], 3: ancilla[0],
+                        4: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
+                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
+                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                        19: ancilla[14]}
+
+        noise_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4], 0: ancilla[0],
+                        1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4], 7: ancilla[5],
+                        8: ancilla[6], 9: ancilla[7], 12: ancilla[8], 13: ancilla[9],
+                        14: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                        19: ancilla[14], }
+        # noise_layout =
+        # Trivial layout
+        expected_layout_level0 = trivial_layout
+        expected_layout_level1 = trivial_layout
+        # Dense layout
+        expected_layout_level2 = dense_layout
+        # Noise adaptive layout
+        expected_layout_level3 = noise_layout
 
         expected_layouts = [expected_layout_level0,
                             expected_layout_level1,
