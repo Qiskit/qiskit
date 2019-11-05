@@ -86,9 +86,6 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             The matplotlib.Figure of the visualization if
             neither ax_real or ax_imag is set.
 
-    Raises:
-        ImportError: Requires matplotlib.
-
     Example:
         .. jupyter-execute::
 
@@ -105,12 +102,124 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             job = execute(qc, backend).result()
             plot_state_hinton(job.get_statevector(qc), title="New Hinton Plot")
     """
+    num = int(np.log2(len(rho)))
+
+    # get the labels
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+
+    fig = _plot_matrix_hinton(mat=rho, row_names=row_names, column_names=column_names,
+                              oper_name='$\\rho$', title=title, figsize=figsize,
+                              ax_real=ax_real, ax_imag=ax_imag)
+
+    if ax_real is None and ax_imag is None:
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
+        return fig
+
+
+def plot_quantum_channel_hinton(channel, title='', figsize=None,
+                                ax_real=None, ax_imag=None, basis=None):
+    """Hinton diagram plot of the Chi-matrix representation of a quantum channel.
+
+    Args:
+        channel (QuantumChannel): Arbitrary QuantumChannel object to visualize.
+        title (str): a string that represents the plot title
+        figsize (tuple): Figure size in inches.
+        ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. If this is specified without an
+            ax_imag only the real component plot will be generated.
+            Additionally, if specified there will be no returned Figure since
+            it is redundant.
+        ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. If this is specified without an
+            ax_imag only the real component plot will be generated.
+            Additionally, if specified there will be no returned Figure since
+            it is redundant.
+        basis (tuple[str]): A list of string to represent each basis operator.
+
+    Returns:
+         matplotlib.Figure:
+            The matplotlib.Figure of the visualization if
+            neither ax_real or ax_imag is set.
+
+    Raises:
+        ImportError: Requires matplotlib.
+
+    Example:
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit
+           from qiskit import quantum_info as qi
+           from qiskit.visualization import plot_process_city
+           %matplotlib inline
+
+           qc = QuantumCircuit(2)
+           qc.cx(0, 1)
+
+           plot_quantum_channel_hinton(qc, title="New Hinton Plot")
+    """
+    basis = basis or ['i', 'x', 'y', 'z']
+
+    mat = Chi(channel).data
+    num = int(math.log(mat.shape[0], len(basis)))
+
+    # get the labels
+    row_names = list(map(''.join, itertools.product(basis, repeat=num)))
+    column_names = list(map(''.join, itertools.product(basis, repeat=num)))
+
+    fig = _plot_matrix_hinton(mat=mat, row_names=row_names, column_names=column_names,
+                              oper_name='$\\chi$', title=title, figsize=figsize,
+                              ax_real=ax_real, ax_imag=ax_imag)
+
+    if ax_real is None and ax_imag is None:
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
+        return fig
+
+
+def _plot_matrix_hinton(mat, row_names, column_names, oper_name,
+                        title="", figsize=None,
+                        ax_real=None, ax_imag=None):
+    """Plot a hinton diagram of arbitrary matrix.
+
+    Args:
+        mat (ndarray): Numpy array of matrix to visualize.
+        row_names (list(str)): Labels of row.
+        column_names (list(str)): Labels of colmn.
+        oper_name (str): Representation of operator to show in z-axis label
+        title (str): a string that represents the plot title
+        figsize (tuple): Figure size in inches.
+        ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. If this is specified without an
+            ax_imag only the real component plot will be generated.
+            Additionally, if specified there will be no returned Figure since
+            it is redundant.
+        ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. If this is specified without an
+            ax_imag only the real component plot will be generated.
+            Additionally, if specified there will be no returned Figure since
+            it is redundant.
+
+    Returns:
+         matplotlib.Figure: The matplotlib.Figure of the visualization.
+
+    Raises:
+        ImportError: Requires matplotlib.
+    """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    rho = _validate_input_state(rho)
+    mat = _validate_input_state(mat)
+
     if figsize is None:
         figsize = (8, 5)
-    num = int(np.log2(len(rho)))
+
     if not ax_real and not ax_imag:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     else:
@@ -120,11 +229,9 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
-    max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
-    datareal = np.real(rho)
-    dataimag = np.imag(rho)
-    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    max_weight = 2 ** np.ceil(np.log(np.abs(mat).max()) / np.log(2))
+    datareal = np.real(mat)
+    dataimag = np.imag(mat)
     lx = len(datareal[0])            # Work out matrix dimensions
     ly = len(datareal[:, 0])
     # Real
@@ -147,7 +254,7 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
         ax1.autoscale_view()
         ax1.invert_yaxis()
-        ax1.set_title('Re[$\\rho$]', fontsize=14)
+        ax1.set_title('Re[{}]'.format(oper_name), fontsize=14)
     # Imaginary
     if ax2:
         ax2.patch.set_facecolor('gray')
@@ -169,14 +276,12 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
 
         ax2.autoscale_view()
         ax2.invert_yaxis()
-        ax2.set_title('Im[$\\rho$]', fontsize=14)
+        ax2.set_title('Im[{}]'.format(oper_name), fontsize=14)
+
     if title:
         fig.suptitle(title, fontsize=16)
-    if ax_real is None and ax_imag is None:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(fig)
-        return fig
+
+    return fig
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
@@ -347,8 +452,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
 
 
 def plot_quantum_channel_city(channel, title="", figsize=None, color=None,
-                              alpha=1, ax_real=None, ax_imag=None,
-                              oper_name=None, basis=None):
+                              alpha=1, ax_real=None, ax_imag=None, basis=None):
     """City plot of the Chi-matrix representation of a quantum channel.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
@@ -373,7 +477,6 @@ def plot_quantum_channel_city(channel, title="", figsize=None, color=None,
             ax_imag only the real component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
-        oper_name (str): Representation of channel to show in z-axis label
         basis (tuple[str]): A list of string to represent each basis operator.
 
     Returns:
@@ -392,20 +495,21 @@ def plot_quantum_channel_city(channel, title="", figsize=None, color=None,
            qc = QuantumCircuit(2)
            qc.cx(0, 1)
 
-           plot_process_city(qi.Chi(qc).data, color=['midnightblue', 'midnightblue'],
-                title="New Process City")
+           plot_quantum_channel_city(qc, color=['midnightblue', 'midnightblue'],
+                                     title="New Process City")
 
     """
     basis = basis or ['i', 'x', 'y', 'z']
-    num = int(math.log(channel.shape[0], len(basis)))
+
+    mat = Chi(channel).data
+    num = int(math.log(mat.shape[0], len(basis)))
 
     # get the labels
     row_names = list(map(''.join, itertools.product(basis, repeat=num)))
     column_names = list(map(''.join, itertools.product(basis, repeat=num)))
 
-    mat = Chi(channel).data
     fig = _plot_matrix_city(mat=mat, row_names=row_names, column_names=column_names,
-                            oper_name=oper_name or '$\\chi$', title=title, figsize=figsize,
+                            oper_name='$\\chi$', title=title, figsize=figsize,
                             color=color, alpha=alpha, ax_real=ax_real, ax_imag=ax_imag)
 
     if ax_real is None and ax_imag is None:
@@ -447,9 +551,7 @@ def _plot_matrix_city(mat, row_names, column_names, oper_name,
             it is redundant.
 
     Returns:
-         matplotlib.Figure:
-            The matplotlib.Figure of the visualization if the
-            ``ax_real`` and ``ax_imag`` kwargs are not set
+         matplotlib.Figure: The matplotlib.Figure of the visualization.
 
     Raises:
         ImportError: Requires matplotlib.
@@ -597,7 +699,8 @@ def _plot_matrix_city(mat, row_names, column_names, oper_name,
             tick.label.set_fontsize(14)
         ax2.get_autoscalez_on()
 
-    fig.suptitle(title, fontsize=16)
+    if title:
+        fig.suptitle(title, fontsize=16)
 
     return fig
 
