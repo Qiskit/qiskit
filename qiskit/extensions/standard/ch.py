@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 controlled-H gate.
 """
@@ -76,7 +74,7 @@ class CHGate(ControlledGate):
                          [0, 1/np.sqrt(2), 0, -1/np.sqrt(2)]], dtype=complex)
 
 
-def ch(self, ctl, tgt):
+def ch(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CH from ctl to tgt."""
     return self.append(CHGate(), [ctl, tgt], [])
 

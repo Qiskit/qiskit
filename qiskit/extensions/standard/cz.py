@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 controlled-Phase gate.
 """
@@ -63,7 +61,7 @@ class CzGate(ControlledGate):
                             [0, 0, 0, -1]], dtype=complex)
 
 
-def cz(self, ctl, tgt):
+def cz(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CZ to circuit."""
     return self.append(CzGate(), [ctl, tgt], [])
 

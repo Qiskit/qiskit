@@ -14,7 +14,6 @@
 
 """Utility functions for generating random circuits."""
 
-from inspect import signature
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -25,7 +24,7 @@ from qiskit.extensions import (IdGate, U1Gate, U2Gate, U3Gate, XGate,
                                CyGate, CzGate, CHGate, CrzGate, Cu1Gate,
                                Cu3Gate, SwapGate, RZZGate,
                                ToffoliGate, FredkinGate)
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(n_qubits, depth, max_operands=3, measure=False,
@@ -45,13 +44,16 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
         QuantumCircuit: constructed circuit
 
     Raises:
-        QiskitError: when invalid options given
+        CircuitError: when invalid options given
     """
     if max_operands < 1 or max_operands > 3:
-        raise QiskitError("max_operands must be between 1 and 3")
+        raise CircuitError("max_operands must be between 1 and 3")
 
     one_q_ops = [IdGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
                  HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
+    one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, Cu1Gate, CrzGate]
+    two_param = [U2Gate]
+    three_param = [U3Gate, Cu3Gate]
     two_q_ops = [CnotGate, CyGate, CzGate, CHGate, CrzGate,
                  Cu1Gate, Cu3Gate, SwapGate, RZZGate]
     three_q_ops = [ToffoliGate, FredkinGate]
@@ -86,18 +88,21 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                 operation = rng.choice(two_q_ops)
             elif num_operands == 3:
                 operation = rng.choice(three_q_ops)
-            op_args = list(signature(operation).parameters.keys())
-            num_angles = len(op_args)
-            if 'label' in op_args:  # TODO: label is not part of gate params and must be removed
-                num_angles -= 1
+            if operation in one_param:
+                num_angles = 1
+            elif operation in two_param:
+                num_angles = 2
+            elif operation in three_param:
+                num_angles = 3
+            else:
+                num_angles = 0
             angles = [rng.uniform(0, 2*np.pi) for x in range(num_angles)]
             register_operands = [qr[i] for i in operands]
             op = operation(*angles)
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                possible_values = range(pow(2, n_qubits))
-                value = rng.choice(list(possible_values))
+                value = rng.randint(0, np.power(2, n_qubits))
                 op.condition = (cr, value)
 
             qc.append(op, register_operands)

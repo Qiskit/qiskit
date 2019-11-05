@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    In the qiskit 0.9.0 release the representation of bits (both qubits and
+    classical bits) changed from tuples of the form ``(register, index)`` to be
+    instances of the classes ``qiskit.circuit.Qubit`` and
+    ``qiskit.circuit.Clbit``. For backwards compatibility comparing
+    the equality between a legacy tuple and the bit classes was supported as
+    everything transitioned from tuples to being objects. This support is now
+    deprecated and will be removed in the future. Everything should use the bit
+    classes instead of tuples moving forward.

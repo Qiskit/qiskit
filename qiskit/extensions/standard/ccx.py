@@ -91,3 +91,4 @@ def ccx(self, ctl1, ctl2, tgt):
 
 
 QuantumCircuit.ccx = ccx
+QuantumCircuit.toffoli = ccx

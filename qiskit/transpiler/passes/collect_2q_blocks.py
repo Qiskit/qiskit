@@ -12,19 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Traverse the DAG and find blocks of gates that act consecutively on
-pairs of qubits. Write the blocks to propert_set as a dictionary
-of the form::
-
-    {(q0, q1): [[g0, g1, g2], [g5]],
-     (q0, q2): [[g3, g4]]
-     ..
-     .
-    }
-
-Based on implementation by Andrew Cross.
-"""
+"""Collect sequences of uninterrupted gates acting on 2 qubits."""
 
 from collections import defaultdict
 
@@ -32,10 +20,23 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class Collect2qBlocks(AnalysisPass):
-    """Pass to collect sequences of uninterrupted gates acting on 2 qubits.
+    """Collect sequences of uninterrupted gates acting on 2 qubits.
+
+    Traverse the DAG and find blocks of gates that act consecutively on
+    pairs of qubits. Write the blocks to propert_set as a dictionary
+    of the form::
+
+        {(q0, q1): [[g0, g1, g2], [g5]],
+         (q0, q2): [[g3, g4]]
+         ..
+         .
+        }
+
+    Based on implementation by Andrew Cross.
     """
+
     def run(self, dag):
-        """collect blocks of adjacent gates acting on a pair of "cx" qubits.
+        """Run the Collect2qBlocks pass on `dag`.
 
         The blocks contain "op" nodes in topological sort order
         such that all gates in a block act on the same pair of
@@ -43,7 +44,8 @@ class Collect2qBlocks(AnalysisPass):
         by examining predecessors and successors of "cx" gates in
         the circuit. u1, u2, u3, cx, id gates will be included.
 
-        Return a list of tuples of "op" node labels.
+        After the execution, ``property_set['block_list']`` is set to
+        a list of tuples of "op" node labels.
         """
         # Initiate the commutation set
         self.property_set['commutation_set'] = defaultdict(list)
@@ -68,7 +70,7 @@ class Collect2qBlocks(AnalysisPass):
                         pnd = pred[0]
                         if pnd.name in good_names:
                             if (pnd.name == "cx" and set(pnd.qargs) == these_qubits) or \
-                                    pnd.name != "cx":
+                                    pnd.name != "cx" and not pnd.op.is_parameterized():
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
                                 pred_next.extend(dag.quantum_predecessors(pnd))
@@ -101,7 +103,7 @@ class Collect2qBlocks(AnalysisPass):
                                                     set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
-                            if pnd.name != "cx":
+                            if pnd.name != "cx" and not pnd.op.is_parameterized():
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
@@ -140,7 +142,7 @@ class Collect2qBlocks(AnalysisPass):
                         snd = succ[0]
                         if snd.name in good_names:
                             if (snd.name == "cx" and set(snd.qargs) == these_qubits) or \
-                                    snd.name != "cx":
+                                    snd.name != "cx" and not snd.op.is_parameterized():
                                 group.append(snd)
                                 nodes_seen[snd] = True
                                 succ_next.extend(dag.quantum_successors(snd))
@@ -177,7 +179,7 @@ class Collect2qBlocks(AnalysisPass):
                             # If a successor is a single qubit gate, add it
                             # NB as we have eliminated all gates with names not in
                             # good_names, this check guarantees they are single qubit
-                            if snd.name != "cx":
+                            if snd.name != "cx" and not snd.op.is_parameterized():
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True

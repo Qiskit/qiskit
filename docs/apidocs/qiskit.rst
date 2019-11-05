@@ -1,3 +1,4 @@
+.. module:: qiskit
 
 =============
 API Reference
@@ -7,7 +8,7 @@ API Reference
    :maxdepth: 1
 
    assembler
-   circuit/circuit
+   circuit
    compiler
    converters
    dagcircuit
@@ -22,4 +23,4 @@ API Reference
    tools/tools
    transpiler/transpiler
    validation
-   visualization/visualization
+   visualization

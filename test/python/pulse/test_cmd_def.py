@@ -77,7 +77,7 @@ class TestCmdDef(QiskitTestCase):
     def test_parameterized_schedule(self):
         """Test building parameterized schedule."""
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P2*cos(np.pi*P1)')
         converted_instruction = converter(qobj)
 
@@ -101,7 +101,7 @@ class TestCmdDef(QiskitTestCase):
     def test_sequenced_parameterized_schedule(self):
         """Test parametrized schedule consist of multiple instruction. """
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='P2'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=30, phase='P3')]
@@ -136,7 +136,7 @@ class TestCmdDef(QiskitTestCase):
     def test_negative_phases(self):
         """Test bind parameters with negative values."""
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P2)')]
         converted_instruction = [converter(qobj) for qobj in qobjs]
@@ -153,7 +153,7 @@ class TestCmdDef(QiskitTestCase):
         defaults = self.backend.defaults()
         cmd_def = defaults.build_cmd_def()
 
-        cx_pv = cmd_def.get('cx', (0, 1), P2=0)
+        cx_pv = cmd_def.get('ParametrizedGate', (0, 1), P2=0)
         pv_found = False
         for _, instr in cx_pv.instructions:
             cmd = instr.command
@@ -167,6 +167,3 @@ class TestCmdDef(QiskitTestCase):
         u1_minus_pi = cmd_def.get('u1', 0, P1=1)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
-
-        for chan in u1_minus_pi.channels:
-            self.assertEqual(chan.buffer, defaults.buffer)

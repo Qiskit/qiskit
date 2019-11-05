@@ -13,80 +13,37 @@
 notifications:
   email: false
 
-cache: pip
-
-###############################################################################
-# Anchored and aliased definitions.
-###############################################################################
-
-# These are used for avoiding repeating code, and due to problems with
-# overriding some keys (in particular, "os" and "language: ptyhon") when using
-# the standard travis matrix with stages.
-#
-# This allows re-using different "sets" of configurations in the stages
-# matrix, mimicking a hierarchy:
-# * stage_generic
-#   * stage_linux
-#   * stage_osx
+cache:
+  pip: true
+  directories:
+    - .stestr
 
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
-    - pip install -U -r requirements.txt
+    - pip install -U -r requirements.txt -c constraints.txt
     - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-    - pip install -e .
+    - pip install -c constraints.txt -e .
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
-    - make test_ci
+    - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
+    - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+    - stestr run
   after_failure:
     - python tools/report_ci_failure.py
 
 stage_linux: &stage_linux
   <<: *stage_generic
   os: linux
-  dist: trusty
+  dist: bionic
   language: python
-  python: 3.5
+  python: 3.7
 
-stage_osx: &stage_osx
-  <<: *stage_generic
-  os: osx
-  osx_image: xcode9.2
-  language: generic
-  cache:
-    pip: true
-    directories:
-      - ~/python-interpreters/
-  before_install:
-    # Travis does not provide support for Python 3 under osx - it needs to be
-    # installed manually.
-    |
-    if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
-        git clone git://github.com/pyenv/pyenv.git
-        cd pyenv/plugins/python-build
-        ./install.sh
-        cd ../../..
-        python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
-      fi
-      virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
-      source venv/bin/activate
-    fi
-
-
-###############################################################################
-# Stage-related definitions
-###############################################################################
-
-# Define the order of the stages.
-
-# Define the job matrix explicitly, as matrix expansion causes issues when
-# using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
-    # GNU/Linux, Python 3.6 with coverage
+
     - name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
       python: 3.6
@@ -107,12 +64,14 @@ jobs:
         directories:
         - .hypothesis
       script:
+      - pip install -U pip
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
       - make test_randomized
 
     - name: Benchmarks
       <<: *stage_linux
+      python: 3.5
       script:
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"

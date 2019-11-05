@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the visualization of the rzz gate in the latex circuit drawer to match
+    the cu1 gate to reflect the symmetry in the rzz gate. The fix is based on
+    the cds command of the qcircuit latex package. Fixes
+    `issue #1957 <https://github.com/Qiskit/qiskit-terra/issues/1957>`_

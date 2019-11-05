@@ -35,6 +35,7 @@ from .ubase import UBase
 from .x import XGate
 from .y import YGate
 from .z import ZGate
+from .r import RGate
 from .rx import RXGate
 from .ry import RYGate
 from .rz import RZGate
@@ -44,3 +45,4 @@ from .crz import CrzGate
 from .cu3 import Cu3Gate
 from .rzz import RZZGate
 from .rxx import RXXGate
+from .ms import MSGate

@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Support for setting ``qiskit.circuit.Instruction`` parameters with an object
+    of type ``qiskit.qasm.node.Node`` has been deprecated. ``Node`` objects that
+    were previously used as parameters should be converted to a supported type
+    prior to initializing a new ``Instruction`` object or calling the
+    ``Instruction.params`` setter. Supported types are ``int``, ``float``,
+    ``complex``, ``str``, ``qiskit.circuit.ParameterExpression``, or
+    ``numpy.ndarray``.

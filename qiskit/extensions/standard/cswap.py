@@ -62,3 +62,4 @@ def cswap(self, ctl, tgt1, tgt2):
 
 
 QuantumCircuit.cswap = cswap
+QuantumCircuit.fredkin = cswap

@@ -12,10 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-The CX direction rearranges the direction of the cx nodes to make the circuit
-compatible with the coupling_map.
-"""
+"""Rearrange the direction of the cx nodes to match the directed coupling map."""
+
 from math import pi
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -27,11 +25,10 @@ from qiskit.extensions.standard import U2Gate, CnotGate
 
 
 class CXDirection(TransformationPass):
-    """
-     Rearranges the direction of the cx nodes to make the circuit
-     compatible with the directed coupling map.
+    """Rearrange the direction of the cx nodes to match the directed coupling map.
 
-     It uses this equivalence::
+    Flip the cx nodes to match the directed coupling map. This pass makes use
+    of the following equivalence::
 
         ---(+)---      --[H]---.---[H]--
             |      =           |
@@ -39,21 +36,23 @@ class CXDirection(TransformationPass):
     """
 
     def __init__(self, coupling_map):
-        """
+        """CXDirection initializer.
+
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
         """
-
         super().__init__()
         self.coupling_map = coupling_map
 
     def run(self, dag):
-        """
+        """Run the CXDirection pass on `dag`.
+
         Flips the cx nodes to match the directed coupling map. Modifies the
         input dag.
 
         Args:
             dag (DAGCircuit): DAG to map.
+
         Returns:
             DAGCircuit: The rearranged dag for the coupling map
 
@@ -61,7 +60,6 @@ class CXDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
-
         cmap_edges = set(self.coupling_map.get_edges())
 
         if len(dag.qregs) > 1:

@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The `DenseLayout` is now noise-aware. The optimization level 2 uses this layout selection
-    mechanisms.

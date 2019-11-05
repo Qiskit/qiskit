@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,import-error
+# pylint: disable=import-error
 
 """
 Visualization functions for measurement counts.
@@ -75,13 +75,30 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             will be no returned Figure since it is redundant.
 
     Returns:
-        matplotlib.Figure: A figure for the rendered histogram, if the ``ax``
+        matplotlib.Figure:
+            A figure for the rendered histogram, if the ``ax``
             kwarg is not set.
 
     Raises:
         ImportError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
+
+    Example:
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit.visualization import plot_histogram
+           %matplotlib inline
+
+           qc = QuantumCircuit(2, 2)
+           qc.h(0)
+           qc.cx(0, 1)
+           qc.measure([0, 1], [0, 1])
+
+           backend = BasicAer.get_backend('qasm_simulator')
+           job = execute(qc, backend)
+           plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
@@ -187,7 +204,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     ax.yaxis.set_major_locator(MaxNLocator(5))
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
-    ax.set_facecolor('#eeeeee')
     plt.grid(which='major', axis='y', zorder=0, linestyle='--')
     if title:
         plt.title(title)

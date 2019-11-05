@@ -12,10 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pass for cancelling self-inverse gates/rotations. The cancellation utilizes the
-commutation relations in the circuit. Gates considered include H, X, Y, Z, CX, CY, CZ.
-"""
+"""Cancel the redundant (self-adjoint) gates through commutation relations."""
+
 from collections import defaultdict
 import numpy as np
 
@@ -31,9 +29,12 @@ _CUTOFF_PRECISION = 1E-5
 
 
 class CommutativeCancellation(TransformationPass):
-    """
-    Transformation pass that cancels the redundant
-    (self-adjoint) gates through commutation relations
+    """Cancel the redundant (self-adjoint) gates through commutation relations.
+
+    Pass for cancelling self-inverse gates/rotations. The cancellation utilizes
+    the commutation relations in the circuit. Gates considered include::
+
+        H, X, Y, Z, CX, CY, CZ
     """
 
     def __init__(self):
@@ -41,7 +42,7 @@ class CommutativeCancellation(TransformationPass):
         self.requires.append(CommutationAnalysis())
 
     def run(self, dag):
-        """Run the CommutativeCancellation pass on a dag
+        """Run the CommutativeCancellation pass on `dag`.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
@@ -52,7 +53,6 @@ class CommutativeCancellation(TransformationPass):
         Raises:
             TranspilerError: when the 1 qubit rotation gates are not found
         """
-
         # Now the gates supported are hard-coded
         q_gate_list = ['cx', 'cy', 'cz', 'h', 'y']
 
@@ -93,12 +93,12 @@ class CommutativeCancellation(TransformationPass):
 
         for cancel_set_key in cancellation_sets:
             set_len = len(cancellation_sets[cancel_set_key])
-            if ((set_len) > 1 and cancel_set_key[0] in q_gate_list):
+            if set_len > 1 and cancel_set_key[0] in q_gate_list:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
                 for c_node in gates_to_cancel[:(set_len // 2) * 2]:
                     dag.remove_op_node(c_node)
 
-            elif((set_len) > 1 and cancel_set_key[0] in ['z_rotation', 'x_rotation']):
+            elif set_len > 1 and cancel_set_key[0] in ['z_rotation', 'x_rotation']:
                 run = cancellation_sets[cancel_set_key]
                 run_qarg = run[0].qargs[0]
                 total_angle = 0.0  # lambda
