@@ -102,6 +102,9 @@ class CmdDef:
             cmd_name: Name of the command
             qubits: Qubits command applies to
             schedule_generator: Schedule or callable that produces Schedule to be added
+
+        Raises:
+            PulseError: If `schedule_generator` is not a `Schedule` or `Callable`.
         """
         qubits = _to_qubit_tuple(qubits)
         cmd_dict = self._cmd_dict.setdefault(cmd_name, {})

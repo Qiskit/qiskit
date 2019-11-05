@@ -175,7 +175,7 @@ class TestCmdDef(QiskitTestCase):
         x_test = 10
         amp_test = 1.0
 
-        def f(x):
+        def test_func(x):
             sched = Schedule()
             sched += pulse_lib.constant(int(x), amp_test)(DriveChannel(0))
             return sched
@@ -184,11 +184,11 @@ class TestCmdDef(QiskitTestCase):
         ref_sched += pulse_lib.constant(x_test, amp_test)(DriveChannel(0))
 
         cmd_def = CmdDef()
-        cmd_def.add('f', (0,), f)
+        cmd_def.add('f', (0,), test_func)
         self.assertEqual(cmd_def.get('f', (0,), x_test), ref_sched)
 
         self.assertIsInstance(cmd_def.get_signature('f', (0,)), Signature)
 
         self.assertEqual(cmd_def.get_parameters('f', (0,)), ('x',))
 
-        self.assertEqual(cmd_def.get_unevaluated('f', (0,)), f)
+        self.assertEqual(cmd_def.get_unevaluated('f', (0,)), test_func)
