@@ -290,14 +290,14 @@ class QuantumCircuit:
     @property
     def qubits(self):
         """
-        Returns a list of quantum bits in the order that the registers had been added.
+        Returns a list of quantum bits in the order that the registers were added.
         """
         return [qbit for qreg in self.qregs for qbit in qreg]
 
     @property
     def clbits(self):
         """
-        Returns a list of classical bits in the order that the registers had been added.
+        Returns a list of classical bits in the order that the registers were added.
         """
         return [cbit for creg in self.cregs for cbit in creg]
 
