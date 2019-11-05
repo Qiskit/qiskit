@@ -26,6 +26,7 @@ import math
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
+from qiskit.quantum_info.operators.channel import Chi
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
@@ -345,16 +346,16 @@ def plot_state_city(rho, title="", figsize=None, color=None,
         return fig
 
 
-def plot_process_city(channel, title="", figsize=None, color=None,
-                      alpha=1, ax_real=None, ax_imag=None,
-                      oper_name=None, basis=None):
-    """Plot the cityscape of quantum channel.
+def plot_quantum_channel_city(channel, title="", figsize=None, color=None,
+                              alpha=1, ax_real=None, ax_imag=None,
+                              oper_name=None, basis=None):
+    """City plot of the Chi-matrix representation of a quantum channel.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
-    part of the channel.
+    part of the quantum channel.
 
     Args:
-        channel (ndarray): Numpy array representing quantum channel.
+        channel (QuantumChannel): Arbitrary QuantumChannel object to visualize.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list): A list of len=2 giving colors for real and
@@ -402,7 +403,8 @@ def plot_process_city(channel, title="", figsize=None, color=None,
     row_names = list(map(''.join, itertools.product(basis, repeat=num)))
     column_names = list(map(''.join, itertools.product(basis, repeat=num)))
 
-    fig = _plot_matrix_city(mat=channel, row_names=row_names, column_names=column_names,
+    mat = Chi(channel).data
+    fig = _plot_matrix_city(mat=mat, row_names=row_names, column_names=column_names,
                             oper_name=oper_name or '$\\chi$', title=title, figsize=figsize,
                             color=color, alpha=alpha, ax_real=ax_real, ax_imag=ax_imag)
 
