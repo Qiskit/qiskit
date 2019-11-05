@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
@@ -128,6 +129,7 @@ def level_3_pass_manager(transpile_config):
     pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
+        pm3.append(CSPLayout(coupling_map), condition=_choose_layout_condition)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
