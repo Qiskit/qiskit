@@ -24,7 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 try:
-    import constraint  # pylint: disable=unused-import
+    import constraint  # pylint: disable=unused-import, import-error
 
     HAS_CONSTRAINT = True
 except Exception:  # pylint: disable=broad-except
