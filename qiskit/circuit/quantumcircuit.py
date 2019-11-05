@@ -812,7 +812,7 @@ class QuantumCircuit:
         return gate_ops
 
     def depth(self):
-        """Return circuit depth (i.e. length of critical path).
+        """Return circuit depth (i.e., length of critical path).
         This does not include compiler or simulator directives
         such as 'barrier' or 'snapshot'.
 
