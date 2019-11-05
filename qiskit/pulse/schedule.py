@@ -233,12 +233,11 @@ class Schedule(ScheduleComponent):
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
-        Return a new Schedule with only the instructions which pass though the provided filters.
-        Custom filters may be provided. If a list of channel indices is provided, only the
-        instructions that involve that channel (and maybe also others) will be included in the new
-        schedule. Similarly for instruction_types, only the instructions which are instances of the
-        provided types will be included. For intervals, instructions will be retained if their
-        timeslots are all wholly contained within *any* of the given intervals.
+        Return a new Schedule with only the instructions from this Schedule passing though the
+        provided filters; i.e. an instruction will be retained iff every function in filter_funcs
+        returns True, the instruction occurs on a channel type contained in channels,
+        the instruction type is contained in instruction_types, and the period over which the
+        instruction operates is fully contained in one specified in time_ranges or intervals.
 
         If no arguments are provided, this schedule is returned.
 
@@ -255,9 +254,8 @@ class Schedule(ScheduleComponent):
                                                  instruction_types=instruction_types,
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
-        subschedules = self.flatten()._children
-        valid_subschedules = [sched for sched in subschedules if composed_filter(sched)]
-        return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
+        return self._apply_filter(composed_filter,
+                                  new_sched_name="{name}-filtered".format(name=self.name))
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
@@ -265,9 +263,9 @@ class Schedule(ScheduleComponent):
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
-        Return a Schedule with only the instructions *failing* at least one of the provided filters.
-        That is, this function has the same inputs as self.filter, but returns the complement
-        schedule, so that self.filter(args) | self.exclude(args) == self
+        Return a Schedule with only the instructions from this Schedule *failing* at least one of
+        the provided filters. That is, this function has the same inputs as self.filter, but returns
+        the complement schedule, so that self.filter(args) | self.exclude(args) == self
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
@@ -282,9 +280,21 @@ class Schedule(ScheduleComponent):
                                                  instruction_types=instruction_types,
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
+        return self._apply_filter(lambda x: not composed_filter(x),
+                                  new_sched_name="{name}-excluded".format(name=self.name))
+
+    def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> Schedule:
+        """
+        Return a Schedule containing only the instructions from this Schedule that
+        filter_func returns True on
+
+        Args:
+            filter_func: function of the form (int, ScheduleComponent) -> bool
+            new_sched_name: name of the returned schedule
+        """
         subschedules = self.flatten()._children
-        valid_subschedules = [sched for sched in subschedules if not composed_filter(sched)]
-        return Schedule(*valid_subschedules, name="{name}-excluded".format(name=self.name))
+        valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
+        return Schedule(*valid_subschedules, name=new_sched_name)
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
@@ -294,9 +304,10 @@ class Schedule(ScheduleComponent):
         """
         Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
         iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
-        function in filter_funcs returns true, the instruction is a type contained in channels,
-        the instruction type is contained in instruction_types, and the period over which the
-        instruction operates is fully contained in one specified in time_ranges or intervals.
+        function in filter_funcs returns True, the instruction occurs on a channel type contained
+        in channels, the instruction type is contained in instruction_types, and the period over
+        which the instruction operates is fully contained in one specified in time_ranges or
+        intervals.
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
