@@ -18,12 +18,14 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
+
 from qiskit.extensions.standard.ubase import UBase
 from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
@@ -360,7 +362,10 @@ class AstInterpreter:
                 op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
             else:
                 # call a custom gate
-                raise QiskitError('Custom non-opaque gates are not supported by as_to_dag module')
+                op = Instruction(name=name,
+                                 num_qubits=self.gates[name]['n_bits'],
+                                 num_clbits=self.gates[name]['n_bits'],
+                                 params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
