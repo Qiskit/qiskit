@@ -51,22 +51,17 @@ from the multiprocessing library.
 """
 
 import os
-import platform
-from multiprocessing import Pool
+import queue
+from concurrent import futures
 from qiskit.exceptions import QiskitError
-from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 
-# Set parallel flag
-if os.environ.get('QISKIT_IN_PARALLEL', None) is None:
-    os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-
-# Number of local physical cpus
-CPU_COUNT = local_hardware_info()['cpus']
+# Set parallel core counts
+PARALLEL_COUNTS = os.environ.get('QISKIT_PARALLEL_COUNTS', 1)
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
-        task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT):
+        task, values, task_args=tuple(), task_kwargs={}, num_processes=PARALLEL_COUNTS):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -107,44 +102,38 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         nfinished[0] += 1
         Publisher().publish("terra.parallel.done", nfinished[0])
 
-    # Run in parallel if not Win and not in parallel already
-    if platform.system() != 'Windows' and num_processes > 1 \
-       and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
-        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
-        try:
-            pool = Pool(processes=num_processes)
+    def task_executor(input_queue, output_queue):
+        while not input_queue.empty():
+            try:
+                task_with_args = input_queue.get()
+                task, task_args, task_kwargs, callback = task_with_args
+                result = task(*task_args, **task_kwargs)
+                output_queue.put(result)
+                callback(0)
+            except queue.Empty:
+                pass
 
-            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                          _callback) for value in values]
+    parallel_counts = os.environ.get('QISKIT_PARALLEL_COUNTS', 1)
+    input_queue = queue.Queue(maxsize=0)
+    output_queue = queue.Queue(maxsize=0)
+    for value in values:
+        input_queue.put((task, (value,) + task_args, task_kwargs, _callback))
 
-            while not all([item.ready() for item in async_res]):
-                for item in async_res:
-                    item.wait(timeout=0.1)
+    # start executors
+    _executors = futures.ThreadPoolExecutor(max_workers=parallel_counts)
+    _futures = [_executors.submit(task_executor, input_queue, output_queue)
+                for _ in range(parallel_counts)]
 
-            pool.terminate()
-            pool.join()
+    # wait executors to finish
+    [_future.result(timeout=None) for _future in _futures]
 
-        except (KeyboardInterrupt, Exception) as error:
-            if isinstance(error, KeyboardInterrupt):
-                pool.terminate()
-                pool.join()
-                Publisher().publish("terra.parallel.finish")
-                os.environ['QISKIT_IN_PARALLEL'] = 'False'
-                raise QiskitError('Keyboard interrupt in parallel_map.')
-            # Otherwise just reset parallel flag and error
-            os.environ['QISKIT_IN_PARALLEL'] = 'False'
-            raise error
-
-        Publisher().publish("terra.parallel.finish")
-        os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-        return [ar.get() for ar in async_res]
-
-    # Cannot do parallel on Windows , if another parallel_map is running in parallel,
-    # or len(values) == 1.
     results = []
-    for _, value in enumerate(values):
-        result = task(value, *task_args, **task_kwargs)
-        results.append(result)
-        _callback(0)
+    while not output_queue.empty():
+        results.append(output_queue.get())
+
+    # validate whether all tasks are finished
+    if not len(results) == len(values):
+        raise QiskitError("Totally %s tasks but only %s finished" % (len(values), len(results)))
+
     Publisher().publish("terra.parallel.finish")
     return results
