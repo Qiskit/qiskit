@@ -62,22 +62,69 @@ class QuantumCircuit:
                 * ``QuantumCircuit(QuantumRegister(4))``
                 * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
                 * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
-
                 * If a list of ``int``, the amount of qubits and/or classical
                 bits to include in the circuit. It can either be a single
                 int for just the number of quantum bits, or 2 ints for the number of
                 quantum bits and classical bits respectively.
+
 
                 For example:
 
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
+
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
+
+    Examples:
+
+        Construct a simple Bell state circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            qc.draw()
+
+        Construct a 5 qubit GHZ circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(5)
+            qc.h(0)
+            qc.cx(0, range(1, 5))
+            qc.measure_all()
+
+        Construct a 4 qubit Berstein-Vazirani circuit using registers.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+            qr = QuantumRegister(3, 'q')
+            anc = QuantumRegister(1, 'ancilla')
+            cr = ClassicalRegister(3, 'c')
+            qc = QuantumCircuit(qr, anc, cr)
+
+            qc.x(anc[0])
+            qc.h(anc[0])
+            qc.h(qr[0:3])
+            qc.cx(qr[0:3], anc[0])
+            qc.h(qr[0:3])
+            qc.barrier(qr)
+            qc.measure(qr, cr)
+
+            qc.draw()
     """
     instances = 0
     prefix = 'circuit'
