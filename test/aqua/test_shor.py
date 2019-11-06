@@ -19,7 +19,7 @@ import math
 from test.aqua.common import QiskitAquaTestCase
 from parameterized import parameterized
 from qiskit import BasicAer
-from qiskit.aqua import run_algorithm, QuantumInstance, AquaError
+from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.algorithms import Shor
 
 
@@ -31,19 +31,8 @@ class TestShor(QiskitAquaTestCase):
     ])
     def test_shor_factoring(self, n_v, backend, factors):
         """ shor factoring test """
-        params = {
-            'problem': {
-                'name': 'factoring',
-            },
-            'algorithm': {
-                'name': 'Shor',
-                'N': n_v,
-            },
-            'backend': {
-                'shots': 1000,
-            },
-        }
-        result_dict = run_algorithm(params, backend=BasicAer.get_backend(backend))
+        shor = Shor(n_v)
+        result_dict = shor.run(QuantumInstance(BasicAer.get_backend(backend), shots=1000))
         self.assertListEqual(result_dict['factors'][0], factors)
 
     @parameterized.expand([
