@@ -20,6 +20,7 @@ import functools
 from typing import Union, Tuple, Optional
 
 import numpy as np
+from qiskit.pulse import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:
@@ -108,23 +109,22 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
-    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
 
-    amp: Pulse amplitude at `2\times center+1`.
+    amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
-    sigma: Width (standard deviation) of pulse.
-    zeroed_width: Subtract baseline to gaussian pulses to make sure
-             $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-             large discontinuities at the start of a gaussian pulse. If unsupplied,
-             defaults to $2*(center+1)$ such that the samples are zero at $\Omega_g(-1)$.
-    rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
-                 be rescaled so that $\Omega_g(center)-\Omega_g(center\pm zeroed_width/2)=amp$.
+    sigma: Standard deviation of pulse.
+    zeroed_width: Subtract baseline from gaussian pulses to make sure
+        $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+        large discontinuities at the start of a gaussian pulse. If unsupplied,
+        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+    rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*(center+1)
+        zeroed_width = 2*center
 
-    zero_offset = gaussian(np.array([-zeroed_width/2]), amp, center, sigma)
+    zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
@@ -146,16 +146,16 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
     Args:
         times: Times to output pulse for.
         amp: Pulse amplitude at `center`. If `zeroed_width` is set pulse amplitude at center
-            will be $amp-\Omega_g(center\pm zeroed_width/2)$ unless `rescale_amp` is set,
+            will be $amp-\Omega_g(center \pm zeroed_width/2)$ unless `rescale_amp` is set,
             in which case all samples will be rescaled such that the center
             amplitude will be `amp`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
-        zeroed_width: Subtract baseline to gaussian pulses to make sure
-                 $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-                 large discontinuities at the start of a gaussian pulse.
+        zeroed_width: Subtract baseline from gaussian pulses to make sure
+            $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+            large discontinuities at the start of a gaussian pulse.
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
-                     be rescaled so that $\Omega_g(center)-\Omega_g(center\pm zeroed_width/2)=amp$.
+            be rescaled so that $\Omega_g(center)=amp$.
         ret_x: Return centered and standard deviation normalized pulse location.
                $x=(times-center)/sigma.
     """
@@ -190,12 +190,45 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
     return gauss_deriv
 
 
+def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
+                    zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+                    ret_scale_factor: bool = False) -> np.ndarray:
+    r"""Enforce that the supplied sech pulse is zeroed at a specific width.
+
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
+
+    amp: Pulse amplitude at `center`.
+    center: Center (mean) of pulse.
+    sigma: Standard deviation of pulse.
+    zeroed_width: Subtract baseline from sech pulses to make sure
+        $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+        large discontinuities at the start of a sech pulse. If unsupplied,
+        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+    rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
+    ret_scale_factor: Return amplitude scale factor.
+    """
+    if zeroed_width is None:
+        zeroed_width = 2*center
+
+    zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
+    sech_samples -= zero_offset
+    amp_scale_factor = 1.
+    if rescale_amp:
+        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1.
+        sech_samples *= amp_scale_factor
+
+    if ret_scale_factor:
+        return sech_samples, amp_scale_factor
+    return sech_samples
+
+
 def sech_fn(x, *args, **kwargs):
     r"""Hyperbolic secant function"""
     return 1.0 / np.cosh(x, *args, **kwargs)
 
 
 def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
+         zeroed_width: Optional[float] = None, rescale_amp: bool = False,
          ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized sech pulse.
 
@@ -204,12 +237,21 @@ def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
         amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
+        zeroed_width: Subtract baseline from pulse to make sure
+            $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+            large discontinuities at the start and end of the pulse.
+        rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
+            be rescaled so that $\Omega_g(center)=amp$.
         ret_x: Return centered and standard deviation normalized pulse location.
-               $x=(times-center)/sigma.
+            $x=(times-center)/sigma$.
     """
     times = np.asarray(times, dtype=np.complex_)
     x = (times-center)/sigma
     sech_out = amp*sech_fn(x).astype(np.complex_)
+
+    if zeroed_width is not None:
+        sech_out = _fix_sech_width(sech_out, amp=amp, center=center, sigma=sigma,
+                                   zeroed_width=zeroed_width, rescale_amp=rescale_amp)
 
     if ret_x:
         return sech_out, x
@@ -234,7 +276,7 @@ def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
     return sech_out_deriv
 
 
-def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
+def gaussian_square(times: np.ndarray, amp: complex, center: float, square_width: float,
                     sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
 
@@ -242,23 +284,27 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
         times: Times to output pulse for.
         amp: Pulse amplitude.
         center: Center of the square pulse component.
-        width: Width of the square pulse component.
-        sigma: Width (standard deviation) of gaussian rise/fall portion of the pulse.
+        square_width: Width of the square pulse component.
+        sigma: Standard deviation of Gaussian rise/fall portion of the pulse.
         zeroed_width: Subtract baseline of gaussian square pulse
-                      to enforce $\OmegaSquare(center \pm zeroed_width/2)=0$.
+            to enforce $\OmegaSquare(center \pm zeroed_width/2)=0$.
+
+    Raises:
+        PulseError: if zeroed_width is not compatible with square_width.
     """
-    square_start = center-width/2
-    square_stop = center+width/2
+    square_start = center-square_width/2
+    square_stop = center+square_width/2
     if zeroed_width:
-        zeroed_width = min(width, zeroed_width)
-        gauss_zeroed_width = zeroed_width-width
+        if zeroed_width < square_width:
+            raise PulseError("zeroed_width cannot be smaller than square_width.")
+        gaussian_zeroed_width = zeroed_width-square_width
     else:
-        gauss_zeroed_width = None
+        gaussian_zeroed_width = None
 
     funclist = [functools.partial(gaussian, amp=amp, center=square_start, sigma=sigma,
-                                  zeroed_width=gauss_zeroed_width, rescale_amp=True),
+                                  zeroed_width=gaussian_zeroed_width, rescale_amp=True),
                 functools.partial(gaussian, amp=amp, center=square_stop, sigma=sigma,
-                                  zeroed_width=gauss_zeroed_width, rescale_amp=True),
+                                  zeroed_width=gaussian_zeroed_width, rescale_amp=True),
                 functools.partial(constant, amp=amp)]
     condlist = [times <= square_start, times >= square_stop]
     return np.piecewise(times.astype(np.complex_), condlist, funclist)
@@ -281,11 +327,11 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
             excited states and $\Delta_2$ is the detuning between the respective excited states.
-        zeroed_width: Subtract baseline to gaussian pulses to make sure
-                 $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-                 large discontinuities at the start of a gaussian pulse.
+        zeroed_width: Subtract baseline of gaussian pulse to make sure
+            $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+            large discontinuities at the start of a gaussian pulse.
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
-                     be rescaled so that $\Omega_g(center)-\Omega_g(center\pm zeroed_width/2)=amp$.
+            be rescaled so that $\Omega_g(center)=amp$.
 
     """
     gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
