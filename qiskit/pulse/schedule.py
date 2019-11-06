@@ -42,7 +42,6 @@ class Schedule(ScheduleComponent):
         Raises:
             PulseError: If timeslots intercept.
         """
-
         self._name = name
 
         timeslots = []
