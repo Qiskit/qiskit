@@ -12,16 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass that returns the longest path in a DAGcircuit as a list
-of DAGNodes.
-"""
+"""Return the longest path in a DAGcircuit as a list of DAGNodes."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class DAGLongestPath(AnalysisPass):
-    """ An analysis pass that returns the longest path in a DAGcircuit as a
-    list of DAGNodes.
-    """
+    """Return the longest path in a DAGcircuit as a list of DAGNodes."""
 
     def run(self, dag):
+        """Run the DAGLongestPath pass on `dag`."""
         self.property_set['dag_longest_path'] = dag.longest_path()
