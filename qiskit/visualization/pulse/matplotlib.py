@@ -584,7 +584,12 @@ class ScheduleDrawer:
             # when input schedule is empty or comprises only frame changes,
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
-            tf = schedule.stop_time or 1
+            # tf = schedule.stop_time or 1
+            tf = 1
+            for chan in channels_to_plot:
+                if tf < schedule.timeslots.ch_duration(chan):
+                    tf = schedule.timeslots.ch_duration(chan)
+
         # prepare waveform channels
         (channels, output_channels,
          snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
