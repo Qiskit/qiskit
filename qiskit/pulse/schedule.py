@@ -263,7 +263,7 @@ class Schedule(ScheduleComponent):
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
         Return a Schedule with only the instructions from this Schedule *failing* at least one of
-        the provided filters. This method is the complement of `self.filter`, so that
+        the provided filters. This method is the complement of `self.filter`, so that:
             self.filter(args) | self.exclude(args) == self
 
         Args:
@@ -284,8 +284,8 @@ class Schedule(ScheduleComponent):
 
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """
-        Return a Schedule containing only the instructions from this Schedule that
-        filter_func returns True on
+        Return a Schedule containing only the instructions from this Schedule for which
+        filter_func returns True.
 
         Args:
             filter_func: function of the form (int, ScheduleComponent) -> bool
@@ -316,7 +316,6 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
-
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
