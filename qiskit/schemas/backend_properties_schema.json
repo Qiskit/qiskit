@@ -1,0 +1,116 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://www.qiskit.org/schemas/backend_props_schema.json",
+    "description": "OpenQuantum backend properties schema",
+    "version": "1.0.0",
+    "definitions": {
+        "gate": {
+            "properties": {
+                "gate": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/definitions/nduv"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "qubits": {
+                    "items": {
+                        "type": "integer"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                }
+            },
+            "required": [
+                "qubits",
+                "gate",
+                "parameters"
+            ],
+            "type": "object"
+        },
+        "general_parameters": {
+            "description": "General system parameters",
+            "items": {
+                "$ref": "#/definitions/nduv"
+            },
+            "minItems": 0,
+            "type": "array"
+        },
+        "nduv": {
+            "description": "Recorded parameter as a name-date-unit-value",
+            "properties": {
+                "date": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "unit": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "name",
+                "date",
+                "unit",
+                "value"
+            ],
+            "type": "object"
+        }
+    },
+    "properties": {
+        "backend_name": {
+            "description": "Backend name",
+            "type": "string"
+        },
+        "backend_version": {
+            "description": "Backend version in the form X.X.X",
+            "pattern": "[0-9]+.[0-9]+.[0-9]+$",
+            "type": "string"
+        },
+        "gates": {
+            "description": "System gate parameters",
+            "items": {
+                "$ref": "#/definitions/gate"
+            },
+            "minItems": 1,
+            "type": "array"
+        },
+        "general": {
+            "$ref": "#/definitions/general_parameters"
+        },
+        "last_update_date": {
+            "description": "Last date/time that a property was updated.",
+            "format": "date-time",
+            "type": "string"
+        },
+        "qubits": {
+            "description": "System qubit parameters",
+            "items": {
+                "items": {
+                    "$ref": "#/definitions/nduv"
+                },
+                "minItems": 1,
+                "type": "array"
+            },
+            "minItems": 1,
+            "type": "array"
+        }
+    },
+    "required": [
+        "backend_name",
+        "backend_version",
+        "last_update_date",
+        "qubits",
+        "gates",
+        "general"
+    ],
+    "type": "object"
+}

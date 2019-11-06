@@ -1,0 +1,28 @@
+{
+    "backend_name": "ibmqx5",
+    "backend_version": "1.1.1",
+    "last_update_date": "2018-04-02 15:00:00Z",
+    "qubits": [
+        [
+            {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "GHz", "value": 5.2}
+        ],
+        [
+            {"name": "T1", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "T2", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 60},
+            {"name": "frequency", "date": "2018-04-02 15:00:00Z", "unit": "us", "value": 5.2}
+        ]
+    ],
+    "gates": [
+        {"qubits": [0], "gate": "u2", "parameters": [
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.002}]
+        },
+        {"qubits": [1], "gate": "u2", "parameters": [
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.002}]
+        },
+        {"qubits": [0,1], "gate": "cx", "parameters": [
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.02}]
+        }],
+    "general": [{"name": "fridge_temperature", "date": "2018-04-02 15:00:00Z", "unit": "mK", "value": 10}]
+}

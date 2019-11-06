@@ -1,69 +1,67 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Rotation around the y-axis.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+import math
+import numpy
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.extensions.standard.r import RGate
 
 
 class RYGate(Gate):
     """rotation around the y-axis."""
 
-    def __init__(self, theta, qubit, circ=None):
+    def __init__(self, theta):
         """Create new ry single qubit gate."""
-        super(RYGate, self).__init__("ry", [theta], [qubit], circ)
+        super().__init__("ry", 1, [theta])
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        return self._qasmif("ry(%.15f) %s[%d];" % (theta, qubit[0].name,
-                                                   qubit[1]))
+    def _define(self):
+        """
+        gate ry(theta) a { r(theta, pi/2) a; }
+        """
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [
+            (RGate(self.params[0], pi/2), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
 
         ry(theta)^dagger = ry(-theta)
         """
-        self.param[0] = -self.param[0]
-        return self
+        return RYGate(-self.params[0])
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ry(self.param[0], self.arg[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the RY gate."""
+        cos = math.cos(self.params[0] / 2)
+        sin = math.sin(self.params[0] / 2)
+        return numpy.array([[cos, -sin],
+                            [sin, cos]], dtype=complex)
 
 
-def ry(self, theta, q):
-    """Apply ry to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.ry(theta, (q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(RYGate(theta, q, self))
+def ry(self, theta, q):  # pylint: disable=invalid-name
+    """Apply Ry to q."""
+    return self.append(RYGate(theta), [q], [])
 
 
 QuantumCircuit.ry = ry
-CompositeGate.ry = ry

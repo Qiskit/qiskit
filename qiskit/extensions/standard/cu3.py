@@ -1,77 +1,65 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 controlled-u3 gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
-from qiskit._quantumregister import QuantumRegister
-from qiskit._instructionset import InstructionSet
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class Cu3Gate(Gate):
     """controlled-u3 gate."""
 
-    def __init__(self, theta, phi, lam, ctl, tgt, circ=None):
+    def __init__(self, theta, phi, lam):
         """Create new cu3 gate."""
-        super(Cu3Gate, self).__init__("cu3", [theta, phi, lam], [ctl, tgt], circ)
+        super().__init__("cu3", 2, [theta, phi, lam])
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        theta = self.param[0]
-        phi = self.param[1]
-        lam = self.param[2]
-        return self._qasmif("cu3(%.15f,%.15f,%.15f) %s[%d],%s[%d];" % (theta, phi, lam,
-                                                                       ctl[0].name, ctl[1],
-                                                                       tgt[0].name, tgt[1]))
+    def _define(self):
+        """
+        gate cu3(theta,phi,lambda) c, t
+        { u1((lambda+phi)/2) c; u1((lambda-phi)/2) t; cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t; cx c,t;
+          u3(theta/2,phi,0) t;
+        }
+        """
+        definition = []
+        q = QuantumRegister(2, "q")
+        rule = [
+            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
-        return self
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cu3(self.param[0], self.param[1], self.param[2], self.arg[0], self.arg[1]))
+        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    if isinstance(ctl, QuantumRegister) and \
-       isinstance(tgt, QuantumRegister) and len(ctl) == len(tgt):
-        # apply cx to qubits between two registers
-        instructions = InstructionSet()
-        for i in range(ctl.size):
-            instructions.add(self.cu3(theta, phi, lam, (ctl, i), (tgt, i)))
-        return instructions
-    else:
-        self._check_qubit(ctl)
-        self._check_qubit(tgt)
-        self._check_dups([ctl, tgt])
-        return self._attach(Cu3Gate(theta, phi, lam, ctl, tgt, self))
+    return self.append(Cu3Gate(theta, phi, lam), [ctl, tgt], [])
 
 
 QuantumCircuit.cu3 = cu3
-CompositeGate.cu3 = cu3

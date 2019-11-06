@@ -1,69 +1,57 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Rotation around the z-axis.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.u1 import U1Gate
 
 
 class RZGate(Gate):
     """rotation around the z-axis."""
 
-    def __init__(self, phi, qubit, circ=None):
+    def __init__(self, phi):
         """Create new rz single qubit gate."""
-        super(RZGate, self).__init__("rz", [phi], [qubit], circ)
+        super().__init__("rz", 1, [phi])
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        phi = self.param[0]
-        return self._qasmif("rz(%.15f) %s[%d];" % (phi, qubit[0].name,
-                                                   qubit[1]))
+    def _define(self):
+        """
+        gate rz(phi) a { u1(phi) a; }
+        """
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [
+            (U1Gate(self.params[0]), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
 
         rz(phi)^dagger = rz(-phi)
         """
-        self.param[0] = -self.param[0]
-        return self
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.rz(self.param[0], self.arg[0]))
+        return RZGate(-self.params[0])
 
 
-def rz(self, phi, q):
-    """Apply rz to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.sz):
-            gs.add(self.rx(phi, (q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(RZGate(phi, q, self))
+def rz(self, phi, q):  # pylint: disable=invalid-name
+    """Apply Rz to q."""
+    return self.append(RZGate(phi), [q], [])
 
 
 QuantumCircuit.rz = rz
-CompositeGate.rz = rz

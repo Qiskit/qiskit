@@ -1,0 +1,107 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://www.qiskit.org/schemas/ibm_backend_device_qobj_schema.json",
+    "description": "OpenQuantum quantum object data structure for running experiments. IBM Backend specific instructions for experimental devices. Must also validate against qobj_schema.json",
+    "version": "1.0.0",
+    "definitions": {        
+        "openqasm_instructions": {
+            "oneOf": [
+                { 
+                    "properties": {
+                        "name": {
+                            "enum": ["u3", "U", "id", "u1", "u0", "u2", "cx", "CX", "snapshot", "reset", "barrier", "bfunc", "copy", "measure"]
+                            }
+                    }
+                }    
+            ],            
+            "required": [
+                "name"
+            ],
+            "type": "object"
+        },
+        "qobjexp": {
+            "description": "Quantum experiment",
+            "properties": {
+                "instructions": {
+                    "description": "List of experiment instructions.",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "instructions"
+            ],
+            "type": "object"
+        },
+        "qobj_qasm": {
+            "properties": {
+                "config": {
+                    "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults. Use this space to set backend specific configuration requirements.",
+                    "title": "Qobj-level configuration",
+                    "type": "object"
+                },
+                "experiments": {
+                    "description": "List of experiments to run",
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "header": {
+                    "description": "QObj metadata that does not affect how the experiments are run on the backend. Carried through to the result.",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "type",
+                "experiments",
+                "config",
+                "header"
+            ],
+            "type": "object"
+        }
+    },
+    "oneOf": [
+        {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/qobj_qasm"
+                },
+                {
+                    "properties": {
+                        "experiments": {
+                            "items": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/definitions/qobjexp"
+                                    },
+                                    {
+                                        "properties": {
+                                            "instructions": {
+                                                "items": {
+                                                    "$ref": "#definitions/openqasm_instructions"
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "type": {
+                            "enum": [
+                                "QASM"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/qobj_qasm"
+                },
+                {
+                    "properties": {"type": {"enum": ["PULSE"]}}
+                }
+            ]
+        }
+    ]
+}

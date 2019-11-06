@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added a new visualization function
+    ``qiskit.visualization.plot_error_map()`` to plot the error map for a given
+    backend. It takes in a backend object from the qiskit-ibmq-provider and
+    will plot the current error map for that device.

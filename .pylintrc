@@ -9,9 +9,7 @@
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS,
-    standard,  # ignore qiskit.extensions.standard.*
-    _node      # ignore qiskit.qasm._node.*
+ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -22,7 +20,11 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=pylint.extensions.docparams  # enable checking of docstring args
+load-plugins=pylint.extensions.docparams, # enable checking of docstring args
+    pylint.extensions.docstyle,  # basic docstring style checks
+    pylintfileheader  # Check license comments
+
+file-header=(?:(?:#[^\n]*)?\n)*# This code is part of Qiskit.\n#\n# \(C\) Copyright IBM [0-9, -]*.\n#\n# This code is licensed under the Apache License, Version 2.0. You may\n# obtain a copy of this license in the LICENSE.txt file in the root directory\n# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.\n#\n# Any modifications or derivative works of this code must retain this\n# copyright notice, and modified files need to carry a notice indicating\n# that they have been altered from the originals.\n
 
 # Use multiple processes to speed up Pylint.
 jobs=1
@@ -35,15 +37,6 @@ unsafe-load-any-extension=no
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
 extension-pkg-whitelist=
-
-# Allow optimization of some AST trees. This will activate a peephole AST
-# optimizer, which will apply various small optimizations. For instance, it can
-# be used to obtain the result of joining multiple strings with the addition
-# operator. Joining a lot of strings can lead to a maximum recursion error in
-# Pylint and this flag can prevent that. It has one side effect, the resulting
-# AST will be different than the one from reality. This option is deprecated
-# and it will be removed in Pylint 2.0.
-optimize-ast=no
 
 
 [MESSAGES CONTROL]
@@ -67,9 +60,21 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=print-statement,parameter-unpacking,unpacking-in-except,old-raise-syntax,backtick,import-star-module-level,apply-builtin,basestring-builtin,buffer-builtin,cmp-builtin,coerce-builtin,execfile-builtin,file-builtin,long-builtin,raw_input-builtin,reduce-builtin,standarderror-builtin,unicode-builtin,xrange-builtin,coerce-method,delslice-method,getslice-method,setslice-method,no-absolute-import,old-division,dict-iter-method,dict-view-method,next-method-called,metaclass-assignment,indexing-exception,raising-string,reload-builtin,oct-method,hex-method,nonzero-method,cmp-method,input-builtin,round-builtin,intern-builtin,unichr-builtin,map-builtin-not-iterating,zip-builtin-not-iterating,range-builtin-not-iterating,filter-builtin-not-iterating,using-cmp-argument,long-suffix,old-ne-operator,old-octal-literal,suppressed-message,useless-suppression,
-    no-self-use,  # disabled as it is too verbose
-    fixme         # disabled as TODOs would show up as warnings
+disable=no-self-use,        # disabled as it is too verbose
+    fixme,              # disabled as TODOs would show up as warnings
+    protected-access,   # disabled as we don't follow the public vs private
+                        # convention strictly
+    duplicate-code,     # disabled as it is too verbose
+    redundant-returns-doc, # for @abstractmethod, it cannot interpret "pass"
+    # disable the "too-many/few-..." refactoring hints
+    too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
+    too-many-statements, too-many-instance-attributes, too-many-arguments,
+    too-many-public-methods, too-few-public-methods, too-many-ancestors,
+    unnecessary-pass,   # allow for methods with just "pass", for clarity
+    no-else-return,     # relax "elif" after a clause with a return
+    docstring-first-line-empty # relax docstring style
+
+
 
 
 [REPORTS]
@@ -103,10 +108,21 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 [BASIC]
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,ex,Run,_,logger
+# i,j,k = typical indices
+# n,m = typical numbers
+# ex = for exceptions and errors
+# v,w = typical vectors
+# x,y,z = typical axes
+# _ = placeholder name
+# q,r,qr,cr,qc = quantum and classical registers, and quantum circuit
+# pi = the PI constant
+# op = operation iterator
+# b = basis iterator
+good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
+    __unittest
 
 # Bad variable names which should always be refused, separated by a comma
-bad-names=foo,bar,baz,toto,tutu,tata
+bad-names=foo,bar,toto,tutu,tata
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
@@ -144,10 +160,10 @@ function-rgx=[a-z_][a-z0-9_]{2,30}$
 function-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct method names
-method-rgx=[a-z_][a-z0-9_]{2,30}$
+method-rgx=(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$
 
 # Naming hint for method names
-method-name-hint=[a-z_][a-z0-9_]{2,30}$
+method-name-hint=[a-z_][a-z0-9_]{2,30}$ or camelCase `assert*` in tests.
 
 # Regular expression matching correct attribute names
 attr-rgx=[a-z_][a-z0-9_]{2,30}$
@@ -156,7 +172,7 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 attr-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{2,30}|ax$
 
 # Naming hint for argument names
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$
@@ -281,19 +297,17 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=
+ignored-modules=matplotlib.cm,numpy.random
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
 # qualified names.
-ignored-classes=optparse.Values,thread._local,_thread._local
+ignored-classes=optparse.Values,thread._local,_thread._local,QuantumCircuit
 
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=self.circuit.*
-# self.circuit.*: false positives when self.circuit == QuantumCircuit, as it
-# provides a "__getitem__" dynamic method.
+generated-members=
 
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that

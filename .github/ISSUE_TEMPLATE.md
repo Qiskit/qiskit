@@ -1,31 +1,42 @@
-<!--- Provide a general summary of the issue in the Title above -->
+<!-- ⚠️ If you do not respect this template, your issue may be be closed -->
+<!-- ⚠️ Make sure to browse the opened and closed issues -->
 
-## Expected Behavior
-<!--- If you're describing a bug, tell us what should happen -->
-<!--- If you're suggesting a change/improvement, tell us how it should work -->
+*BUG TEMPLATE* <!-- Delete this header from your issue -->
 
-## Current Behavior
-<!--- If describing a bug, tell us what happens instead of the expected behavior -->
-<!--- If suggesting a change/improvement, explain the difference from current behavior -->
+### Information
 
-## Possible Solution
-<!--- Not obligatory, but suggest a fix/reason for the bug, -->
-<!--- or ideas how to implement the addition or change -->
+- **Qiskit Terra version**:
+- **Python version**:
+- **Operating system**:
 
-## Steps to Reproduce (for bugs)
-<!--- Provide a link to a live example, or an unambiguous set of steps to -->
-<!--- reproduce this bug. Include code to reproduce, if relevant -->
-1.
-2.
-3.
-4.
+### What is the current behavior?
 
-## Context
-<!--- How has this issue affected you? What are you trying to accomplish? -->
-<!--- Providing context helps us come up with a solution that is most useful in the real world -->
 
-## Your Environment
-<!--- Include as many relevant details about the environment you experienced the bug in -->
-* Version used:
-* Environment name and version (e.g. Python 3.6.1):
-* Operating System and version:
+
+### Steps to reproduce the problem
+
+
+
+### What is the expected behavior?
+
+
+
+### Suggested solutions
+
+
+
+---
+
+*FEATURE REQUEST TEMPLATE*  <!-- Delete this header from your issue -->
+
+### What is the expected behavior?
+
+
+
+---
+
+*ENHANCEMENT REQUEST TEMPLATE*  <!-- Delete this header from your issue -->
+
+### What is the expected enhancement?
+
+

@@ -1,20 +1,70 @@
-from IBMQuantumExperience import RegisterSizeError
+# -*- coding: utf-8 -*-
 
-from ._qiskiterror import QISKitError
-from ._classicalregister import ClassicalRegister
-from ._quantumregister import QuantumRegister
-from ._quantumcircuit import QuantumCircuit
-from ._gate import Gate
-from ._compositegate import CompositeGate
-from ._instruction import Instruction
-from ._instructionset import InstructionSet
-import qiskit.extensions.standard
-from ._jobprocessor import JobProcessor
-from ._quantumjob import QuantumJob
-from ._quantumprogram import QuantumProgram
-from ._result import Result
-from ._util import _check_ibmqe_version
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-__version__ = '0.4.0'
+# pylint: disable=wrong-import-order
 
-_check_ibmqe_version()
+
+"""Main Qiskit public functionality."""
+
+import pkgutil
+import warnings
+
+# First, check for required Python and API version
+from . import util
+
+# qiskit errors operator
+from .exceptions import QiskitError
+
+# The main qiskit operators
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit
+from qiskit.execute import execute
+from qiskit.compiler import transpile, assemble, schedule
+
+# The qiskit.extensions.x imports needs to be placed here due to the
+# mechanism for adding gates dynamically.
+import qiskit.extensions
+import qiskit.circuit.measure
+import qiskit.circuit.reset
+
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code AND *before*
+# importing the package you want to allow extensions for (in this case `backends`).
+__path__ = pkgutil.extend_path(__path__, __name__)
+
+# Please note these are global instances, not modules.
+from qiskit.providers.basicaer import BasicAer
+
+# Try to import the Aer provider if installed.
+try:
+    from qiskit.providers.aer import Aer
+except ImportError:
+    warnings.warn('Could not import the Aer provider from the qiskit-aer '
+                  'package. Install qiskit-aer or check your installation.',
+                  RuntimeWarning)
+# Try to import the IBMQ provider if installed.
+try:
+    from qiskit.providers.ibmq import IBMQ
+except ImportError:
+    warnings.warn('Could not import the IBMQ provider from the '
+                  'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
+                  'or check your installation.',
+                  RuntimeWarning)
+
+from .version import __version__
+from .version import _get_qiskit_versions
+
+
+__qiskit_version__ = _get_qiskit_versions()

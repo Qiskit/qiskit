@@ -1,74 +1,66 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 One-pulse single-qubit gate.
 """
-import math
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+import numpy
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class U2Gate(Gate):
     """One-pulse single-qubit gate."""
 
-    def __init__(self, phi, lam, qubit, circ=None):
+    def __init__(self, phi, lam, label=None):
         """Create new one-pulse single-qubit gate."""
-        super(U2Gate, self).__init__("u2", [phi, lam], [qubit], circ)
+        super().__init__("u2", 1, [phi, lam], label=label)
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        phi = self.param[0]
-        lam = self.param[1]
-        return self._qasmif("u2(%.15f,%.15f) %s[%d];" % (phi, lam,
-                                                         qubit[0].name,
-                                                         qubit[1]))
+    def _define(self):
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
 
         u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
         """
-        phi = self.param[0]
-        self.param[0] = -self.param[1] - math.pi
-        self.param[1] = -phi + math.pi
-        return self
+        return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u2(self.param[0], self.param[1], self.arg[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        isqrt2 = 1 / numpy.sqrt(2)
+        phi, lam = self.params
+        phi, lam = float(phi), float(lam)
+        return numpy.array([[isqrt2, -numpy.exp(1j * lam) * isqrt2],
+                            [
+                                numpy.exp(1j * phi) * isqrt2,
+                                numpy.exp(1j * (phi + lam)) * isqrt2
+                            ]],
+                           dtype=complex)
 
 
-def u2(self, phi, lam, q):
+def u2(self, phi, lam, q):  # pylint: disable=invalid-name
     """Apply u2 to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.u2(phi, lam, (q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(U2Gate(phi, lam, q, self))
+    return self.append(U2Gate(phi, lam), [q], [])
 
 
 QuantumCircuit.u2 = u2
-CompositeGate.u2 = u2

@@ -1,0 +1,153 @@
+{
+    "fridgeParameters": {
+        "Temperature": {
+            "date": "2017-08-31T08:32:12Z",
+            "unit": "K",
+            "value": 0.0161
+        },
+        "cooldownDate": "2017-05-07"
+    },
+    "lastUpdateDate": "2017-08-31T08:32:12Z",
+    "qubits": [
+        {
+            "T1": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 46.9
+            },
+            "T2": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 44.4
+            },
+            "buffer": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 6.7
+            },
+            "frequency": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "GHz",
+                "value": 5.27218
+            },
+            "gateTime": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 83.3
+            },
+            "name": "Q0"
+        },
+        {
+            "T1": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 28.3
+            },
+            "T2": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 27.4
+            },
+            "buffer": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 6.7
+            },
+            "frequency": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "GHz",
+                "value": 5.2146
+            },
+            "gateTime": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 83.3
+            },
+            "name": "Q1"
+        },
+        {
+            "T1": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 59.9
+            },
+            "T2": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 98.6
+            },
+            "buffer": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 6.7
+            },
+            "frequency": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "GHz",
+                "value": 5.0289
+            },
+            "gateTime": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 83.3
+            },
+            "name": "Q2"
+        },
+        {
+            "T1": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 50.5
+            },
+            "T2": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 57.7
+            },
+            "buffer": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 6.7
+            },
+            "frequency": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "GHz",
+                "value": 5.29705
+            },
+            "gateTime": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 83.3
+            },
+            "name": "Q3"
+        },
+        {
+            "T1": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 67.5
+            },
+            "T2": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "\u00b5s",
+                "value": 98.8
+            },
+            "buffer": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 6.7
+            },
+            "frequency": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "GHz",
+                "value": 5.05575
+            },
+            "gateTime": {
+                "date": "2017-08-31T08:32:12Z",
+                "unit": "ns",
+                "value": 83.3
+            },
+            "name": "Q4"
+        }
+    ]
+}

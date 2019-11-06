@@ -1,72 +1,97 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 T=sqrt(S) phase gate or its inverse.
 """
-import math
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import CompositeGate
-from qiskit import InstructionSet
-from qiskit.extensions.standard import header
-from qiskit.extensions.standard import u1
+import numpy
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.qasm import pi
+from qiskit.extensions.standard.u1 import U1Gate
 
 
-class TGate(CompositeGate):
-    """T=sqrt(S) Clifford phase gate or its inverse."""
+class TGate(Gate):
+    """T Gate: pi/4 rotation around Z axis."""
 
-    def __init__(self, qubit, circ=None):
+    def __init__(self, label=None):
         """Create new T gate."""
-        super(TGate, self).__init__("t", [], [qubit], circ)
-        self.u1(math.pi / 4.0, qubit)
+        super().__init__("t", 1, [], label=label)
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.t(self.arg[0]))
+    def _define(self):
+        """
+        gate t a { u1(pi/4) a; }
+        """
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [
+            (U1Gate(pi/4), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.data[0].arg[0]
-        phi = self.data[0].param[0]
-        if phi > 0:
-            return self.data[0]._qasmif("t %s[%d];" % (qubit[0].name, qubit[1]))
-        else:
-            return self.data[0]._qasmif("tdg %s[%d];" % (qubit[0].name, qubit[1]))
+    def inverse(self):
+        """Invert this gate."""
+        return TdgGate()
+
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, (1+1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-def t(self, q):
+class TdgGate(Gate):
+    """T Gate: -pi/4 rotation around Z axis."""
+
+    def __init__(self, label=None):
+        """Create new Tdg gate."""
+        super().__init__("tdg", 1, [], label=label)
+
+    def _define(self):
+        """
+        gate t a { u1(pi/4) a; }
+        """
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [
+            (U1Gate(-pi/4), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return TGate()
+
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
+
+
+def t(self, q):  # pylint: disable=invalid-name
     """Apply T to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.t((q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(TGate(q, self))
+    return self.append(TGate(), [q], [])
 
 
 def tdg(self, q):
     """Apply Tdg to q."""
-    return self.t(q).inverse()
+    return self.append(TdgGate(), [q], [])
 
 
 QuantumCircuit.t = t
 QuantumCircuit.tdg = tdg
-CompositeGate.t = t
-CompositeGate.tdg = tdg

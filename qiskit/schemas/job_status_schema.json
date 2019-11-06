@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://www.qiskit.org/schemas/job_status_schema.json",
+    "description": "OpenQuantum job status schema",
+    "version": "1.0.0",
+    "type": "object",
+    "required": [
+        "job_id",
+        "status",
+        "status_msg"
+    ],
+    "properties": {
+        "job_id": {
+            "type": "string",
+            "description": "Backend job_id"
+            },
+        "status": {
+            "enum": ["DONE", "QUEUED", "CANCELLED", "RUNNING", "ERROR"],
+            "description": "Status of the job"
+            },
+        "status_msg": {
+            "type": "string", 
+            "description": "Status message"
+            }
+        }
+}

@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The ``U`` and ``CX`` gates have been deprecated. If you're using these gates
+    in your code you should update them to use ``u3`` and ``cx`` instead. For
+    example, if you're using the circuit gate functions ``circuit.u_base()``
+    and ``circuit.cx_base()`` you should update these to be ``circuit.u3()`` and
+    ``circuit.cx()`` respectively.
+

@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions.
 
@@ -24,7 +23,9 @@ over time.
 import math
 import numpy as np
 import scipy.linalg as la
-from qiskit.tools.qi.pauli import pauli_group
+
+from qiskit.quantum_info import pauli_group
+
 
 ###############################################################
 # circuit manipulation.
@@ -36,7 +37,7 @@ def qft(circ, q, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
-            circ.cu1(math.pi/float(2**(j-k)), q[j], q[k])
+            circ.cu1(math.pi / float(2**(j - k)), q[j], q[k])
         circ.h(q[j])
 
 
@@ -45,144 +46,174 @@ def qft(circ, q, n):
 ###############################################################
 
 
-def partial_trace(state, sys, dims=None, reverse=True):
+def partial_trace(state, trace_systems, dimensions=None, reverse=True):
     """
     Partial trace over subsystems of multi-partite matrix.
 
     Note that subsystems are ordered as rho012 = rho0(x)rho1(x)rho2.
 
     Args:
-        state (NxN matrix_like): a matrix
-        sys (list(int): a list of subsystems (starting from 0) to trace over
-        dims (list(int), optional): a list of the dimensions of the subsystems.
-            If this is not set it will assume all subsystems are qubits.
-        reverse (bool, optional): ordering of systems in operator.
+        state (matrix_like): a matrix NxN
+        trace_systems (list(int)): a list of subsystems (starting from 0) to
+                                  trace over.
+        dimensions (list(int)): a list of the dimensions of the subsystems.
+                                If this is not set it will assume all
+                                subsystems are qubits.
+        reverse (bool): ordering of systems in operator.
             If True system-0 is the right most system in tensor product.
             If False system-0 is the left most system in tensor product.
 
     Returns:
-        A matrix with the appropriate subsytems traced over.
+        matrix_like: A density matrix with the appropriate subsystems traced
+            over.
+    Raises:
+        Exception: if input is not a multi-qubit state.
     """
-    # convert op to density matrix
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)  # convert state vector to density mat
+    state = np.array(state)  # convert op to density matrix
 
-    # compute dims if not specified
-    if dims is None:
-        n = int(np.log2(len(rho)))
-        dims = [2 for i in range(n)]
-        if len(rho) != 2 ** n:
-            raise Exception("Input is not a multi-qubit state, \
-                specifify input state dims")
+    if dimensions is None:  # compute dims if not specified
+        num_qubits = int(np.log2(len(state)))
+        dimensions = [2 for _ in range(num_qubits)]
+        if len(state) != 2 ** num_qubits:
+            raise Exception("Input is not a multi-qubit state, "
+                            "specify input state dims")
     else:
-        dims = list(dims)
+        dimensions = list(dimensions)
 
-    # reverse sort trace sys
-    if isinstance(sys, int):
-        sys = [sys]
-    else:
-        sys = sorted(sys, reverse=True)
+    if isinstance(trace_systems, int):
+        trace_systems = [trace_systems]
+    else:  # reverse sort trace sys
+        trace_systems = sorted(trace_systems, reverse=True)
 
     # trace out subsystems
-    for j in sys:
-        # get trace dims
-        if reverse:
-            dpre = dims[j + 1:]
-            dpost = dims[:j]
-        else:
-            dpre = dims[:j]
-            dpost = dims[j + 1:]
-        dim1 = int(np.prod(dpre))
-        dim2 = int(dims[j])
-        dim3 = int(np.prod(dpost))
-        # dims with sys-j removed
-        dims = dpre + dpost
-        # do the trace over j
-        rho = __trace_middle(rho, dim1, dim2, dim3)
-    return rho
+    if state.ndim == 1:
+        # optimized partial trace for input state vector
+        return __partial_trace_vec(state, trace_systems, dimensions, reverse)
+    # standard partial trace for input density matrix
+    return __partial_trace_mat(state, trace_systems, dimensions, reverse)
 
 
-def __trace_middle_dims(sys, dims, reverse=True):
+def __partial_trace_vec(vec, trace_systems, dimensions, reverse=True):
     """
-    Get system dimensions for __trace_middle.
+    Partial trace over subsystems of multi-partite vector.
 
     Args:
-        j (int): system to trace over.
-        dims(list[int]): dimensions of all subsystems.
-        reverse (bool): if true system-0 is right-most system tensor product.
+        vec (vector_like): complex vector N
+        trace_systems (list(int)): a list of subsystems (starting from 0) to
+                                  trace over.
+        dimensions (list(int)): a list of the dimensions of the subsystems.
+                                If this is not set it will assume all
+                                subsystems are qubits.
+        reverse (bool): ordering of systems in operator.
+            If True system-0 is the right most system in tensor product.
+            If False system-0 is the left most system in tensor product.
 
     Returns:
-        Tuple (dim1, dims2, dims3)
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
-    dpre = dims[:sys]
-    dpost = dims[sys + 1:]
+
+    # trace sys positions
     if reverse:
-        dpre, dpost = (dpost, dpre)
-    dim1 = int(np.prod(dpre))
-    dim2 = int(dims[sys])
-    dim3 = int(np.prod(dpost))
-    return (dim1, dim2, dim3)
+        dimensions = dimensions[::-1]
+        trace_systems = len(dimensions) - 1 - np.array(trace_systems)
+
+    rho = vec.reshape(dimensions)
+    rho = np.tensordot(rho, rho.conj(), axes=(trace_systems, trace_systems))
+    d = int(np.sqrt(np.product(rho.shape)))
+
+    return rho.reshape(d, d)
 
 
-def __trace_middle(op, dim1=1, dim2=1, dim3=1):
+def __partial_trace_mat(mat, trace_systems, dimensions, reverse=True):
     """
-    Partial trace over middle system of tripartite state.
+    Partial trace over subsystems of multi-partite matrix.
+
+    Note that subsystems are ordered as rho012 = rho0(x)rho1(x)rho2.
 
     Args:
-        op (NxN matrix_like): a tri-partite matrix
-        dim1: dimension of the first subsystem
-        dim2: dimension of the second (traced over) subsystem
-        dim3: dimension of the third subsystem
+        mat (matrix_like): a matrix NxN.
+        trace_systems (list(int)): a list of subsystems (starting from 0) to
+                                  trace over.
+        dimensions (list(int)): a list of the dimensions of the subsystems.
+                                If this is not set it will assume all
+                                subsystems are qubits.
+        reverse (bool): ordering of systems in operator.
+            If True system-0 is the right most system in tensor product.
+            If False system-0 is the left most system in tensor product.
 
     Returns:
-        A (D,D) matrix where D = dim1 * dim3
+        ndarray: A density matrix with the appropriate subsystems traced over.
     """
 
-    op = op.reshape(dim1, dim2, dim3, dim1, dim2, dim3)
-    d = dim1 * dim3
-    return op.trace(axis1=1, axis2=4).reshape(d, d)
+    trace_systems = sorted(trace_systems, reverse=True)
+    for j in trace_systems:
+        # Partition subsystem dimensions
+        dimension_trace = int(dimensions[j])  # traced out system
+        if reverse:
+            left_dimensions = dimensions[j + 1:]
+            right_dimensions = dimensions[:j]
+            dimensions = right_dimensions + left_dimensions
+        else:
+            left_dimensions = dimensions[:j]
+            right_dimensions = dimensions[j + 1:]
+            dimensions = left_dimensions + right_dimensions
+        # Contract remaining dimensions
+        dimension_left = int(np.prod(left_dimensions))
+        dimension_right = int(np.prod(right_dimensions))
+
+        # Reshape input array into tri-partite system with system to be
+        # traced as the middle index
+        mat = mat.reshape([dimension_left, dimension_trace, dimension_right,
+                           dimension_left, dimension_trace, dimension_right])
+        # trace out the middle system and reshape back to a matrix
+        mat = mat.trace(axis1=1, axis2=4).reshape(
+            dimension_left * dimension_right,
+            dimension_left * dimension_right)
+    return mat
 
 
-def vectorize(rho, method='col'):
+def vectorize(density_matrix, method='col'):
     """Flatten an operator to a vector in a specified basis.
 
     Args:
-        rho (ndarray): a density matrix.
+        density_matrix (ndarray): a density matrix.
         method (str): the method of vectorization. Allowed values are
             - 'col' (default) flattens to column-major vector.
             - 'row' flattens to row-major vector.
-            - 'pauli'flattens in the n-qubit Pauli basis.
+            - 'pauli' flattens in the n-qubit Pauli basis.
             - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
                weight.
 
     Returns:
         ndarray: the resulting vector.
-
+    Raises:
+        Exception: if input state is not a n-qubit state
     """
-    rho = np.array(rho)
+    density_matrix = np.array(density_matrix)
     if method == 'col':
-        return rho.flatten(order='F')
+        return density_matrix.flatten(order='F')
     elif method == 'row':
-        return rho.flatten(order='C')
+        return density_matrix.flatten(order='C')
     elif method in ['pauli', 'pauli_weights']:
-        num = int(np.log2(len(rho)))  # number of qubits
-        if len(rho) != 2**num:
+        num = int(np.log2(len(density_matrix)))  # number of qubits
+        if len(density_matrix) != 2**num:
             raise Exception('Input state must be n-qubit state')
-        if method is 'pauli_weights':
-            pgroup = pauli_group(num, case=0)
+        if method == 'pauli_weights':
+            pgroup = pauli_group(num, case='weight')
         else:
-            pgroup = pauli_group(num, case=1)
-        vals = [np.trace(np.dot(p.to_matrix(), rho)) for p in pgroup]
+            pgroup = pauli_group(num, case='tensor')
+        vals = [np.trace(np.dot(p.to_matrix(), density_matrix))
+                for p in pgroup]
         return np.array(vals)
+    return None
 
 
-def devectorize(vec, method='col'):
+def devectorize(vectorized_mat, method='col'):
     """Devectorize a vectorized square matrix.
 
     Args:
-        vec (ndarray): a vectorized density matrix.
-        basis (str): the method of devectorizaation. Allowed values are
+        vectorized_mat (ndarray): a vectorized density matrix.
+        method (str): the method of devectorization. Allowed values are
             - 'col' (default): flattens to column-major vector.
             - 'row': flattens to row-major vector.
             - 'pauli': flattens in the n-qubit Pauli basis.
@@ -191,27 +222,29 @@ def devectorize(vec, method='col'):
 
     Returns:
         ndarray: the resulting matrix.
-
+    Raises:
+        Exception: if input state is not a n-qubit state
     """
-    vec = np.array(vec)
-    d = int(np.sqrt(vec.size))  # the dimension of the matrix
-    if len(vec) != d*d:
+    vectorized_mat = np.array(vectorized_mat)
+    dimension = int(np.sqrt(vectorized_mat.size))
+    if len(vectorized_mat) != dimension * dimension:
         raise Exception('Input is not a vectorized square matrix')
 
     if method == 'col':
-        return vec.reshape(d, d, order='F')
+        return vectorized_mat.reshape(dimension, dimension, order='F')
     elif method == 'row':
-        return vec.reshape(d, d, order='C')
+        return vectorized_mat.reshape(dimension, dimension, order='C')
     elif method in ['pauli', 'pauli_weights']:
-        num = int(np.log2(d))  # number of qubits
-        if d != 2 ** num:
+        num_qubits = int(np.log2(dimension))  # number of qubits
+        if dimension != 2 ** num_qubits:
             raise Exception('Input state must be n-qubit state')
-        if method is 'pauli_weights':
-            pgroup = pauli_group(num, case=0)
+        if method == 'pauli_weights':
+            pgroup = pauli_group(num_qubits, case='weight')
         else:
-            pgroup = pauli_group(num, case=1)
-        pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num
-        return np.tensordot(vec, pbasis, axes=1)
+            pgroup = pauli_group(num_qubits, case='tensor')
+        pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num_qubits
+        return np.tensordot(vectorized_mat, pbasis, axes=1)
+    return None
 
 
 def choi_to_rauli(choi, order=1):
@@ -219,9 +252,9 @@ def choi_to_rauli(choi, order=1):
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
     Note that this function assumes that the Choi-matrix
-    is defined in the standard column-stacking converntion
+    is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
-    is defined as: choi = (I \otimes E)(bell_state).
+    is defined as: choi = (I \\otimes E)(bell_state).
 
     The resulting 'rauli' R acts on input states as
     |rho_out>_p = R.|rho_in>_p
@@ -229,44 +262,54 @@ def choi_to_rauli(choi, order=1):
     and |rho> = vectorize(rho, method='pauli_weights') for order=0.
 
     Args:
-        Choi (matrix): the input Choi-matrix.
-        order (int, optional): ordering of the Pauli group vector.
+        choi (matrix): the input Choi-matrix.
+        order (int): ordering of the Pauli group vector.
             order=1 (default) is standard lexicographic ordering.
                 Eg: [II, IX, IY, IZ, XI, XX, XY,...]
             order=0 is ordered by weights.
                 Eg. [II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]
 
     Returns:
-        A superoperator in the Pauli basis.
+        np.array: A superoperator in the Pauli basis.
     """
+    if order == 0:
+        order = 'weight'
+    elif order == 1:
+        order = 'tensor'
+
     # get number of qubits'
-    n = int(np.log2(np.sqrt(len(choi))))
-    pgp = pauli_group(n, case=order)
+    num_qubits = int(np.log2(np.sqrt(len(choi))))
+    pgp = pauli_group(num_qubits, case=order)
     rauli = []
     for i in pgp:
         for j in pgp:
             pauliop = np.kron(j.to_matrix().T, i.to_matrix())
             rauli += [np.trace(np.dot(choi, pauliop))]
-    return np.array(rauli).reshape(4 ** n, 4 ** n)
+    return np.array(rauli).reshape(4 ** num_qubits, 4 ** num_qubits)
 
 
-def chop(op, epsilon=1e-10):
+def chop(array, epsilon=1e-10):
     """
     Truncate small values of a complex array.
 
     Args:
-        op (array_like): array to truncte small values.
+        array (array_like): array to truncate small values.
         epsilon (float): threshold.
 
     Returns:
-        A new operator with small values set to zero.
+        np.array: A new operator with small values set to zero.
     """
-    op.real[abs(op.real) < epsilon] = 0.0
-    op.imag[abs(op.imag) < epsilon] = 0.0
-    return op
+    ret = np.array(array)
+
+    if np.isrealobj(ret):
+        ret[abs(ret) < epsilon] = 0.0
+    else:
+        ret.real[abs(ret.real) < epsilon] = 0.0
+        ret.imag[abs(ret.imag) < epsilon] = 0.0
+    return ret
 
 
-def outer(v1, v2=None):
+def outer(vector1, vector2=None):
     """
     Construct the outer product of two vectors.
 
@@ -274,109 +317,167 @@ def outer(v1, v2=None):
     of the first vector will be returned.
 
     Args:
-        v1 (ndarray): the first vector.
-        v2 (ndarray): the (optional) second vector.
+        vector1 (ndarray): the first vector.
+        vector2 (ndarray): the (optional) second vector.
 
     Returns:
-        The matrix |v1><v2|.
+        np.array: The matrix |v1><v2|.
 
     """
-    if v2 is None:
-        u = np.array(v1).conj()
+    if vector2 is None:
+        vector2 = np.array(vector1).conj()
     else:
-        u = np.array(v2).conj()
-    return np.outer(v1, u)
-
+        vector2 = np.array(vector2).conj()
+    return np.outer(vector1, vector2)
 
 ###############################################################
 # Measures.
 ###############################################################
-
-def funm_svd(a, func):
-    """Apply real scalar function to singular values of a matrix.
-
-    Args:
-        a : (N, N) array_like
-            Matrix at which to evaluate the function.
-        func : callable
-            Callable object that evaluates a scalar function f.
-
-    Returns:
-        funm : (N, N) ndarray
-            Value of the matrix function specified by func evaluated at `A`.
-    """
-    U, s, Vh = la.svd(a, lapack_driver='gesvd')
-    S = np.diag(func(s))
-    return U.dot(S).dot(Vh)
-
-
-def state_fidelity(state1, state2):
-    """Return the state fidelity between two quantum states.
-
-    Either input may be a state vector, or a density matrix.
-
-    Args:
-        state1: a quantum state vector or density matrix.
-        state2: a quantum state vector or density matrix.
-
-    Returns:
-        The state fidelity F(state1, state2).
-
-    """
-    # convert input to numpy arrays
-    s1 = np.array(state1)
-    s2 = np.array(state2)
-
-    # fidelity of two state vectors
-    if s1.ndim == 1 and s2.ndim == 1:
-        return np.abs(s2.conj().dot(s1))
-    # fidelity of vector and density matrix
-    elif s1.ndim == 1:
-        # psi = s1, rho = s2
-        return np.sqrt(np.abs(s1.conj().dot(s2).dot(s1)))
-    elif s2.ndim == 1:
-        # psi = s2, rho = s1
-        return np.sqrt(np.abs(s2.conj().dot(s1).dot(s2)))
-    # fidelity of two density matrices
-    else:
-        s1sq = funm_svd(s1, np.sqrt)
-        s2sq = funm_svd(s2, np.sqrt)
-        return np.linalg.norm(s1sq.dot(s2sq), ord='nuc')
-
-
-def purity(state):
-    """Calculate the purity of a quantum state.
-
-    Args:
-        state (np.array): a quantum state
-    Returns:
-        purity.
-    """
-    rho = np.array(state)
-    if rho.ndim == 1:
-        rho = outer(rho)
-    return np.real(np.trace(rho.dot(rho)))
 
 
 def concurrence(state):
     """Calculate the concurrence.
 
     Args:
-        state (np.array): a quantum state
+        state (np.array): a quantum state (1x4 array) or a density matrix (4x4
+                          array)
     Returns:
-        concurrence.
+        float: concurrence.
+    Raises:
+        Exception: if attempted on more than two qubits.
     """
     rho = np.array(state)
     if rho.ndim == 1:
         rho = outer(state)
     if len(state) != 4:
-        raise Exception("Concurence is not defined for more than two qubits")
+        raise Exception("Concurrence is only defined for more than two qubits")
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)
     w = la.eigh(A, eigvals_only=True)
     w = np.sqrt(np.maximum(w, 0))
-    return max(0.0, w[-1]-np.sum(w[0:-1]))
+    return max(0.0, w[-1] - np.sum(w[0:-1]))
+
+
+def shannon_entropy(pvec, base=2):
+    """
+    Compute the Shannon entropy of a probability vector.
+
+    The shannon entropy of a probability vector pv is defined as
+    $H(pv) = - \\sum_j pv[j] log_b (pv[j])$ where $0 log_b 0 = 0$.
+
+    Args:
+        pvec (array_like): a probability vector.
+        base (int): the base of the logarithm
+
+    Returns:
+        float: The Shannon entropy H(pvec).
+    """
+    if base == 2:
+        def logfn(x):
+            return - x * np.log2(x)
+    elif base == np.e:
+        def logfn(x):
+            return - x * np.log(x)
+    else:
+        def logfn(x):
+            return -x * np.log(x) / np.log(base)
+
+    h = 0.
+    for x in pvec:
+        if 0 < x < 1:
+            h += logfn(x)
+    return h
+
+
+def entropy(state):
+    """
+    Compute the von-Neumann entropy of a quantum state.
+
+    Args:
+        state (array_like): a density matrix or state vector.
+
+    Returns:
+        float: The von-Neumann entropy S(rho).
+    """
+    # pylint: disable=assignment-from-no-return
+
+    rho = np.array(state)
+    if rho.ndim == 1:
+        return 0
+    evals = np.maximum(np.linalg.eigvalsh(state), 0.)
+    return shannon_entropy(evals, base=np.e)
+
+
+def mutual_information(state, d0, d1=None):
+    """
+    Compute the mutual information of a bipartite state.
+
+    Args:
+        state (array_like): a bipartite state-vector or density-matrix.
+        d0 (int): dimension of the first subsystem.
+        d1 (int or None): dimension of the second subsystem.
+
+    Returns:
+        float: The mutual information S(rho_A) + S(rho_B) - S(rho_AB).
+    """
+    if d1 is None:
+        d1 = int(len(state) / d0)
+    mi = entropy(partial_trace(state, [0], dimensions=[d0, d1]))
+    mi += entropy(partial_trace(state, [1], dimensions=[d0, d1]))
+    mi -= entropy(state)
+    return mi
+
+
+def entanglement_of_formation(state, d0, d1=None):
+    """
+    Compute the entanglement of formation of quantum state.
+
+    The input quantum state must be either a bipartite state vector, or a
+    2-qubit density matrix.
+
+    Args:
+        state (array_like): (N) array_like or (4,4) array_like, a
+            bipartite quantum state.
+        d0 (int): the dimension of the first subsystem.
+        d1 (int or None): the dimension of the second subsystem.
+
+    Returns:
+        float: The entanglement of formation.
+    """
+    state = np.array(state)
+
+    if d1 is None:
+        d1 = int(len(state) / d0)
+
+    if state.ndim == 2 and len(state) == 4 and d0 == 2 and d1 == 2:
+        return __eof_qubit(state)
+    elif state.ndim == 1:
+        # trace out largest dimension
+        if d0 < d1:
+            tr = [1]
+        else:
+            tr = [0]
+        state = partial_trace(state, tr, dimensions=[d0, d1])
+        return entropy(state)
+    else:
+        print('Input must be a state-vector or 2-qubit density matrix.')
+    return None
+
+
+def __eof_qubit(rho):
+    """
+    Compute the Entanglement of Formation of a 2-qubit density matrix.
+
+    Args:
+        rho ((array_like): (4,4) array_like, input density matrix.
+
+    Returns:
+        float: The entanglement of formation.
+    """
+    c = concurrence(rho)
+    c = 0.5 + 0.5 * np.sqrt(1 - c * c)
+    return shannon_entropy([c, 1 - c])
 
 
 ###############################################################
@@ -385,4 +486,5 @@ def concurrence(state):
 
 
 def is_pos_def(x):
+    """Return is_pos_def."""
     return np.all(np.linalg.eigvals(x) > 0)

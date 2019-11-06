@@ -1,63 +1,53 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Identity gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import Gate
-from qiskit import CompositeGate
-from qiskit import InstructionSet
-from qiskit.extensions.standard import header
+import numpy
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
 
 
 class IdGate(Gate):
-    """Identity gate."""
+    """Identity gate.
 
-    def __init__(self, qubit, circ=None):
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized or unrolled (it is an opaque gate).
+    """
+
+    def __init__(self, label=None):
         """Create new Identity gate."""
-        super(IdGate, self).__init__("id", [], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        return self._qasmif("id %s[%d];" % (qubit[0].name, qubit[1]))
+        super().__init__("id", 1, [], label=label)
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return IdGate()  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.iden(self.arg[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the Id gate."""
+        return numpy.array([[1, 0],
+                            [0, 1]], dtype=complex)
 
 
 def iden(self, q):
-    """Apply Identity to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.iden((q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(IdGate(q, self))
+    """Apply Identity to q.
+
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized or unrolled (it is an opaque gate).
+    """
+    return self.append(IdGate(), [q], [])
 
 
 QuantumCircuit.iden = iden
-CompositeGate.iden = iden

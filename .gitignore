@@ -6,11 +6,13 @@ qiskit/qasm/parser.out
 
 # editor files
 .vscode/
+.idea/
 
 #standard python ignores follow
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -26,8 +28,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -59,6 +59,7 @@ coverage.xml
 test/python/*.log
 test/python/*.pdf
 test/python/*.prof
+.stestr/
 
 # Translations
 *.mo
@@ -107,6 +108,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
+.DS_Store
 
 dummyscripts/*
 
@@ -118,8 +120,26 @@ test/python/test_qasm_python_simulator.pdf
 
 doc/_build/*
 
-doc/_autodoc/*
+doc/**/_autodoc
 
 qiskit/bin/*
 
 test/python/test_save.json
+
+test/python/*.tex
+
+out/*
+
+# CMake generates this file on the fly
+qiskit/providers/local/qasm_simulator_cpp
+qiskit/providers/legacysimulators/qasm_simulator_cpp
+
+src/qasm-simulator-cpp/test/qubit_vector_tests
+
+*.o
+
+# Cython pass
+qiskit/transpiler/passes/**/cython/**/*.cpp
+
+docs/api/*
+docs/stubs/*

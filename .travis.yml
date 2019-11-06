@@ -1,35 +1,94 @@
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# Authors: Jesus Perez <jesusper@us.ibm.com>
+notifications:
+  email: false
 
-language: python
+cache:
+  pip: true
+  directories:
+    - .stestr
 
-python:
-  - "3.5"
-  - "3.6"
+stage_generic: &stage_generic
+  install:
+    # Install step for jobs that require compilation and qa.
+    - pip install -U -r requirements.txt -c constraints.txt
+    - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
+    - pip install -c constraints.txt -e .
+    - pip install "qiskit-ibmq-provider" -c constraints.txt
+  script:
+    # Compile the executables and run the tests.
+    - python setup.py build_ext --inplace
+    - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
+    - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+    - stestr run
+  after_failure:
+    - python tools/report_ci_failure.py
 
-install:
-  - pip install -r requirements.txt
-  - pip install -r requirements-dev.txt
+stage_linux: &stage_linux
+  <<: *stage_generic
+  os: linux
+  dist: bionic
+  language: python
+  python: 3.7
 
-script: make test
+jobs:
+  include:
 
-deploy:
-  provider: script
-  skip_cleanup: true
-  script: tools/ghpages-documentation-deploy.sh
-  on:
-    branch: stable
+    - name: Python 3.6 Tests and Coverage Linux
+      <<: *stage_linux
+      python: 3.6
+      env:
+        - PYTHON="coverage run --source qiskit --parallel-mode"
+      after_success:
+        - coverage combine || true
+        - coveralls || true
+        - coverage xml || true
+        - pip install diff-cover || true
+        - diff-cover --compare-branch master coverage.xml || true
+
+    # Randomized testing
+    - name: Randomized tests
+      <<: *stage_linux
+      cache:
+        pip: true
+        directories:
+        - .hypothesis
+      script:
+      - pip install -U pip
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - make test_randomized
+
+    - name: Benchmarks
+      <<: *stage_linux
+      python: 3.5
+      script:
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - pip install "asv"
+      - git clone "https://www.github.com/Qiskit/qiskit" meta-qiskit
+      - >-
+        sed -i
+        -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/'
+        meta-qiskit/asv.conf.json
+      - cat meta-qiskit/asv.conf.json
+      - echo $TRAVIS_BRANCH
+      - echo $TRAVIS_PULL_REQUEST_BRANCH
+      - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - name: Randomized tests
+  - name: Benchmarks

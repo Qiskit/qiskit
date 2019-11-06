@@ -1,0 +1,7 @@
+{
+    "backend_name": "ibmqx5",
+    "backend_version": "1.1.1",
+    "operational": false,
+    "pending_jobs": 10,
+    "status_msg": "Paused for recalibration"
+}

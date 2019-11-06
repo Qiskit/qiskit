@@ -1,155 +1,135 @@
-# Quantum Information Software Kit (QISKit)
+# Qiskit Terra
 
-[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
-[![Build Status](https://travis-ci.org/QISKit/qiskit-sdk-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-sdk-py)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=master)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=master)
 
-The Quantum Information Software Kit (**QISKit** for short) is a software development kit (SDK) for working with [OpenQASM](https://github.com/QISKit/qiskit-openqasm) and the [IBM Q experience (QX)](https://quantumexperience.ng.bluemix.net/).
+**Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-Use **QISKit** to create quantum computing programs, compile them, and execute them on one of several backends (online Real quantum processors, online simulators, and local simulators). For the online backends, QISKit uses our [python API client](https://github.com/QISKit/qiskit-api-py) to connect to the IBM Q experience.
-
-**We use GitHub issues for tracking requests and bugs. Please see the** [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) **for questions and discussion.** **If you'd like to contribute to QISKit, please take a look at our** [contribution guidelines](CONTRIBUTING.rst).
-
-Links to Sections:
-
-* [Installation](#installation)
-* [Creating your first Quantum Program](#creating-your-first-quantum-program)
-* [More Information](#more-information)
-* [Authors](#authors-alphabetical)
-* [License](#license)
+Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
 
 ## Installation
 
-### Dependencies
+We encourage installing Qiskit via the pip tool (a python package manager), which installs all Qiskit elements, including Terra.
 
-At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using QISKit. In addition, [Jupyter Notebooks](https://jupyter.readthedocs.io/en/latest/install.html) is recommended for interacting with the tutorials.
-For this reason we recomend installing the [Anaconda 3](https://www.continuum.io/downloads) python distribution, as it comes with all of these dependencies pre-installed.
-
-In addition, a basic understanding of quantum information is very helpful when interacting with QISKit. If you're new to quantum, start with our [User Guides](https://github.com/QISKit/ibmqx-user-guides)!
-
-### PIP Installation
-
-For those more familiar with python, the fastest way to install QISKit is by using the PIP tool (a python package manager):
-
-```
-    pip install qiskit
+```bash
+pip install qiskit
 ```
 
-### Source Installation
+PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-An alternative method is to clone the QISKit SDK repository onto your local machine, and change into the cloned directory:
+To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-terra-from-source).
 
-#### Manual download
+## Creating Your First Quantum Program in Qiskit Terra
 
-Select the "Clone or download" button at the top of this webpage (or from the URL shown in the git clone command), unzip the file if needed, and change into **qiskit-sdk-py folder** in a terminal window.
+Now that Qiskit is installed, it's time to begin working with Terra.
 
-#### Git download
-
-Or, if you have Git installed, run the following commands:
+We are ready to try out a quantum circuit example, which is simulated locally using 
+the Qiskit BasicAer element. This is a simple example that makes an entangled state.
 
 ```
-    git clone https://github.com/QISKit/qiskit-sdk-py
-    cd qiskit-sdk-py
+$ python
 ```
-
-#### Setup you enviroment
-
-We recomend using python virtual environments to improve your experience. Refer to our [Environment Setup documentation](doc/install.rst#3.1-Setup-the-environment) for more information.
-
-## Creating your first Quantum Program
-
-Now that the SDK is installed, it's time to begin working with QISKit.
-
-We are ready to try out some QASM examples, which runs via the local simulator.
-
-This is a simple superposition example.
 
 ```python
-from qiskit import QuantumProgram
-
-# Creating Programs create your first QuantumProgram object instance.
-Q_program = QuantumProgram()
-
-try:
-  # Creating Registers create your first Quantum Register called "qr" with 2 qubits
-  qr = Q_program.create_quantum_register("qr", 2)
-  # create your first Classical Register called "cr" with 2 bits
-  cr = Q_program.create_classical_register("cr", 2)
-  # Creating Circuits create your first Quantum Circuit called "qc" involving your Quantum Register "qr"
-  # and your Classical Register "cr"
-  qc = Q_program.create_circuit("superposition", [qr], [cr])
-
-  # add the H gate in the Qubit 0, we put this Qubit in superposition
-  qc.h(qr[0])
-
-  # add measure to see the state
-  qc.measure(qr, cr)
-
-  # Compiled  and execute in the local_qasm_simulator
-
-  result = Q_program.execute(["superposition"], backend='local_qasm_simulator', shots=1024)
-
-  # Show the results
-  print(result)
-  print(result.get_data("superposition"))
-
-except QISKitError as ex:
-  print('There was an error in the circuit!. Error = {}'.format(ex))
-except RegisterSizeError as ex:
-  print('Error in the number of registers!. Error = {}'.format(ex))
+>>> from qiskit import *
+>>> qc = QuantumCircuit(2, 2)
+>>> qc.h(0)
+>>> qc.cx(0, 1)
+>>> qc.measure([0,1], [0,1])
+>>> backend_sim = BasicAer.get_backend('qasm_simulator')
+>>> result = execute(qc, backend_sim).result()
+>>> print(result.get_counts(qc))
 ```
 
-In this case, the output will be (approximately due to random fluctuations):
+In this case, the output will be:
 
+```python
+{'00': 513, '11': 511}
 ```
-COMPLETED
-{'00': 509, '11': 515}
+
+A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
+run the same program on a real quantum computer via IBMQ.  
+
+### Executing your code on a real quantum chip
+
+You can also use Qiskit to execute your code on a
+**real quantum chip**.
+In order to do so, you need to configure Qiskit for using the credentials in
+your IBM Q account:
+
+#### Configure your IBMQ credentials
+
+1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
+
+2. Get an API token from the IBM Q website under _My Account > API Token_ and the URL for the account.
+
+3. Take your token and url from step 2, here called `MY_API_TOKEN`, `MY_URL`, and run:
+
+   ```python
+   >>> from qiskit import IBMQ
+   >>> IBMQ.save_account('MY_API_TOKEN', 'MY_URL')
+    ```
+
+After calling `IBMQ.save_account()`, your credentials will be stored on disk.
+Once they are stored, at any point in the future you can load and use them
+in your program simply via:
+
+```python
+>>> from qiskit import IBMQ
+>>> IBMQ.load_account()
 ```
 
-You can also use QISKit to execute your code on a [real Quantum Chip](https://github.com/QISKit/ibmqx-backend-information).
+Those who do not want to save their credentials to disk should use instead:
 
- First, get your API token:
+```python
+>>> from qiskit import IBMQ
+>>> IBMQ.enable_account('MY_API_TOKEN')
+``` 
 
--  Create an [IBM Q experience](https://quantumexperience.ng.bluemix.net) account if you haven't already done so
--  Get an API token from the IBM Q experience website under “My Account” > “Personal Access Token”
+and the token will only be active for the session. For examples using Terra with real 
+devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
+the levels.
 
-This API token allows you to execute your programs with the IBM Q experience backends. [Example](doc/example_real_backend.rst).
+## Contribution Guidelines
 
-More details on this and more information see [our QISKit documentation](doc/qiskit.rst).
+If you'd like to contribute to Qiskit Terra, please take a look at our
+[contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
+We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
+[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtNjQ5OTc5ODM1ODYyLTc2YWJhOWViZDA2OWI5N2EyMjIxN2YwODM5MWQyN2Q3MjczOGRlMDU4MzMxMWE5MzZjMzEzYzM3MmJiMzU5MzU)
+and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
+For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
-### Next Steps
+## Next Steps
 
-Now you're set up and ready to check out some of the other examples from our [Tutorial](https://github.com/QISKit/qiskit-tutorial) repository. Start with the [index tutorial](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and then go to the [‘Getting Started’ example](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb). If you already have [Jupyter Notebooks installed](https://jupyter.readthedocs.io/en/latest/install.html), you can copy and modify the notebooks to create your own experiments.
+Now you're set up and ready to check out some of the other examples from our
+[Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials) repository.
 
-To install the tutorials as part of the QISKit SDK, see the following [installation details](doc/install.rst#Install-Jupyter-based-tutorials). Complete SDK documentation can be found in the [*doc* directory](doc/qiskit.rst).
+## Authors and Citation
 
-## More Information
+Qiskit Terra is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
 
-For more information on how to use QISKit, tutorial examples, and other helpful links, take a look at these resources:
+## Changelog and Release Notes
 
-* **[User Guides](https://github.com/QISKit/ibmqx-user-guides)**,
-  a good starting place for learning about quantum information and computing
-* **[Tutorials](https://github.com/QISKit/qiskit-tutorial)**,
-  for example notebooks, start with the [index](https://github.com/QISKit/qiskit-tutorial/blob/master/index.ipynb) and [‘Getting Started’ Jupyter notebook](https://github.com/QISKit/qiskit-tutorial/blob/002d054c72fc59fc5009bb9fa0ee393e15a69d07/1_introduction/getting_started.ipynb)
-* **[OpenQASM](https://github.com/QISKit/openqasm)**,
-  for additional information and examples of QASM code
-* **[IBM Quantum Experience Composer](https://quantumexperience.ng.bluemix.net/qx/editor)**,
-  a GUI for interacting with real and simulated quantum computers
-* **[QISkit Python API](https://github.com/QISKit/qiskit-api-py)**, an API to use the IBM Quantum Experience in Python
+The changelog for a particular release is dynamically generated and gets
+written to the release page on Github for each release. For example, you can
+find the page for the `0.9.0` release here:
 
+https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
 
-QISKit was originally developed by researchers and developers on the [IBM-Q](http://www.research.ibm.com/ibm-q/) Team at [IBM Research](http://www.research.ibm.com/), with the aim of offering a high level development kit to work with quantum computers.
+The changelog for the current release can be found in the releases tab:
+![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
+The changelog provides a quick overview of noteable changes for a given
+release.
 
-Visit the [IBM Q experience community](https://quantumexperience.ng.bluemix.net/qx/community) for questions and discussions on QISKit and quantum computing more broadly. If you'd like to contribute to QISKit, please take a look at our [contribution guidelines](CONTRIBUTING.rst).
+Additionally, as part of each release detailed release notes are written to
+document in detail what has changed as part of a release. This includes any
+documentation on potential breaking changes on upgrade and new features.
+For example, You can find the release notes for the `0.9.0` release in the
+Qiskit documentation here:
 
-
-## Authors (alphabetical)
-
-Jim Challenger, Andrew Cross, Ismael Faro, Jay Gambetta, Juan Gomez, Paco Martin, Antonio Mezzacapo, Jesus Perez, and John Smolin, Erick Winston, Chris Wood.
-
-In future releases, anyone who contributes with code to this project is welcome to include their name here.
-
+https://qiskit.org/documentation/release_notes.html#terra-0-9
 
 ## License
 
-This project uses the [Apache License Version 2.0 software license](https://www.apache.org/licenses/LICENSE-2.0).
+[Apache License 2.0](LICENSE.txt)

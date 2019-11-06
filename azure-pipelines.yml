@@ -1,0 +1,435 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+  branches:
+    include:
+      - master
+      - stable/*
+  tags:
+    include:
+      - '*'
+
+stages:
+  - stage: 'Wheel_Builds'
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+    jobs:
+    - job: 'linux'
+      pool: {vmImage: 'Ubuntu-16.04'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+        - task: UsePythonVersion@0
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install cibuildwheel==0.11.1
+            pip install -U twine
+            cibuildwheel --output-dir wheelhouse .
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'sdist'
+      pool: {vmImage: 'Ubuntu-16.04'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        TWINE_USERNAME: qiskit
+        python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U twine
+            python setup.py sdist
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'dist'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload dist/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'macos'
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      pool: {vmImage: 'macOS-10.13'}
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+      - task: UsePythonVersion@0
+      - bash: |
+          set -e
+          python -m pip install --upgrade pip
+          pip install cibuildwheel==0.11.1
+          pip install -U twine
+          cibuildwheel --output-dir wheelhouse .
+      - task: PublishBuildArtifacts@1
+        inputs: {pathtoPublish: 'wheelhouse'}
+        condition: succeededOrFailed()
+      - bash: |
+          twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'Windows'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+      steps:
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+        - script: choco install vcpython27 -f -y
+          displayName: Install Visual C++ for Python 2.7
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install cibuildwheel==0.11.1
+            pip install -U twine
+            cibuildwheel --output-dir wheelhouse
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - script: |
+            twine upload wheelhouse\*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+  - stage: 'Lint_and_Tests'
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    jobs:
+    - job: 'Linux_Tests'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
+    - job: 'Lint'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            pycodestyle --max-line-length=100 qiskit test
+            pylint -rn qiskit test
+            reno lint
+          displayName: 'Style and lint'
+    - job: 'Docs'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U tox
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            tox -edocs -- -j auto
+          displayName: 'Run Docs build'
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: 'docs/_build/html'
+            artifactName: 'html_docs'
+    - job: 'MacOS_HighSierra_Tests'
+      pool: {vmImage: 'macOS-10.13'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_macos'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for macOS Python $(python.version)'
+  - stage: 'Python_Tests'
+    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+    jobs:
+    - job: 'Windows_Tests'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_windows'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Windows Python $(python.version)'
+    - job: 'Linux_Tests'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
+    - job: 'MacOS_HighSierra_Tests'
+      pool: {vmImage: 'macOS-10.13'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run --concurrency 2
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_macos'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for macOS Python $(python.version)'

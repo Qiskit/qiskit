@@ -1,68 +1,67 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Element of SU(2).
 """
-from qiskit import Gate
-from qiskit.extensions._extensionerror import ExtensionError
-from qiskit import QuantumCircuit
-from qiskit import CompositeGate
+import warnings
+import numpy
+
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
 
 
 class UBase(Gate):
     """Element of SU(2)."""
 
-    def __init__(self, param, qubit, circ=None):
-        """Create new reset instruction."""
-        if len(param) != 3:
-            raise ExtensionError("expected 3 parameters")
-        super(UBase, self).__init__("U", param, [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        theta = self.param[0]
-        phi = self.param[1]
-        lamb = self.param[2]
-        qubit = self.arg[0]
-        return self._qasmif("U(%.15f,%.15f,%.15f) %s[%d];" % (theta, phi,
-                                                              lamb, qubit[0].name, qubit[1]))
+    def __init__(self, theta, phi, lam):
+        warnings.warn('UBase is deprecated and it will be removed after 0.9. '
+                      'Use U3Gate instead.', DeprecationWarning, 2)
+        super().__init__("U", 1, [theta, phi, lam])
 
     def inverse(self):
         """Invert this gate.
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
-        return self
+        warnings.warn('UBase.inverse is deprecated and it will be removed after 0.9. '
+                      'Use U3Gate.inverse instead.',
+                      DeprecationWarning, 2)
+        return UBase(-self.params[0], -self.params[2], -self.params[1])
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.ubase(self.arg[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        warnings.warn('UBase.to_matrix is deprecated and it will be removed after 0.9.'
+                      'Use U3Gate.to_matrix instead.',
+                      DeprecationWarning, 2)
+
+        theta, phi, lam = self.params
+        return numpy.array(
+            [[
+                numpy.cos(theta / 2),
+                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
+            ],
+             [
+                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
+             ]],
+            dtype=complex)
 
 
-def u_base(self, tpl, q):
+def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    self._check_qubit(q)
-    return self._attach(UBase(tpl, q, self))
+    return self.append(UBase(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u_base = u_base
-CompositeGate.u_base = u_base

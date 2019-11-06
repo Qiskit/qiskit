@@ -1,59 +1,66 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 SWAP gate.
 """
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+
+import numpy
+
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class SwapGate(Gate):
     """SWAP gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self):
         """Create new SWAP gate."""
-        super(SwapGate, self).__init__("swap", [], [ctl, tgt], circ)
+        super().__init__("swap", 2, [])
 
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("swap %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                     tgt[0].name, tgt[1]))
+    def _define(self):
+        """
+        gate swap a,b { cx a,b; cx b,a; cx a,b; }
+        """
+        definition = []
+        q = QuantumRegister(2, "q")
+        rule = [
+            (CnotGate(), [q[0], q[1]], []),
+            (CnotGate(), [q[1], q[0]], []),
+            (CnotGate(), [q[0], q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
+        return SwapGate()  # self-inverse
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.swap(self.arg[0], self.arg[1]))
+    def to_matrix(self):
+        """Return a Numpy.array for the Swap gate."""
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 0, 1]], dtype=complex)
 
 
-def swap(self, ctl, tgt):
-    """Apply SWAP from ctl to tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(SwapGate(ctl, tgt, self))
+def swap(self, qubit1, qubit2):
+    """Apply SWAP from qubit1 to qubit2."""
+    return self.append(SwapGate(), [qubit1, qubit2], [])
 
 
 QuantumCircuit.swap = swap
-CompositeGate.swap = swap

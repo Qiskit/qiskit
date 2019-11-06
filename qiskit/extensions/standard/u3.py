@@ -1,76 +1,59 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Two-pulse single-qubit gate.
 """
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
-from qiskit import Gate
-from qiskit import InstructionSet
-from qiskit import CompositeGate
-from qiskit.extensions.standard import header
+
+import numpy
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
 
 
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
-    def __init__(self, theta, phi, lam, qubit, circ=None):
+    def __init__(self, theta, phi, lam, label=None):
         """Create new two-pulse single qubit gate."""
-        super(U3Gate, self).__init__("u3", [theta, phi, lam], [qubit], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        qubit = self.arg[0]
-        theta = self.param[0]
-        phi = self.param[1]
-        lam = self.param[2]
-        return self._qasmif("u3(%.15f,%.15f,%.15f) %s[%d];" % (theta, phi, lam,
-                                                               qubit[0].name,
-                                                               qubit[1]))
+        super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         """Invert this gate.
 
         u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
-        return self
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u3(self.param[0], self.param[1], self.param[2],
-                                self.arg[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
+        return numpy.array(
+            [[
+                numpy.cos(theta / 2),
+                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
+            ],
+             [
+                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
+             ]],
+            dtype=complex)
 
 
-def u3(self, theta, phi, lam, q):
+def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
     """Apply u3 to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.u3(theta, phi, lam, (q, j)))
-        return gs
-    else:
-        self._check_qubit(q)
-        return self._attach(U3Gate(theta, phi, lam, q, self))
+    return self.append(U3Gate(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u3 = u3
-CompositeGate.u3 = u3

@@ -1,0 +1,23 @@
+{
+    "backend_name": "statevector_simulator",
+    "backend_version": "2.1.0",
+    "job_id": "XC1323XG2",
+    "qobj_id": "Experiment1",
+    "date": "2018-04-02 15:00:00Z",
+    "status": "COMPLETED",
+    "success": true,
+    "header": {"description": "Bell state statevector simulator test"},
+    "results": [
+        {
+            "header": {
+                "name": "Bell state"
+            },
+            "shots": 1,
+            "status": "DONE",
+            "success": true,
+            "data": {
+                "statevector": [[0.7071067811865475, 0.0], [0.0, 0.0], [0.0, 0.0], [0.7071067811865475, 0.0]]
+            }
+        }
+    ]
+}

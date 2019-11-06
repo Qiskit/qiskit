@@ -1,28 +1,25 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,missing-docstring
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """Test for the QASM parser"""
 
 import unittest
+import ply
 
 from qiskit.qasm import Qasm, QasmError
-from qiskit.qasm._node._node import Node
-
-from .common import QiskitTestCase
+from qiskit.qasm.node.node import Node
+from qiskit.test import QiskitTestCase, Path
 
 
 def parse(file_path, prec=15):
@@ -38,44 +35,53 @@ def parse(file_path, prec=15):
 class TestParser(QiskitTestCase):
     """QasmParser"""
     def setUp(self):
-        self.QASM_FILE_PATH = self._get_resource_path('qasm/example.qasm')
-        self.QASM_FILE_PATH_FAIL = self._get_resource_path(
-            'qasm/example_fail.qasm')
-        self.QASM_FILE_PATH_IF = self._get_resource_path(
-            'qasm/example_if.qasm')
+        self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
+        self.qasm_file_path_fail = self._get_resource_path(
+            'example_fail.qasm', Path.QASMS)
+        self.qasm_file_path_if = self._get_resource_path(
+            'example_if.qasm', Path.QASMS)
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
 
-        res = parse(self.QASM_FILE_PATH)
+        res = parse(self.qasm_file_path)
+        self.log.info(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1660)
+        self.assertEqual(len(res), 1563)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1644:1659], "measure r -> d;")
+        self.assertEqual(res[1547:1562], "measure r -> d;")
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
 
         self.assertRaisesRegex(QasmError, "Perhaps there is a missing",
-                               parse, file_path=self.QASM_FILE_PATH_FAIL)
+                               parse, file_path=self.qasm_file_path_fail)
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
         def inspect(node):
+            """Inspect node children."""
             for child in node.children:
                 self.assertTrue(isinstance(child, Node))
                 inspect(child)
 
         # Test the canonical example file.
-        qasm = Qasm(self.QASM_FILE_PATH)
+        qasm = Qasm(self.qasm_file_path)
         res = qasm.parse()
         inspect(res)
 
         # Test a file containing if instructions.
-        qasm_if = Qasm(self.QASM_FILE_PATH_IF)
+        qasm_if = Qasm(self.qasm_file_path_if)
         res_if = qasm_if.parse()
         inspect(res_if)
+
+    def test_get_tokens(self):
+        """Test whether we get only valid tokens."""
+        qasm = Qasm(self.qasm_file_path)
+        for token in qasm.get_tokens():
+            self.assertTrue(isinstance(token, ply.lex.LexToken))
+
 
 if __name__ == '__main__':
     unittest.main()

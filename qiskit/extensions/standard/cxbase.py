@@ -1,59 +1,44 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017 IBM RESEARCH. All Rights Reserved.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2017.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Fundamental controlled-NOT gate.
 """
-from qiskit import Instruction
-from qiskit import Gate
-from qiskit import QuantumCircuit
-from qiskit import CompositeGate
+import warnings
+from qiskit.circuit import Gate
+from qiskit.circuit import QuantumCircuit
 
 
 class CXBase(Gate):
     """Fundamental controlled-NOT gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self):
         """Create new CX instruction."""
-        super(CXBase, self).__init__("CX", [], [ctl, tgt], circ)
-
-    def qasm(self):
-        """Return OPENQASM string."""
-        ctl = self.arg[0]
-        tgt = self.arg[1]
-        return self._qasmif("CX %s[%d],%s[%d];" % (ctl[0].name, ctl[1],
-                                                   tgt[0].name, tgt[1]))
+        warnings.warn('CXBase is deprecated and it will be removed after 0.9. '
+                      'Use CnotGate instead.', DeprecationWarning, 2)
+        super().__init__("CX", 2, [])
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cxbase(self.arg[0], self.arg[1]))
+        warnings.warn('CXBase.inverse is deprecated and it will be removed after 0.9. '
+                      'Use CnotGate.inverse instead.', DeprecationWarning, 2)
+        return CXBase()  # self-inverse
 
 
 def cx_base(self, ctl, tgt):
-    """Apply CX ctl, tgt."""
-    self._check_qubit(ctl)
-    self._check_qubit(tgt)
-    self._check_dups([ctl, tgt])
-    return self._attach(CXBase(ctl, tgt, self))
+    """Apply CX from ctl to tgt."""
+    return self.append(CXBase(), [ctl, tgt], [])
 
 
 QuantumCircuit.cx_base = cx_base
-CompositeGate.cx_base = cx_base

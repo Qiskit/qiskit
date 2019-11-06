@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Allows the Result class to return partial results. If a valid result schema
+    is loaded that contains some experiments which succeeded and some which
+    failed, this allows accessing the data from experiments that succeeded,
+    while raising an exception for experiments that failed and displaying the
+    appropriate error message for the failed results.
