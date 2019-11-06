@@ -264,7 +264,6 @@ class Schedule(ScheduleComponent):
         """
         Return a Schedule with only the instructions from this Schedule *failing* at least one of
         the provided filters. That is, this function has the same inputs as self.filter, but returns
-        the complement Schedule, so that self.filter(args) | self.exclude(args) == self
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
