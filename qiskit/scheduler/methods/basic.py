@@ -27,6 +27,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.channels import MeasureChannel
+# from .channels import MemorySlot
 
 from qiskit.scheduler.config import ScheduleConfig
 
@@ -149,17 +151,18 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
-        import ipdb; ipdb.set_trace()
         measures = set()
         all_qubits = set()
         sched = Schedule()
+        import ipdb; ipdb.set_trace()
         for q in measured_qubits:
             measures.add(tuple(schedule_config.meas_map[q]))
         for qubits in measures:
             all_qubits.update(qubits)
-            # TODO (Issue #2704): Respect MemorySlots from the input circuit
             # Take sched.non_implemented_filter(measure.difference(measured_qubits)
             sched |= cmd_def.get('measure', qubits)
+            # TODO (Issue #2704): Respect MemorySlots from the input circuit
+            sched = sched.exclude(channels=[MeasureChannel(q) for q in all_qubits.difference(measured_qubits)])
         measured_qubits.clear()
         return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
 
