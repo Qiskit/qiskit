@@ -232,7 +232,7 @@ class Schedule(ScheduleComponent):
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
-        Return a new Schedule with only the instructions from this Schedule passing though the
+        Return a new Schedule with only the instructions from this Schedule which pass though the
         provided filters; i.e. an instruction will be retained iff every function in filter_funcs
         returns True, the instruction occurs on a channel type contained in channels,
         the instruction type is contained in instruction_types, and the period over which the
