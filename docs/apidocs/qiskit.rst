@@ -7,20 +7,27 @@ API Reference
 .. toctree::
    :maxdepth: 1
 
-   assembler
    circuit
    compiler
-   converters
-   dagcircuit
    execute
-   extensions/extensions
-   providers/providers
-   pulse/pulse
+   visualization
+   converters
+   assembler
+   dagcircuit
+   extensions
+   providers_basicaer
+   providers
+   providers_models
+   pulse
+   scheduler
    qasm
    qobj
-   quantum_info/quantum_info
+   quantum_info
    result
-   tools/tools
-   transpiler/transpiler
+   tools
+   tools_jupyter
+   transpiler
+   transpiler_passes
+   transpiler_preset
    validation
    visualization
