@@ -211,7 +211,7 @@ _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
     r"""Generates unnormalized sech `SamplePulse`.
 
-    Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
+    Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
 
     Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
@@ -222,8 +222,9 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SampleP
         name: Name of pulse.
     """
     center = duration/2
+    zeroed_width = duration
     return _sampled_sech_pulse(duration, amp, center, sigma,
-                               name=name)
+                               zeroed_width=zeroed_width, rescale_amp=True, name=name)
 
 
 _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
@@ -278,7 +279,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
          name: Optional[str] = None) -> SamplePulse:
     r"""Generates Y-only correction DRAG `SamplePulse` for standard nonlinear oscillator (SNO) [1].
 
-    Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
+    Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
 
     Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
 
