@@ -216,8 +216,9 @@ def _gate_to_circuit(operation):
 def _unroll_gate(operation, basis_gates):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
     from qiskit.converters.dag_to_circuit import dag_to_circuit
+    from qiskit.converters.instruction_to_gate import instruction_to_gate
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
     dag = circuit_to_dag(_gate_to_circuit(operation))
     qc = dag_to_circuit(unroller.run(dag))
-    return qc.to_instruction().to_gate()
+    return instruction_to_gate(qc.to_instruction())
