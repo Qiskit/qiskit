@@ -113,19 +113,19 @@ def parallel_map(  # pylint: disable=dangerous-default-value
             except queue.Empty:
                 pass
 
-    parallel_counts = os.environ.get('QISKIT_PARALLEL_COUNTS', 1)
     input_queue = queue.Queue(maxsize=0)
     output_queue = queue.Queue(maxsize=0)
     for value in values:
         input_queue.put((task, (value,) + task_args, task_kwargs, _callback))
 
     # start executors
-    _executors = futures.ThreadPoolExecutor(max_workers=parallel_counts)
+    _executors = futures.ThreadPoolExecutor(max_workers=num_processes)
     _futures = [_executors.submit(task_executor, input_queue, output_queue)
-                for _ in range(parallel_counts)]
+                for _ in range(num_processes)]
 
     # wait executors to finish
-    [_future.result(timeout=None) for _future in _futures]
+    for _future in _futures:
+        _future.result(timeout=None)
 
     results = []
     while not output_queue.empty():
