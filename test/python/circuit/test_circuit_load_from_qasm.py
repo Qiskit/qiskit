@@ -189,15 +189,22 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_from_qasm_str_custom_gate(self):
         """ Test load custom gates"""
-        expected_qasm = '\n'.join(["OPENQASM 2.0;",
-                                   "include \"qelib1.inc\";",
-                                   "qreg q[3];",
-                                   "rinv q[2];"]) + '\n'
         qasm_string = """OPENQASM 2.0;
-                include "qelib1.inc";
-                gate rinv q {sdg q; h q; sdg q; h q; }
-                qreg q[3];
-                rinv q[2];"""
-        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+                        include "qelib1.inc";
+                        gate rinv q {sdg q; h q; sdg q; h q; }
+                        qreg q[3];
+                        rinv q[2];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        self.assertEqual(q_circuit.qasm(), expected_qasm)
+        rinv_q = QuantumRegister(1, name='q')
+        rinv_gate = QuantumCircuit(rinv_q, name='rinv')
+        rinv_gate.sdg(rinv_q)
+        rinv_gate.h(rinv_q)
+        rinv_gate.sdg(rinv_q)
+        rinv_gate.h(rinv_q)
+        rinv = rinv_gate.to_instruction()
+        qr = QuantumRegister(1, name='qr')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.append(rinv, [qr[0]])
+
+        self.assertEqual(circuit, expected)
