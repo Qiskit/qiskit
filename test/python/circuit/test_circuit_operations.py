@@ -18,7 +18,7 @@
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
@@ -66,7 +66,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test combining two circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
-        it should raise a QiskitError.
+        it should raise a CircuitError.
         """
         qr1 = QuantumRegister(1, "q")
         qr2 = QuantumRegister(2, "q")
@@ -75,8 +75,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__add__, qc2)
-        self.assertRaises(QiskitError, qc1.__add__, qcr3)
+        self.assertRaises(CircuitError, qc1.__add__, qc2)
+        self.assertRaises(CircuitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
         """Test extending a circuit with same registers.
@@ -120,7 +120,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test extending a circuits fails if registers incompatible.
 
         If two circuits have same name register of different size or type
-        it should raise a QiskitError.
+        it should raise a CircuitError.
         """
         qr1 = QuantumRegister(1, "q")
         qr2 = QuantumRegister(2, "q")
@@ -129,8 +129,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__iadd__, qc2)
-        self.assertRaises(QiskitError, qc1.__iadd__, qcr3)
+        self.assertRaises(CircuitError, qc1.__iadd__, qc2)
+        self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
@@ -142,7 +142,7 @@ class TestCircuitOperations(QiskitTestCase):
                                          classical_reg_1)
         quantum_circuit.h(quantum_reg)
 
-        with self.assertRaises(QiskitError) as ctx:
+        with self.assertRaises(CircuitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
                          'register size error')

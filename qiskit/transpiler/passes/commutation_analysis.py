@@ -12,16 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pass for detecting commutativity in a circuit.
-
-Property_set['commutation_set'] is a dictionary that describes
-the commutation relations on a given wire, all the gates on a wire
-are grouped into a set of gates that commute.
-
-TODO: the current pass determines commutativity through matrix multiplication.
-A rule-based analysis would be potentially faster, but more limited.
-"""
+"""Analysis pass to find commutation relations between DAG nodes."""
 
 from collections import defaultdict
 import numpy as np
@@ -33,14 +24,23 @@ _CUTOFF_PRECISION = 1E-10
 
 
 class CommutationAnalysis(AnalysisPass):
-    """An analysis pass to find commutation relations between DAG nodes."""
+    """Analysis pass to find commutation relations between DAG nodes.
+
+    Property_set['commutation_set'] is a dictionary that describes
+    the commutation relations on a given wire, all the gates on a wire
+    are grouped into a set of gates that commute.
+
+    TODO: the current pass determines commutativity through matrix multiplication.
+    A rule-based analysis would be potentially faster, but more limited.
+    """
 
     def __init__(self):
         super().__init__()
         self.gates_on_wire = {}
 
     def run(self, dag):
-        """
+        """Run the CommutationAnalysis pass on `dag`.
+
         Run the pass on the DAG, and write the discovered commutation relations
         into the property_set.
         """
@@ -102,6 +102,9 @@ def _commute(node1, node2):
         return False
 
     if node1.condition or node2.condition:
+        return False
+
+    if node1.op.is_parameterized() or node2.op.is_parameterized():
         return False
 
     qarg = list(set(node1.qargs + node2.qargs))
