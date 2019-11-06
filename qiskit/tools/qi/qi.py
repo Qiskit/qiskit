@@ -247,7 +247,7 @@ def devectorize(vectorized_mat, method='col'):
     return None
 
 
-def choi_to_rauli(choi, order=1):
+def choi_to_pauli(choi, order=1):
     """
     Convert a Choi-matrix to a Pauli-basis superoperator.
 

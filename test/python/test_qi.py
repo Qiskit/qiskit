@@ -25,7 +25,7 @@ import numpy as np
 from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
 from qiskit.tools.qi.qi import concurrence, qft, chop
 from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
-from qiskit.tools.qi.qi import choi_to_rauli
+from qiskit.tools.qi.qi import choi_to_pauli
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
 from qiskit.quantum_info import purity
 from qiskit.quantum_info.random import random_density_matrix
@@ -219,7 +219,7 @@ class TestQI(QiskitTestCase):
                                  [1, 0, 1, 0],
                                  [0.5, 0.5, 0.5, 0.5],
                                  [0, 1, 0, 1]])
-        res = choi_to_rauli(input_matrix)
+        res = choi_to_pauli(input_matrix)
         expected = np.array([[2.0+0.j, 2.25+0.0j, 0.0+0.75j, -1.0+0.0j],
                              [1.75+0.j, 2.5+0.j, 0.-1.5j, 0.75+0.0j],
                              [0.0-0.25j, 0.0+0.5j, -0.5+0.0j, 0.0-1.25j],
