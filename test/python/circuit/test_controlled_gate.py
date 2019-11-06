@@ -394,17 +394,19 @@ class TestControlledGate(QiskitTestCase):
         cgate1 = gate1.q_if(num_ctrl_qubits)
         cgate2 = gate2.q_if(num_ctrl_qubits)
         cop_mat1 = _compute_control_matrix(mat1, num_ctrl_qubits)
-        cop_mat2 = _compute_control_matrix(mat2, num_ctrl_qubits)
+        cop_mat2 = _compute_control_matrix(mat2, num_ctrl_qubits, phase=1)
         self.assertTrue(is_unitary_matrix(mat1))
         self.assertTrue(is_unitary_matrix(mat2))
         self.assertTrue(is_unitary_matrix(cop_mat1))
         self.assertTrue(is_unitary_matrix(cop_mat2))
         self.assertTrue(Operator(cgate1).equiv(Operator(cgate2)))
-        # not sure why following fails
-        # self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
+        self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
 
     def test_base_gate_setting(self):
-        """Test all gates in standard extensions which are of type ControlledGate"""
+        """
+        Test all gates in standard extensions which are of type ControlledGate
+        have a base gate setting.
+        """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
             sig = signature(gate_class.__init__)
@@ -414,13 +416,28 @@ class TestControlledGate(QiskitTestCase):
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits):
-    """Compute the controlled version of the input matrix with qiskit ordering"""
+def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
+    """
+    Compute the controlled version of the input matrix with qiskit ordering.
+
+    Args:
+        base_mat (ndarray): unitary to be controlled
+        num_ctrl_qubits (int): number of controls for new unitary
+        phase (float): The global phase of base_mat which is promoted to the 
+            global phase of the controlled matrix
+
+    Returns:
+        ndarray: controlled version of base matrix.
+    """
     num_target = int(np.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
     ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
-    cop_mat = np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+    full_mat_dim = ctrl_dim * base_mat.shape[0]
+    full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     for i in range(ctrl_dim-1):
-        cop_mat += np.kron(np.eye(2**num_target),
-                           np.diag(np.roll(ctrl_grnd, i)))
-    return cop_mat
+        full_mat += np.kron(np.eye(2**num_target),
+                            np.diag(np.roll(ctrl_grnd, i)))
+    if phase != 0:
+        full_mat = np.exp(1j * phase) * full_mat
+    full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+    return full_mat
