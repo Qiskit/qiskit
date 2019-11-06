@@ -352,7 +352,7 @@ class QobjDictField:
         try:
             return self._data[attr]
         except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+            raise AttributeError('Attribute %s is not defined' % attr)
 
     def __setattr__(self, name, value):
         if not hasattr(self, name):
