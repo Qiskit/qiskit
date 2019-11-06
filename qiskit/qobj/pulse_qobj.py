@@ -45,7 +45,7 @@ class QobjMeasurementOption:
     def name(self):
         """The name of the measurement option."""
         if 'name' not in self._data:
-            raise AttributeError
+            raise AttributeError('Attribute name is not defined')
         return self._data['name']
 
     @name.setter
@@ -56,7 +56,7 @@ class QobjMeasurementOption:
     def params(self):
         """The parameters of the measurement option."""
         if 'params' not in self._data:
-            raise AttributeError
+            raise AttributeError('Attribute name is not defined')
         return self._data['params']
 
     @params.setter
@@ -81,7 +81,6 @@ class QobjMeasurementOption:
         Returns:
             QobjMeasurementOption: The object from the input dictionary.
         """
-
         return cls(**data)
 
     def __eq__(self, other):
@@ -300,7 +299,7 @@ class PulseQobjConfig:
         """The number of memory slots on the device."""
         mem_slots = self._data.get('memory_slots')
         if mem_slots is None:
-            raise AttributeError
+            raise AttributeError('Attribute memory_slots is not defined')
         return mem_slots
 
     @memory_slots.setter
@@ -340,7 +339,7 @@ class PulseQobjConfig:
         try:
             return self._data[name]
         except KeyError:
-            raise AttributeError
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def __eq__(self, other):
         if isinstance(other, PulseQobjConfig):
@@ -377,7 +376,6 @@ class PulseQobjExperiment:
         Returns:
             dict: The dictionary form of the PulseQobjExperiment.
         """
-
         out_dict = {
             'instructions': [x.to_dict() for x in self.instructions]
         }
@@ -476,7 +474,6 @@ class PulseLibraryItem:
             samples (list[complex]): A list of complex values defining pulse
                 shape.
         """
-
         self.name = name
         self.samples = samples
 
@@ -596,7 +593,6 @@ class PulseQobj:
         Returns:
             PulseQobj: The PulseQobj from the input dictionary.
         """
-
         config = None
         if 'config' in data:
             config = PulseQobjConfig.from_dict(data['config'])

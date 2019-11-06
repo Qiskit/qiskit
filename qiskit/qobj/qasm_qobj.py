@@ -284,7 +284,7 @@ class QasmQobjConfig:
         """The number of qubits on the device."""
         nqubits = self._data.get('n_qubits')
         if nqubits is None:
-            raise AttributeError
+            raise AttributeError('Attribute n_qubits is not defined')
         return nqubits
 
     @n_qubits.setter
@@ -315,7 +315,7 @@ class QasmQobjConfig:
         try:
             return self._data[name]
         except KeyError:
-            raise AttributeError
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def __eq__(self, other):
         if isinstance(other, QasmQobjConfig):
@@ -352,7 +352,7 @@ class QobjDictField:
         try:
             return self._data[attr]
         except KeyError:
-            raise AttributeError
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def __setattr__(self, name, value):
         if not hasattr(self, name):
