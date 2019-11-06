@@ -347,10 +347,6 @@ class Schedule(ScheduleComponent):
         if intervals:
             filter_func_list.append(only_intervals(intervals))
 
-        # if no filters specified, return the function that always returns True
-        if not filter_func_list:
-            return lambda x: True
-
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
