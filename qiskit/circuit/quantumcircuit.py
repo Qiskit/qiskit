@@ -54,7 +54,7 @@ class QuantumCircuit:
         regs: list(:class:`Register`) or list(``int``) The registers to be
             included in the circuit.
 
-                * If a list of :class:`Register` objects, represents the :class:`QuantumRegister` 
+                * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
                   and/or :class:`ClassicalRegister` objects to include in the circuit.
 
                 For example:
@@ -63,8 +63,8 @@ class QuantumCircuit:
                 * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
                 * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
 
-                * If a list of ``int``, the amount of qubits and/or classical bits to include in   
-                  the circuit. It can either be a single int for just the number of quantum bits, 
+                * If a list of ``int``, the amount of qubits and/or classical bits to include in
+                  the circuit. It can either be a single int for just the number of quantum bits,
                   or 2 ints for the number of quantum bits and classical bits, respectively.
 
                 For example:
@@ -121,8 +121,8 @@ class QuantumCircuit:
         Returns:
             QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
 
-            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an 
-            Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a 
+            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an
+            Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
