@@ -91,16 +91,15 @@ def as_late_as_possible(circuit: QuantumCircuit,
     """
     circuit.barrier()  # Adding a final barrier is an easy way to align the channel end times.
     sched = Schedule(name=circuit.name)
-
     # We schedule in reverse order to get ALAP behaviour. We need to know how far out from t=0 any
     # qubit will become occupied. We add positive shifts to these times as we go along.
     qubit_available_until = defaultdict(lambda: float("inf"))
 
-    def update_times(inst_qubits: List[int], shift: int = 0) -> None:
+    def update_times(inst_qubits: List[int], shift: int = 0, cmd_start_time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
             # A newly scheduled instruction on q starts at t=0 as we move backwards
-            qubit_available_until[q] = 0
+            qubit_available_until[q] = cmd_start_time
         for q in qubit_available_until.keys():
             if q not in inst_qubits:
                 # Uninvolved qubits might be free for the duration of the new instruction
@@ -122,7 +121,7 @@ def as_late_as_possible(circuit: QuantumCircuit,
             shift_amount = max(0, -cmd_start_time)
             cmd_start_time = max(cmd_start_time, 0)
             sched = cmd_sched.shift(cmd_start_time).insert(shift_amount, sched, name=sched.name)
-            update_times(circ_pulse_def.qubits, shift_amount)
+            update_times(circ_pulse_def.qubits, shift_amount, cmd_start_time)
     return sched
 
 
