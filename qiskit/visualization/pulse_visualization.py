@@ -49,8 +49,10 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         table (bool): Draw event table for supported commands
         label (bool): Label individual instructions
         framechange (bool): Add framechange indicators
+
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
+
     Raises:
         VisualizationError: when invalid data is given or lack of information
         ImportError: when matplotlib is not installed
