@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The previously deprecated represeantation of qubits and classical bits as tuple, which was deprecated
+    in the 0.9 release, has been removed. The use of ``Qubit`` and ``Clbit`` objects is the new way to
+    represent qubits and classical bits.
