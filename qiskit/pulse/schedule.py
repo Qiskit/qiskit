@@ -356,7 +356,7 @@ class Schedule(ScheduleComponent):
              scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True, scaling: Optional[float] = None):
+             framechange: bool = True, scaling: float = None):
         """Plot the schedule.
 
         Args:
