@@ -122,7 +122,6 @@ class SamplePulse(Command):
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         # pylint: disable=invalid-name, cyclic-import
-        
         if scaling:
             warnings.warn(
                 'The parameter "scaling" is being replaced by "scale"'

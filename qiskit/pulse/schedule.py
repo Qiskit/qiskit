@@ -379,12 +379,10 @@ class Schedule(ScheduleComponent):
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-        
         if scaling:
             warnings.warn('The parameter "scaling" is being replaced by "scale"'
                           '', DeprecationWarning, 3)
             scale = scaling
-        
         # Adjust scaling so ensure consistent zooming behaviour with SamplePulse.draw function
         # For example if scaling is set to 1 it is adjusted to 0.01
         _exponent = int(log(scale, 10))
