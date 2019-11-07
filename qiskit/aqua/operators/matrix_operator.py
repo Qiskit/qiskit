@@ -320,7 +320,7 @@ class MatrixOperator(BaseOperator):
         Args:
             state_in (Union(list,numpy.array)): A vector representing the initial state
                                             for the evolution
-            evo_time (int): The evolution time
+            evo_time (Union(complex, float)): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             expansion_mode (str): The mode under which the expansion is to be done.
                 Currently support 'trotter', which follows the expansion as discussed in
