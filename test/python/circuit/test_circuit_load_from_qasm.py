@@ -192,8 +192,8 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string = """OPENQASM 2.0;
                         include "qelib1.inc";
                         gate rinv q {sdg q; h q; sdg q; h q; }
-                        qreg q[3];
-                        rinv q[2];"""
+                        qreg q[1];
+                        rinv q[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         rinv_q = QuantumRegister(1, name='q')
@@ -203,7 +203,7 @@ class LoadFromQasmTest(QiskitTestCase):
         rinv_gate.sdg(rinv_q)
         rinv_gate.h(rinv_q)
         rinv = rinv_gate.to_instruction()
-        qr = QuantumRegister(1, name='qr')
+        qr = QuantumRegister(1, name='q')
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(rinv, [qr[0]])
 

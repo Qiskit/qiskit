@@ -342,6 +342,7 @@ class AstInterpreter:
         return None
 
     def _gate_definition_to_definition(self, node):
+        """ From a gate defintion in qasm, to a gate.definition format."""
         definition = []
         q = QuantumRegister(node['n_bits'], 'q')
         for child in node['body'].children:
