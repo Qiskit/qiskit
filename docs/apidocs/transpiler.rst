@@ -1,6 +1,6 @@
-.. _qiskit-qobj:
+.. _qiskit-transpiler:
 
-.. automodule:: qiskit.qobj
+.. automodule:: qiskit.transpiler
    :no-members:
    :no-inherited-members:
    :no-special-members:
