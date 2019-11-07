@@ -28,7 +28,6 @@ from .s import SGate
 from .s import SdgGate
 from .t import TGate
 from .t import TdgGate
-from .u0 import U0Gate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate
