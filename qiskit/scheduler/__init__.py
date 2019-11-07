@@ -12,7 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for scheduling pulse `Schedule`s from `QuantumCircuit`s."""
+"""
+===========================================
+Circuit Scheduler (:mod:`qiskit.scheduler`)
+===========================================
+
+.. currentmodule:: qiskit.scheduler
+
+Circuit to pulse scheduling functionality
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   schedule_circuit
+   ScheduleConfig
+"""
 
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit

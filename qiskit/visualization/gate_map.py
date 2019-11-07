@@ -292,16 +292,18 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
             import matplotlib.pyplot as plt
             %matplotlib inline
 
-            provider = IBMQ.get_provider(group='open')
-            ghz = QuantumCircuit(5, 5)
+            IBMQ.load_account()
+
+            ghz = QuantumCircuit(3, 3)
             ghz.h(0)
-            for idx in range(1,5):
+            for idx in range(1,3):
                 ghz.cx(0,idx)
-                ghz.barrier(range(5))
-                ghz.measure(range(5), range(5))
-                backend = provider.get_backend('ibmq_16_melbourne')
-                new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=0)
-                plot_circuit_layout(new_circ_lv0, backend)
+            ghz.measure(range(3), range(3))
+
+            provider = IBMQ.get_provider(hub='ibm-q')
+            backend = provider.get_backend('ibmq_vigo')
+            new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
+            plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
         raise QiskitError('Circuit has no layout. '
@@ -366,9 +368,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
             from qiskit.visualization import plot_error_map
             %matplotlib inline
-            provider = IBMQ.load_account()
-            accountProvider = IBMQ.get_provider(hub='ibm-q')
-            backend = accountProvider.get_backend('ibmq_vigo')
+
+            IBMQ.load_account()
+            provider = IBMQ.get_provider(hub='ibm-q')
+            backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
     color_map = cm.viridis
