@@ -212,6 +212,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U tox
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             tox -edocs -- -j auto
