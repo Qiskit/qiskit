@@ -830,7 +830,7 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             state_in (QuantumCircuit): a circuit describes the input state
-            evo_time (int): The evolution time
+            evo_time (Union(complex, float, Parameter, ParameterExpression)): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             quantum_registers (QuantumRegister): The QuantumRegister to build
                                                 the QuantumCircuit off of
@@ -874,7 +874,7 @@ class WeightedPauliOperator(BaseOperator):
         Carry out the eoh evolution for the operator under supplied specifications.
 
         Args:
-            evo_time (int): The evolution time
+            evo_time (Union(complex, float, Parameter, ParameterExpression)): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             expansion_mode (str): The mode under which the expansion is to be done.
                 Currently support 'trotter', which follows the expansion as discussed in
