@@ -342,25 +342,12 @@ class AstInterpreter:
         return None
 
     def _gate_definition_to_definition(self, node):
-        return []
-
-    def _create_op(self, name, params):
-        if name in self.standard_extension:
-            op = self.standard_extension[name](*params)
-        elif name in self.gates:
-            if self.gates[name]['opaque']:
-                # call an opaque gate
-                op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
-            else:
-                # call a custom gate
-                op = Instruction(name=name,
-                                 num_qubits=self.gates[name]['n_bits'],
-                                 num_clbits=self.gates[name]['n_args'],
-                                 params=params)
-                op.definition = self._gate_definition_to_definition(self.gates[name]['body'])
-        else:
-            raise QiskitError("unknown operation for ast node name %s" % name)
-        return op
+        definition = []
+        q = QuantumRegister(node['n_bits'], 'q')
+        for child in node['body'].children:
+            op = self._create_op(child.name, params=[])
+            definition.append((op, q[:], []))
+        return definition
 
     def _create_dag_op(self, name, params, qargs):
         """
@@ -376,3 +363,21 @@ class AstInterpreter:
         """
         op = self._create_op(name, params)
         self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
+
+    def _create_op(self, name, params):
+        if name in self.standard_extension:
+            op = self.standard_extension[name](*params)
+        elif name in self.gates:
+            if self.gates[name]['opaque']:
+                # call an opaque gate
+                op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
+            else:
+                # call a custom gate
+                op = Instruction(name=name,
+                                 num_qubits=self.gates[name]['n_bits'],
+                                 num_clbits=self.gates[name]['n_args'],
+                                 params=params)
+                op.definition = self._gate_definition_to_definition(self.gates[name])
+        else:
+            raise QiskitError("unknown operation for ast node name %s" % name)
+        return op
