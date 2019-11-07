@@ -40,7 +40,7 @@ oneQ_gates = [HGate, IdGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate
 twoQ_gates = [CnotGate, CyGate, CzGate, SwapGate, CHGate]
 threeQ_gates = [ToffoliGate, FredkinGate]
 
-oneQ_oneP_gates = [U0Gate, U1Gate, RXGate, RYGate, RZGate]
+oneQ_oneP_gates = [U1Gate, RXGate, RYGate, RZGate]
 oneQ_twoP_gates = [U2Gate]
 oneQ_threeP_gates = [U3Gate]
 
