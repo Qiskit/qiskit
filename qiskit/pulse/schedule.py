@@ -387,7 +387,7 @@ class Schedule(ScheduleComponent):
         # For example if scaling is set to 1 it is adjusted to 0.01
         _exponent = int(log(scale, 10))
         _coefficient = scale / (10 ** _exponent)
-        if _exponent >= 0: 
+        if _exponent >= 0:
             _adjusted_exponent = _exponent*(-1) - 1
         else:
             _adjusted_exponent = _exponent*(-1) + 1
