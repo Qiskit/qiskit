@@ -642,7 +642,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output=None,
+    def draw(self, scale=1, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None):
