@@ -1,6 +1,6 @@
-.. _qiskit-qobj:
+.. _qiskit-pulse:
 
-.. automodule:: qiskit.qobj
+.. automodule:: qiskit.pulse
    :no-members:
    :no-inherited-members:
    :no-special-members:

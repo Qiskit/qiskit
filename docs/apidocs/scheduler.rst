@@ -1,6 +1,6 @@
-.. _qiskit-qobj:
+.. _qiskit-scheduler:
 
-.. automodule:: qiskit.qobj
+.. automodule:: qiskit.scheduler
    :no-members:
    :no-inherited-members:
    :no-special-members:
