@@ -17,6 +17,7 @@ Sample pulse.
 """
 from typing import Callable, Union, List, Optional
 
+import warnings
 import numpy as np
 
 from qiskit.pulse.channels import PulseChannel
