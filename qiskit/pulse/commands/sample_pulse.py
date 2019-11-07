@@ -122,6 +122,12 @@ class SamplePulse(Command):
         """
         # pylint: disable=invalid-name, cyclic-import
 
+        if scaling:
+            warnings.warn(
+                'The parameter "scaling" is being replaced by "scale"'
+                '', DeprecationWarning, 3)
+            scale = scaling
+
         from qiskit import visualization
 
         return visualization.pulse_drawer(
