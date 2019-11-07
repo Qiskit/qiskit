@@ -393,7 +393,7 @@ class Schedule(ScheduleComponent):
             _adjusted_exponent = _exponent*(-1) - 1
         else:
             _adjusted_exponent = _exponent*(-1) + 1
-        scale = round(_coefficient * (10 ** _adjusted_exponent)) # adjusted scale value
+        scale = round(_coefficient * (10 ** _adjusted_exponent))    # adjusted scale value
 
         from qiskit import visualization
 
