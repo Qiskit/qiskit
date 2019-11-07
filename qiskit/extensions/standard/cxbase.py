@@ -40,7 +40,7 @@ class CXBase(ControlledGate):
 
 
 def cx_base(self, ctl, tgt):
-    """Apply CX ctl, tgt."""
+    """Apply CX from ctl to tgt."""
     return self.append(CXBase(), [ctl, tgt], [])
 
 

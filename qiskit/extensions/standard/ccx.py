@@ -86,7 +86,7 @@ class ToffoliGate(ControlledGate):
 
 
 def ccx(self, ctl1, ctl2, tgt):
-    """Apply Toffoli to from ctl1 and ctl2 to tgt."""
+    """Apply Toffoli to ctl1 and ctl2 to tgt."""
     return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
 
 
