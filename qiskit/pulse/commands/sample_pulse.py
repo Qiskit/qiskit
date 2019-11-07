@@ -34,7 +34,6 @@ class SamplePulse(Command):
     def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
                  epsilon: float = 1e-7):
         """Create new sample pulse command.
-
         Args:
             samples: Complex array of pulse envelope
             name: Unique name to identify the pulse
@@ -57,16 +56,13 @@ class SamplePulse(Command):
 
     def _clip(self, samples: np.ndarray, epsilon: float = 1e-7):
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
-
         If difference is greater than epsilon error is raised.
-
         Args:
             samples: Complex array of pulse envelope
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised
-
         Returns:
             np.ndarray: Clipped pulse samples
         Raises:
@@ -104,18 +100,18 @@ class SamplePulse(Command):
              style: Optional['PulseStyle'] = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scaling: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             scaling: Optional[float] = 1):
         """Plot the interpolated envelope of pulse.
-
         Args:
             dt: Time interval of samples.
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
-
+            scaling: Deprecated, see `scale`
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
@@ -124,16 +120,14 @@ class SamplePulse(Command):
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scaling=scaling,
+                                          interp_method=interp_method, scaling=scale,
                                           interactive=interactive)
 
     def __eq__(self, other: 'SamplePulse'):
         """Two SamplePulses are the same if they are of the same type
         and have the same name and samples.
-
         Args:
             other: other SamplePulse
-
         Returns:
             bool: are self and other equal
         """

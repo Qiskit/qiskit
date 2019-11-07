@@ -15,6 +15,7 @@
 """Schedule."""
 
 import abc
+from math import log
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
@@ -33,12 +34,10 @@ class Schedule(ScheduleComponent):
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
                  name: Optional[str] = None):
         """Create empty schedule.
-
         Args:
             *schedules: Child Schedules of this parent Schedule. May either be passed as
                 the list of schedules, or a list of (start_time, schedule) pairs
             name: Name of this schedule
-
         Raises:
             PulseError: If timeslots intercept.
         """
@@ -108,7 +107,6 @@ class Schedule(ScheduleComponent):
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of schedule over supplied channels.
-
         Args:
             *channels: Supplied channels
         """
@@ -116,7 +114,6 @@ class Schedule(ScheduleComponent):
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return minimum start time over supplied channels.
-
         Args:
             *channels: Supplied channels
         """
@@ -124,7 +121,6 @@ class Schedule(ScheduleComponent):
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time over supplied channels.
-
         Args:
             *channels: Supplied channels
         """
@@ -132,10 +128,8 @@ class Schedule(ScheduleComponent):
 
     def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
         """Iterable for flattening Schedule tree.
-
         Args:
             time: Shifted time due to parent
-
         Yields:
             Tuple[int, Instruction]: Tuple containing time `Instruction` starts
                 at and the flattened `Instruction`.
@@ -146,7 +140,6 @@ class Schedule(ScheduleComponent):
     def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of both `self` and `schedules`.
-
         Args:
             *schedules: Schedules to be take the union with this `Schedule`.
             name: Name of the new schedule. Defaults to name of self
@@ -163,7 +156,6 @@ class Schedule(ScheduleComponent):
 
     def _union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
         """Mutably union `self` and `other` Schedule with shift time.
-
         Args:
             other: Schedule with shift time to be take the union with this `Schedule`.
         """
@@ -181,7 +173,6 @@ class Schedule(ScheduleComponent):
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
-
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of self
@@ -193,7 +184,6 @@ class Schedule(ScheduleComponent):
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
-
         Args:
             start_time: Time to insert the schedule
             schedule: Schedule to insert
@@ -208,9 +198,7 @@ class Schedule(ScheduleComponent):
                name: Optional[str] = None) -> 'Schedule':
         r"""Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
-
        $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
-
         Args:
             schedule: schedule to be appended
             buffer: Whether to obey buffer when appending
@@ -237,9 +225,7 @@ class Schedule(ScheduleComponent):
         returns True, the instruction occurs on a channel type contained in channels,
         the instruction type is contained in instruction_types, and the period over which the
         instruction operates is fully contained in one specified in time_ranges or intervals.
-
         If no arguments are provided, this schedule is returned.
-
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
@@ -265,7 +251,6 @@ class Schedule(ScheduleComponent):
         Return a Schedule with only the instructions from this Schedule *failing* at least one of
         the provided filters. This method is the complement of `self.filter`, so that:
             self.filter(args) | self.exclude(args) == self
-
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
@@ -286,7 +271,6 @@ class Schedule(ScheduleComponent):
         """
         Return a Schedule containing only the instructions from this Schedule for which
         filter_func returns True.
-
         Args:
             filter_func: function of the form (int, ScheduleComponent) -> bool
             new_sched_name: name of the returned Schedule
@@ -307,7 +291,6 @@ class Schedule(ScheduleComponent):
         in channels, the instruction type is contained in instruction_types, and the period over
         which the instruction operates is fully contained in one specified in time_ranges or
         intervals.
-
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
@@ -352,18 +335,17 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True):
+             framechange: bool = True, scaling: Optional[float] = None):
         """Plot the schedule.
-
         Args:
             dt: Time interval of samples
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scaling: Deprecated, see `scale`
             channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -372,27 +354,40 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
-
+            scale: Relative visual scaling of waveform amplitudes
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-
+        
+        if scaling:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"'
+                          '', DeprecationWarning, 3)
+            scale = scaling
+        
+        # Adjust scaling so ensure consistent zooming behaviour with SamplePulse.draw function
+        # For example if scaling is set to 1 it is adjusted to 0.01
+        _exponent = int(log(scale, 10))
+        _coefficient = scale / (10 ** _exponent)
+        if _exponent >= 0: 
+            _adjusted_exponent = _exponent*(-1) - 1
+        else:
+            _adjusted_exponent = _exponent*(-1) + 1
+        scale = round(_coefficient * (10 ** _adjusted_exponent)) # adjusted scale value
+                         
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          scaling=scale, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
-
         Equality is checked by verifying there is an equal instruction at every time
         in `other` for every instruction in this Schedule.
-
         Warning: This does not check for logical equivalencly. Ie.,
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
@@ -445,12 +440,9 @@ class Schedule(ScheduleComponent):
 
 class ParameterizedSchedule:
     """Temporary parameterized schedule class.
-
     This should not be returned to users as it is currently only a helper class.
-
     This class is takes an input command definition that accepts
     a set of parameters. Calling `bind` on the class will return a `Schedule`.
-
     # TODO: In the near future this will be replaced with proper incorporation of parameters
         into the `Schedule` class.
     """
