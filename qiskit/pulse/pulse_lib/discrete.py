@@ -164,7 +164,8 @@ def sin(duration: int, amp: complex, freq: float = None,
 _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
-def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None) -> SamplePulse:
+def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None,
+             zero_ends: Optional[bool] = True) -> SamplePulse:
     r"""Generates unnormalized gaussian `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent large
@@ -179,11 +180,14 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
         amp: Pulse amplitude at `duration/2`.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
+        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration
+    zeroed_width = duration if zero_ends else None
+    rescale_amp = True if zero_ends else False
     return _sampled_gaussian_pulse(duration, amp, center, sigma,
-                                   zeroed_width=zeroed_width, rescale_amp=True, name=name)
+                                   zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                                   name=name)
 
 
 _sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
@@ -208,7 +212,8 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
 _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
-def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
+def sech(duration: int, amp: complex, sigma: float, name: str = None,
+         zero_ends: Optional[bool] = True) -> SamplePulse:
     r"""Generates unnormalized sech `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
@@ -220,11 +225,14 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SampleP
         amp: Pulse amplitude at `duration/2`.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
+        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration
+    zeroed_width = duration if zero_ends else None
+    rescale_amp = True if zero_ends else False
     return _sampled_sech_pulse(duration, amp, center, sigma,
-                               zeroed_width=zeroed_width, rescale_amp=True, name=name)
+                               zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                               name=name)
 
 
 _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
@@ -249,7 +257,8 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
-                    risefall: int, name: Optional[str] = None) -> SamplePulse:
+                    risefall: int, name: Optional[str] = None,
+                    zero_ends: Optional[bool] = True) -> SamplePulse:
     """Generates gaussian square `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent
@@ -264,10 +273,11 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
         risefall: Number of samples over which pulse rise and fall happen. Width of
             square portion of pulse will be `duration-2*risefall`.
         name: Name of pulse.
+        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
     center = duration/2
     square_width = duration-2*risefall
-    zeroed_width = duration
+    zeroed_width = duration if zero_ends else None
     return _sampled_gaussian_square_pulse(duration, amp, center, square_width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
@@ -276,7 +286,7 @@ _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float,
-         name: Optional[str] = None) -> SamplePulse:
+         name: Optional[str] = None, zero_ends: Optional[bool] = True) -> SamplePulse:
     r"""Generates Y-only correction DRAG `SamplePulse` for standard nonlinear oscillator (SNO) [1].
 
     Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
@@ -287,7 +297,6 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
         Analytic control methods for high-fidelity unitary operations
         in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
 
-
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude at `center`.
@@ -296,8 +305,11 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
             excited states and $\Delta_2$ is the detuning between the respective excited states.
         name: Name of pulse.
+        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration + 2
+    zeroed_width = duration if zero_ends else None
+    rescale_amp = True if zero_ends else False
     return _sampled_drag_pulse(duration, amp, center, sigma, beta,
-                               zeroed_width=zeroed_width, rescale_amp=True, name=name)
+                               zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                               name=name)
