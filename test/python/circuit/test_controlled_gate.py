@@ -423,7 +423,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
     Args:
         base_mat (ndarray): unitary to be controlled
         num_ctrl_qubits (int): number of controls for new unitary
-        phase (float): The global phase of base_mat which is promoted to the 
+        phase (float): The global phase of base_mat which is promoted to the
             global phase of the controlled matrix
 
     Returns:
