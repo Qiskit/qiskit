@@ -52,8 +52,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         ImportError: when nxpd or pydot not installed.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
 
+            %matplotlib inline
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
