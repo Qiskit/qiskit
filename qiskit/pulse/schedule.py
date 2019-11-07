@@ -15,7 +15,6 @@
 """Schedule."""
 
 import abc
-from math import log
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
@@ -353,10 +352,10 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True, scaling: Optional[float] = None):
+             framechange: bool = True):
         """Plot the schedule.
 
         Args:
@@ -364,7 +363,7 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Deprecated, see `scale`
+            scaling: Relative visual scaling of waveform amplitudes
             channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -373,33 +372,17 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
-            scale: Relative visual scaling of waveform amplitudes
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-        
-        if scaling:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"'
-                          '', DeprecationWarning, 3)
-            scale = scaling
-        
-        # Adjust scaling so ensure consistent zooming behaviour with SamplePulse.draw function
-        # For example if scaling is set to 1 it is adjusted to 0.01
-        _exponent = int(log(scale, 10))
-        _coefficient = scale / (10 ** _exponent)
-        if _exponent >= 0: 
-            _adjusted_exponent = _exponent*(-1) - 1
-        else:
-            _adjusted_exponent = _exponent*(-1) + 1
-        scale = round(_coefficient * (10 ** _adjusted_exponent)) # adjusted scale value
-                         
+
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scale, channels_to_plot=channels_to_plot,
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
