@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Sample pulse.
 """
@@ -31,7 +30,9 @@ class SamplePulse(Command):
 
     prefix = 'p'
 
-    def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
+    def __init__(self,
+                 samples: Union[np.ndarray, List[complex]],
+                 name: Optional[str] = None,
                  epsilon: float = 1e-7):
         """Create new sample pulse command.
         Args:
@@ -75,7 +76,7 @@ class SamplePulse(Command):
             # first try normalizing by the abs value
             clip_where = np.argwhere(to_clip)
             clip_angle = np.angle(samples[clip_where])
-            clipped_samples = np.exp(1j*clip_angle, dtype=np.complex_)
+            clipped_samples = np.exp(1j * clip_angle, dtype=np.complex_)
 
             # if norm still exceed one subtract epsilon
             # required for some platforms
@@ -84,7 +85,8 @@ class SamplePulse(Command):
             if np.any(to_clip_epsilon):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
                 clipped_samples_epsilon = np.exp(
-                    (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
+                    (1 - epsilon) * 1j * clip_angle[clip_where_epsilon],
+                    dtype=np.complex_)
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
             # update samples with clipped values
@@ -92,15 +94,18 @@ class SamplePulse(Command):
             samples_norm[clip_where] = np.abs(clipped_samples)
 
         if np.any(samples_norm > 1.):
-            raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
+            raise PulseError(
+                'Pulse contains sample with norm greater than 1+epsilon.')
 
         return samples
 
-    def draw(self, dt: float = 1,
+    def draw(self,
+             dt: float = 1,
              style: Optional['PulseStyle'] = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
+             scale: float = 1,
+             interactive: bool = False,
              scaling: Optional[float] = 1):
         """Plot the interpolated envelope of pulse.
         Args:
@@ -119,9 +124,14 @@ class SamplePulse(Command):
 
         from qiskit import visualization
 
-        return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scaling=scale,
-                                          interactive=interactive)
+        return visualization.pulse_drawer(
+            self,
+            dt=dt,
+            style=style,
+            filename=filename,
+            interp_method=interp_method,
+            scaling=scale,
+            interactive=interactive)
 
     def __eq__(self, other: 'SamplePulse'):
         """Two SamplePulses are the same if they are of the same type
@@ -137,17 +147,22 @@ class SamplePulse(Command):
         return hash((super().__hash__(), self.samples.tostring()))
 
     def __repr__(self):
-        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name,
+                                        self.duration)
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel,
                        name: Optional[str] = None) -> 'PulseInstruction':
         return PulseInstruction(self, channel, name=name)
+
     # pylint: enable=arguments-differ
 
 
 class PulseInstruction(Instruction):
     """Instruction to drive a pulse to an `PulseChannel`."""
 
-    def __init__(self, command: SamplePulse, channel: PulseChannel, name: Optional[str] = None):
+    def __init__(self,
+                 command: SamplePulse,
+                 channel: PulseChannel,
+                 name: Optional[str] = None):
         super().__init__(command, channel, name=name)

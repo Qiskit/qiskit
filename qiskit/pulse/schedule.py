@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Schedule."""
 
 import abc
@@ -30,8 +29,11 @@ from .exceptions import PulseError
 
 class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
+
     # pylint: disable=missing-type-doc
-    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+    def __init__(self,
+                 *schedules: List[Union[ScheduleComponent, Tuple[
+                     int, ScheduleComponent]]],
                  name: Optional[str] = None):
         """Create empty schedule.
         Args:
@@ -61,7 +63,8 @@ class Schedule(ScheduleComponent):
         try:
             self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
-            raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+            raise PulseError(
+                'Child schedules {0} overlap.'.format(schedules)) from ts_err
 
         self.__children = tuple(_children)
 
@@ -126,7 +129,8 @@ class Schedule(ScheduleComponent):
         """
         return self.timeslots.ch_stop_time(*channels)
 
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+    def _instructions(self,
+                      time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
         """Iterable for flattening Schedule tree.
         Args:
             time: Shifted time due to parent
@@ -137,7 +141,9 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+    def union(self,
+              *schedules: Union[ScheduleComponent, Tuple[int,
+                                                         ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of both `self` and `schedules`.
         Args:
@@ -163,12 +169,14 @@ class Schedule(ScheduleComponent):
         if isinstance(sched, Schedule):
             shifted_children = sched._children
             if shift_time != 0:
-                shifted_children = tuple((t + shift_time, child) for t, child in shifted_children)
+                shifted_children = tuple(
+                    (t + shift_time, child) for t, child in shifted_children)
             self.__children += shifted_children
         else:  # isinstance(sched, Instruction)
-            self.__children += (other,)
+            self.__children += (other, )
 
-        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
+        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(
+            shift_time)
         self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
@@ -181,7 +189,10 @@ class Schedule(ScheduleComponent):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
+    def insert(self,
+               start_time: int,
+               schedule: ScheduleComponent,
+               buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
         Args:
@@ -191,10 +202,14 @@ class Schedule(ScheduleComponent):
             name: Name of the new schedule. Defaults to name of self
         """
         if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+            warnings.warn(
+                "Buffers are no longer supported. Please use an explicit Delay."
+            )
         return self.union((start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent, buffer: bool = False,
+    def append(self,
+               schedule: ScheduleComponent,
+               buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         r"""Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
@@ -205,7 +220,9 @@ class Schedule(ScheduleComponent):
             name: Name of the new schedule. Defaults to name of self
         """
         if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+            warnings.warn(
+                "Buffers are no longer supported. Please use an explicit Delay."
+            )
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
@@ -214,11 +231,13 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return Schedule(*self.instructions, name=self.name)
 
-    def filter(self, *filter_funcs: List[Callable],
-               channels: Optional[Iterable[Channel]] = None,
-               instruction_types: Optional[Iterable[Type['Instruction']]] = None,
-               time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
+    def filter(
+            self,
+            *filter_funcs: List[Callable],
+            channels: Optional[Iterable[Channel]] = None,
+            instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+            time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+            intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
         Return a new Schedule with only the instructions from this Schedule which pass though the
         provided filters; i.e. an instruction will be retained iff every function in filter_funcs
@@ -234,19 +253,23 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
-        composed_filter = self._construct_filter(*filter_funcs,
-                                                 channels=channels,
-                                                 instruction_types=instruction_types,
-                                                 time_ranges=time_ranges,
-                                                 intervals=intervals)
-        return self._apply_filter(composed_filter,
-                                  new_sched_name="{name}-filtered".format(name=self.name))
+        composed_filter = self._construct_filter(
+            *filter_funcs,
+            channels=channels,
+            instruction_types=instruction_types,
+            time_ranges=time_ranges,
+            intervals=intervals)
+        return self._apply_filter(
+            composed_filter,
+            new_sched_name="{name}-filtered".format(name=self.name))
 
-    def exclude(self, *filter_funcs: List[Callable],
-                channels: Optional[Iterable[Channel]] = None,
-                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
-                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
+    def exclude(
+            self,
+            *filter_funcs: List[Callable],
+            channels: Optional[Iterable[Channel]] = None,
+            instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+            time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+            intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
         Return a Schedule with only the instructions from this Schedule *failing* at least one of
         the provided filters. This method is the complement of `self.filter`, so that:
@@ -259,15 +282,18 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
-        composed_filter = self._construct_filter(*filter_funcs,
-                                                 channels=channels,
-                                                 instruction_types=instruction_types,
-                                                 time_ranges=time_ranges,
-                                                 intervals=intervals)
-        return self._apply_filter(lambda x: not composed_filter(x),
-                                  new_sched_name="{name}-excluded".format(name=self.name))
+        composed_filter = self._construct_filter(
+            *filter_funcs,
+            channels=channels,
+            instruction_types=instruction_types,
+            time_ranges=time_ranges,
+            intervals=intervals)
+        return self._apply_filter(
+            lambda x: not composed_filter(x),
+            new_sched_name="{name}-excluded".format(name=self.name))
 
-    def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
+    def _apply_filter(self, filter_func: Callable,
+                      new_sched_name: str) -> 'Schedule':
         """
         Return a Schedule containing only the instructions from this Schedule for which
         filter_func returns True.
@@ -276,14 +302,18 @@ class Schedule(ScheduleComponent):
             new_sched_name: name of the returned Schedule
         """
         subschedules = self.flatten()._children
-        valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
+        valid_subschedules = [
+            sched for sched in subschedules if filter_func(sched)
+        ]
         return Schedule(*valid_subschedules, name=new_sched_name)
 
-    def _construct_filter(self, *filter_funcs: List[Callable],
-                          channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
-                          time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-                          intervals: Optional[Iterable[Interval]] = None) -> Callable:
+    def _construct_filter(
+            self,
+            *filter_funcs: List[Callable],
+            channels: Optional[Iterable[Channel]] = None,
+            instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+            time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+            intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """
         Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
         iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
@@ -299,24 +329,31 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
+
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                return any([chan in channels for chan in time_inst[1].channels])
+                return any(
+                    [chan in channels for chan in time_inst[1].channels])
+
             return channel_filter
 
         def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
-            def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def instruction_filter(
+                    time_inst: Tuple[int, 'Instruction']) -> bool:
                 return isinstance(time_inst[1], tuple(types))
+
             return instruction_filter
 
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
-                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
-                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
-                            for ts in time_inst[1].timeslots.timeslots]):
+                    if all(
+                        [(i.start <= ts.interval.shift(time_inst[0]).start
+                          and ts.interval.shift(time_inst[0]).stop <= i.stop)
+                         for ts in time_inst[1].timeslots.timeslots]):
                         return True
                 return False
+
             return interval_filter
 
         filter_func_list = list(filter_funcs)
@@ -326,19 +363,28 @@ class Schedule(ScheduleComponent):
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges:
             filter_func_list.append(
-                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
+                only_intervals(
+                    [Interval(start, stop) for start, stop in time_ranges]))
         if intervals:
             filter_func_list.append(only_intervals(intervals))
 
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
-             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
-             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
-             interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True, scaling: Optional[float] = None):
+    def draw(self,
+             dt: float = 1,
+             style: Optional['SchedStyle'] = None,
+             filename: Optional[str] = None,
+             interp_method: Optional[Callable] = None,
+             scale: float = None,
+             channels_to_plot: Optional[List[Channel]] = None,
+             plot_all: bool = False,
+             plot_range: Optional[Tuple[float]] = None,
+             interactive: bool = False,
+             table: bool = True,
+             label: bool = False,
+             framechange: bool = True,
+             scaling: Optional[float] = None):
         """Plot the schedule.
         Args:
             dt: Time interval of samples
@@ -359,30 +405,40 @@ class Schedule(ScheduleComponent):
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-        
+
         if scaling:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"'
-                          '', DeprecationWarning, 3)
+            warnings.warn(
+                'The parameter "scaling" is being replaced by "scale"'
+                '', DeprecationWarning, 3)
             scale = scaling
-        
+
         # Adjust scaling so ensure consistent zooming behaviour with SamplePulse.draw function
         # For example if scaling is set to 1 it is adjusted to 0.01
         _exponent = int(log(scale, 10))
-        _coefficient = scale / (10 ** _exponent)
-        if _exponent >= 0: 
-            _adjusted_exponent = _exponent*(-1) - 1
+        _coefficient = scale / (10**_exponent)
+        if _exponent >= 0:
+            _adjusted_exponent = _exponent * (-1) - 1
         else:
-            _adjusted_exponent = _exponent*(-1) + 1
-        scale = round(_coefficient * (10 ** _adjusted_exponent)) # adjusted scale value
-                         
+            _adjusted_exponent = _exponent * (-1) + 1
+        scale = round(_coefficient *
+                      (10**_adjusted_exponent))  # adjusted scale value
+
         from qiskit import visualization
 
-        return visualization.pulse_drawer(self, dt=dt, style=style,
-                                          filename=filename, interp_method=interp_method,
-                                          scaling=scale, channels_to_plot=channels_to_plot,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange)
+        return visualization.pulse_drawer(
+            self,
+            dt=dt,
+            style=style,
+            filename=filename,
+            interp_method=interp_method,
+            scaling=scale,
+            channels_to_plot=channels_to_plot,
+            plot_all=plot_all,
+            plot_range=plot_range,
+            interactive=interactive,
+            table=table,
+            label=label,
+            framechange=framechange)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
@@ -447,7 +503,9 @@ class ParameterizedSchedule:
         into the `Schedule` class.
     """
 
-    def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
+    def __init__(self,
+                 *schedules,
+                 parameters: Optional[Dict[str, Union[float, complex]]] = None,
                  name: Optional[str] = None):
         full_schedules = []
         parameterized = []
@@ -463,7 +521,8 @@ class ParameterizedSchedule:
             elif isinstance(schedule, Schedule):
                 full_schedules.append(schedule)
             else:
-                raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+                raise PulseError('Input type: {0} not supported'.format(
+                    type(schedule)))
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
@@ -474,8 +533,9 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args: List[Union[float, complex]],
-                        **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
+    def bind_parameters(
+            self, *args: List[Union[float, complex]],
+            **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
@@ -490,11 +550,13 @@ class ParameterizedSchedule:
                     if key not in named_parameters.keys():
                         named_parameters[key] = val
                     else:
-                        raise PulseError("%s got multiple values for argument '%s'"
-                                         % (self.__class__.__name__, key))
+                        raise PulseError(
+                            "%s got multiple values for argument '%s'" %
+                            (self.__class__.__name__, key))
                 else:
-                    raise PulseError("%s got an unexpected keyword argument '%s'"
-                                     % (self.__class__.__name__, key))
+                    raise PulseError(
+                        "%s got an unexpected keyword argument '%s'" %
+                        (self.__class__.__name__, key))
 
         for param_sched in self._parameterized:
             # recursively call until based callable is reached
@@ -503,7 +565,10 @@ class ParameterizedSchedule:
             else:
                 # assuming no other parametrized instructions
                 predefined = self.parameters
-            sub_params = {k: v for k, v in named_parameters.items() if k in predefined}
+            sub_params = {
+                k: v
+                for k, v in named_parameters.items() if k in predefined
+            }
             schedules.append(param_sched(**sub_params))
 
         # construct evaluated schedules
