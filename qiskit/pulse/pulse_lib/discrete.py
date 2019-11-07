@@ -165,7 +165,7 @@ _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
 def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None,
-             zero_ends: Optional[bool] = True) -> SamplePulse:
+             zero_ends: bool = True) -> SamplePulse:
     r"""Generates unnormalized gaussian `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent large
@@ -184,7 +184,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
     """
     center = duration/2
     zeroed_width = duration if zero_ends else None
-    rescale_amp = True if zero_ends else False
+    rescale_amp = bool(zero_ends)
     return _sampled_gaussian_pulse(duration, amp, center, sigma,
                                    zeroed_width=zeroed_width, rescale_amp=rescale_amp,
                                    name=name)
@@ -213,7 +213,7 @@ _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
 def sech(duration: int, amp: complex, sigma: float, name: str = None,
-         zero_ends: Optional[bool] = True) -> SamplePulse:
+         zero_ends: bool = True) -> SamplePulse:
     r"""Generates unnormalized sech `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
@@ -229,7 +229,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
     """
     center = duration/2
     zeroed_width = duration if zero_ends else None
-    rescale_amp = True if zero_ends else False
+    rescale_amp = bool(zero_ends)
     return _sampled_sech_pulse(duration, amp, center, sigma,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,
                                name=name)
@@ -258,7 +258,7 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
                     risefall: int, name: Optional[str] = None,
-                    zero_ends: Optional[bool] = True) -> SamplePulse:
+                    zero_ends: bool = True) -> SamplePulse:
     """Generates gaussian square `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent
@@ -286,7 +286,7 @@ _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float,
-         name: Optional[str] = None, zero_ends: Optional[bool] = True) -> SamplePulse:
+         name: Optional[str] = None, zero_ends: bool = True) -> SamplePulse:
     r"""Generates Y-only correction DRAG `SamplePulse` for standard nonlinear oscillator (SNO) [1].
 
     Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
@@ -309,7 +309,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
     """
     center = duration/2
     zeroed_width = duration if zero_ends else None
-    rescale_amp = True if zero_ends else False
+    rescale_amp = bool(zero_ends)
     return _sampled_drag_pulse(duration, amp, center, sigma, beta,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,
                                name=name)
