@@ -1,6 +1,6 @@
-.. _qiskit-qobj:
+.. _qiskit-providers:
 
-.. automodule:: qiskit.qobj
+.. automodule:: qiskit.providers
    :no-members:
    :no-inherited-members:
    :no-special-members:
