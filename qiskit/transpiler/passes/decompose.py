@@ -12,16 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for one layer of decomposing the gates in a circuit."""
+"""Expand a gate in a circuit using its decomposition rules."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 
 class Decompose(TransformationPass):
-    """
-    Expand a gate in a circuit using its decomposition rules.
-    """
+    """Expand a gate in a circuit using its decomposition rules."""
 
     def __init__(self, gate=None):
         """Decompose initializer.
@@ -33,10 +31,11 @@ class Decompose(TransformationPass):
         self.gate = gate
 
     def run(self, dag):
-        """Expand a given gate into its decomposition.
+        """Run the Decompose pass on `dag`.
 
         Args:
             dag(DAGCircuit): input dag
+
         Returns:
             DAGCircuit: output dag where gate was expanded.
         """
@@ -47,16 +46,20 @@ class Decompose(TransformationPass):
                 continue
             # TODO: allow choosing among multiple decomposition rules
             rule = node.op.definition
-            # hacky way to build a dag on the same register as the rule is defined
-            # TODO: need anonymous rules to address wires by index
-            decomposition = DAGCircuit()
-            qregs = {qb.register for inst in rule for qb in inst[1]}
-            cregs = {cb.register for inst in rule for cb in inst[2]}
-            for qreg in qregs:
-                decomposition.add_qreg(qreg)
-            for creg in cregs:
-                decomposition.add_creg(creg)
-            for inst in rule:
-                decomposition.apply_operation_back(*inst)
-            dag.substitute_node_with_dag(node, decomposition)
+
+            if len(rule) == 1:
+                dag.substitute_node(node, rule[0][0], inplace=True)
+            else:
+                # hacky way to build a dag on the same register as the rule is defined
+                # TODO: need anonymous rules to address wires by index
+                decomposition = DAGCircuit()
+                qregs = {qb.register for inst in rule for qb in inst[1]}
+                cregs = {cb.register for inst in rule for cb in inst[2]}
+                for qreg in qregs:
+                    decomposition.add_qreg(qreg)
+                for creg in cregs:
+                    decomposition.add_creg(creg)
+                for inst in rule:
+                    decomposition.apply_operation_back(*inst)
+                dag.substitute_node_with_dag(node, decomposition)
         return dag

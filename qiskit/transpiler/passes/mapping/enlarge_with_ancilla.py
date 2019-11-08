@@ -26,15 +26,6 @@ class EnlargeWithAncilla(TransformationPass):
     previously allocated in the ``layout`` property, by a previous pass.
     """
 
-    def __init__(self, layout=None):
-        """EnlargeWithAncilla initializer.
-
-        Args:
-            layout (Layout): layout of qubits to consider
-        """
-        super().__init__()
-        self.layout = layout
-
     def run(self, dag):
         """Run the EnlargeWithAncilla pass on `dag`.
 
@@ -47,13 +38,12 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        self.layout = self.layout or self.property_set['layout']
+        layout = self.property_set['layout']
 
-        if self.layout is None:
-            raise TranspilerError('EnlargeWithAncilla requires property_set["layout"] or '
-                                  '"layout" parameter to run')
+        if layout is None:
+            raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
-        layout_virtual_qubits = self.layout.get_virtual_bits().keys()
+        layout_virtual_qubits = layout.get_virtual_bits().keys()
         new_qregs = {virtual_qubit.register for virtual_qubit in layout_virtual_qubits
                      if virtual_qubit not in dag.wires}
 
