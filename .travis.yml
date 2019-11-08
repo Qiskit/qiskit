@@ -18,20 +18,6 @@ cache:
   directories:
     - .stestr
 
-###############################################################################
-# Anchored and aliased definitions.
-###############################################################################
-
-# These are used for avoiding repeating code, and due to problems with
-# overriding some keys (in particular, "os" and "language: ptyhon") when using
-# the standard travis matrix with stages.
-#
-# This allows re-using different "sets" of configurations in the stages
-# matrix, mimicking a hierarchy:
-# * stage_generic
-#   * stage_linux
-#   * stage_osx
-
 stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
@@ -47,12 +33,6 @@ stage_generic: &stage_generic
     - stestr run
   after_failure:
     - python tools/report_ci_failure.py
-  before_script:
-    - |
-      if [ ! "$(ls -A .stestr)" ]; then
-          rm -r .stestr
-      fi
-
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -61,67 +41,10 @@ stage_linux: &stage_linux
   language: python
   python: 3.7
 
-stage_osx: &stage_osx
-  <<: *stage_generic
-  os: osx
-  osx_image: xcode9.2
-  language: generic
-  cache:
-    pip: true
-    directories:
-      - ~/python-interpreters/
-      - .stestr
-  before_install:
-    # Travis does not provide support for Python 3 under osx - it needs to be
-    # installed manually.
-    |
-    if [ ${TRAVIS_OS_NAME} = "osx" ]; then
-      if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
-        git clone git://github.com/pyenv/pyenv.git
-        cd pyenv/plugins/python-build
-        ./install.sh
-        cd ../../..
-        python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
-      fi
-      virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
-      source venv/bin/activate
-    fi
-
-
-###############################################################################
-# Stage-related definitions
-###############################################################################
-
-# Define the order of the stages.
-stages:
-  - lint and pure python test
-  - test
-
-# Define the job matrix explicitly, as matrix expansion causes issues when
-# using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
-    # "lint and and pure python test" stage
-    ###########################################################################
-    # Linter and style check (GNU/Linux, Python 3.7)
-    - stage: lint and pure python test
-      name: Python Style and Linter
-      <<: *stage_linux
-      script:
-        - pycodestyle --max-line-length=100 qiskit test
-        - pylint -rn qiskit test
 
-    # Run the tests against without compilation (GNU/Linux, Python 3.7)
-    - stage: lint and pure python test
-      name: Python 3.7 Tests Linux
-      <<: *stage_linux
-
-    # "test" stage
-    ###########################################################################
-
-    # GNU/Linux, Python 3.6
-    - stage: test
-      name: Python 3.6 Tests and Coverage Linux
+    - name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
       python: 3.6
       env:
@@ -133,39 +56,8 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    # GNU/Linux, Python 3.5
-    - stage: test
-      name: Python 3.5 Tests Linux
-      <<: *stage_linux
-      python: 3.5
-
-    # OSX, Python 3.5.6 (via pyenv)
-    - stage: test
-      <<: *stage_osx
-      name: Python 3.5 Tests OSX
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.5.7
-
-    # OSX, Python 3.6.5 (via pyenv)
-    - stage: test
-      name: Python 3.6 Tests OSX
-      <<: *stage_osx
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.6.9
-
-    # OSX, Python 3.7.2 (via pyenv)
-    - stage: test
-      name: Python 3.7 Tests OSX
-      <<: *stage_osx
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.7.4
-
     # Randomized testing
-    - stage: test
-      name: Randomized tests
+    - name: Randomized tests
       <<: *stage_linux
       cache:
         pip: true
@@ -177,8 +69,7 @@ jobs:
       - pip install "qiskit-aer"
       - make test_randomized
 
-    - stage: test
-      name: Benchmarks
+    - name: Benchmarks
       <<: *stage_linux
       python: 3.5
       script:
@@ -194,7 +85,7 @@ jobs:
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench 'converters.*(1|2|5|8|14|20|53)\,.8\)' --bench '^(transpiler_benchmarks|assembler|circuit_construction|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
 
 matrix:
   fast_finish: true

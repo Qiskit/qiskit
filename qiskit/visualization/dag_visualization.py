@@ -42,6 +42,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
     system is required for this to work.
 
+    The current release of Graphviz can be downloaded here: <https://graphviz.gitlab.io/download/>.
+    Download the version of the sotware that matches your environment and follow the instructions to
+    install Graph Visualization Software (Graphviz) on your operating system.
+
     Args:
         dag (DAGCircuit): The dag to draw.
         scale (float): scaling factor
@@ -58,8 +62,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         ImportError: when pydot or pillow are not installed.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
 
+            %matplotlib inline
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag

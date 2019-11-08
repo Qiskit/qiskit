@@ -20,5 +20,5 @@ reno>=2.11.0
 Sphinx>=1.8.3
 sphinx-rtd-theme>=0.4.0
 sphinx-tabs>=1.1.11
-sphinx-automodapi
+sphinx-autodoc-typehints
 jupyter-sphinx

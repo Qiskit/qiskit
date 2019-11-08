@@ -12,14 +12,50 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Providers, Backends and Jobs."""
+"""
+======================================
+Base Objects (:mod:`qiskit.providers`)
+======================================
+
+.. currentmodule:: qiskit.providers
+
+Base Objects
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BaseProvider
+   BaseBackend
+   BaseJob
+
+Job Status
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   JobStatus
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QiskitBackendNotFoundError
+   BackendPropertyError
+   JobError
+   JobTimeoutError
+"""
 
 import pkgutil
 
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
-from .exceptions import JobError, JobTimeoutError, QiskitBackendNotFoundError, BackendPropertyError
+from .exceptions import (JobError, JobTimeoutError, QiskitBackendNotFoundError,
+                         BackendPropertyError, BackendConfigurationError)
 from .jobstatus import JobStatus
 
 
