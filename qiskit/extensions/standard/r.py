@@ -21,6 +21,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.circuit.instruction import deprecate_arguments
 
 
 class RGate(Gate):
@@ -63,9 +64,10 @@ class RGate(Gate):
                             [-1j * exp_p * sin, cos]], dtype=complex)
 
 
-def r(self, theta, phi, q):  # pylint: disable=invalid-name
+@deprecate_arguments({'q': 'qubit'})
+def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply R to q."""
-    return self.append(RGate(theta, phi), [q], [])
+    return self.append(RGate(theta, phi), [qubit], [])
 
 
 QuantumCircuit.r = r

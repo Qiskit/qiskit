@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Methods for adding gates to a `QuantumCircuit` with abbreviated keyword
+    arguments (e.g. `ctl`, `tgt`) have had their keyword arguments renamed
+    to be more descriptive (e.g. `control_qubit`, `target_qubit`). The old
+    names have been deprecated.

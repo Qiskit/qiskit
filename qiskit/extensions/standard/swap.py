@@ -20,6 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.instruction import deprecate_arguments
 
 
 class SwapGate(Gate):
@@ -113,9 +114,15 @@ class FredkinGate(ControlledGate):
         return FredkinGate()  # self-inverse
 
 
-def cswap(self, ctl, tgt1, tgt2):
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt1': 'target_qubit1',
+                      'tgt2': 'target_qubit2'})
+def cswap(self, control_qubit, target_qubit1, target_qubit2,
+          *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
     """Apply Fredkin to circuit."""
-    return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
+    return self.append(FredkinGate(),
+                       [control_qubit, target_qubit1, target_qubit2],
+                       [])
 
 
 QuantumCircuit.cswap = cswap
