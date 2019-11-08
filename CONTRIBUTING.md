@@ -40,7 +40,9 @@ If you make a change, make sure you update the associated
 *docstrings* and parts of the documentation under `docs/apidocs` that
 corresponds to it. To locally build the terra specific documentation you
 can run `tox -edocs` which will compile and build the documentation locally
-and save the output to `docs/_build/html`.
+and save the output to `docs/_build/html`. Additionally, the Docs CI job on
+azure pipelines will run this and host a zip file of the output that you can
+download and view locally.
 
 If you have an issue with the combined documentation hosted at
 https://qiskit.org/documentation/ that is maintained in the
@@ -48,6 +50,113 @@ https://qiskit.org/documentation/ that is maintained in the
 https://github.com/Qiskit/qiskit/issues/new/choose) if you see doc bugs, have a
 new feature that needs to be documented, or think that material could be added
 to the existing docs.
+
+#### Documentation Structure
+
+The way documentation is structured in terra is to push as much of the actual
+documentation into the docstrings as possible. This makes it easier for
+additions and corrections to be made during development because the majority
+of the documentation lives near the code being changed. There are 3 levels of
+pieces to the normal documentation structure in terra. The first is the rst
+files in the `docs/apidocs`. These files are used to tell sphinx which modules
+to include in the rendered documentation. The contain 2 pieces of information
+an internal reference[1][2] to the module which can be used for internal links
+inside the documentation and an `automodule` directive [3] used to parse the
+module docstrings from a specified import path. For example, the dagcircuit.rst
+file contains:
+
+```
+.. _qiskit-dagcircuit:
+
+
+.. automodule:: qiskit.dagcircuit
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+```
+
+The only rst file outside of this is `qiskit.rst` which contains the table of
+contents if you're adding a new rst file for a new module's documentation make
+sure to add it to the `toctree` [4] in that file.
+
+The next level is the module level docstring. This docstring is at the module
+level for the module specified in the `automodule` directive in the rst file.
+If the module specified is a directory/namespace the docstring should be
+specified in the `__init__.py` file for that directory. This module level
+docstring starts to contain more details about the module being documented.
+The normal structure to this module docstring is to outline all the classes and
+functions of the public api that are contained in that module. This is typically
+done using the `autosummary` directive[5] (or `autodoc` directives [3] directly
+if the module is simple, such as in the case of `qiskit.execute`) The
+autosummary directive is used to autodoc a list of different python elements
+(classes, functions, etc) directly without having to manually call out the
+autodoc directives for each one. This modulelevel docstring is a normally the
+place you will want to provide a high level overview of what functionality is
+provided by the module. This is normally done by grouping the different
+components of the public API together into multiple subsections.
+
+For example, continuing that dagcircuit module example from before the
+contents of the module docstring for `qiskit/dagcircuit/__init__.py` would be:
+
+```
+"""
+=======================================
+DAG Circuits (:mod:`qiskit.dagcircuit`)
+=======================================
+.. currentmodule:: qiskit.dagcircuit
+DAG Circuits
+============
+.. autosummary::
+   :toctree: ../stubs/
+   DAGCircuit
+   DAGNode
+Exceptions
+==========
+.. autosummary::
+   :toctree: ../stubs/
+   DAGCircuitError
+"""
+```
+
+(note this is just an example and the actual module docstring for the dagcircuit
+module might diverge from this)
+
+The last level is the actual docstring for the elements listed in the module
+docstring. You should strive to document thoroughly all the public interfaces
+exposed using examples when necessary.
+
+Note you can use any sphinx directive or rst formatting in a docstring as it
+makes sense. For example, one common extension used is the `jupyter-execute`
+directive which is used to execute a code block in jupyter and display both
+the code and output. This is particularly useful for visualizations.
+
+[1] http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#reference-names
+[2] https://www.sphinx-doc.org/en/latest/usage/restructuredtext/roles.html#ref-role
+[3] http://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+[4] https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#table-of-contents
+[5] https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html
+
+#### Documentation Integration
+
+The hosted documentation at https://qiskit.org/documentation/ covers the entire
+qiskit project, Terra is just one component of that. As such the documentation
+builds for the hosted version get built by the qiskit meta-package repository
+https://github.com/Qiskit/qiskit. When commits are merged to that repo the
+output of sphinx builds get uploaded to the qiskit.org website. Those sphinx
+builds are configured to pull in the documentation from the version of the
+qiskit elements installed by the meta-package at that point. For example, if
+the meta-package version is currently 0.13.0 then that will copy the
+documentation from terra's 0.10.0 release. When the meta-package's requirements
+are bumped then it will start pulling documentation from that new version. This
+means if API documentation is incorrect to get it fixed it will need to be
+included in a new release. Documentation fixes are valid backports for a stable
+patch release per the stable branch policy (see that section below).
+
+During the build process the contents of terra's `docs/apidocs/` repository gets
+recursively copied into a shared copy of `doc/apidocs/` in the meta-package
+repository along with all the other elements. This means what is in the root of
+docs/apidocs on terra at a release will end up on the root of
+https://qiskit.org/documentation/apidoc/
 
 ### Pull requests
 
