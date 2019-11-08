@@ -25,7 +25,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
 from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
-    FlowController
+    FlowController, RollbackIfController
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
@@ -100,6 +100,11 @@ class TestUseCases(SchedulerTestCase):
     def setUp(self):
         self.circuit = QuantumCircuit(QuantumRegister(1))
         self.passmanager = PassManager()
+        # Restoring FlowController.registered_controllers
+        FlowController.registered_controllers.clear()
+        FlowController.add_flow_controller('condition', ConditionalController)
+        FlowController.add_flow_controller('do_while', DoWhileController)
+        FlowController.add_flow_controller('rollback_if', RollbackIfController)
 
     def test_chain(self):
         """A single chain of passes, with Requires and Preserves."""
@@ -467,6 +472,15 @@ class TestUseCases(SchedulerTestCase):
                                                 'set property as 2'])
         self.assertEqual(self.passmanager.property_set['property'], 2)
 
+    def test_rollback_if_false_condition_false(self):
+        """ Pass set with rollback_if should not run because the condition is false"""
+        self.passmanager.append(PassE_AP_NR_NP(3))
+        self.passmanager.append(PassE_AP_NR_NP(2),
+                                rollback_if=lambda property_set: False,
+                                condition=lambda property_set: False)
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3'])
+        self.assertEqual(self.passmanager.property_set['property'], 3)
 
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
