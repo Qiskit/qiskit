@@ -12,30 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Transformation pass that extends the circuit with new virtual qubits (i.e. ancilla).
-Which qubits to add are previously allocated in the 'layout' property, by a previous pass.
-"""
+"""Extend the dag with virtual qubits that are in layout but not in the circuit yet."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
 class EnlargeWithAncilla(TransformationPass):
-    """Extends the DAG circuit with virtual qubits (ancilla) that are specified in
-    the layout, but not present in the circuit."""
+    """Extend the dag with virtual qubits that are in layout but not in the circuit yet.
 
-    def __init__(self, layout=None):
-        """EnlargeWithAncilla initializer.
-
-        Args:
-            layout (Layout): layout of qubits to consider
-        """
-        super().__init__()
-        self.layout = layout
+    Extend the DAG circuit with new virtual qubits (ancilla) that are specified
+    in the layout, but not present in the circuit. Which qubits to add are
+    previously allocated in the ``layout`` property, by a previous pass.
+    """
 
     def run(self, dag):
-        """Extends dag with virtual qubits that are in layout but not in the circuit yet.
+        """Run the EnlargeWithAncilla pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to extend.
@@ -46,13 +38,12 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        self.layout = self.layout or self.property_set['layout']
+        layout = self.property_set['layout']
 
-        if self.layout is None:
-            raise TranspilerError("EnlargeWithAncilla requires property_set[\"layout\"] or"
-                                  " \"layout\" parameter to run")
+        if layout is None:
+            raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
-        layout_virtual_qubits = self.layout.get_virtual_bits().keys()
+        layout_virtual_qubits = layout.get_virtual_bits().keys()
         new_qregs = {virtual_qubit.register for virtual_qubit in layout_virtual_qubits
                      if virtual_qubit not in dag.wires}
 

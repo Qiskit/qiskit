@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Johannesburg device (53 qubit).
+Fake Johannesburg device (20 qubit).
 """
 
 import os

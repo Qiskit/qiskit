@@ -12,22 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Sets property_set['layout'] to layout.
+"""Set the ``layout`` property to the given layout."""
 
-This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit) in increasing order.
-"""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class SetLayout(AnalysisPass):
-    """Sets property_set['layout'] to layout."""
+    """Set the ``layout`` property to the given layout.
+
+    This pass associates a physical qubit (int) to each virtual qubit
+    of the circuit (Qubit) in increasing order.
+    """
 
     def __init__(self, layout):
-        """
-        Sets property_set['layout'] to layout.
+        """SetLayout initializer.
 
         Args:
             layout (Layout): the layout to set.
@@ -36,5 +35,13 @@ class SetLayout(AnalysisPass):
         self.layout = layout
 
     def run(self, dag):
+        """Run the SetLayout pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): DAG to map.
+
+        Returns:
+            DAGCircuit: the original DAG.
+        """
         self.property_set['layout'] = self.layout
         return dag

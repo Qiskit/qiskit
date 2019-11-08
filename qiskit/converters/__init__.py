@@ -12,9 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for simplified Qiskit usage.
+"""
+=============================================
+Circuit Converters (:mod:`qiskit.converters`)
+=============================================
 
-The functions in this module provide convenience converters
+.. currentmodule:: qiskit.converters
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   circuit_to_dag
+   dag_to_circuit
+   circuit_to_instruction
+   ast_to_dag
 """
 
 from .circuit_to_dag import circuit_to_dag

@@ -52,8 +52,10 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         label (bool): Label individual instructions
         framechange (bool): Add framechange indicators
         channels (list): A list of channel names to plot
+
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
+
     Raises:
         VisualizationError: when invalid data is given or lack of information
         ImportError: when matplotlib is not installed
