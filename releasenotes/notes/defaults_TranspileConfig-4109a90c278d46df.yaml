@@ -3,3 +3,7 @@ upgrade:
   - |
     The ``TranspileConfig`` was restructured to include only the information
     needed to construct a ``PassManager`` and it was renamed to ``PassManagerConfig``.
+deprecations:
+  - |
+    ``PassManager(..., callback=..., ...)`` parameter is deprecated. The parameter now
+    can be set at run-time, ``PassManager.run(..., callback=callback,...)``.
