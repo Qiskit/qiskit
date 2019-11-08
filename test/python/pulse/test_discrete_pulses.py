@@ -29,7 +29,7 @@ class TestDiscretePulses(QiskitTestCase):
         """Test discrete sampled constant pulse."""
         amp = 0.5j
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5  # to match default midpoint sampling strategy
         constant_ref = continuous.constant(times, amp=amp)
         constant_pulse = pulse_lib.constant(duration, amp=amp)
         self.assertIsInstance(constant_pulse, SamplePulse)
@@ -38,7 +38,7 @@ class TestDiscretePulses(QiskitTestCase):
     def test_zero(self):
         """Test discrete sampled constant pulse."""
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         zero_ref = continuous.zero(times)
         zero_pulse = pulse_lib.zero(duration)
         self.assertIsInstance(zero_pulse, SamplePulse)
@@ -49,7 +49,7 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         period = 5
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         square_ref = continuous.square(times, amp=amp, period=period)
         square_pulse = pulse_lib.square(duration, amp=amp, period=period)
         self.assertIsInstance(square_pulse, SamplePulse)
@@ -66,7 +66,7 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         period = 5
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         sawtooth_ref = continuous.sawtooth(times, amp=amp, period=period)
         sawtooth_pulse = pulse_lib.sawtooth(duration, amp=amp, period=period)
         self.assertIsInstance(sawtooth_pulse, SamplePulse)
@@ -83,7 +83,7 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         period = 5
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         triangle_ref = continuous.triangle(times, amp=amp, period=period)
         triangle_pulse = pulse_lib.triangle(duration, amp=amp, period=period)
         self.assertIsInstance(triangle_pulse, SamplePulse)
@@ -101,7 +101,7 @@ class TestDiscretePulses(QiskitTestCase):
         period = 5
         freq = 1/period
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         cos_ref = continuous.cos(times, amp=amp, freq=freq)
         cos_pulse = pulse_lib.cos(duration, amp=amp, freq=freq)
         self.assertIsInstance(cos_pulse, SamplePulse)
@@ -119,7 +119,7 @@ class TestDiscretePulses(QiskitTestCase):
         period = 5
         freq = 1/period
         duration = 10
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         sin_ref = continuous.sin(times, amp=amp, freq=freq)
         sin_pulse = pulse_lib.sin(duration, amp=amp, freq=freq)
         self.assertIsInstance(sin_pulse, SamplePulse)
@@ -137,9 +137,9 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 2
         duration = 10
         center = duration/2
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         gaussian_ref = continuous.gaussian(times, amp, center, sigma,
-                                           zeroed_width=2*(center+1), rescale_amp=True)
+                                           zeroed_width=2*center, rescale_amp=True)
         gaussian_pulse = pulse_lib.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_pulse.samples, gaussian_ref)
@@ -150,7 +150,7 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 2
         duration = 10
         center = duration/2
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         gaussian_deriv_ref = continuous.gaussian_deriv(times, amp, center, sigma)
         gaussian_deriv_pulse = pulse_lib.gaussian_deriv(duration, amp, sigma)
         self.assertIsInstance(gaussian_deriv_pulse, SamplePulse)
@@ -162,8 +162,9 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 2
         duration = 10
         center = duration/2
-        times = np.arange(0, duration)
-        sech_ref = continuous.sech(times, amp, center, sigma)
+        times = np.arange(0, duration) + 0.5
+        sech_ref = continuous.sech(times, amp, center, sigma,
+                                   zeroed_width=2*center, rescale_amp=True)
         sech_pulse = pulse_lib.sech(duration, amp, sigma)
         self.assertIsInstance(sech_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(sech_pulse.samples, sech_ref)
@@ -174,7 +175,7 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 2
         duration = 10
         center = duration/2
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         sech_deriv_ref = continuous.sech_deriv(times, amp, center, sigma)
         sech_deriv_pulse = pulse_lib.sech_deriv(duration, amp, sigma)
         self.assertIsInstance(sech_deriv_pulse, SamplePulse)
@@ -189,7 +190,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         width = duration-2*risefall
         center = duration/2
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         gaussian_square_ref = continuous.gaussian_square(times, amp, center, width, sigma)
         gaussian_square_pulse = pulse_lib.gaussian_square(duration, amp, sigma, risefall)
         self.assertIsInstance(gaussian_square_pulse, SamplePulse)
@@ -202,7 +203,7 @@ class TestDiscretePulses(QiskitTestCase):
         beta = 0
         duration = 10
         center = 10/2
-        times = np.arange(0, duration)
+        times = np.arange(0, duration) + 0.5
         # reference drag pulse
         drag_ref = continuous.drag(times, amp, center, sigma, beta=beta,
                                    zeroed_width=2*(center+1), rescale_amp=True)
