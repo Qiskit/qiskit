@@ -103,7 +103,7 @@ gettext_compact = False     # optional.
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'colorful'
 
 # A boolean that decides whether module names are prepended to all object names
 # (for object types where a “module” of some kind is defined), e.g. for
@@ -141,7 +141,7 @@ html_theme_path = ['.', sphinx_rtd_theme.get_html_theme_path()]
 # documentation.
 #
 html_theme_options = {
-    'logo_only': False,
+    'logo_only': True,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
@@ -150,7 +150,9 @@ html_theme_options = {
     'sticky_navigation': True,
     'navigation_depth': 4,
     'includehidden': True,
-    'titles_only': False
+    'titles_only': False,
+    'style_nav_header_background': '#212121',
+
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -164,6 +166,7 @@ html_context = {
     ]
 }
 
+html_logo = 'theme/static/img/logo.png'
 html_favicon = 'theme/static/img/favicon.ico'
 
 html_last_updated_fmt = '%Y/%m/%d'
@@ -243,6 +246,12 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+autosummary_generate = True
+
+autodoc_default_options = {
+    'inherited-members': None,
+}
 
 autoclass_content = 'both'
 
