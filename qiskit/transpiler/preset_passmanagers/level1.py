@@ -74,6 +74,9 @@ def level_1_pass_manager(pass_manager_config):
     def _didnt_improve(property_set):
         return property_set['trivial_score'] < property_set['dense_score']
 
+    def _not_perfect_yet(property_set):
+        return property_set['trivial_score'] != 0
+
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
@@ -119,6 +122,7 @@ def level_1_pass_manager(pass_manager_config):
             pm1.append(Layout2qDistance(coupling_map, property_name='trivial_score'))
             pm1.append([DenseLayout(coupling_map, backend_properties),
                         Layout2qDistance(coupling_map, property_name='dense_score')],
+                       condition=_not_perfect_yet,
                        rollback_if=_didnt_improve)
         pm1.append(_embed)
     pm1.append(_unroll)
