@@ -86,7 +86,9 @@ class TestVQE(QiskitAquaTestCase):
                      RYRZ(self.qubit_op.num_qubits),
                      optimizer_cls(),
                      max_evals_grouped=max_evals_grouped).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'), shots=1))
+                         QuantumInstance(BasicAer.get_backend('statevector_simulator'), shots=1,
+                                         seed_simulator=aqua_globals.random_seed,
+                                         seed_transpiler=aqua_globals.random_seed))
 
         self.assertAlmostEqual(result['energy'], -1.85727503, places=places)
 
@@ -99,7 +101,9 @@ class TestVQE(QiskitAquaTestCase):
         result = VQE(self.qubit_op,
                      var_form_cls(self.qubit_op.num_qubits),
                      L_BFGS_B()).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'), shots=1))
+                         QuantumInstance(BasicAer.get_backend('statevector_simulator'), shots=1,
+                                         seed_simulator=aqua_globals.random_seed,
+                                         seed_transpiler=aqua_globals.random_seed))
         self.assertAlmostEqual(result['energy'], -1.85727503, places=places)
 
     def test_vqe_qasm(self):
@@ -129,7 +133,9 @@ class TestVQE(QiskitAquaTestCase):
         var_form = RY(num_qubits, 3, initial_state=init_state)
         optimizer = L_BFGS_B()
         algo = VQE(self.qubit_op, var_form, optimizer, max_evals_grouped=1)
-        quantum_instance = QuantumInstance(backend)
+        quantum_instance = QuantumInstance(backend,
+                                           seed_simulator=aqua_globals.random_seed,
+                                           seed_transpiler=aqua_globals.random_seed)
         result = algo.run(quantum_instance)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=6)
 
@@ -147,7 +153,9 @@ class TestVQE(QiskitAquaTestCase):
         var_form = RY(num_qubits, 3, initial_state=init_state)
         optimizer = L_BFGS_B()
         algo = VQE(self.qubit_op, var_form, optimizer, max_evals_grouped=1)
-        quantum_instance = QuantumInstance(backend, shots=1)
+        quantum_instance = QuantumInstance(backend, shots=1,
+                                           seed_simulator=aqua_globals.random_seed,
+                                           seed_transpiler=aqua_globals.random_seed)
         result = algo.run(quantum_instance)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=6)
 
