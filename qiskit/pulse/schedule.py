@@ -15,7 +15,6 @@
 """Schedule."""
 
 import abc
-from math import log
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
