@@ -24,21 +24,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
-
 import os
-import re
-import subprocess
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
-from docutils import nodes
-from docutils.parsers.rst.directives.tables import Table
-from docutils.parsers.rst import Directive, directives
-from sphinx.util import logging
+import sphinx_rtd_theme
 
-
-logger = logging.getLogger(__name__)
 
 # -- Project information -----------------------------------------------------
 
@@ -73,22 +64,8 @@ extensions = [
     'jupyter_sphinx.execute'
 ]
 
-# -----------------------------------------------------------------------------
-# Autosummary
-# -----------------------------------------------------------------------------
-
-autosummary_generate = True
-
-# -----------------------------------------------------------------------------
-# Autodoc
-# -----------------------------------------------------------------------------
-
-autodoc_default_options = {
-    'inherited-members': None,
-}
-
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['theme/_templates']
+templates_path = ['theme/']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -155,63 +132,37 @@ extlinks = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_materialdesign_theme' # use the theme in subdir 'theme'
+html_theme = "sphinx_rtd_theme"
 
-html_sidebars = {
-   '**': ['globaltoc.html']
-}
+html_theme_path = ['.', sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    # Specify a list of menu in Header.
-    # Tuples forms:
-    #  ('Name', 'external url or path of pages in the document', boolean, 'icon name')
-    #
-    # Third argument:
-    # True indicates an external link.
-    # False indicates path of pages in the document.
-    #
-    # Fourth argument:
-    # Specify the icon name.
-    # For details see link.
-    # https://material.io/icons/
-    'header_links': [],
-
-    # Customize css colors.
-    # For details see link.
-    # https://getmdl.io/customize/index.html
-    #
-    # Values: amber, blue, brown, cyan deep_orange, deep_purple, green, grey, indigo, light_blue,
-    #         light_green, lime, orange, pink, purple, red, teal, yellow(Default: indigo)
-    'primary_color': 'blue',
-    # Values: Same as primary_color. (Default: pink)
-    'accent_color': 'indigo',
-
-    # Customize layout.
-    # For details see link.
-    # https://getmdl.io/components/index.html#layout-section
-    'fixed_drawer': True,
-    'fixed_header': False,
-    'header_waterfall': True,
-    'header_scroll': False,
-
-    # Render title in header.
-    # Values: True, False (Default: False)
-    'show_header_title': False,
-    # Render title in drawer.
-    # Values: True, False (Default: True)
-    'show_drawer_title': True,
-    # Render footer.
-    'show_footer': False
+    'logo_only': False,
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': False,
+    # Toc options
+    'collapse_navigation': True,
+    'sticky_navigation': True,
+    'navigation_depth': 4,
+    'includehidden': True,
+    'titles_only': False
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['theme/static/']
+
+html_context = {
+    'css_files': [
+        '_static/css/theme-override.css',  # overrides few css in RTD Theme
+    ]
+}
 
 html_favicon = 'theme/static/img/favicon.ico'
 
@@ -297,113 +248,5 @@ autoclass_content = 'both'
 
 # -- Extension configuration -------------------------------------------------
 
-class VersionHistory(Table):
-
-    headers = ["Qiskit Metapackage Version", "qiskit-terra", "qiskit-aer",
-               "qiskit-ignis", "qiskit-ibmq-provider", "qiskit-aqua"]
-    repo_root = os.path.abspath(os.path.dirname(__file__))
-
-    def _get_setup_py(self, version):
-        cmd = ['git', 'show', '%s:setup.py' % version]
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                cwd=self.repo_root)
-        stdout, stderr = proc.communicate()
-        if proc.returncode > 0:
-            logger.warn("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
-                        % (cmd, stdout, stderr))
-            return ''
-        return stdout.decode('utf8')
-
-    def get_versions(self, tags):
-        versions = {}
-        for tag in tags:
-            version = {}
-            setup_py = self._get_setup_py(tag)
-            for package in self.headers[1:] + ['qiskit_terra']:
-                version_regex = re.compile(package + '[=|>]=(.*)\"')
-                match = version_regex.search(setup_py)
-                if match:
-                    ver = match[1]
-                    if '<' in match[1]:
-                        ver = '>=' + ver
-                    if package != 'qiskit_terra':
-                        version[package] = ver
-                    else:
-                        version['qiskit-terra'] = ver
-            if version:
-                versions[tag] = version
-        return versions
-
-    def build_table(self, versions):
-        table = nodes.table()
-        table['classes'] += ['colwidths-auto']
-        tgroup = nodes.tgroup(cols=len(self.headers))
-        table += tgroup
-        self.options['widths'] = [30, 15, 15, 15, 20, 15]
-        tgroup.extend(
-            nodes.colspec(colwidth=col_width, colname='c' + str(idx))
-            for idx, col_width in enumerate(self.col_widths)
-        )
-
-        thead = nodes.thead()
-        tgroup += thead
-
-        row_node = nodes.row()
-        thead += row_node
-        row_node.extend(nodes.entry(h, nodes.paragraph(text=h))
-                        for h in self.headers)
-
-        tbody = nodes.tbody()
-        tgroup += tbody
-
-        rows = []
-        for version in versions:
-            row_node = nodes.row()
-            entry = nodes.entry()
-            entry += nodes.paragraph(text=version)
-            row_node += entry
-            for cell in self.headers[1:]:
-                if cell in versions[version]:
-                    entry = nodes.entry()
-                    text = versions[version][cell]
-                    entry += nodes.paragraph(text=text)
-                else:
-                    entry = nodes.entry()
-                row_node += entry
-            rows.append(row_node)
-        tbody.extend(rows)
-        return table
-
-    def run(self):
-        cmd = ['git' , 'tag', '--sort=-creatordate']
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, cwd=self.repo_root)
-        stdout, stderr = proc.communicate()
-        if proc.returncode > 0:
-            logger.warn("%s failed with:\nstdout:\n%s\nstderr:\n%s\n"
-                        % (cmd, stdout, stderr))
-            tags = []
-        else:
-            tags = stdout.decode('utf8').splitlines()
-        versions = self.get_versions(tags)
-        self.max_cols = len(self.headers)
-        self.col_widths = self.get_column_widths(self.max_cols)
-        table_node = self.build_table(versions)
-        title, messages = self.make_title()
-        if title:
-            table_node.insert(0, title)
-        return [table_node] + messages
-
-
 def setup(app):
-    # Add the css required by sphinx-materialdesign-theme.
-    app.add_stylesheet(
-        'material-design-lite-1.3.0/material.{}-{}.min.css'.format(
-            html_theme_options['primary_color'],
-            html_theme_options['accent_color']))
-    app.add_stylesheet('sphinx_materialdesign_theme.css')
-    # Add the custom css and js used by the Qiskit theme.
-    app.add_stylesheet('css/theme.css')
-    app.add_javascript('js/themeExt.js')
-    app.add_directive('version-history', VersionHistory)
+    app.setup_extension('versionutils')
