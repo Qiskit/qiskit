@@ -351,10 +351,10 @@ class Schedule(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scaling, channels_to_plot=channels,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange)
+                                          scaling=scaling, plot_all=plot_all,
+                                          plot_range=plot_range, interactive=interactive,
+                                          table=table, label=label,
+                                          framechange=framechange, channels=channels)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
