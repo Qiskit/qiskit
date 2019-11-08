@@ -19,8 +19,10 @@ A module for drawing circuits in ascii art or some other text representation
 from shutil import get_terminal_size
 import sys
 from numpy import ndarray
+
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
+from qiskit.circuit import ControlledGate
 
 
 class DrawElement():
@@ -689,10 +691,14 @@ class TextDrawing():
         return ret
 
     @staticmethod
-    def label_for_box(instruction):
+    def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
-        label = instruction.name.capitalize()
+        if controlled:
+            label = instruction.op.base_gate_name
+        else:
+            label = instruction.name
         params = TextDrawing.params_for_label(instruction)
+        label = label.capitalize()
         if params:
             label += "(%s)" % ','.join(params)
         return label
@@ -863,6 +869,15 @@ class TextDrawing():
             layer.set_qubit(instruction.qargs[0],
                             BoxOnQuWire(TextDrawing.label_for_box(instruction),
                                         conditional=conditional))
+
+        elif isinstance(instruction.op, ControlledGate):
+            label = TextDrawing.label_for_box(instruction, controlled=True)
+            gates = []
+            for _ in instruction.qargs[:-1]:
+                gates.append(Bullet(conditional=conditional))
+            gates.append(BoxOnQuWire(label, conditional=conditional))
+            add_connected_gate(instruction, gates, layer, current_cons)
+
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
