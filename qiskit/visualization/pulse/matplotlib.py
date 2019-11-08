@@ -261,7 +261,7 @@ class SamplePulseDrawer:
 
         ax.set_xlim(0, pulse.duration * dt)
         if scaling:
-            ax.set_ylim(-scaling, scaling)
+            ax.set_ylim(-1/scaling, 1/scaling)
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)

@@ -105,7 +105,7 @@ class SamplePulse(Command):
              style: Optional['PulseStyle'] = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
+             scale_factor: float = 1, interactive: bool = False,
              scaling: float = 1):
         """Plot the interpolated envelope of pulse.
 
@@ -114,10 +114,10 @@ class SamplePulse(Command):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
+            scale_factor: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
+            scaling: Deprecated, see `scale_factor`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -125,14 +125,14 @@ class SamplePulse(Command):
         # pylint: disable=invalid-name, cyclic-import
         if scaling:
             warnings.warn(
-                'The parameter "scaling" is being replaced by "scale"'
+                'The parameter "scaling" is being replaced by "scale_factor"'
                 '', DeprecationWarning, 3)
-            scale = scaling
+            scale_factor = scaling
 
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scaling=scale,
+                                          interp_method=interp_method, scaling=scale_factor,
                                           interactive=interactive)
 
     def __eq__(self, other: 'SamplePulse'):
