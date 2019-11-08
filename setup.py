@@ -28,7 +28,8 @@ REQUIREMENTS = [
     "jsonschema>=2.6",
     "marshmallow>=3,<4",
     "marshmallow_polyfield>=5.7,<6",
-    "networkx>=2.2",
+    "networkx>=2.2;python_version>'3.5'",
+    # Networkx 2.4 is the final version with python 3.5 support.
     "networkx>=2.2,<2.4;python_version=='3.5'",
     "numpy>=1.13",
     "ply>=3.10",
