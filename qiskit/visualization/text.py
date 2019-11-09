@@ -878,7 +878,6 @@ class TextDrawing():
             gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
-
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
             label = instruction.name

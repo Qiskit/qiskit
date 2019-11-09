@@ -1581,6 +1581,38 @@ class TestTextControlledGate(QiskitTestCase):
         circuit.append(HGate().q_if(2), [qr[2], qr[1], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_c3h(self):
+        """Controlled Controlled CH"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>──■──",
+                              "          │  ",
+                              "q_1: |0>──■──",
+                              "          │  ",
+                              "q_2: |0>──■──",
+                              "        ┌─┴─┐",
+                              "q_3: |0>┤ H ├",
+                              "        └───┘"])
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(HGate().q_if(3), [qr[0], qr[1], qr[2], qr[3]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_c3h_middle(self):
+        """Controlled Controlled CH (middle)"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>──■──",
+                              "        ┌─┴─┐",
+                              "q_1: |0>┤ H ├",
+                              "        └─┬─┘",
+                              "q_2: |0>──■──",
+                              "          │  ",
+                              "q_3: |0>──■──",
+                              "             "])
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(HGate().q_if(3), [qr[0], qr[3], qr[2], qr[1]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
