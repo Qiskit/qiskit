@@ -20,9 +20,9 @@ from shutil import get_terminal_size
 import sys
 from numpy import ndarray
 
+from qiskit.circuit import ControlledGate
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
-from qiskit.circuit import ControlledGate
 
 
 class DrawElement():
