@@ -45,8 +45,6 @@ class FakeProvider(BaseProvider):
 
     def __init__(self):
         self._backends = [FakeQasmSimulator(),
-                          FakeOpenPulse2Q(),
-                          FakeOpenPulse3Q(),
                           FakeYorktown(),
                           FakeTenerife(),
                           FakeOurense(),
