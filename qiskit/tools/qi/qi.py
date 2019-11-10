@@ -247,7 +247,7 @@ def devectorize(vectorized_mat, method='col'):
     return None
 
 
-def choi_to_rauli(choi, order=1):
+def choi_to_pauli(choi, order=1):
     """
     Convert a Choi-matrix to a Pauli-basis superoperator.
 
@@ -354,8 +354,8 @@ def concurrence(state):
 
     YY = np.fliplr(np.diag([-1, 1, 1, -1]))
     A = rho.dot(YY).dot(rho.conj()).dot(YY)
-    w = la.eigh(A, eigvals_only=True)
-    w = np.sqrt(np.maximum(w, 0))
+    w = np.sort(np.real(la.eigvals(A)))
+    w = np.sqrt(np.maximum(w, 0.))
     return max(0.0, w[-1] - np.sum(w[0:-1]))
 
 

@@ -114,7 +114,7 @@ def diag_gate(self, diag, qubit):
             diagonal gate is provided: the first element in diag acts on the state where all
             the qubits in q are in the state 0, the second entry acts on the state where all
             the qubits q[1],...,q[k-1] are in the state zero and q[0] is in the state 1,
-            and so on
+            and so on)
 
     Returns:
         QuantumCircuit: the diagonal gate which was attached to the circuit.
