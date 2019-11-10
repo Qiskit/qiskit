@@ -17,6 +17,7 @@
 import numpy as np
 
 from qiskit.result import models
+from qiskit.result import marginal_counts
 from qiskit.validation import base
 from qiskit.result import Result
 from qiskit.test import QiskitTestCase
@@ -60,7 +61,7 @@ class TestResultOperations(QiskitTestCase):
 
     def test_marginal_counts(self):
         """Test that counts are marginalized correctly."""
-        raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD':9, '0xE':8}
+        raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data = models.ExperimentResultData(counts=base.Obj(**raw_counts))
         exp_result_header = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
         exp_result = models.ExperimentResult(shots=54, success=True, data=data,
@@ -68,8 +69,8 @@ class TestResultOperations(QiskitTestCase):
         result = Result(results=[exp_result], **self.base_result_args)
         expected_marginal_counts = {'00': 4, '01': 27, '10': 23}
 
-        self.assertEqual(result.get_marginal_counts(0, [0,1]), expected_marginal_counts)
-        self.assertEqual(result.get_marginal_counts(0, [1,0]), expected_marginal_counts)
+        self.assertEqual(marginal_counts(result.get_counts(), [0, 1]), expected_marginal_counts)
+        self.assertEqual(marginal_counts(result.get_counts(), [1, 0]), expected_marginal_counts)
 
     def test_memory_counts_no_header(self):
         """Test that memory bitstrings are extracted properly without header."""

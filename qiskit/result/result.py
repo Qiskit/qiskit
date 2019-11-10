@@ -14,9 +14,6 @@
 
 """Model for schema-conformant Results."""
 
-from functools import reduce
-from re import match
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
@@ -185,77 +182,6 @@ class Result(BaseModel):
                                              header)
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
-
-    def get_marginal_counts(self, experiment=None, indices=None, pad_zeros=False):
-        """Get histogram data of an experiment, marginalized over indices of interest.
-
-        Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
-            indices (list(int) or None): the bit positions of interest to NOT marinalize over.
-                If None, do not marginalize at all.
-            pad_zeros (Bool): Include zero count outcomes in return dict.
-
-        Returns:
-            dict[str:int]: a dictionary with the observed counts, marginalized to
-                only account for frequency of observations of bits of interest.
-        """
-        counts = self.get_counts(experiment)
-
-        # Extract total number of clbits from first count key
-        # We trim the whitespace seperating classical registers
-        # and count the number of digits
-        num_clbits = len(next(iter(counts)).replace(' ', ''))
-
-        # Check if we do not need to marginalize. In this case we just trim
-        # whitespace from count keys
-        if (indices is None) or set(range(num_clbits)) == set(indices):
-            ret = {}
-            for key, val in counts.items():
-                key = key.replace(' ', '')
-                ret[key] = val
-            return ret
-
-        if not set(indices).issubset(set(range(num_clbits))):
-            raise QiskitError('indices must be in range [0, {0}].'.format(num_clbits-1))
-
-        # Sort the indices to keep in decending order
-        # Since bitstrings have qubit-0 as least significant bit
-        qs = sorted(indices, reverse=True)
-
-        # Generate bitstring keys for indices to keep
-        def _count_keys(num_clbits):
-            """Return ordered count keys."""
-            return [bin(j)[2:].zfill(num_clbits)
-                    for j in range(2 ** num_clbits)]
-        meas_keys = _count_keys(len(qs))
-
-        # Get regex match strings for suming outcomes of other qubits
-        rgx = []
-        for key in meas_keys:
-            def _helper(x, y):
-                if y in qs:
-                    return key[qs.index(y)] + x
-                return '\\d' + x
-            rgx.append(reduce(_helper, range(num_clbits), ''))
-
-        # Build the return list
-        meas_counts = []
-        for m in rgx:
-            c = 0
-            for key, val in counts.items():
-                if match(m, key.replace(' ', '')):
-                    c += val
-            meas_counts.append(c)
-
-        # Return as counts dict on desired indices only
-        if pad_zeros is True:
-            return dict(zip(meas_keys, meas_counts))
-        ret = {}
-        for key, val in zip(meas_keys, meas_counts):
-            if val != 0:
-                ret[key] = val
-        return ret
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
