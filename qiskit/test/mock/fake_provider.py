@@ -20,6 +20,9 @@ from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
 from .backends import *
+from .fake_qasm_simulator import FakeQasmSimulator
+from .fake_openpulse_2q import FakeOpenPulse2Q
+from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
 class FakeProvider(BaseProvider):
@@ -45,6 +48,8 @@ class FakeProvider(BaseProvider):
 
     def __init__(self):
         self._backends = [FakeQasmSimulator(),
+                          FakeOpenPulse2Q(),
+                          FakeOpenPulse3Q(),
                           FakeYorktown(),
                           FakeTenerife(),
                           FakeOurense(),
