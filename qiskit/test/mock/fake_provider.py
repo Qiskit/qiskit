@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=wildcard-import
+
 """
 Fake provider class that provides access to fake backends.
 """
