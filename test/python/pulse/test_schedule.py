@@ -541,7 +541,7 @@ class TestScheduleFilter(BaseTestSchedule):
         # split instructions with filters on channel 0, of type PulseInstruction,
         # occuring in the time interval (25, 100)
         filtered, excluded = self._filter_and_test_consistency(sched,
-                                                               channels={self.config.drives(0)},
+                                                               channels={self.config.drive(0)},
                                                                instruction_types=[PulseInstruction],
                                                                time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
