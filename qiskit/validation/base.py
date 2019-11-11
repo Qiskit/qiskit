@@ -151,6 +151,8 @@ class BaseSchema(Schema):
         else:
             additional_keys = set(original_data.__dict__) - set(valid_data)
             for key in additional_keys:
+                if key.startswith('_'):
+                    continue
                 valid_data[key] = getattr(original_data, key)
 
         return valid_data
