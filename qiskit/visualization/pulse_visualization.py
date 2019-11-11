@@ -62,7 +62,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     if scaling:
         warnings.warn('The parameter "scaling" is being replaced by "scale_factor"'
                         '', DeprecationWarning, 3)
-            scale_factor = scaling
+        scale_factor = scaling
     if not _matplotlib.HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
