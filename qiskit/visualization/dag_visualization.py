@@ -18,8 +18,19 @@
 Visualization function for DAG circuit representation.
 """
 
+import os
 import sys
+import tempfile
+
+from networkx.drawing.nx_pydot import to_pydot
+
 from .exceptions import VisualizationError
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style='color'):
@@ -27,8 +38,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     in a quantum circuit.
 
     Note this function leverages
-    `pydot <https://github.com/erocarrera/pydot>`_ (via
-    `nxpd <https://github.com/chebee7i/nxpd`_) to generate the graph, which
+    `pydot <https://github.com/erocarrera/pydot>`_ to generate the graph, which
     means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
     system is required for this to work.
 
@@ -44,12 +54,12 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                      'color' (default): color input/output/op nodes
 
     Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file,
+        PIL.Image: if in Jupyter notebook and not saving to file,
             otherwise None.
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when nxpd or pydot not installed.
+        ImportError: when pydot or pillow are not installed.
 
     Example:
         .. jupyter-execute::
@@ -72,11 +82,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             dag_drawer(dag)
     """
     try:
-        import nxpd
         import pydot  # pylint: disable=unused-import
     except ImportError:
-        raise ImportError("dag_drawer requires nxpd and pydot. "
-                          "Run 'pip install nxpd pydot'.")
+        raise ImportError("dag_drawer requires pydot. "
+                          "Run 'pip install pydot'.")
 
     G = dag.to_networkx()
     G.graph['dpi'] = 100 * scale
@@ -104,16 +113,33 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     else:
         raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    if filename:
-        show = False
-    elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
-        show = 'ipynb'
-    else:
-        show = True
+    dot = to_pydot(G)
 
-    try:
-        return nxpd.draw(G, filename=filename, show=show)
-    except nxpd.pydot.InvocationException:
-        raise VisualizationError("dag_drawer requires GraphViz installed in the system. "
-                                 "Check https://www.graphviz.org/download/ for details on "
-                                 "how to install GraphViz in your system.")
+    if filename:
+        extension = filename.split('.')[-1]
+        dot.write(filename, format=extension)
+        return None
+    elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+        if not HAS_PIL:
+            raise ImportError(
+                "dag_drawer requires pillow for drawing in jupyter directly. "
+                "Run 'pip install pillow'.")
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmp_path = os.path.join(tmpdirname, 'dag.png')
+            dot.write_png(tmp_path)
+            image = Image.open(tmp_path)
+            os.remove(tmp_path)
+            return image
+    else:
+        if not HAS_PIL:
+            raise ImportError(
+                "dag_drawer requires pillow for drawing to a window directly. "
+                "Run 'pip install pillow'.")
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmp_path = os.path.join(tmpdirname, 'dag.png')
+            dot.write_png(tmp_path)
+            image = Image.open(tmp_path)
+            os.remove(tmp_path)
+            image.show()
+            return None
