@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
+import warnings
 from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
@@ -324,8 +325,6 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self.dt = dt * 1.e-9  # pylint: disable=invalid-name
-        self.dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
@@ -337,7 +336,8 @@ class PulseBackendConfiguration(BackendConfiguration):
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
-                         meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
+                         meas_lo_range=meas_lo_range,
+                         dt=dt * 1e-9, dtm=dtm * 1e-9,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
 
