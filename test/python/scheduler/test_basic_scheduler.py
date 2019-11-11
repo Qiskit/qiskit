@@ -225,7 +225,7 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(sched.name, qc.name)
         sched = schedule(qc, self.backend, method="alap")
         self.assertEqual(sched.name, qc.name)
-    
+
     def test_can_add_gates_into_free_space(self):
         """The scheduler does some time bookkeeping to know when qubits are free to be
         scheduled. Make sure this works for qubits that are used in the future. This was
@@ -235,7 +235,7 @@ class TestBasicSchedule(QiskitTestCase):
            q1 = |X| |u2| |X|
 
         In ALAP scheduling, the next operation on qubit 0 would be added at t=0 rather
-        than immediately before the X gate. 
+        than immediately before the X gate.
         """
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
