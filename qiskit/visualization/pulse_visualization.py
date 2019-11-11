@@ -61,8 +61,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         ImportError: when matplotlib is not installed
     """
     if channels_to_plot:
-        warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"'
-                      '', DeprecationWarning, 3)
+        warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                      DeprecationWarning, 3)
         channels = channels_to_plot
 
     if not _matplotlib.HAS_MATPLOTLIB:

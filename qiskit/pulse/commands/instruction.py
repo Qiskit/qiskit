@@ -223,8 +223,8 @@ class Instruction(ScheduleComponent):
         from qiskit import visualization
 
         if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"'
-                          '', DeprecationWarning, 3)
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
             channels = channels_to_plot
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

@@ -336,14 +336,14 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
+    def _count_valid_waveforms(self, output_channels, scaling=1, channels=None,
                                plot_all=False):
         # count numbers of valid waveform
         n_valid_waveform = 0
         v_max = 0
-        for channel, events in channels.items():
-            if channels_to_plot:
-                if channel in channels_to_plot:
+        for channel, events in output_channels.items():
+            if channels:
+                if channel in channels:
                     waveform = events.waveform
                     v_max = max(v_max,
                                 max(np.abs(np.real(waveform))),
@@ -575,8 +575,8 @@ class ScheduleDrawer:
         figure = plt.figure()
 
         if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"'
-                          '', DeprecationWarning, 3)
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
             channels = channels_to_plot
 
         if not channels:
@@ -599,7 +599,7 @@ class ScheduleDrawer:
 
         # count numbers of valid waveform
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
-                                                              channels_to_plot=channels,
+                                                              channels=channels,
                                                               plot_all=plot_all)
 
         if table:
