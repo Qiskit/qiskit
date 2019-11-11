@@ -606,7 +606,8 @@ class ScheduleDrawer:
          snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
 
         # count numbers of valid waveform
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scale_factor=scale_factor,
+        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels,
+                                                              scale_factor=scale_factor,
                                                               channels_to_plot=channels_to_plot,
                                                               plot_all=plot_all)
 

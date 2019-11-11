@@ -227,7 +227,8 @@ class Instruction(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scale_factor=scale_factor, channels_to_plot=channels_to_plot,
+                                          scale_factor=scale_factor,
+                                          channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
