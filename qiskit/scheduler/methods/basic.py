@@ -89,16 +89,17 @@ def as_late_as_possible(circuit: QuantumCircuit,
     Returns:
         A schedule corresponding to the input `circuit` with pulses occurring as late as possible
     """
-    circuit.barrier()  # Adding a final barrier is an easy way to align the channel end times.
     sched = Schedule(name=circuit.name)
+    # Align channel end times.
+    circuit.barrier()
     # We schedule in reverse order to get ALAP behaviour. We need to know how far out from t=0 any
     # qubit will become occupied. We add positive shifts to these times as we go along.
-    qubit_available_until = defaultdict(lambda: float("inf"))
+    # The time is initialized to 0 because all qubits are involved in the final barrier.
+    qubit_available_until = defaultdict(lambda: 0)
 
     def update_times(inst_qubits: List[int], shift: int = 0, cmd_start_time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
-            # A newly scheduled instruction on q starts at t=0 as we move backwards
             qubit_available_until[q] = cmd_start_time
         for q in qubit_available_until.keys():
             if q not in inst_qubits:
@@ -107,21 +108,16 @@ def as_late_as_possible(circuit: QuantumCircuit,
 
     circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in reversed(circ_pulse_defs):
-        if isinstance(circ_pulse_def.schedule, Barrier):
-            update_times(circ_pulse_def.qubits)
-        else:
-            cmd_sched = circ_pulse_def.schedule
-            # The new instruction should end when one of its qubits becomes occupied
-            cmd_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
-                              - cmd_sched.duration)
-            if cmd_start_time == float("inf"):
-                # These qubits haven't been used yet, so schedule the instruction at t=0
-                cmd_start_time = 0
-            # We have to translate qubit times forward when the cmd_start_time is negative
-            shift_amount = max(0, -cmd_start_time)
-            cmd_start_time = max(cmd_start_time, 0)
+        cmd_sched = circ_pulse_def.schedule
+        # The new instruction should end when one of its qubits becomes occupied
+        cmd_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
+                          - getattr(cmd_sched, 'duration', 0))  # Barrier has no duration
+        # We have to translate qubit times forward when the cmd_start_time is negative
+        shift_amount = max(0, -cmd_start_time)
+        cmd_start_time = max(cmd_start_time, 0)
+        if not isinstance(circ_pulse_def.schedule, Barrier):
             sched = cmd_sched.shift(cmd_start_time).insert(shift_amount, sched, name=sched.name)
-            update_times(circ_pulse_def.qubits, shift_amount, cmd_start_time)
+        update_times(circ_pulse_def.qubits, shift_amount, cmd_start_time)
     return sched
 
 
