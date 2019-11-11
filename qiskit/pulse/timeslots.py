@@ -372,8 +372,7 @@ class TimeslotCollection:
         """
         new_tc = TimeslotCollection()
         new_tc_table = new_tc._table
-        old_td_table = self._table
-        for channel, timeslots in old_td_table.items():
+        for channel, timeslots in self._table.items():
             new_tc_table[channel] = [tc.shift(time) for tc in timeslots]
         return new_tc
 
