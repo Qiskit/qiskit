@@ -132,7 +132,7 @@ class SamplePulse(Command):
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scaling=scale_factor,
+                                          interp_method=interp_method, scale_factor=scale_factor,
                                           interactive=interactive)
 
     def __eq__(self, other: 'SamplePulse'):

@@ -17,6 +17,7 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
+import warnings
 
 import numpy as np
 
@@ -223,7 +224,7 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scaling=1):
+    def draw(self, pulse, dt, interp_method, scale_factor=1, scaling=1):
         """Draw figure.
 
         Args:
@@ -231,11 +232,16 @@ class SamplePulseDrawer:
             dt (float): time interval
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
-            scaling (float): Relative visual scaling of waveform amplitudes
+            scale_factor (float): Relative visual scaling of waveform amplitudes
+            scaling: Deprecated, see `scale_factor`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
+        if scaling:
+            warnings.warn('The parameter "scaling" is being replaced by "scale_factor"'
+                          '', DeprecationWarning, 3)
+            scale_factor = scaling
         figure = plt.figure()
 
         interp_method = interp_method or interpolation.step_wise
@@ -260,8 +266,8 @@ class SamplePulseDrawer:
                         label='imaginary part')
 
         ax.set_xlim(0, pulse.duration * dt)
-        if scaling:
-            ax.set_ylim(-1/scaling, 1/scaling)
+        if scale_factor:
+            ax.set_ylim(-1/scale_factor, 1/scale_factor)
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
@@ -335,8 +341,12 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
-                               plot_all=False):
+    def _count_valid_waveforms(self, channels, scale_factor=1, channels_to_plot=None,
+                               plot_all=False, scaling=1):
+        if scaling:
+            warnings.warn('The parameter "scaling" is being replaced by "scale_factor"'
+                          '', DeprecationWarning, 3)
+            scale_factor = scaling
         # count numbers of valid waveform
         n_valid_waveform = 0
         v_max = 0
@@ -363,8 +373,8 @@ class ScheduleDrawer:
         # otherwise auto axis scaling will fail with zero division.
         v_max = v_max or 1
 
-        if scaling:
-            v_max = 0.5 * scaling
+        if scale_factor:
+            v_max = 0.5 * scale_factor
         else:
             v_max = 0.5 / (v_max)
 
@@ -547,8 +557,9 @@ class ScheduleDrawer:
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=None, channels_to_plot=None, plot_all=True,
-             table=True, label=False, framechange=True):
+             scale_factor=None, channels_to_plot=None, plot_all=True,
+             table=True, label=False, framechange=True,
+             scaling=None):
         """Draw figure.
 
         Args:
@@ -557,18 +568,23 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scaling (float): Relative visual scaling of waveform amplitudes
+            scale_factor (float): Relative visual scaling of waveform amplitudes
             channels_to_plot (list[OutputChannel]): channels to draw
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
+            scaling: Deprecated, see `scale_factor`
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
+        if scaling:
+            warnings.warn('The parameter "scaling" is being replaced by "scale_factor"'
+                          '', DeprecationWarning, 3)
+            scale_factor = scaling
         figure = plt.figure()
 
         if not channels_to_plot:
@@ -590,7 +606,7 @@ class ScheduleDrawer:
          snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
 
         # count numbers of valid waveform
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
+        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scale_factor=scale_factor,
                                                               channels_to_plot=channels_to_plot,
                                                               plot_all=plot_all)
 
