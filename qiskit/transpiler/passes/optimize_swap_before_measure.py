@@ -43,7 +43,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
-                for successor in dag.successors(swap):
+                for successor in list(dag.successors(swap)):
                     if successor.type == 'op' and successor.op.name == 'measure':
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
