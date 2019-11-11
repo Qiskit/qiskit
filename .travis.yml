@@ -89,7 +89,7 @@ jobs:
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench 'converters.*(1|2|5|8|14|20|53)\,.8\)' --bench '^(transpiler_benchmarks|assembler|circuit_construction|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
 
 matrix:
   fast_finish: true

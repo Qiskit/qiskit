@@ -12,7 +12,105 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing transpiler pass."""
+"""
+===================================================
+Transpiler Passes (:mod:`qiskit.transpiler.passes`)
+===================================================
+
+.. currentmodule:: qiskit.transpiler.passes
+
+Layout Selection
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TrivialLayout
+   DenseLayout
+   NoiseAdaptiveLayout
+   ApplyLayout
+   SetLayout
+   EnlargeWithAncilla
+   FullAncillaAllocation
+
+Unrolling
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Unroller
+   Unroll3qOrMore
+   Decompose
+
+Swap Mapping
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicSwap
+   LookaheadSwap
+   StochasticSwap
+
+Gate Optimizations
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Optimize1qGates
+   CXCancellation
+   CommutationAnalysis
+   CommutativeCancellation
+
+2Q Block Optimization
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Collect2qBlocks
+   ConsolidateBlocks
+
+Topology Validation
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CheckMap
+   CheckCXDirection
+   CXDirection
+
+DAG Properties
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Width
+   Depth
+   Size
+   CountOps
+   CountOpsLongestPath
+   NumTensorFactors
+   DAGFixedPoint
+   DAGLongestPath
+
+Additional Passes
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MergeAdjacentBarriers
+   BarrierBeforeFinalMeasurements
+   RemoveDiagonalGatesBeforeMeasure
+   RemoveFinalMeasurements
+   RemoveResetInZeroState
+
+"""
 
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation

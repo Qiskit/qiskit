@@ -1,6 +1,6 @@
-.. _qiskit-qobj:
+.. _qiskit-quantum_info:
 
-.. automodule:: qiskit.qobj
+.. automodule:: qiskit.quantum_info
    :no-members:
    :no-inherited-members:
    :no-special-members:
