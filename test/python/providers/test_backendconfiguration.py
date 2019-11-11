@@ -14,8 +14,6 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
-import warnings
-
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 

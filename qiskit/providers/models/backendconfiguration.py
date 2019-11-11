@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
-import warnings
 from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
