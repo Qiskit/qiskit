@@ -113,13 +113,17 @@ class AcquireInstruction(Instruction):
 
     def __init__(self,
                  command: Acquire,
-                 qubits: Union[Qubit, AcquireChannel, List[Qubit], List[AcquireChannel]],
+                 acquires: Union[AcquireChannel, List[AcquireChannel]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
                  reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
                  name: Optional[str] = None):
 
-        if isinstance(qubits, (Qubit, AcquireChannel)):
-            qubits = [qubits]
+        if not isinstance(acquires, list):
+            acquires = [acquires]
+
+        if isinstance(acquires[0], Qubit):
+            raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
+                             "which are deprecated.")
 
         if not (mem_slots or reg_slots):
             raise PulseError('Neither memoryslots or registers were supplied')
@@ -127,23 +131,16 @@ class AcquireInstruction(Instruction):
         if mem_slots:
             if isinstance(mem_slots, MemorySlot):
                 mem_slots = [mem_slots]
-            elif len(qubits) != len(mem_slots):
-                raise PulseError("#mem_slots must be equals to #qubits")
+            elif len(acquires) != len(mem_slots):
+                raise PulseError("#mem_slots must be equals to #acquires")
 
         if reg_slots:
             if isinstance(reg_slots, RegisterSlot):
                 reg_slots = [reg_slots]
-            if len(qubits) != len(reg_slots):
-                raise PulseError("#reg_slots must be equals to #qubits")
+            if len(acquires) != len(reg_slots):
+                raise PulseError("#reg_slots must be equals to #acquires")
         else:
             reg_slots = []
-
-        # extract acquire channels
-        acquires = []
-        for q in qubits:
-            if isinstance(q, Qubit):
-                q = q.acquire
-            acquires.append(q)
 
         super().__init__(command, *acquires, *mem_slots, *reg_slots, name=name)
 
