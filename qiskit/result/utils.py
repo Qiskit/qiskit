@@ -16,6 +16,7 @@
 
 from functools import reduce
 from re import match
+from qiskit import QiskitError
 
 
 def marginal_counts(counts, indices=None, pad_zeros=False):
@@ -50,17 +51,17 @@ def marginal_counts(counts, indices=None, pad_zeros=False):
 
     # Sort the indices to keep in decending order
     # Since bitstrings have qubit-0 as least significant bit
-    qs = sorted(indices, reverse=True)
+    indices = sorted(indices, reverse=True)
 
     # Generate bitstring keys for indices to keep
-    meas_keys = count_keys(len(qs))
+    meas_keys = count_keys(len(indices))
 
     # Get regex match strings for suming outcomes of other qubits
     rgx = []
     for key in meas_keys:
         def _helper(x, y):
-            if y in qs:
-                return key[qs.index(y)] + x
+            if y in indices:
+                return key[indices.index(y)] + x
             return '\\d' + x
         rgx.append(reduce(_helper, range(num_clbits), ''))
 
