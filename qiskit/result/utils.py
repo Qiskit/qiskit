@@ -16,7 +16,7 @@
 
 from functools import reduce
 from re import match
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 def marginal_counts(counts, indices=None, pad_zeros=False):
@@ -31,6 +31,9 @@ def marginal_counts(counts, indices=None, pad_zeros=False):
     Returns:
         dict[str:int]: a dictionary with the observed counts, marginalized to
             only account for frequency of observations of bits of interest.
+
+    Raises:
+        QiskitError: in case of invalid indices to marginalize over.
     """
     # Extract total number of clbits from first count key
     # We trim the whitespace seperating classical registers
