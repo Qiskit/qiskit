@@ -233,7 +233,7 @@ class SamplePulseDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             scale_factor (float): Relative visual scaling of waveform amplitudes
-            scaling: Deprecated, see `scale_factor`
+            scaling (float): Deprecated, see `scale_factor`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -574,7 +574,7 @@ class ScheduleDrawer:
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
-            scaling: Deprecated, see `scale_factor`
+            scaling (float): Deprecated, see `scale_factor`
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
