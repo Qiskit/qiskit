@@ -26,16 +26,6 @@ from qiskit.providers import BackendConfigurationError
 class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
 
-    @classmethod
-    def setUpClass(cls):
-        # TODO: these two class methods can be removed when the warnings
-        # in backend config are removed.
-        warnings.filterwarnings("ignore")
-
-    @classmethod
-    def tearDownClass(cls):
-        warnings.resetwarnings()
-
     def setUp(self):
         self.provider = FakeProvider()
         self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
