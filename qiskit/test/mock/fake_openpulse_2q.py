@@ -65,7 +65,20 @@ class FakeOpenPulse2Q(FakeBackend):
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ]
+            ],
+            hamiltonian={
+                'h_str': ["np.pi*(2*v0-alpha0)*O0", "np.pi*alpha0*O0*O0", "2*np.pi*r*X0||D0",
+                          "2*np.pi*r*X0||U1", "2*np.pi*r*X1||U0", "np.pi*(2*v1-alpha1)*O1",
+                          "np.pi*alpha1*O1*O1", "2*np.pi*r*X1||D1", "2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)"],
+                'description': "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.",
+                'qub': {'0': 3, '1': 3},
+                'vars':  {'v0': 5.00,
+                          'v1': 5.1,
+                          'j': 0.01,
+                          'r': 0.02,
+                          'alpha0': -0.33,
+                          'alpha1': -0.33}
+            }
         )
 
         self._defaults = PulseDefaults(

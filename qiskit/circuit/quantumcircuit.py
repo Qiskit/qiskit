@@ -46,7 +46,87 @@ def _is_bit(obj):
 
 
 class QuantumCircuit:
-    """Quantum circuit."""
+    """Create a new circuit.
+
+    A circuit is a list of instructions bound to some registers.
+
+    Args:
+        regs: list(:class:`Register`) or list(``int``) The registers to be
+            included in the circuit.
+
+                * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
+                  and/or :class:`ClassicalRegister` objects to include in the circuit.
+
+                For example:
+
+                * ``QuantumCircuit(QuantumRegister(4))``
+                * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
+                * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
+
+                * If a list of ``int``, the amount of qubits and/or classical
+                bits to include in the circuit. It can either be a single
+                int for just the number of quantum bits, or 2 ints for the number of
+                quantum bits and classical bits, respectively.
+
+
+                For example:
+
+                * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
+                * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
+
+
+        name (str): the name of the quantum circuit. If not set, an
+            automatically generated string will be assigned.
+
+    Raises:
+        CircuitError: if the circuit name, if given, is not valid.
+
+    Examples:
+
+        Construct a simple Bell state circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            qc.draw()
+
+        Construct a 5 qubit GHZ circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(5)
+            qc.h(0)
+            qc.cx(0, range(1, 5))
+            qc.measure_all()
+
+        Construct a 4 qubit Berstein-Vazirani circuit using registers.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+            qr = QuantumRegister(3, 'q')
+            anc = QuantumRegister(1, 'ancilla')
+            cr = ClassicalRegister(3, 'c')
+            qc = QuantumCircuit(qr, anc, cr)
+
+            qc.x(anc[0])
+            qc.h(anc[0])
+            qc.h(qr[0:3])
+            qc.cx(qr[0:3], anc[0])
+            qc.h(qr[0:3])
+            qc.barrier(qr)
+            qc.measure(qr, cr)
+
+            qc.draw()
+    """
     instances = 0
     prefix = 'circuit'
 
@@ -55,39 +135,6 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None):
-        """Create a new circuit.
-
-        A circuit is a list of instructions bound to some registers.
-
-        Args:
-            regs: list(:class:`Register`) or list(``int``) The registers to be
-                included in the circuit.
-
-                 * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
-                   and/or :class:`ClassicalRegister` objects to include in the circuit.
-
-                   For example:
-
-                    * ``QuantumCircuit(QuantumRegister(4))``
-                    * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
-                    * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
-
-                 * If a list of ``int``, the amount of qubits and/or classical
-                   bits to include in the circuit. It can either be a single
-                   int for just the number of quantum bits, or 2 ints for the number of
-                   quantum bits and classical bits respectively.
-
-                   For example:
-
-                    * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
-                    * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
-
-            name (str): the name of the quantum circuit. If not set, an
-                automatically generated string will be assigned.
-
-        Raises:
-            CircuitError: if the circuit name, if given, is not valid.
-        """
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
@@ -123,10 +170,9 @@ class QuantumCircuit:
         Returns:
             QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
 
-            Each tuple is in the format ``(instruction, qargs, cargs)``.
-            Where instruction is an Instruction (or subclass) object,
-            qargs is a list of Qubit objects, and cargs is a list of Clbit
-            objects.
+            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an
+            Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a
+            list of Clbit objects.
         """
         return QuantumCircuitData(self)
 
@@ -136,7 +182,7 @@ class QuantumCircuit:
 
         Args:
             data_input (list): A list of instructions with context
-                in the format (instruction, qargs, cargs). Where Instruction
+                in the format (instruction, qargs, cargs), where Instruction
                 is an Instruction (or subclass) object, qargs is a list of
                 Qubit objects, and cargs is a list of Clbit objects.
         """
@@ -298,14 +344,14 @@ class QuantumCircuit:
     @property
     def qubits(self):
         """
-        Returns a list of quantum bits in the order that the registers had been added.
+        Returns a list of quantum bits in the order that the registers were added.
         """
         return [qbit for qreg in self.qregs for qbit in qreg]
 
     @property
     def clbits(self):
         """
-        Returns a list of classical bits in the order that the registers had been added.
+        Returns a list of classical bits in the order that the registers were added.
         """
         return [cbit for creg in self.cregs for cbit in creg]
 
@@ -576,6 +622,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
+        unitary_gates = []
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
@@ -587,6 +634,12 @@ class QuantumCircuit:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
+            if instruction.name == 'unitary':
+                unitary_gates.append(instruction)
+
+        # this resets them, so if another call to qasm() is made the gate def is added again
+        for gate in unitary_gates:
+            gate._qasm_def_written = False
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
@@ -810,7 +863,7 @@ class QuantumCircuit:
         return gate_ops
 
     def depth(self):
-        """Return circuit depth (i.e. length of critical path).
+        """Return circuit depth (i.e., length of critical path).
         This does not include compiler or simulator directives
         such as 'barrier' or 'snapshot'.
 
@@ -818,7 +871,7 @@ class QuantumCircuit:
             int: Depth of circuit.
 
         Notes:
-            The circuit depth and the DAG depth need not bt the
+            The circuit depth and the DAG depth need not be the
             same.
         """
         # Labels the registers by ints

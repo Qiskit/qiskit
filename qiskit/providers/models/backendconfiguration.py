@@ -13,119 +13,118 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
+import warnings
+from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
+from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, String,
-                                      Complex, Float, Dict, InstructionParameter)
+from qiskit.validation import fields
 from qiskit.validation.validate import PatternProperties
+from qiskit.providers.exceptions import BackendConfigurationError
 
 
 class GateConfigSchema(BaseSchema):
     """Schema for GateConfig."""
 
     # Required properties.
-    name = String(required=True)
-    parameters = List(String(), required=True)
-    qasm_def = String(required=True)
+    name = fields.String(required=True)
+    parameters = fields.List(fields.String(), required=True)
+    qasm_def = fields.String(required=True)
 
     # Optional properties.
-    coupling_map = List(List(Integer(),
-                             validate=Length(min=1)),
-                        validate=Length(min=1))
-    latency_map = List(List(Integer(validate=OneOf([0, 1])),
-                            validate=Length(min=1)),
-                       validate=Length(min=1))
-    conditional = Boolean()
-    description = String()
+    coupling_map = fields.List(fields.List(fields.Integer(),
+                                           validate=Length(min=1)),
+                               validate=Length(min=1))
+    latency_map = fields.List(fields.List(fields.Integer(validate=OneOf([0, 1])),
+                                          validate=Length(min=1)),
+                              validate=Length(min=1))
+    conditional = fields.Boolean()
+    description = fields.String()
 
 
 class UchannelLOSchema(BaseSchema):
     """Schema for uchannel LO."""
 
     # Required properties.
-    q = Integer(required=True, validate=Range(min=0))
-    scale = Complex(required=True)
-
-    # Optional properties.
+    q = fields.Integer(required=True, validate=Range(min=0))
+    scale = fields.Complex(required=True)
 
 
 class PulseHamiltonianSchema(BaseSchema):
     """Schema for PulseHamiltonian."""
 
     # Required properties.
-    h_str = List(String(), validate=Length(min=1), required=True)
-    dim_osc = List(Integer(validate=Range(min=1)), required=True)
-    dim_qub = List(Integer(validate=Range(min=2)), required=True)
-    vars = Dict(validate=PatternProperties({
-        Regexp('^([a-z0-9])+$'): InstructionParameter()
+    h_str = fields.List(fields.String(), validate=Length(min=1), required=True)
+    dim_osc = fields.List(fields.Integer(validate=Range(min=1)), required=True)
+    dim_qub = fields.List(fields.Integer(validate=Range(min=2)), required=True)
+    vars = fields.Dict(validate=PatternProperties({
+        Regexp('^([a-z0-9])+$'): fields.InstructionParameter()
     }), required=True)
-
-    # Optional properties.
 
 
 class BackendConfigurationSchema(BaseSchema):
     """Schema for BackendConfiguration."""
     # Required properties.
-    backend_name = String(required=True)
-    backend_version = String(required=True,
-                             validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    n_qubits = Integer(required=True, validate=Range(min=1))
-    basis_gates = List(String(), required=True)
-    gates = Nested(GateConfigSchema, required=True, many=True)
-    local = Boolean(required=True)
-    simulator = Boolean(required=True)
-    conditional = Boolean(required=True)
-    open_pulse = Boolean(required=True)
-    memory = Boolean(required=True)
-    max_shots = Integer(required=True, validate=Range(min=1))
-    coupling_map = List(List(Integer(), validate=Length(min=1)),
-                        validate=Length(min=1), allow_none=True, required=True)
+    backend_name = fields.String(required=True)
+    backend_version = fields.String(required=True,
+                                    validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
+    n_qubits = fields.Integer(required=True, validate=Range(min=1))
+    basis_gates = fields.List(fields.String(), required=True)
+    gates = fields.Nested(GateConfigSchema, required=True, many=True)
+    local = fields.Boolean(required=True)
+    simulator = fields.Boolean(required=True)
+    conditional = fields.Boolean(required=True)
+    open_pulse = fields.Boolean(required=True)
+    memory = fields.Boolean(required=True)
+    max_shots = fields.Integer(required=True, validate=Range(min=1))
+    coupling_map = fields.List(fields.List(fields.Integer(), validate=Length(min=1)),
+                               validate=Length(min=1), allow_none=True, required=True)
 
     # Optional properties.
-    max_experiments = Integer(validate=Range(min=1))
-    sample_name = String()
-    n_registers = Integer(validate=Range(min=1))
-    register_map = List(List(Integer(validate=OneOf([0, 1])),
-                             validate=Length(min=1)),
-                        validate=Length(min=1))
-    configurable = Boolean()
-    credits_required = Boolean()
-    online_date = DateTime()
-    display_name = String()
-    description = String()
-    tags = List(String())
+    max_experiments = fields.Integer(validate=Range(min=1))
+    sample_name = fields.String()
+    n_registers = fields.Integer(validate=Range(min=1))
+    register_map = fields.List(fields.List(fields.Integer(validate=OneOf([0, 1])),
+                                           validate=Length(min=1)),
+                               validate=Length(min=1))
+    configurable = fields.Boolean()
+    credits_required = fields.Boolean()
+    online_date = fields.DateTime()
+    display_name = fields.String()
+    description = fields.String()
+    tags = fields.List(fields.String())
 
 
 class QasmBackendConfigurationSchema(BackendConfigurationSchema):
     """Schema for Qasm backend."""
-    open_pulse = Boolean(required=True, validate=OneOf([False]))
+    open_pulse = fields.Boolean(required=True, validate=OneOf([False]))
 
 
 class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
     """Schema for pulse backend"""
     # Required properties.
-    open_pulse = Boolean(required=True, validate=OneOf([True]))
-    n_uchannels = Integer(required=True, validate=Range(min=0))
-    u_channel_lo = List(Nested(UchannelLOSchema, validate=Length(min=1),
-                               required=True, many=True))
-    meas_levels = List(Integer(), validate=Length(min=1), required=True)
-    qubit_lo_range = List(List(Float(validate=Range(min=0)),
-                               validate=Length(equal=2)), required=True)
-    meas_lo_range = List(List(Float(validate=Range(min=0)),
-                              validate=Length(equal=2)), required=True)
-    dt = Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
-    dtm = Float(required=True, validate=Range(min=0))
-    rep_times = List(Integer(validate=Range(min=0)), required=True)
-    meas_kernels = List(String(), required=True)
-    discriminators = List(String(), required=True)
+    open_pulse = fields.Boolean(required=True, validate=OneOf([True]))
+    n_uchannels = fields.Integer(required=True, validate=Range(min=0))
+    u_channel_lo = fields.List(fields.Nested(UchannelLOSchema, validate=Length(min=1),
+                                             required=True, many=True))
+    meas_levels = fields.List(fields.Integer(), validate=Length(min=1), required=True)
+    qubit_lo_range = fields.List(fields.List(fields.Float(validate=Range(min=0)),
+                                             validate=Length(equal=2)), required=True)
+    meas_lo_range = fields.List(fields.List(fields.Float(validate=Range(min=0)),
+                                            validate=Length(equal=2)), required=True)
+    dt = fields.Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
+    dtm = fields.Float(required=True, validate=Range(min=0))
+    rep_times = fields.List(fields.Integer(validate=Range(min=0)), required=True)
+    meas_kernels = fields.List(fields.String(), required=True)
+    discriminators = fields.List(fields.String(), required=True)
 
     # Optional properties.
-    meas_map = List(List(Integer(), validate=Length(min=1)))
-    channel_bandwidth = List(List(Float(), validate=Length(equal=2)))
-    acquisition_latency = List(List(Integer()))
-    conditional_latency = List(List(Integer()))
+    meas_map = fields.List(fields.List(fields.Integer(), validate=Length(min=1)))
+    channel_bandwidth = fields.List(fields.List(fields.Float(), validate=Length(equal=2)))
+    acquisition_latency = fields.List(fields.List(fields.Integer()))
+    conditional_latency = fields.List(fields.List(fields.Integer()))
     hamiltonian = PulseHamiltonianSchema()
 
 
@@ -137,13 +136,13 @@ class GateConfig(BaseModel):
     full description of the model, please check ``GateConfigSchema``.
 
     Attributes:
-        name (str): the gate name as it will be referred to in Qasm.
-        parameters (list[str]): variable names for the gate parameters (if any).
-        qasm_def (str): definition of this gate in terms of Qasm primitives U
-            and CX.
+        name: the gate name as it will be referred to in Qasm.
+        parameters: variable names for the gate parameters (if any).
+        qasm_def: definition of this gate in terms of Qasm primitives U
+                  and CX.
     """
 
-    def __init__(self, name, parameters, qasm_def, **kwargs):
+    def __init__(self, name: str, parameters: List[str], qasm_def: str, **kwargs):
         self.name = name
         self.parameters = parameters
         self.qasm_def = qasm_def
@@ -159,10 +158,10 @@ class UchannelLO(BaseModel):
     full description of the model, please check ``GateConfigSchema``.
 
     Attributes:
-        q (int): Qubit that scale corresponds too.
-        scale (complex): Scale factor for qubit frequency.
+        q: Qubit that scale corresponds too.
+        scale: Scale factor for qubit frequency.
     """
-    def __init__(self, q, scale, **kwargs):
+    def __init__(self, q: int, scale: complex, **kwargs):
 
         self.q = q
         self.scale = scale
@@ -177,22 +176,33 @@ class BackendConfiguration(BaseModel):
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``BackendConfigurationSchema``.
     Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version in the form X.Y.Z.
-        n_qubits (int): number of qubits.
-        basis_gates (list[str]): list of basis gates names on the backend.
-        gates (GateConfig): list of basis gates on the backend.
-        local (bool): backend is local or remote.
-        simulator (bool): backend is a simulator.
-        conditional (bool): backend supports conditional operations.
-        open_pulse (bool): backend supports open pulse.
-        memory (bool): backend supports memory.
-        max_shots (int): maximum number of shots supported.
+        backend_name: backend name.
+        backend_version: backend version in the form X.Y.Z.
+        n_qubits: number of qubits.
+        basis_gates: list of basis gates names on the backend.
+        gates: list of basis gates on the backend.
+        local: backend is local or remote.
+        simulator: backend is a simulator.
+        conditional: backend supports conditional operations.
+        open_pulse: backend supports open pulse.
+        memory: backend supports memory.
+        max_shots: maximum number of shots supported.
+        **kwargs: Optional fields.
     """
 
-    def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, open_pulse, memory,
-                 max_shots, **kwargs):
+    def __init__(self,
+                 backend_name: str,
+                 backend_version: str,
+                 n_qubits: int,
+                 basis_gates: List[str],
+                 gates: GateConfig,
+                 local: bool,
+                 simulator: bool,
+                 conditional: bool,
+                 open_pulse: bool,
+                 memory: bool,
+                 max_shots: int,
+                 **kwargs):
 
         self.backend_name = backend_name
         self.backend_version = backend_version
@@ -216,23 +226,33 @@ class QasmBackendConfiguration(BackendConfiguration):
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``QasmBackendConfigurationSchema``.
     Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version in the form X.Y.Z.
-        n_qubits (int): number of qubits.
-        basis_gates (list[str]): list of basis gates names on the backend.
-        gates (GateConfig): list of basis gates on the backend.
-        local (bool): backend is local or remote.
-        simulator (bool): backend is a simulator.
-        conditional (bool): backend supports conditional operations.
-        open_pulse (bool): backend supports open pulse.
-        memory (bool): backend supports memory.
-        max_shots (int): maximum number of shots supported.
+        backend_name: backend name.
+        backend_version: backend version in the form X.Y.Z.
+        n_qubits: number of qubits.
+        basis_gates: list of basis gates names on the backend.
+        gates: list of basis gates on the backend.
+        local: backend is local or remote.
+        simulator: backend is a simulator.
+        conditional: backend supports conditional operations.
+        open_pulse: backend supports open pulse.
+        memory: backend supports memory.
+        max_shots: maximum number of shots supported.
         **kwargs: Optional fields.
     """
 
-    def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, open_pulse, memory,
-                 max_shots, **kwargs):
+    def __init__(self,
+                 backend_name: str,
+                 backend_version: str,
+                 n_qubits: int,
+                 basis_gates: List[str],
+                 gates: GateConfig,
+                 local: bool,
+                 simulator: bool,
+                 conditional: bool,
+                 open_pulse: bool,
+                 memory: bool,
+                 max_shots: int,
+                 **kwargs):
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -243,53 +263,72 @@ class QasmBackendConfiguration(BackendConfiguration):
 
 @bind_schema(PulseBackendConfigurationSchema)
 class PulseBackendConfiguration(BackendConfiguration):
-    """Model for PulseBackendConfiguration.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseBackendConfigurationSchema``.
-    Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version in the form X.Y.Z.
-        n_qubits (int): number of qubits.
-        basis_gates (list[str]): list of basis gates names on the backend.
-        gates (GateConfig): list of basis gates on the backend.
-        local (bool): backend is local or remote.
-        simulator (bool): backend is a simulator.
-        conditional (bool): backend supports conditional operations.
-        open_pulse (bool): backend supports open pulse.
-        memory (bool): backend supports memory.
-        max_shots (int): maximum number of shots supported.
-        n_uchannels (int): Number of u-channels.
-        u_channel_lo (list[UchannelLO]): U-channel relationship on device los.
-        meas_levels (list[int]): Supported measurement levels.
-        qubit_lo_range (list[list[float]]): Qubit lo ranges for each qubit
-            with form (min, max) in GHz.
-        meas_lo_range (list[list[float]]): Measurement lo ranges for each qubit
-            with form (min, max) in GHz.
-        dt (float): Qubit drive channel timestep in nanoseconds.
-        dtm (float): Measurement drive channel timestep in nanoseconds.
-        rep_times (list[float]): Supported repetition times for device in microseconds.
-        meas_kernels (list[str]): Supported measurement kernels.
-        discriminators: Supported discriminators.
-        **kwargs: Optional fields.
+    """Static configuration state for an OpenPulse enabled backend. This contains information
+    about the set up of the device which can be useful for building Pulse programs.
     """
 
-    def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, open_pulse, memory,
-                 max_shots, n_uchannels, u_channel_lo, meas_levels,
-                 qubit_lo_range, meas_lo_range, dt, dtm, rep_times, meas_kernels,
-                 discriminators, **kwargs):
+    def __init__(self,
+                 backend_name: str,
+                 backend_version: str,
+                 n_qubits: int,
+                 basis_gates: List[str],
+                 gates: GateConfig,
+                 local: bool,
+                 simulator: bool,
+                 conditional: bool,
+                 open_pulse: bool,
+                 memory: bool,
+                 max_shots: int,
+                 n_uchannels: int,
+                 u_channel_lo: List[UchannelLO],
+                 meas_levels: List[int],
+                 qubit_lo_range: List[List[float]],
+                 meas_lo_range: List[List[float]],
+                 dt: float,
+                 dtm: float,
+                 rep_times: List[float],
+                 meas_kernels: List[str],
+                 discriminators: List[str],
+                 hamiltonian: Dict[str, str] = None,
+                 **kwargs):
+        """
+        Initialize a backend configuration that contains all the extra configuration that is made
+        available for OpenPulse backends.
 
+        Args:
+            backend_name: backend name.
+            backend_version: backend version in the form X.Y.Z.
+            n_qubits: number of qubits.
+            basis_gates: list of basis gates names on the backend.
+            gates: list of basis gates on the backend.
+            local: backend is local or remote.
+            simulator: backend is a simulator.
+            conditional: backend supports conditional operations.
+            open_pulse: backend supports open pulse.
+            memory: backend supports memory.
+            max_shots: maximum number of shots supported.
+            n_uchannels: Number of u-channels.
+            u_channel_lo: U-channel relationship on device los.
+            meas_levels: Supported measurement levels.
+            qubit_lo_range: Qubit lo ranges for each qubit with form (min, max) in GHz.
+            meas_lo_range: Measurement lo ranges for each qubit with form (min, max) in GHz.
+            dt: Qubit drive channel timestep in nanoseconds.
+            dtm: Measurement drive channel timestep in nanoseconds.
+            rep_times: Supported repetition times for device in microseconds.
+            meas_kernels: Supported measurement kernels.
+            discriminators: Supported discriminators.
+            hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
+            **kwargs: Optional fields.
+        """
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self.dt = dt  # pylint: disable=invalid-name
-        self.dtm = dtm
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
+        self.hamiltonian = hamiltonian
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -297,6 +336,95 @@ class PulseBackendConfiguration(BackendConfiguration):
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
-                         meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
+                         meas_lo_range=meas_lo_range,
+                         dt=dt * 1e-9, dtm=dtm * 1e-9,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
+
+    @property
+    def sample_rate(self) -> float:
+        """Sample rate of the signal channels in Hz (1/dt)."""
+        return 1.0 / self.dt
+
+    def drive(self, qubit: int) -> DriveChannel:
+        """
+        Return the drive channel for the given qubit.
+
+        Raises:
+            BackendConfigurationError: If the qubit is not a part of the system.
+        Returns:
+            Qubit drive channel.
+        """
+        if qubit > self.n_qubits:
+            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        return DriveChannel(qubit)
+
+    def measure(self, qubit: int) -> MeasureChannel:
+        """
+        Return the measure stimulus channel for the given qubit.
+
+        Raises:
+            BackendConfigurationError: If the qubit is not a part of the system.
+        Returns:
+            Qubit measurement stimulus line.
+        """
+        if qubit > self.n_qubits:
+            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        return MeasureChannel(qubit)
+
+    def acquire(self, qubit: int) -> AcquireChannel:
+        """
+        Return the acquisition channel for the given qubit.
+
+        Raises:
+            BackendConfigurationError: If the qubit is not a part of the system.
+        Returns:
+            Qubit measurement acquisition line.
+        """
+        if qubit > self.n_qubits:
+            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        return AcquireChannel(qubit)
+
+    def control(self, qubit: int) -> ControlChannel:
+        """
+        Return the secondary drive channel for the given qubit -- typically utilized for
+        controlling multiqubit interactions. This channel is derived from other channels.
+
+        Raises:
+            BackendConfigurationError: If the qubit is not a part of the system.
+        Returns:
+            Qubit control channel.
+        """
+        # TODO: Determine this from the hamiltonian.
+        warnings.warn("The control channel appropriate for an interaction should be determined "
+                      "from the hamiltonian. This will be determined for you in the future.")
+        if qubit > self.n_qubits:
+            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        return ControlChannel(qubit)
+
+    def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
+        """
+        Return a basic description of the channel dependency. Derived channels are given weights
+        which describe how their frames are linked to other frames.
+        For instance, the backend could be configured with this setting:
+            u_channel_lo = [
+                [UchannelLO(q=0, scale=1. + 0.j)],
+                [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
+            ]
+        Then, this method can be used as follows:
+            backend.configuration().describe(ControlChannel(1))
+            >>> {DriveChannel(0): -1, DriveChannel(1): 1}
+
+        Args:
+            channel: The derived channel to describe.
+        Raises:
+            BackendConfigurationError: If channel is not a ControlChannel.
+        Returns:
+            Control channel derivations.
+        """
+        if not isinstance(channel, ControlChannel):
+            raise BackendConfigurationError("Can only describe ControlChannels.")
+        result = {}
+        for u_chan_lo in self.u_channel_lo[channel.index]:
+            result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
+        return result

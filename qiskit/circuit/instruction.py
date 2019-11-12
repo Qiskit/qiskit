@@ -204,6 +204,10 @@ class Instruction:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
 
+    def is_parameterized(self):
+        """Return True .IFF. instruction is parameterized else False"""
+        return any(isinstance(param, ParameterExpression) for param in self.params)
+
     @property
     def definition(self):
         """Return definition in terms of other basic gates."""
@@ -218,7 +222,7 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        instruction = QasmQobjInstruction(name=self.name, validate=False)
         # Evaluate parameters
         if self.params:
             params = [
@@ -375,6 +379,19 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
+
+    # def to_gate(self):
+    #     """Create a Gate out of this Instruction if possible.
+
+    #     Returns:
+    #         Gate: cast of Instruction to Gate
+
+    #     Raises:
+    #         QiskitError: if any instruction in its definition can't be represented
+    #             as a Gate.
+    #     """
+    #     import qiskit.converters.instruction_to_gate as converters
+    #     return converters.instruction_to_gate(self)
 
     @property
     def control(self):
