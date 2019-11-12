@@ -13,32 +13,31 @@
 # that they have been altered from the originals.
 
 """
-Fake Ourense device (5 qubit).
+Fake Reuschlikon device (16 qubit).
 """
 
-import os
-import json
-
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
-from .fake_backend import FakeBackend
+from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class FakeOurense(FakeBackend):
-    """A fake 5 qubit backend."""
+class FakeRueschlikon(FakeBackend):
+    """A fake 16 qubit backend."""
 
     def __init__(self):
         """
-         0 ↔ 1 ↔ 3 ↔ 4
-             ↕
-             2
+         1 →  2 →  3 →  4 ←  5 ←  6 →  7 ← 8
+         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
+         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
         """
-        cmap = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
+                [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
+                [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
+                [13, 14], [15, 0], [15, 2], [15, 14]]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_ourense',
+            backend_name='fake_rueschlikon',
             backend_version='0.0.0',
-            n_qubits=5,
+            n_qubits=16,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,
             local=True,
@@ -51,12 +50,3 @@ class FakeOurense(FakeBackend):
         )
 
         super().__init__(configuration)
-
-    def properties(self):
-        """Returns a snapshot of device properties as recorded on 8/30/19.
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "props_ourense.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
