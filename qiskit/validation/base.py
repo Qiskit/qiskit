@@ -147,6 +147,8 @@ class BaseSchema(Schema):
             for i, _ in enumerate(valid_data):
                 additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
                 for key in additional_keys:
+                    if key.startswith('_'):
+                        continue
                     valid_data[i][key] = getattr(original_data[i], key)
         else:
             additional_keys = set(original_data.__dict__) - set(valid_data)
