@@ -12,7 +12,7 @@ features:
     passmanager.append([Swapper1(), depth('depth_swapper1')])
     ```
 
-    Following, the next stage will apply and calculate the depth using ``Swapper2``. If the result is
+    The next stage will apply and calculate the depth using ``Swapper2``. If the result is
     not better, this stage is unrolled, leaving the circuit as it was after applying ``Swapper1`` :
 
     ```python
