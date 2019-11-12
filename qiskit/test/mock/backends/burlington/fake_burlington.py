@@ -21,7 +21,7 @@ import json
 
 from qiskit.providers.models import (PulseBackendConfiguration,
                                      BackendProperties, PulseDefaults)
-from .fake_backend import FakeBackend
+from qiskit.test.mock.fake_backend import FakeBackend
 
 
 class FakeBurlington(FakeBackend):

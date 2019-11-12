@@ -325,8 +325,6 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self._dt = dt * 1.e-9  # pylint: disable=invalid-name
-        self._dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
@@ -338,21 +336,10 @@ class PulseBackendConfiguration(BackendConfiguration):
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
-                         meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
+                         meas_lo_range=meas_lo_range,
+                         dt=dt * 1e-9, dtm=dtm * 1e-9,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
-
-    @property
-    def dt(self) -> float:  # pylint: disable=invalid-name
-        """Time delta between samples on the signal channels in seconds."""
-        warnings.warn("The time delta is now returned in units of [s] rather than [ns].")
-        return self._dt
-
-    @property
-    def dtm(self) -> float:
-        """Time delta between samples on the acquisition channels in seconds."""
-        warnings.warn("The time delta is now returned in units of [s] rather than [ns].")
-        return self._dtm
 
     @property
     def sample_rate(self) -> float:
