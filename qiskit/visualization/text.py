@@ -674,11 +674,7 @@ class TextDrawing():
     def params_for_label(instruction, controlled=False):
         """Get the params and format them to add them to a label. None if there
          are no params of if the params are numpy.ndarrays."""
-        if controlled:
-            # TODO Find a way to print parameters for controlled gates
-            return None
-        else:
-            op = instruction.op
+        op = instruction.op
         if not hasattr(op, 'params'):
             return None
         if all([isinstance(param, ndarray) for param in op.params]):
