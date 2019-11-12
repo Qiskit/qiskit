@@ -55,10 +55,10 @@ class InstructionSet:
             self.instructions[index] = instruction.inverse()
         return self
 
-    def q_if(self, *qregs):
+    def control(self, *qregs):
         """Add controls to all instructions."""
         for gate in self.instructions:
-            gate.q_if(*qregs)
+            gate.control(*qregs)
         return self
 
     def c_if(self, classical, val):
