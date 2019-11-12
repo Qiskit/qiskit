@@ -51,31 +51,6 @@ subsequent sections:
     # Draw the circuit
     circuit.draw()
 
-
-.. note::
-
-  The default simulator provider is ``Aer``. However, if you have issues with installing this
-  provider there is also
-  a basic aer provider. To use this provider replace ``Aer`` with ``BasicAer`` in the above code.
-
-.. note::
-
-  The default backend for ``qiskit.visualization.circuit_drawer()`` or ``QuantumCircuit.draw()`` is
-  the text backend.
-  However, depending on your local environment you may want to change these defaults to something better
-  suited for your use case. This is done with the user config file.  By default the user config file
-  should be located in ``~/.qiskit/settings.conf`` and is a ``.ini`` file.
-
-  For example, a ``settings.conf`` file for setting a Matplotlib drawer is:
-
-  .. code-block:: text
-
-    [default]
-    circuit_drawer = mpl
-
-  You can use any of the valid circuit drawer backends as the value for this config, this includes
-  text, mpl, latex, and latex_source.
-
 .. jupyter-execute::
 
     # Plot a histogram
@@ -188,6 +163,22 @@ In this circuit, the qubits are ordered with qubit zero at the top and
 qubit one at the bottom. The circuit is read left-to-right, meaning that gates
 which are applied earlier in the circuit show up farther to the left.
 
+The default backend for ``QuantumCircuit.draw()`` or ``qiskit.visualization.circuit_drawer()``
+is the text backend. However, depending on your local environment you may want to change
+these defaults to something better suited for your use case. This is done with the user
+config file.  By default the user config file should be located in
+``~/.qiskit/settings.conf`` and is a ``.ini`` file.
+
+For example, a ``settings.conf`` file for setting a Matplotlib drawer is:
+
+.. code-block:: text
+
+  [default]
+  circuit_drawer = mpl
+
+You can use any of the valid circuit drawer backends as the value for this config, this includes
+text, mpl, latex, and latex_source.
+
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -197,6 +188,19 @@ Step 5 : Simulate the Experiment
 Qiskit Aer is a high performance simulator framework for quantum circuits. It
 provides `several backends <apidoc/providers/aer/aer_backends.html>`__
 to achieve different simulation goals.
+
+If you have issues installing Aer, you can alternatively use the Basic Aer
+provider by replacing `Aer` with `BasicAer`. Basic Aer is included in Qiskit
+Terra.
+
+.. code-block:: text
+
+    import numpy as np
+    from qiskit import(
+      QuantumCircuit,
+      execute,
+      BasicAer)
+    ...
 
 To simulate this circuit, you will use the ``qasm_simulator``. Each run of this
 circuit will yield either the bit string 00 or 11.
