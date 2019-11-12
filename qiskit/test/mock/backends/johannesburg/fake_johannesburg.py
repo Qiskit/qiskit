@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Poughkeepsie device (20 qubit).
+Fake Johannesburg device (20 qubit).
 """
 
 import os
@@ -21,11 +21,11 @@ import json
 
 from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
                                      BackendProperties)
-from .fake_backend import FakeBackend
+from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class FakePoughkeepsie(FakeBackend):
-    """A fake Poughkeepsie backend."""
+class FakeJohannesburg(FakeBackend):
+    """A fake Johannesburg backend."""
 
     def __init__(self):
         """
@@ -45,7 +45,7 @@ class FakePoughkeepsie(FakeBackend):
                 [19, 18]]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_poughkeepsie',
+            backend_name='fake_johannesburg',
             backend_version='0.0.0',
             n_qubits=20,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
@@ -65,7 +65,7 @@ class FakePoughkeepsie(FakeBackend):
         """Returns a snapshot of device properties as recorded on 10/08/19.
         """
         dirname = os.path.dirname(__file__)
-        filename = "props_poughkeepsie.json"
+        filename = "props_johannesburg.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
