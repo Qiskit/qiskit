@@ -193,21 +193,6 @@ def execute(experiments, backend,
         Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
 
         .. jupyter-execute::
-            :hide-code:
-            :hide-output:
-
-            from unittest.mock import MagicMock
-            import qiskit
-            from qiskit.test.mock import FakeVigo
-
-            mock_ibmq = MagicMock()
-            mock_provider = MagicMock()
-            fake_vigo = FakeVigo()
-            mock_provider.get_backend.return_value = fake_vigo
-            mock_ibmq.get_provider.return_value = mock_provider
-            qiskit.IBMQ = mock_ibmq
-
-        .. jupyter-execute::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 
