@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions.standard import HGate
+from qiskit.extensions.standard import HGate, U2Gate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -1611,6 +1611,22 @@ class TestTextControlledGate(QiskitTestCase):
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
         circuit.append(HGate().q_if(3), [qr[0], qr[3], qr[2], qr[1]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_c3u2(self):
+        """Controlled Controlled U2"""
+        expected = '\n'.join(["              ",
+                              "q_0: |0>──■───",
+                              "        ┌─┴──┐",
+                              "q_1: |0>┤ U2 ├",
+                              "        └─┬──┘",
+                              "q_2: |0>──■───",
+                              "          │   ",
+                              "q_3: |0>──■───",
+                              "              "])
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(U2Gate(pi, -5 * pi / 8).q_if(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
