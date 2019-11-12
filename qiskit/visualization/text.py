@@ -697,7 +697,7 @@ class TextDrawing():
             label = instruction.op.base_gate_name
         else:
             label = instruction.name
-        params = TextDrawing.params_for_label(instruction, controlled=controlled)
+        params = TextDrawing.params_for_label(instruction)
         label = label.capitalize()
         if params:
             label += "(%s)" % ','.join(params)
