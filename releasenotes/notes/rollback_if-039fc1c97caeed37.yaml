@@ -3,7 +3,7 @@ features:
   - |
     A new pass manager controller `rollback_if` allows to "undo" passes under certain conditions.
     If the condition is true the passes appended in that set are rolled back. Take for example a
-    pass the processes of choosing the best swapper for a particular situation.
+    pass manager which selects the best swapping pass (i.e. one that yields the smallest depth on the input circuit).
     The following pass manager applies ``Swapper1`` and calculates the depth of the swapper, saving
     The result in ``property_set['depth_swapper1']``:
 
