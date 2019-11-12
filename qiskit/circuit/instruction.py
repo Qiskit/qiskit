@@ -380,6 +380,19 @@ class Instruction:
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
 
+    # def to_gate(self):
+    #     """Create a Gate out of this Instruction if possible.
+
+    #     Returns:
+    #         Gate: cast of Instruction to Gate
+
+    #     Raises:
+    #         QiskitError: if any instruction in its definition can't be represented
+    #             as a Gate.
+    #     """
+    #     import qiskit.converters.instruction_to_gate as converters
+    #     return converters.instruction_to_gate(self)
+
     @property
     def control(self):
         """temporary classical control. Will be deprecated."""

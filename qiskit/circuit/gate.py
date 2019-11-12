@@ -34,6 +34,7 @@ class Gate(Instruction):
             label (str or None): An optional label for the gate [Default: None]
         """
         self._label = label
+        self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
     def to_matrix(self):
@@ -104,6 +105,25 @@ class Gate(Instruction):
             self._label = name
         else:
             raise TypeError('label expects a string or None')
+
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate
+
+        Args:
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
+            label (str): optional gate label
+
+        Returns:
+            ControlledGate: controlled version of gate. This default algorithm
+                uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
+                num_qubits + 2*num_ctrl_qubits - 1.
+
+        Raises:
+            QiskitError: unrecognized mode
+        """
+        # pylint: disable=cyclic-import
+        from .add_control import add_control
+        return add_control(self, num_ctrl_qubits, label)
 
     @staticmethod
     def _broadcast_single_argument(qarg):

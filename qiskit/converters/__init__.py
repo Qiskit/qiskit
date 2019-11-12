@@ -32,6 +32,7 @@ from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
 from .ast_to_dag import ast_to_dag
 from .circuit_to_instruction import circuit_to_instruction
+from .instruction_to_gate import instruction_to_gate
 
 
 def isinstanceint(obj):
