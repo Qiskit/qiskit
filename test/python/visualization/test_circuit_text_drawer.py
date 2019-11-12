@@ -1627,7 +1627,7 @@ class TestTextControlledGate(QiskitTestCase):
             "                         "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(U2Gate(pi, -5 * pi / 8).q_if(3), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
