@@ -19,8 +19,8 @@ import shutil
 import tempfile
 import warnings
 
+import numpy as np
 import ply.yacc as yacc
-import sympy
 
 from . import node
 from .exceptions import QasmError
@@ -940,13 +940,13 @@ class QasmParser:
         """
            unary : REAL
         """
-        program[0] = node.Real(sympy.Number(program[1]))
+        program[0] = node.Real(program[1])
 
     def p_unary_2(self, program):
         """
            unary : PI
         """
-        program[0] = node.Real(sympy.pi)
+        program[0] = node.Real(np.pi)
 
     def p_unary_3(self, program):
         """

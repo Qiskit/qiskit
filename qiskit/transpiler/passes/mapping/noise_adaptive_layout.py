@@ -12,37 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass for choosing a Layout of a circuit onto a Backend
-
-This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit), using calibration data.
-
-The pass implements the qubit mapping method from:
-Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
-Prakash Murali, Jonathan M. Baker, Ali Javadi-Abhari, Frederic T. Chong, Margaret R. Martonosi
-ASPLOS 2019 (arXiv:1901.11054).
-
-Greedy mapping heuristic
--------------------------
-
-Ordering of edges:
-Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
-
-Initialization:
-If an edge exists with both endpoints unmapped,
-pick the best available hardware cx to execute this edge.
-Iterative step:
-When an edge exists with one endpoint unmapped,
-map that endpoint to a location which allows
-maximum reliability for CNOTs with previously mapped qubits.
-In the end if there are unmapped qubits (which don't
-participate in any CNOT), map them to any available
-hardware qubit.
-
-Note: even though a 'layout' is not strictly a property of the DAG,
-in the transpiler architecture it is best passed around between passes by
-being set in `property_set`.
-"""
+"""Choose a noise-adaptive Layout based on current calibration data for the backend."""
 
 import math
 import networkx as nx
@@ -53,14 +23,40 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class NoiseAdaptiveLayout(AnalysisPass):
-    """
-    Chooses a noise-adaptive Layout based on current calibration
-    data for the backend.
+    """Choose a noise-adaptive Layout based on current calibration data for the backend.
+
+    This pass associates a physical qubit (int) to each virtual qubit
+    of the circuit (Qubit), using calibration data.
+
+    The pass implements the qubit mapping method from:
+    Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
+    Prakash Murali, Jonathan M. Baker, Ali Javadi-Abhari, Frederic T. Chong, Margaret R. Martonosi
+    ASPLOS 2019 (arXiv:1901.11054).
+
+   Methods:
+
+    Ordering of edges:
+    Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
+
+    Initialization:
+    If an edge exists with both endpoints unmapped,
+    pick the best available hardware cx to execute this edge.
+    Iterative step:
+    When an edge exists with one endpoint unmapped,
+    map that endpoint to a location which allows
+    maximum reliability for CNOTs with previously mapped qubits.
+    In the end if there are unmapped qubits (which don't
+    participate in any CNOT), map them to any available
+    hardware qubit.
+
+    Notes:
+        even though a `layout` is not strictly a property of the DAG,
+        in the transpiler architecture it is best passed around between passes
+        by being set in `property_set`.
     """
 
     def __init__(self, backend_prop):
-        """
-        Chooses a Noise Adaptive Layout
+        """NoiseAdaptiveLayout initializer.
 
         Args:
             backend_prop (BackendProperties): backend properties object
@@ -84,9 +80,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.prog2hw = {}
 
     def _initialize_backend_prop(self):
-        """
-        Extract readout and CNOT errors and compute swap costs.
-        """
+        """Extract readout and CNOT errors and compute swap costs."""
         backend_prop = self.backend_prop
         for ginfo in backend_prop.gates:
             if ginfo.gate == 'cx':
@@ -134,14 +128,12 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     self.swap_costs[i][j] = best_reliab
 
     def _qarg_to_id(self, qubit):
-        """
-        Converts qarg with name and value to an integer id
-        """
+        """Convert qarg with name and value to an integer id."""
         return self.qarg_to_id[qubit.register.name + str(qubit.index)]
 
     def _create_program_graph(self, dag):
-        """
-        Program graph has virtual qubits as nodes.
+        """Program graph has virtual qubits as nodes.
+
         Two nodes have an edge if the corresponding virtual qubits
         participate in a 2-qubit gate. The edge is weighted by the
         number of CNOTs between the pair.
@@ -162,7 +154,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
         return idx
 
     def _select_next_edge(self):
-        """
+        """Select the next edge.
+
         If there is an edge with one endpoint mapped, return it.
         Else return in the first edge
         """
@@ -175,9 +168,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         return self.pending_program_edges[0]
 
     def _select_best_remaining_cx(self):
-        """
-        Select best remaining CNOT in the hardware for the next program edge.
-        """
+        """Select best remaining CNOT in the hardware for the next program edge."""
         candidates = []
         for gate in self.gate_list:
             chk1 = gate[0] in self.available_hw_qubits
@@ -193,9 +184,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         return best_item
 
     def _select_best_remaining_qubit(self, prog_qubit):
-        """
-        Select the best remaining hardware qubit for the next program qubit.
-        """
+        """Select the best remaining hardware qubit for the next program qubit."""
         reliab_store = {}
         for hw_qubit in self.available_hw_qubits:
             reliab = 1
@@ -213,7 +202,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         return best_hw_qubit
 
     def run(self, dag):
-        """Main run method for the noise adaptive layout."""
+        """Run the NoiseAdaptiveLayout pass on `dag`."""
         self._initialize_backend_prop()
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):

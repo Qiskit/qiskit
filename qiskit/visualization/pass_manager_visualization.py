@@ -58,6 +58,27 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     Raises:
         ImportError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
+
+    Example:
+        .. code-block::
+
+             %matplotlib inline
+            from qiskit import QuantumCircuit
+            from qiskit.compiler import transpile
+            from qiskit.transpiler import PassManager
+            from qiskit.visualization import pass_manager_drawer
+            from qiskit.transpiler.passes import Unroller
+
+            circ = QuantumCircuit(3)
+            circ.ccx(0, 1, 2)
+            circ.draw()
+
+            pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
+            pm = PassManager(pass_)
+            new_circ = pm.run(circ)
+            new_circ.draw(output='mpl')
+
+            pass_manager_drawer(pm, "passmanager.jpg")
     """
 
     try:
@@ -105,11 +126,12 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
     for index, controller_group in enumerate(passes):
 
-        # label is the name of the flow controller (without the word controller)
-        label = "[%s] %s" % (index, controller_group['type'].__name__.replace('Controller', ''))
+        # label is the name of the flow controller parameter
+        label = "[%s] %s" % (index, ', '.join(controller_group['flow_controllers']))
 
         # create the subgraph for this controller
-        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica')
+        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica',
+                                 labeljust='l')
         component_id += 1
 
         for pass_ in controller_group['passes']:

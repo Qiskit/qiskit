@@ -80,7 +80,6 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
-
 Exceptions
 ==========
 

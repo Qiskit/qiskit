@@ -100,6 +100,25 @@ def plot_gate_map(backend, figsize=None,
     Raises:
         QiskitError: if tried to pass a simulator.
         ImportError: if matplotlib not installed.
+
+    Example:
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, execute, IBMQ
+           from qiskit.visualization import plot_gate_map
+           %matplotlib inline
+
+           provider = IBMQ.load_account()
+           accountProvider = IBMQ.get_provider(hub='ibm-q')
+           backend = accountProvider.get_backend('ibmq_vigo')
+           plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
@@ -269,6 +288,36 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     Raises:
         QiskitError: Invalid view type given.
         VisualizationError: Circuit has no layout attribute.
+
+    Example:
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit, IBMQ, transpile
+            from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
+            from qiskit.tools.monitor import job_monitor
+            import matplotlib.pyplot as plt
+            %matplotlib inline
+
+            IBMQ.load_account()
+
+            ghz = QuantumCircuit(3, 3)
+            ghz.h(0)
+            for idx in range(1,3):
+                ghz.cx(0,idx)
+            ghz.measure(range(3), range(3))
+
+            provider = IBMQ.get_provider(hub='ibm-q')
+            backend = provider.get_backend('ibmq_vigo')
+            new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
+            plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
         raise QiskitError('Circuit has no layout. '
@@ -280,12 +329,10 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     qubit_labels = [None] * n_qubits
 
     if view == 'virtual':
-        idx = 0
         for key, val in circuit._layout.get_virtual_bits().items():
             if key.register.name != 'ancilla':
                 qubits.append(val)
-                qubit_labels[val] = idx
-            idx += 1
+                qubit_labels[val] = key.index
 
     elif view == 'physical':
         for key, val in circuit._layout.get_physical_bits().items():
@@ -328,6 +375,25 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+
+    Example:
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit.visualization import plot_error_map
+            %matplotlib inline
+
+            IBMQ.load_account()
+            provider = IBMQ.get_provider(hub='ibm-q')
+            backend = provider.get_backend('ibmq_vigo')
+            plot_error_map(backend)
     """
     color_map = cm.viridis
 

@@ -11,29 +11,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-A pass that merges any adjacent barriers into one
 
-Only barriers which can be merged without affecting the barrier structure of the
-DAG will be merged.
-
-Not all redundant barriers will necessarily be merged, only adjacent barriers are merged.
-
-For example, the circuit
-qr = QuantumRegister(3, 'q')
-circuit = QuantumCircuit(qr)
-circuit.barrier(qr[0])
-circuit.barrier(qr[1])
-circuit.barrier(qr)
-
-Will be transformed into a circuit corresponding to
-circuit.barrier(qr[0])
-circuit.barrier(qr)
-after one iteration of the pass. These two barriers were not merged by the first pass as they are
-not adjacent in the initial circuit.
-
-The pass then can be reapplied to merge the newly adjacent barriers.
-"""
+"""Return a circuit with any adjacent barriers merged together."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -41,9 +20,35 @@ from qiskit.extensions.standard.barrier import Barrier
 
 
 class MergeAdjacentBarriers(TransformationPass):
-    """Returns a circuit with any adjacent barriers merged together"""
+    """Return a circuit with any adjacent barriers merged together.
+
+    Only barriers which can be merged without affecting the barrier structure
+    of the DAG will be merged.
+
+    Not all redundant barriers will necessarily be merged, only adjacent
+    barriers are merged.
+
+    For example, the circuit::
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.barrier(qr[0])
+        circuit.barrier(qr[1])
+        circuit.barrier(qr)
+
+    Will be transformed into a circuit corresponding to::
+
+        circuit.barrier(qr[0])
+        circuit.barrier(qr)
+
+    after one iteration of the pass. These two barriers were not merged by the
+    first pass as they are not adjacent in the initial circuit.
+
+    The pass then can be reapplied to merge the newly adjacent barriers.
+    """
 
     def run(self, dag):
+        """Run the MergeAdjacentBarriers pass on `dag`."""
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
@@ -81,9 +86,10 @@ class MergeAdjacentBarriers(TransformationPass):
 
     @staticmethod
     def _collect_potential_merges(dag, barriers):
-        """
+        """Return the potential merges.
+
         Returns a dict of DAGNode : Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGNode appears in the main DAG
+        inserted where the corresponding DAGNode appears in the main DAG.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:

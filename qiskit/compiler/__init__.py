@@ -12,9 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for Qiskit compiler.
+"""
+=============================================
+Compilation Routines (:mod:`qiskit.compiler`)
+=============================================
+
+.. currentmodule:: qiskit.compiler
+
+Circuit and Pulse Compilation Functions
+=======================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   assemble
+   schedule
+   transpile
 
 """
 
 from .assemble import assemble
 from .transpile import transpile
+from .schedule import schedule
