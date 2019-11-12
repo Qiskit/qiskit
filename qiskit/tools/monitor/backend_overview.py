@@ -19,12 +19,6 @@
 import math
 from qiskit.exceptions import QiskitError
 
-try:
-    # pylint: disable=import-error,no-name-in-module
-    from qiskit.providers.ibmq import IBMQ, IBMQBackend
-except ImportError:
-    pass
-
 
 def get_unique_backends():
     """Gets the unique backends that are available.
@@ -34,7 +28,14 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
+        ImportError: If qiskit-ibmq-provider is not installed
     """
+    try:
+        from qiskit.providers.ibmq import IBMQ
+    except ImportError:
+        raise ImportError("The IBMQ provider is necessary for this function "
+                          " to work. Please ensure it's installed before "
+                          "using this function")
     backends = []
     for provider in IBMQ.providers():
         for backend in provider.backends():
@@ -57,7 +58,16 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
+        ImportError: If qiskit-ibmq-provider is not installed
     """
+    try:
+        # pylint: disable=import-error,no-name-in-module
+        from qiskit.providers.ibmq import IBMQBackend
+    except ImportError:
+        raise ImportError("The IBMQ provider is necessary for this function "
+                          " to work. Please ensure it's installed before "
+                          "using this function")
+
     if not isinstance(backend, IBMQBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
     config = backend.configuration().to_dict()
