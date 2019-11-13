@@ -56,6 +56,12 @@ def setup_test_logging(logger, log_level, filename):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    if os.getenv('STREAM_LOG'):
+        # Set up the stream handler.
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
     # Set the logging level from the environment variable, defaulting
     # to INFO if it is not a valid level.
     level = logging._nameToLevel.get(log_level, logging.INFO)
