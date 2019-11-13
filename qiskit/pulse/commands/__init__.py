@@ -23,5 +23,5 @@ from .pulse_decorators import functional_pulse
 from .sample_pulse import SamplePulse, PulseInstruction
 from .snapshot import Snapshot
 from .delay import Delay, DelayInstruction
-from .parametric_pulses import (Gaussian, GaussianSquare, Drag, SquarePulse, ParametricPulse,
-	                            ParametricInstruction)
+from .parametric_pulses import (ParametricPulse, ParametricInstruction, Gaussian, GaussianSquare,
+	                            Drag, SquarePulse)

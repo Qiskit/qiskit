@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Parametric pulses. These are pulses which are described by a known formula and some
+Parametric pulses. These are pulse commands which are described by a known formula and some
 parameters.
 """
 from typing import Callable, Union, List, Optional
@@ -38,31 +38,6 @@ class ParametricPulse(Command):
         """
         """
         super().__init__(duration=duration)
-
-    def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scaling: float = 1, interactive: bool = False):
-        """Plot the interpolated envelope of pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        # pylint: disable=invalid-name, cyclic-import
-        sampled_version = self.get_sample_pulse()
-        return sampled_version.draw(dt=dt, style=style, filename=filename,
-                                    interp_method=interp_method, scaling=scaling,
-                                    interactive=interactive)
 
     def get_sample_pulse(self) -> SamplePulse:
         """
@@ -173,27 +148,3 @@ class ParametricInstruction(Instruction):
         """
         """
         super().__init__(command, channel, name=name)
-
-    def draw(self, **kwargs):
-        """Plot the instruction.
-
-        Args:
-            dt: Time interval of samples
-            style: A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
-            channels_to_plot: A list of channel names to plot
-            plot_all: Plot empty channels
-            plot_range: A tuple of time range to plot
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-            table: Draw event table for supported commands
-            label: Label individual instructions
-            framechange: Add framechange indicators
-
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse schedule
-        """
-        return self.command.get_sample_pulse().draw(**kwargs)

@@ -20,6 +20,7 @@ from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
+from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
@@ -62,13 +63,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                                      **qobj_config)
 
     memory_slot_size = 0
+
     # Pack everything into the Qobj
     qobj_schedules = []
     user_pulselib = {}
-    # FIXME
-    PULSE_TYPES = {
-        Gaussian: 'gaussian',
-    }
     for idx, schedule in enumerate(schedules):
         # instructions
         max_memory_slot = 0
@@ -79,9 +77,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             # TODO: support conditional gate
 
             if isinstance(instruction, ParametricInstruction):
-                if PULSE_TYPES[type(instruction.command)] not in run_config.parametric_pulses:
+                pulse_shape = ParametricPulseShapes(type(instruction.command)).name
+                if pulse_shape not in run_config.parametric_pulses:
                     # Convert to SamplePulse if the backend does not support it
-                    instruction = PulseInstruction(instruction.command.get_sample_pulse,
+                    instruction = PulseInstruction(instruction.command.get_sample_pulse(),
                                                    instruction.channels[0],
                                                    name=instruction.name)
 

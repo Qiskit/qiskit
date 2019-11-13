@@ -17,6 +17,8 @@
 import re
 import warnings
 
+from enum import Enum
+
 from qiskit.pulse import commands, channels
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
@@ -24,13 +26,10 @@ from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 
 
-# FIXME
-PULSE_TYPES = {
-    commands.Gaussian: 'gaussian',
-}
-TYPE_TO_COMMAND = {
-    'gaussian': commands.Gaussian
-}
+class ParametricPulseShapes(Enum):
+    """Map the assembled pulse names to the pulse module commands."""
+    gaussian = commands.Gaussian
+    gaussian_square = commands.GaussianSquare
 
 
 class ConversionMethodBinder:
@@ -213,11 +212,17 @@ class InstructionToQobjConverter:
 
     @bind_instruction(commands.ParametricInstruction)
     def convert_parametric(self, shift, instruction):
-        """
+        """Return the converted `ParametricInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (ParametricInstruction): An instance of a ParametricInstruction subclass.
+        Returns:
+            dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'parametric_pulse',
-            'pulse_shape': PULSE_TYPES[type(instruction.command)],
+            'pulse_shape': ParametricPulseShapes(type(instruction.command)).name,
             't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'params': instruction.command.params  # FIXME
@@ -424,11 +429,17 @@ class QobjToInstructionConverter:
 
     @bind_name('parametric_pulse')
     def convert_parametric(self, instruction):
-        """
+        """Return the ParametricPulse implementation that is described by the instruction.
+
+        Args:
+            instruction (PulseQobjInstruction): pulse qobj
+        Returns:
+            Schedule: Schedule containing the converted pulse
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        return TYPE_TO_COMMAND[instruction.pulse_shape](**instruction.params)(channel) << t0
+        command = ParametricPulseShapes[instruction.pulse_shape](**instruction.params)
+        return command(channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):
