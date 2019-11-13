@@ -244,5 +244,13 @@ class TestDiscriminator(QiskitTestCase):
         self.assertEqual(discriminator.params, {})
 
 
+class TestParametricPulses(QiskitTestCase):
+    """Tests for all subclasses of ParametricPulse."""
+
+    def test_gaussian(self):
+        """TODO"""
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()

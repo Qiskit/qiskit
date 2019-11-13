@@ -16,15 +16,19 @@
 Parametric pulse commands. These are pulse commands which are described by a known formula and some
 parameters.
 
-This module can easily be extended to describe more pulse shapes. The class name should be a known
-or well described formula, it should take some parameters (at least `duration`), and should
-implement a `get_sample_pulse` method to convert itself to a SamplePulse in the case that it is
-assembled for a backend which does not support it. The new pulse shape should then be added to
+This module can easily be extended to describe more pulse shapes. The new class should:
+  - have a descriptive name
+  - be a well known and/or well described formula
+  - take some parameters (at least `duration`)
+  - implement a `get_sample_pulse` method to convert itself to a SamplePulse in the
+    case that it is assembled for a backend which does not support it.
+The new pulse shape should then be added to
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`.
 
-The usefulness of these classes hinge on backends which support them. If a backend supports
-parametric pulses, it will have the attribute `backend.configuration().parametric_pulses`, which
-is a list of supported pulse shapes, such as `['gaussian', 'gaussian_square', 'drag']`.
+The usefulness of these classes are limited by pulse backends supporting them. If a backend
+supports parametric pulses, it will have the attribute
+`backend.configuration().parametric_pulses`, which is a list of supported pulse shapes, such as
+`['gaussian', 'gaussian_square', 'drag']`.
 """
 from abc import abstractmethod
 from typing import Optional
@@ -69,15 +73,22 @@ class ParametricPulse(Command):
 
 class Gaussian(ParametricPulse):
     """
+    A truncated pulse envelope shaped according to the Gaussian function whose mean is centered at
+    the center of the pulse (duration / 2):
+
+        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )   ,  0 <= x < duration
     """
 
     def __init__(self,
-                 sigma: float,
+                 duration: int,
                  amp: complex,
-                 duration: int):
+                 sigma: float):
         """Initialize the gaussian command.
 
         Args:
+            duration: Pulse length in terms of the the sampling period `dt`.
+            amp: The amplitude of the Gaussian envelope.
+            sigma:
         """
         self.params = {'sigma': sigma, 'amp': amp, 'duration': duration}  # FIXME
         self.sigma = sigma
@@ -89,19 +100,33 @@ class Gaussian(ParametricPulse):
                         sigma=self.sigma)
 
 
-
 class GaussianSquare(ParametricPulse):
     """
+    A square pulse with a Gaussian shaped risefall on either side:
+
+        risefall = duration - width / 2
+
+    0 <= x < risefall
+        f(x) = amp * exp( -(1/2) * (x - risefall/2)^2 / sigma^2) )
+
+    risefall <= x < risefall + width
+        f(x) = amp
+
+    risefall + width <= x < duration
+        f(x) = amp * exp( -(1/2) * (x - (risefall + width)/2)^2 / sigma^2) )
     """
 
     def __init__(self,
-                 sigma: float,
+                 duration: int,
                  amp: complex,
-                 width: int,
-                 duration: int):
+                 sigma: float,
+                 width: int):
         """Initialize the gaussian square command.
 
         Args:
+            duration: Pulse length in terms of the the sampling period `dt`.
+            amp: The amplitude of the Gaussian and of the square pulse.
+            width:
         """
         # args order dont match
         self.params = {'sigma': sigma, 'amp': amp, 'width': width, 'duration': duration}
@@ -120,14 +145,18 @@ class Drag(ParametricPulse):
     """
 
     def __init__(self,
-                 sigma: float,
-                 amp: complex,
-                 beta: int,
                  duration: int,
+                 amp: complex,
+                 sigma: float,
+                 beta: int,
                  remove_baseline: bool = False):
         """Initialize the drag command.
 
         Args:
+            duration: Pulse length in terms of the the sampling period `dt`.
+            amp: The amplitude of the Drag envelope.
+            beta:
+            remove_baseline:
         """
         self.params = {
             'sigma': sigma,
@@ -149,27 +178,26 @@ class SquarePulse(ParametricPulse):
     """
     A simple square pulse, with an amplitude value and a duration:
 
-        f(x) = value  ,  0 <= x < duration
+        f(x) = amp    ,  0 <= x < duration
         f(x) = 0      ,  elsewhere
-
     """
 
     def __init__(self,
-                 value: complex,
-                 duration: int):
+                 duration: int,
+                 amp: complex):
         """
         Initialize the square command.
 
         Args:
-            value: The amplitude of the constant square pulse.
             duration: Pulse length in terms of the the sampling period `dt`.
+            amp: The amplitude of the constant square pulse.
         """
-        self.params = {'value': value, 'duration': duration}
-        self.value = value
+        self.params = {'amp': amp, 'duration': duration}
+        self.amp = amp
         super().__init__(duration=duration)
 
     def get_sample_pulse(self) -> SamplePulse:
-        return constant(duration=self.duration, amp=self.value)
+        return constant(duration=self.duration, amp=self.amp)
 
 
 class ParametricInstruction(Instruction):
