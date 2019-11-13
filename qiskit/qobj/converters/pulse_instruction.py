@@ -30,6 +30,8 @@ class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module commands."""
     gaussian = commands.Gaussian
     gaussian_square = commands.GaussianSquare
+    drag = commands.Drag
+    square = commands.SquarePulse
 
 
 class ConversionMethodBinder:

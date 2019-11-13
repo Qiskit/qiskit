@@ -15,7 +15,7 @@
 """Assemble function for converting a list of circuits into a qobj"""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
-                                   DelayInstruction, SamplePulse, ParametricInstruction, Gaussian)
+                                   DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
