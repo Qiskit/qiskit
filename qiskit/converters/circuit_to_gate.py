@@ -84,4 +84,3 @@ def circuit_to_gate(circuit, parameter_map=None):
     gate.definition = definition
 
     return gate
-
