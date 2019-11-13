@@ -88,7 +88,8 @@ class Gaussian(ParametricPulse):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the Gaussian envelope.
-            sigma:
+            sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
+                   in the class docstring.
         """
         self.params = {'sigma': sigma, 'amp': amp, 'duration': duration}  # FIXME
         self.sigma = sigma
@@ -126,7 +127,9 @@ class GaussianSquare(ParametricPulse):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the Gaussian and of the square pulse.
-            width:
+            sigma: A measure of how wide or narrow the Gaussian risefall is; described
+                   mathematically in the class docstring.
+            width: The duration of the embedded square pulse.
         """
         # args order dont match
         self.params = {'sigma': sigma, 'amp': amp, 'width': width, 'duration': duration}
@@ -142,6 +145,8 @@ class GaussianSquare(ParametricPulse):
 
 class Drag(ParametricPulse):
     """
+    A pulse whose envelope is shaped by a drag pulse. This is so named by the technique
+    Derivative Removal by Adiabatic Gate (DRAG).
     """
 
     def __init__(self,
@@ -155,6 +160,7 @@ class Drag(ParametricPulse):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the Drag envelope.
+            sigma:
             beta:
             remove_baseline:
         """
