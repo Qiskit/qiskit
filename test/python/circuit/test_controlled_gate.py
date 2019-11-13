@@ -16,19 +16,15 @@
 
 """Test Qiskit's inverse gate operation."""
 
-import os
-import tempfile
-import unittest
-from math import pi
 from inspect import signature
 import numpy as np
+from numpy import pi
 from ddt import ddt, data
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
                     BasicAer)
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
-from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
@@ -120,7 +116,7 @@ class TestControlledGate(QiskitTestCase):
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
         cgate.h(sub_q[0])
-        cgate.crz(np.pi/2, sub_q[0], sub_q[1])
+        cgate.crz(pi/2, sub_q[0], sub_q[1])
         cgate.swap(sub_q[0], sub_q[1])
         cgate.u3(0.1, 0.2, 0.3, sub_q[1])
         cgate.t(sub_q[0])
@@ -357,7 +353,7 @@ class TestControlledGate(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(1, 2)
-        qc.rx(np.pi/4, [0, 1, 2])
+        qc.rx(pi/4, [0, 1, 2])
         gate = instruction_to_gate(qc.to_instruction())
         cgate = gate.q_if(num_ctrl_qubits)
         inv_cgate = cgate.inverse()
