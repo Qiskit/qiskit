@@ -20,7 +20,7 @@ import functools
 from typing import Union, Tuple, Optional
 
 import numpy as np
-from qiskit.pulse import PulseError
+from qiskit.pulse.exceptions import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:

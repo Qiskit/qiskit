@@ -15,7 +15,7 @@
 """Assemble function for converting a list of circuits into a qobj"""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
-                                   DelayInstruction, SamplePulse)
+                                   DelayInstruction, SamplePulse, ParametricInstruction, Gaussian)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -62,10 +62,13 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                                      **qobj_config)
 
     memory_slot_size = 0
-
     # Pack everything into the Qobj
     qobj_schedules = []
     user_pulselib = {}
+    # FIXME
+    PULSE_TYPES = {
+        Gaussian: 'gaussian',
+    }
     for idx, schedule in enumerate(schedules):
         # instructions
         max_memory_slot = 0
@@ -74,6 +77,13 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
+
+            if isinstance(instruction, ParametricInstruction):
+                if PULSE_TYPES[type(instruction.command)] not in run_config.parametric_pulses:
+                    # Convert to SamplePulse if the backend does not support it
+                    instruction = PulseInstruction(instruction.command.get_sample_pulse,
+                                                   instruction.channels[0],
+                                                   name=instruction.name)
 
             if isinstance(instruction, DelayInstruction):
                 # delay instructions are ignored as timing is explicit within qobj

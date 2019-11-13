@@ -24,6 +24,15 @@ from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 
 
+# FIXME
+PULSE_TYPES = {
+    commands.Gaussian: 'gaussian',
+}
+TYPE_TO_COMMAND = {
+    'gaussian': commands.Gaussian
+}
+
+
 class ConversionMethodBinder:
     """Conversion method registrar."""
     def __init__(self):
@@ -75,7 +84,7 @@ class InstructionToQobjConverter:
             def convert_custom_command(self, shift, instruction):
                 command_dict = {
                     'name': 'custom_command',
-                    't0': shift+instruction.start_time,
+                    't0': shift + instruction.start_time,
                     'param1': instruction.param1,
                     'param2': instruction.param2
                 }
@@ -117,7 +126,7 @@ class InstructionToQobjConverter:
 
         command_dict = {
             'name': 'acquire',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'duration': instruction.duration,
             'qubits': [q.index for q in instruction.acquires],
             'memory_slot': [m.index for m in instruction.mem_slots]
@@ -161,7 +170,7 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'fc',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'phase': instruction.command.phase
         }
@@ -179,7 +188,7 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'pv',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'val': instruction.command.value
         }
@@ -197,8 +206,21 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': instruction.command.name,
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(commands.ParametricInstruction)
+    def convert_parametric(self, shift, instruction):
+        """
+        """
+        command_dict = {
+            'name': 'parametric_pulse',
+            'pulse_shape': PULSE_TYPES[type(instruction.command)],
+            't0': shift + instruction.start_time,
+            'ch': instruction.channels[0].name,
+            'params': instruction.command.params  # FIXME
         }
         return self._qobj_model(**command_dict)
 
@@ -214,7 +236,7 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'snapshot',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'label': instruction.label,
             'type': instruction.type
         }
@@ -399,6 +421,14 @@ class QobjToInstructionConverter:
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
             return pulse(channel) << t0
+
+    @bind_name('parametric_pulse')
+    def convert_parametric(self, instruction):
+        """
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        return TYPE_TO_COMMAND[instruction.pulse_shape](**instruction.params)(channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):

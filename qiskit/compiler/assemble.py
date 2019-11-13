@@ -257,6 +257,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
 
+    parametric_pulses = getattr(backend_config, 'parametric_pulses', [])
+
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
@@ -268,6 +270,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
