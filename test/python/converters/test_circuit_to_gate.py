@@ -15,7 +15,7 @@
 """Tests for the converters."""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Instruction
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
