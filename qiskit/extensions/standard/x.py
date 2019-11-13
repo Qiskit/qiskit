@@ -15,7 +15,6 @@
 """
 Pauli X (bit-flip) gate.
 """
-
 import numpy
 
 from qiskit.circuit import Gate
