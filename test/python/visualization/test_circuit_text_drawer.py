@@ -1615,15 +1615,16 @@ class TestTextControlledGate(QiskitTestCase):
 
     def test_c3u2(self):
         """Controlled Controlled U2"""
-        expected = '\n'.join(["              ",
-                              "q_0: |0>──■───",
-                              "        ┌─┴──┐",
-                              "q_1: |0>┤ U2 ├",
-                              "        └─┬──┘",
-                              "q_2: |0>──■───",
-                              "          │   ",
-                              "q_3: |0>──■───",
-                              "              "])
+        expected = '\n'.join([
+            "                         ",
+            "q_0: |0>────────■────────",
+            "        ┌───────┴───────┐",
+            "q_1: |0>┤ U2(pi,-5pi/8) ├",
+            "        └───────┬───────┘",
+            "q_2: |0>────────■────────",
+            "                │        ",
+            "q_3: |0>────────■────────",
+            "                         "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
         circuit.append(U2Gate(pi, -5 * pi / 8).q_if(3), [qr[0], qr[3], qr[2], qr[1]])
@@ -1769,7 +1770,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0)
-        self.assertEqual(qc_result.draw(output='text', line_length=200).single_string(), expected)
+        self.assertEqual(qc_result.draw(output='text', fold=200).single_string(), expected)
 
 
 if __name__ == '__main__':
