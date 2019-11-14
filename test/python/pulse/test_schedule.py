@@ -179,10 +179,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test overlapping schedules."""
 
         def my_test_make_schedule(acquire: int, memoryslot: int, shift: int):
-            device = self.two_qubit_device
             op = Acquire(acquire)
-            sched1 = op(device.acquires[0], device.memoryslots[memoryslot])
-            sched2 = op(device.acquires[1], device.memoryslots[memoryslot]).shift(shift)
+            sched1 = op(AcquireChannel(0), MemorySlot(memoryslot))
+            sched2 = op(AcquireChannel(1), MemorySlot(memoryslot)).shift(shift)
 
             return Schedule(sched1, sched2)
 
