@@ -332,10 +332,10 @@ class QCircuitImage:
         return mask
 
     def parse_params(self, param):
-        if isinstance(param, ParameterExpression) or isinstance(param, str):
+        """Parse parameters."""
+        if isinstance(param, (ParameterExpression, str)):
             return generate_latex_label(str(param))
         return pi_check(param, output='latex')
-
 
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \\LaTeX for this circuit.
