@@ -43,7 +43,6 @@ def dag_to_circuit(dag):
             circ.measure(q[0], c[0])
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
-            
             circuit = dag_to_circuit(dag)
             circuit.draw()
     """
