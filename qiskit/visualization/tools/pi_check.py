@@ -17,6 +17,7 @@
 
 import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
 N, D = np.meshgrid(np.arange(1, 9), np.arange(1, 9))
@@ -42,6 +43,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     Raises:
         QiskitError: if output is not a valid option.
     """
+    if isinstance(inpt, ParameterExpression):
+        return str(inpt)
     inpt = float(inpt)
     if abs(inpt) < 1e-14:
         return str(0)
