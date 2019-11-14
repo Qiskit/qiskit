@@ -19,8 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data
 
-from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
-                    BasicAer)
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
