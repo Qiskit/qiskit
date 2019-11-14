@@ -92,6 +92,7 @@ DAG Properties
    Width
    Depth
    Size
+   Runtime
    CountOps
    CountOpsLongestPath
    NumTensorFactors
@@ -119,6 +120,7 @@ from .resource_estimation import ResourceEstimation
 from .depth import Depth
 from .size import Size
 from .width import Width
+from .runtime import Runtime
 from .count_ops import CountOps
 from .count_ops_longest_path import CountOpsLongestPath
 from .num_tensor_factors import NumTensorFactors
