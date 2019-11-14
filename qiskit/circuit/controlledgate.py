@@ -53,47 +53,6 @@ class ControlledGate(Gate):
                     self.base_gate = base_gate.__class__
 
                 self.base_gate_name = base_gate.name
-
-    def to_matrix(self, phase=0):
-        """
-        Return matrix form of controlled gate.
-
-        Args:
-            base_mat (ndarray): unitary to be controlled
-            num_ctrl_qubits (int): number of controls for new unitary
-            phase (float): The global phase of base_mat which is promoted to the
-                global phase of the controlled matrix
-
-        Returns:
-            ndarray: controlled version of base matrix.
-        """
-        try:
-            # for standard extension gates
-            base_mat = self.base_gate(*self.params).to_matrix()
-        except:
-            if isinstance(self.base_gate, ControlledGate):
-                base_mat = self.base_gate(self.name, self.num_qubits,
-                                          self.params, label=self.label,
-                                          num_ctrl_qubits=self.num_ctrl_qubits)
-            else:
-                base_mat = self.base_gate(self.name, self.num_qubits,
-                                          self.params, label=self.label)
-        #import ipdb;ipdb.set_trace()
-
-
-        num_ctrl_qubits = self.num_ctrl_qubits
-        num_target = int(np.log2(base_mat.shape[0]))
-        ctrl_dim = 2**num_ctrl_qubits
-        ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
-        full_mat_dim = ctrl_dim * base_mat.shape[0]
-        full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-        for i in range(ctrl_dim-1):
-            full_mat += np.kron(np.eye(2**num_target),
-                                np.diag(np.roll(ctrl_grnd, i)))
-        if phase != 0:
-            full_mat = np.exp(1j * phase) * full_mat
-        full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
-        return full_mat
         
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):

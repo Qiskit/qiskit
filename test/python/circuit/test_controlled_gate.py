@@ -35,7 +35,6 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.converters.instruction_to_gate import instruction_to_gate
-from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 from qiskit.quantum_info import Operator
 from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         CyGate, CzGate, Cu1Gate, SwapGate,
