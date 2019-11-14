@@ -27,6 +27,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.channels import MeasureChannel, MemorySlot
+from qiskit.pulse.commands import AcquireInstruction
 
 from qiskit.scheduler.config import ScheduleConfig
 
@@ -145,6 +147,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     circ_pulse_defs = []
 
     cmd_def = schedule_config.cmd_def
+    m_slots = {}  # Mapping measured qubit index to clbit
     measured_qubits = set()  # Collect qubits that would like to be measured
 
     def get_measure_schedule() -> CircuitPulseDef:
@@ -152,25 +155,36 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         measures = set()
         all_qubits = set()
         sched = Schedule()
-        for q in measured_qubits:
+        for q in {key[0] for key in m_slots.keys()}:
             measures.add(tuple(schedule_config.meas_map[q]))
         for qubits in measures:
             all_qubits.update(qubits)
             # TODO (Issue #2704): Respect MemorySlots from the input circuit
-            sched = sched.exclude(channels=[MeasureChannel(q) for q in all_qubits.difference(measured_qubits)])
             sched |= cmd_def.get('measure', qubits)
-        measured_qubits.clear()
+            sched = sched.exclude(channels=[MeasureChannel(q)
+                                            for q in all_qubits.difference(set(key[0] for key in m_slots.keys()))])
+            used_m_slots = []
+            for c in m_slots.values():
+                used_m_slots.append(MemorySlot(c[0]))
+            # sched1 = set(sched.instructions[len(sched.instructions)-1][1].mem_slots).difference(set(used_m_slots))
+            c_size = len(sched.instructions)-1
+            new_sched = AcquireInstruction(command=sched.instructions[c_size][1].command,
+                                           qubits=sched.instructions[c_size][1].acquires,
+                                           mem_slots=used_m_slots) << sched.instructions[c_size][1].start_time
+            temp_sched = sched.exclude(channels=[list(set(sched.instructions[len(sched.instructions)-1][1].mem_slots).difference(set(used_m_slots)))[0]])
+            sched = temp_sched.union(new_sched)
+        m_slots.clear()
         return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
 
-    for inst, qubits, _ in circuit.data:
+    for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
-        if any(q in measured_qubits for q in inst_qubits):
+        if any(q in set(key[0] for key in m_slots.keys()) for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
             circ_pulse_defs.append(get_measure_schedule())
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
-            measured_qubits.update(inst_qubits)
+            m_slots[tuple(inst_qubits)] = [clbit.index for clbit in clbits]
         else:
             try:
                 circ_pulse_defs.append(
@@ -180,7 +194,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
                 raise QiskitError("Operation '{0}' on qubit(s) {1} not supported by the backend "
                                   "command definition. Did you remember to transpile your input "
                                   "circuit for the same backend?".format(inst.name, inst_qubits))
-    if measured_qubits:
+    if set(key[0] for key in m_slots.keys()):
         circ_pulse_defs.append(get_measure_schedule())
 
     return circ_pulse_defs
