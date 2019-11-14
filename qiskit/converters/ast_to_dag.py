@@ -67,6 +67,20 @@ def ast_to_dag(ast):
 
     Raises:
         QiskitError: if the AST is malformed.
+
+    Example:
+        .. code-block::
+
+            from qiskit.converters import ast_to_dag
+            from qiskit import qasm
+            from qiskit.visualization import dag_drawer
+            %matplotlib inline
+
+            # local file with QASM code
+            ast = qasm.Qasm(filename=self._get_resource_path('example.qasm',
+                                                        Path.QASMS)).parse()
+            dag = ast_to_dag(ast)
+            dag_drawer(dag)
     """
     dag = DAGCircuit()
     AstInterpreter(dag)._process_node(ast)
