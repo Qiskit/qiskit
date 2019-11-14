@@ -1276,8 +1276,10 @@ class TestStandardMethods(QiskitTestCase):
             free_params = len(sig.parameters) - 1  # subtract "self"
             try:
                 gate = gate_class(*params[0:free_params])
-            except:
-                self.log.info('Cannot init gate with params only. Skipping ', gate_class)
+            except CircuitError:
+                self.log.info(
+                    'Cannot init gate with params only. Skipping %s',
+                    gate_class)
                 continue
             if gate.name in ['U', 'CX']:
                 continue
@@ -1285,9 +1287,10 @@ class TestStandardMethods(QiskitTestCase):
             circ.append(gate, range(gate.num_qubits))
             try:
                 gate_matrix = gate.to_matrix()
-            except:
+            except CircuitError:
                 # gate doesn't implement to_matrix method: skip
-                self.log.info('to_matrix method FAILED for "{0}" gate'.format(gate.name))
+                self.log.info('to_matrix method FAILED for "%s" gate',
+                              gate.name)
                 continue
             definition_unitary = execute([circ], simulator).result().get_unitary()
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
