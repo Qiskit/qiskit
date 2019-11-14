@@ -16,12 +16,14 @@
 Matrix Operator class.
 """
 
+import re
 from numbers import Number
 
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -93,6 +95,62 @@ class Operator(BaseOperator):
         output_dims = self._automatic_dims(output_dims, dout)
         input_dims = self._automatic_dims(input_dims, din)
         super().__init__('Operator', mat, input_dims, output_dims)
+
+    @classmethod
+    def from_label(cls, label):
+        """Return a tensor product of single-qubit operators.
+
+        Args:
+            label (string): single-qubit operator string.
+
+        Returns:
+            Operator: The N-qubit operator.
+
+        Raises:
+            QiskitError: if the label contains invalid characters, or the length
+            of the label is larger than an explicitly specified num_qubits.
+
+        Additional Information:
+            The labels correspond to the single-qubit matrices:
+            'I': [[1, 0], [0, 1]]
+            'X': [[0, 1], [1, 0]]
+            'Y': [[0, -1j], [1j, 0]]
+            'Z': [[1, 0], [0, -1]]
+            'H': [[1, 1], [1, -1]] / sqrt(2)
+            'S': [[1, 0], [0 , 1j]]
+            'T': [[1, 0], [0, (1+1j) / sqrt(2)]]
+            '0': [[1, 0], [0, 0]]
+            '1': [[0, 0], [0, 1]]
+            '+': [[0.5, 0.5], [0.5 , 0.5]]
+            '-': [[0.5, -0.5], [-0.5 , 0.5]]
+            'r': [[0.5, -0.5j], [0.5j , 0.5]]
+            'l': [[0.5, 0.5j], [-0.5j , 0.5]]
+        """
+        # Check label is valid
+        label_mats = {
+            'I': IdGate().to_matrix(),
+            'X': XGate().to_matrix(),
+            'Y': YGate().to_matrix(),
+            'Z': ZGate().to_matrix(),
+            'H': HGate().to_matrix(),
+            'S': SGate().to_matrix(),
+            'T': TGate().to_matrix(),
+            '0': np.array([[1, 0], [0, 0]], dtype=complex),
+            '1': np.array([[0, 0], [0, 1]], dtype=complex),
+            '+': np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
+            '-': np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
+            'r': np.array([[0.5, -0.5j], [0.5j, 0.5]], dtype=complex),
+            'l': np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=complex),
+        }
+        if re.match(r'^[IXYZHST01rl\-+]+$', label) is None:
+            raise QiskitError('Label contains invalid characters.')
+        # Initialize an identity matrix and apply each gate
+        num_qubits = len(label)
+        op = Operator(np.eye(2 ** num_qubits, dtype=complex))
+        for qubit, char in enumerate(reversed(label)):
+            if char != 'I':
+                op = op.compose(label_mats[char], qargs=[qubit])
+        return op
 
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
