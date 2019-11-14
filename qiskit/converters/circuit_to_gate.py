@@ -14,10 +14,10 @@
 
 """Helper function for converting a circuit to a gate"""
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.exceptions import QiskitError
 
 
 def circuit_to_gate(circuit, parameter_map=None):
@@ -35,13 +35,18 @@ def circuit_to_gate(circuit, parameter_map=None):
            Gate.
 
     Raises:
-        QiskitError: if parameter_map is not compatible with circuit
+        QiskitError: if circuit is non-unitary or if
+            parameter_map is not compatible with circuit
 
     Return:
         Gate: a Gate equivalent to the action of the
             input circuit. Upon decomposition, this gate will
             yield the components comprising the original circuit.
     """
+    for inst, _, _ in circuit.data:
+        if not isinstance(inst, Gate):
+            raise QiskitError('One or more instructions in this instruction '
+                              'cannot be converted to a gate')
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
@@ -78,9 +83,8 @@ def circuit_to_gate(circuit, parameter_map=None):
         q = QuantumRegister(gate.num_qubits, 'q')
 
     definition = list(map(lambda x:
-                          (x[0],
-                           list(map(lambda y: q[find_bit_position(y)], x[1])),
-                           list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
+                          (x[0], list(map(lambda y: q[find_bit_position(y)], x[1]))),
+                          definition))
     gate.definition = definition
 
     return gate

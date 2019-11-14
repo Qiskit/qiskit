@@ -15,7 +15,7 @@
 """Tests for the converters."""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
@@ -47,7 +47,12 @@ class TestCircuitToGate(QiskitTestCase):
         circ2 = QuantumCircuit(1, 1)
         circ2.measure(0, 0)
 
-        with self.assertRaises(QiskitError):
+        circ3 = QuantumCircuit(1)
+        circ3.x(0)
+        circ3.reset(0)
+
+        with self.assertRaises(QiskitError):  # TODO: accept barrier
             circ1.to_gate()
-        with self.assertRaises(QiskitError):
+
+        with self.assertRaises(QiskitError):  # measure and reset are not valid
             circ2.to_gate()
