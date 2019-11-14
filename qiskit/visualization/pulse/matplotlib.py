@@ -31,8 +31,8 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError)
+from qiskit.pulse import (SamplePulse, FrameChange, SetChannelFrequency, PersistentValue,
+                          Snapshot, Acquire, PulseError)
 
 
 class EventsOutputChannels:
@@ -51,6 +51,7 @@ class EventsOutputChannels:
 
         self._waveform = None
         self._framechanges = None
+        self._frequencychanges = None
         self._conditionals = None
         self._snapshots = None
         self._labels = None
@@ -84,6 +85,14 @@ class EventsOutputChannels:
             self._build_waveform()
 
         return self._trim(self._framechanges)
+
+    @property
+    def frequencychanges(self):
+        """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
 
     @property
     def conditionals(self):
@@ -151,6 +160,7 @@ class EventsOutputChannels:
         """Create waveform from stored pulses.
         """
         self._framechanges = {}
+        self._frequencychanges = {}
         self._conditionals = {}
         self._snapshots = {}
         self._labels = {}
@@ -162,15 +172,20 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
+            tmp_scf = -1.0
             for command in commands:
                 if isinstance(command, FrameChange):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, SetChannelFrequency):
+                    tmp_scf += command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
+            if tmp_scf != -1.0:
+                self._frequencychanges[time] = tmp_scf
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
@@ -440,6 +455,14 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
+    def _draw_channel_frequency_changes(self, ax, scf, dt, y0):
+        frequency_changes_present = True
+        for time in scf.keys():
+            ax.text(x=time*dt, y=y0, s=r'$\leftrightsquigarrow$',
+                    fontsize=self.style.icon_font_size,
+                    ha='center', va='center', rotation=90)
+        return frequency_changes_present
+
     def _get_channel_color(self, channel):
         # choose color
         if isinstance(channel, DriveChannel):
@@ -488,7 +511,7 @@ class ScheduleDrawer:
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False, framechange=True):
+                       label=False, framechange=True, frequencychange=True):
         y0 = 0
         prev_labels = []
         for channel, events in output_channels.items():
@@ -525,6 +548,10 @@ class ScheduleDrawer:
                 fcs = events.framechanges
                 if fcs and framechange:
                     self._draw_framechanges(ax, fcs, dt, y0)
+                # plot frequency changes
+                scf = events.frequencychanges
+                if scf and frequencychange:
+                    self._draw_channel_frequency_changes(ax, fcs, dt, y0+amp_min)
                 # plot labels
                 labels = events.labels
                 if labels and label:

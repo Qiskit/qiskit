@@ -167,6 +167,24 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(commands.SetChannelFrequencyInstruction)
+    def convert_set_channel_frequency(self, shift, instruction):
+        """ Return converted `SetChannelFrequencyInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (SetChannelFrequencyInstruction): set channel frequency instruction.
+        Returns
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'scf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channels[0].name,
+            'frequency': instruction.command.frequency
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(commands.PersistentValueInstruction)
     def convert_persistent_value(self, shift, instruction):
         """Return converted `PersistentValueInstruction`.
@@ -352,6 +370,30 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
         return commands.FrameChange(phase)(channel) << t0
+
+    @bind_name('scf')
+    def convert_set_channel_frequency(self, instruction):
+        """Return converted `SetChannelFrequencyInstruction`.
+
+        Args:
+            instruction (PulseQobjInstruction): set channel frequency qobj
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = instruction.frequency
+
+        if isinstance(frequency, str):
+            frequency_expr = parse_string_expr(frequency, partial_binding=False)
+
+            def gen_scf_schedule(*args, **kwargs):
+                _frequency = frequency_expr(*args, **kwargs)
+                return commands.SetChannelFrequency(_frequency)(channel) << t0
+
+            return ParameterizedSchedule(gen_scf_schedule, parameters=frequency_expr.params)
+
+        return commands.SetChannelFrequency(frequency)(channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):

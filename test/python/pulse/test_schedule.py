@@ -20,8 +20,9 @@ import numpy as np
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
-                                   functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction)
+                                   SetChannelFrequency, functional_pulse, Instruction,
+                                   AcquireInstruction, PulseInstruction, FrameChangeInstruction,
+                                   SetChannelFrequencyInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -447,6 +448,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
         sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(40, SetChannelFrequency(frequency=8.0)(self.config.drive(0)))
         sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
                                          [MemorySlot(i) for i in range(2)]))
         sched = sched.insert(90, lp0(self.config.drive(0)))
@@ -468,13 +470,22 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in no_pulse_and_fc.instructions:
             self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 1)
+        self.assertEqual(len(no_pulse_and_fc.instructions), 2)
 
         # test on FrameChange
         only_fc, no_fc = \
             self._filter_and_test_consistency(sched, instruction_types={FrameChangeInstruction})
         self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 4)
+        self.assertEqual(len(no_fc.instructions), 5)
+
+        # test on SetChannelFrequency
+        only_scf, no_scf = \
+            self._filter_and_test_consistency(sched,
+                                              instruction_types=[SetChannelFrequencyInstruction])
+        for _, inst in only_scf.instructions:
+            self.assertTrue(isinstance(inst, SetChannelFrequencyInstruction))
+        self.assertEqual(len(only_scf.instructions), 1)
+        self.assertEqual(len(no_scf.instructions), 5)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
@@ -502,7 +513,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(filtered.instructions[0][0], 60)
         self.assertIsInstance(filtered.instructions[0][1], AcquireInstruction)
-        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(len(excluded.instexcludedructions), 4)
         self.assertEqual(excluded.instructions[3][0], 90)
         self.assertIsInstance(excluded.instructions[3][1], PulseInstruction)
 

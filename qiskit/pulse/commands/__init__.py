@@ -16,6 +16,7 @@
 from .instruction import Instruction
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
+from .set_channel_frequency import SetChannelFrequency, SetChannelFrequencyInstruction
 from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue, PersistentValueInstruction
 from .command import Command
