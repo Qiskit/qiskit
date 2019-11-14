@@ -25,22 +25,31 @@ from qiskit.util import deprecate_arguments
 
 
 class ZGate(Gate):
-    """Pauli Z (phase-flip) gate."""
+    r"""Pauli Z (phase-flip) gate.
 
-    def __init__(self, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{Z}} =
+            \begin{bmatrix}
+                1 & 0 \\
+                0 & -1
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__("z", 1, [], phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U1Gate(pi), [q[0]], [])
+        self.definition = [
+            (U1Gate(pi, phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -52,16 +61,17 @@ class ZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CzGate()
+
+        if num_ctrl_qubits == 1 and not self.phase:
+            return CzGate(label=label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate."""
-        return ZGate()  # self-inverse
+        return ZGate(phase=-self.phase)  # self-inverse
 
-    def to_matrix(self):
-        """Return a Numpy.array for the X gate."""
+    def _matrix_definition(self):
+        """Return a Numpy.array for the Z gate."""
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
 
@@ -100,11 +110,30 @@ QuantumCircuit.z = z
 
 
 class CzGate(ControlledGate):
-    """controlled-Z gate."""
+    r"""Controlled-Z gate.
 
-    def __init__(self, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{CZ}} =
+            I \otimes |0 \rangle\!\langle 0| +
+            U_{\text{Z}} \otimes |1 \rangle\!\langle 1|
+            =
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -1
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
+        super().__init__("cz", 2, [], phase=phase, label=label,
+                         num_ctrl_qubits=1)
         self.base_gate = ZGate()
 
     def _define(self):
@@ -113,22 +142,18 @@ class CzGate(ControlledGate):
         """
         from qiskit.extensions.standard.h import HGate
         from qiskit.extensions.standard.x import CnotGate
-        definition = []
         q = QuantumRegister(2, "q")
-        rule = [
-            (HGate(), [q[1]], []),
+        self.definition = [
+            (HGate(phase=self.phase), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return CzGate()  # self-inverse
+        return CzGate(phase=-self.phase)  # self-inverse
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the Cz gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 1, 0, 0],

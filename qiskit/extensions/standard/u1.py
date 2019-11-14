@@ -25,22 +25,32 @@ from qiskit.util import deprecate_arguments
 
 # pylint: disable=cyclic-import
 class U1Gate(Gate):
-    """Diagonal single-qubit gate."""
+    r"""Diagonal single-qubit gate.
 
-    def __init__(self, theta, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_1(\lambda) = \begin{bmatrix}
+            1 & 0 \\
+            0 &  e^{i \lambda}
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phase=0, label=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", 1, [theta], label=label)
+        super().__init__("u1", 1, [theta],
+                         phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U3Gate(0, 0, self.params[0]), [q[0]], [])
+        self.definition = [
+            (U3Gate(0, 0, self.params[0], phase=self.phase),
+             [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -52,18 +62,17 @@ class U1Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return Cu1Gate(*self.params)
+        if num_ctrl_qubits == 1 and not self.phase:
+            return Cu1Gate(*self.params, label=label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate."""
-        return U1Gate(-self.params[0])
+        return U1Gate(-self.params[0], phase=-self.phase)
 
-    def to_matrix(self):
-        """Return a Numpy.array for the U1 gate."""
-        lam = self.params[0]
-        lam = float(lam)
+    def _matrix_definition(self):
+        """Return a Numpy.array for the U3 gate."""
+        lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
@@ -100,11 +109,30 @@ QuantumCircuit.u1 = u1
 
 
 class Cu1Gate(ControlledGate):
-    """controlled-u1 gate."""
+    """controlled-u1 gate."""r"""Controlled-Z gate.
 
-    def __init__(self, theta):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{Cu1}}(\lambda) =
+            I \otimes |0 \rangle\!\langle 0| +
+            U_{1}(\lambda) \otimes |1 \rangle\!\langle 1|
+            =
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & e^{i \lambda}
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phase=0, label=None):
         """Create new cu1 gate."""
-        super().__init__("cu1", 2, [theta], num_ctrl_qubits=1)
+        super().__init__("cu1", 2, [theta], phase=0, label=None,
+                         num_ctrl_qubits=1)
         self.base_gate = U1Gate(theta)
 
     def _define(self):
@@ -116,22 +144,26 @@ class Cu1Gate(ControlledGate):
         }
         """
         from qiskit.extensions.standard.x import CnotGate
-        definition = []
         q = QuantumRegister(2, "q")
-        rule = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
+        self.definition = [
+            (U1Gate(self.params[0] / 2, phase=self.phase), [q[0]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0] / 2), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return Cu1Gate(-self.params[0])
+        return Cu1Gate(-self.params[0], phase=-self.phase)
+
+    def _matrix_definition(self):
+        """Return a Numpy.array for the Cu1 gate."""
+        lam = float(self.params[0])
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, numpy.exp(1j * lam)]], dtype=complex)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',

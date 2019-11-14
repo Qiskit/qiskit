@@ -33,22 +33,25 @@ from qiskit.circuit import QuantumRegister
 class MSGate(Gate):
     """Global Molmer-Sorensen gate."""
 
-    def __init__(self, n_qubits, theta):
+    def __init__(self, n_qubits, theta, phase=0, label=None):
         """Create new MS gate."""
-        super().__init__("ms", n_qubits, [theta])
+        super().__init__("ms", n_qubits, [theta],
+                         phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.rxx import RXXGate
-        definition = []
         q = QuantumRegister(self.num_qubits, "q")
-        rule = []
+        definition = []
         for i in range(self.num_qubits):
+            phase = self.phase if i == 0 else 0
             for j in range(i+1, self.num_qubits):
-                rule += [(RXXGate(self.params[0]), [q[i], q[j]], [])]
-
-        for inst in rule:
-            definition.append(inst)
+                definition += [(RXXGate(self.params[0], phase=phase),
+                               [q[i], q[j]], [])]
         self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return MSGate(self.num_qubits, -self.params[0], phase=self.phase)
 
 
 def ms(self, theta, qubits):

@@ -15,38 +15,60 @@
 """
 two-qubit ZZ-rotation gate.
 """
+import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
 
 class RZZGate(Gate):
-    """Two-qubit ZZ-rotation gate."""
+    r"""Two-qubit ZZ-rotation gate.
 
-    def __init__(self, theta):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{RZ}}(\theta)
+            = \exp\left(-i \frac{\theta}{2}
+                         (\sigma_Z\otimes\sigma_Z) \right)
+            = \begin{bmatrix}
+                e^{-i\theta/2} & 0 & 0 & 0 \\
+                0 & 0& e^{\theta/2} & 0 \\
+                0 & 0 & e^{i\theta/2} & 0 \\
+                0 & 0 & 0 & e^{-i\theta/2}
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phase=0, label=None):
         """Create new rzz gate."""
-        super().__init__("rzz", 2, [theta])
+        super().__init__("rzz", 2, [theta],
+                         phase=phase, label=label)
 
     def _define(self):
         """
-        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
+        gate rzz(theta) a, b { cx a, b; rz(theta) b; cx a, b; }
         """
-        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.rz import RZGate
         from qiskit.extensions.standard.x import CnotGate
-        definition = []
         q = QuantumRegister(2, "q")
-        rule = [
+        self.definition = [
             (CnotGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
+            (RZGate(self.params[0], phase=self.phase),
+             [q[1]], []),
             (CnotGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return RZZGate(-self.params[0])
+        return RZZGate(-self.params[0], phase=-self.phase)
+
+    def _matrix_definition(self):
+        """Return a Numpy.array for the RZZ gate."""
+        exp_p = numpy.exp(1j * self.params[0] / 2)
+        exp_m = numpy.exp(-1j * self.params[0] / 2)
+        return numpy.diag([exp_m, exp_p, exp_p, exp_m])
 
 
 def rzz(self, theta, qubit1, qubit2):

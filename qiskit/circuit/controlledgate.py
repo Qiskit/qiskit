@@ -23,21 +23,22 @@ from .gate import Gate
 class ControlledGate(Gate):
     """Controlled unitary gate."""
 
-    def __init__(self, name, num_qubits, params, label=None, num_ctrl_qubits=1,
-                 definition=None):
+    def __init__(self, name, num_qubits, params, phase=0, label=None,
+                 num_ctrl_qubits=1, definition=None):
         """Create a new gate.
 
         Args:
             name (str): The Qobj name of the gate.
             num_qubits (int): The number of qubits the gate acts on.
             params (list): A list of parameters.
-            label (str or None): An optional label for the gate [Default: None]
+            phase (float): set the gate phase (Default: 0).
+            label (str or None): An optional label for the gate (Default: None).
             num_ctrl_qubits (int): Number of control qubits.
             definition (list): list of gate rules for implementing this gate.
         Raises:
             CircuitError: num_ctrl_qubits >= num_qubits
         """
-        super().__init__(name, num_qubits, params, label=label)
+        super().__init__(name, num_qubits, params, phase=phase, label=label)
         if num_ctrl_qubits < num_qubits:
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
@@ -46,7 +47,7 @@ class ControlledGate(Gate):
             self.definition = definition
             if len(definition) == 1:
                 base_gate = definition[0][0]
-                if isinstance(base_gate, ControlledGate):
+                if isinstance(base_gate, ControlledGate) and not base_gate.phase:
                     self.base_gate = base_gate.base_gate
                 else:
                     self.base_gate = base_gate
@@ -61,4 +62,7 @@ class ControlledGate(Gate):
 
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""
-        return self.base_gate.inverse().control(self.num_ctrl_qubits)
+        inv = self.base_gate.inverse().control(self.num_ctrl_qubits)
+        if self.phase:
+            inv.phase = -self.phase
+        return inv

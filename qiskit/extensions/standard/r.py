@@ -25,36 +25,49 @@ from qiskit.util import deprecate_arguments
 
 
 class RGate(Gate):
-    """Rotation θ around the cos(φ)x + sin(φ)y axis."""
+    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
 
-    def __init__(self, theta, phi):
-        """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{R}}(\theta, \phi)
+            = \exp\left(-i (\cos(\phi)\sigma_X + \sin(\phi)\sigma_Y) \right)
+            = \begin{bmatrix}
+                \cos(\theta/2) & -i e^{-i\phi}\sin(\theta/2) \\
+                -i e^{i\phi}\sin(\theta/2) & \cos(\theta/2)
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phi, phase=0, label=None):
+        """Create new r single qubit gate."""
+        super().__init__("r", 1, [theta, phi],
+                         phase=phase, label=label)
 
     def _define(self):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
         from qiskit.extensions.standard.u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, "q")
         theta = self.params[0]
         phi = self.params[1]
-        rule = [
-            (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
+        self.definition = [
+            (U3Gate(theta, phi - pi / 2, -phi + pi / 2,
+                    phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
 
         r(θ, φ)^dagger = r(-θ, φ)
         """
-        return RGate(-self.params[0], self.params[1])
+        return RGate(-self.params[0], self.params[1],
+                     phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the R gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)

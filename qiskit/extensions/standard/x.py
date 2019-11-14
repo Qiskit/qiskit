@@ -25,11 +25,24 @@ from qiskit.util import deprecate_arguments
 
 
 class XGate(Gate):
-    """Pauli X (bit-flip) gate."""
+    r"""Pauli X (bit-flip) gate.
 
-    def __init__(self, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{X}} =
+            \begin{bmatrix}
+                0 & 1 \\
+                1 & 0
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new X gate."""
-        super().__init__("x", 1, [], label=label)
+        super().__init__("x", 1, [], phase=phase, label=label)
 
     def _define(self):
         """
@@ -38,14 +51,10 @@ class XGate(Gate):
         }
         """
         from qiskit.extensions.standard.u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U3Gate(pi, 0, pi), [q[0]], [])
+        self.definition = [
+            (U3Gate(pi, 0, pi, phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -57,17 +66,17 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CnotGate()
-        elif num_ctrl_qubits == 2:
-            return ToffoliGate()
+        if num_ctrl_qubits == 1 and not self.phase:
+            return CnotGate(label=label)
+        elif num_ctrl_qubits == 2 and not self.phase:
+            return ToffoliGate(label=label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate."""
-        return XGate()  # self-inverse
+        return XGate(phase=-self.phase)  # self-inverse
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the X gate."""
         return numpy.array([[0, 1],
                             [1, 0]], dtype=complex)
@@ -107,11 +116,30 @@ QuantumCircuit.x = x
 
 
 class CnotGate(ControlledGate):
-    """controlled-NOT gate."""
+    r"""Controlled-CNOT gate.
 
-    def __init__(self):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{CX}} =
+            I \otimes |0 \rangle\!\langle 0| +
+            U_{\text{X}} \otimes |1 \rangle\!\langle 1|
+            =
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new CNOT gate."""
-        super().__init__("cx", 2, [], num_ctrl_qubits=1)
+        super().__init__("cx", 2, [], phase=phase, label=label,
+                         num_ctrl_qubits=1)
         self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None):
@@ -130,9 +158,9 @@ class CnotGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CnotGate()  # self-inverse
+        return CnotGate(phase=-self.phase)  # self-inverse
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the Cx gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 0, 1],
@@ -177,11 +205,35 @@ QuantumCircuit.cnot = cx
 
 
 class ToffoliGate(ControlledGate):
-    """Toffoli gate."""
+    r"""Toffoli (Controlled-CNOT) gate.
 
-    def __init__(self):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{CX}} =&
+            I \otimes |0, 0 \rangle\!\langle 0, 0| +
+            I \otimes |0, 1 \rangle\!\langle 0, 1| +
+            I \otimes |1, 0 \rangle\!\langle 1, 0| +
+            U_{\text{X}} \otimes |1, 1 \rangle\!\langle 1, 1| \\
+            =&
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+            \end{bmatrix}
+    """
+    def __init__(self, phase=0, label=None):
         """Create new Toffoli gate."""
-        super().__init__("ccx", 3, [], num_ctrl_qubits=2)
+        super().__init__("ccx", 3, [], phase=0, label=None,
+                         num_ctrl_qubits=2)
         self.base_gate = XGate()
 
     def _define(self):
@@ -196,10 +248,9 @@ class ToffoliGate(ControlledGate):
         from qiskit.extensions.standard.h import HGate
         from qiskit.extensions.standard.t import TGate
         from qiskit.extensions.standard.t import TdgGate
-        definition = []
         q = QuantumRegister(3, "q")
-        rule = [
-            (HGate(), [q[2]], []),
+        self.definition = [
+            (HGate(phase=self.phase), [q[2]], []),
             (CnotGate(), [q[1], q[2]], []),
             (TdgGate(), [q[2]], []),
             (CnotGate(), [q[0], q[2]], []),
@@ -215,15 +266,12 @@ class ToffoliGate(ControlledGate):
             (TdgGate(), [q[1]], []),
             (CnotGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return ToffoliGate()  # self-inverse
+        return ToffoliGate(phase=-self.phase)  # self-inverse
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the Toffoli gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],

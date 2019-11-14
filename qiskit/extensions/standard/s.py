@@ -24,62 +24,80 @@ from qiskit.util import deprecate_arguments
 
 
 class SGate(Gate):
-    """S=diag(1,i) Clifford phase gate."""
+    r"""S Clifford phase gate.
 
-    def __init__(self, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{S}}(\theta, \phi) =
+            \begin{bmatrix}
+                1 & 0 \\
+                0 & i
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__("s", 1, [], phase=phase, label=label)
 
     def _define(self):
         """
         gate s a { u1(pi/2) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U1Gate(pi / 2), [q[0]], [])
+        self.definition = [
+            (U1Gate(pi / 2, phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return SdgGate()
+        return SdgGate(phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 
 
 class SdgGate(Gate):
-    """Sdg=diag(1,-i) Clifford adjoint phase gate."""
+    r"""Sdg Clifford adjoint phase gate.
 
-    def __init__(self, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{S}^\dagger} =
+            \begin{bmatrix}
+                1 & 0 \\
+                0 & -i
+            \end{bmatrix}
+    """
+
+    def __init__(self, phase=0, label=None):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        super().__init__("sdg", 1, [], phase=phase, label=label)
 
     def _define(self):
         """
         gate sdg a { u1(-pi/2) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U1Gate(-pi / 2), [q[0]], [])
+        self.definition = [
+            (U1Gate(-pi / 2, phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return SGate()
+        return SGate(phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the Sdg gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)

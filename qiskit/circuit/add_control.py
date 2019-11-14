@@ -32,6 +32,10 @@ def add_control(operation, num_ctrl_qubits, label):
             num_qubits + 2*num_ctrl_qubits - 1.
     """
     import qiskit.extensions.standard as standard
+    if operation.phase:
+        # If gate has a global phase set we convert to unitary gate before
+        # making the controled version
+        operation = UnitaryGate(operation.to_matrix())
     if isinstance(operation, standard.RZGate) or operation.name == 'rz':
         # num_ctrl_qubits > 1
         # the condition matching 'name' above is to catch a test case,

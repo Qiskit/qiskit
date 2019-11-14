@@ -26,25 +26,37 @@ from qiskit.util import deprecate_arguments
 
 
 class RYGate(Gate):
-    """rotation around the y-axis."""
+    r"""rotation around the y-axis.
 
-    def __init__(self, theta):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{RY}}(\theta)
+            = \exp\left(-i \frac{\theta}{2} \sigma_Y \right)
+            = \begin{bmatrix}
+                \cos(\theta / 2) & -\sin(\theta / 2) \\
+                \sin(\theta / 2) &  \cos(\theta / 2)
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phase=0, label=None):
         """Create new ry single qubit gate."""
-        super().__init__("ry", 1, [theta])
+        super().__init__("ry", 1, [theta],
+                         phase=phase, label=label)
 
     def _define(self):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
         from qiskit.extensions.standard.r import RGate
-        definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (RGate(self.params[0], pi/2), [q[0]], [])
+        self.definition = [
+            (RGate(self.params[0], pi/2, phase=self.phase),
+             [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -56,8 +68,8 @@ class RYGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CryGate(self.params[0])
+        if num_ctrl_qubits == 1 and not self.phase:
+            return CryGate(self.params[0], label=label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
@@ -65,9 +77,9 @@ class RYGate(Gate):
 
         ry(theta)^dagger = ry(-theta)
         """
-        return RYGate(-self.params[0])
+        return RYGate(-self.params[0], phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
@@ -109,11 +121,29 @@ QuantumCircuit.ry = ry
 
 
 class CryGate(ControlledGate):
-    """controlled-ry gate."""
+    r"""Controlled rotation around the z axis.
 
-    def __init__(self, theta):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{Cry}}(\theta) =
+            I \otimes |0 \rangle\!\langle 0| +
+            U_{\text{RZ}}(\theta) \otimes |1 \rangle\!\langle 1|
+            = \begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & \cos\left(\frac{\theta}{2}\right) & 0 & -\sin\left(\frac{\theta}{2}\right) \\
+                0 & 0 & 1 & 0 \\
+                0 & \sin\left(\frac{\theta}{2}\right) & 0 & \cos\left(\frac{\theta}{2}\right)
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phase=0, label=None):
         """Create new cry gate."""
-        super().__init__("cry", 2, [theta], num_ctrl_qubits=1)
+        super().__init__("cry", 2, [theta], phase=phase, label=label,
+                         num_ctrl_qubits=1)
         self.base_gate = RYGate(theta)
 
     def _define(self):
@@ -126,21 +156,26 @@ class CryGate(ControlledGate):
         """
         from qiskit.extensions.standard.x import CnotGate
         from qiskit.extensions.standard.u3 import U3Gate
-        definition = []
         q = QuantumRegister(2, "q")
-        rule = [
-            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+        self.definition = [
+            (U3Gate(self.params[0] / 2, 0, 0, phase=self.phase), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CnotGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return CryGate(-self.params[0])
+        return CryGate(-self.params[0], phase=-self.phase)
+
+    def _matrix_definition(self):
+        """Return a Numpy.array for the Controlled-Ry gate."""
+        theta = float(self.params[0])
+        return numpy.array([[1, 0, 0, 0],
+                            [0, numpy.cos(theta / 2), 0, -numpy.sin(theta / 2)],
+                            [0, 0, 1, 0],
+                            [0, numpy.sin(theta / 2), 0, numpy.cos(theta / 2)]],
+                           dtype=complex)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',

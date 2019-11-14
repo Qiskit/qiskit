@@ -14,6 +14,8 @@
 
 """Unitary gate."""
 
+import math
+import cmath
 import numpy as np
 from scipy.linalg import schur
 
@@ -24,27 +26,58 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, num_qubits, params, label=None):
+    def __init__(self, name, num_qubits, params, phase=0, label=None):
         """Create a new gate.
 
         Args:
             name (str): the Qobj name of the gate
             num_qubits (int): the number of qubits the gate acts on.
             params (list): a list of parameters.
-            label (str or None): An optional label for the gate [Default: None]
+            phase (float): set the gate phase (Default: 0).
+            label (str or None): An optional label for the gate (Default: None).
         """
         self._label = label
         self.definition = None
+        self._phase = phase
         super().__init__(name, num_qubits, 0, params)
+
+    @property
+    def phase(self):
+        """Return the phase of the gate."""
+        return self._phase
+
+    @phase.setter
+    def phase(self, angle):
+        """Set the phase of the gate."""
+        # Set the phase to the [-2 * pi, 2 * pi] interval
+        angle = float(angle)
+        if not angle:
+            self._phase = 0
+        elif angle < 0:
+            self._phase = angle % (-2 * math.pi)
+        else:
+            self._phase = angle % (2 * math.pi)
+
+    def _matrix_definition(self):
+        """Return the Numpy.array matrix definition of the gate."""
+        # This should be set in classes that derive from Gate.
+        return None
 
     def to_matrix(self):
         """Return a Numpy.array for the gate unitary matrix.
+
+        Returns:
+            ndarray: The matrix representation of the gate.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
-        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        # pylint: disable=assignment-from-none
+        mat = self._matrix_definition()
+        if mat is None:
+            raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        return cmath.exp(1j * self._phase) * mat if self._phase else mat
 
     def power(self, exponent):
         """Creates a unitary gate as `gate^exponent`.
@@ -122,6 +155,7 @@ class Gate(Instruction):
             QiskitError: unrecognized mode
         """
         # pylint: disable=cyclic-import
+        # TODO: Check base control methods if phase != 0
         from .add_control import add_control
         return add_control(self, num_ctrl_qubits, label)
 

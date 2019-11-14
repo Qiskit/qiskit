@@ -26,18 +26,32 @@ from qiskit.util import deprecate_arguments
 
 # pylint: disable=cyclic-import
 class U3Gate(Gate):
-    """Two-pulse single-qubit gate."""
+    r"""Two-pulse single-qubit gate.
 
-    def __init__(self, theta, phi, lam, label=None):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_3(\theta, \phi, \lambda) = \begin{bmatrix}
+                \cos(\theta / 2) & -e^{i\lambda}\sin(\theta / 2) \\
+                e^{i\phi}\sin(\theta / 2) & e^{i(\phi+\lambda)}\cos(\theta / 2)
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phi, lam, phase=0, label=None):
         """Create new two-pulse single qubit gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__("u3", 1, [theta, phi, lam],
+                         phase=phase, label=label)
 
     def inverse(self):
         """Invert this gate.
 
         u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
-        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1],
+                      phase=-self.phase)
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -49,11 +63,11 @@ class U3Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return Cu3Gate(*self.params)
+        if num_ctrl_qubits == 1 and not self.phase:
+            return Cu3Gate(*self.params, label=label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -104,11 +118,30 @@ QuantumCircuit.u3 = u3
 
 
 class Cu3Gate(ControlledGate):
-    """controlled-u3 gate."""
+    r"""Controlled-u3 gate.
 
-    def __init__(self, theta, phi, lam):
+    **Matrix Definition**
+
+    The matrix for this gate is given by:
+
+    .. math::
+
+        U_{\text{CZ}} =
+            I \otimes |0 \rangle\!\langle 0| +
+            U_3(\theta, \phi, \lambda) \otimes |1 \rangle\!\langle 1|
+            =
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & \cos(\theta / 2) & 0 & -e^{i\lambda}\sin(\theta / 2) \\
+                0 & 0 & 1 & 0 \\
+                0 & e^{i\phi}\sin(\theta / 2) & 0 & e^{i(\phi+\lambda)}\cos(\theta / 2)
+            \end{bmatrix}
+    """
+
+    def __init__(self, theta, phi, lam, phase=0, label=None):
         """Create new cu3 gate."""
-        super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
+        super().__init__("cu3", 2, [theta, phi, lam], phase=phase, label=label,
+                         num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
 
     def _define(self):
@@ -124,23 +157,32 @@ class Cu3Gate(ControlledGate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         from qiskit.extensions.standard.x import CnotGate
-        definition = []
         q = QuantumRegister(2, "q")
-        rule = [
-            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
+        self.definition = [
+            (U1Gate((self.params[2] + self.params[1]) / 2, phase=self.phase), [q[0]], []),
             (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1],
+                       phase=-self.phase)
+
+    def _matrix_definition(self):
+        """Return a Numpy.array for the Cu3 gate."""
+        theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, numpy.cos(theta / 2),
+                             0, -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
+                            [0, 0, 1, 0],
+                            [0, numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                             0, numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)]
+                            ], dtype=complex)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
