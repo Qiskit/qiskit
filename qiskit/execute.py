@@ -146,7 +146,7 @@ def execute(experiments, backend,
         default_meas_los (list):
             List of default meas lo frequencies
 
-        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
@@ -169,7 +169,7 @@ def execute(experiments, backend,
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
-        parameter_binds (list[dict{Parameter: Value}]):
+        parameter_binds (list[dict]):
             List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -191,21 +191,6 @@ def execute(experiments, backend,
 
     Example:
         Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
-
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
-
-            from unittest.mock import MagicMock
-            import qiskit
-            from qiskit.test.mock import FakeVigo
-
-            mock_ibmq = MagicMock()
-            mock_provider = MagicMock()
-            fake_vigo = FakeVigo()
-            mock_provider.get_backend.return_value = fake_vigo
-            mock_ibmq.get_provider.return_value = mock_provider
-            qiskit.IBMQ = mock_ibmq
 
         .. jupyter-execute::
 
