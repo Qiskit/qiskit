@@ -24,7 +24,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class ParameterExpression():
-    """ParameterExpression class to enable creating expressions of Parameters."""
+    """ParameterExpression class to enable creating expressions of parameters."""
 
     def __init__(self, symbol_map, expr):
         """Create a new ParameterExpression.
