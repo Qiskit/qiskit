@@ -15,12 +15,16 @@
 # pylint: disable=missing-docstring
 
 import unittest
+from inspect import signature
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Gate, ControlledGate
+from qiskit import BasicAer
+from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -1256,6 +1260,38 @@ class TestStandard3Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1],
                          [self.qr[1], self.qr2[1], self.qr3[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
+
+class TestStandardMethods(QiskitTestCase):
+    """Standard Extension Test."""
+
+    def test_to_matrix(self):
+        """test gates implementing to_matrix generate matrix which matches
+        definition."""
+        params = [0.1 * i for i in range(10)]
+        gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        simulator = BasicAer.get_backend('unitary_simulator')
+        for gate_class in gate_class_list:
+            sig = signature(gate_class.__init__)
+            free_params = len(sig.parameters) - 1  # subtract "self"
+            try:
+                gate = gate_class(*params[0:free_params])
+            except:
+                self.log.info('Cannot init gate with params only. Skipping ', gate_class)
+                continue
+            if gate.name in ['U', 'CX']:
+                continue
+            circ = QuantumCircuit(gate.num_qubits)
+            circ.append(gate, range(gate.num_qubits))
+            try:
+                gate_matrix = gate.to_matrix()
+            except:
+                # gate doesn't implement to_matrix method: skip
+                self.log.info('to_matrix method FAILED for "{0}" gate'.format(gate.name))
+                continue
+            definition_unitary = execute([circ], simulator).result().get_unitary()
+            self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+            self.assertTrue(is_unitary_matrix(gate_matrix))
 
 
 if __name__ == '__main__':
