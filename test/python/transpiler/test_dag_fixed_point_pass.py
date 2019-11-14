@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
-class TestFixedPointPass(QiskitTestCase):
+class TestDAGFixedPointPass(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
     def test_empty_dag_true(self):

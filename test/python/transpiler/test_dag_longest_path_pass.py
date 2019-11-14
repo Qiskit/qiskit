@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DAGFixedPoint pass testing"""
+"""DAGLongestPath pass testing"""
 
 import unittest
 from qiskit.transpiler.passes import DAGLongestPath
@@ -22,7 +22,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestDAGLongestPathPass(QiskitTestCase):
-    """ Tests for PropertySet methods. """
+    """ Tests for DAGLongestPath methods. """
 
     def test_empty_dag_true(self):
         """Test the dag longest path of an empty dag.
