@@ -416,31 +416,6 @@ class TestControlledGate(QiskitTestCase):
             cgate = base_gate.q_if()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
-    def test_to_matrix(self):
-        """
-        bug: cannot get gate.to_matrix() for a gate obtained from
-        instruction_to_gate(circuit_to_instruction(circ))
-        """
-        # simulator = BasicAer.get_backend('unitary_simulator')
-        # hgate = HGate()
-        # c3h = hgate.q_if(3)
-
-        # qc = QuantumCircuit(4)
-        # qc.append(c3h, range(4))
-        # sim_mat = execute([qc], simulator).result().get_unitary()
-        # self.assertTrue(matrix_equal(sim_mat, c3h.to_matrix(), ignore_phase=True))
-
-        circ = QuantumCircuit(3)
-        circ.u2(0.1, 0.2, 0)
-        circ.h(1)
-        circ.cx(0,2)
-        instr = circuit_to_instruction(circ)
-        mygate = instruction_to_gate(instr)
-        import ipdb;ipdb.set_trace()
-        cmygate = mygate.q_if(2)
-        cmygate.to_matrix()
-        
-
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
     """
