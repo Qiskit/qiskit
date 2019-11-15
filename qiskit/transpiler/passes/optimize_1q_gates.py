@@ -40,6 +40,9 @@ class Optimize1qGates(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
+
+        Raises:
+            TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
         """
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
