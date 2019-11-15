@@ -12,9 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for automatically running Depth(), Width(), Size(), CountOps(), and
-Tensor_Factor()
-"""
+"""Automatically require analysis passes for resource estimation."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.depth import Depth
 from qiskit.transpiler.passes.width import Width
@@ -25,7 +24,14 @@ from qiskit.transpiler.passes.num_qubits import NumQubits
 
 
 class ResourceEstimation(AnalysisPass):
-    """ Requires Depth(), Width(), Size(), CountOps(), NumTensorFactors(), and NumQubits.
+    """Automatically require analysis passes for resource estimation.
+
+    An analysis pass for automatically running:
+    * Depth()
+    * Width()
+    * Size()
+    * CountOps()
+    * NumTensorFactors()
     """
 
     def __init__(self):
@@ -33,4 +39,5 @@ class ResourceEstimation(AnalysisPass):
         self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 
     def run(self, _):
+        """Run the CommutativeCancellation pass on `dag`."""
         pass

@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into
-a single gate.
-"""
+"""Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
 from itertools import groupby
 
@@ -34,9 +30,17 @@ _CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
-    """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
+    """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the Optimize1qGates pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
         for run in runs:

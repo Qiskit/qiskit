@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for calculating the size of a DAG circuit.
-"""
+"""Calculate the size of a DAG circuit."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class Size(AnalysisPass):
-    """ An analysis pass for calculating the size of a DAG circuit.
-    """
+    """Calculate the size of a DAG circuit."""
 
     def run(self, dag):
+        """Run the Size pass on `dag`."""
         self.property_set['size'] = dag.size()

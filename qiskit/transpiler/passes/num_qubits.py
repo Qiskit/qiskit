@@ -12,16 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for calculating the number of qubits of a DAG circuit.
-"""
+"""Calculate the number of qubits of a DAG circuit."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class NumQubits(AnalysisPass):
-    """ An analysis pass for calculating the number of qubits of a DAG circuit.
-    """
+    """Calculate the number of qubits of a DAG circuit."""
 
     def run(self, dag):
-        """ Return num qubits
-        """
+        """Run the NumQubits pass on `dag`."""
         self.property_set['num_qubits'] = dag.num_qubits()
