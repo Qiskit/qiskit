@@ -53,7 +53,7 @@ class ControlledGate(Gate):
                     self.base_gate = base_gate.__class__
 
                 self.base_gate_name = base_gate.name
-        
+
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):
             return False
