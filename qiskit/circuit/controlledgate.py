@@ -16,7 +16,6 @@
 Controlled unitary gate.
 """
 
-import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from .gate import Gate
 
