@@ -341,7 +341,7 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, channels, scale=1, channels_to_plot=None,
+    def _count_valid_waveforms(self, output_channels, scale=1, channels=None,
                                plot_all=False, scaling=1):
         if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
@@ -350,9 +350,9 @@ class ScheduleDrawer:
         # count numbers of valid waveform
         n_valid_waveform = 0
         v_max = 0
-        for channel, events in channels.items():
-            if channels_to_plot:
-                if channel in channels_to_plot:
+        for channel, events in output_channels.items():
+            if channels:
+                if channel in channels:
                     waveform = events.waveform
                     v_max = max(v_max,
                                 max(np.abs(np.real(waveform))),
@@ -559,7 +559,7 @@ class ScheduleDrawer:
     def draw(self, schedule, dt, interp_method, plot_range,
              scale=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True,
-             scaling=None):
+             scaling=None, channels=None):
         """Draw figure.
 
         Args:
@@ -569,12 +569,13 @@ class ScheduleDrawer:
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
             scale (float): Relative visual scaling of waveform amplitudes
-            channels_to_plot (list[OutputChannel]): channels to draw
+            channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
             scaling (float): Deprecated, see `scale`
+            channels (list[OutputChannel]): channels to draw
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -587,8 +588,13 @@ class ScheduleDrawer:
             scale = scaling
         figure = plt.figure()
 
-        if not channels_to_plot:
-            channels_to_plot = []
+        if channels_to_plot:
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
+            channels = channels_to_plot
+
+        if not channels:
+            channels = []
         interp_method = interp_method or interpolation.step_wise
 
         # setup plot range
@@ -607,17 +613,18 @@ class ScheduleDrawer:
             tf = tf or 1
 
         # prepare waveform channels
-        (channels, output_channels,
+        (schedule_channels, output_channels,
          snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
 
         # count numbers of valid waveform
+
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels,
                                                               scale=scale,
-                                                              channels_to_plot=channels_to_plot,
+                                                              channels=channels,
                                                               plot_all=plot_all)
 
         if table:
-            ax = self._draw_table(figure, channels, dt, n_valid_waveform)
+            ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
 
         else:
             ax = figure.add_subplot(111)

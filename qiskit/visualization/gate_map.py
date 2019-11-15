@@ -102,9 +102,16 @@ def plot_gate_map(backend, figsize=None,
         ImportError: if matplotlib not installed.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
 
-           from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, execute, IBMQ
            from qiskit.visualization import plot_gate_map
            %matplotlib inline
 
@@ -283,10 +290,17 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         VisualizationError: Circuit has no layout attribute.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
 
             import numpy as np
-            from qiskit import *
+            from qiskit import QuantumCircuit, IBMQ, transpile
             from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
             from qiskit.tools.monitor import job_monitor
             import matplotlib.pyplot as plt
@@ -363,9 +377,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         VisualizationError: Input is not IBMQ backend.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
 
-            from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
             from qiskit.visualization import plot_error_map
             %matplotlib inline
 

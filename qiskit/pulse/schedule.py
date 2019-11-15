@@ -355,7 +355,8 @@ class Schedule(ScheduleComponent):
              scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True, scaling: float = None):
+             framechange: bool = True, scaling: float = None,
+             channels: Optional[List[Channel]] = None):
         """Plot the schedule.
 
         Args:
@@ -364,7 +365,7 @@ class Schedule(ScheduleComponent):
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
-            channels_to_plot: A list of channel names to plot
+            channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
@@ -373,6 +374,7 @@ class Schedule(ScheduleComponent):
             label: Label individual instructions
             framechange: Add framechange indicators
             scaling: Deprecated, see `scale`
+            channels: A list of channel names to plot
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
@@ -385,13 +387,18 @@ class Schedule(ScheduleComponent):
 
         from qiskit import visualization
 
+        if channels_to_plot:
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
+            channels = channels_to_plot
+
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
                                           scale=scale,
-                                          channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
-                                          label=label, framechange=framechange)
+                                          label=label, framechange=framechange,
+                                          channels=channels)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
