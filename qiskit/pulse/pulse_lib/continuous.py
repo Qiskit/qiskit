@@ -318,7 +318,6 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
         Analytic control methods for high-fidelity unitary operations
         in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
 
-
     Args:
         times: Times to output pulse for.
         amp: Pulse amplitude at `center`.
