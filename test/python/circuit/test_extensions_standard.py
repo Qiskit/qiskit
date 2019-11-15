@@ -1276,7 +1276,7 @@ class TestStandardMethods(QiskitTestCase):
             free_params = len(sig.parameters) - 1  # subtract "self"
             try:
                 gate = gate_class(*params[0:free_params])
-            except CircuitError:
+            except (CircuitError, QiskitError, AttributeError):
                 self.log.info(
                     'Cannot init gate with params only. Skipping %s',
                     gate_class)
