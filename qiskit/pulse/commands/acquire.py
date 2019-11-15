@@ -131,8 +131,8 @@ class AcquireInstruction(Instruction):
         if mem_slots:
             if isinstance(mem_slots, MemorySlot):
                 mem_slots = [mem_slots]
-            elif len(acquires) < len(mem_slots):
-                raise PulseError("#mem_slots must less than or equals to #acquires")
+            elif len(acquires) != len(mem_slots):
+                raise PulseError("#mem_slots must be equals to #acquires")
 
         if reg_slots:
             if isinstance(reg_slots, RegisterSlot):
