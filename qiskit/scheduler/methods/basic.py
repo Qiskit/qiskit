@@ -173,7 +173,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
             # Checking if all clbits are used or not
             if len(used_m_slots) != clbit_size:
                 new_sched = AcquireInstruction(command=sched.instructions[sched_size][1].command,
-                                               qubits=sched.instructions[sched_size][1].acquires,
+                                               acquires=sched.instructions[sched_size][1].acquires,
                                                mem_slots=used_m_slots
                                                ) << sched.instructions[sched_size][1].start_time
                 temp_sched = sched.exclude(channels=[list(set(sched.instructions
