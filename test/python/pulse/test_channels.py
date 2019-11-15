@@ -123,7 +123,7 @@ class TestQubit(QiskitTestCase):
 
 
 class TestPulseSpecification(QiskitTestCase):
-    """PulseSpecification tests."""
+    """PulseSpecification tests. (Deprecated)"""
 
     def test_default(self):
         """Test default device specification.
