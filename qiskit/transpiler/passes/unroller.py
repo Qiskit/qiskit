@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for unrolling a circuit to a given basis."""
+"""Unroll a circuit to a given basis."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -20,7 +20,8 @@ from qiskit.exceptions import QiskitError
 
 
 class Unroller(TransformationPass):
-    """
+    """Unroll a circuit to a given basis.
+
     Unroll (expand) non-basis, non-opaque instructions recursively
     to a desired basis, using decomposition rules defined for each instruction.
     """
@@ -35,10 +36,10 @@ class Unroller(TransformationPass):
         self.basis = basis
 
     def run(self, dag):
-        """Expand all op nodes to the given basis.
+        """Run the Unroller pass on `dag`.
 
         Args:
-            dag(DAGCircuit): input dag
+            dag (DAGCircuit): input dag
 
         Raises:
             QiskitError: if unable to unroll given the basis due to undefined
