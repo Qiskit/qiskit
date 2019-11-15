@@ -56,7 +56,7 @@ class FakeAlmaden(FakeBackend):
         return BackendProperties.from_dict(props)
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 10/21/19.
+        """Returns a snapshot of device defaults as recorded on 11/15/19.
         """
         dirname = os.path.dirname(__file__)
         filename = "defs_almaden.json"
