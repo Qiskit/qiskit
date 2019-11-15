@@ -15,13 +15,13 @@
 """DAGLongestPath pass testing"""
 
 import unittest
-from qiskit.transpiler.passes import DAGLongestPath
+from qiskit.transpiler.passes import DeepestPath
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
-class TestDAGLongestPathPass(QiskitTestCase):
+class TestDeepestPathPass(QiskitTestCase):
     """ Tests for DAGLongestPath methods. """
 
     def test_empty_dag_true(self):
@@ -30,9 +30,9 @@ class TestDAGLongestPathPass(QiskitTestCase):
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = DAGLongestPath()
+        pass_ = DeepestPath()
         pass_.run(dag)
-        self.assertListEqual(pass_.property_set['dag_longest_path'], [])
+        self.assertListEqual(pass_.property_set['deepest_path'], [])
 
     def test_nonempty_dag_false(self):
         """Test the dag longest path non-empty dag.
@@ -51,9 +51,9 @@ class TestDAGLongestPathPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         dag = circuit_to_dag(circuit)
 
-        pass_ = DAGLongestPath()
+        pass_ = DeepestPath()
         pass_.run(dag)
-        self.assertEqual(len(pass_.property_set['dag_longest_path']), 11)
+        self.assertEqual(len(pass_.property_set['deepest_path']), 11)
 
 
 if __name__ == '__main__':
