@@ -352,7 +352,7 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale_factor: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None):
@@ -363,7 +363,7 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scale_factor: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes
             channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -372,22 +372,22 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
-            scaling: Deprecated, see `scale_factor`
+            scaling: Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
         if scaling:
-            warnings.warn('The parameter "scaling" is being replaced by "scale_factor"'
+            warnings.warn('The parameter "scaling" is being replaced by "scale"'
                           '', DeprecationWarning, 3)
-            scale_factor = scaling
+            scale = scaling
 
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scale_factor=scale_factor,
+                                          scale=scale,
                                           channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
