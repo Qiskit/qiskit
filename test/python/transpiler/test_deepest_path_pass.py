@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DAGLongestPath pass testing"""
+"""DeepestPath pass testing"""
 
 import unittest
 from qiskit.transpiler.passes import DeepestPath
@@ -22,10 +22,10 @@ from qiskit.test import QiskitTestCase
 
 
 class TestDeepestPathPass(QiskitTestCase):
-    """ Tests for DAGLongestPath methods. """
+    """ Tests for DeepestPath methods. """
 
     def test_empty_dag_true(self):
-        """Test the dag longest path of an empty dag.
+        """Test the dag deepest path of an empty dag.
         """
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
@@ -35,8 +35,8 @@ class TestDeepestPathPass(QiskitTestCase):
         self.assertListEqual(pass_.property_set['deepest_path'], [])
 
     def test_nonempty_dag_false(self):
-        """Test the dag longest path non-empty dag.
-        path length = 11 = 9 ops + 2 qubits at start and end of path
+        """Test the dag deepest path non-empty dag.
+        path depth = 11 = 9 ops + 2 qubits at start and end of path
         """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
