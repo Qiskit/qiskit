@@ -46,6 +46,10 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
 
+    def test_parametric_pulse_instruction(self):
+        """"""
+        pass
+
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
@@ -144,6 +148,10 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+
+    def test_parametric_pulses(self):
+        """"""
+        pass
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""

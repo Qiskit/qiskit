@@ -251,6 +251,18 @@ class TestParametricPulses(QiskitTestCase):
         """TODO"""
         pass
 
+    def test_gaussian_square(self):
+        """"""
+        pass
+
+    def test_drag(self):
+        """"""
+        pass
+
+    def test_constant(self):
+        """"""
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

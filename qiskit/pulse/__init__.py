@@ -85,7 +85,7 @@ from .cmd_def import CmdDef
 from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, Delay,
                        ParametricPulse, ParametricInstruction, Gaussian,
-                       GaussianSquare, Drag, SquarePulse, functional_pulse)
+                       GaussianSquare, Drag, ConstantPulse, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent

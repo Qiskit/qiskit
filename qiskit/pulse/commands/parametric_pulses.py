@@ -52,7 +52,8 @@ class ParametricPulse(Command):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
         """
-        self.params = {'duration': duration}
+        if not hasattr(self, 'params'):
+            self.params = {'duration': duration}
         super().__init__(duration=duration)
 
     @abstractmethod
@@ -76,7 +77,7 @@ class Gaussian(ParametricPulse):
     A truncated pulse envelope shaped according to the Gaussian function whose mean is centered at
     the center of the pulse (duration / 2):
 
-        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )   ,  0 <= x < duration
+        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )  ,  0 <= x < duration
     """
 
     def __init__(self,
@@ -180,9 +181,9 @@ class Drag(ParametricPulse):
                     beta=self.beta, zero_ends=self.remove_baseline)
 
 
-class SquarePulse(ParametricPulse):
+class ConstantPulse(ParametricPulse):
     """
-    A simple square pulse, with an amplitude value and a duration:
+    A simple constant pulse, with an amplitude value and a duration:
 
         f(x) = amp    ,  0 <= x < duration
         f(x) = 0      ,  elsewhere
@@ -192,7 +193,7 @@ class SquarePulse(ParametricPulse):
                  duration: int,
                  amp: complex):
         """
-        Initialize the square command.
+        Initialize the constant valued pulse command.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.

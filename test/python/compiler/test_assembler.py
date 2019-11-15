@@ -528,6 +528,14 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(orig_qobj.experiments[0].to_dict(),
                          delay_qobj.experiments[0].to_dict())
 
+    def test_assemble_parametric(self):
+        """"""
+        pass
+
+    def test_assemble_parametric_unsupported(self):
+        """"""
+        pass
+
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""

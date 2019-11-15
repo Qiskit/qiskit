@@ -74,6 +74,10 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched |= Snapshot("snapshot_2", "snap_type") << 120
         return sched
 
+    def parametric_pulse_schedule(self):
+        """"""
+        pass
+
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
