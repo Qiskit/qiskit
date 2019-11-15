@@ -18,7 +18,10 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class NumTensorFactors(AnalysisPass):
-    """Calculate the number of tensor factors of a DAG circuit."""
+    """Calculate the number of tensor factors of a DAG circuit.
+
+    The result is saved in ``property_set['num_tensor_factors']`` as an integer.
+    """
 
     def run(self, dag):
         """Run the NumTensorFactors pass on `dag`."""

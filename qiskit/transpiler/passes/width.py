@@ -20,7 +20,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class Width(AnalysisPass):
     """Calculate the width of a DAG circuit.
 
-    The results is saved in ``property_set['width']`` as an integer that
+    The result is saved in ``property_set['width']`` as an integer that
     contains the number of qubits + the number of clbits.
     """
 

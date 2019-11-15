@@ -39,5 +39,5 @@ class ResourceEstimation(AnalysisPass):
         self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 
     def run(self, _):
-        """Run the CommutativeCancellation pass on `dag`."""
+        """Run the ResourceEstimation pass on `dag`."""
         pass
