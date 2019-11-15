@@ -31,7 +31,7 @@ supports parametric pulses, it will have the attribute
 `['gaussian', 'gaussian_square', 'drag']`.
 """
 from abc import abstractmethod
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
@@ -52,8 +52,6 @@ class ParametricPulse(Command):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
         """
-        if not hasattr(self, 'params'):
-            self.params = {'duration': duration}
         super().__init__(duration=duration)
 
     @abstractmethod
@@ -63,13 +61,19 @@ class ParametricPulse(Command):
         """
         pass
 
+    def get_params(self) -> Dict[str, Any]:
+        """Return a dictionary containing the parameters specific to this parametric pulse."""
+        return {attr[1:]: getattr(self, attr)
+                for attr in self.__dict__
+                if attr.startswith('_') and attr != '_name'}
+
     def to_instruction(self, channel: PulseChannel,
                        name: Optional[str] = None) -> 'ParametricInstruction':
         # pylint: disable=arguments-differ
         return ParametricInstruction(self, channel, name=name)
 
     def __repr__(self):
-        return '{}(name={}, params={})'.format(self.__class__.__name__, self.name, self.params)
+        return '{}(name={}, params={})'.format(self.__class__.__name__, self.name, self.get_params())
 
 
 class Gaussian(ParametricPulse):
@@ -92,10 +96,17 @@ class Gaussian(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
         """
-        self.params = {'sigma': sigma, 'amp': amp, 'duration': duration}  # FIXME
-        self.sigma = sigma
-        self.amp = amp
+        self._amp = amp
+        self._sigma = sigma
         super().__init__(duration=duration)
+
+    @property
+    def amp(self):
+        return self._amp
+
+    @property
+    def sigma(self):
+        return self._sigma
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian(duration=self.duration, amp=self.amp,
@@ -132,12 +143,22 @@ class GaussianSquare(ParametricPulse):
                    mathematically in the class docstring.
             width: The duration of the embedded square pulse.
         """
-        # args order dont match
-        self.params = {'sigma': sigma, 'amp': amp, 'width': width, 'duration': duration}
-        self.sigma = sigma
-        self.amp = amp
-        self.width = width
+        self._amp = amp
+        self._sigma = sigma
+        self._width = width
         super().__init__(duration=duration)
+
+    @property
+    def amp(self):
+        return self._amp
+
+    @property
+    def sigma(self):
+        return self._sigma
+
+    @property
+    def width(self):
+        return self._width
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian_square(duration=self.duration, amp=self.amp,
@@ -147,7 +168,19 @@ class GaussianSquare(ParametricPulse):
 class Drag(ParametricPulse):
     """
     A pulse whose envelope is shaped by a drag pulse. This is so named by the technique
-    Derivative Removal by Adiabatic Gate (DRAG).
+    Derivative Removal by Adiabatic Gate (DRAG). It is constructed to reduce the frequency
+    spectrum of a normal gaussian curve near the |1>-|2> transition.
+
+        f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
+             = Gaussian + 1j * beta * (-x / sigma) [Gaussian]
+
+    where 'Gaussian' is:
+        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
+
+    Ref:
+        [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
+        Analytic control methods for high-fidelity unitary operations
+        in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
     """
 
     def __init__(self,
@@ -161,20 +194,29 @@ class Drag(ParametricPulse):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the Drag envelope.
-            sigma:
-            beta:
-            remove_baseline:
+            sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
+                   in the class docstring.
+            beta: The correction amplitude.
+            remove_baseline: If the pulse is translated to a SamplePulse, this option will set the
+                             start of the pulse to zero.
         """
-        self.params = {
-            'sigma': sigma,
-            'amp': amp,
-            'beta': beta,
-            'duration': duration}
-        self.sigma = sigma
-        self.amp = amp
-        self.beta = beta
+        self._amp = amp
+        self._sigma = sigma
+        self._beta = beta
         self.remove_baseline = remove_baseline
         super().__init__(duration=duration)
+
+    @property
+    def amp(self):
+        return self._amp
+
+    @property
+    def sigma(self):
+        return self._sigma
+
+    @property
+    def beta(self):
+        return self._beta
 
     def get_sample_pulse(self) -> SamplePulse:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
@@ -199,9 +241,12 @@ class ConstantPulse(ParametricPulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
         """
-        self.params = {'amp': amp, 'duration': duration}
-        self.amp = amp
+        self._amp = amp
         super().__init__(duration=duration)
+
+    @property
+    def amp(self):
+        return self._amp
 
     def get_sample_pulse(self) -> SamplePulse:
         return constant(duration=self.duration, amp=self.amp)
