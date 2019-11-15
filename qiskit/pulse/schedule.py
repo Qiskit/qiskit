@@ -64,11 +64,10 @@ class Schedule(ScheduleComponent):
         except PulseError as ts_err:
             formatted_schedules = []
             for sched_pair in schedules:
-                if not isinstance(sched_pair, (list, tuple)):
-                    sched_pair = (0, sched_pair)
-                _, sched = tuple(sched_pair)
-                sched = 'Schedule(name="{0}", duration={1})'.format(sched.name, sched.duration)
-                formatted_schedules.append(sched)
+                sched = sched_pair[1] if isinstance(sched_pair, (List, tuple)) else sched_pair
+                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(sched.name,
+                                                                              sched.duration)
+                formatted_schedules.append(formatted_sched)
             formatted_schedules = ", ".join(formatted_schedules)
             raise PulseError('Schedules overlap: {0} for {1}'
                              ''.format(ts_err.message, formatted_schedules)) from ts_err
