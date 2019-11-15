@@ -21,7 +21,8 @@ import numpy as np
 
 from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
                           Snapshot, Kernel, Discriminator, functional_pulse,
-                          Delay, PulseError)
+                          Delay, PulseError, ConstantPulse, Gaussian, GaussianSquare,
+                          Drag)
 from qiskit.test import QiskitTestCase
 
 
@@ -249,19 +250,33 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_gaussian(self):
         """TODO"""
-        pass
+        gaus = Gaussian(duration=25, sigma=16, amp=0.5j)
 
     def test_gaussian_square(self):
         """"""
-        pass
+        gaussquare = GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
 
     def test_drag(self):
-        """"""
-        pass
+        """Test the drag pulse and it's sampled construction."""
+        drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
     def test_constant(self):
-        """"""
-        pass
+        """Test the constant pulse and it's sampled construction."""
+        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
+        self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
+        self.assertEqual(len(const.get_sample_pulse().samples), 150)
+
+    def test_get_params(self):
+        """Test that the parameters can be extracted as a dict through `get_params`."""
+        drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
+        self.assertEqual(set(drag.get_params().keys()), {'duration', 'amp', 'sigma', 'beta'})
+        const = ConstantPulse(duration=150, amp=1)
+        self.assertEqual(set(const.get_params().keys()), {'duration', 'amp'})
+
+    def test_complex_param_is_complex(self):
+        """Check that complex param 'amp' is cast to complex."""
+        const = ConstantPulse(duration=150, amp=1)
+        self.assertIsInstance(const.amp, complex)
 
 
 if __name__ == '__main__':

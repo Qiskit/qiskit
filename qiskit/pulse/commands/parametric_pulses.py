@@ -96,7 +96,7 @@ class Gaussian(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
         """
-        self._amp = amp
+        self._amp = complex(amp)
         self._sigma = sigma
         super().__init__(duration=duration)
 
@@ -143,7 +143,7 @@ class GaussianSquare(ParametricPulse):
                    mathematically in the class docstring.
             width: The duration of the embedded square pulse.
         """
-        self._amp = amp
+        self._amp = complex(amp)
         self._sigma = sigma
         self._width = width
         super().__init__(duration=duration)
@@ -200,7 +200,7 @@ class Drag(ParametricPulse):
             remove_baseline: If the pulse is translated to a SamplePulse, this option will set the
                              start of the pulse to zero.
         """
-        self._amp = amp
+        self._amp = complex(amp)
         self._sigma = sigma
         self._beta = beta
         self.remove_baseline = remove_baseline
@@ -241,7 +241,7 @@ class ConstantPulse(ParametricPulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
         """
-        self._amp = amp
+        self._amp = complex(amp)
         super().__init__(duration=duration)
 
     @property
