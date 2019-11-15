@@ -18,8 +18,6 @@
 matplotlib pulse visualization.
 """
 import warnings
-
-import warnings
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
