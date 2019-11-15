@@ -15,31 +15,21 @@
 """ An analysis pass for estimating the circuit runtime.
 """
 from qiskit.transpiler.basepasses import AnalysisPass
-import networkx as nx
+from qiskit.transpiler.passes.longest_path import LongestPath
 
 
 class Runtime(AnalysisPass):
     """ An analysis pass for estimating the circuit runtime based on op runtimes.
     """
 
-    def run(self, dag, op_times=None):
+    def __init__(self, op_times=None):
+        super().__init__()
+        self.requires.append(LongestPath(op_times))
+
+    def run(self, dag):
         """ Calculate the overall runtime for the DAG longest path by putting the
         operation times as weights on edges.
         """
-        weighted_dag = nx.DiGraph()
-        for source, target, data in dag.edges():
-            try:
-                if target.type == 'op':
-                    if op_times is None:
-                        op_time = 1
-                    else:
-                        op_time = op_times[target.name]
-                else:
-                    op_time = 0
-                weighted_dag.add_edge(source, target, weight=op_time)
-            except KeyError:
-                raise KeyError("Could not find {} operation in op_times "
-                               "dictionary!".format(target.name))
-        runtime = nx.dag_longest_path_length(weighted_dag, weight='weight',
-                                             default_weight=0)
+
+        runtime = self.property_set['longest_path_length']
         self.property_set['runtime'] = runtime

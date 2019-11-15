@@ -98,6 +98,7 @@ DAG Properties
    NumTensorFactors
    DAGFixedPoint
    DeepestPath
+   LongestPath
 
 Additional Passes
 =================
@@ -126,6 +127,7 @@ from .count_ops_longest_path import CountOpsLongestPath
 from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
 from .deepest_path import DeepestPath
+from .longest_path import LongestPath
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
