@@ -17,7 +17,6 @@
 """
 matplotlib pulse visualization.
 """
-import warnings
 
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
@@ -30,8 +29,7 @@ if _matplotlib.HAS_MATPLOTLIB:
 def pulse_drawer(data, dt=1, style=None, filename=None,
                  interp_method=None, scaling=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False,
-                 table=True, label=False, framechange=True,
-                 channels=None):
+                 table=True, label=False, framechange=True):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -43,7 +41,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         interp_method (Callable): interpolation function
             See `qiskit.visualization.interpolation` for more information
         scaling (float): scaling of waveform amplitude
-        channels_to_plot (list): Deprecated, see `channels`
+        channels_to_plot (list): A list of channel names to plot
         plot_all (bool): Plot empty channels
         plot_range (tuple): A tuple of time range to plot
         interactive (bool): When set true show the circuit in a new window
@@ -51,7 +49,6 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         table (bool): Draw event table for supported commands
         label (bool): Label individual instructions
         framechange (bool): Add framechange indicators
-        channels (list): A list of channel names to plot
 
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
@@ -60,11 +57,6 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         VisualizationError: when invalid data is given or lack of information
         ImportError: when matplotlib is not installed
     """
-    if channels_to_plot:
-        warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                      DeprecationWarning, 3)
-        channels = channels_to_plot
-
     if not _matplotlib.HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
@@ -73,8 +65,9 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
-                            plot_range=plot_range, plot_all=plot_all, table=table,
-                            label=label, framechange=framechange, channels=channels)
+                            plot_range=plot_range, channels_to_plot=channels_to_plot,
+                            plot_all=plot_all, table=table, label=label,
+                            framechange=framechange)
     else:
         raise VisualizationError('This data cannot be visualized.')
 

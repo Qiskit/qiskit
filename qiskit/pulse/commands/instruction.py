@@ -194,8 +194,7 @@ class Instruction(ScheduleComponent):
              scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
-             label: bool = False, framechange: bool = True,
-             channels: Optional[List[Channel]] = None):
+             label: bool = False, framechange: bool = True):
         """Plot the instruction.
 
         Args:
@@ -204,7 +203,7 @@ class Instruction(ScheduleComponent):
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scaling: Relative visual scaling of waveform amplitudes
-            channels_to_plot: Deprecated, see `channels`
+            channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
@@ -212,7 +211,6 @@ class Instruction(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
-            channels: A list of channel names to plot
 
 
         Returns:
@@ -222,17 +220,12 @@ class Instruction(ScheduleComponent):
 
         from qiskit import visualization
 
-        if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
-
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scaling, plot_all=plot_all,
-                                          plot_range=plot_range, interactive=interactive,
-                                          table=table, label=label,
-                                          framechange=framechange, channels=channels)
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table,
+                                          label=label, framechange=framechange)
 
     def __eq__(self, other: 'Instruction'):
         """Check if this Instruction is equal to the `other` instruction.
