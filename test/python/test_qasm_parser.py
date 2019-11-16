@@ -50,7 +50,7 @@ class TestParser(QiskitTestCase):
         self.assertEqual(len(res), 1589)
         self.assertEqual(res[:12], "OPENQASM 2.0")
         self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1547:1562], "measure r -> d;")
+        self.assertEqual(res[1573:1588], "measure r -> d;")
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
