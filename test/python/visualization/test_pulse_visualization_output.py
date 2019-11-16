@@ -74,10 +74,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched |= Snapshot("snapshot_2", "snap_type") << 120
         return sched
 
-    # TODO: Enable for refactoring purposes and enable by default when we can
-    # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_pulse_matplotlib_drawer(self):
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
         pulse = self.sample_pulse()
