@@ -250,11 +250,14 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                boxes_wide = round(max(len(subtext), len(text)) / 10, 1) or 1
-                wid = WID * 1.5 * boxes_wide
+                pi_count = subtext.count('pi')
+                neg_count = subtext.count('-')
+                boxes_wide = round(max(len(subtext)-(
+                    4*pi_count)-(2*neg_count), len(text), 6) / 10, 1) or 1
+                wid = WID * 1.7 * boxes_wide
             else:
                 boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.2 * boxes_wide
+                wid = WID * 2.5 * boxes_wide
         else:
             wid = WID
         if fc:
@@ -488,10 +491,10 @@ class MatplotlibDrawer:
     def _linefeed_mark(self, xy):
         xpos, ypos = xy
 
-        self.ax.plot([xpos - .1, xpos - .1],
+        self.ax.plot([xpos + self.x_offset + .4, xpos + self.x_offset + .4],
                      [ypos, ypos - self._cond['n_lines'] + 1],
                      color=self._style.lc, zorder=PORDER_LINE)
-        self.ax.plot([xpos + .1, xpos + .1],
+        self.ax.plot([xpos + self.x_offset + .5, xpos + self.x_offset + .5],
                      [ypos, ypos - self._cond['n_lines'] + 1],
                      color=self._style.lc, zorder=PORDER_LINE)
 
@@ -631,7 +634,7 @@ class MatplotlibDrawer:
 
         # lf line
         if feedline_r:
-            self._linefeed_mark((self.fold + 1 - 0.1,
+            self._linefeed_mark((self.fold + 1 - 0.5,
                                  - n_fold * (self._cond['n_lines'] + 1)))
         if feedline_l:
             self._linefeed_mark((0.1,
@@ -662,27 +665,27 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-
                 if op.name in _wide_gate:
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
-                        if '$\\pi$' in param:
+                        if '$\\pi$' or '$-$'in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            neg_count = param.count('-')
+                            len_param = len(param) - (4 * pi_count) - (2 * neg_count) + 4
                         else:
-                            len_param = len(param)
+                            len_param = len(param) + 4
                         if len_param > len(op.name):
-                            box_width = round(len(param) / 10)
+                            box_width = math.ceil(len_param / 10)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
-                                box_width = 2
+                                box_width = 1
                             if layer_width < box_width:
                                 if box_width > 2:
-                                    layer_width = box_width * 2
+                                    layer_width = box_width
                                 else:
                                     layer_width = 2
-                    if layer_width < 2:
-                        layer_width = 2
+                    # if layer_width < 2:
+                    #    layer_width = 2
 
                 # if custom gate with a longer than standard name determine
                 # width
@@ -690,23 +693,23 @@ class MatplotlibDrawer:
                                      'noise', 'cswap', 'swap', 'measure'] and len(
                                          op.name) >= 4:
                     box_width = math.ceil(len(op.name) / 6)
-
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
-                        if '$\\pi$' in param:
+                        if '$\\pi$' or '$-$' in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            neg_count = param.count('-')
+                            len_param = len(param) - (4 * pi_count) - (2*neg_count) + 4
                         else:
-                            len_param = len(param)
+                            len_param = len(param) + 4
                         if len_param > len(op.name):
                             box_width = round(len(param) / 8)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
-                                box_width = 2
+                                box_width = 1
                             if layer_width < box_width:
                                 if box_width > 2:
-                                    layer_width = box_width * 2
+                                    layer_width = box_width
                                 else:
                                     layer_width = 2
                             continue
