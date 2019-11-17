@@ -85,8 +85,11 @@ class RunningPassManager():
 
         self.count = 0
 
-    def append_best_of(self, passes_list, property_name, break_condition=None):
-        self.working_list.append(BestOfController(passes_list, property_name, break_condition))
+    def append_best_of(self, passes_list, property_name, break_condition=None, reverse=False):
+        self.working_list.append(BestOfController(passes_list,
+                                                  property_name,
+                                                  break_condition,
+                                                  reverse=reverse))
 
     def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.

@@ -71,7 +71,7 @@ class PassManager:
         self.callback = callback
         self.property_set = None
 
-    def append_best_of(self, passes, property_name):
+    def append_best_of(self, passes, property_name, reverse=None):
         passes = PassManager._normalize_passes(passes)
         new_group = False
         try:
@@ -83,9 +83,15 @@ class PassManager:
         if new_group:
             self._pass_sets.append({'passes': [passes],
                                     'flow_controllers': 'best_of',
-                                    'property_name': property_name})
+                                    'property_name': property_name,
+                                    'reverse': reverse})
         else:
             self._pass_sets[-1]['passes'].append(passes)
+            if reverse is not None and \
+                    self._pass_sets[-1]['reverse'] is not None and \
+                    reverse != self._pass_sets[-1]['reverse']:
+                raise TranspilerError('Contradictory parameter reverse')
+            self._pass_sets[-1]['reverse'] = reverse
 
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """Append a Pass Set to the schedule of passes.
@@ -214,9 +220,11 @@ class PassManager:
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
         for pass_set in self._pass_sets:
             if pass_set['flow_controllers'] == 'best_of':
+                reverse = pass_set['reverse'] if pass_set['reverse'] else False
                 running_passmanager.append_best_of(pass_set['passes'],
                                                    pass_set['property_name'],
-                                                   None)
+                                                   None,
+                                                   reverse=reverse)
             else:
                 running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
         return running_passmanager

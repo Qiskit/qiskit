@@ -435,6 +435,21 @@ class TestBestOf(SchedulerTestCase):
                                                 'set property as 2'])
         self.assertEqual(self.passmanager.property_set['property'], 2)
 
+    def test_best_of_two_reverse(self):
+        """ The worst of two analysis passes """
+        self.passmanager.append_best_of(PassE_AP_NR_NP(3), 'property')
+        self.passmanager.append_best_of(PassE_AP_NR_NP(2), 'property', reverse=True)
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3',
+                                                'run analysis pass PassE_AP_NR_NP',
+                                                'set property as 2'])
+        self.assertEqual(self.passmanager.property_set['property'], 3)
+
+    def test_best_of_two_reverse_contradiction(self):
+        """ Contradicting reverse parameter raises TranspilerError"""
+        with self.assertRaises(TranspilerError):
+            self.passmanager.append_best_of(PassE_AP_NR_NP(3), 'property', reverse=False)
+            self.passmanager.append_best_of(PassE_AP_NR_NP(2), 'property', reverse=True)
 
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
