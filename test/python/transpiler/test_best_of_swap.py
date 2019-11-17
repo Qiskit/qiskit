@@ -59,6 +59,5 @@ class TestBestOfSwap(QiskitTestCase):
         self.assertEqual(circuit_result, circuit_basic)
 
 
-
 if __name__ == '__main__':
     unittest.main()

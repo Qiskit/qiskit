@@ -118,7 +118,6 @@ class PassManager:
                 raise TranspilerError('The parameter break_condition should be set only once.')
             self._pass_sets[-1]['break_condition'] = break_condition
 
-
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """Append a Pass Set to the schedule of passes.
 
