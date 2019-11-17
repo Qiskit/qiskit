@@ -451,6 +451,15 @@ class TestBestOf(SchedulerTestCase):
             self.passmanager.append_best_of(PassE_AP_NR_NP(3), 'property', reverse=False)
             self.passmanager.append_best_of(PassE_AP_NR_NP(2), 'property', reverse=True)
 
+    def test_stop_with_break_condition(self):
+        """ The second candidate is not executed because break condition """
+        self.passmanager.append_best_of(PassE_AP_NR_NP(3), 'property')
+        self.passmanager.append_best_of(PassE_AP_NR_NP(2), 'property',
+                                        break_condition=lambda pm: pm['property'] == 3)
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3'])
+        self.assertEqual(self.passmanager.property_set['property'], 3)
+
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 

@@ -89,7 +89,7 @@ class RunningPassManager():
         self.working_list.append(BestOfController(passes_list,
                                                   property_name,
                                                   break_condition,
-                                                  reverse=reverse))
+                                                  reverse))
 
     def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
@@ -368,12 +368,12 @@ class ConditionalController(FlowController):
 class BestOfController(FlowController):
     """ The set of passes is rolled back if a condition is true."""
 
-    def __init__(self, passes_list, property_name, break_conditions=None, reverse=False):
+    def __init__(self, passes_list, property_name, break_condition=None, reverse=False):
         self.passes_list = []
         for passes in passes_list:
             self.passes_list.append(FlowController.controller_factory(passes, None))
         self.property_name = property_name
-        self.break_conditions = break_conditions if break_conditions else lambda pm: False
+        self.break_condition = break_condition if break_condition else lambda pm: False
         self.reverse = reverse
 
     def do_passes(self, pass_manager, dag, property_set):
@@ -382,6 +382,8 @@ class BestOfController(FlowController):
             working_property_set = deepcopy(pass_manager.property_set)
             working_dag = deepcopy(dag)
             new_dag = worklist.do_passes(pass_manager, working_dag, working_property_set)
+            if self.break_condition(pass_manager.property_set):
+                return new_dag
             results.append((pass_manager.property_set[self.property_name],
                             new_dag, deepcopy(pass_manager.property_set)))
         results = sorted(results, key=lambda result: result[0], reverse=self.reverse)
