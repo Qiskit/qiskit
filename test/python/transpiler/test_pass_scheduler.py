@@ -460,6 +460,7 @@ class TestBestOf(SchedulerTestCase):
                                                 'set property as 3'])
         self.assertEqual(self.passmanager.property_set['property'], 3)
 
+
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 

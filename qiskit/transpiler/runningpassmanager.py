@@ -370,7 +370,9 @@ class BestOfController(FlowController):
 
     def __init__(self, passes_list, property_name, break_condition=None, reverse=False):
         self.passes_list = []
+        self.all_analysis_passes = False
         for passes in passes_list:
+            self.all_analysis_passes = all([pass_.is_analysis_pass for pass_ in passes])
             self.passes_list.append(FlowController.controller_factory(passes, None))
         self.property_name = property_name
         self.break_condition = break_condition if break_condition else lambda pm: False
@@ -380,7 +382,7 @@ class BestOfController(FlowController):
         results = []
         for worklist in self.passes_list:
             working_property_set = deepcopy(pass_manager.property_set)
-            working_dag = deepcopy(dag)
+            working_dag = dag if self.all_analysis_passes else deepcopy(dag)
             new_dag = worklist.do_passes(pass_manager, working_dag, working_property_set)
             if self.break_condition(pass_manager.property_set):
                 return new_dag
