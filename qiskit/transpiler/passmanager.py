@@ -71,6 +71,22 @@ class PassManager:
         self.callback = callback
         self.property_set = None
 
+    def append_best_of(self, passes, property_name):
+        passes = PassManager._normalize_passes(passes)
+        new_group = False
+        try:
+            if self._pass_sets[-1]['property_name'] != property_name:
+                new_group = True
+        except (KeyError, IndexError):
+            new_group = True
+
+        if new_group:
+            self._pass_sets.append({'passes': [passes],
+                                    'flow_controllers': 'best_of',
+                                    'property_name': property_name})
+        else:
+            self._pass_sets[-1]['passes'].append(passes)
+
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """Append a Pass Set to the schedule of passes.
 
@@ -197,7 +213,12 @@ class PassManager:
     def _create_running_passmanager(self):
         running_passmanager = RunningPassManager(self.max_iteration, self.callback)
         for pass_set in self._pass_sets:
-            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
+            if pass_set['flow_controllers'] == 'best_of':
+                running_passmanager.append_best_of(pass_set['passes'],
+                                                   pass_set['property_name'],
+                                                   None)
+            else:
+                running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
         return running_passmanager
 
     @staticmethod

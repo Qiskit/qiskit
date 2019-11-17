@@ -85,6 +85,9 @@ class RunningPassManager():
 
         self.count = 0
 
+    def append_best_of(self, passes_list, property_name, break_condition=None):
+        self.working_list.append(BestOfController(passes_list, property_name, break_condition))
+
     def append(self, passes, **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
@@ -359,30 +362,30 @@ class ConditionalController(FlowController):
                 yield pass_
 
 
-class RollbackIfController(FlowController):
+class BestOfController(FlowController):
     """ The set of passes is rolled back if a condition is true."""
 
-    def __init__(self, passes, options, rollback_if=None, **_):
-        self.dag_might_have_modifications = False
-        for pass_ in passes:
-            if pass_.is_transformation_pass:
-                self.dag_might_have_modifications = True
-                break
-        self.rollback_if = rollback_if
-        super().__init__(passes, options)
+    def __init__(self, passes_list, property_name, break_conditions=None, reverse=False):
+        self.passes_list = []
+        for passes in passes_list:
+            self.passes_list.append(FlowController.controller_factory(passes, None))
+        self.property_name = property_name
+        self.break_conditions = break_conditions if break_conditions else lambda pm: False
+        self.reverse = reverse
 
     def do_passes(self, pass_manager, dag, property_set):
-        original_property_set = deepcopy(pass_manager.property_set)
-        dag_copy = deepcopy(dag) if self.dag_might_have_modifications else dag
-        for pass_ in self:
-            dag_copy = pass_manager._do_pass(pass_, dag_copy)
-        if self.rollback_if(pass_manager.property_set):
-            pass_manager.property_set = original_property_set
-            return dag
-        return dag_copy
+        results = []
+        for worklist in self.passes_list:
+            working_property_set = deepcopy(pass_manager.property_set)
+            working_dag = deepcopy(dag)
+            new_dag = worklist.do_passes(pass_manager, working_dag, working_property_set)
+            results.append((pass_manager.property_set[self.property_name],
+                            new_dag, deepcopy(pass_manager.property_set)))
+        results = sorted(results, key=lambda result: result[0], reverse=self.reverse)
+        pass_manager.property_set = results[0][2]
+        return results[0][1]
 
 
 # Default controllers
 FlowController.add_flow_controller('condition', ConditionalController)
 FlowController.add_flow_controller('do_while', DoWhileController)
-FlowController.add_flow_controller('rollback_if', RollbackIfController)
