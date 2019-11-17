@@ -684,8 +684,8 @@ class MatplotlibDrawer:
                                     layer_width = box_width
                                 else:
                                     layer_width = 2
-                    # if layer_width < 2:
-                    #    layer_width = 2
+                    if layer_width < 2:
+                        layer_width = 2
 
                 # if custom gate with a longer than standard name determine
                 # width
