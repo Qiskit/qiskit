@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Testing the "best of" approach with Swappers."""
+
 import unittest
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, QuantumCircuit
@@ -20,10 +22,10 @@ from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, Depth
 
 
 class TestBestOfSwap(QiskitTestCase):
+    """Testing the "best of" approach with Swappers."""
 
     def setUp(self):
         self.coupling_map = CouplingMap([[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]])
-
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[4])
@@ -32,24 +34,27 @@ class TestBestOfSwap(QiskitTestCase):
         self.circuit = circuit
 
     def test_Lookahead_greater_Basic(self):
-        pm = PassManager()
-        pm.append_best_of([BasicSwap(self.coupling_map), Depth()], 'depth')
-        pm.append_best_of([LookaheadSwap(self.coupling_map), Depth()], 'depth')
-        circuit_result = pm.run(self.circuit)
-        pm = PassManager()
-        pm.append(LookaheadSwap(self.coupling_map))
-        circuit_lookahead = pm.run(self.circuit)
+        """Choose Lookahead over Basic"""
+        passmanager = PassManager()
+        passmanager.append_best_of([BasicSwap(self.coupling_map), Depth()], 'depth')
+        passmanager.append_best_of([LookaheadSwap(self.coupling_map), Depth()], 'depth')
+        circuit_result = passmanager.run(self.circuit)
+        passmanager = PassManager()
+        passmanager.append(LookaheadSwap(self.coupling_map))
+        circuit_lookahead = passmanager.run(self.circuit)
 
         self.assertEqual(circuit_result, circuit_lookahead)
 
     def test_Basic_less_Lookahead(self):
-        pm = PassManager()
-        pm.append_best_of([BasicSwap(self.coupling_map), Depth()], 'depth')
-        pm.append_best_of([LookaheadSwap(self.coupling_map), Depth()], 'depth', reverse=True)
-        circuit_result = pm.run(self.circuit)
-        pm = PassManager()
-        pm.append(BasicSwap(self.coupling_map))
-        circuit_basic = pm.run(self.circuit)
+        """Choose Basic over Lookahead"""
+        passmanager = PassManager()
+        passmanager.append_best_of([BasicSwap(self.coupling_map), Depth()], 'depth')
+        passmanager.append_best_of([LookaheadSwap(self.coupling_map), Depth()], 'depth',
+                                   reverse=True)
+        circuit_result = passmanager.run(self.circuit)
+        passmanager = PassManager()
+        passmanager.append(BasicSwap(self.coupling_map))
+        circuit_basic = passmanager.run(self.circuit)
 
         self.assertEqual(circuit_result, circuit_basic)
 

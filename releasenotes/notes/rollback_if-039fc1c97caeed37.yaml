@@ -1,22 +1,71 @@
 ---
 features:
   - |
-    A new pass manager controller `rollback_if` allows to "undo" passes under certain conditions.
-    If the condition is true the passes appended in that set are rolled back. Take for example a
-    pass manager which selects the best swapping pass (i.e. one that yields the smallest depth on the input circuit).
-    The following pass manager applies ``Swapper1`` and calculates the depth of the swapper, saving
-    The result in ``property_set['depth_swapper1']``:
+    A new pass manager method ``append_best_of`` allows to compare the result of passes.
+    Consider the following circuit:
 
-    ```python
-    passmanager = PassManager()
-    passmanager.append([Swapper1(), depth('depth_swapper1')])
-    ```
+      qr = QuantumRegister(5, 'q')
+      circuit = QuantumCircuit(qr)
+      circuit.cx(qr[0], qr[4])
+      circuit.cx(qr[2], qr[4])
+      circuit.cx(qr[0], qr[4])
 
-    The next stage will apply and calculate the depth using ``Swapper2``. If the result is
-    not better, this stage is unrolled, leaving the circuit as it was after applying ``Swapper1`` :
+      q_0: |0>──■─────────■──
+                │         │
+      q_1: |0>──┼─────────┼──
+                │         │
+      q_2: |0>──┼────■────┼──
+                │    │    │
+      q_3: |0>──┼────┼────┼──
+              ┌─┴─┐┌─┴─┐┌─┴─┐
+      q_4: |0>┤ X ├┤ X ├┤ X ├
+              └───┘└───┘└───┘
 
-    ```python
-    passmanager.append([Swapper2(), depth('depth_swapper2')],
-                       rollback_if=lambda property_set:
-                       property_set['depth_swapper2'] < property_set['depth_swapper1'])
-    ```
+    Under the coupling map ``[[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]``, let's compare
+    ``BasicSwap`` and ``LookaheadSwap``:
+
+      pm = PassManager()
+      pm.append(LookaheadSwap(coupling_map))
+      circuit_after = pm.run(circuit)
+
+      q_0: |0>─────■─────────■──
+                   │         │
+      q_1: |0>─────┼─────────┼──
+                 ┌─┴─┐┌───┐┌─┴─┐
+      q_2: |0>─X─┤ X ├┤ X ├┤ X ├
+               │ └───┘└─┬─┘└───┘
+      q_3: |0>─┼────────┼───────
+               │        │
+      q_4: |0>─X────────■───────
+
+      pm = PassManager()
+      pm.append(BasicSwap(coupling_map))
+      circuit_after = pm.run(circuit)
+
+      q_0: |0>─X───────X───────X──────
+               │       │       │
+      q_1: |0>─┼───────┼───────┼──────
+               │       │       │
+      q_2: |0>─X───■───X───■───X───■──
+                   │       │       │
+      q_3: |0>─────┼───────┼───────┼──
+                 ┌─┴─┐   ┌─┴─┐   ┌─┴─┐
+      q_4: |0>───┤ X ├───┤ X ├───┤ X ├
+                 └───┘   └───┘   └───┘
+
+    It is posible to dinamically choose the best swapper in terms of depth.
+
+      pm = PassManager()
+      pm.append_best_of([BasicSwap(coupling_map), Depth()], 'depth')
+      pm.append_best_of([LookaheadSwap(coupling_map), Depth()], 'depth')
+      circuit_after = pm.run(circuit)
+
+      q_0: |0>─────■─────────■──
+                   │         │
+      q_1: |0>─────┼─────────┼──
+                 ┌─┴─┐┌───┐┌─┴─┐
+      q_2: |0>─X─┤ X ├┤ X ├┤ X ├
+               │ └───┘└─┬─┘└───┘
+      q_3: |0>─┼────────┼───────
+               │        │
+      q_4: |0>─X────────■───────

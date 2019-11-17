@@ -72,6 +72,26 @@ class PassManager:
         self.property_set = None
 
     def append_best_of(self, passes, property_name, break_condition=None, reverse=None):
+        """
+        Appends ``passes`` in the 'best of" group defined by ``property_name``. The group
+        is then executed and the best pass set is selected based on the lower value property.
+
+        Args:
+            passes (list[BasePass] or BasePass): A set of passes (a pass set) to be added
+               to schedule. If a single pass is provided, the pass set will only have that
+               pass a single element.
+            property_name (string): The property to use for comparing.
+            break_condition (callable): The callable will be call with the property set after
+               the pass set is executed. If returns True, the rest of the passes in the group
+               will no be executed.
+            reverse (bool): By default, the method chooses the lower value or
+               ``property_set[property_name]``. If the higher value is the interesting one,
+               this parameter can be set to True. False is the default.
+
+        Raises:
+            TranspilerError: If the parameters ``reverse`` and ``break_condition`` are
+                contradicting.
+        """
         passes = PassManager._normalize_passes(passes)
         new_group = False
         try:
@@ -95,7 +115,7 @@ class PassManager:
             self._pass_sets[-1]['reverse'] = reverse
 
             if break_condition is not None and self._pass_sets[-1]['break_condition'] is not None:
-                raise TranspilerError('Contradictory parameter break_condition')
+                raise TranspilerError('The parameter break_condition should be set only once.')
             self._pass_sets[-1]['break_condition'] = break_condition
 
 

@@ -86,6 +86,14 @@ class RunningPassManager():
         self.count = 0
 
     def append_best_of(self, passes_list, property_name, break_condition=None, reverse=False):
+        """Append a BestOfController to the schedule of passes.
+
+        Args:
+            passes_list (list): A list of pass sets.
+            property_name (string): The property to use for comparing.
+            break_condition (callable): A callable to stop the comparison
+            reverse (bool): A boolean to revert the order.
+        """
         self.working_list.append(BestOfController(passes_list,
                                                   property_name,
                                                   break_condition,
@@ -369,6 +377,7 @@ class BestOfController(FlowController):
     """ The set of passes is rolled back if a condition is true."""
 
     def __init__(self, passes_list, property_name, break_condition=None, reverse=False):
+        # pylint: disable=super-init-not-called
         self.passes_list = []
         self.all_analysis_passes = False
         for passes in passes_list:
