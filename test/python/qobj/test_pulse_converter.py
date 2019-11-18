@@ -68,7 +68,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         instruction = command(DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
-            name='scf',
+            name='set_channel_frequency',
             ch='d0',
             t0=0,
             frequency=8.0
