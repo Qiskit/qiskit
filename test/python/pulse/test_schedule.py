@@ -333,6 +333,10 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
 
+    def test_parametric_commands_in_sched(self):
+        """"""
+        sched = Schedule(name='')
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""

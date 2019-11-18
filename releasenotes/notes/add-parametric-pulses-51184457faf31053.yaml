@@ -3,7 +3,7 @@ prelude: >
     OpenPulse now supports four parametric pulses: Gaussian, GaussianSquare,
     Drag, and ConstantPulse. These are commands (like SamplePulse) which take
     parameters rather than sample points to describe a pulse. They can be
-    played on channels and added to schedules like other pulses. This creates
+    played on channels and added to schedules like other commands. This creates
     a more consistent interface for adding commands from the pulse_lib, and
     dramatically reduces the size of assembled PulseQobjs when the backend
     supports parametric pulses.
@@ -33,8 +33,7 @@ features:
     Using `sched.draw()` will sample the function using the related definition
     in `pulse.pulse_lib` and display those samples. The resulting schedule
     will be similar to a SamplePulse schedule built using `pulse.pulse_lib`,
-    but the exact sampling of the mathematical function will be handled by
-    the backend.
+    but the sampling will be handled by the backend.
 
     This feature can be used to construct Pulse programs for any backend, but
     the pulses will be converted to `SamplePulse`s if the backend does not
