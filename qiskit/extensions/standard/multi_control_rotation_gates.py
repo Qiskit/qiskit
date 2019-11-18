@@ -128,7 +128,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     Apply Multiple-Controlled Y rotation gate
 
     Args:
-        self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
         theta (float): angle theta
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
@@ -194,7 +194,7 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
     Apply Multiple-Controlled Z rotation gate
 
     Args:
-        self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcrz gate on.
         lam (float): angle lambda
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
