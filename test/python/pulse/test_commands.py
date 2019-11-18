@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
                           Snapshot, Kernel, Discriminator, functional_pulse,
                           Delay, PulseError, ConstantPulse, Gaussian, GaussianSquare,
-                          Drag)
+                          Drag, pulse_lib)
 from qiskit.test import QiskitTestCase
 
 
@@ -248,20 +248,38 @@ class TestDiscriminator(QiskitTestCase):
 class TestParametricPulses(QiskitTestCase):
     """Tests for all subclasses of ParametricPulse."""
 
-    def test_gaussian(self):
-        """TODO"""
-        gaus = Gaussian(duration=25, sigma=16, amp=0.5j)
-
-    def test_gaussian_square(self):
-        """"""
+    def test_construction(self):
+        """Test that parametric pulses can be constructed without error."""
+        gauss = Gaussian(duration=25, sigma=16, amp=0.5j)
         gaussquare = GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
-
-    def test_drag(self):
-        """Test the drag pulse and it's sampled construction."""
+        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
         drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
+    def test_sampled_pulse(self):
+        """Test that we can convert to a sampled pulse."""
+        gauss = Gaussian(duration=25, sigma=16, amp=0.5j)
+        sample_pulse = gauss.get_sample_pulse()
+        self.assertIsInstance(sample_pulse, SamplePulse)
+        pulse_lib_gaus = pulse_lib.gaussian(duration=25, sigma=16,
+                                            amp=0.5j, zero_ends=False).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
+
+    def test_samples(self):
+        """Test that the gaussian samples match the formula."""
+        duration = 25
+        sigma = 16
+        amp = 0.5j
+        # formulaic
+        times = np.array(range(25), dtype=np.complex_)
+        times = times - (duration / 2) + 0.5
+        gauss = amp * np.exp(-(times / sigma)**2 / 2)
+        # command
+        command = Gaussian(duration=duration, sigma=sigma, amp=amp)
+        samples = command.get_sample_pulse().samples
+        np.testing.assert_almost_equal(gauss, samples)
+
     def test_constant(self):
-        """Test the constant pulse and it's sampled construction."""
+        """Test the constant pulse and its sampled construction."""
         const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
         self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_sample_pulse().samples), 150)
