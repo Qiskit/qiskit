@@ -20,6 +20,7 @@ import sys
 import warnings
 
 import psutil
+from enum import Enum
 
 
 def _check_python_version():
@@ -95,3 +96,13 @@ def _has_connection(hostname, port):
         return True
     except Exception:  # pylint: disable=broad-except
         return False
+
+
+class MeasLevel(Enum):
+    RAW = 0
+    KERNELED = 1
+    CLASSIFIED = 2
+
+class MeasReturn(Enum):
+    SINGLE = "single"
+    AVG = "avg"
