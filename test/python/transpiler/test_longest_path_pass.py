@@ -36,7 +36,7 @@ class TestLongestPathPass(QiskitTestCase):
 
     def test_nonempty_dag_false(self):
         """Test the dag longest path non-empty dag.
-        path length = 11 = 9 ops + 1 qubit at start, different from DeepestPath
+        path length = 10 = 9 ops + 1 qubit at start, different from DeepestPath
         """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
@@ -85,13 +85,14 @@ class TestLongestPathPass(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = LongestPath()
-        _ = pass_.run(dag, op_times1)
+        pass_ = LongestPath(op_times1)
+        _ = pass_.run(dag)
 
         self.assertEqual(len(pass_.property_set['longest_path']), 10)
         self.assertEqual(pass_.property_set['longest_path_length'], 9)
 
-        _ = pass_.run(dag, op_times2)
+        pass_ = LongestPath(op_times2)
+        _ = pass_.run(dag)
 
         self.assertEqual(len(pass_.property_set['longest_path']), 6)
         self.assertEqual(pass_.property_set['longest_path_length'], 20)
