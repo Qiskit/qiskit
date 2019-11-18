@@ -23,6 +23,7 @@ from qiskit.validation.fields import (Integer, String, Number, Float, Complex, L
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
+from qiskit.util import MeasLevel
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
@@ -87,7 +88,9 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     """Schema for PulseQobjConfig of device backend."""
 
     # Required properties.
-    meas_level = Integer(required=True, validate=Range(min=0, max=2))
+    meas_level = Integer(required=True, validate=OneOf(choices=(MeasLevel.RAW,
+                                                                MeasLevel.KERNELED,
+                                                                MeasLevel.CLASSIFIED)))
     meas_return = String(required=True, validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                                 MeasReturnType.SINGLE)))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
