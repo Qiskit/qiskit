@@ -26,11 +26,9 @@ features:
         sched = Schedule(name='parametric_demo')
         sched += Gaussian(duration=25, sigma=16, amp=0.5j)(DriveChannel(0))
         sched += Drag(duration=25, amp=0.1, sigma=8, beta=4)(DriveChannel(1))
-        sched_duration = sched.duration
-        sched += ConstantPulse(duration=1500,
-                               amp=1)(AcquireChannel(0)) << sched_duration
+        sched += ConstantPulse(duration=25, amp=0.3+0.1j)(DriveChannel(1))
         sched += GaussianSquare(duration=1500, amp=0.2, sigma=8,
-                                width=140)(MeasureChannel(0)) << sched_duration
+                                width=140)(MeasureChannel(0)) << sched.duration
 
     Using `sched.draw()` will sample the function using the related definition
     in `pulse.pulse_lib` and display those samples. The resulting schedule

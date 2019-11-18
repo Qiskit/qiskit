@@ -27,7 +27,11 @@ from qiskit.qobj import QobjMeasurementOption
 
 
 class ParametricPulseShapes(Enum):
-    """Map the assembled pulse names to the pulse module commands."""
+    """Map the assembled pulse names to the pulse module commands.
+
+    The enum name is the transport layer name for pulse shapes, the
+    value is its mapping to the OpenPulse Command in Qiskit.
+    """
     gaussian = commands.Gaussian
     gaussian_square = commands.GaussianSquare
     drag = commands.Drag
