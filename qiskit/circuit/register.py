@@ -79,8 +79,8 @@ class Register:
             key (int or slice or list): index of the clbit to be retrieved.
 
         Returns:
-            Qubit or Clbit or list(Qubit) or list(Clbit): a instances Qubit or Clbit if key is int.
-                If key is a slice, return a list of them.
+            Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
+            key is int. If key is a slice, returns a list of these instances.
 
         Raises:
             CircuitError: if the `key` is not an integer.
