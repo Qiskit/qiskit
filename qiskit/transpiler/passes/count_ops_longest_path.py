@@ -19,7 +19,10 @@ from qiskit.transpiler.passes.longest_path import LongestPath
 
 
 class CountOpsLongestPath(AnalysisPass):
-    """Count the operations on the longest path in a DAGcircuit."""
+    """Count the operations on the longest path in a DAGcircuit.
+
+    The result is saved in ``property_set['count_ops_longest_path']`` as an integer.
+    """
 
     def __init__(self, op_times=None):
         super().__init__()
