@@ -52,7 +52,7 @@ from the multiprocessing library.
 
 import os
 import platform
-from multiprocessing import Pool
+from multiprocessing import Pool, get_context
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
@@ -111,7 +111,11 @@ def parallel_map(  # pylint: disable=dangerous-default-value
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
-            pool = Pool(processes=num_processes)
+            if platform.system() == 'Darwin':
+                ctx = get_context('fork')
+                pool = ctx.Pool(processes=num_processes)
+            else:
+                pool = Pool(processes=num_processes)
 
             async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
                                           _callback) for value in values]
