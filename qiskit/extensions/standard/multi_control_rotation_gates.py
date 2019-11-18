@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Multiple-Control U3 gate. Not using ancillary qubits.
+Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 import logging
