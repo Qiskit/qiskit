@@ -201,7 +201,16 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
-        pass
+        instruction = Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j)(DriveChannel(0))
+        qobj = PulseQobjInstruction(
+            name='parametric_pulse',
+            pulse_shape='gaussian',
+            ch='d0',
+            t0=0,
+            params={'duration':25, 'sigma': 15, 'amp':-0.5 + 0.2j})
+        converted_instruction = self.converter(qobj)
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, instruction.command)
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""

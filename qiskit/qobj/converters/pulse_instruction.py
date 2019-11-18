@@ -444,7 +444,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        command = ParametricPulseShapes[instruction.pulse_shape](**instruction.params)
+        command = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.params)
         return command(channel) << t0
 
     @bind_name('snapshot')
