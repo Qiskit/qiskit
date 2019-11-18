@@ -12,48 +12,31 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""LongestPath pass testing"""
+"""Longest Path pass testing"""
 
 import unittest
-from qiskit.transpiler.passes import LongestPath
-from qiskit import QuantumRegister, QuantumCircuit
+
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
+from qiskit.transpiler.passes import CountOpsLongestPath
 from qiskit.test import QiskitTestCase
 
 
-class TestLongestPathPass(QiskitTestCase):
-    """ Tests for LongestPath methods. """
+class TestCountOpsDeepestPathPass(QiskitTestCase):
+    """ Tests for CountOpsLongestPath analysis methods. """
 
-    def test_empty_dag_true(self):
-        """Test the dag longest path of an empty dag.
-        """
+    def test_empty_dag(self):
+        """ Empty DAG has empty counts."""
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = LongestPath()
-        pass_.run(dag)
-        self.assertListEqual(pass_.property_set['longest_path'], [])
+        passmanager = PassManager()
+        passmanager.append(CountOpsLongestPath())
+        _ = transpile(circuit, pass_manager=passmanager)
 
-    def test_nonempty_dag_false(self):
-        """Test the dag longest path non-empty dag.
-        path length = 11 = 9 ops + 1 qubit at start, different from DeepestPath
-        """
-        qr = QuantumRegister(2)
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.x(qr[0])
-        circuit.y(qr[0])
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.x(qr[1])
-        circuit.y(qr[1])
-        circuit.h(qr[1])
-        circuit.cx(qr[0], qr[1])
-        dag = circuit_to_dag(circuit)
-
-        pass_ = LongestPath()
-        pass_.run(dag)
-        self.assertEqual(len(pass_.property_set['longest_path']), 10)
+        self.assertDictEqual(passmanager.property_set['count_ops_longest_path'], {})
 
     def test_op_times(self):
         """ A dag with different length operations, where longest path depends
@@ -85,16 +68,19 @@ class TestLongestPathPass(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = LongestPath()
-        _ = pass_.run(dag, op_times1)
+        passmanager = PassManager()
+        passmanager.append(CountOpsLongestPath(op_times1))
+        _ = transpile(circuit, pass_manager=passmanager)
 
-        self.assertEqual(len(pass_.property_set['longest_path']), 10)
-        self.assertEqual(pass_.property_set['longest_path_length'], 9)
+        count_ops1 = passmanager.property_set['count_ops_longest_path']
+        self.assertEqual(count_ops1, {'cx': 3, 'h': 6})
 
-        _ = pass_.run(dag, op_times2)
+        passmanager = PassManager()
+        passmanager.append(CountOpsLongestPath(op_times2))
+        _ = transpile(circuit, pass_manager=passmanager)
 
-        self.assertEqual(len(pass_.property_set['longest_path']), 6)
-        self.assertEqual(pass_.property_set['longest_path_length'], 20)
+        count_ops2 = passmanager.property_set['count_ops_longest_path']
+        self.assertEqual(count_ops2, {'cx': 5})
 
 
 if __name__ == '__main__':

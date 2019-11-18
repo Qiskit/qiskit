@@ -15,12 +15,25 @@
 """Count the operations on the longest path in a DAGcircuit."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.passes.longest_path import LongestPath
 
 
 class CountOpsLongestPath(AnalysisPass):
     """Count the operations on the longest path in a DAGcircuit."""
 
+    def __init__(self, op_times=None):
+        super().__init__()
+        self.requires.append(LongestPath(op_times))
+
     def run(self, dag):
         """Run the CountOpsLongestPath pass on `dag`."""
-        self.property_set['count_ops_longest_path'] = \
-            dag.count_ops_longest_path()
+        op_dict = {}
+        path = self.property_set['longest_path']
+        path = path[1:]     # remove qubit at beginning
+        for node in path:
+            name = node.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
+        self.property_set['count_ops_longest_path'] = op_dict
