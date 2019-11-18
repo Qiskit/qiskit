@@ -20,7 +20,7 @@ import sys
 import warnings
 
 import psutil
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 def _check_python_version():
@@ -98,11 +98,11 @@ def _has_connection(hostname, port):
         return False
 
 
-class MeasLevel(Enum):
+class MeasLevel(IntEnum):
     RAW = 0
     KERNELED = 1
     CLASSIFIED = 2
 
-class MeasReturn(Enum):
+class MeasReturn(str, Enum):
     SINGLE = "single"
     AVG = "avg"
