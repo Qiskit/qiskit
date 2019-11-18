@@ -73,7 +73,9 @@ class ParametricPulse(Command):
         return ParametricInstruction(self, channel, name=name)
 
     def __repr__(self):
-        return '{}(name={}, params={})'.format(self.__class__.__name__, self.name, self.get_params())
+        return '{}(name={}, params={})'.format(self.__class__.__name__,
+                                               self.name,
+                                               self.get_params())
 
 
 class Gaussian(ParametricPulse):
@@ -110,7 +112,7 @@ class Gaussian(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian(duration=self.duration, amp=self.amp,
-                        sigma=self.sigma)
+                        sigma=self.sigma, zero_ends=False)
 
 
 class GaussianSquare(ParametricPulse):
@@ -162,7 +164,8 @@ class GaussianSquare(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian_square(duration=self.duration, amp=self.amp,
-                               risefall=(self.duration - self.width) / 2, sigma=self.sigma)
+                               risefall=(self.duration - self.width) / 2, sigma=self.sigma,
+                               zero_ends=False)
 
 
 class Drag(ParametricPulse):
