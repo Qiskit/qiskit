@@ -1,13 +1,63 @@
 ---
 prelude: >
-    TODO
-    Replace this text with content to appear at the top of the section for this
-    release. All of the prelude content is merged together and then rendered
-    separately from the items listed in other parts of the file, so the text
-    needs to be worded so that both the prelude and the other items make sense
-    when read independently. This may mean repeating some details. Not every
-    release note requires a prelude. Usually only notes describing major
-    features or adding release theme details should have a prelude.
+    OpenPulse now supports four parametric pulses: Gaussian, GaussianSquare,
+    Drag, and ConstantPulse. These are commands (like SamplePulse) which take
+    parameters rather than sample points to describe a pulse. They can be
+    played on channels and added to schedules like other pulses. This creates
+    a more consistent interface for adding commands from the pulse_lib, and
+    dramatically reduces the size of assembled PulseQobjs when the backend
+    supports parametric pulses.
 features:
   - |
-    TODO
+    Parametric pulses have been added to OpenPulse. These are pulse commands
+    which are described by some known formula. Arbitrary pulse shapes are
+    still supported by the SamplePulse Command. The new supported pulses are:
+
+      - ConstantPulse
+      - Drag
+      - Gaussian
+      - GaussianSquare
+
+    They can be used like any other Pulse command. An example:
+
+        from qiskit.pulse import (Schedule, Gaussian, Drag, ConstantPulse,
+                                  GaussianSquare)
+
+        sched = Schedule(name='parametric_demo')
+        sched += Gaussian(duration=25, sigma=16, amp=0.5j)(DriveChannel(0))
+        sched += Drag(duration=25, amp=0.1, sigma=8, beta=4)(DriveChannel(1))
+        sched_duration = sched.duration
+        sched += ConstantPulse(duration=1500,
+                               amp=1)(AcquireChannel(0)) << sched_duration
+        sched += GaussianSquare(duration=1500, amp=0.2, sigma=8,
+                                width=140)(MeasureChannel(0)) << sched_duration
+
+    Using `sched.draw()` will sample the function using the related definition
+    in `pulse.pulse_lib` and display those samples. The resulting schedule
+    will be similar to a SamplePulse schedule built using `pulse.pulse_lib`,
+    but the exact sampling of the mathematical function will be handled by
+    the backend.
+
+    This feature can be used to construct Pulse programs for any backend, but
+    the pulses will be converted to `SamplePulse`s if the backend does not
+    support parametric pulses. Backends which support them will have the
+    following new attribute:
+
+        backend.configuration().parametric_pulses: List[str]
+        # e.g. ['gaussian', 'drag', 'constant']
+
+    Note that the backend does not necessarily support all of the parametric
+    pulses defined in Qiskit.
+
+    When the backend supports parametric pulses, and the Pulse schedule is
+    built with them, the assembled Qobj is significantly smaller. The size
+    of a PulseQobj built entirely with parametric pulses is dependent only
+    on the number of instructions, whereas the size of a PulseQobj built
+    otherwise will grow with the duration of the instructions (every sample
+    must be specified with a value).
+
+    New parametric pulses can easily be added. The new command must implement
+    a `get_sample_pulse` method to convert itself to a SamplePulse (for drawing
+    and to assemble to backends which do not support it).
+    The new pulse should then be added to
+    `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`.
