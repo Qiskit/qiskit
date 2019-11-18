@@ -53,9 +53,9 @@ class ExperimentResultSchema(BaseSchema):
     # Optional fields.
     status = String()
     seed = Integer()
-    meas_level = Integer(validate=OneOf(choices=(MeasLevel.RAW,
-                                                 MeasLevel.KERNELED,
-                                                 MeasLevel.CLASSIFIED))
+    meas_level = Integer(validate=OneOf(choices=(MeasLevel.RAW.value,
+                                                 MeasLevel.KERNELED.value,
+                                                 MeasLevel.CLASSIFIED.value)))
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
     header = Nested(ObjSchema)
