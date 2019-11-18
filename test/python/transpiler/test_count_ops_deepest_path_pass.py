@@ -12,31 +12,31 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Depth pass testing"""
+"""Deepest Path pass testing"""
 
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import CountOpsLongestPath
+from qiskit.transpiler.passes import CountOpsDeepestPath
 from qiskit.test import QiskitTestCase
 
 
-class TestCountOpsLongestPathPass(QiskitTestCase):
-    """ Tests for CountOpsLongestPath analysis methods. """
+class TestCountOpsDeepestPathPass(QiskitTestCase):
+    """ Tests for CountOpsDeepestPath analysis methods. """
 
     def test_empty_dag(self):
         """ Empty DAG has empty counts."""
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = CountOpsLongestPath()
+        pass_ = CountOpsDeepestPath()
         _ = pass_.run(dag)
 
-        self.assertDictEqual(pass_.property_set['count_ops_longest_path'], {})
+        self.assertDictEqual(pass_.property_set['count_ops_deepest_path'], {})
 
     def test_just_qubits(self):
-        """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest
+        """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the deepest
         path
         """
         qr = QuantumRegister(2)
@@ -52,10 +52,10 @@ class TestCountOpsLongestPathPass(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         dag = circuit_to_dag(circuit)
 
-        pass_ = CountOpsLongestPath()
+        pass_ = CountOpsDeepestPath()
         _ = pass_.run(dag)
 
-        count_ops = pass_.property_set['count_ops_longest_path']
+        count_ops = pass_.property_set['count_ops_deepest_path']
         self.assertDictEqual(count_ops, {'cx': 3, 'x': 2, 'y': 2, 'h': 2})
 
 

@@ -123,7 +123,7 @@ from .size import Size
 from .width import Width
 from .runtime import Runtime
 from .count_ops import CountOps
-from .count_ops_longest_path import CountOpsLongestPath
+from .count_ops_deepest_path import CountOpsDeepestPath
 from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
 from .deepest_path import DeepestPath

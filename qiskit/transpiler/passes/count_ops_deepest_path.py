@@ -12,14 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Return the deepest path in a DAGcircuit as a list of DAGNodes."""
+"""Count the operations on the deepest path in a DAGcircuit."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
-class DeepestPath(AnalysisPass):
-    """Return the deepest path in a DAGcircuit as a list of DAGNodes."""
+class CountOpsDeepestPath(AnalysisPass):
+    """Count the operations on the deepest path in a DAGcircuit."""
 
     def run(self, dag):
-        """Run the DeepestPath pass on `dag`."""
-        self.property_set['deepest_path'] = dag.deepest_path()
+        """Run the CountOpsLongestPath pass on `dag`."""
+        self.property_set['count_ops_deepest_path'] = \
+            dag.count_ops_deepest_path()
