@@ -529,11 +529,13 @@ class TestPulseAssembler(QiskitTestCase):
                          delay_qobj.experiments[0].to_dict())
 
     def test_assemble_parametric(self):
-        """"""
+        """Test that parametric pulses can be assembled properly into a PulseQobj."""
         pass
 
     def test_assemble_parametric_unsupported(self):
-        """"""
+        """Test that parametric pulses are translated to SamplePulses if they're not supported
+        by the backend during assemble time.
+        """
         pass
 
 

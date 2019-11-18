@@ -40,6 +40,8 @@ from .command import Command
 from .sample_pulse import SamplePulse
 from .instruction import Instruction
 
+# pylint: disable=missing-docstring
+
 
 class ParametricPulse(Command):
     """The abstract superclass for parametric pulses."""

@@ -21,7 +21,7 @@ from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, Acqui
                                    SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction)
+                                   PulseInstruction, FrameChangeInstruction, Gaussian)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -334,8 +334,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
 
     def test_parametric_commands_in_sched(self):
-        """"""
-        sched = Schedule(name='')
+        """Test that schedules can be built with parametric commands."""
+        sched = Schedule(name='test_parametric')
+        sched += Gaussian(duration=10, sigma=2, amp=0.5)(DriveChannel(0))
 
 
 class TestDelay(BaseTestSchedule):

@@ -250,10 +250,10 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_construction(self):
         """Test that parametric pulses can be constructed without error."""
-        gauss = Gaussian(duration=25, sigma=16, amp=0.5j)
-        gaussquare = GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
-        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
-        drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
+        Gaussian(duration=25, sigma=16, amp=0.5j)
+        GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
+        ConstantPulse(duration=150, amp=0.1 + 0.4j)
+        Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
     def test_sampled_pulse(self):
         """Test that we can convert to a sampled pulse."""

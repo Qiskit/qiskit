@@ -75,7 +75,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         return sched
 
     def parametric_pulse_schedule(self):
-        """"""
+        """Test that parametric instructions/schedules can be drawn."""
         pass
 
     # TODO: Enable for refactoring purposes and enable by default when we can
