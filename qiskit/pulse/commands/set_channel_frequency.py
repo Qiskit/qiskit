@@ -24,7 +24,13 @@ from .command import Command
 
 class SetChannelFrequency(Command):
     """
-    Set the channel frequency
+    Set the channel frequency. This command operates on PulseChannels.
+    A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
+    F is the frequency of the channel. The command SetChannelFrequency allows
+    the user to set the value of f. All pulses that are played on a channel
+    after SetChannelFrequency has been called will have the corresponding frequency.
+
+    The duration of SetChannelFrequency is 0.
     """
 
     prefix = 'scf'
@@ -33,8 +39,8 @@ class SetChannelFrequency(Command):
         """Creates a new set channel frequency pulse.
 
         Args:
-            frequency: new frequency of the channel in GHz
-            name: name of this set channel frequency command
+            frequency: New frequency of the channel in Hz.
+            name: Name of this set channel frequency command.
         """
         super().__init__(duration=0)
         self._frequency = float(frequency)
@@ -50,10 +56,10 @@ class SetChannelFrequency(Command):
         Two set channel frequency commands are the same if they have the same type and frequency.
 
         Args:
-            other: other SetChannelFrequency
+            other: Other SetChannelFrequency.
 
         Returns:
-            bool: are self and other equal
+            bool: Are self and other equal.
         """
         return super().__eq__(other) and (self.frequency == other.frequency)
 

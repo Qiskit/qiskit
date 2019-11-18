@@ -513,7 +513,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(filtered.instructions[0][0], 60)
         self.assertIsInstance(filtered.instructions[0][1], AcquireInstruction)
-        self.assertEqual(len(excluded.instexcludedructions), 4)
+        self.assertEqual(len(excluded.instructions), 4)
         self.assertEqual(excluded.instructions[3][0], 90)
         self.assertIsInstance(excluded.instructions[3][1], PulseInstruction)
 
