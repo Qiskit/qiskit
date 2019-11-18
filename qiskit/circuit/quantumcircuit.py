@@ -408,7 +408,9 @@ class QuantumCircuit:
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
                 # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                ret = [in_array[index] for index in bit_representation]
+                # circuit.h([qr[0],1])  -> circuit.h([qr[0], qr[1]])
+                ret = [index if isinstance(index, Bit) else in_array[
+                    index] for index in bit_representation]
             else:
                 raise CircuitError('Not able to expand a %s (%s)' % (bit_representation,
                                                                      type(bit_representation)))
