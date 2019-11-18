@@ -19,8 +19,8 @@ import socket
 import sys
 import warnings
 
-import psutil
 from enum import Enum, IntEnum
+import psutil
 
 
 def _check_python_version():
@@ -99,10 +99,13 @@ def _has_connection(hostname, port):
 
 
 class MeasLevel(IntEnum):
+    """MeasLevel"""
     RAW = 0
     KERNELED = 1
     CLASSIFIED = 2
 
+
 class MeasReturn(str, Enum):
+    """MeasReturn"""
     SINGLE = "single"
     AVG = "avg"

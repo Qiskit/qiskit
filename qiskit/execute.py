@@ -32,7 +32,8 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value, meas_return=MeasReturn.AVG.value,
+            schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
+            meas_return=MeasReturn.AVG.value,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or

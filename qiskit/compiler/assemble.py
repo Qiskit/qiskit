@@ -33,7 +33,8 @@ def assemble(experiments,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
-             schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value, meas_return=MeasReturn.AVG.value, meas_map=None,
+             schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
+             meas_return=MeasReturn.AVG.value, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
