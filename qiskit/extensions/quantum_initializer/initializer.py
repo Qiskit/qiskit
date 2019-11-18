@@ -156,7 +156,7 @@ class Initialize(Instruction):
     @staticmethod
     def _bloch_angles(pair_of_complex):
         """
-        Static internal method to work out rotation to create the passed in
+        Static internal method to work out rotation to create the passed-in
         qubit from the zero vector.
         """
         [a_complex, b_complex] = pair_of_complex

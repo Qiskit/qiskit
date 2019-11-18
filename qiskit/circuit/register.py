@@ -69,7 +69,7 @@ class Register:
         return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
 
     def __len__(self):
-        """Return register size"""
+        """Return register size."""
         return self.size
 
     def __getitem__(self, key):
@@ -110,7 +110,7 @@ class Register:
             other (Register): other Register
 
         Returns:
-            bool: are self and other equal.
+            bool: `self` and `other` are equal.
         """
         res = False
         if type(self) is type(other) and \
