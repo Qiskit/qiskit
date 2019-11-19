@@ -112,8 +112,8 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             if platform.system() == 'Darwin':
-                # The swawn start method is changed to fork start method here to avoid error of python3.8
-                # However, this seems to be considered unsafe.
+                # The swawn start method is changed to fork start method
+                # to avoid error of python3.8. However, this seems to be considered unsafe.
                 # https://docs.python.org/3/library/multiprocessing.html
                 ctx = get_context('fork')
                 pool = ctx.Pool(processes=num_processes)
