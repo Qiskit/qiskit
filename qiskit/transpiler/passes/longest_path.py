@@ -29,7 +29,7 @@ class LongestPath(AnalysisPass):
     def run(self, dag):
         """Return the longest path in a DAGcircuit as a list of DAGNodes."""
         weighted_dag = nx.DiGraph()
-        for source, target, data in dag.edges():
+        for source, target in dag.edges():
             try:
                 if target.type == 'op':
                     if self.op_times is None:

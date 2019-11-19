@@ -17,7 +17,6 @@
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Runtime
