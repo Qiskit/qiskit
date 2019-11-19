@@ -42,7 +42,7 @@ class LongestPath(AnalysisPass):
             except KeyError:
                 raise KeyError("Could not find {} operation in op_times "
                                "dictionary!".format(target.name))
-        # networkx has problems handling weight=0
+        # networkx produces inconsistent results with weight=0
         # so default_weight=1 needs to be ensured, e.g. for out qubits
         longest_path = nx.dag_longest_path(weighted_dag,
                                            weight='weight',
@@ -50,5 +50,8 @@ class LongestPath(AnalysisPass):
         longest_path_length = nx.dag_longest_path_length(weighted_dag,
                                                          weight='weight',
                                                          default_weight=1)
+        # need to subtract the out qubit here
+        if longest_path_length > 0:
+            longest_path_length -= 1
         self.property_set['longest_path'] = longest_path
         self.property_set['longest_path_length'] = longest_path_length
