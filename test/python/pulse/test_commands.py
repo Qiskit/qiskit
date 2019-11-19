@@ -250,17 +250,17 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_construction(self):
         """Test that parametric pulses can be constructed without error."""
-        Gaussian(duration=25, sigma=16, amp=0.5j)
+        Gaussian(duration=25, sigma=4, amp=0.5j)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
         ConstantPulse(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
     def test_sampled_pulse(self):
         """Test that we can convert to a sampled pulse."""
-        gauss = Gaussian(duration=25, sigma=16, amp=0.5j)
+        gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
         sample_pulse = gauss.get_sample_pulse()
         self.assertIsInstance(sample_pulse, SamplePulse)
-        pulse_lib_gaus = pulse_lib.gaussian(duration=25, sigma=16,
+        pulse_lib_gaus = pulse_lib.gaussian(duration=25, sigma=4,
                                             amp=0.5j, zero_ends=False).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
 

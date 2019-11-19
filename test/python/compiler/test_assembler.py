@@ -531,7 +531,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_parametric(self):
         """Test that parametric pulses can be assembled properly into a PulseQobj."""
         sched = pulse.Schedule(name='test_parametric')
-        sched += pulse.Gaussian(duration=25, sigma=16, amp=0.5j)(DriveChannel(0))
+        sched += pulse.Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
         sched += pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4)(DriveChannel(1))
         sched += pulse.ConstantPulse(duration=25, amp=1)(DriveChannel(2))
         sched += pulse.GaussianSquare(duration=150, amp=0.2,
@@ -546,7 +546,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertTrue(all(inst.name == 'parametric_pulse'
                             for inst in qobj_insts))
         self.assertEqual(qobj_insts[0].pulse_shape, 'gaussian')
-        self.assertDictEqual(qobj_insts[0].params, {'duration': 25, 'sigma': 16, 'amp': 0.5j})
+        self.assertDictEqual(qobj_insts[0].params, {'duration': 25, 'sigma': 4, 'amp': 0.5j})
         self.assertListEqual(qobj.to_dict()['experiments'][0]['instructions'][0]['params']['amp'],
                              [0.0, 0.5])
 
