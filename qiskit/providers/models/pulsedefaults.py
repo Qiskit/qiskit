@@ -136,8 +136,8 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self.qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
-        self.meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
+        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]  # Hz
+        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]  # Hz
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
 
