@@ -188,7 +188,7 @@ def q_if(operation, num_ctrl_qubits=1, label=None):
     new_name = '{0}{1}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
                                           instr.num_qubits,
-                                          instr.params,
+                                          operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition)
