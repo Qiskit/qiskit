@@ -161,7 +161,6 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
             all_qubits.update(qubits)
             default_sched = cmd_def.get('measure', qubits)
             for time, inst in default_sched.instructions:
-                import ipdb; ipdb.set_trace()
                 if isinstance(inst, AcquireInstruction):
                     mem_slots = []
                     for channel in inst.acquires:
