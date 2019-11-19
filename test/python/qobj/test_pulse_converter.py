@@ -57,7 +57,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             pulse_shape='gaussian',
             ch='d0',
             t0=0,
-            params={'duration':25, 'sigma': 15, 'amp':-0.5 + 0.2j})
+            params={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_gaussian_square_pulse_instruction(self):
@@ -71,7 +71,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             pulse_shape='gaussian_square',
             ch='m1',
             t0=10,
-            params={'duration':1500, 'sigma': 15, 'amp':-0.5 + 0.2j, 'width':1300})
+            params={'duration': 1500, 'sigma': 15, 'amp': -0.5 + 0.2j, 'width': 1300})
         self.assertEqual(converter(10, instruction), valid_qobj)
 
     def test_constant_pulse_instruction(self):
@@ -84,7 +84,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             pulse_shape='constant',
             ch='u2',
             t0=20,
-            params={'duration':25, 'amp':1})
+            params={'duration': 25, 'amp': 1})
         self.assertEqual(converter(20, instruction), valid_qobj)
 
     def test_drag_pulse_instruction(self):
@@ -97,7 +97,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             pulse_shape='drag',
             ch='d0',
             t0=30,
-            params={'duration':25, 'sigma': 15, 'amp':-0.5 + 0.2j, 'beta':0.5})
+            params={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j, 'beta': 0.5})
         self.assertEqual(converter(30, instruction), valid_qobj)
 
     def test_frame_change(self):
@@ -207,7 +207,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
             pulse_shape='gaussian',
             ch='d0',
             t0=0,
-            params={'duration':25, 'sigma': 15, 'amp':-0.5 + 0.2j})
+            params={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
         converted_instruction = self.converter(qobj)
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1].command, instruction.command)
