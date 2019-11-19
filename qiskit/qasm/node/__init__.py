@@ -14,14 +14,19 @@
 
 """QASM nodes."""
 
+from .acquire import Acquire
 from .barrier import Barrier
 from .binaryop import BinaryOp
 from .binaryoperator import BinaryOperator
+from .channel import Channel
 from .cnot import Cnot
 from .creg import Creg
+from .complex import Complex
 from .customunitary import CustomUnitary
+from .delay import Delay
 from .expressionlist import ExpressionList
 from .external import External
+from .framechange import Framechange
 from .gate import Gate
 from .gatebody import GateBody
 from .id import Id
@@ -32,10 +37,12 @@ from .intnode import Int
 from .format import Format
 from .measure import Measure
 from .opaque import Opaque
+from .play import Play
 from .prefix import Prefix
 from .primarylist import PrimaryList
 from .program import Program
 from .qreg import Qreg
+from .pulse import Pulse
 from .real import Real
 from .reset import Reset
 from .unaryoperator import UnaryOperator
