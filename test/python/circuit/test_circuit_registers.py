@@ -369,6 +369,17 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
 
+    def test_bit_index_mix_list(self):
+        """Test mix of bit and index in list indexing"""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.h([qr[0], qr[1]])
+        
+        qc.h([qr[0],1])
+        self.assertEqual(qc,expected)
+    
     def test_4_args_custom_gate_trivial_expansion(self):
         """test 'expansion' of 4 args in custom gate.
         See https://github.com/Qiskit/qiskit-terra/issues/2508"""
