@@ -376,10 +376,10 @@ class TestCircuitRegisters(QiskitTestCase):
 
         expected = QuantumCircuit(qr)
         expected.h([qr[0], qr[1]])
-        
-        qc.h([qr[0],1])
+
+        qc.h([qr[0], 1])
         self.assertEqual(qc,expected)
-    
+
     def test_4_args_custom_gate_trivial_expansion(self):
         """test 'expansion' of 4 args in custom gate.
         See https://github.com/Qiskit/qiskit-terra/issues/2508"""
