@@ -12,23 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
 
 """Test Qiskit's inverse gate operation."""
 
-import os
-import tempfile
-import unittest
 from math import pi
 from inspect import signature
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
-                    BasicAer)
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
-from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
