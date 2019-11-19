@@ -160,12 +160,6 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['theme/static/']
 
-html_context = {
-    'css_files': [
-        '_static/css/theme-override.css',  # overrides few css in RTD Theme
-    ]
-}
-
 html_logo = 'theme/static/img/logo.png'
 html_favicon = 'theme/static/img/favicon.ico'
 
@@ -259,3 +253,4 @@ autoclass_content = 'both'
 
 def setup(app):
     app.setup_extension('versionutils')
+    app.add_css_file('css/theme-override.css')
