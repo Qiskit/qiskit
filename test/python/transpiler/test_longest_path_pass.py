@@ -53,7 +53,7 @@ class TestLongestPathPass(QiskitTestCase):
 
         pass_ = LongestPath()
         pass_.run(dag)
-        self.assertEqual(len(pass_.property_set['longest_path']), 9)
+        self.assertEqual(len(pass_.property_set['longest_path']), 11)
 
     def test_op_times(self):
         """ A dag with different length operations, where longest path depends
@@ -88,13 +88,13 @@ class TestLongestPathPass(QiskitTestCase):
         pass_ = LongestPath(op_times1)
         _ = pass_.run(dag)
 
-        self.assertEqual(len(pass_.property_set['longest_path']), 9)
+        self.assertEqual(len(pass_.property_set['longest_path']), 11)
         self.assertEqual(pass_.property_set['longest_path_length'], 9)
 
         pass_ = LongestPath(op_times2)
         _ = pass_.run(dag)
 
-        self.assertEqual(len(pass_.property_set['longest_path']), 6)
+        self.assertEqual(len(pass_.property_set['longest_path']), 7)
         self.assertEqual(pass_.property_set['longest_path_length'], 20)
 
 
