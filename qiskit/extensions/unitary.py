@@ -80,15 +80,15 @@ class UnitaryGate(Gate):
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
     def to_matrix(self):
-        """Return matrix for unitary"""
+        """Return matrix for the unitary."""
         return self.params[0]
 
     def inverse(self):
-        """Return the adjoint of the Unitary."""
+        """Return the adjoint of the unitary."""
         return self.adjoint()
 
     def conjugate(self):
-        """Return the conjugate of the Unitary."""
+        """Return the conjugate of the unitary."""
         return UnitaryGate(numpy.conj(self.to_matrix()))
 
     def adjoint(self):
