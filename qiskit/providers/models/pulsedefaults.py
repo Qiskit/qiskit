@@ -147,11 +147,11 @@ class PulseDefaults(BaseModel):
         self._qubit_ops = defaultdict(list)
 
         # Build the above dictionaries from pulse_library and cmd_def
-        self.converter = QobjToInstructionConverter(pulse_library, buffer)
+        self._converter = QobjToInstructionConverter(pulse_library, buffer)
         for op in cmd_def:
             qubits = tuple(op.qubits)
             self._qubit_ops[qubits].append(op.name)
-            pulse_insts = [self.converter(inst) for inst in op.sequence]
+            pulse_insts = [self._converter(inst) for inst in op.sequence]
             self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     def ops(self) -> List[str]:
