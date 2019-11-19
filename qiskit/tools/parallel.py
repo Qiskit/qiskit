@@ -111,7 +111,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
-            if platform.system() == 'Darwin':
+            if platform.system() == 'Darwin' and sys.version_info[0] == 3 and sys.version_info[1] == 8:
                 # The swawn start method is changed to fork start method
                 # to avoid error of python3.8. However, this seems to be considered unsafe.
                 # https://docs.python.org/3/library/multiprocessing.html
