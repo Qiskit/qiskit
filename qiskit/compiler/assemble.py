@@ -75,19 +75,19 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies. Will be overridden by
+            List of default qubit LO frequencies. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies. Will be overridden by
+            List of default meas LO frequencies. Will be overridden by
             `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges used to validate that the supplied qubit los
+            List of drive LO ranges used to validate that the supplied qubit LOs
             are valid.
 
         meas_lo_range (list):
-            List of meas lo ranges used to validate that the supplied measurement los
+            List of meas LO ranges used to validate that the supplied measurement LOs
             are valid.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
@@ -127,7 +127,7 @@ def assemble(experiments,
             arguments.
 
     Returns:
-        Qobj: a qobj which can be run on a backend. Depending on the type of input,
+            Qobj: a qobj which can be run on a backend. Depending on the type of input,
             this will be either a QasmQobj or a PulseQobj.
 
     Raises:
