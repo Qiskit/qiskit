@@ -136,8 +136,8 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self._qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
-        self._meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
+        self.qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
+        self.meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
 
@@ -153,29 +153,6 @@ class PulseDefaults(BaseModel):
             self._qubit_ops[qubits].append(op.name)
             pulse_insts = [self.converter(inst) for inst in op.sequence]
             self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
-
-    @property
-    def qubit_freq_est(self) -> List[float]:
-        """
-        Return the estimated resonant frequency for the given qubit in Hz.
-
-        Returns:
-            The frequency of the qubit resonance in Hz.
-        """
-        warnings.warn("The qubit frequency estimation was previously in GHz, and now is in Hz.")
-        return self._qubit_freq_est_hz
-
-    @property
-    def meas_freq_est(self) -> List[float]:
-        """
-        Return the estimated measurement stimulus frequency to readout from the given qubit.
-
-        Returns:
-            The measurement stimulus frequency in Hz.
-        """
-        warnings.warn("The measurement frequency estimation was previously in GHz, "
-                      "and now is in Hz.")
-        return self._meas_freq_est_hz
 
     def ops(self) -> List[str]:
         """
@@ -369,12 +346,6 @@ class PulseDefaults(BaseModel):
         return schedule
 
     def __str__(self):
-        return ('{name}(operations=[{ops}], n_qubits={n_qubits})'.format(
-            name=self.__class__.__name__,
-            ops=self.ops(),
-            n_qubits=len(self._qubit_freq_est_hz)))
-
-    def __repr__(self):
         single_qops = "1Q operations:\n"
         multi_qops = "Multi qubit operations:\n"
         for qubits, ops in self._qubit_ops.items():
