@@ -17,7 +17,7 @@
 from .node import Node
 
 
-class Pluse(Node):
+class Pulse(Node):
     """Node for an OPENQASM gate definition.
 
     children[0] is an id node.
@@ -45,4 +45,4 @@ class Pluse(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "pulse " + self.id.qasm(prec) + " [" self.samples.qasm(prec) + "];"
+        return "pulse " + self.id.qasm(prec) + " [" + self.samples.qasm(prec) + "];"
