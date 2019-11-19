@@ -36,17 +36,19 @@ class LongestPath(AnalysisPass):
                         op_time = 1
                     else:
                         op_time = self.op_times[target.name]
+                    weighted_dag.add_edge(source, target, weight=op_time)
                 else:
-                    op_time = 0
-                weighted_dag.add_edge(source, target, weight=op_time)
+                    weighted_dag.add_edge(source, target)
             except KeyError:
                 raise KeyError("Could not find {} operation in op_times "
                                "dictionary!".format(target.name))
+        # networkx has problems handling weight=0
+        # so default_weight=1 needs to be ensured, e.g. for out qubits
         longest_path = nx.dag_longest_path(weighted_dag,
                                            weight='weight',
-                                           default_weight=0)
+                                           default_weight=1)
         longest_path_length = nx.dag_longest_path_length(weighted_dag,
                                                          weight='weight',
-                                                         default_weight=0)
+                                                         default_weight=1)
         self.property_set['longest_path'] = longest_path
         self.property_set['longest_path_length'] = longest_path_length

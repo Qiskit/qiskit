@@ -32,7 +32,7 @@ class CountOpsLongestPath(AnalysisPass):
         """Run the CountOpsLongestPath pass on `dag`."""
         op_dict = {}
         path = self.property_set['longest_path']
-        path = path[1:]     # remove qubit at beginning
+        path = path[1:-1]     # remove qubit at beginning and at end
         for node in path:
             name = node.name
             if name not in op_dict:
