@@ -14,8 +14,8 @@
 
 """Return the longest path (regarding runtime) in a DAGcircuit as a list of DAGNodes."""
 
-from qiskit.transpiler.basepasses import AnalysisPass
 import networkx as nx
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class LongestPath(AnalysisPass):

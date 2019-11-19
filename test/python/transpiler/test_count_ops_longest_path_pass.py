@@ -30,7 +30,6 @@ class TestCountOpsDeepestPathPass(QiskitTestCase):
     def test_empty_dag(self):
         """ Empty DAG has empty counts."""
         circuit = QuantumCircuit()
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(CountOpsLongestPath())
@@ -66,7 +65,6 @@ class TestCountOpsDeepestPathPass(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(CountOpsLongestPath(op_times1))

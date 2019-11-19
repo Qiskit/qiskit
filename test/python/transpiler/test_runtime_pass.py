@@ -30,7 +30,6 @@ class TestRuntimePass(QiskitTestCase):
     def test_empty_dag(self):
         """ Empty DAG has 0 runtime"""
         circuit = QuantumCircuit()
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime())
@@ -48,7 +47,6 @@ class TestRuntimePass(QiskitTestCase):
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime(op_times))
@@ -62,7 +60,6 @@ class TestRuntimePass(QiskitTestCase):
         qr = QuantumRegister(1)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime())
@@ -79,7 +76,6 @@ class TestRuntimePass(QiskitTestCase):
         qr = QuantumRegister(1)
         circuit = QuantumCircuit(qr)
         circuit.x(qr[0])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime(op_times))
@@ -96,7 +92,6 @@ class TestRuntimePass(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[1])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime(op_times))
@@ -123,7 +118,6 @@ class TestRuntimePass(QiskitTestCase):
         circuit.h(qr[1])
         circuit.h(qr[1])
         circuit.cx(qr[0], qr[1])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime(op_times))
@@ -155,7 +149,6 @@ class TestRuntimePass(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
-        dag = circuit_to_dag(circuit)
 
         passmanager = PassManager()
         passmanager.append(Runtime(op_times))
