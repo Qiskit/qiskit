@@ -174,7 +174,7 @@ class InstructionToQobjConverter:
         Args:
             shift (int): Offset time.
             instruction (SetChannelFrequencyInstruction): set channel frequency instruction.
-        Returns
+        Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
