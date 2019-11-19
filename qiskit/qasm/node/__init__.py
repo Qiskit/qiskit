@@ -45,6 +45,7 @@ from .qreg import Qreg
 from .pulse import Pulse
 from .real import Real
 from .reset import Reset
+from .samples import Samples
 from .unaryoperator import UnaryOperator
 from .universalunitary import UniversalUnitary
 from .nodeexception import NodeException

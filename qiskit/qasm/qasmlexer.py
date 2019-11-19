@@ -92,10 +92,10 @@ class QasmLexer:
         'pi': 'PI',
         'reset': 'RESET',
         'framechange' : 'FRAMECHANGE',
+        'pulse' : 'PULSE',
         'play' : 'PLAY',
         'acquire' : 'ACQUIRE',
         'delay' : 'DELAY',
-        'channel' : 'CHANNEL',
     }
     tokens = [
         'NNINTEGER',

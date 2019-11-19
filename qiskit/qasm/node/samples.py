@@ -12,25 +12,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Node for a pulse delay definition."""
+"""Node for an OPENQASM samples."""
 
 from .node import Node
 
 
-class Delay(Node):
-    """Node for a pulse framechange definition.
+class Samples(Node):
+    """Node for an OPENQASM samples.
 
-    children[0] is an int node.
-    children[1] is an indexedid channel node.
+    children is a list of complex nodes.
     """
 
     def __init__(self, children):
-        """Create the gate node."""
-        super().__init__('delay', children, None)
-        self.arguments = children[0]
-        self.channel = children[1]
+        """Create the samples node."""
+        super().__init__('samples', children, None)
+
+    def size(self):
+        """Return the length of the samples."""
+        return len(self.children)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        string = "delay(" + self.arguments.qasm(prec) + ') ' + self.channel.qasm(prec) + ';'
-        return string
+        return ",".join([self.children[j].qasm(prec)
+                         for j in range(self.size())])
