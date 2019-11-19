@@ -39,7 +39,7 @@ class Pulse(Node):
         # Source file name
         self.file = self.id.file
         # Size of the register
-        self.index = self.id.index
+        # self.index = self.id.index
 
         self.samples = children[1]
 

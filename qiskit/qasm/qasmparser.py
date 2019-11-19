@@ -359,6 +359,33 @@ class QasmParser:
         program[0] = node.IndexedId([program[1], node.Int(program[3])])
 
     # ----------------------------------------
+    #  complex : '(' REAL ',' REAL ')'
+    # ----------------------------------------
+    def p_complex(self, program):
+        """
+           complex : '(' REAL ',' REAL ')'
+        """
+        real_part = node.Real(program[2])
+        imag_part = node.Real(program[4])
+        program[0] = node.Complex([real_part, imag_part])
+
+    # ----------------------------------------
+    #  samples
+    # ----------------------------------------
+    def p_samples_0(self, program):
+        """
+           samples : complex
+        """
+        program[0] = node.Samples([program[1]])
+
+    def p_samples_1(self, program):
+        """
+           samples : samples ',' complex
+        """
+        program[0] = program[1]
+        program[0].add_child(program[3])
+
+    # ----------------------------------------
     #  primary : id
     #          | indexed_id
     # ----------------------------------------
@@ -447,8 +474,9 @@ class QasmParser:
     #  decl : qreg_decl
     #       | creg_decl
     #       | gate_decl
-    #       | channel_decl
+    #       | pulse_decl
     # ----------------------------------------
+    #       | channel_decl (Not implemented)
     def p_decl(self, program):
         """
            decl : qreg_decl ';'
@@ -456,6 +484,7 @@ class QasmParser:
                 | qreg_decl error
                 | creg_decl error
                 | gate_decl
+                | pulse_decl ';'
         """
         if len(program) > 2:
             if program[2] != ';':
@@ -505,28 +534,6 @@ class QasmParser:
            creg_decl : CREG error
         """
         raise QasmError("Expecting indexed id (ID[int]) in CREG"
-                        + " declaration; received", program[2].value)
-
-        # ----------------------------------------
-    #  qreg_decl : QREG indexed_id
-    # ----------------------------------------
-    def p_channel_decl(self, program):
-        """
-           channel_decl : CHANNEL indexed_id
-        """
-        program[0] = node.Channel([program[2]])
-        if program[2].name in self.external_functions:
-            raise QasmError("Channel names cannot be reserved words. "
-                            + "Received '" + program[2].name + "'")
-        if program[2].index == 0:
-            raise QasmError("Channel size must be positive")
-        self.update_symtab(program[0])
-
-    def p_channel_decl_e(self, program):
-        """
-           channel_decl : CHANNEL error
-        """
-        raise QasmError("Expecting indexed id (ID[int]) in CHANNEL"
                         + " declaration; received", program[2].value)
 
     # Gate_body will throw if there are errors, so we don't need to cover
@@ -579,6 +586,22 @@ class QasmParser:
         """
         del program  # unused
         self.push_scope()
+
+    # ----------------------------------------
+    # pulse_decl : PULSE id samples
+    # ----------------------------------------
+    def p_pulse_decl(self, program):
+        """
+           pulse_decl : PULSE id samples
+        """
+        program[0] = node.Pulse([program[2], program[3]])
+        if program[2].name in self.external_functions:
+            raise QasmError("PULSE names cannot be reserved words. "
+                            + "Received '" + program[2].name + "'")
+
+        # pulse receives samples (list of complex values), so these line is not necessary
+        #  self.pop_scope()
+        #  self.update_symtab(program[0])
 
     # ----------------------------------------
     #  gate_body : '{' gate_op_list '}'
@@ -870,52 +893,52 @@ class QasmParser:
                         str(program[3].value))
 
     # ----------------------------------------
-    # play : play primary_list channel
+    # play : PLAY primary_list channel
     #
     # Errors are covered by handling erros in primary_list
     # ----------------------------------------
-    def p_play(self, program):
-        """
-        play : PLAY primary_list channel
-        """
-        program[0] = node.Play([program[2], program[4]]) #the pulse name, channel
+    #def p_play(self, program):
+    #    """
+    #    play : PLAY primary_list channel
+    #    """
+    #    program[0] = node.Play([program[2], program[4]]) #the pulse name, channel
 
     # ----------------------------------------
-    # acquire : acquire primary_list channel
+    # acquire : ACQUIRE primary_list channel
     #
     # Errors are covered by handling erros in primary_list
     # ----------------------------------------
-    def p_acquire(self, program):
-        """
-        acquire : ACQUIRE primary_list channel
-        """
-        program[0] = node.Acquire([program[2], program[4]]) #acquire channel, creg
-        self.verify_reg_list(program[4], 'creg')
+    #def p_acquire(self, program):
+    #    """
+    #    acquire : ACQUIRE primary_list channel
+    #    """
+    #    program[0] = node.Acquire([program[2], program[4]]) #acquire channel, creg
+    #    self.verify_reg_list(program[4], 'creg')
 
     # ----------------------------------------
-    # fc : fc '(' exp_list ')' channel 
+    # framechange : FRAMECHANGE '(' exp_list ')' channel
     #
     # Errors are covered by handling erros in primary_list
     # ----------------------------------------
-    def p_framechange(self, program):
-        """
-          framechange : FrameChange '(' exp_list ')' channel
-        """
-        program[0] = node.Framechange([program[3], program[5]])
-        self.verify_exp_list(program[3])
+    #def p_framechange(self, program):
+    #    """
+    #      framechange : FRAMECHANGE '(' exp_list ')' channel
+    #    """
+    #    program[0] = node.Framechange([program[3], program[5]])
+    #    self.verify_exp_list(program[3])
 
     # ----------------------------------------
-    # framechange : framechange '(' exp_list ')' channel 
+    # delay : DELAY '(' exp_list ')' id
     #
     # Errors are covered by handling erros in primary_list
     # ----------------------------------------
-    def p_delay(self, program):
-        """
-          delay : delay '(' exp_list ')' channel
-        """
-        program[0] = node.Delay([program[3], program[5]])
-        self.verify_exp_list(program[3])
-        self.ver
+    #def p_delay(self, program):
+    #    """
+    #      delay : delay '(' exp_list ')' id
+    #    """
+    #    program[0] = node.Delay([program[3], program[5]])
+    #    self.verify_exp_list(program[3])
+    #    self.ver
 
     # ----------------------------------------
     # barrier : BARRIER primary_list
@@ -978,10 +1001,12 @@ class QasmParser:
     #                   | reset
     #                   | barrier
     #                   | if
-    #                   | fc
-    #                   | pulse  
-    #                   | acquire
-    #                   | delay 
+    #
+    # ----------------------------------------
+    #        pulse_op : framechange (Not implemented)
+    #                 | play (Not implemented)
+    #                 | acquire (Not implemented)
+    #                 | delay (Not implemented)
     #
     # ----------------------------------------
     def p_quantum_op(self, program):
@@ -992,11 +1017,11 @@ class QasmParser:
                        | barrier
                        | reset
                        | if
-                       | fc
-                       | pulse
-                       | acquire
-                       | delay
         """
+        # | framechange
+        # | play
+        # | acquire
+        # | delay
         program[0] = program[1]
 
     # ----------------------------------------

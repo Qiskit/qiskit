@@ -29,4 +29,4 @@ class Complex(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "(" + self.children[0].qasm(prec) + ")"
+        return "(" + self.children[0].qasm(prec) + "," + self.children[1].qasm(prec) + ")"
