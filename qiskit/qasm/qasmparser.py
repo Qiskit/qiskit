@@ -847,6 +847,56 @@ class QasmParser:
                         str(program[3].value))
 
     # ----------------------------------------
+    # play : play primary_list channel
+    #
+    # Errors are covered by handling erros in primary_list
+    # ----------------------------------------
+    def p_play(self, program):
+        """
+        play : PLAY primary_list channel
+        """
+        program[0] = node.Play([program[2], program[4]]) #the pulse name, channel
+
+    # ----------------------------------------
+    # acquire : acquire primary_list channel
+    #
+    # Errors are covered by handling erros in primary_list
+    # ----------------------------------------
+    def p_acquire(self, program):
+        """
+        acquire : ACQUIRE primary_list channel
+        """
+        program[0] = node.Acquire([program[2], program[4]]) #acquire channel, creg
+        self.verify_reg_list(program[4], 'creg')
+
+    # ----------------------------------------
+    # fc : fc '(' exp_list ')' channel 
+    #
+    # Errors are covered by handling erros in primary_list
+    # ----------------------------------------
+    def p_fc(self, program):
+        """
+          fc : FC '(' exp_list ')' channel
+        """
+        program[0] = node.FC([program[3], program[5]])
+        #self.verify_reg(program[5], 'qreg') do later when we define channel
+        self.verify_exp_list(program[3])
+
+    # ----------------------------------------
+    # fc : fc '(' exp_list ')' channel 
+    #
+    # Errors are covered by handling erros in primary_list
+    # ----------------------------------------
+    def p_delay(self, program):
+        """
+          delay : delay '(' exp_list ')' channel
+        """
+        program[0] = node.FC([program[3], program[5]])
+        #self.verify_reg(program[5], 'qreg') do later when we define channel
+        self.verify_exp_list(program[3])
+
+
+    # ----------------------------------------
     # barrier : BARRIER primary_list
     #
     # Errors are covered by handling erros in primary_list
@@ -907,6 +957,10 @@ class QasmParser:
     #                   | reset
     #                   | barrier
     #                   | if
+    #                   | fc
+    #                   | pulse  
+    #                   | acquire
+    #                   | delay 
     #
     # ----------------------------------------
     def p_quantum_op(self, program):
@@ -917,6 +971,10 @@ class QasmParser:
                        | barrier
                        | reset
                        | if
+                       | fc
+                       | pulse
+                       | acquire
+                       | delay
         """
         program[0] = program[1]
 
