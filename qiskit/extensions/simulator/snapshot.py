@@ -104,7 +104,7 @@ def snapshot(self,
     For other types of snapshots use the Snapshot extension directly.
 
     Args:
-        label (str): a snapshot label to report the result
+        label (str): a snapshot label to report the result.
         snapshot_type (str): the type of the snapshot.
         qubits (list or None): the qubits to apply snapshot to [Default: None].
         params (list or None): the parameters for snapshot_type [Default: None].
