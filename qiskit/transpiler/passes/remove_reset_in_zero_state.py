@@ -12,20 +12,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-Transpiler pass to remove reset gate when the qubit is in zero state
-"""
+"""Remove reset gate when the qubit is in zero state."""
 
 from qiskit.circuit import Reset
 from qiskit.transpiler.basepasses import TransformationPass
 
 
 class RemoveResetInZeroState(TransformationPass):
-    """Remove reset gate when the qubit is in zero state"""
+    """Remove reset gate when the qubit is in zero state."""
 
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the RemoveResetInZeroState pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
         resets = dag.op_nodes(Reset)
         for reset in resets:
             predecessor = next(dag.predecessors(reset))
