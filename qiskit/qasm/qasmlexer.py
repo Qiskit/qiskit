@@ -91,6 +91,11 @@ class QasmLexer:
         'qreg': 'QREG',
         'pi': 'PI',
         'reset': 'RESET',
+        'framechange' : 'FRAMECHANGE',
+        'play' : 'PLAY',
+        'acquire' : 'ACQUIRE',
+        'delay' : 'DELAY',
+        'channel' : 'CHANNEL',
     }
     tokens = [
         'NNINTEGER',
