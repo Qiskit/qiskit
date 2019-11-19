@@ -69,8 +69,8 @@ def execute(experiments, backend,
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. For a backend
-            that provides this information, it can be obtained with:
+            errors, readout errors, qubit coherence times, etc. Find a backend
+            that provides this information with:
             ``backend.properties()``
 
         initial_layout (Layout or dict or list):
