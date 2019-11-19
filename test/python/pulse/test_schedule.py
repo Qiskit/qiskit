@@ -605,29 +605,29 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # empty channels
-        filtered,excluded = self._filter_and_test_consistency(sched, channels=[])
+        filtered, excluded = self._filter_and_test_consistency(sched, channels=[])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 5)
 
         # empty instruction_types
-        filtered,excluded = self._filter_and_test_consistency(sched, instruction_types=[])
+        filtered, excluded = self._filter_and_test_consistency(sched, instruction_types=[])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 5)
 
         # empty time_ranges
-        filtered,excluded = self._filter_and_test_consistency(sched, time_ranges=[])
+        filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 5)
 
         # empty intervals
-        filtered,excluded = self._filter_and_test_consistency(sched, intervals=[])
+        filtered, excluded = self._filter_and_test_consistency(sched, intervals=[])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 5)
 
         # empty channels with other non-empty filters
-        filtered,excluded = self._filter_and_test_consistency(sched,
-                                                              channels=[],
-                                                              instruction_types=[PulseInstruction])
+        filtered, excluded = self._filter_and_test_consistency(sched,
+                                                               channels=[],
+                                                               instruction_types=[PulseInstruction])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 5)
 
