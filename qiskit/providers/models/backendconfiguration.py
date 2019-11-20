@@ -355,8 +355,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit drive channel.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -368,8 +368,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement stimulus line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -381,8 +381,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement acquisition line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
     def control(self, qubit: int) -> ControlChannel:
@@ -398,8 +398,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         # TODO: Determine this from the hamiltonian.
         warnings.warn("The control channel appropriate for an interaction should be determined "
                       "from the hamiltonian. This will be determined for you in the future.")
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return ControlChannel(qubit)
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
