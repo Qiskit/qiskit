@@ -224,7 +224,7 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scale=1, scaling=1):
+    def draw(self, pulse, dt, interp_method, scale=1, scaling=None):
         """Draw figure.
 
         Args:
@@ -342,7 +342,7 @@ class ScheduleDrawer:
         return channels, output_channels, snapshot_channels
 
     def _count_valid_waveforms(self, output_channels, scale=1, channels=None,
-                               plot_all=False, scaling=1):
+                               plot_all=False, scaling=None):
         if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
