@@ -55,12 +55,6 @@ class InstructionSet:
             self.instructions[index] = instruction.inverse()
         return self
 
-    def q_if(self, *qregs):
-        """Add controls to all instructions."""
-        for gate in self.instructions:
-            gate.q_if(*qregs)
-        return self
-
     def c_if(self, classical, val):
         """Add condition on classical register to all instructions."""
         for gate in self.instructions:

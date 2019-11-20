@@ -35,8 +35,8 @@ def add_control(operation, num_ctrl_qubits, label):
         # attempt decomposition
         operation._define()
     if _control_definition_known(operation, num_ctrl_qubits):
-        return _q_if_predefined(operation, num_ctrl_qubits)
-    return q_if(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
+        return _control_predefined(operation, num_ctrl_qubits)
+    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def _control_definition_known(operation, num_ctrl_qubits):
@@ -48,7 +48,7 @@ def _control_definition_known(operation, num_ctrl_qubits):
         return False
 
 
-def _q_if_predefined(operation, num_ctrl_qubits):
+def _control_predefined(operation, num_ctrl_qubits):
     """Returns controlled gates with hard-coded definitions in
     the standard extensions."""
     if operation.name == 'x' and num_ctrl_qubits in [1, 2]:
@@ -88,7 +88,7 @@ def _q_if_predefined(operation, num_ctrl_qubits):
     return cgate
 
 
-def q_if(operation, num_ctrl_qubits=1, label=None):
+def control(operation, num_ctrl_qubits=1, label=None):
     """Return controlled version of gate using controlled rotations
 
     Args:
@@ -216,9 +216,8 @@ def _gate_to_circuit(operation):
 def _unroll_gate(operation, basis_gates):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
     from qiskit.converters.dag_to_circuit import dag_to_circuit
-    from qiskit.converters.instruction_to_gate import instruction_to_gate
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
     dag = circuit_to_dag(_gate_to_circuit(operation))
     qc = dag_to_circuit(unroller.run(dag))
-    return instruction_to_gate(qc.to_instruction())
+    return qc.to_gate()

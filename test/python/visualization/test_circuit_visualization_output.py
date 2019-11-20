@@ -57,7 +57,6 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])
         circuit.rz(pi, qr[0])
-        circuit.u0(pi, qr[0])
         circuit.u1(pi, qr[0])
         circuit.u2(pi, pi, qr[0])
         circuit.u3(pi, pi, pi, qr[0])
