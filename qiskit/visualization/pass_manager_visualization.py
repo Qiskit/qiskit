@@ -62,6 +62,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     Example:
         .. code-block::
 
+             %matplotlib inline
             from qiskit import QuantumCircuit
             from qiskit.compiler import transpile
             from qiskit.transpiler import PassManager

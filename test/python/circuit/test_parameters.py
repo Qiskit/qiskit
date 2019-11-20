@@ -26,6 +26,7 @@ from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
 from qiskit.circuit.exceptions import CircuitError
 
@@ -62,6 +63,19 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
         self.assertIs(rxg, vparams[theta][0][0])
+
+    def test_is_parameterized(self):
+        """Test checking if a gate is parameterized (bound/unbound)"""
+        from qiskit.extensions.standard.h import HGate
+        from qiskit.extensions.standard.rx import RXGate
+        theta = Parameter('θ')
+        rxg = RXGate(theta)
+        self.assertTrue(rxg.is_parameterized())
+        theta_bound = theta.bind({theta: 3.14})
+        rxg = RXGate(theta_bound)
+        self.assertTrue(rxg.is_parameterized())
+        h_gate = HGate()
+        self.assertFalse(h_gate.is_parameterized())
 
     def test_fix_variable(self):
         """Test setting a variable to a constant value"""
@@ -383,6 +397,24 @@ class TestParameters(QiskitTestCase):
                       parameter_binds=[{theta: 1}])
 
         self.assertTrue(len(job.result().results), 2)
+
+    def test_transpile_across_optimization_levels(self):
+        """Verify parameterized circuits can be transpiled with all default pass managers."""
+
+        qc = QuantumCircuit(5, 5)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        qc.rx(theta, 0)
+        qc.x(0)
+        for i in range(5-1):
+            qc.rxx(phi, i, i+1)
+
+        qc.measure(range(5-1), range(5-1))
+
+        for i in [0, 1, 2, 3]:
+            transpile(qc, FakeOurense(), optimization_level=i)
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted

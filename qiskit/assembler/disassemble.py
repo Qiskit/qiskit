@@ -133,7 +133,7 @@ def disassemble(qobj):
     Returns:
         tuple: (circuits, run_config, user_qobj_header):
             * circuits (list): A list of quantum circuits
-            * run_config (dict): The dist of the run config
+            * run_config (dict): The dict of the run config
             * user_qobj_header (dict): The dict of any user headers in the qobj
     """
     run_config = qobj.config.to_dict()

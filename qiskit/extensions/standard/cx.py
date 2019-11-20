@@ -15,19 +15,21 @@
 """
 controlled-NOT gate.
 """
-
 import numpy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
+from qiskit.extensions.standard.x import XGate
 
 
-class CnotGate(Gate):
+class CnotGate(ControlledGate):
     """controlled-NOT gate."""
 
     def __init__(self):
         """Create new CNOT gate."""
-        super().__init__("cx", 2, [])
+        super().__init__("cx", 2, [], num_ctrl_qubits=1)
+        self.base_gate = XGate
+        self.base_gate_name = "x"
 
     def inverse(self):
         """Invert this gate."""
@@ -47,3 +49,4 @@ def cx(self, ctl, tgt):  # pylint: disable=invalid-name
 
 
 QuantumCircuit.cx = cx
+QuantumCircuit.cnot = cx
