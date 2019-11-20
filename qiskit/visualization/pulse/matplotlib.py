@@ -572,7 +572,6 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
-
         figure = plt.figure()
 
         if channels_to_plot is not None:
