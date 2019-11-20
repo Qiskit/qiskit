@@ -257,7 +257,7 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
-                    risefall: Optional[int] = None, width: Optional[int] = None,
+                    risefall: Optional[float] = None, width: Optional[float] = None,
                     name: Optional[str] = None, zero_ends: bool = True) -> 'SamplePulse':
     """Generates gaussian square `SamplePulse`.
 

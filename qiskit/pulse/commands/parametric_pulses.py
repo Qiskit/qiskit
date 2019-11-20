@@ -130,7 +130,7 @@ class GaussianSquare(ParametricPulse):
     """
     A square pulse with a Gaussian shaped risefall on either side:
 
-        risefall = duration - width / 2
+        risefall = (duration - width) / 2
 
     0 <= x < risefall
         f(x) = amp * exp( -(1/2) * (x - risefall/2)^2 / sigma^2) )
@@ -146,7 +146,7 @@ class GaussianSquare(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 width: int):
+                 width: float):
         """Initialize the gaussian square command.
 
         Args:
