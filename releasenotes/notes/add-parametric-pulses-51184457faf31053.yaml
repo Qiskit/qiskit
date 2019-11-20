@@ -1,9 +1,9 @@
 ---
 prelude: >
     OpenPulse now supports four parametric pulses: Gaussian, GaussianSquare,
-    Drag, and ConstantPulse. These are commands (like SamplePulse) which take
-    parameters rather than sample points to describe a pulse. They can be
-    played on channels and added to schedules like other commands. This creates
+    Drag, and ConstantPulse. These are Pulse commands which take parameters
+    rather than sample points to describe a pulse. They can be played on
+    channels and added to schedules exactly like other commands. This creates
     a more consistent interface for adding commands from the pulse_lib, and
     dramatically reduces the size of assembled PulseQobjs when the backend
     supports parametric pulses.
@@ -30,10 +30,10 @@ features:
         sched += GaussianSquare(duration=1500, amp=0.2, sigma=8,
                                 width=140)(MeasureChannel(0)) << sched.duration
 
-    Using `sched.draw()` will sample the function using the related definition
-    in `pulse.pulse_lib` and display those samples. The resulting schedule
-    will be similar to a SamplePulse schedule built using `pulse.pulse_lib`,
-    but the sampling will be handled by the backend.
+    The resulting schedule will be similar to a SamplePulse schedule built
+    using `pulse.pulse_lib`, but the eventual sampling will be handled by the
+    backend. Using `sched.draw()` will use the related definition in
+    `pulse.pulse_lib` to sample the function and display those samples.
 
     This feature can be used to construct Pulse programs for any backend, but
     the pulses will be converted to `SamplePulse`s if the backend does not
@@ -50,11 +50,16 @@ features:
     built with them, the assembled Qobj is significantly smaller. The size
     of a PulseQobj built entirely with parametric pulses is dependent only
     on the number of instructions, whereas the size of a PulseQobj built
-    otherwise will grow with the duration of the instructions (every sample
-    must be specified with a value).
+    otherwise will grow with the duration of the instructions (since every
+    sample must be specified with a value).
 
     New parametric pulses can easily be added. The new command must implement
     a `get_sample_pulse` method to convert itself to a SamplePulse (for drawing
-    and to assemble to backends which do not support it).
-    The new pulse should then be added to
-    `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`.
+    and to assemble to backends which do not support it). It should be added
+    to `qiskit/pulse/commands/parametric_pulses.py`.
+    The new pulse must then be registered by the assembler in
+    `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
+    by following the existing pattern:
+        class ParametricPulseShapes(Enum):
+            ...
+            backend_config_pulse_str = commands.YourPulseCommandClass

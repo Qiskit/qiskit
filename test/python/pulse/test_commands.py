@@ -296,6 +296,19 @@ class TestParametricPulses(QiskitTestCase):
         const = ConstantPulse(duration=150, amp=1)
         self.assertIsInstance(const.amp, complex)
 
+    def test_param_validation(self):
+        """Test that parametric pulse parameters are validated when initialized."""
+        with self.assertRaises(PulseError):
+            Gaussian(duration=25, sigma=0, amp=0.5j)
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=150, amp=0.2, sigma=8, width=160)
+        with self.assertRaises(PulseError):
+            ConstantPulse(duration=150, amp=0.9 + 0.8j)
+        with self.assertRaises(PulseError):
+            Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
+        with self.assertRaises(PulseError):
+            Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
+
 
 if __name__ == '__main__':
     unittest.main()

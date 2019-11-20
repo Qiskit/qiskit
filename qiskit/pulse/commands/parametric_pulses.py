@@ -16,24 +16,32 @@
 Parametric pulse commands. These are pulse commands which are described by a known formula and some
 parameters.
 
+If a backend supports parametric pulses, it will have the attribute
+`backend.configuration().parametric_pulses`, which is a list of supported pulse shapes, such as
+`['gaussian', 'gaussian_square', 'drag']`. A Pulse Schedule, using parametric pulses, which is
+assembled for a backend which supports those pulses, will result in a Qobj which is dramatically
+smaller than one which uses SamplePulses.
+
 This module can easily be extended to describe more pulse shapes. The new class should:
   - have a descriptive name
-  - be a well known and/or well described formula
+  - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`)
-  - implement a `get_sample_pulse` method to convert itself to a SamplePulse in the
+  - implement a `get_sample_pulse` method which returns a corresponding SamplePulse in the
     case that it is assembled for a backend which does not support it.
-The new pulse shape should then be added to
-`qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`.
 
-The usefulness of these classes are limited by pulse backends supporting them. If a backend
-supports parametric pulses, it will have the attribute
-`backend.configuration().parametric_pulses`, which is a list of supported pulse shapes, such as
-`['gaussian', 'gaussian_square', 'drag']`.
+The new pulse must then be registered by the assembler in
+`qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
+by following the existing pattern:
+    class ParametricPulseShapes(Enum):
+        gaussian = commands.Gaussian
+        ...
+        new_supported_pulse_name = commands.YourPulseCommandClass
 """
 from abc import abstractmethod
 from typing import Any, Dict, Optional
 
 from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
 
 from .command import Command
@@ -100,6 +108,7 @@ class Gaussian(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
         """
+        validate_params(amp=amp, sigma=sigma)
         self._amp = complex(amp)
         self._sigma = sigma
         super().__init__(duration=duration)
@@ -147,6 +156,7 @@ class GaussianSquare(ParametricPulse):
                    mathematically in the class docstring.
             width: The duration of the embedded square pulse.
         """
+        validate_params(amp=amp, sigma=sigma, width=width, duration=duration)
         self._amp = complex(amp)
         self._sigma = sigma
         self._width = width
@@ -186,6 +196,8 @@ class Drag(ParametricPulse):
         [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
         in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
+        [2] F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
+        Phys. Rev. Lett. 103, 110501 – Published 8 September 2009
     """
 
     def __init__(self,
@@ -205,6 +217,7 @@ class Drag(ParametricPulse):
             remove_baseline: If the pulse is translated to a SamplePulse, this option will set the
                              start of the pulse to zero.
         """
+        validate_params(amp=amp, sigma=sigma, beta=beta)
         self._amp = complex(amp)
         self._sigma = sigma
         self._beta = beta
@@ -246,6 +259,7 @@ class ConstantPulse(ParametricPulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
         """
+        validate_params(amp=amp)
         self._amp = complex(amp)
         super().__init__(duration=duration)
 
@@ -255,6 +269,25 @@ class ConstantPulse(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return constant(duration=self.duration, amp=self.amp)
+
+
+def validate_params(**kwargs):
+    """
+    Raise an error if the parameters passed are not valid.
+    """
+    if 'amp' in kwargs:
+        if abs(kwargs['amp']) > 1.:
+            raise PulseError("The amplitude norm must be less than 1, "
+                             "found: {}".format(abs(kwargs['amp'])))
+    if 'sigma' in kwargs:
+        if kwargs['sigma'] <= 0:
+            raise PulseError("Sigma must be greater than 0.")
+    if 'beta' in kwargs:
+        if isinstance(kwargs['beta'], complex):
+            raise PulseError("Beta must be real.")
+    if 'width' in kwargs and 'duration' in kwargs:
+        if kwargs['width'] >= kwargs['duration']:
+            raise PulseError("The width of the pulse must be less than its duration.")
 
 
 class ParametricInstruction(Instruction):
