@@ -74,9 +74,15 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if abs(abs(val) - abs(round(val))) < eps:
         val = int(round(val))
         if val > 0:
-            str_out = '{}/{}'.format(pi, val)
+            if output == 'latex':
+                str_out = '\\frac{%s}{%s}' % (pi, abs(val))
+            else:
+                str_out = '{}/{}'.format(pi, val)
         else:
-            str_out = '-{}/{}'.format(pi, abs(val))
+            if output == 'latex':
+                str_out = '\\frac{-%s}{%s}' % (pi, abs(val))
+            else:
+                str_out = '-{}/{}'.format(pi, abs(val))
         return str_out
 
     # Look for all fracs in 8
@@ -93,13 +99,25 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         elif numer == -1 and denom == 1:
             str_out = '-{}'.format(pi)
         elif numer == 1:
-            str_out = '{}/{}'.format(pi, denom)
+            if output == 'latex':
+                str_out = '\\frac{%s}{%s}' % (pi, denom)
+            else:
+                str_out = '{}/{}'.format(pi, denom)
         elif numer == -1:
-            str_out = '-{}/{}'.format(pi, denom)
+            if output == 'latex':
+                str_out = '\\frac{-%s}{%s}' % (pi, denom)
+            else:
+                str_out = '-{}/{}'.format(pi, denom)
         elif denom == 1:
-            str_out = '{}/{}'.format(numer, pi)
+            if output == 'latex':
+                str_out = '\\frac{%s}{%s}' % (numer, pi)
+            else:
+                str_out = '{}/{}'.format(numer, pi)
         else:
-            str_out = '{}{}/{}'.format(numer, pi, denom)
+            if output == 'latex':
+                str_out = '\\frac{%s%s}{%s}' % (numer, pi, denom)
+            else:
+                str_out = '{}{}/{}'.format(numer, pi, denom)
 
         return str_out
     # nothing found
