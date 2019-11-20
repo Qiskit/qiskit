@@ -99,6 +99,7 @@ class QasmLexer:
         'ch_barrier': 'CH_BARRIER',
         'framechange': 'FRAMECHANGE',
         'acquire': 'ACQUIRE',
+        'delay' : 'DELAY'
     }
     tokens = [
         'NNINTEGER',
