@@ -182,10 +182,10 @@ class TestPulseDefaults(QiskitTestCase):
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
 
-    def test_repr(self):
-        """Test that __repr__ method works."""
+    def test_str(self):
+        """Test that __str__ method works."""
         self.assertEqual(
-            repr(self.defs),
+            str(self.defs),
             "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u2', 'u3']\n  q1: ['u1', 'u2', "
             "'u3']\nMulti qubit operations:\n  (0, 1): ['cx', 'ParametrizedGate', 'measur"
             "e']\nQubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5"
