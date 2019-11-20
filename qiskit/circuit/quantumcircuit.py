@@ -590,6 +590,22 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
 
+    def to_gate(self, parameter_map=None):
+        """Create a Gate out of this circuit.
+
+        Args:
+            parameter_map(dict): For parameterized circuits, a mapping from
+               parameters in the circuit to parameters to be used in the
+               gate. If None, existing circuit parameters will also
+               parameterize the gate.
+
+        Returns:
+            Gate: a composite gate encapsulating this circuit
+            (can be decomposed back)
+        """
+        from qiskit.converters.circuit_to_gate import circuit_to_gate
+        return circuit_to_gate(self, parameter_map)
+
     def decompose(self):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
