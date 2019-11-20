@@ -16,6 +16,7 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import Schedule, DriveChannel
+from qiskit.pulse.channels import MeasureChannel
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -160,7 +161,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.u2(3.14, 1.57, q[0])
         qc.cx(q[0], q[1])
-        qc.measure(q[0], c[0])
+        # qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
@@ -169,10 +170,17 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('cx', [0, 1])),
             (50, self.cmd_def.get('measure', [0, 1])),
             (60, self.cmd_def.get('measure', [0, 1])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        deleted_measure_channels = set(expected.channels) - set(sched.channels)
+        sched_inst = list(sched.instructions)
+        expected_inst = list(expected.instructions)
+        for expected in expected_inst:
+            if set(expected[1].channels) != deleted_measure_channels:
+                for actual in sched_inst:
+                    self.assertEqual(actual[0], expected[0])
+                    self.assertEqual(actual[1].command, expected[1].command)
+                    self.assertEqual(actual[1].channels, expected[1].channels)
+                    sched_inst.pop(0)
+                    break
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
@@ -225,3 +233,15 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(sched.name, qc.name)
         sched = schedule(qc, self.backend, method="alap")
         self.assertEqual(sched.name, qc.name)
+
+    def test_schedule_respects_measure_channel(self):
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[1])
+        expected_measure_channel = schedule(qc, self.backend).channels
+        old_measure_channel = Schedule(
+            self.cmd_def.get('measure', [0, 1])
+        ).channels
+        excluded_measure_channel = set(old_measure_channel) - set(expected_measure_channel)
+        self.assertEqual(excluded_measure_channel, {MeasureChannel(1)})
