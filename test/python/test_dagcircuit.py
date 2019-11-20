@@ -14,13 +14,14 @@
 
 """Test for the DAGCircuit object"""
 
+import copy
 import unittest
 
 from ddt import ddt, data
 
 import networkx as nx
 
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit import QuantumCircuit
@@ -1035,6 +1036,259 @@ class TestDagProperties(QiskitTestCase):
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
 
+    
+class TestDAGContraction(QiskitTestCase):
+    def test_raise_for_mixed_conditional(self):
+        """Verify contract_nodes raises if nodes are conditioned differently."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
 
+        # Raise if one conditioned, another unconditioned
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]], [], (cr1, 0))
+        g2 = dag.apply_operation_back(HGate(), [qr[0]])
+
+        with self.assertRaises(DAGCircuitError):
+            dag.contract_nodes({g1, g2})
+
+        # Raise if conditioned by different values
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]], [], (cr1, 0))
+        g2 = dag.apply_operation_back(HGate(), [qr[0]], [], (cr1, 1))
+
+        with self.assertRaises(DAGCircuitError):
+            dag.contract_nodes({g1, g2})
+
+        # Raise if conditioned on different registers
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]], [], (cr1, 0))
+        g2 = dag.apply_operation_back(HGate(), [qr[0]], [], (cr2, 0))
+
+        with self.assertRaises(DAGCircuitError):
+            dag.contract_nodes({g1, g2})
+
+    def test_empty_target(self):
+        """ """
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        dag.apply_operation_back(HGate(), [qr[0]])
+        dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+
+        with self.assertRaises(DAGCircuitError):
+            dag.contract_nodes([])
+
+    def test_contract_single_gate(self):
+        """ """
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]])
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.apply_operation_back(
+            Instruction('contraction', 1, 0, []), [qr[0]])
+        
+        dag.contract_nodes((g1,))
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+    def test_contract_adjacent_single_qubit_nodes(self):
+        """ """
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]])
+        g2 = dag.apply_operation_back(XGate(), [qr[0]])
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.apply_operation_back(
+            Instruction('contraction', 1, 0, []), [qr[0]])
+        
+        dag.contract_nodes((g1, g2))
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+    def test_contract_adjacent_two_qubit_nodes(self):
+        """ """
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        g1 = dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+        g2 = dag.apply_operation_back(CnotGate(), [qr[1], qr[0]])
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.apply_operation_back(
+            Instruction('contraction', 2, 0, []), [qr[0], qr[1]])
+        
+        dag.contract_nodes((g1, g2))
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+    def test_contract_adjacent_two_qubit_nodes_on_three_qubits(self):
+        qr = QuantumRegister(3)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        g1 = dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+        g2 = dag.apply_operation_back(CnotGate(), [qr[1], qr[2]])
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.apply_operation_back(
+            Instruction('contraction', 3, 0, []), [qr[0], qr[1], qr[2]])
+        
+        dag.contract_nodes((g1, g2))
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+    def test_contract_1q_gates_on_disjoint_qubits(self):
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        g1 = dag.apply_operation_back(HGate(), [qr[0]])
+        g2 = dag.apply_operation_back(HGate(), [qr[1]])
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.apply_operation_back(
+            Instruction('contraction', 2, 0, []), [qr[0], qr[1]])
+        
+        dag.contract_nodes((g1, g2), allow_nonadjacent_merge=True)
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+    def test_contract_leaves_noncontracted_instructions(self):
+        qr = QuantumRegister(3)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        # Preamble
+        dag.apply_operation_back(XGate(), [qr[0]])
+        dag.apply_operation_back(IdGate(), [qr[1]])
+        dag.apply_operation_back(HGate(), [qr[2]])
+
+        # Contraction
+        g1 = dag.apply_operation_back(HGate(), [qr[0]])
+        g2 = dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+
+        # Postamble
+        dag.apply_operation_back(CnotGate(), [qr[0], qr[2]])
+        dag.apply_operation_back(XGate(), [qr[1]])
+        
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+
+        # Preamble
+        expected.apply_operation_back(XGate(), [qr[0]])
+        expected.apply_operation_back(IdGate(), [qr[1]])
+        expected.apply_operation_back(HGate(), [qr[2]])
+
+        # Contraction
+        expected.apply_operation_back(
+            Instruction('contraction', 2, 0, []), [qr[0], qr[1]])
+
+        # Postamble
+        expected.apply_operation_back(CnotGate(), [qr[0], qr[2]])
+        expected.apply_operation_back(XGate(), [qr[1]])
+        
+        dag.contract_nodes((g1, g2))
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(expected, dag)
+
+        
+class TestSubcircuitReplacement(QiskitTestCase):
+    def test_raise_for_shape_mismatch(self):
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        
+        g1 = dag.apply_operation_back(CnotGate(), [qr[1], qr[0]])
+        g2 = dag.apply_operation_back(HGate(), [qr[0]])
+
+        # When would a replacement need to be of a different width than its target?
+        # Adding/removing ancilla?
+
+        # how do users get node handles?
+        replacement = DAGCircuit()
+        replacement.add_qreg(qr)
+        replacement.apply_operation_back(HGate())
+
+        replacement.draw()
+        
+        with self.assertRaises(DAGCircuitError):
+            dag.substitute_subcircuit((g1, g2), replacement, {bit: bit for bit in qr})
+
+    def test_raise_if_subcircuit_not_contiguous(self):
+        pass
+        
+    def test_replace_single_gate(self):
+        pass
+
+    def test_replace_multi_gate(self):
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        
+        g1 = dag.apply_operation_back(CnotGate(), [qr[1], qr[0]])
+        g2 = dag.apply_operation_back(HGate(), [qr[0]])
+
+        bell = Gate('bell', 2, [])
+        replacement = DAGCircuit()
+        replacement_qr = QuantumRegister(2)
+        replacement.add_qreg(replacement_qr)
+        replacement.apply_operation_back(bell, [replacement_qr[0], replacement_qr[1]])
+
+        dag.substitute_subcircuit((g1, g2), replacement,
+                                  {qr[0]: replacement_qr[0],
+                                   qr[1]: replacement_qr[1]})
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr)
+
+        expected.apply_operation_back(bell, [qr[0], qr[1]])
+
+        self.assertEqual(dag, expected)
+
+    def test_replace_multi_gate_with_creg(self):
+        pass
+
+    def test_replace_multi_gate_with_creg_and_conditional(self):
+        pass
+        
 if __name__ == '__main__':
     unittest.main()

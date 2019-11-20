@@ -29,7 +29,7 @@ import networkx as nx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.gate import Gate
+from qiskit.circuit import Gate, Instruction
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
 
@@ -1339,3 +1339,127 @@ class DAGCircuit:
         """
         from qiskit.visualization.dag_visualization import dag_drawer
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+        
+    def contract_nodes(self, nodes,
+                       allow_nonadjacent_merge=False,
+                       skip_subcircuit_validation=False):
+        """Contracts several adjacent DAGNodes in to a new single node. Modifies
+        input DAGCircuit inplace.
+
+        Args:
+            nodes (Iterable[DAGNode]) - DAGNodes to be contracted.
+            allow_nonadjacent_merge (Optional[bool]) - If true, allow operations
+                which are not (and cannot be made through contraction to be)
+                strictly adjacent on the graph to be merged (e.g. the two
+                Hadamard gates in:
+
+                        ┌───┐┌───┐┌───┐
+                q_0: |0>┤ X ├┤ H ├┤ Y ├
+                        ├───┤├───┤├───┤
+                q_1: |0>┤ H ├┤ Y ├┤ Z ├
+                        └───┘└───┘└───┘
+            skip_subcircuit_validation (Optional[bool]) - If true, do not verify
+                that nodes in nodes form an uninterrupted subcircuit.
+
+        Raises:
+            AssertionError: if an invalid set of arguments is provided
+            DAGCircuitError: if nodes does not form a replaceable subcircuit
+
+        Returns:
+            DAGNode: an opaque 'contraction' instruction with the union of qargs
+            and cargs from all input nodes, sorted according to their order in
+            dag.qargs or dag.cargs.
+        """
+
+        if not nodes:
+            raise DAGCircuitError('Empty node list supplied to contract_nodes.')
+
+        if not skip_subcircuit_validation:
+            # Verify nodes does not contain an io node.
+            if any([node for node in nodes if node.type != 'op']):
+                raise DAGCircuitError('Node contraction only supported across op '
+                                      'nodes, but nodes of types {} were'
+                                      'supplied.'.format({node.type for node in nodes}))
+
+            # Verify all nodes are conditioned in the same way.
+            if len({node.condition for node in nodes}) > 1:
+                raise DAGCircuitError('Only nodes which share the same classical '
+                                      'conditioning can be contracted. Found '
+                                      'conditions {}.'.format({node.condition for node in nodes}))
+
+            # Verify that nodes can be contracted without invalidating DAG.
+            # if not self._is_valid_contraction(nodes, allow_nonadjacent_merge):
+            #     raise DAGCircuitError('Nodes must form an uninterrupted subcircuit.')
+
+        node_set = set(nodes)
+
+        first_node = node_set.pop()
+
+        replacement_op = Instruction('contraction',
+                                     len(set(qarg for qarg in first_node.qargs)),
+                                     len(set(carg for carg in first_node.cargs)),
+                                     [])
+
+        target_node = self.substitute_node(first_node, replacement_op)
+
+        target_qargs = set(target_node.qargs)
+        target_cargs = set(target_node.cargs)
+
+        node_set -= {first_node}
+        active_qubit = None
+        finished_qubits = set()
+
+        while node_set:
+            neighbors = set(self.successors(target_node)) | set(self.predecessors(target_node))
+            candidates = neighbors & node_set
+
+            if candidates:
+                consumed_node = candidates.pop()
+                node_set.remove(consumed_node)
+
+                self._multi_graph = nx.contracted_edge(
+                    self._multi_graph,
+                    (target_node, consumed_node),
+                    self_loops=False)
+            elif allow_nonadjacent_merge:
+                consumed_node = node_set.pop()
+
+                self._multi_graph = nx.contracted_nodes(
+                    self._multi_graph,
+                    target_node,
+                    consumed_node,
+                    self_loops=False)
+            else:
+                raise DAGCircuitError('Nodes supplied to contract_nodes invalid. '
+                                      'DAGCircuit may have been modified and may be in an invalid state.')
+
+            target_qargs |= set(consumed_node.qargs)
+            target_cargs |= set(consumed_node.cargs)
+            
+            node_set -= {consumed_node}
+
+        target_node.data_dict['qargs'] = sorted(target_qargs, key=lambda qarg: qarg.index)
+        target_node.data_dict['cargs'] = sorted(target_cargs, key=lambda carg: carg.index)
+        target_node.op.num_clbits = len(target_node.cargs)
+        target_node.op.num_qubits = len(target_node.qargs)
+
+        return target_node
+
+    def substitute_subcircuit(self, nodes, replacement_dag, wire_map):
+        """Replace subcircuit of self given by nodes with replacement_dag.
+
+        Args:
+            nodes (Iterable[DAGNode]) - DAGNodes in self to be replaced.
+            replacement_dag (DAGCircuit) -
+            wire_map (Dict[Bit, Bit]) - Dictionary mapping bits in self to their
+               target bits in replacement_dag.
+
+        """
+
+        n = self.contract_nodes(nodes, allow_nonadjacent_merge=True)
+
+        wires = [wire_map[src] for src in self.wires
+                 if src in n.qargs or src in n.cargs]
+        
+        self.substitute_node_with_dag(n, replacement_dag, wires)
