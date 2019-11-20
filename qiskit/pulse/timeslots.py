@@ -281,8 +281,12 @@ class TimeslotCollection:
             if interval.start >= ch_interval.stop:
                 break
             elif interval.has_overlap(ch_interval):
-                raise PulseError("Timeslot: {0} overlaps with existing"
-                                 "Timeslot: {1}".format(timeslot, ch_timeslot))
+                overlap_start = interval.start if interval.start > ch_interval.start \
+                    else ch_interval.start
+                overlap_end = ch_interval.stop if interval.stop > ch_interval.stop \
+                    else interval.stop
+                raise PulseError("Overlap on channel {0} over time range [{1}, {2}]"
+                                 "".format(timeslot.channel, overlap_start, overlap_end))
 
             insert_idx -= 1
 
