@@ -536,9 +536,9 @@ class ScheduleDrawer:
                 continue
 
             # plot label
-            ax.text(x=0, y=y0, s=channel.name,
+            ax.text(x=0.5, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
-                    ha='right', va='center')
+                    ha='left', va='bottom')
 
             # change the y0 offset for removing spacing when a channel has negative values
             if self.style.remove_spacing:
@@ -572,6 +572,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
+
         figure = plt.figure()
 
         if channels_to_plot is not None:
@@ -624,6 +625,6 @@ class ScheduleDrawer:
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
-        ax.set_yticklabels([])
+        ax.set_yticks(ax.get_yticks())
 
         return figure
