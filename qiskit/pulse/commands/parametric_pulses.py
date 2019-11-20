@@ -176,7 +176,7 @@ class GaussianSquare(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian_square(duration=self.duration, amp=self.amp,
-                               risefall=(self.duration - self.width) / 2, sigma=self.sigma,
+                               width=self.width, sigma=self.sigma,
                                zero_ends=False)
 
 

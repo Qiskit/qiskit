@@ -21,6 +21,7 @@ Note the sampling strategy use for all discrete pulses is `midpoint`.
 from typing import Optional
 
 from qiskit.pulse.pulse_lib import continuous
+from qiskit.pulse.exceptions import PulseError
 
 from . import samplers
 
@@ -256,8 +257,8 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
-                    risefall: int, name: Optional[str] = None,
-                    zero_ends: bool = True) -> 'SamplePulse':
+                    risefall: Optional[int] = None, width: Optional[int] = None,
+                    name: Optional[str] = None, zero_ends: bool = True) -> 'SamplePulse':
     """Generates gaussian square `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=0` and `t=duration` to prevent
@@ -271,13 +272,23 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
         sigma: Width (standard deviation) of Gaussian rise/fall portion of the pulse.
         risefall: Number of samples over which pulse rise and fall happen. Width of
             square portion of pulse will be `duration-2*risefall`.
+        width: The duration of the embedded square pulse. Only one of `width` or `risefall`
+               should be specified since width = duration - 2 * risefall.
         name: Name of pulse.
         zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
-    center = duration/2
-    square_width = duration-2*risefall
+    if risefall is None and width is None:
+        raise PulseError("gaussian_square missing required argument: 'width' or 'risefall'.")
+    if risefall is not None:
+        if width is None:
+            width = duration - 2 * risefall
+        elif 2 * risefall + width != duration:
+            raise PulseError("Both width and risefall were specified, and they are "
+                             "inconsistent: 2 * risefall + width == {} != "
+                             "duration == {}.".format(2 * risefall + width, duration))
+    center = duration / 2
     zeroed_width = duration if zero_ends else None
-    return _sampled_gaussian_square_pulse(duration, amp, center, square_width, sigma,
+    return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
 
