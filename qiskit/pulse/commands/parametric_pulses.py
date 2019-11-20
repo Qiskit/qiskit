@@ -204,8 +204,7 @@ class Drag(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 beta: int,
-                 remove_baseline: bool = False):
+                 beta: int):
         """Initialize the drag command.
 
         Args:
@@ -214,14 +213,11 @@ class Drag(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
-            remove_baseline: If the pulse is translated to a SamplePulse, this option will set the
-                             start of the pulse to zero.
         """
         validate_params(amp=amp, sigma=sigma, beta=beta)
         self._amp = complex(amp)
         self._sigma = sigma
         self._beta = beta
-        self.remove_baseline = remove_baseline
         super().__init__(duration=duration)
 
     @property
@@ -238,7 +234,7 @@ class Drag(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
-                    beta=self.beta, zero_ends=self.remove_baseline)
+                    beta=self.beta, zero_ends=False)
 
 
 class ConstantPulse(ParametricPulse):
