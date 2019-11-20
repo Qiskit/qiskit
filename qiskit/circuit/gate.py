@@ -106,7 +106,7 @@ class Gate(Instruction):
         else:
             raise TypeError('label expects a string or None')
 
-    def q_if(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None):
         """Return controlled version of gate
 
         Args:
