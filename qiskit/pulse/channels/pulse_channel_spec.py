@@ -25,7 +25,6 @@ from qiskit.pulse.exceptions import PulseError
 from .channels import (AcquireChannel, MemorySlot, RegisterSlot, DriveChannel, ControlChannel,
                        MeasureChannel)
 from .qubit import Qubit
-from .system_topology import SystemTopology
 
 
 class PulseChannelSpec:
@@ -82,6 +81,10 @@ class PulseChannelSpec:
             n_registers: Number of classical registers.
             buffer: Buffer that should be placed between instructions on channel.
         """
+        warnings.warn("The PulseChannelSpec is deprecated. Use backend.configuration() instead. "
+                      "The supported methods require some migrations; check out the release "
+                      "notes for the complete details.",
+                      DeprecationWarning)
         if buffer:
             warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._drives = [DriveChannel(idx) for idx in range(n_qubits)]
@@ -92,8 +95,12 @@ class PulseChannelSpec:
         self._reg_slots = [RegisterSlot(idx) for idx in range(n_registers)]
 
         # create mapping information from channels
-        self._topology = SystemTopology(self._drives, self.controls,
-                                        self.measures, self.acquires)
+        warnings.simplefilter("ignore")  # Suppress Qubit deprecation warnings
+        self._qubits = [
+            Qubit(ii, DriveChannel(ii), MeasureChannel(ii),
+                  AcquireChannel(ii), [ControlChannel(ii)])
+            for ii in range(n_qubits)]
+        warnings.resetwarnings()
 
     @classmethod
     def from_backend(cls, backend):
@@ -144,8 +151,8 @@ class PulseChannelSpec:
 
     @property
     def qubits(self) -> List[Qubit]:
-        """Return system's qubits."""
-        return self._topology.qubits
+        """Return list of qubit in this system."""
+        return self._qubits
 
     @property
     def registers(self) -> List[RegisterSlot]:

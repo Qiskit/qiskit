@@ -379,18 +379,3 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
-
-    @property
-    def control(self):
-        """temporary classical control. Will be deprecated."""
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        return self.condition
-
-    @control.setter
-    def control(self, value):
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        self.condition = value
