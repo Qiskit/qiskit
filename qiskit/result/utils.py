@@ -16,25 +16,52 @@
 
 from functools import reduce
 from re import match
+from qiskit.result import Result
+from qiskit.result.postprocess import _bin_to_hex
+from qiskit.validation.base import Obj
 from qiskit.exceptions import QiskitError
 
 
-def marginal_counts(counts, indices=None, pad_zeros=False):
+def marginal_counts(result, indices=None):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
-        counts (dict): Counts of some measurement results, to be marginalized.
-        indices (list(int) or None): The bit positions of interest to NOT marinalize over.
-            If None, do not marginalize at all.
-        pad_zeros (Bool): Include zero count outcomes in return dict.
+        result (dict or Result): result to be marginalized
+            (a Result object or a dict of counts).
+        indices (list(int) or None): The bit positions of interest
+            to marginalize over. If None, do not marginalize at all.
 
     Returns:
-        dict[str:int]: a dictionary with the observed counts, marginalized to
-            only account for frequency of observations of bits of interest.
+        Result or dict[str:int]: a dictionary with the observed counts,
+            marginalized to only account for frequency of observations
+            of bits of interest.
 
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
+    if isinstance(result, Result):
+        for i, experiment_result in enumerate(result.results):
+            counts = result.get_counts(i)
+            new_counts = _marginalize(counts, indices)
+            new_counts_hex = {}
+            for k, v in new_counts.items():
+                new_counts_hex[_bin_to_hex(k)] = v
+            experiment_result.data.counts = Obj(**new_counts_hex)
+            experiment_result.header.memory_slots = len(indices)
+    else:
+        counts = result
+        new_counts = _marginalize(counts, indices)
+        result = new_counts
+
+    return result
+
+
+def count_keys(num_clbits):
+    """Return ordered count keys."""
+    return [bin(j)[2:].zfill(num_clbits) for j in range(2 ** num_clbits)]
+
+
+def _marginalize(counts, indices=None):
     # Extract total number of clbits from first count key
     # We trim the whitespace seperating classical registers
     # and count the number of digits
@@ -78,15 +105,8 @@ def marginal_counts(counts, indices=None, pad_zeros=False):
         meas_counts.append(c)
 
     # Return as counts dict on desired indices only
-    if pad_zeros is True:
-        return dict(zip(meas_keys, meas_counts))
     ret = {}
     for key, val in zip(meas_keys, meas_counts):
         if val != 0:
             ret[key] = val
     return ret
-
-
-def count_keys(num_clbits):
-    """Return ordered count keys."""
-    return [bin(j)[2:].zfill(num_clbits) for j in range(2 ** num_clbits)]
