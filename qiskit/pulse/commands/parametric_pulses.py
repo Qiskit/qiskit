@@ -273,7 +273,7 @@ class ConstantPulse(ParametricPulse):
 
 def validate_params(**kwargs):
     """
-    Raise an error if the parameters passed are not valid.
+    Raise a PulseError if the parameters passed are not valid.
     """
     if 'amp' in kwargs:
         if abs(kwargs['amp']) > 1.:

@@ -276,6 +276,8 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                should be specified since width = duration - 2 * risefall.
         name: Name of pulse.
         zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
+    Raises:
+        PulseError: If risefall and width arguments are inconsistent or not enough info.
     """
     if risefall is None and width is None:
         raise PulseError("gaussian_square missing required argument: 'width' or 'risefall'.")
