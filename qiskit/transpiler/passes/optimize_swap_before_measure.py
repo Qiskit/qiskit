@@ -13,10 +13,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Transpiler pass to remove swaps in front of measurements by re-targeting the classical bit
- of the measure instruction.
-"""
+"""Remove the swaps followed by measurement (and adapt the measurement)."""
 
 from qiskit.circuit import Measure
 from qiskit.extensions.standard import SwapGate
@@ -25,10 +22,21 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
-    """Remove the swaps followed by measurement (and adapt the measurement)"""
+    """Remove the swaps followed by measurement (and adapt the measurement).
+
+    Transpiler pass to remove swaps in front of measurements by re-targeting
+    the classical bit of the measure instruction.
+    """
 
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the OptimizeSwapBeforeMeasure pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps:
             final_successor = []

@@ -15,19 +15,22 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
+from qiskit.extensions.standard.swap import SwapGate
 
 
-class FredkinGate(Gate):
+class FredkinGate(ControlledGate):
     """Fredkin gate."""
 
     def __init__(self):
         """Create new Fredkin gate."""
-        super().__init__("cswap", 3, [])
+        super().__init__("cswap", 3, [], num_ctrl_qubits=1)
+        self.base_gate = SwapGate
+        self.base_gate_name = "swap"
 
     def _define(self):
         """

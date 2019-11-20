@@ -25,9 +25,8 @@ import numpy as np
 from qiskit.tools.qi.qi import partial_trace, vectorize, devectorize, outer
 from qiskit.tools.qi.qi import concurrence, qft, chop
 from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
-from qiskit.tools.qi.qi import choi_to_rauli
+from qiskit.tools.qi.qi import choi_to_pauli
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
-from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
 from qiskit.quantum_info import purity
 from qiskit.quantum_info.random import random_density_matrix
 from qiskit.exceptions import QiskitError
@@ -120,12 +119,10 @@ class TestQI(QiskitTestCase):
                 [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
         rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
         rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
-        test_pass = (concurrence(psi1) == 0.0 and
-                     concurrence(rho1) == 1.0 and
-                     concurrence(rho2) == 1.0 and
-                     concurrence(rho3) == 0.0 and
-                     concurrence(rho4) == 0.5)
-        self.assertTrue(test_pass)
+        concurrences = [concurrence(state) for state
+                        in [psi1, rho1, rho2, rho3, rho4]]
+        targets = [0.0, 1.0, 1.0, 0.0, 0.5]
+        self.assertTrue(np.allclose(concurrences, targets))
 
     def test_concurrence_not_two_qubits(self):
         input_state = np.array([[0, 1], [1, 0]])
@@ -187,12 +184,16 @@ class TestQI(QiskitTestCase):
         self.assertAlmostEqual(-0.15821825498448047, res)
 
     def test_entanglement_of_formation(self):
-        input_state = np.array([[0.5, 0.25, 0.75, 1],
-                                [1, 0, 1, 0],
-                                [0.5, 0.5, 0.5, 0.5],
-                                [0, 1, 0, 1]])
-        res = entanglement_of_formation(input_state, 2)
-        self.assertAlmostEqual(0.6985340217364572, res)
+        psi1 = [1, 0, 0, 0]
+        rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
+        rho2 = [[0, 0, 0, 0], [0, 0.5, -0.5j, 0],
+                [0, 0.5j, 0.5, 0], [0, 0, 0, 0]]
+        rho3 = 0.5 * np.array(rho1) + 0.5 * np.array(rho2)
+        rho4 = 0.75 * np.array(rho1) + 0.25 * np.array(rho2)
+        eofs = [entanglement_of_formation(state, 2)
+                for state in [psi1, rho1, rho2, rho3, rho4]]
+        targets = [0.0, 1.0, 1.0, 0.0, 0.35457890266527003]
+        self.assertTrue(np.allclose(eofs, targets))
 
     def test_entanglement_of_formation_1d_input(self):
         input_state = np.array([0.5, 0.25, 0.75, 1])
@@ -207,14 +208,6 @@ class TestQI(QiskitTestCase):
         self.assertEqual(fake_stout.getvalue().strip(), expected)
         self.assertIsNone(res)
 
-    def test__eof_qubit(self):
-        input_rho = np.array([[0.5, 0.25, 0.75, 1],
-                              [1, 0, 1, 0],
-                              [0.5, 0.5, 0.5, 0.5],
-                              [0, 1, 0, 1]])
-        res = eof_qubit(input_rho)
-        self.assertAlmostEqual(0.6985340217364572, res)
-
     def test_is_pos_def(self):
         input_x = np.array([[1, 0],
                             [0, 1]])
@@ -226,7 +219,7 @@ class TestQI(QiskitTestCase):
                                  [1, 0, 1, 0],
                                  [0.5, 0.5, 0.5, 0.5],
                                  [0, 1, 0, 1]])
-        res = choi_to_rauli(input_matrix)
+        res = choi_to_pauli(input_matrix)
         expected = np.array([[2.0+0.j, 2.25+0.0j, 0.0+0.75j, -1.0+0.0j],
                              [1.75+0.j, 2.5+0.j, 0.-1.5j, 0.75+0.0j],
                              [0.0-0.25j, 0.0+0.5j, -0.5+0.0j, 0.0-1.25j],

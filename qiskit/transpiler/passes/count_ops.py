@@ -12,14 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for counting operations in a DAG circuit.
-"""
+"""Count the operations in a DAG circuit."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CountOps(AnalysisPass):
-    """ An analysis pass for counting operations in a DAG circuit.
+    """Count the operations in a DAG circuit.
+
+    The result is saved in ``property_set['count_ops']`` as an integer.
     """
 
     def run(self, dag):
+        """Run the CountOps pass on `dag`."""
         self.property_set['count_ops'] = dag.count_ops()

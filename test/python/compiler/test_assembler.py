@@ -23,6 +23,7 @@ from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
+from qiskit.pulse.channels import MemorySlot, AcquireChannel
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -297,7 +298,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
-        self.device = pulse.PulseChannelSpec.from_backend(FakeOpenPulse2Q())
+        self.backend_config = FakeOpenPulse2Q().configuration()
 
         test_pulse = pulse.SamplePulse(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
@@ -306,11 +307,12 @@ class TestPulseAssembler(QiskitTestCase):
         acquire = pulse.Acquire(5)
 
         self.schedule = pulse.Schedule(name='fake_experiment')
-        self.schedule = self.schedule.insert(0, test_pulse(self.device.drives[0]))
-        self.schedule = self.schedule.insert(5, acquire(self.device.acquires,
-                                                        self.device.memoryslots))
+        self.schedule = self.schedule.insert(0, test_pulse(self.backend_config.drive(0)))
+        self.schedule = self.schedule.insert(5, acquire(
+            [self.backend_config.acquire(i) for i in range(self.backend_config.n_qubits)],
+            [MemorySlot(i) for i in range(self.backend_config.n_qubits)]))
 
-        self.user_lo_config_dict = {self.device.drives[0]: 4.91}
+        self.user_lo_config_dict = {self.backend_config.drive(0): 4.91}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.default_qubit_lo_freq = [4.9, 5.0]
@@ -428,7 +430,8 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
-        schedule = acquire(self.device.acquires, mem_slots=self.device.memoryslots)
+        schedule = acquire([AcquireChannel(0), AcquireChannel(1)],
+                           [MemorySlot(0), MemorySlot(1)])
         assemble(schedule,
                  qubit_lo_freq=self.default_qubit_lo_freq,
                  meas_lo_freq=self.default_meas_lo_freq,
@@ -446,7 +449,8 @@ class TestPulseAssembler(QiskitTestCase):
         n_memoryslots = 10
 
         # single acquisition
-        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = acquire(self.backend_config.acquire(0),
+                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -458,8 +462,9 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
 
         # multiple acquisition
-        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
-        schedule = schedule.insert(10, acquire(self.device.acquires[0],
+        schedule = acquire(self.backend_config.acquire(0),
+                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = schedule.insert(10, acquire(self.backend_config.acquire(0),
                                                mem_slots=pulse.MemorySlot(n_memoryslots-1)))
 
         qobj = assemble(schedule,
@@ -478,7 +483,8 @@ class TestPulseAssembler(QiskitTestCase):
 
         schedules = []
         for n_memoryslot in n_memoryslots:
-            schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslot-1))
+            schedule = acquire(self.backend_config.acquire(0),
+                               mem_slots=pulse.MemorySlot(n_memoryslot-1))
             schedules.append(schedule)
 
         qobj = assemble(schedules,
@@ -497,7 +503,7 @@ class TestPulseAssembler(QiskitTestCase):
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
-        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.device.drives[1]))
+        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.backend_config.drive(1)))
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -514,7 +520,7 @@ class TestPulseAssembler(QiskitTestCase):
         backend = FakeOpenPulse2Q()
 
         orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10)(self.device.drives[0])
+        delay_schedule = orig_schedule + pulse.Delay(10)(self.backend_config.drive(0))
 
         orig_qobj = assemble(orig_schedule, backend)
         delay_qobj = assemble(delay_schedule, backend)
