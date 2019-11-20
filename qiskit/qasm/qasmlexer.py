@@ -14,7 +14,6 @@
 
 """
 OPENQASM Lexer.
-
 This is a wrapper around the PLY lexer to support the "include" statement
 by creating a stack of lexers.
 """
@@ -27,13 +26,13 @@ import ply.lex as lex
 from . import node
 from .exceptions import QasmError
 
+
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
 class QasmLexer:
     """OPENQASM Lexer.
-
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
@@ -85,17 +84,21 @@ class QasmLexer:
         'barrier': 'BARRIER',
         'creg': 'CREG',
         'gate': 'GATE',
+        'pulse': 'PULSE',
+        'play': 'PLAY',
         'if': 'IF',
-        'measure': 'MEASURE',
+#         'measure': 'MEASURE',
         'opaque': 'OPAQUE',
         'qreg': 'QREG',
         'pi': 'PI',
         'reset': 'RESET',
-        'framechange' : 'FRAMECHANGE',
-        'pulse' : 'PULSE',
-        'play' : 'PLAY',
-        'acquire' : 'ACQUIRE',
-        'delay' : 'DELAY',
+        'dch': 'DCH',
+        'uch': 'UCH',
+        'mch': 'MCH',
+        'ach': 'ACH',
+        'ch_barrier': 'CH_BARRIER',
+        'framechange': 'FRAMECHANGE',
+        'acquire': 'ACQUIRE',
     }
     tokens = [
         'NNINTEGER',
