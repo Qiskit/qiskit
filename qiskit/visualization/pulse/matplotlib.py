@@ -281,7 +281,7 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule, channels_to_plot, t0, tf):
+    def _build_channels(self, schedule, channels, t0, tf):
         # prepare waveform channels
         drive_channels = collections.OrderedDict()
         measure_channels = collections.OrderedDict()
@@ -289,7 +289,7 @@ class ScheduleDrawer:
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
 
-        _channels = list(schedule.channels) + channels_to_plot
+        _channels = list(schedule.channels) + channels
         _channels = list(set(_channels))
 
         for chan in _channels:
@@ -574,12 +574,12 @@ class ScheduleDrawer:
         """
         figure = plt.figure()
 
-        if channels_to_plot:
+        if channels_to_plot is not None:
             warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
                           DeprecationWarning, 3)
             channels = channels_to_plot
 
-        if not channels:
+        if channels is None:
             channels = []
         interp_method = interp_method or interpolation.step_wise
 
@@ -592,15 +592,15 @@ class ScheduleDrawer:
             # when input schedule is empty or comprises only frame changes,
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
-            if channels_to_plot:
-                tf = schedule.timeslots.ch_duration(*channels_to_plot)
+            if channels:
+                tf = schedule.timeslots.ch_duration(*channels)
             else:
                 tf = schedule.stop_time
             tf = tf or 1
 
         # prepare waveform channels
         (schedule_channels, output_channels,
-         snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
+         snapshot_channels) = self._build_channels(schedule, channels, t0, tf)
 
         # count numbers of valid waveform
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
