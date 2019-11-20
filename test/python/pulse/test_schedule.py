@@ -175,6 +175,24 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(TimeslotCollection(), sched.timeslots)
         self.assertEqual([], list(sched.instructions))
 
+    def test_overlapping_schedules(self):
+        """Test overlapping schedules."""
+
+        def my_test_make_schedule(acquire: int, memoryslot: int, shift: int):
+            op = Acquire(acquire)
+            sched1 = op(AcquireChannel(0), MemorySlot(memoryslot))
+            sched2 = op(AcquireChannel(1), MemorySlot(memoryslot)).shift(shift)
+
+            return Schedule(sched1, sched2)
+
+        self.assertIsInstance(my_test_make_schedule(4, 0, 4), Schedule)
+        self.assertRaisesRegex(PulseError,
+                               r".* MemorySlot\(0\) over time range \[2, 4\] .*",
+                               my_test_make_schedule, 4, 0, 2)
+        self.assertRaisesRegex(PulseError,
+                               r".* MemorySlot\(1\) over time range \[0, 4\] .*",
+                               my_test_make_schedule, 4, 1, 0)
+
     def test_flat_instruction_sequence_returns_instructions(self):
         """Test if `flat_instruction_sequence` returns `Instruction`s."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
