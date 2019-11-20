@@ -38,9 +38,51 @@ Learn how members of the Qiskit community
 * `Keep a consistent style <https://www.python.org/dev/peps/pep-0008>`__
 * :ref:`Build Qiskit packages from source <install_install_from_source_label>`
 
-*****************************
+
+
+******************************************
+Reporting Bugs and Requesting Enhancements
+******************************************
+
+When you encounter a problem please open an issue for it to
+the issue tracker appropriate for the particular project the issue is
+encountered
+
+=========================== =============================================
+Element                     Issue Tracker
+=========================== =============================================
+qiskit-terra                https://github.com/Qiskit/qiskit-terra/issues
+qiskit-aer                  https://github.com/Qiskit/qiskit-aer/issues
+qiskit-ignis                https://github.com/Qiskit/qiskit-ignis/issues
+qiskit-aqua                 https://github.com/Qiskit/qiskit-aqua/issues
+Docs or Qiskit Meta-package https://github.com/Qiskit/qiskit/issues
+=========================== =============================================
+
+If you have an idea for a new feature please open an **Enhancement** issue in
+the issue tracker for the element you'd like to see an enhancement for.
+Opening an issue starts a discussion with the team about your idea, how it
+fits in with the project, how it can be implemented, etc.
+
+
+*****************
+Contributing Code
+*****************
+
+
+
+Style guide
+===========
+
+To enforce a consistent code style in the project we use `Pylint
+<https://www.pylint.org>`__ and `pycodesytle
+<https://pycodestyle.readthedocs.io/en/latest/>`__ to verify that code
+contributions conform to and respect the projects style guide. To verify that
+your changes conform to the style guide you can run: ``tox -elint``
+
+
+
 Contributor License Agreement
-*****************************
+=============================
 
 Before you can submit any code we need all contributors to sign a
 contributor license agreement. By signing a contributor license
@@ -60,6 +102,301 @@ document is available for review as a PDF.
    `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`__ too and
    email it to us at <qiskit@us.ibm.com>.
 
+
+
+Pull requests
+=============
+
+We use `GitHub pull requests
+<https://help.github.com/articles/about-pull-requests>`__ to accept
+contributions.
+
+While not required, opening a new issue about the bug you're fixing or the
+feature you're working on before you open a pull request is an important step
+in starting a discussion with the community about your work. The issue gives us
+a place to talk about the idea and how we can work together to implement it in
+the code. It also lets the community know what you're working on and if you
+need help, you can use the issue to go through it with other community and team
+members.
+
+If you've written some code but need help finishing it, want to get initial
+feedback on it prior to finishing it, or want to share it and discuss prior
+to finishing the implementation you can open a *Work in Progress* pull request.
+When you create the pull request prefix the title with the **\[WIP\]** tag (for
+Work In Progress). This will indicate to reviewers that the code in
+the PR isn't in it's final state and will change. It also means that we will
+not merge the commit until it is finished. You or a reviewer can remove the
+[WIP] tag when the code is ready to be fully reviewed for merging.
+
+
+
+Code Review
+===========
+
+Code review is done in the open and is open to anyone. While only maintainers have
+access to merge commits, providing feedback on pull requests is very valuable
+and helpful. It is also a good mechanism to learn about the code base. You can
+view a list of all open pull requests here:
+
+=========================== =============================================
+Element                     Issue Tracker
+=========================== =============================================
+qiskit-terra                https://github.com/Qiskit/qiskit-terra/pulls
+qiskit-aer                  https://github.com/Qiskit/qiskit-aer/pulls
+qiskit-ignis                https://github.com/Qiskit/qiskit-ignis/pulls
+qiskit-aqua                 https://github.com/Qiskit/qiskit-aqua/pulls
+Docs or Qiskit Meta-package https://github.com/Qiskit/qiskit/pulls
+=========================== =============================================
+
+to review any open pull requests and provide feedback on it.
+
+
+
+Commit Messages
+===============
+
+As important as the content of the change, is the content of the commit message
+describing it. The commit message provides the context for not only code review
+but also the change history in the git log. Having a detailed commit message
+will make it easier for your code to be reviewed and also provide context to the
+change when it's being looked at years in the future. When writing a commit
+message there are some important things to remember:
+
+Do not assume the reviewer understands what the original problem was.
+   When reading an issue, after a number of back & forth comments, it is often
+   clear what the root cause problem is. The commit message should have a clear
+   statement as to what the original problem is. The bug is merely interesting
+   historical background on *how* the problem was identified. It should be
+   possible to review a proposed patch for correctness from the commit message,
+   without needing to read the bug ticket.
+
+Do not assume the code is self-evident/self-documenting.
+   What is self-evident to one person, might not be clear to another person. Always
+   document what the original problem was and how it is being fixed, for any change
+   except the most obvious typos, or whitespace only commits.
+
+Describe why a change is being made.
+   A common mistake is to just document how the code has been written, without
+   describing *why* the developer chose to do it that way. By all means describe
+   the overall code structure, particularly for large changes, but more importantly
+   describe the intent/motivation behind the changes.
+
+Read the commit message to see if it hints at improved code structure.
+   Often when describing a large commit message, it becomes obvious that a commit
+   should have in fact been split into 2 or more parts. Don't be afraid to go back
+   and rebase the change to split it up into separate pull requests.
+
+Ensure sufficient information to decide whether to review.
+   When Github sends out email alerts for new pull request submissions, there is
+   minimal information included, usually just the commit message and the list of
+   files changes. Because of the high volume of patches, commit message must
+   contain sufficient information for potential reviewers to find the patch that
+   they need to look at.
+
+The first commit line is the most important.
+   In Git commits, the first line of the commit message has special significance.
+   It is used as the default pull request title, email notification subject line,
+   git annotate messages, gitk viewer annotations, merge commit messages, and many
+   more places where space is at a premium. As well as summarizing the change
+   itself, it should take care to detail what part of the code is affected.
+
+   In addition the first line of the commit message gets used as entries in the
+   generated changelog if the PR is tagged as being included in the changelog.
+   It's critically important that you write a clear and succinct summary lines.
+
+Describe any limitations of the current code.
+   If the code being changed still has future scope for improvements, or any known
+   limitations, then mention these in the commit message. This demonstrates to the
+   reviewer that the broader picture has been considered and what tradeoffs have
+   been done in terms of short term goals vs. long term wishes.
+
+Include references to issues
+   If the commit fixes or is related to an issue make sure you annotate that in
+   the commit message. Using the syntax::
+
+       Fixes #1234
+
+   If it fixes the issue (github will close the issue when the PR merges).
+
+The main rule to follow is:
+
+The commit message must contain all the information required to fully
+understand & review the patch for correctness. Less is not more.
+
+
+
+Documenting Your Code
+=====================
+
+If you make a change to an element make sure you update the associated
+*docstrings* and parts of the documentation under ``docs/apidocs`` in that
+repo which corresponds to it. To locally build the element specific
+documentation you can run ``tox -edocs`` which will compile and build the
+documentation locally and save the output to ``docs/_build/html``.
+Additionally, the Docs CI job on azure pipelines will run this and host a zip
+file of the output that you can download and view locally.
+
+If you have an issue with the `combined documentation <https://qiskit.org/documentation/>`__
+that is maintained in the `Qiskit/qiskit repo <https://github.com/Qiskit/qiskit>`__,
+you can open a `documentation issue <https://github.com/Qiskit/qiskit/issues/new/choose>`__
+if you see doc bugs, have a new feature that needs to be documented, or think
+that material could be added to the existing docs.
+
+
+
+Good First Contributions
+========================
+
+If you would like to contribute to the Qiskit project, but aren't sure of
+where to get started, the ``good first issue`` label on issues for a project
+is a label used to highlight items for people new to the project to work on.
+These are all issues that have been reviewed by contributors and tagged as
+something a new contributor should be able to develop a fix for. In other
+words, it shouldn't require intimate familiarity with Qiskit to develop a fix
+for the issue.
+
+
+
+Deprecation Policy
+==================
+
+End users of Qiskit need to know if a feature or an API they are using and rely
+on will still be supported by the software tomorrow. Users rely on existing
+features, knowing under which conditions the project can remove (or change in a
+backwards incompatible manner) a feature or API is important. To manage
+expectations the following policy is how API and feature deprecation and removal
+is handled by Qiskit:
+
+1. Features, APIs or configuration options are marked deprecated in the code.
+Appropriate ``DeprecationWarning`` class warnings will be sent to the user. The
+deprecated code will be frozen and receive only minimal maintenance (just so
+that it continues to work as-is).
+
+2. A migration path will be documented for current users of the feature. This
+will be outlined in the both the release notes adding the deprecation and the
+release notes removing the feature at the completion of the deprecation cycle.
+In addition, if feasible the warning message will also include the migration
+path. A migration path might be "stop using that feature", but in such cases
+it is necessary to first judge how widely used and/or important the feature
+is to end users and decided an obsolescence date based on that.
+
+3. An obsolescence date for the feature will be set. The feature must remain
+intact and working (although with the proper warning being emitted) in all
+releases pushed until after that obsolescence date. At the very minimum the
+feature (or API, or configuration option) should be marked as deprecated (and
+still be supported) for at least three months of linear time from the release
+date of the first release to include the deprecation warning. For example, if a
+feature were deprecated in the 0.9.0 release of terra, which was released on
+August 22, 2019, then that feature should still appear in all releases until at
+least November 22, 2019. Since releases do not occur at fixed time intervals
+this may mean that a deprecation warning may only occur in one release prior to
+removal.
+
+Note that this delay is a minimum. For significant features, it is recommend
+that the deprecated feature appears for at least double that time. Also, per
+the stable branch policy, deprecation removals can only occur during minor
+version releases, they are not appropriate for backporting.
+
+
+
+Deprecation Warnings
+--------------------
+
+The proper way to raise a deprecation warning is to use the ``warn`` function
+from the `warnings module <https://docs.python.org/3/library/warnings.html>`__
+in the Python standard library. The warning category class
+should be a ``DeprecationWarning``. An example would be::
+
+ import warnings
+
+ def foo(input):
+     warnings.warn('The qiskit.foo() function is deprecated as of 0.9.0, and '
+                   'will be removed no earlier than 3 months after that '
+                   'release date. You should use the qiskit.bar() function '
+                   'instead.', DeprecationWarning, stacklevel=2)
+
+One thing to note here is the ``stack_level`` kwarg on the warn() call. This
+argument is used to specify which level in the call stack will be used as
+the line initiating the warning. Typically ``stack_level`` should be set to 2
+as this will show the line calling the context where the warning was raised.
+In the above example it would be the caller of ``foo()``. If you did not set this,
+the warning would show that the warning was caused by the line in the foo()
+function, which is not helpful for users when trying to determine the origin
+of a deprecated call. This value may be adjust though depending on the call
+stack and where ``warn()`` gets called from. For example, if the warning is always
+raised by a private method that only has one caller ``stack_level=3`` might be
+appropriate.
+
+
+
+Stable Branch Policy
+====================
+
+The stable branch is intended to be a safe source of fixes for high
+impact bugs and security issues which have been fixed on master since a
+release. When reviewing a stable branch PR we need to balance the risk
+of any given patch with the value that it will provide to users of the
+stable branch. Only a limited class of changes are appropriate for
+inclusion on the stable branch. A large, risky patch for a major issue
+might make sense. As might a trivial fix for a fairly obscure error
+handling case. A number of factors must be weighed when considering a
+change:
+
+-   The risk of regression: even the tiniest changes carry some risk of
+    breaking something and we really want to avoid regressions on the
+    stable branch
+-   The user visible benefit: are we fixing something that users might
+    actually notice and, if so, how important is it?
+-   How self-contained the fix is: if it fixes a significant issue but
+    also refactors a lot of code, it's probably worth thinking about
+    what a less risky fix might look like
+-   Whether the fix is already on master: a change must be a backport of
+    a change already merged onto master, unless the change simply does
+    not make sense on master.
+
+
+
+Backporting procedure:
+----------------------
+
+When backporting a patch from master to stable we want to keep a
+reference to the change on master. When you create the branch for the
+stable PR you can use::
+
+    $ git cherry-pick -x $master_commit_id
+
+However, this only works for small self contained patches from master.
+If you need to backport a subset of a larger commit (from a squashed PR
+for example) from master this just need be done manually. This should be
+handled by adding::
+
+    Backported from: #master pr number
+
+in these cases, so we can track the source of the change subset even if
+a strict cherry pick doesn\'t make sense.
+
+If the patch you're proposing will not cherry-pick cleanly, you can help
+by resolving the conflicts yourself and proposing the resulting patch.
+Please keep Conflicts lines in the commit message to help review of the
+stable patch.
+
+
+
+Backport Labels
+---------------
+
+Bugs or PRs tagged with ``stable backport potential`` are bugs
+which apply to the stable release too and may be suitable for
+backporting once a fix lands in master. Once the backport has been
+proposed, the tag should be removed.
+
+The PR against the stable branch should include ``[Stable]``
+in the title, as a sign that setting the target branch as stable was not
+a mistake. Also, reference to the PR number in master that you are
+porting.
+
+
+
 *****************************
 Contributing to Documentation
 *****************************
@@ -74,6 +411,128 @@ The documentation is built from the master branch of `Qiskit/qiskit/docs
 <http://www.sphinx-doc.org/en/master/>`__. The majority of documentation, under
 `API Reference <https://qiskit.org/documentation/apidoc/qiskit.html>`__, is
 drawn from code comments in the repositories listed in :ref:`where_things_are`.
+
+
+
+Documentation Structure
+=======================
+
+The way documentation is structured in Qiskit is to push as much of the actual
+documentation into the docstrings of the as possible. This makes it easier for
+additions and corrections to be made during development because the majority
+of the documentation lives near the code being changed. There are 3 levels of
+pieces to the normal documentation structure in terra.
+
+The ``.rst`` files in the ``docs/apidocs``
+   These files are used to tell sphinx which modules to include in the rendered
+   documentation. This contains 2 pieces of information -
+   an `internal reference <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#reference-names>`__
+   or `cross reference <https://www.sphinx-doc.org/en/latest/usage/restructuredtext/roles.html#ref-role>`__
+   to the module which can be used for internal links
+   inside the documentation and an `automodule directive <http://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`__
+   used to parse the
+   module docstrings from a specified import path. For example, the dagcircuit.rst
+   file contains::
+
+      .. _qiskit-dagcircuit:
+
+
+      .. automodule:: qiskit.dagcircuit
+         :no-members:
+         :no-inherited-members:
+         :no-special-members:
+
+   The only ``.rst`` file outside of this is ``qiskit.rst`` which contains the table of
+   contents. If you're adding a new ``.rst`` file for a new module's documentation, make
+   sure to add it to the `toctree <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#table-of-contents>`__
+   in that file.
+
+The module level docstring
+   This docstring is at the module
+   level for the module specified in the ``automodule`` directive in the rst file.
+   If the module specified is a directory/namespace the docstring should be
+   specified in the ``__init__.py`` file for that directory. This module level
+   docstring starts to contain more details about the module being documented.
+   The normal structure to this module docstring is to outline all the classes and
+   functions of the public API that are contained in that module. This is typically
+   done using the `autosummary directive <https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html>`__
+   (or `autodoc directives <http://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`__
+   directly if the module is simple, such as in the case of ``qiskit.execute``) The
+   autosummary directive is used to autodoc a list of different Python elements
+   (classes, functions, etc) directly without having to manually call out the
+   autodoc directives for each one. This module level docstring is a normally the
+   place you will want to provide a high level overview of what functionality is
+   provided by the module. This is normally done by grouping the different
+   components of the public API together into multiple subsections.
+
+   For example, continuing that dagcircuit module example from before the
+   contents of the module docstring for ``qiskit/dagcircuit/__init__.py`` would
+   be::
+
+      """
+      =======================================
+      DAG Circuits (:mod:`qiskit.dagcircuit`)
+      =======================================
+      .. currentmodule:: qiskit.dagcircuit
+      DAG Circuits
+      ============
+      .. autosummary::
+         :toctree: ../stubs/
+         DAGCircuit
+         DAGNode
+      Exceptions
+      ==========
+      .. autosummary::
+         :toctree: ../stubs/
+         DAGCircuitError
+      """
+
+   .. note::
+
+      This is just an example and the actual module docstring for the dagcircuit
+      module might diverge from this.
+
+The actual docstring for the elements listed in the module docstring
+   You should strive to document thoroughly all the public interfaces
+   exposed using examples when necessary. For docstrings, `Google Python Style
+   Docstrings <https://google.github.io/styleguide/pyguide.html?showone=Comments#38-comments-and-docstrings>`__
+   are used. This is parsed using the `napoleon
+   sphinx extension <https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html>`__.
+   The `napolean documentation <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`__
+   contains a good example of how docstrings should be formatted
+
+   .. note::
+      You can use any sphinx directive or rst formatting in a docstring as it
+      makes sense. For example, one common extension used is the ``jupyter-execute``
+      directive which is used to execute a code block in jupyter and display both
+      the code and output. This is particularly useful for visualizations.
+
+
+
+Documentation Integration
+-------------------------
+
+The hosted documentation at https://qiskit.org/documentation/ covers the entire
+Qiskit project, Terra is just one component of that. As such the documentation
+builds for the hosted version get built by the Qiskit meta-package repository
+https://github.com/Qiskit/qiskit. When commits are merged to that repo the
+output of sphinx builds get uploaded to the qiskit.org website. Those sphinx
+builds are configured to pull in the documentation from the version of the
+Qiskit elements installed by the meta-package at that point. For example, if
+the meta-package version is currently 0.13.0 then that will copy the
+documentation from terra's 0.10.0 release. When the meta-package's requirements
+are bumped then it will start pulling documentation from that new version. This
+means if API documentation is incorrect to get it fixed it will need to be
+included in a new release. Documentation fixes are valid backports for a stable
+patch release per the stable branch policy (see that section below).
+
+During the build process the contents of each element's ``docs/apidocs/``
+gets recursively copied into a shared copy of ``doc/apidocs/`` in the meta-package
+repository along with all the other elements. This means what is in the root of
+docs/apidocs on each element at a release will end up on the root of
+https://qiskit.org/documentation/apidoc/
+
+
 
 Translating Documentation
 =========================
