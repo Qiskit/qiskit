@@ -877,20 +877,20 @@ class QasmParser:
     # ----------------------------------------
     # measure : MEASURE primary ASSIGN primary
     # ----------------------------------------
-    def p_measure(self, program):
-        """
-           measure : MEASURE primary ASSIGN primary
-        """
-        program[0] = node.Measure([program[2], program[4]])
-        self.verify_reg(program[2], 'qreg')
-        self.verify_reg(program[4], 'creg')
+    #def p_measure(self, program):
+    #    """
+    #       measure : MEASURE primary ASSIGN primary
+    #    """
+    #    program[0] = node.Measure([program[2], program[4]])
+    #    self.verify_reg(program[2], 'qreg')
+    #    self.verify_reg(program[4], 'creg')
 
-    def p_measure_e(self, program):
-        """
-           measure : MEASURE primary error
-        """
-        raise QasmError("Illegal measure statement." +
-                        str(program[3].value))
+    #def p_measure_e(self, program):
+    #    """
+    #       measure : MEASURE primary error
+    #    """
+    #    raise QasmError("Illegal measure statement." +
+    #                    str(program[3].value))
 
     # ----------------------------------------
     # play : PLAY primary_list channel
@@ -997,7 +997,6 @@ class QasmParser:
     # These are all the things you can have outside of a gate declaration
     #        quantum_op : unitary_op
     #                   | opaque
-    #                   | measure
     #                   | reset
     #                   | barrier
     #                   | if
@@ -1013,7 +1012,6 @@ class QasmParser:
         """
             quantum_op : unitary_op
                        | opaque
-                       | measure
                        | barrier
                        | reset
                        | if
