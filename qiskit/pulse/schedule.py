@@ -345,14 +345,14 @@ class Schedule(ScheduleComponent):
             return interval_filter
 
         filter_func_list = list(filter_funcs)
-        if channels:
+        if channels is not None:
             filter_func_list.append(only_channels(set(channels)))
-        if instruction_types:
+        if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
-        if time_ranges:
+        if time_ranges is not None:
             filter_func_list.append(
                 only_intervals([Interval(start, stop) for start, stop in time_ranges]))
-        if intervals:
+        if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
         # return function returning true iff all filters are passed
