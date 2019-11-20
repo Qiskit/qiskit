@@ -374,8 +374,11 @@ class TimeslotCollection:
         Args:
             time: time to be shifted by
         """
-        slots = [slot.shift(time) for slot in self.timeslots]
-        return TimeslotCollection(*slots)
+        new_tc = TimeslotCollection()
+        new_tc_table = new_tc._table
+        for channel, timeslots in self._table.items():
+            new_tc_table[channel] = [tc.shift(time) for tc in timeslots]
+        return new_tc
 
     def complement(self, stop_time: Optional[int] = None) -> 'TimeslotCollection':
         """Return a complement TimeSlotCollection containing all unoccupied Timeslots
