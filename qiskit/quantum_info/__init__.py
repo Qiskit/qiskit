@@ -12,7 +12,74 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum Information methods."""
+"""
+================================================
+Quantum Information (:mod:`qiskit.quantum_info`)
+================================================
+
+.. currentmodule:: qiskit.quantum_info
+
+Operators
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Operator
+   Pauli
+   pauli_group
+
+States
+======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Statevector
+   DensityMatrix
+
+Channels
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Choi
+   SuperOp
+   Kraus
+   Stinespring
+   Chi
+   PTM
+
+Measures
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   state_fidelity
+
+Random
+======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random_unitary
+   random_state
+   random_density_matrix
+
+Synthesis
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   euler_angles_1q
+   two_qubit_cnot_decompose
+   TwoQubitBasisDecomposer
+
+"""
 
 from .operators.operator import Operator
 from .operators.pauli import Pauli, pauli_group
@@ -22,3 +89,5 @@ from .states import Statevector, DensityMatrix
 from .states.states import basis_state, projector, purity
 from .states.measures import state_fidelity
 from .random import random_unitary, random_state, random_density_matrix
+from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
+                        two_qubit_cnot_decompose)
