@@ -357,12 +357,10 @@ class TestBasicSchedule(QiskitTestCase):
             (10, cmd_def.get('measure', [0, 1, 2])),
             (20, cmd_def.get('measure', [0, 1, 2]))
         )
-        import ipdb; ipdb.set_trace()
         deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
         for _, expect in old_sched.instructions:
             if expect.channels[0] in deleted_measure_channels:
                 old_sched = old_sched.exclude(channels=[expect.channels[0]])
-        import ipdb; ipdb.set_trace()
         for actual, old in zip(sched.instructions, old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
