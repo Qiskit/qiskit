@@ -502,7 +502,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         num_left = math.ceil(n_qubits / 2)
         num_right = n_qubits - num_left
 
-    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#007d79')
+    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#DDBBBA')
     left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
     left_ax.set_yticks(range(num_left))
     left_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
@@ -515,7 +515,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     if num_right:
         right_ax.barh(range(num_left, n_qubits), read_err[num_left:],
-                      align='center', color='#007d79')
+                      align='center', color='#DDBBBA')
         right_ax.axvline(avg_read_err, linestyle='--', color='#212121')
         right_ax.set_yticks(range(num_left, n_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
