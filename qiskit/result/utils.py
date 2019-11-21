@@ -16,8 +16,6 @@
 
 from functools import reduce
 from re import match
-from qiskit.result import Result
-from qiskit.result.postprocess import _bin_to_hex
 from qiskit.validation.base import Obj
 from qiskit.exceptions import QiskitError
 
@@ -39,6 +37,8 @@ def marginal_counts(result, indices=None):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
+    from qiskit.result.result import Result
+    from qiskit.result.postprocess import _bin_to_hex
     if isinstance(result, Result):
         for i, experiment_result in enumerate(result.results):
             counts = result.get_counts(i)
