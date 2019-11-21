@@ -234,6 +234,61 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, method="alap")
         self.assertEqual(sched.name, qc.name)
 
+    def test_can_add_gates_into_free_space(self):
+        """The scheduler does some time bookkeeping to know when qubits are free to be
+        scheduled. Make sure this works for qubits that are used in the future. This was
+        a bug, uncovered by this example:
+
+           q0 =  - - - - |X|
+           q1 = |X| |u2| |X|
+
+        In ALAP scheduling, the next operation on qubit 0 would be added at t=0 rather
+        than immediately before the X gate.
+        """
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        for i in range(2):
+            qc.u2(0, 0, [qr[i]])
+            qc.u1(3.14, [qr[i]])
+            qc.u2(0, 0, [qr[i]])
+        sched = schedule(qc, self.backend, method="alap")
+        expected = Schedule(
+            self.cmd_def.get('u2', [0], 0, 0),
+            self.cmd_def.get('u2', [1], 0, 0),
+            (28, self.cmd_def.get('u1', [0], 3.14)),
+            (28, self.cmd_def.get('u1', [1], 3.14)),
+            (28, self.cmd_def.get('u2', [0], 0, 0)),
+            (28, self.cmd_def.get('u2', [1], 0, 0)))
+        for actual, expected in zip(sched.instructions, expected.instructions):
+            self.assertEqual(actual[0], expected[0])
+            self.assertEqual(actual[1].command, expected[1].command)
+            self.assertEqual(actual[1].channels, expected[1].channels)
+
+    def test_barriers_in_middle(self):
+        """As a follow on to `test_can_add_gates_into_free_space`, similar issues
+        arose for barriers, specifically.
+        """
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        for i in range(2):
+            qc.u2(0, 0, [qr[i]])
+            qc.barrier(qr[i])
+            qc.u1(3.14, [qr[i]])
+            qc.barrier(qr[i])
+            qc.u2(0, 0, [qr[i]])
+        sched = schedule(qc, self.backend, method="alap")
+        expected = Schedule(
+            self.cmd_def.get('u2', [0], 0, 0),
+            self.cmd_def.get('u2', [1], 0, 0),
+            (28, self.cmd_def.get('u1', [0], 3.14)),
+            (28, self.cmd_def.get('u1', [1], 3.14)),
+            (28, self.cmd_def.get('u2', [0], 0, 0)),
+            (28, self.cmd_def.get('u2', [1], 0, 0)))
+        for actual, expected in zip(sched.instructions, expected.instructions):
+            self.assertEqual(actual[0], expected[0])
+            self.assertEqual(actual[1].command, expected[1].command)
+            self.assertEqual(actual[1].channels, expected[1].channels)
+
     def test_schedule_respects_measure_channel(self):
         """Test that the new schedule respects `MeasureChannel`."""
         q = QuantumRegister(2)
