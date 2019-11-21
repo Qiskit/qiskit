@@ -16,11 +16,10 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import Schedule, DriveChannel
-from qiskit.pulse.channels import MeasureChannel, MemorySlot
+from qiskit.pulse.channels import MeasureChannel
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
-from qiskit.pulse.commands import AcquireInstruction
 
 
 class TestBasicSchedule(QiskitTestCase):

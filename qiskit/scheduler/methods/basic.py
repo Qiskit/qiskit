@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.channels import MeasureChannel, MemorySlot
+from qiskit.pulse.channels import MemorySlot
 from qiskit.pulse.commands import AcquireInstruction
 
 from qiskit.scheduler.config import ScheduleConfig
@@ -149,7 +149,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         measures = set()
         all_qubits = set()
         sched = Schedule()
-        for qubit in qubit_mem_slots.keys():
+        for qubit in qubit_mem_slots:
             measures.add(tuple(schedule_config.meas_map[qubit]))
         for qubits in measures:
             all_qubits.update(qubits)
