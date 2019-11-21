@@ -37,7 +37,7 @@ class Result(BaseModel):
         job_id (str): unique execution id from the backend.
         success (bool): True if complete input qobj executed correctly. (Implies
             each experiment success)
-        results (ExperimentResult): corresponding results for array of
+        results (list[ExperimentResult]): corresponding results for array of
             experiments of the input qobj
     """
 
