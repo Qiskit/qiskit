@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed the bug in basic scheduler such that the scheduler respects MemorySlots
+    Fixed basic scheduler such that the scheduler respects MemorySlots
     in QuantumCircuit measures.
