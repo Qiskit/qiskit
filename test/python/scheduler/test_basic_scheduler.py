@@ -16,10 +16,11 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import Schedule, DriveChannel
-from qiskit.pulse.channels import MeasureChannel
+from qiskit.pulse.channels import MeasureChannel, MemorySlot
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
+from qiskit.pulse.commands import AcquireInstruction
 
 
 class TestBasicSchedule(QiskitTestCase):
@@ -297,3 +298,69 @@ class TestBasicSchedule(QiskitTestCase):
         ).channels
         excluded_measure_channel = set(old_measure_channel) - set(expected_measure_channel)
         self.assertEqual(excluded_measure_channel, {MeasureChannel(1)})
+
+    def test_schedule_measure_one_in_3Q(self):
+        """Test that the new schedule for a circuit with only one qubit measured."""
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[2])
+        sched = schedule(qc, backend)
+        old_sched = Schedule(
+            cmd_def.get('measure', [0, 1, 2])
+        )
+        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
+        for _, expect in old_sched.instructions:
+            if expect.channels[0] in deleted_measure_channels:
+                old_sched = old_sched.exclude(channels=[expect.channels[0]])
+        for actual, old in zip(sched.instructions, old_sched.instructions):
+            self.assertEqual(actual[0], old[0])
+            self.assertEqual(actual[1].command, old[1].command)
+            self.assertEqual(actual[1].channels, old[1].channels)
+
+    def test_schedule_measure_two_in_3Q(self):
+        """Test that the new schedule for a circuit with only one qubit measured."""
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[2])
+        qc.measure(q[1], c[1])
+        sched = schedule(qc, backend)
+        old_sched = Schedule(
+            cmd_def.get('measure', [0, 1, 2])
+        )
+        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
+        for _, expect in old_sched.instructions:
+            if expect.channels[0] in deleted_measure_channels:
+                old_sched = old_sched.exclude(channels=[expect.channels[0]])
+        for actual, old in zip(sched.instructions, old_sched.instructions):
+            self.assertEqual(actual[0], old[0])
+            self.assertEqual(actual[1].command, old[1].command)
+            self.assertEqual(actual[1].channels, old[1].channels)
+
+    def test_schedule_multiple_measure_in_3Q(self):
+        """Test that the new schedule for a circuit with only one qubit measured multiple times."""
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[2])
+        qc.measure(q[0], c[2])
+        qc.measure(q[0], c[2])
+        sched = schedule(qc, backend)
+        old_sched = Schedule(
+            cmd_def.get('measure', [0, 1, 2])
+        )
+        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
+        for _, expect in old_sched.instructions:
+            if expect.channels[0] in deleted_measure_channels:
+                old_sched = old_sched.exclude(channels=[expect.channels[0]])
+        for actual, old in zip(sched.instructions, old_sched.instructions):
+            self.assertEqual(actual[0], old[0])
+            self.assertEqual(actual[1].command, old[1].command)
+            self.assertEqual(actual[1].channels, old[1].channels)
