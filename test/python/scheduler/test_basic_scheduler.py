@@ -235,6 +235,7 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(sched.name, qc.name)
 
     def test_schedule_respects_measure_channel(self):
+        """Test that the new schedule respects `MeasureChannel`."""
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
