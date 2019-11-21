@@ -161,7 +161,6 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.u2(3.14, 1.57, q[0])
         qc.cx(q[0], q[1])
-        # qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
@@ -171,16 +170,13 @@ class TestBasicSchedule(QiskitTestCase):
             (50, self.cmd_def.get('measure', [0, 1])),
             (60, self.cmd_def.get('measure', [0, 1])))
         deleted_measure_channels = set(expected.channels) - set(sched.channels)
-        sched_inst = list(sched.instructions)
-        expected_inst = list(expected.instructions)
-        for expected in expected_inst:
-            if set(expected[1].channels) != deleted_measure_channels:
-                for actual in sched_inst:
-                    self.assertEqual(actual[0], expected[0])
-                    self.assertEqual(actual[1].command, expected[1].command)
-                    self.assertEqual(actual[1].channels, expected[1].channels)
-                    sched_inst.pop(0)
-                    break
+        for _, expect in expected.instructions:
+            if set(expect.channels) == deleted_measure_channels:
+                expected = expected.exclude(channels=[expect.channels[0]])
+        for actual, expected in zip(sched.instructions, expected.instructions):
+            self.assertEqual(actual[0], expected[0])
+            self.assertEqual(actual[1].command, expected[1].command)
+            self.assertEqual(actual[1].channels, expected[1].channels)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
