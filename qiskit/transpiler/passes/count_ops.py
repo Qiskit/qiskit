@@ -18,7 +18,10 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CountOps(AnalysisPass):
-    """Count the operations in a DAG circuit."""
+    """Count the operations in a DAG circuit.
+
+    The result is saved in ``property_set['count_ops']`` as an integer.
+    """
 
     def run(self, dag):
         """Run the CountOps pass on `dag`."""

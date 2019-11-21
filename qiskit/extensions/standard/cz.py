@@ -17,19 +17,22 @@ controlled-Phase gate.
 """
 import numpy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.z import ZGate
 
 
-class CzGate(Gate):
+class CzGate(ControlledGate):
     """controlled-Z gate."""
 
     def __init__(self, label=None):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [], label=label)
+        super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
+        self.base_gate = ZGate
+        self.base_gate_name = "z"
 
     def _define(self):
         """

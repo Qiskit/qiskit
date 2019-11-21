@@ -142,6 +142,7 @@ from .mapping.check_map import CheckMap
 from .mapping.check_cx_direction import CheckCXDirection
 from .mapping.cx_direction import CXDirection
 from .mapping.trivial_layout import TrivialLayout
+from .mapping.csp_layout import CSPLayout
 from .mapping.set_layout import SetLayout
 from .mapping.dense_layout import DenseLayout
 from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout

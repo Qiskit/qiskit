@@ -15,6 +15,8 @@
 """
 Physical qubit.
 """
+import warnings
+
 from typing import Tuple, Optional
 
 from .channels import AcquireChannel, DriveChannel, ControlChannel, MeasureChannel
@@ -28,6 +30,8 @@ class Qubit:
                  measure_channel: MeasureChannel,
                  acquire_channel: AcquireChannel,
                  control_channels: Optional[Tuple[ControlChannel]] = None):
+        warnings.warn("Qubit is deprecated. Use backend.configuration() instead.",
+                      DeprecationWarning)
         self._index = index
         self._drive = drive_channel
         self._controls = tuple(control_channels) if control_channels else tuple()

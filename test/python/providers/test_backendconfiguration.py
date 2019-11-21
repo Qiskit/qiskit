@@ -14,8 +14,6 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
-import warnings
-
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 
@@ -25,16 +23,6 @@ from qiskit.providers import BackendConfigurationError
 
 class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
-
-    @classmethod
-    def setUpClass(cls):
-        # TODO: these two class methods can be removed when the warnings
-        # in backend config are removed.
-        warnings.filterwarnings("ignore")
-
-    @classmethod
-    def tearDownClass(cls):
-        warnings.resetwarnings()
 
     def setUp(self):
         self.provider = FakeProvider()
