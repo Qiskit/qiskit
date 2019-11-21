@@ -16,7 +16,8 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import Schedule, DriveChannel
-from qiskit.pulse.channels import MeasureChannel
+from qiskit.pulse.channels import MeasureChannel, MemorySlot
+from qiskit.pulse.commands import AcquireInstruction
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -310,11 +311,24 @@ class TestBasicSchedule(QiskitTestCase):
         old_sched = Schedule(
             cmd_def.get('measure', [0, 1, 2])
         )
-        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
-        for _, expect in old_sched.instructions:
-            if expect.channels[0] in deleted_measure_channels:
-                old_sched = old_sched.exclude(channels=[expect.channels[0]])
-        for actual, old in zip(sched.instructions, old_sched.instructions):
+        updated_old_sched = Schedule()
+        qubit_mem_slots = {0: 2}
+        for time, inst in old_sched.instructions:
+            unused_mem_slots = [0, 1]
+            if isinstance(inst, AcquireInstruction):
+                mem_slots = []
+                for channel in inst.acquires:
+                    if channel.index in qubit_mem_slots.keys():
+                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
+                    else:
+                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
+                new_acquire = AcquireInstruction(command=inst.command,
+                                                    acquires=inst.acquires,
+                                                    mem_slots=mem_slots)
+                updated_old_sched |= new_acquire << time
+            elif inst.channels[0].index in qubit_mem_slots.keys():
+                updated_old_sched |= inst << time
+        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
             self.assertEqual(actual[1].channels, old[1].channels)
@@ -332,11 +346,24 @@ class TestBasicSchedule(QiskitTestCase):
         old_sched = Schedule(
             cmd_def.get('measure', [0, 1, 2])
         )
-        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
-        for _, expect in old_sched.instructions:
-            if expect.channels[0] in deleted_measure_channels:
-                old_sched = old_sched.exclude(channels=[expect.channels[0]])
-        for actual, old in zip(sched.instructions, old_sched.instructions):
+        updated_old_sched = Schedule()
+        qubit_mem_slots = {0: 2, 1: 1}
+        for time, inst in old_sched.instructions:
+            unused_mem_slots = [0]
+            if isinstance(inst, AcquireInstruction):
+                mem_slots = []
+                for channel in inst.acquires:
+                    if channel.index in qubit_mem_slots.keys():
+                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
+                    else:
+                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
+                new_acquire = AcquireInstruction(command=inst.command,
+                                                    acquires=inst.acquires,
+                                                    mem_slots=mem_slots)
+                updated_old_sched |= new_acquire << time
+            elif inst.channels[0].index in qubit_mem_slots.keys():
+                updated_old_sched |= inst << time
+        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
             self.assertEqual(actual[1].channels, old[1].channels)
@@ -357,11 +384,24 @@ class TestBasicSchedule(QiskitTestCase):
             (10, cmd_def.get('measure', [0, 1, 2])),
             (20, cmd_def.get('measure', [0, 1, 2]))
         )
-        deleted_measure_channels = set(old_sched.channels) - set(sched.channels)
-        for _, expect in old_sched.instructions:
-            if expect.channels[0] in deleted_measure_channels:
-                old_sched = old_sched.exclude(channels=[expect.channels[0]])
-        for actual, old in zip(sched.instructions, old_sched.instructions):
+        updated_old_sched = Schedule()
+        qubit_mem_slots = {0: 2}
+        for time, inst in old_sched.instructions:
+            unused_mem_slots = [0, 1]
+            if isinstance(inst, AcquireInstruction):
+                mem_slots = []
+                for channel in inst.acquires:
+                    if channel.index in qubit_mem_slots.keys():
+                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
+                    else:
+                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
+                new_acquire = AcquireInstruction(command=inst.command,
+                                                    acquires=inst.acquires,
+                                                    mem_slots=mem_slots)
+                updated_old_sched |= new_acquire << time
+            elif inst.channels[0].index in qubit_mem_slots.keys():
+                updated_old_sched |= inst << time
+        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
             self.assertEqual(actual[1].channels, old[1].channels)
