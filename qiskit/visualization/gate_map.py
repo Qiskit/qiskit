@@ -16,6 +16,7 @@
 
 import math
 import numpy as np
+import seaborn as sns
 from qiskit.exceptions import QiskitError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
@@ -395,7 +396,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    color_map = cm.viridis
+    color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
