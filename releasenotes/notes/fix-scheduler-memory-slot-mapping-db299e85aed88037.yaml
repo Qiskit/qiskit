@@ -2,4 +2,6 @@
 fixes:
   - |
     Fixed basic scheduler such that the scheduler respects MemorySlots
-    in QuantumCircuit measures.
+    in QuantumCircuit measures. With this fix, the measure stimulus pulses will only
+    play on qubits which were explicitly measured, rather than all the qubits in the
+    `meas_map` group.
