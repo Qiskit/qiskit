@@ -22,7 +22,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
-from qiskit.util import MeasLevel
+from qiskit.qobj.utils import MeasLevel
 
 
 class ConversionMethodBinder:
