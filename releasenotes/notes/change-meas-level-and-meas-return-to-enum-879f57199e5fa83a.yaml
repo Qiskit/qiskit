@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    `meas_level` and `meas_return` values are now of class `IntEnum` and `Enum` respectively.
+    For instance, `meas_level = MeasLevel.CLASSIFIED.value` can be used instead of
+    `meas_level = 2`.
