@@ -98,6 +98,7 @@ gate cu1(lambda) a,b
 gate cu3(theta,phi,lambda) c, t
 {
   // implements controlled-U(theta,phi,lambda) with  target t and control c
+  u1((lambda+phi)/2) c;
   u1((lambda-phi)/2) t;
   cx c,t;
   u3(-theta/2,0,-(phi+lambda)/2) t;

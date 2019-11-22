@@ -35,8 +35,11 @@ class Cu3Gate(ControlledGate):
     def _define(self):
         """
         gate cu3(theta,phi,lambda) c, t
-        { u1((lambda+phi)/2) c; u1((lambda-phi)/2) t; cx c,t;
-          u3(-theta/2,0,-(phi+lambda)/2) t; cx c,t;
+        { u1((lambda+phi)/2) c;
+          u1((lambda-phi)/2) t;
+          cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t;
+          cx c,t;
           u3(theta/2,phi,0) t;
         }
         """
