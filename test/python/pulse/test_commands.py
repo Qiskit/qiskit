@@ -304,7 +304,7 @@ class TestParametricPulses(QiskitTestCase):
         times = np.array(range(25), dtype=np.complex_)
         times = times - (25 / 2) + 0.5
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        gauss_deriv = -(times / sigma) * gauss
+        gauss_deriv = -(times / sigma**2) * gauss
         drag = gauss + 1j * beta * gauss_deriv
         # command
         command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)

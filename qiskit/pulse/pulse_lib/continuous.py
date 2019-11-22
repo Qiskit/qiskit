@@ -184,7 +184,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         ret_gaussian: Return gaussian with which derivative was taken with.
     """
     gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
-    gauss_deriv = -x * gauss  # x has been normalized, so x => (times - center) / sigma
+    gauss_deriv = -x / sigma * gauss
     if ret_gaussian:
         return gauss_deriv, gauss
     return gauss_deriv
