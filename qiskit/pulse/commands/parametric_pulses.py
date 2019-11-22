@@ -281,8 +281,10 @@ def validate_params(**kwargs):
     if 'beta' in kwargs:
         if isinstance(kwargs['beta'], complex):
             raise PulseError("Beta must be real.")
-    if 'width' in kwargs and 'duration' in kwargs:
-        if kwargs['width'] >= kwargs['duration']:
+    if 'width' in kwargs:
+        if kwargs['width'] < 0:
+            raise PulseError("Width cannot be less than 0.")
+        if 'duration' in kwargs and kwargs['width'] >= kwargs['duration']:
             raise PulseError("The width of the pulse must be less than its duration.")
 
 

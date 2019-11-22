@@ -122,7 +122,7 @@ def assemble(experiments,
 
         parametric_pulses (list[str]):
             A list of pulse shapes which are supported internally on the backend.
-            Example: ['gaussian', 'square']
+            Example: ['gaussian', 'constant']
 
         **run_config (dict):
             extra arguments used to configure the run (e.g. for Aer configurable
