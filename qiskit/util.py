@@ -96,16 +96,3 @@ def _has_connection(hostname, port):
         return True
     except Exception:  # pylint: disable=broad-except
         return False
-
-
-class MeasLevel(IntEnum):
-    """MeasLevel"""
-    RAW = 0
-    KERNELED = 1
-    CLASSIFIED = 2
-
-
-class MeasReturn(str, Enum):
-    """MeasReturn"""
-    SINGLE = "single"
-    AVG = "avg"

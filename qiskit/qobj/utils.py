@@ -31,6 +31,13 @@ class MeasReturnType(str, Enum):
     SINGLE = 'single'
 
 
+class MeasLevel(IntEnum):
+    """MeasLevel allowed values."""
+    RAW = 0
+    KERNELED = 1
+    CLASSIFIED = 2
+
+
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against the .json schema.
 
