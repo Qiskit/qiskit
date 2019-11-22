@@ -14,7 +14,7 @@
 
 """Qobj utilities and enums."""
 
-from enum import Enum
+from enum import Enum, IntEnum
 
 from qiskit.validation.jsonschema import validate_json_against_schema
 
