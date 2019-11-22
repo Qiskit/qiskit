@@ -314,7 +314,7 @@ class TestBasicSchedule(QiskitTestCase):
         updated_old_sched = Schedule()
         qubit_mem_slots = {0: 2}
         for time, inst in old_sched.instructions:
-            unused_mem_slots = [0, 1]
+            unused_mem_slots = [1, 0]
             if isinstance(inst, AcquireInstruction):
                 mem_slots = []
                 for channel in inst.acquires:
@@ -387,7 +387,7 @@ class TestBasicSchedule(QiskitTestCase):
         updated_old_sched = Schedule()
         qubit_mem_slots = {0: 2}
         for time, inst in old_sched.instructions:
-            unused_mem_slots = [0, 1]
+            unused_mem_slots = [1, 0]
             if isinstance(inst, AcquireInstruction):
                 mem_slots = []
                 for channel in inst.acquires:
