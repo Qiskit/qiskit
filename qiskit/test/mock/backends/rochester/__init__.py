@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,20 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-=========================================
-Experiment Results (:mod:`qiskit.result`)
-=========================================
+# pylint: disable=missing-docstring
 
-.. currentmodule:: qiskit.result
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Result
-   ResultError
-"""
-
-from .result import Result
-from .exceptions import ResultError
-from .utils import marginal_counts
+from .fake_rochester import FakeRochester
