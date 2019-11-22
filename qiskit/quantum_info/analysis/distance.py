@@ -15,6 +15,7 @@
 """A collection of discrete probability metrics."""
 import numpy as np
 
+
 def hellinger_fidelity(dist_p, dist_q):
     """Computes the Hellinger fidelity between
     two counts distributions.
@@ -73,7 +74,7 @@ def hellinger_fidelity(dist_p, dist_q):
 
     q_normed = {}
     for key, val in dist_q.items():
-        q_normed[key] = val/ q_sum
+        q_normed[key] = val/q_sum
 
     total = 0
     for key, val in p_normed.items():
