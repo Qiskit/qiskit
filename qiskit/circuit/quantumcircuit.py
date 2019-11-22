@@ -140,8 +140,8 @@ class QuantumCircuit:
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
             if sys.platform != "win32":
-                if isinstance(mp.current_process(), mp.context.ForkProcess) \
-                        or isinstance(mp.current_process(), mp.context.SpawnProcess):
+                if isinstance(mp.current_process(),
+                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
                     name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
