@@ -20,7 +20,7 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
-from qiskit.util import MeasLevel
+from qiskit.qobj.utils import MeasLevel
 from .models import ResultSchema
 
 
