@@ -23,7 +23,7 @@ from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
-from qiskit.util import MeasLevel, MeasReturn
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -34,7 +34,7 @@ def assemble(experiments,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
-             meas_return=MeasReturn.AVG.value, meas_map=None,
+             meas_return=MeasReturnType.AVERAGE.value, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.

@@ -22,7 +22,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 .. autofunction:: execute
 """
 from qiskit.compiler import transpile, assemble
-from qiskit.util import MeasLevel, MeasReturn
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def execute(experiments, backend,
@@ -33,7 +33,7 @@ def execute(experiments, backend,
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
-            meas_return=MeasReturn.AVG.value,
+            meas_return=MeasReturnType.AVERAGE.value,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or

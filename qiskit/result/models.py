@@ -20,8 +20,7 @@ from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
 from qiskit.validation.fields import Complex, ByType
 from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
 from qiskit.validation.validate import PatternProperties
-from qiskit.qobj.utils import MeasReturnType
-from qiskit.util import MeasLevel
+from qiskit.qobj.utils import MeasReturnType, MeasLevel
 
 
 class ExperimentResultDataSchema(BaseSchema):
