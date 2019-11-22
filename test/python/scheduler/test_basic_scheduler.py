@@ -323,8 +323,8 @@ class TestBasicSchedule(QiskitTestCase):
                     else:
                         mem_slots.append(MemorySlot(unused_mem_slots.pop()))
                 new_acquire = AcquireInstruction(command=inst.command,
-                                                    acquires=inst.acquires,
-                                                    mem_slots=mem_slots)
+                                                 acquires=inst.acquires,
+                                                 mem_slots=mem_slots)
                 updated_old_sched |= new_acquire << time
             elif inst.channels[0].index in qubit_mem_slots.keys():
                 updated_old_sched |= inst << time
@@ -358,8 +358,8 @@ class TestBasicSchedule(QiskitTestCase):
                     else:
                         mem_slots.append(MemorySlot(unused_mem_slots.pop()))
                 new_acquire = AcquireInstruction(command=inst.command,
-                                                    acquires=inst.acquires,
-                                                    mem_slots=mem_slots)
+                                                 acquires=inst.acquires,
+                                                 mem_slots=mem_slots)
                 updated_old_sched |= new_acquire << time
             elif inst.channels[0].index in qubit_mem_slots.keys():
                 updated_old_sched |= inst << time
@@ -396,8 +396,8 @@ class TestBasicSchedule(QiskitTestCase):
                     else:
                         mem_slots.append(MemorySlot(unused_mem_slots.pop()))
                 new_acquire = AcquireInstruction(command=inst.command,
-                                                    acquires=inst.acquires,
-                                                    mem_slots=mem_slots)
+                                                 acquires=inst.acquires,
+                                                 mem_slots=mem_slots)
                 updated_old_sched |= new_acquire << time
             elif inst.channels[0].index in qubit_mem_slots.keys():
                 updated_old_sched |= inst << time
