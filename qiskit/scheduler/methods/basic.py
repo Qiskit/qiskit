@@ -142,7 +142,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     circ_pulse_defs = []
 
     cmd_def = schedule_config.cmd_def
-    qubit_mem_slots = {}  # Map measured qubit index to clbit
+    qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
@@ -181,6 +181,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
+            assert len(inst_qubits) == 1 and len(clbits) == 1
             qubit_mem_slots[inst_qubits[0]] = clbits[0].index
         else:
             try:
