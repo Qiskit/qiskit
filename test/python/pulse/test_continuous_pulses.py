@@ -189,20 +189,16 @@ class TestContinuousPulses(QiskitTestCase):
         center = 10
         sigma = 2
         times, dt = np.linspace(0, 20, 1000, retstep=True)
-        deriv_prefactor = - (times - center) / sigma**2
+        deriv_prefactor = -sigma**2/(times-center)
 
         gaussian_deriv_arr = continuous.gaussian_deriv(times, amp, center, sigma)
-        gaussian_arr = (1 / deriv_prefactor) * gaussian_deriv_arr
-
+        gaussian_arr = gaussian_deriv_arr*deriv_prefactor
 
         self.assertEqual(gaussian_deriv_arr.dtype, np.complex_)
 
-        self.assertAlmostEqual(continuous.gaussian_deriv(np.array([10]), amp, center, sigma)[0],
+        self.assertAlmostEqual(continuous.gaussian_deriv(np.array([0]), amp, center, sigma)[0],
                                0, places=5)
         self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
-
-        gauss_deriv_expected = deriv_prefactor * (amp * np.exp(-((times - center) / sigma)**2 / 2))
-        self.assertTrue(np.allclose(gaussian_deriv_arr, gauss_deriv_expected))
 
     def test_sech(self):
         """Test sech pulse."""
