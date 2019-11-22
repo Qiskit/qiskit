@@ -26,7 +26,6 @@ if HAS_MATPLOTLIB:
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
-    import matplotlib.cm as cm
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 
