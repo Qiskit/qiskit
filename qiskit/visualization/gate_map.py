@@ -21,8 +21,8 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
-    import matplotlib
     import seaborn as sns
+    import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
