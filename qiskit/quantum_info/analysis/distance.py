@@ -32,38 +32,17 @@ def hellinger_fidelity(dist_p, dist_q):
         float: Fidelity
 
     Example:
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
-
-            from qiskit.test.ibmq_mock import mock_get_backend
-            mock_get_backend('FakeVigo')
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit, execute, IBMQ
             from qiskit.quantum_info.analysis import hellinger_fidelity
-            from qiskit.providers.aer import noise
 
-            provider = IBMQ.load_account()
-            accountProvider = IBMQ.get_provider(hub='ibm-q')
-            backend = accountProvider.get_backend('ibmq_vigo')
+            sim = BasicAer.get_backend('qasm_simulator')
+            res1 = execute(qc, sim).result()
+            res2 = execute(qc, sim).result()
 
-            sim = Aer.get_backend('qasm_simulator')
-            properties = backend.properties()
-            coupling_map = backend.configuration().coupling_map
-
-            noise_model = noise.device.basic_device_noise_model(properties)
-            basis_gates = noise_model.basis_gates
-
-            ideal_res = execute(qc, sim).result()
-
-            noise_res = execute(qc, sim,
-                                coupling_map=coupling_map,
-                                noise_model=noise_model,
-                                basis_gates=basis_gates).result()
-
-            hellinger_fidelity(ideal_res.get_counts(), noise_res.get_counts())
+            hellinger_fidelity(res1.get_counts(), res2.get_counts())
     """
     p_sum = sum(dist_p.values())
     q_sum = sum(dist_q.values())
