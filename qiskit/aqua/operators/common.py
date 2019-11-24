@@ -246,7 +246,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                                     qc.data reference repetition for slicing
         barrier (bool, optional): whether or not add barrier for every slice
     Returns:
-        InstructionSet: The InstructionSet corresponding to specified evolution.
+        Instruction: The Instruction corresponding to specified evolution.
     Raises:
         AquaError: power must be an integer and greater or equal to 1
         ValueError: Unrecognized pauli

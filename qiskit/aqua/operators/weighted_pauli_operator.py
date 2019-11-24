@@ -1176,6 +1176,7 @@ class Z2Symmetries:
                 x_temp = np.delete(pauli_term[1].x.copy(), np.asarray(self._sq_list))
                 pauli_term_out = WeightedPauliOperator(paulis=[[coeff_out, Pauli(z_temp, x_temp)]])
                 operator_out += pauli_term_out
+            operator_out.chop(0.0)
             return operator_out
 
         if tapering_values is None:
