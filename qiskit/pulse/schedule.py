@@ -381,8 +381,8 @@ class Schedule(ScheduleComponent):
         """
         # pylint: disable=invalid-name, cyclic-import
         if scaling:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"'
-                          '', DeprecationWarning, 3)
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
             scale = scaling
 
         from qiskit import visualization

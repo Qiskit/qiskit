@@ -238,7 +238,7 @@ class SamplePulseDrawer:
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
-        if scaling is not None:
+        if scaling:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
@@ -343,7 +343,7 @@ class ScheduleDrawer:
 
     def _count_valid_waveforms(self, output_channels, scale=1, channels=None,
                                plot_all=False, scaling=None):
-        if scaling is not None:
+        if scaling:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
@@ -582,7 +582,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
-        if scaling is not None:
+        if scaling:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling

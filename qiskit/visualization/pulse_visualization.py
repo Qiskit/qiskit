@@ -61,8 +61,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         ImportError: when matplotlib is not installed
     """
     if scaling:
-        warnings.warn('The parameter "scaling" is being replaced by "scale"'
-                      '', DeprecationWarning, 3)
+        warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                      DeprecationWarning, 3)
         scale = scaling
     if channels_to_plot:
         warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
