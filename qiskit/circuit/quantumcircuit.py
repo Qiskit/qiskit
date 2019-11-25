@@ -143,6 +143,14 @@ class QuantumCircuit:
                 if isinstance(mp.current_process(),
                               (mp.context.ForkProcess, mp.context.SpawnProcess)):
                     name += '-{}'.format(mp.current_process().pid)
+                elif sys.version_info[0] == 3 \
+                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
+                        and mp.current_process().name != 'MainProcess':
+                    # It seems condition of if-statement doen't work in python 3.5 and 3.6
+                    # because processes created by "ProcessPoolExecutor" are not
+                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+                    # "name" of the process is checked instead.
+                    name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
