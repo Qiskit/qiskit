@@ -41,7 +41,6 @@ class TestStates(QiskitTestCase):
         self.assertAlmostEqual(counts['00000'], 0.5)
         self.assertAlmostEqual(counts['11111'], 0.5)
 
-
     def test_counts_from_result(self):
         """Get counts from statevector result"""
         qc = QuantumCircuit(5)
