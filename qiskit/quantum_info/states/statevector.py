@@ -263,7 +263,6 @@ class Statevector(QuantumState):
         """
         return state_to_counts(self.data.ravel(), self._atol)
 
-
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.

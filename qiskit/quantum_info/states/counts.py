@@ -33,8 +33,8 @@ def state_to_counts(vec, eps=1e-15):
         vec (ndarray): Input statevector.
         eps (float): Optional tolerance.
 
-    Returns
-        dist: Counts of probabilities.
+    Returns:
+        dict: Counts of probabilities.
 
     Raises:
         QiskitError: Invalid input vector.
@@ -66,3 +66,5 @@ def state_to_counts(vec, eps=1e-15):
         val2 = val.real**2+val.imag**2
         if val2 > eps:
             counts[format(kk, '0{}b'.format(n_qubits))] = val2
+
+    return counts
