@@ -59,12 +59,13 @@ def state_to_counts(vec, eps=1e-15):
     qubit_dims = np.log2(vec.shape[0])
     if qubit_dims % 1:
         raise QiskitError("Input vector is not a valid statevector for qubits.")
-    n_qubits = int(qubit_dims)
+    qubit_dims = int(qubit_dims)
     counts = {}
+    str_format = '0{}b'.format(qubit_dims)
     for kk in range(vec.shape[0]):
         val = vec[kk]
         val2 = val.real**2+val.imag**2
         if val2 > eps:
-            counts[format(kk, '0{}b'.format(n_qubits))] = val2
+            counts[format(kk, str_format)] = val2
 
     return counts
