@@ -18,7 +18,6 @@ Multiple-Control U1 gate. Not using ancillary qubits.
 import logging
 from numpy import angle
 
-from sympy.combinatorics.graycode import GrayCode
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 logger = logging.getLogger(__name__)
@@ -40,6 +39,7 @@ def _apply_mcu1(circuit, lam, ctls, tgt, global_phase=0):
 
     n = len(ctls)
 
+    from sympy.combinatorics.graycode import GrayCode
     gray_code = list(GrayCode(n).generate_gray())
     last_pattern = None
 
