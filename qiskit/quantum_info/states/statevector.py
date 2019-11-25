@@ -25,6 +25,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.states.counts import state_to_counts
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -252,6 +253,16 @@ class Statevector(QuantumState):
             rtol = self._rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
+
+    def to_counts(self):
+        """Returns the statevector as a counts dict
+        of probabilities.
+
+        Returns:
+            dict: Counts of probabilities.
+        """
+        return state_to_counts(self.data.ravel(), self._atol)
+
 
     @classmethod
     def from_label(cls, label):
