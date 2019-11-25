@@ -25,7 +25,8 @@
         "return-code=any python -c \"import shutil; shutil.rmtree('{build_dir}/build')\"",
         "return-code=any python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_terra.egg-info')\"",
         "python -mpip install {wheel_file}",
-        "python -mpip install -U qiskit-ignis==0.2.0"
+        "python -mpip install -U qiskit-ignis==0.2.0",
+        "python -mpip install -U python-constraint"
       ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y {project}",
