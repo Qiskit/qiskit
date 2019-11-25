@@ -29,7 +29,7 @@ from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import (FakeYorktown, FakeTenerife, FakeOurense, FakeVigo,
                               FakeMelbourne, FakeRueschlikon,
                               FakeTokyo, FakePoughkeepsie, FakeAlmaden, FakeSingapore,
-                              FakeJohannesburg, FakeBoeblingen)
+                              FakeJohannesburg, FakeBoeblingen, FakeRochester)
 from qiskit.test.base import dicts_almost_equal
 
 
@@ -53,7 +53,7 @@ variadic_gates = [Barrier]
 mock_backends = [FakeYorktown(), FakeTenerife(), FakeOurense(), FakeVigo(),
                  FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie(), FakeAlmaden(), FakeSingapore(),
-                 FakeJohannesburg(), FakeBoeblingen()]
+                 FakeJohannesburg(), FakeBoeblingen(), FakeRochester()]
 
 
 @settings(report_multiple_bugs=False,

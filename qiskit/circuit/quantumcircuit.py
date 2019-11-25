@@ -901,6 +901,10 @@ class QuantumCircuit:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
 
+        # If no registers return 0
+        if reg_offset == 0:
+            return 0
+
         # A list that holds the height of each qubit
         # and classical bit.
         op_stack = [0] * reg_offset
