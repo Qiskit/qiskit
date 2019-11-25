@@ -167,7 +167,7 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.SetChannelFrequencyInstruction)
+    @bind_instruction(commands.SetFrequencyInstruction)
     def convert_set_channel_frequency(self, shift, instruction):
         """ Return converted `SetChannelFrequencyInstruction`.
 
@@ -178,7 +178,7 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'set_channel_frequency',
+            'name': 'sf',
             't0': shift+instruction.start_time,
             'ch': instruction.channels[0].name,
             'frequency': instruction.command.frequency
@@ -371,8 +371,8 @@ class QobjToInstructionConverter:
 
         return commands.FrameChange(phase)(channel) << t0
 
-    @bind_name('set_channel_frequency')
-    def convert_set_channel_frequency(self, instruction):
+    @bind_name('sf')
+    def convert_set_frequency(self, instruction):
         """Return converted `SetChannelFrequencyInstruction`.
 
         Args:
@@ -389,11 +389,11 @@ class QobjToInstructionConverter:
 
             def gen_scf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return commands.SetChannelFrequency(_frequency)(channel) << t0
+                return commands.SetFrequency(_frequency)(channel) << t0
 
             return ParameterizedSchedule(gen_scf_schedule, parameters=frequency_expr.params)
 
-        return commands.SetChannelFrequency(frequency)(channel) << t0
+        return commands.SetFrequency(frequency)(channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):

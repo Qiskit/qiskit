@@ -22,7 +22,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Discriminator, Kernel, SetChannelFrequency)
+                                   Discriminator, Kernel, SetFrequency)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -61,14 +61,14 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
 
-    def test_set_channel_frequency(self):
+    def test_set_frequency(self):
         """Test converted qobj from SetChannelFrequencyInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SetChannelFrequency(frequency=8.0)
+        command = SetFrequency(frequency=8.0)
         instruction = command(DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
-            name='set_channel_frequency',
+            name='sf',
             ch='d0',
             t0=0,
             frequency=8.0

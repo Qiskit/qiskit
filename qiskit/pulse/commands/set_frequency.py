@@ -22,7 +22,7 @@ from .instruction import Instruction
 from .command import Command
 
 
-class SetChannelFrequency(Command):
+class SetFrequency(Command):
     """
     Set the channel frequency. This command operates on PulseChannels.
     A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
@@ -33,7 +33,7 @@ class SetChannelFrequency(Command):
     The duration of SetChannelFrequency is 0.
     """
 
-    prefix = 'scf'
+    prefix = 'sf'
 
     def __init__(self, frequency: float, name: Optional[str] = None):
         """Creates a new set channel frequency pulse.
@@ -44,14 +44,14 @@ class SetChannelFrequency(Command):
         """
         super().__init__(duration=0)
         self._frequency = float(frequency)
-        self._name = SetChannelFrequency.create_name(name)
+        self._name = SetFrequency.create_name(name)
 
     @property
     def frequency(self):
         """New frequency."""
         return self._frequency
 
-    def __eq__(self, other: 'SetChannelFrequency'):
+    def __eq__(self, other: 'SetFrequency'):
         """
         Two set channel frequency commands are the same if they have the same type and frequency.
 
@@ -70,13 +70,10 @@ class SetChannelFrequency(Command):
         return '%s(%s, frequency=%.3f)' % (self.__class__.__name__, self.name, self.frequency)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: PulseChannel, name=None) -> 'SetChannelFrequencyInstruction':
-        return SetChannelFrequencyInstruction(self, channel, name=name)
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'SetFrequencyInstruction':
+        return SetFrequencyInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
 
-class SetChannelFrequencyInstruction(Instruction):
+class SetFrequencyInstruction(Instruction):
     """Instruction to change the frequency of a `PulseChannel`."""
-
-    def __init__(self, command: SetChannelFrequency, channel: PulseChannel, name=None):
-        super().__init__(command, channel, name=name)

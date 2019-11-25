@@ -31,7 +31,7 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse import (SamplePulse, FrameChange, SetChannelFrequency, PersistentValue,
+from qiskit.pulse import (SamplePulse, FrameChange, SetFrequency, PersistentValue,
                           Snapshot, Acquire, PulseError)
 
 
@@ -172,20 +172,20 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
-            tmp_scf = -1.0
+            tmp_sf = -1.0
             for command in commands:
                 if isinstance(command, FrameChange):
                     tmp_fc += command.phase
                     pv[time:] = 0
-                elif isinstance(command, SetChannelFrequency):
-                    tmp_scf += command.frequency
+                elif isinstance(command, SetFrequency):
+                    tmp_sf += command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
-            if tmp_scf != -1.0:
-                self._frequencychanges[time] = tmp_scf
+            if tmp_sf != -1.0:
+                self._frequencychanges[time] = tmp_sf
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
@@ -455,9 +455,9 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
-    def _draw_channel_frequency_changes(self, ax, scf, dt, y0):
+    def _draw_frequency_changes(self, ax, sf, dt, y0):
         frequency_changes_present = True
-        for time in scf.keys():
+        for time in sf.keys():
             ax.text(x=time*dt, y=y0, s=r'$\leftrightsquigarrow$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center', rotation=90)
@@ -549,9 +549,9 @@ class ScheduleDrawer:
                 if fcs and framechange:
                     self._draw_framechanges(ax, fcs, dt, y0)
                 # plot frequency changes
-                scf = events.frequencychanges
-                if scf and frequencychange:
-                    self._draw_channel_frequency_changes(ax, fcs, dt, y0+amp_min)
+                sf = events.frequencychanges
+                if sf and frequencychange:
+                    self._draw_frequency_changes(ax, fcs, dt, y0 + amp_min)
                 # plot labels
                 labels = events.labels
                 if labels and label:

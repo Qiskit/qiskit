@@ -82,7 +82,7 @@ from .channels import (PulseChannelSpec, DriveChannel,
                        MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Instruction, Acquire, FrameChange, SetChannelFrequency,
+from .commands import (Instruction, Acquire, FrameChange, SetFrequency,
                        PersistentValue, SamplePulse, Snapshot, Kernel, Discriminator,
                        Delay, functional_pulse)
 from .configuration import LoConfig, LoRange

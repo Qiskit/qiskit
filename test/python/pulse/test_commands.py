@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
                           Snapshot, Kernel, Discriminator, functional_pulse,
-                          Delay, SetChannelFrequency, PulseError)
+                          Delay, SetFrequency, PulseError)
 from qiskit.test import QiskitTestCase
 
 
@@ -146,16 +146,16 @@ class TestFrameChangeCommand(QiskitTestCase):
         self.assertTrue(fc_command.name.startswith('fc'))
 
 
-class TestSetChannelFrequency(QiskitTestCase):
+class TestSetFrequency(QiskitTestCase):
     """Set channel frequency tests."""
 
     def test_default(self):
         """Test default set channel frequency."""
-        scf_command = SetChannelFrequency(frequency=8.0)
+        scf_command = SetFrequency(frequency=8.0)
 
         self.assertEqual(scf_command.frequency, 8.0)
         self.assertEqual(scf_command.duration, 0)
-        self.assertTrue(scf_command.name.startswith('scf'))
+        self.assertTrue(scf_command.name.startswith('sf'))
 
 
 class TestPersistentValueCommand(QiskitTestCase):
