@@ -29,7 +29,7 @@ class CSPLayout(AnalysisPass):
     If possible, chooses a Layout as a CSP, using backtracking.
     """
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None):
+    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
         does not set the layout property.
@@ -39,10 +39,14 @@ class CSPLayout(AnalysisPass):
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG.
+            call_limit (int): Amount of times that
+                ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` will be called.
+                Default: 1000
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.strict_direction = strict_direction
+        self.call_limit = call_limit
         self.seed = seed
 
     def run(self, dag):
@@ -51,6 +55,7 @@ class CSPLayout(AnalysisPass):
         except ImportError:
             raise TranspilerError('CSPLayout requires python-constraint to run. '
                                   'Run pip install python-constraint')
+
         qubits = dag.qubits()
         cxs = set()
 
@@ -59,7 +64,20 @@ class CSPLayout(AnalysisPass):
                      qubits.index(gate.qargs[1])))
         edges = self.coupling_map.get_edges()
 
-        problem = Problem(RecursiveBacktrackingSolver())
+        class CustomSolver(RecursiveBacktrackingSolver):
+            """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
+            def __init__(self, call_limit):
+                self.call_limit = call_limit
+                super().__init__()
+
+            def recursiveBacktracking(self, solutions, domains, vconstraints, assignments, single):
+                self.call_limit -= 1
+                if self.call_limit < 0:
+                    return None
+                return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
+                                                     single)
+
+        problem = Problem(CustomSolver(call_limit=self.call_limit))
 
         problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
 
