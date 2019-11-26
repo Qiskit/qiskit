@@ -14,56 +14,45 @@
 
 """Tests for the converters."""
 
-from qiskit.converters import circuit_to_instruction, instruction_to_gate
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
 
-class TestInstructionToGate(QiskitTestCase):
-    """Test Instruction to Gate"""
+class TestCircuitToGate(QiskitTestCase):
+    """Test QuantumCircuit to Gate"""
 
-    def test_simple_instruction(self):
-        """test simple instruction"""
+    def test_simple_circuit(self):
+        """test simple circuit"""
         qr1 = QuantumRegister(4, 'qr1')
         qr2 = QuantumRegister(3, 'qr2')
         qr3 = QuantumRegister(3, 'qr3')
         circ = QuantumCircuit(qr1, qr2, qr3)
         circ.cx(qr1[1], qr2[2])
 
-        inst = circuit_to_instruction(circ)
-        gate = instruction_to_gate(inst)
+        gate = circ.to_gate()
         q = QuantumRegister(10, 'q')
 
         self.assertIsInstance(gate, Gate)
         self.assertEqual(gate.definition[0][1], [q[1], q[6]])
 
-    def test_opaque_instruction(self):
-        """test opaque instruction"""
-        inst = Instruction('opaque', 3, 0, [])
-        gate = instruction_to_gate(inst)
-        self.assertIsInstance(gate, Gate)
-        inst_attr = inst.__dict__
-        gate_attr = gate.__dict__
-        for att, value in inst_attr.items():
-            with self.subTest(name=att):
-                self.assertEqual(value, getattr(gate, att))
-        self.assertEqual(set(gate_attr.keys()) - set(inst_attr.keys()),
-                         {'_label'})
-
     def test_raises(self):
-        """test instruction which can't be converted raises"""
+        """test circuit which can't be converted raises"""
         circ1 = QuantumCircuit(3)
         circ1.x(0)
         circ1.cx(0, 1)
         circ1.barrier()
-        inst1 = circuit_to_instruction(circ1)
 
         circ2 = QuantumCircuit(1, 1)
         circ2.measure(0, 0)
-        inst2 = circuit_to_instruction(circ2)
 
-        with self.assertRaises(QiskitError):
-            instruction_to_gate(inst1)
-            instruction_to_gate(inst2)
+        circ3 = QuantumCircuit(1)
+        circ3.x(0)
+        circ3.reset(0)
+
+        with self.assertRaises(QiskitError):  # TODO: accept barrier
+            circ1.to_gate()
+
+        with self.assertRaises(QiskitError):  # measure and reset are not valid
+            circ2.to_gate()
