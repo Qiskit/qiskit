@@ -7,6 +7,8 @@ features:
     the number of controls. The control qubits come before the
     controlled qubits in the new gate. For example::
 
+      from qiskit import QuantumCircuit
+      from qiskit.extensions import HGate
       hgate = HGate()
       circ = QuantumCircuit(4)
       circ.append(hgate.control(3), [0, 1, 2, 3])
