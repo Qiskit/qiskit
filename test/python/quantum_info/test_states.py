@@ -173,5 +173,6 @@ class TestStates(QiskitTestCase):
         self.assertAlmostEqual(ans['00'], 0.5)
         self.assertAlmostEqual(ans['11'], 0.5)
 
+
 if __name__ == '__main__':
     unittest.main()
