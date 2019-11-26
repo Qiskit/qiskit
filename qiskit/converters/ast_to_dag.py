@@ -39,7 +39,6 @@ from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
-from qiskit.extensions.standard.u0 import U0Gate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -77,8 +76,7 @@ def ast_to_dag(ast):
 class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
-    standard_extension = {"u0": U0Gate,
-                          "u1": U1Gate,
+    standard_extension = {"u1": U1Gate,
                           "u2": U2Gate,
                           "u3": U3Gate,
                           "x": XGate,
