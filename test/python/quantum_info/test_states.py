@@ -24,6 +24,7 @@ from qiskit.quantum_info import basis_state, random_state
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import projector
 from qiskit.quantum_info import purity
+from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.test import QiskitTestCase
 
 
@@ -158,6 +159,19 @@ class TestStates(QiskitTestCase):
         self.assertEqual(purity(state_1), 0.5)
         self.assertEqual(purity(state_2), 1.0/3)
 
+    def statevector_to_counts(self):
+        """Statevector to counts dict"""
+        state = [0.70711, 0, 0, .70711]
+        ans = Statevector(state).to_counts()
+        self.assertAlmostEqual(ans['00'], 0.5)
+        self.assertAlmostEqual(ans['11'], 0.5)
+
+    def densitymatrix_to_counts(self):
+        """DensityMatrix to counts dict"""
+        state = [0.70711, 0, 0, .70711]
+        ans = DensityMatrix(state).to_counts()
+        self.assertAlmostEqual(ans['00'], 0.5)
+        self.assertAlmostEqual(ans['11'], 0.5)
 
 if __name__ == '__main__':
     unittest.main()

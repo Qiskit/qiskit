@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 
-def state_to_counts(vec, eps=1e-15):
+def state_to_counts(vec, eps=1e-15, density_matrix_diag=False):
     """Converts a statevector to counts
     of probabilities.
 
@@ -32,6 +32,7 @@ def state_to_counts(vec, eps=1e-15):
     Parameters:
         vec (ndarray): Input statevector.
         eps (float): Optional tolerance.
+        density_matrix_diag (bool): Input is a density matrix diagonal.
 
     Returns:
         dict: Counts of probabilities.
@@ -64,8 +65,9 @@ def state_to_counts(vec, eps=1e-15):
     str_format = '0{}b'.format(qubit_dims)
     for kk in range(vec.shape[0]):
         val = vec[kk]
-        val2 = val.real**2+val.imag**2
-        if val2 > eps:
-            counts[format(kk, str_format)] = val2
+        if not density_matrix_diag:
+            val = val.real**2+val.imag**2
+        if val > eps:
+            counts[format(kk, str_format)] = val
 
     return counts
