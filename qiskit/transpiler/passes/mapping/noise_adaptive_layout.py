@@ -91,7 +91,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     else:
                         g_reliab = 1.0
                 swap_reliab = pow(g_reliab, 3)
-                swap_reliab = -math.log(swap_reliab) if swap_reliab != 0 else -math.inf
+                swap_reliab = -math.log(swap_reliab) if swap_reliab != 0 else math.inf
                 self.swap_graph.add_edge(ginfo.qubits[0], ginfo.qubits[1], weight=swap_reliab)
                 self.swap_graph.add_edge(ginfo.qubits[1], ginfo.qubits[0], weight=swap_reliab)
                 self.cx_reliability[(ginfo.qubits[0], ginfo.qubits[1])] = g_reliab
