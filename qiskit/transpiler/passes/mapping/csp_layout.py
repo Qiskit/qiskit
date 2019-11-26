@@ -55,7 +55,6 @@ class CSPLayout(AnalysisPass):
         except ImportError:
             raise TranspilerError('CSPLayout requires python-constraint to run. '
                                   'Run pip install python-constraint')
-
         qubits = dag.qubits()
         cxs = set()
 
