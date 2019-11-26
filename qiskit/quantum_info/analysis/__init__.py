@@ -14,3 +14,4 @@
 
 """Module for functions for post processing results."""
 from .average import average_data
+from.distance import hellinger_fidelity
