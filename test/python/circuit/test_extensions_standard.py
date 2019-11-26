@@ -669,53 +669,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_u0(self):
-        self.circuit.u0(1, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_wires(self):
-        self.circuit.u0(1, 1)
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_invalid(self):
-        qc = self.circuit
-        # CHECKME? self.assertRaises(CircuitError, qc.u0, self.cr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.u0, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.u0, self.qr[1], 0)
-        self.assertRaises(CircuitError, qc.u0, 0, self.cr[0])
-        self.assertRaises(CircuitError, qc.u0, 0, .0)
-        self.assertRaises(CircuitError, qc.u0, self.qr[2], self.qr[1])
-        self.assertRaises(CircuitError, qc.u0, 0, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.u0, 0, self.cr)
-        # TODO self.assertRaises(CircuitError, qc.u0, 'a', self.qr[1])
-        self.assertRaises(CircuitError, qc.u0, 0, 'a')
-
-    def test_u0_reg(self):
-        instruction_set = self.circuit.u0(1, self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_reg_inv(self):
-        instruction_set = self.circuit.u0(1, self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_pi(self):
-        qc = self.circuit
-        qc.u0(pi / 2, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [pi / 2])
-        self.assertEqual(qargs, [self.qr[1]])
-
     def test_u1(self):
         self.circuit.u1(1, self.qr[1])
         op, qargs, _ = self.circuit[0]
