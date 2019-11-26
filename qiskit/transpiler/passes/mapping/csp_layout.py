@@ -69,7 +69,10 @@ class CSPLayout(AnalysisPass):
                 self.call_limit = call_limit
                 super().__init__()
 
-            def recursiveBacktracking(self, solutions, domains, vconstraints, assignments, single):
+            def recursiveBacktracking(self,  # pylint: disable=invalid-name
+                                      solutions, domains, vconstraints, assignments, single):
+                """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
+                limited in the amount of calls by ``self.call_limit`` """
                 self.call_limit -= 1
                 if self.call_limit < 0:
                     return None
