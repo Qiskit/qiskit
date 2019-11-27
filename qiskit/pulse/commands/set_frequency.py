@@ -28,7 +28,7 @@ class SetFrequency(Command):
     A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
     F is the frequency of the channel. The command SetChannelFrequency allows
     the user to set the value of f. All pulses that are played on a channel
-    after SetChannelFrequency has been called will have the corresponding frequency.
+    after SetFrequency has been called will have the corresponding frequency.
 
     The duration of SetChannelFrequency is 0.
     """
