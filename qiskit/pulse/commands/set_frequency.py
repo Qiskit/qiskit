@@ -26,7 +26,7 @@ class SetFrequency(Command):
     """
     Set the channel frequency. This command operates on PulseChannels.
     A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
-    F is the frequency of the channel. The command SetChannelFrequency allows
+    F is the frequency of the channel. The command SetFrequency allows
     the user to set the value of f. All pulses that are played on a channel
     after SetFrequency has been called will have the corresponding frequency.
 
@@ -53,7 +53,7 @@ class SetFrequency(Command):
 
     def __eq__(self, other: 'SetFrequency'):
         """
-        Two set channel frequency commands are the same if they have the same type and frequency.
+        Two set frequency commands are the same if they have the same type and frequency.
 
         Args:
             other: Other SetFrequency.

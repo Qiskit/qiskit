@@ -62,7 +62,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_set_frequency(self):
-        """Test converted qobj from SetChannelFrequencyInstruction."""
+        """Test converted qobj from SetFrequencyInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = SetFrequency(frequency=8.0)
         instruction = command(DriveChannel(0))

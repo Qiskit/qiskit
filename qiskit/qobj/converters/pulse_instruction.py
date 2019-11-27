@@ -168,12 +168,12 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.SetFrequencyInstruction)
-    def convert_set_channel_frequency(self, shift, instruction):
-        """ Return converted `SetChannelFrequencyInstruction`.
+    def convert_set_frequency(self, shift, instruction):
+        """ Return converted `SetFrequencyInstruction`.
 
         Args:
             shift (int): Offset time.
-            instruction (SetChannelFrequencyInstruction): set channel frequency instruction.
+            instruction (SetFrequencyInstruction): set frequency instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
@@ -373,10 +373,10 @@ class QobjToInstructionConverter:
 
     @bind_name('sf')
     def convert_set_frequency(self, instruction):
-        """Return converted `SetChannelFrequencyInstruction`.
+        """Return converted `SetFrequencyInstruction`.
 
         Args:
-            instruction (PulseQobjInstruction): set channel frequency qobj
+            instruction (PulseQobjInstruction): set frequency qobj
         Returns:
             Schedule: Converted and scheduled Instruction
         """

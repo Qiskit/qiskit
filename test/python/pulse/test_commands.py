@@ -147,10 +147,10 @@ class TestFrameChangeCommand(QiskitTestCase):
 
 
 class TestSetFrequency(QiskitTestCase):
-    """Set channel frequency tests."""
+    """Set frequency tests."""
 
     def test_default(self):
-        """Test default set channel frequency."""
+        """Test default set frequency."""
         scf_command = SetFrequency(frequency=8.0)
 
         self.assertEqual(scf_command.frequency, 8.0)

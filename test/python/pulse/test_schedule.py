@@ -478,7 +478,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(only_fc.instructions), 1)
         self.assertEqual(len(no_fc.instructions), 5)
 
-        # test on SetChannelFrequency
+        # test on SetFrequency
         only_sf, no_sf = \
             self._filter_and_test_consistency(sched,
                                               instruction_types=[SetFrequencyInstruction])
