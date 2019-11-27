@@ -12,7 +12,59 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" algorithms package """
+"""
+==========================================
+Algorithms (:mod:`qiskit.aqua.algorithms`)
+==========================================
+Quantum Algorithms...
+
+.. currentmodule:: qiskit.aqua.algorithms
+
+Algorithms Base Class
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   QuantumAlgorithm
+
+Quantum Algorithms
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   VQE
+   QAOA
+   VQC
+   QGAN
+   EOH
+   QSVM
+   Grover
+   IQPE
+   QPE
+   AmplitudeEstimation
+   Simon
+   DeutschJozsa
+   BernsteinVazirani
+   HHL
+   Shor
+
+Classical Algorithms
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   ExactEigensolver
+   ExactLSsolver
+   SVM_Classical
+   CPLEX_Ising
+
+"""
 
 from .quantum_algorithm import QuantumAlgorithm
 from .adaptive import VQE, QAOA, VQC, QGAN
