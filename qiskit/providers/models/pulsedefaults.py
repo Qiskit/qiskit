@@ -16,7 +16,7 @@
 import warnings
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields

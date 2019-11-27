@@ -146,7 +146,7 @@ class TestPulseDefaults(QiskitTestCase):
         converted_instruction = [converter(qobj) for qobj in qobjs]
 
         self.ops_def.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
-                                                           name='inst_seq'))
+                                                              name='inst_seq'))
 
         with self.assertRaises(PulseError):
             self.ops_def.get('inst_seq', 0, P1=1, P2=2, P3=3, P4=4, P5=5)
