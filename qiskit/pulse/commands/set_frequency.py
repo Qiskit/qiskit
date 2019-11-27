@@ -30,7 +30,7 @@ class SetFrequency(Command):
     the user to set the value of f. All pulses that are played on a channel
     after SetFrequency has been called will have the corresponding frequency.
 
-    The duration of SetChannelFrequency is 0.
+    The duration of SetFrequency is 0.
     """
 
     prefix = 'sf'
