@@ -112,6 +112,19 @@ class TestGateSqrt(QiskitTestCase):
         self.assertIsInstance(result, Gate)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
 
+    def test_composite_sqrt(self):
+        """Test composite Gate.power(1/2) method.
+        """
+        expected = array([[1, 0],
+                          [0, 0.70710678118 + 0.70710678118j]], dtype=complex)
+
+        result = SGate().power(1 / 2)
+
+        self.assertEqual(result.label, 's^0.5')
+        self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Gate)
+        assert_allclose(result.definition[0][0].to_matrix(), expected)
+
 
 @ddt
 class TestGateFloat(QiskitTestCase):

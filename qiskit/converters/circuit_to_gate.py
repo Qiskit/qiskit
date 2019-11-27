@@ -42,6 +42,10 @@ def circuit_to_gate(circuit, parameter_map=None):
             input circuit. Upon decomposition, this gate will
             yield the components comprising the original circuit.
     """
+    if len(circuit.clbits) != 0:
+        raise QiskitError('Circuit with classical bits cannot be converted '
+                          'to gate.')
+
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
             raise QiskitError('One or more instructions in this instruction '
@@ -82,7 +86,9 @@ def circuit_to_gate(circuit, parameter_map=None):
         q = QuantumRegister(gate.num_qubits, 'q')
 
     definition = list(map(lambda x:
-                          (x[0], list(map(lambda y: q[find_bit_position(y)], x[1]))),
+                          (x[0],
+                           list(map(lambda y: q[find_bit_position(y)], x[1])),
+                           []),
                           definition))
     gate.definition = definition
 
