@@ -120,7 +120,9 @@ class TestGateSqrt(QiskitTestCase):
 
         expected = array([[0.99874948+6.25390559e-05j, 0.00374609-4.98542083e-02j],
                           [-0.00124974-4.99791301e-02j, 0.99750443+4.98542083e-02j]])
+
         result = gate.power(1 / 2)
+
         self.assertEqual(result.label, 'my_gate^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
