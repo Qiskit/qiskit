@@ -56,7 +56,7 @@ class SetFrequency(Command):
         Two set channel frequency commands are the same if they have the same type and frequency.
 
         Args:
-            other: Other SetChannelFrequency.
+            other: Other SetFrequency.
 
         Returns:
             bool: Are self and other equal.
