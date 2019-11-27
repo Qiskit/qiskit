@@ -17,6 +17,7 @@
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.states import state_to_counts
 
 from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
@@ -171,16 +172,19 @@ class Result(BaseModel):
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
+        exp = self._get_experiment(experiment)
         try:
-            exp = self._get_experiment(experiment)
-            try:
-                header = exp.header.to_dict()
-            except (AttributeError, QiskitError):  # header is not available
-                header = None
+            header = exp.header.to_dict()
+        except (AttributeError, QiskitError):  # header is not available
+            header = None
 
+        if 'counts' in self.data(experiment).keys():
             return postprocess.format_counts(self.data(experiment)['counts'],
                                              header)
-        except KeyError:
+        elif 'statevector' in self.data(experiment).keys():
+            vec = postprocess.format_statevector(self.data(experiment)['statevector'])
+            return state_to_counts(vec)
+        else:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_statevector(self, experiment=None, decimals=None):
