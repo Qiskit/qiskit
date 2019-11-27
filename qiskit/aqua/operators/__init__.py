@@ -12,7 +12,45 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Operator packages """
+"""
+Operators (:mod:`qiskit.aqua.operators`)
+========================================
+Operators
+
+.. currentmodule:: qiskit.aqua.operators
+
+Operators
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   BaseOperator
+   WeightedPauliOperator
+   TPBGroupedWeightedPauliOperator
+   MatrixOperator
+
+Operator support
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    evolution_instruction
+    suzuki_expansion_slice_pauli_list
+    pauli_measurement
+    measure_pauli_z
+    covariance
+    row_echelon_F2
+    kernel_F2
+    commutator
+    check_commutativity
+    PauliGraph
+    Z2Symmetries
+
+"""
 
 from .common import (evolution_instruction, suzuki_expansion_slice_pauli_list, pauli_measurement,
                      measure_pauli_z, covariance, row_echelon_F2,
