@@ -1,23 +1,23 @@
 ---
 features:
   - |
-    PulseDefaults (accessed normally as backend.defaults()) has been extended
-    with the functionality that exists in CmdDef. CmdDef will be deprecated in
-    the future. There are also three new functions:
+    PulseDefaults (accessed normally as backend.defaults()) has an attribute,
+    `ops_def` which has the methods of CmdDef. CmdDef will be deprecated. The
+    new `ops_def` is a `OperationScheduleMap` object with three new functions
+    beyond what CmdDef had:
       - qubit_ops(qubits) returns the operations defined for the qubits
       - assert_has(operation, qubits) raises an error if the op isn't defined
       - remove(operation, qubits) like pop, but doesn't require parameters
     There are some differences from the CmdDef:
-      - __init__ does not take any user input
+      - __init__ takes `defaults.pulse_library` and `defaults.cmd_def`
       - cmds and cmd_qubits are deprecated and replaced with ops and
         qubits_with_op
 
     Example:
-        # Get data directly from backend defaults without using CmdDef
         backend = provider.get_backend(backend_name)
-        defaults = backend.defaults()
-        qubit = defaults.qubits_with_op('u3')[0]
-        x_gate = defaults.get('u3', qubit, P0=np.pi, P1=0, P2=np.pi)
+        ops_def = backend.defaults().ops_def
+        qubit = ops_def.qubits_with_op('u3')[0]
+        x_gate = ops_def.get('u3', qubit, P0=np.pi, P1=0, P2=np.pi)
         pulse_schedule = x_gate(DriveChannel(qubit))
 
 other:
