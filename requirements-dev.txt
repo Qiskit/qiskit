@@ -12,7 +12,6 @@ stestr>=2.0.0
 PyGithub
 wheel
 cython>=0.27.1
-pillow>=4.2.1
 pylatexenc>=1.4
 ddt>=1.2.0
 seaborn>=0.9.0
