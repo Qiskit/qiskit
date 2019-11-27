@@ -73,7 +73,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.gate_list = []
         self.gate_reliability = {}
         self.swap_paths = {}
-        self.swap_costs = {}
+        self.swap_reliabs = {}
         self.prog_graph = nx.Graph()
         self.qarg_to_id = {}
         self.pending_program_edges = []
@@ -91,9 +91,10 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     else:
                         g_reliab = 1.0
                 swap_reliab = pow(g_reliab, 3)
-                swap_reliab = -math.log(swap_reliab) if swap_reliab != 0 else math.inf
-                self.swap_graph.add_edge(ginfo.qubits[0], ginfo.qubits[1], weight=swap_reliab)
-                self.swap_graph.add_edge(ginfo.qubits[1], ginfo.qubits[0], weight=swap_reliab)
+                # convert swap reliability to edge weight for Floyd-Warshall shortest weighted paths algorithm
+                swap_cost = -math.log(swap_reliab) if swap_reliab != 0 else math.inf
+                self.swap_graph.add_edge(ginfo.qubits[0], ginfo.qubits[1], weight=swap_cost)
+                self.swap_graph.add_edge(ginfo.qubits[1], ginfo.qubits[0], weight=swap_cost)
                 self.cx_reliability[(ginfo.qubits[0], ginfo.qubits[1])] = g_reliab
                 self.gate_list.append((ginfo.qubits[0], ginfo.qubits[1]))
         idx = 0
@@ -107,25 +108,25 @@ class NoiseAdaptiveLayout(AnalysisPass):
             self.gate_reliability[edge] = self.cx_reliability[edge] * \
                                           self.readout_reliability[edge[0]] * \
                                           self.readout_reliability[edge[1]]
-        self.swap_paths, swap_costs_temp = nx.algorithms.shortest_paths.dense.\
+        self.swap_paths, swap_reliabs_temp = nx.algorithms.shortest_paths.dense.\
             floyd_warshall_predecessor_and_distance(self.swap_graph, weight='weight')
-        for i in swap_costs_temp:
-            self.swap_costs[i] = {}
-            for j in swap_costs_temp[i]:
+        for i in swap_reliabs_temp:
+            self.swap_reliabs[i] = {}
+            for j in swap_reliabs_temp[i]:
                 if (i, j) in self.cx_reliability:
-                    self.swap_costs[i][j] = self.cx_reliability[(i, j)]
+                    self.swap_reliabs[i][j] = self.cx_reliability[(i, j)]
                 elif (j, i) in self.cx_reliability:
-                    self.swap_costs[i][j] = self.cx_reliability[(j, i)]
+                    self.swap_reliabs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
                     for n in self.swap_graph.neighbors(j):
                         if (n, j) in self.cx_reliability:
-                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_reliability[(n, j)]
+                            reliab = math.exp(-swap_reliabs_temp[i][n])*self.cx_reliability[(n, j)]
                         else:
-                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_reliability[(j, n)]
+                            reliab = math.exp(-swap_reliabs_temp[i][n])*self.cx_reliability[(j, n)]
                         if reliab > best_reliab:
                             best_reliab = reliab
-                    self.swap_costs[i][j] = best_reliab
+                    self.swap_reliabs[i][j] = best_reliab
 
     def _qarg_to_id(self, qubit):
         """Convert qarg with name and value to an integer id."""
@@ -190,7 +191,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
             reliab = 1
             for n in self.prog_graph.neighbors(prog_qubit):
                 if n in self.prog2hw:
-                    reliab *= self.swap_costs[self.prog2hw[n]][hw_qubit]
+                    reliab *= self.swap_reliabs[self.prog2hw[n]][hw_qubit]
             reliab *= self.readout_reliability[hw_qubit]
             reliab_store[hw_qubit] = reliab
         max_reliab = 0
