@@ -28,11 +28,12 @@ except ImportError:
 
 
 class CRS(Optimizer):
-    """Controlled Random Search (CRS) with local mutation.
+    """
+    Controlled Random Search (CRS) with local mutation.
 
-    NLopt global optimizer, derivative-free
-    https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/
-            #controlled-random-search-crs-with-local-mutation
+    NLopt global optimizer, derivative-free. See `NLOpt CRS documentation
+    <https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/
+    #controlled-random-search-crs-with-local-mutation>`_ for more infomation.
     """
 
     CONFIGURATION = {
@@ -61,8 +62,6 @@ class CRS(Optimizer):
 
     def __init__(self, max_evals=1000):  # pylint: disable=unused-argument
         """
-        Constructor.
-
         Args:
             max_evals (int): Maximum allowed number of function evaluations.
         """

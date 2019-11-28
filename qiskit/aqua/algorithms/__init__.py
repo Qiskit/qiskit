@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """
-==========================================
 Algorithms (:mod:`qiskit.aqua.algorithms`)
 ==========================================
 Quantum Algorithms...
@@ -46,6 +45,7 @@ Quantum Algorithms
    IQPE
    QPE
    AmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimation
    Simon
    DeutschJozsa
    BernsteinVazirani

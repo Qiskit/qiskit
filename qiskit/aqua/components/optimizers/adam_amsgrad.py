@@ -39,14 +39,16 @@ logger = logging.getLogger(__name__)
 class ADAM(Optimizer):
 
     """
-    Adam
-    Kingma, Diederik & Ba, Jimmy. (2014).
-    Adam: A Method for Stochastic Optimization.
-          International Conference on Learning Representations.
+    Adam and AMSGRAD Optimizer
 
-    AMSGRAD
-    Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).
-    On the Convergence of Adam and Beyond. International Conference on Learning Representations.
+    | **Adam**
+    | *Kingma, Diederik & Ba, Jimmy. (2014).*
+    | Adam: A Method for Stochastic Optimization. \
+    International Conference on Learning Representations.
+
+    | **AMSGRAD**
+    | *Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).*
+    | On the Convergence of Adam and Beyond. International Conference on Learning Representations.
     """
     CONFIGURATION = {
         'name': 'ADAM',
@@ -108,19 +110,18 @@ class ADAM(Optimizer):
     def __init__(self, maxiter=10000, tol=1e-6, lr=1e-3, beta_1=0.9, beta_2=0.99, noise_factor=1e-8,
                  eps=1e-10, amsgrad=False, snapshot_dir=None):
         """
-        Constructor.
-
-        maxiter: int, Maximum number of iterations
-        tol: float, Tolerance for termination
-        lr: float >= 0, Learning rate.
-        beta_1: float, 0 < beta < 1, Generally close to 1.
-        beta_2: float, 0 < beta < 1, Generally close to 1.
-        noise_factor: float >= 0, Noise factor
-        eps: float >=0, Epsilon to be used for finite differences if no analytic
-                        gradient method is given.
-        amsgrad: Boolean, use AMSGRAD or not
-        snapshot_dir: str or None, if not None save the optimizer's parameter
-                        after every step to the given directory
+        Args:
+            maxiter (int): Maximum number of iterations
+            tol (float): Tolerance for termination
+            lr (float): Value >= 0, Learning rate.
+            beta_1 (float): Value in range 0 to 1, Generally close to 1.
+            beta_2 (float): Value in range 0 to 1, Generally close to 1.
+            noise_factor (float): Value >= 0, Noise factor
+            eps (float): Value >=0, Epsilon to be used for finite differences if no analytic
+                gradient method is given.
+            amsgrad (bool): True to use AMSGRAD, False if not
+            snapshot_dir (Optional(str)): If not None save the optimizer's parameter
+                after every step to the given directory
         """
         self.validate(locals())
         super().__init__()
@@ -227,6 +228,7 @@ class ADAM(Optimizer):
                  initial_point=None):
         """
         Perform optimization.
+
         Args:
             num_vars (int) : number of parameters to be optimized.
             objective_function (callable) : handle to a function that
@@ -236,11 +238,12 @@ class ADAM(Optimizer):
                 None if not available.
             variable_bounds (list[(float, float)]) : deprecated
             initial_point (numpy.ndarray[float]) : initial point.
+
         Returns:
-            tuple(numpy.ndarray, float, int):
-               point: is a 1D numpy.ndarray[float] containing the solution
-               value: is a float with the objective function value
-               nfev: number of objective function calls made if available or None
+            tuple(numpy.ndarray, float, int): tuple has (point, value, nfev) where\n
+                point: is a 1D numpy.ndarray[float] containing the solution\n
+                value: is a float with the objective function value\n
+                nfev: number of objective function calls made if available or None
         """
         super().optimize(num_vars, objective_function, gradient_function,
                          variable_bounds, initial_point)
