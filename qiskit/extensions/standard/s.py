@@ -95,5 +95,3 @@ def sdg(self, q):
 
 QuantumCircuit.s = s
 QuantumCircuit.sdg = sdg
-QuantumCircuit.p = s
-QuantumCircuit.pdg = sdg
