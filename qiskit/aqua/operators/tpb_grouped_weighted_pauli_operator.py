@@ -37,9 +37,31 @@ def _post_format_conversion(grouped_paulis):
 
 
 class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
-    """ TPB Grouped Weighted Pauli Operator """
+    """
+    TPB Grouped Weighted Pauli Operator
+    """
+
     def __init__(self, paulis, basis, z2_symmetries=None, atol=1e-12,
                  name=None, grouping_func=None, kwargs=None):
+        """
+        Args:
+            paulis (list[[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is
+                                             composed of a length-2 list and the first item is the
+                                             weight and the second item is the Pauli object.
+            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a
+                                                          tuple composed of the basis
+                                                          and the indices to paulis which are
+                                                          belonged to that group.
+                                                          e.g., if tpb basis is used, the object
+                                                          will be a pauli.
+                                                          By default, the group is equal to
+                                                          non-grouping, each pauli is its own basis.
+            z2_symmetries (Z2Symmetries): recording the z2 symmetries info
+            atol (float, optional): the threshold used in truncating paulis
+            name (str, optional): the name of operator.
+            grouping_func (Callable, optional): Function to group paulis
+            kwargs (dict): Optional parameters for grouping function call
+        """
         super().__init__(paulis, basis, z2_symmetries, atol, name)
         self._grouping_func = grouping_func
         self._kwargs = kwargs or {}
@@ -63,9 +85,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
     def sorted_grouping(cls, weighted_pauli_operator, method="largest-degree"):
         """
         Largest-Degree First Coloring for grouping paulis.
+
         Args:
-            weighted_pauli_operator (WeightedPauliOperator):
-                    the to-be-grouped weighted pauli operator.
+            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped
+                                                             weighted pauli operator.
             method (str): only `largest-degree` is available now.
 
         Returns:
@@ -82,9 +105,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
     def unsorted_grouping(cls, weighted_pauli_operator):
         """
         Greedy and unsorted grouping paulis.
+
         Args:
-            weighted_pauli_operator (WeightedPauliOperator):
-                    the to-be-grouped weighted pauli operator.
+            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped
+                                                             weighted pauli operator.
 
         Returns:
             TPBGroupedWeightedPauliOperator: operator
@@ -142,7 +166,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                    weighted_pauli_operator.name, cls.unsorted_grouping)
 
     def __eq__(self, other):
-        """Overload == operation"""
+        """ Overload == operation """
         if not super().__eq__(other):
             return False
         # check basis
@@ -161,7 +185,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         return True
 
     def __str__(self):
-        """Overload str()."""
+        """ Overload str() """
         curr_repr = 'tpb grouped paulis'
         length = len(self._paulis)
         name = "" if self._name is None else "{}: ".format(self._name)
