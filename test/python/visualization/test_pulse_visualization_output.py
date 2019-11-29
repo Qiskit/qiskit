@@ -35,6 +35,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     pulse_matplotlib_reference = path_to_diagram_reference('pulse_matplotlib_ref.png')
     instr_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
     schedule_matplotlib_reference = path_to_diagram_reference('schedule_matplotlib_ref.png')
+    schedule_matplotlib_show_framechange_ref = path_to_diagram_reference('schedule_matplotlib_show_framechange_ref.png')
 
     def setUp(self):
         self.schedule = Schedule()
@@ -119,6 +120,22 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
                                         RegisterSlot(1)))
         # Check ValueError is not thrown
         sched.draw(plot_range=(0, 15))
+
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    def test_schedule_matplotlib_drawer_show_framechange(self):
+        filename = self._get_resource_path('current_schedule_matplotlib_show_framechange_ref.png')
+        gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
+        sched = Schedule()
+        sched = sched.append(gp0(DriveChannel(0)))
+        sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
+        sched = sched.insert(30, FrameChange(phase=-1.50)(DriveChannel(1)))
+        sched = sched.insert(70, FrameChange(phase=1.50)(DriveChannel(1)))
+        pulse_drawer(sched, filename=filename, show_framechange_channels=False)
+        self.assertImagesAreEqual(filename, self.schedule_matplotlib_show_framechange_ref)
+        os.remove(filename)
 
 
 if __name__ == '__main__':
