@@ -28,12 +28,13 @@ except ImportError:
 
 
 class CRS(Optimizer):
+    # pylint: disable=line-too-long
     """
     Controlled Random Search (CRS) with local mutation.
 
     NLopt global optimizer, derivative-free. See `NLOpt CRS documentation
-    <https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/
-    #controlled-random-search-crs-with-local-mutation>`_ for more infomation.
+    <https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#controlled-random-search-crs-with-local-mutation>`_
+    for more information.
     """
 
     CONFIGURATION = {
