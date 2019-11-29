@@ -126,7 +126,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_drawer_show_framechange(self):
-        filename = self._get_resource_path('current_matplotlib_show_framechange_ref.png')
+        filename = self._get_resource_path('current_show_framechange_ref.png')
         gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
         sched = Schedule()
         sched = sched.append(gp0(DriveChannel(0)))
