@@ -1550,7 +1550,7 @@ class TestTextControlledGate(QiskitTestCase):
                               "        └───┘"])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().q_if(2), [qr[0], qr[1], qr[2]])
+        circuit.append(HGate().control(2), [qr[0], qr[1], qr[2]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_cch_mid(self):
@@ -1564,7 +1564,7 @@ class TestTextControlledGate(QiskitTestCase):
                               "             "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().q_if(2), [qr[0], qr[2], qr[1]])
+        circuit.append(HGate().control(2), [qr[0], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_cch_top(self):
@@ -1578,7 +1578,7 @@ class TestTextControlledGate(QiskitTestCase):
                               "             "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().q_if(2), [qr[2], qr[1], qr[0]])
+        circuit.append(HGate().control(2), [qr[2], qr[1], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_c3h(self):
@@ -1594,7 +1594,7 @@ class TestTextControlledGate(QiskitTestCase):
                               "        └───┘"])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().q_if(3), [qr[0], qr[1], qr[2], qr[3]])
+        circuit.append(HGate().control(3), [qr[0], qr[1], qr[2], qr[3]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_c3h_middle(self):
@@ -1610,7 +1610,7 @@ class TestTextControlledGate(QiskitTestCase):
                               "             "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().q_if(3), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(HGate().control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_c3u2(self):
@@ -1627,7 +1627,7 @@ class TestTextControlledGate(QiskitTestCase):
             "                         "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(U2Gate(pi, -5 * pi / 8).q_if(3), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
@@ -1717,43 +1717,45 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(pqr[3], cr[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=False)), expected)
 
+    test_after_transpile_expected = [
+        "                  ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐ ░ ┌─┐   ",
+        "   (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├─░─┤M├───",
+        "                  ├──────────┤└──────────┘└─┬─┘├──────────┤└─┬─────────────┬──┘ ░ └╥┘┌─┐",
+        "   (userqr1) q1|0>┤ U2(0,pi) ├──────────────■──┤ U2(0,pi) ├──┤ U3(pi,0,pi) ├────░──╫─┤M├",
+        "                  └──────────┘                 └──────────┘  └─────────────┘    ░  ║ └╥┘",
+        "  (ancilla0) q2|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla1) q3|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla2) q4|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla3) q5|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla4) q6|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla5) q7|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla6) q8|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "  (ancilla7) q9|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        " (ancilla8) q10|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        " (ancilla9) q11|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "(ancilla10) q12|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "(ancilla11) q13|0>─────────────────────────────────────────────────────────────────╫──╫─",
+        "                                                                                   ║  ║ ",
+        "          c0_0: 0 ═════════════════════════════════════════════════════════════════╩══╬═",
+        "                                                                                      ║ ",
+        "          c0_1: 0 ════════════════════════════════════════════════════════════════════╩═",
+        "                                                                                        "
+    ]
+
     def test_after_transpile(self):
         """After transpile, the drawing should include the layout"""
-        expected = '\n'.join([
-            "                  ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐   ",
-            "   (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───",
-            "                  ├──────────┤└──────────┘└─┬─┘├──────────┤└─┬─────────────┬──┘└╥┘┌─┐",
-            "   (userqr1) q1|0>┤ U2(0,pi) ├──────────────■──┤ U2(0,pi) ├──┤ U3(pi,0,pi) ├────╫─┤M├",
-            "                  └──────────┘                 └──────────┘  └─────────────┘    ║ └╥┘",
-            "  (ancilla0) q2|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla1) q3|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla2) q4|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla3) q5|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla4) q6|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla5) q7|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla6) q8|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "  (ancilla7) q9|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            " (ancilla8) q10|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            " (ancilla9) q11|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "(ancilla10) q12|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "(ancilla11) q13|0>──────────────────────────────────────────────────────────────╫──╫─",
-            "                                                                                ║  ║ ",
-            "          c0_0: 0 ══════════════════════════════════════════════════════════════╩══╬═",
-            "                                                                                   ║ ",
-            "          c0_1: 0 ═════════════════════════════════════════════════════════════════╩═",
-            "                                                                                     "
-        ])
+        expected = '\n'.join(self.test_after_transpile_expected)
         qr = QuantumRegister(2, 'userqr')
         cr = ClassicalRegister(2, 'c0')
         qc = QuantumCircuit(qr, cr)
