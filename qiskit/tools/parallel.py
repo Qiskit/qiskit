@@ -52,7 +52,7 @@ from the multiprocessing library.
 
 import os
 import platform
-from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
@@ -62,6 +62,11 @@ os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
+
+
+def _task_wrapper(param):
+    (task, value, task_args, task_kwargs) = param
+    return task(value, *task_args, **task_kwargs)
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
@@ -111,22 +116,16 @@ def parallel_map(  # pylint: disable=dangerous-default-value
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
-            pool = Pool(processes=num_processes)
+            results = []
+            with ProcessPoolExecutor(max_workers=num_processes) as executor:
+                param = map(lambda value: (task, value, task_args, task_kwargs), values)
+                future = executor.map(_task_wrapper, param)
 
-            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                          _callback) for value in values]
-
-            while not all([item.ready() for item in async_res]):
-                for item in async_res:
-                    item.wait(timeout=0.1)
-
-            pool.terminate()
-            pool.join()
+            results = list(future)
+            Publisher().publish("terra.parallel.done", len(results))
 
         except (KeyboardInterrupt, Exception) as error:
             if isinstance(error, KeyboardInterrupt):
-                pool.terminate()
-                pool.join()
                 Publisher().publish("terra.parallel.finish")
                 os.environ['QISKIT_IN_PARALLEL'] = 'False'
                 raise QiskitError('Keyboard interrupt in parallel_map.')
@@ -136,7 +135,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
         Publisher().publish("terra.parallel.finish")
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-        return [ar.get() for ar in async_res]
+        return results
 
     # Cannot do parallel on Windows , if another parallel_map is running in parallel,
     # or len(values) == 1.
