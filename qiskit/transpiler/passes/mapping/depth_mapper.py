@@ -32,7 +32,6 @@ Given a circuit and an architecture graph we compute how to place that circuit o
 so gates can be performed where we try to minimize the longest (most expensive) sequence of gates
 on any qubit.
 """
-
 from typing import Mapping, Dict, Callable, Iterable, List, TypeVar, \
     Tuple
 
@@ -47,7 +46,7 @@ Reg = TypeVar('Reg')
 ArchNode = TypeVar('ArchNode')
 
 
-class DepthMapper(Mapper[Reg, ArchNode]):
+class DepthMapper(Mapper[Reg, ArchNode]):  # pylint: disable=unsubscriptable-object
     """An abstract mapper class for optimizing for the circuit depth."""
 
     def __init__(self,

@@ -79,13 +79,15 @@ def optimize_swaps(swaps: Iterable[Iterable[rt.Swap[_V]]]) -> Iterator[List[rt.S
     return (el for el in (list(swap) for swap in swaps) if len(el) > 0)
 
 
-def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMapping[_K, _V],
+def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]],
+                     mapping: MutableMapping[_K, _V],
                      allow_missing_keys: bool = False) -> None:
     """Given a circuit of swaps, apply them to the permutation (in-place).
 
     Args:
       swaps: param mapping: A mapping of Keys to Values, where the Keys are being swapped.
-      allow_missing_keys:
+      mapping: The permutation to have swaps applied to.
+      allow_missing_keys: Whether to allow swaps of missing keys in mapping.
     """
     for swap_step in swaps:
         for sw1, sw2 in swap_step:

@@ -66,7 +66,10 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
         Args:
           circuit: A circuit to execute
           node_dependencies: A mapping from node ids to number of dependents.
-          current_mapping:
+          current_mapping: The current mapping.
+
+        Returns:
+            A mapping of qubits to architecture nodes.
         """
         if node_dependencies is None:
             if self.node_dependencies is None:

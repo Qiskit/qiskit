@@ -58,7 +58,10 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
 
         Args:
           circuit: A circuit to execute
-          current_mapping:
+          current_mapping: The current mapping.
+
+        Returns:
+          The new mapping of qubits to architecture nodes.
 
         Raises:
           RuntimeError: When no suitable placement is found.

@@ -41,6 +41,9 @@ LOGGER = logging.getLogger(__name__)
 def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[List[Swap[int]]]:
     """Gives a list of swaps to implement a permutation on the given regular modular graph.
 
+    Returns:
+        A list of parallel Swaps steps to perform.
+
     Raises:
       RuntimeError: If too many iterations are used to implement the mapping.
     """
@@ -167,8 +170,8 @@ def _distinct_permutation(mapping: Mapping[int, int],
     """Find a perfect matching in the mapping such that no destination module is repeated.
 
     Args:
-      mapping: param already_mapped: The set of nodes that have already been mapped
-        and should be ignored
+      mapping: The current mapping
+      already_mapped: The set of nodes that have already been mapped and should be ignored
       modulesize: The module size
       modules: The number of modules
 
