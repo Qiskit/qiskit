@@ -556,7 +556,7 @@ class ScheduleDrawer:
                 # plot frequency changes
                 sf = events.frequencychanges
                 if sf and frequencychange:
-                    self._draw_frequency_changes(ax, sf, dt, y0 + amp_min)
+                    self._draw_frequency_changes(ax, sf, dt, y0 + v_max)
                 # plot labels
                 labels = events.labels
                 if labels and label:
