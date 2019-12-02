@@ -29,25 +29,26 @@ import time
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
 
-# making first circuit: bell state
-qc1 = QuantumCircuit(2, 2)
-qc1.h(0)
-qc1.cx(0, 1)
-qc1.measure([0,1], [0,1])
+if __name__ == '__main__':
+    # making first circuit: bell state
+    qc1 = QuantumCircuit(2, 2)
+    qc1.h(0)
+    qc1.cx(0, 1)
+    qc1.measure([0,1], [0,1])
 
-# making another circuit: superpositions
-qc2 = QuantumCircuit(2, 2)
-qc2.h([0,1])
-qc2.measure([0,1], [0,1])
+    # making another circuit: superpositions
+    qc2 = QuantumCircuit(2, 2)
+    qc2.h([0,1])
+    qc2.measure([0,1], [0,1])
 
-# setting up the backend
-print("(BasicAER Backends)")
-print(BasicAer.backends())
+    # setting up the backend
+    print("(BasicAER Backends)")
+    print(BasicAer.backends())
 
-# running the job
-job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
-sim_result = job_sim.result()
+    # running the job
+    job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+    sim_result = job_sim.result()
 
-# Show the results
-print(sim_result.get_counts(qc1))
-print(sim_result.get_counts(qc2))
+    # Show the results
+    print(sim_result.get_counts(qc1))
+    print(sim_result.get_counts(qc2))
