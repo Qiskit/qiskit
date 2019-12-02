@@ -96,15 +96,7 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
         minimal_cost = sys.maxsize
 
         def placement_cost(place: Placement[Reg, ArchNode]) -> Tuple[int, int]:
-            """Compute the cost of placing this placement with the current placement.
-
-            Args:
-              place: Placement[Reg: 
-              ArchNode]: 
-
-            Returns:
-
-            """
+            """Compute the cost of placing this placement with the current placement."""
             return self.placement_cost(current_placement + place)
 
         # Iterate over the binops sorted by nr of dependents and place them.
@@ -159,7 +151,7 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
                        gate_costs: Mapping[Type[Instruction], int] = None) -> Mapping[DAGNode, int]:
         """Compute a mapping from dag nodes to the weighted longest path length from that node
         to the end of the circuit.
-        
+
         If gate_costs is not given, all gate costs are assumed to be 1.
         """
         if gate_costs is None:

@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
     """A depth mapper that will place the cheapest gate and move the rest closer.
-    
+
     After placing the most expensive gate, we place an upper bound on the movement cost
     of the remaining gates that is the twice that of the most expensive. The mapper will
     then move the remaining gates only as close as that upper bound lets it.
@@ -58,7 +58,7 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
             circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
         """Provides a permutation that maps the circuit to the architecture.
-        
+
         If a chosen mapping has a cost increase associated to it,
         then we try to perform the operation locally instead.
 

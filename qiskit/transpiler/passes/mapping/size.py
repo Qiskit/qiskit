@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 class SizeMapper(Mapper[Reg, ArchNode]):
     """An abstract superclass for mappers that optimize for size.
-    
+
     Internally caches outcomes of placement_cost for Placements in placement_costs.
     This may consume quite a bit of memory.
     """
@@ -79,7 +79,7 @@ class SizeMapper(Mapper[Reg, ArchNode]):
 
     def placement_cost(self, placement: Placement) -> int:
         """Find the cost of performing the placement in size.
-        
+
         Will cache results for given small placements to speed up future computations."""
         if placement in self.placement_costs:
             return self.placement_costs[placement]
@@ -101,10 +101,10 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                       place_score: Callable[[Tuple[Placement[Reg, ArchNode], DAGNode]], int]) \
             -> Tuple[Placement[Reg, ArchNode], DAGNode]:
         """Internal function for computing a simple mapping of a set of gates.
-        
+
         Will place the highest-scoring gate from binops_qargs
         at the location that maximize the score.
-        
+
         Does not modify arguments."""
         max_max_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
         # Find the highest-scoring binop to perform and maximize the score.

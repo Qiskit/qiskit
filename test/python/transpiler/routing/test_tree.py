@@ -66,7 +66,7 @@ class TestPermutationTree(QiskitTestCase):
 
     def test_permute_tree_bug1(self) -> None:
         """Test a specific permutation that gave rise to an error.
-        
+
         The error relates to not having any improper root nodes to swap with.
         """
         graph = nx.balanced_tree(3, 2)
@@ -85,7 +85,7 @@ class TestPermutationTree(QiskitTestCase):
 
     def test_permute_tree_bug3(self) -> None:
         """Test a specific permutation that gave rise to an error.
-        
+
         The error relates to how subtrees were handled, even if input tree was pure.
         """
         graph = nx.balanced_tree(3, 2)
@@ -176,7 +176,7 @@ class TestPermutationTree(QiskitTestCase):
 
     def test_move_improper_multiple(self) -> None:
         """Test moving multiple pebbles where two can be moved at the same time step.
-        
+
         One more pebble can be moved into the gap by the first time step.
         """
         graph = nx.path_graph(6)

@@ -54,7 +54,7 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
         """Provides a mapping that maps possibly multiple gates of the circuit to the architecture.
-        
+
         If a chosen mapping has a cost increase associated to it,
         then we try to perform the operation locally instead.
 

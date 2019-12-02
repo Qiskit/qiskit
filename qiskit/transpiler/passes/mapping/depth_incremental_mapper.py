@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class IncrementalDepthMapper(DepthMapper[Reg, ArchNode]):
     """A depth mapper that will place the cheapest gate and move the rest closer.
-    
+
     After placing the cheapest gate, we place an upper bound on the movement cost
     of the remaining gates that is the same as that of the cheapest. The mapper will
     then move the remaining gates only as close as that upper bound lets it.

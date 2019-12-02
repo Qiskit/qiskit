@@ -45,7 +45,7 @@ _V = TypeVar("_V")
 
 class Placement(Generic[Reg, ArchNode]):
     """A Placement represents a placement of quantum registers on architecture graph nodes.
-    
+
     IDEA: Replace with NamedTuple once it supports constructors/preconditions.
     TODO: Get rid of current_mapping and mapped_to fields.
     """
@@ -93,7 +93,7 @@ class Placement(Generic[Reg, ArchNode]):
 
     def place(self, permutation: rt.Permutation[ArchNode]) -> None:
         """Place this placement in the permutation.
-        
+
         To place the qubits in the mapping and keep the mapping consistent,
         we need to place the qubits on their mapped architecture nodes
         and then remap the previously mapped qubits to those nodes

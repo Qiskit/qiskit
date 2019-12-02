@@ -69,10 +69,10 @@ def partial_permute(mapping: Mapping[_V, _V], nodes: List[_V]) -> Iterable[List[
 
 def permute(permutation: Permutation[_V]) -> Iterable[List[Swap[_V]]]:
     """List swaps that implement a permutation on a complete graph.
-    
+
     Assumes full connectivity between all nodes in the given permutation.
     Implements the permutation in at most 2 depth.
-    
+
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628

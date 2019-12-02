@@ -71,9 +71,9 @@ class DepthMapper(Mapper[Reg, ArchNode]):
 
     def placement_cost(self, placement: Placement[Reg, ArchNode]) -> Tuple[int, int]:
         """Find the cost of performing the placement in depth.
-        
+
         Will cache results for given small placements to speed up future computations.
-        
+
         Returns:
             A tuple with the placement depth cost and its size. Suitable for depth-first
             comparisons, and then break ties with the size.

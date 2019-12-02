@@ -73,14 +73,14 @@ class Pebble(Generic[_V]):
 
 class RootPebble(Pebble):
     """A pebble that was created when the root tree became pure.
-    
+
     This pebble becomes impure when it has no impure children;
     it becomes pure when it is in the root tree.
     """
 
     def is_proper(self, current_tree: 'Tree') -> bool:
         """Decide if the node's destination is inside the tree.
-        
+
          For the root destination pebble we always recompute the value,
          since it can change depending on other pebbles in the tree.
          And because there is only one RootPebble this stays cheap.
@@ -152,10 +152,10 @@ class Tree(Generic[_V]):
 
     def move_improper(self) -> Iterator[List[Swap[_V]]]:
         """Coroutine that lists of swaps that move improper vertices up towards the tree root.
-        
+
         Every yield, takes in the current new permutation, a new ignore_root parameter,
         and a new tr_was_pure parameter.
-        
+
         tr_was_pure indicates whether the tree Tr subgraph containing the root was pure.
         """
 
@@ -218,9 +218,9 @@ class Tree(Generic[_V]):
 def permute(graph: nx.Graph,
             perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     """List swaps that implement the given permutation on a graph repressenting a tree.
-    
+
     The implementation is still fairly slow.
-    
+
     SEE: Algorithm by Louxin Zhang: https://doi.org/10.1137/S0895480197323159
     """
     root = centroid(graph)  # type: _V
@@ -230,9 +230,9 @@ def permute(graph: nx.Graph,
 
 def permute_tree(tree: Tree, perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     """List swaps that implement the given permutation on a tree.
-    
+
     The implementation is still fairly slow.
-    
+
     SEE: Algorithm by Louxin Zhang: https://doi.org/10.1137/S0895480197323159
     """
     # Empty graph or single node (base case)

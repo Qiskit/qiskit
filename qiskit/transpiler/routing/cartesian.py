@@ -45,7 +45,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Point:
     """A node in the cartesian product of graphs.
-    
+
         Was originally implemented as subclass of NamedTuple (python 3.6+ only)."""
 
     def __init__(self, x, y):
@@ -92,7 +92,7 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
                               trials: int = 1) \
         -> List[List[Swap[int]]]:
     """Compute swaps that implement a mapping on a cartesian product of graphs.
-    
+
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628,
@@ -161,9 +161,9 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
              destination: Point,
              y: int) -> float:
         """Compute overhead cost induced by routing to this row.
-        
+
         In the case of an unmapped qubit, the cost is a positive ε value.
-        
+
         Otherwise, the overhead cost is the cost of implementing the current mapping
         plus the mapping of point.y to y to destination.y,
         minus the cost of just routing directly from point.y to destination.y
@@ -312,7 +312,7 @@ def permute_grid(permutation: Permutation[int], height: int) \
         -> Iterator[List[Swap[int]]]:
     """List swaps that implement a permutation on a rectangle graph.
     Rectangle is a cartesian product of two paths.
-    
+
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
@@ -333,7 +333,7 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
         -> List[List[Swap[int]]]:
     """List swaps that implement a permutation on a rectangle graph.
     Rectangle is a cartesian product of two paths.
-    
+
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
@@ -356,6 +356,6 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
 
 def _it_len(iterable: Iterable[Any]) -> int:
     """Iterate through the iterable and get its length.
-    
+
     WARNING: May not halt for infinite iterables!"""
     return sum(1 for _ in iterable)

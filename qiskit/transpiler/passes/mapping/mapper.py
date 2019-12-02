@@ -43,9 +43,9 @@ Reg = TypeVar('Reg')
 
 class GenericMetaPass(MetaPass, type(Generic)):
     """A superclass for the Mapper class to be able to use Generic.
-    
+
     The metaclass of Generic was removed in 3.7 so we resolve it dynamically.
-    
+
     The need for this workaround was fixed in 3.7+: https://github.com/python/typing/issues/449
     """
     pass

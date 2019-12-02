@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 class ApproximateTokenSwapper(Generic[_V]):
     """A class for computing approximate solutions to the Token Swapping problem.
-    
+
     Internally caches the graph and associated datastructures for re-use.
     """
 
@@ -65,9 +65,9 @@ class ApproximateTokenSwapper(Generic[_V]):
     def map(self, mapping: Mapping[_V, _V],
             trials: int = 4) -> List[Swap[_V]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
-        
+
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
-        
+
         Based on the paper: Approximation and Hardness for Token Swapping by Miltzow et al. (2016)
         ArXiV: https://arxiv.org/abs/1602.05150
         and generalization based on our own work.
@@ -117,8 +117,8 @@ class ApproximateTokenSwapper(Generic[_V]):
             """Swap two nodes, maintaining datastructures.
 
             Args:
-              node0: _V: 
-              node1: _V: 
+              node0: _V:
+              node1: _V:
 
             Returns:
 
@@ -220,7 +220,7 @@ class ApproximateTokenSwapper(Generic[_V]):
     def parallel_map(self, mapping: Mapping[_V, _V],
                      trials: Optional[int] = None) -> List[List[Swap[_V]]]:
         """A convenience function to wrap each swap in a list.
-        
+
         Useful for code that expects a parallel sequence of swaps.
         """
         if trials is not None:

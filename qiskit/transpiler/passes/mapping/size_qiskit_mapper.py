@@ -86,7 +86,7 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
                       initial_layout: Mapping[Reg, ArchNode]) \
             -> Optional[Tuple[int, Mapping[Reg, ArchNode]]]:
         """One trial in computing a mapping as used in qiskit.
-        
+
         Tries to swap edges that reduce the cost function up to a maximimum size."""
         trial_layout = copy.copy(initial_layout)
         inv_trial_layout = {v: k for k, v in trial_layout.items()}  # type: Mapping[ArchNode, Reg]
@@ -109,7 +109,7 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
         def swap(node0: ArchNode, node1: ArchNode) \
                 -> Tuple[Mapping[Reg, ArchNode], Mapping[ArchNode, Reg]]:
             """Swap qarg0 and qarg1 based on trial layout and inv_trial layout.
-            
+
             Supports partial mappings."""
             inv_new_layout = dict(inv_trial_layout)
             qarg0 = inv_new_layout.pop(node0, None)  # type: Optional[Reg]

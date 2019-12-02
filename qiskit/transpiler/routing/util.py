@@ -85,7 +85,7 @@ def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMap
 
     Args:
       swaps: param mapping: A mapping of Keys to Values, where the Keys are being swapped.
-      allow_missing_keys: 
+      allow_missing_keys:
     """
     for swap_step in swaps:
         for sw1, sw2 in swap_step:
@@ -115,7 +115,7 @@ PermutationCircuit = NamedTuple('PermutationCircuit',
 
 def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
-    
+
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.
 

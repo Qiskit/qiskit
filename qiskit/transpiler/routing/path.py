@@ -37,9 +37,9 @@ _V = TypeVar('_V')
 
 def permute_path(permutation: Permutation[int]) -> Iterator[List[Swap[int]]]:
     """List swaps that implement a permutation on a path.
-    
+
     Assumes that every node is only connected to it's neighbors
-    
+
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
@@ -75,7 +75,7 @@ def _emit_swap_steps(current: Permutation[int]) -> Iterator[List[Swap[int]]]:
 def permute_path_partial(mapping: Mapping[int, int],
                          length: Optional[int] = None) -> Iterator[List[Swap[int]]]:
     """Permute a partial mapping on the path.
-    
+
     Fills a partial mapping up to a full permutation then calls the full permutation algorithm.
     """
     if length is None:
