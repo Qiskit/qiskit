@@ -21,7 +21,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile, assemble
 
 
