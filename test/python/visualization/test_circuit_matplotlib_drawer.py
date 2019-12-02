@@ -20,7 +20,7 @@ import os
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import visualization
 
-from .visualization import QiskitVisualizationTestCase
+from test.python.visualization.visualization import QiskitVisualizationTestCase
 
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt

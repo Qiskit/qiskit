@@ -26,7 +26,7 @@ from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapsho
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
-from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+from test.python.visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):

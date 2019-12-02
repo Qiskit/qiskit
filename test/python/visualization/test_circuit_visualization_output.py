@@ -24,7 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 
-from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+from test.python.visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):

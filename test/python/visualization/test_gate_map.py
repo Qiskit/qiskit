@@ -23,7 +23,7 @@ from qiskit.visualization.gate_map import _GraphDist, plot_gate_map, plot_circui
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
-from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from test.python.visualization.visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt

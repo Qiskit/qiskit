@@ -30,7 +30,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
 
-from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+from test.python.visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 try:
     import subprocess
