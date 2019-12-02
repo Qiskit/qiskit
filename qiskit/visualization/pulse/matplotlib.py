@@ -143,6 +143,7 @@ class EventsOutputChannels:
         framechanges = self.framechanges
         conditionals = self.conditionals
         snapshots = self.snapshots
+        frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
             data_str = 'framechange: %.2f' % val
@@ -152,6 +153,9 @@ class EventsOutputChannels:
             time_event.append((key, name, data_str))
         for key, val in snapshots.items():
             data_str = 'snapshot: %s' % val
+            time_event.append((key, name, data_str))
+        for key, val in frequencychanges.items():
+            data_str = 'frequency: %.4f' % val
             time_event.append((key, name, data_str))
 
         return time_event
@@ -172,19 +176,19 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
-            tmp_sf = -1.0
+            tmp_sf = None
             for command in commands:
                 if isinstance(command, FrameChange):
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetFrequency):
-                    tmp_sf += command.frequency
+                    tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
-            if tmp_sf != -1.0:
+            if tmp_sf is not None:
                 self._frequencychanges[time] = tmp_sf
             for command in commands:
                 if isinstance(command, PersistentValue):
@@ -551,7 +555,7 @@ class ScheduleDrawer:
                 # plot frequency changes
                 sf = events.frequencychanges
                 if sf and frequencychange:
-                    self._draw_frequency_changes(ax, fcs, dt, y0 + amp_min)
+                    self._draw_frequency_changes(ax, sf, dt, y0 + amp_min)
                 # plot labels
                 labels = events.labels
                 if labels and label:
