@@ -208,7 +208,7 @@ def execute(experiments, backend,
     """
 
     # check for memory flag applied to backend that does not support memory
-    if memory and backend.configuration().memory is False:
+    if memory and not backend.configuration().memory:
         raise QiskitError("memory not supported by backend {}"
                           .format(backend.properties().backend_name))
 
