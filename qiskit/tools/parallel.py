@@ -117,8 +117,6 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             results = []
-            # ctx = get_context('fork')
-            # with ProcessPoolExecutor(max_workers=num_processes, mp_context=ctx) as executor:
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
                 param = map(lambda value: (task, value, task_args, task_kwargs), values)
                 future = executor.map(_task_wrapper, param)
