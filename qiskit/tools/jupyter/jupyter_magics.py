@@ -57,7 +57,9 @@ def _html_checker(job_var, interval, status, header,
         else:
             if job_status_name == 'QUEUED':
                 job_status_msg += ' (%s)' % job_var.queue_position()
-                if not _interval_set:
+                if job_var.queue_position() is None:
+                    interval = 2
+                elif not _interval_set:
                     interval = max(job_var.queue_position(), 2)
             else:
                 if not _interval_set:
