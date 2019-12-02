@@ -30,6 +30,7 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.counts import state_to_counts
 
 
 class DensityMatrix(QuantumState):
@@ -371,3 +372,12 @@ class DensityMatrix(QuantumState):
         vec = DensityMatrix(self.data, dims=self.dims())
         vec._append_instruction(obj, qargs=qargs)
         return vec
+
+    def to_counts(self):
+        """Returns the density matrix as a counts dict
+        of probabilities.
+
+        Returns:
+            dict: Counts of probabilities.
+        """
+        return state_to_counts(self.data.diagonal(), self._atol, True)
