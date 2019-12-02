@@ -167,7 +167,8 @@ def _distinct_permutation(mapping: Mapping[int, int],
     """Find a perfect matching in the mapping such that no destination module is repeated.
 
     Args:
-      mapping: param already_mapped: The set of nodes that have already been mapped and should be ignored
+      mapping: param already_mapped: The set of nodes that have already been mapped
+        and should be ignored
       modulesize: The module size
       modules: The number of modules
 

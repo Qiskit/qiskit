@@ -40,7 +40,8 @@ from qiskit.transpiler.routing import Swap
 
 
 class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
-    """This mapper will attempt to place as many gates as possible from most-expensive to cheapest"""
+    """This mapper will attempt to place as many gates as possible from most-expensive to cheapest
+    """
 
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
