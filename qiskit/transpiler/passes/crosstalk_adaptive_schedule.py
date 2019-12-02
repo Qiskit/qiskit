@@ -44,11 +44,10 @@ DebugMode = False
 
 
 class CrosstalkAdaptiveSchedule(TransformationPass):
-    def __init__(self, backend_prop, crosstalk_prop, params):
+    def __init__(self, backend_prop, crosstalk_prop):
         super().__init__()
         self.backend_prop = backend_prop
         self.crosstalk_prop = crosstalk_prop
-        self.params = params
         self.gate_id = {}
         self.bp_u1_err = {}
         self.bp_u1_dur = {}
