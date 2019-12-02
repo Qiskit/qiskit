@@ -39,8 +39,8 @@ from qiskit.transpiler.routing import Swap
 
 
 class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
-    """ A size-optimizing mapper that tries to "extend" a small initial placement
-
+    """A size-optimizing mapper that tries to "extend" a small initial placement
+    
     An extension is taking a given placement and then placing a pair of qubits involved in a
     two-qubit gate nearer eachother such that the overall cost in this time step
     does not increase (much).
@@ -91,7 +91,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
 
                 def placement_diff(place: Tuple[Placement[Reg, ArchNode], DAGNode]) -> int:
                     """Approximates saved_gates but it easier to compute.
-
+                    
                     It computes the cost of placing a given gate plus (separately) the 'placement'
                     gate versus the cost of placing everything together.
                     This does not require a lookahead."""

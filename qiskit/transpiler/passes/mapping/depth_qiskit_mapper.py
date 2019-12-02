@@ -60,7 +60,7 @@ class QiskitDepthMapper(DepthMapper[Reg, ArchNode]):
     def map(self,
             circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
-        """Map gates from the circuit to the architecture."""
+        """Map gates from the circuit to the architecture. """
         # We call the size_map function to avoid size-based preconditions.
         binops = Mapper._binops_circuit(circuit)
         return self.qiskit_size_mapper.size_map(circuit, current_mapping, binops)

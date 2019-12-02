@@ -45,8 +45,9 @@ logger = logging.getLogger(__name__)
 
 class ApproximateTokenSwapper(Generic[_V]):
     """A class for computing approximate solutions to the Token Swapping problem.
-
-    Internally caches the graph and associated datastructures for re-use."""
+    
+    Internally caches the graph and associated datastructures for re-use.
+    """
 
     def __init__(self, graph: nx.Graph) -> None:
         """Construct an ApproximateTokenSwapping object."""
@@ -64,16 +65,20 @@ class ApproximateTokenSwapper(Generic[_V]):
     def map(self, mapping: Mapping[_V, _V],
             trials: int = 4) -> List[Swap[_V]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
-
+        
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
-
+        
         Based on the paper: Approximation and Hardness for Token Swapping by Miltzow et al. (2016)
         ArXiV: https://arxiv.org/abs/1602.05150
         and generalization based on our own work.
 
-        :param mapping: The partial mapping to implement in swaps.
-        :param trials: The number of trials to try to perform the mapping. Minimize over the trials.
-        :return: The swaps to implement the mapping
+        Args:
+          mapping: The partial mapping to implement in swaps.
+          trials: The number of trials to try to perform the mapping. Minimize over the trials.
+
+        Returns:
+          The swaps to implement the mapping
+
         """
         tokens = dict(mapping)
         digraph = nx.DiGraph()
@@ -109,7 +114,15 @@ class ApproximateTokenSwapper(Generic[_V]):
         """Try to map the tokens to their destinations and minimize the number of swaps."""
 
         def swap(node0: _V, node1: _V) -> None:
-            """Swap two nodes, maintaining datastructures."""
+            """Swap two nodes, maintaining datastructures.
+
+            Args:
+              node0: _V: 
+              node1: _V: 
+
+            Returns:
+
+            """
             self._swap(node0, node1, tokens, digraph, sub_digraph, todo_nodes)
 
         # Can't just iterate over todo_nodes, since it may change during iteration.
@@ -183,7 +196,7 @@ class ApproximateTokenSwapper(Generic[_V]):
               digraph: nx.DiGraph,
               sub_digraph: nx.DiGraph,
               todo_nodes: MutableSet[_V]) -> None:
-        """Swap two nodes, maintaining the datastructures"""
+        """Swap two nodes, maintaining the data structures."""
         assert self.graph.has_edge(node1,
                                    node2), "The swap is being performed on a non-existent edge."
         # Swap the tokens on the nodes, taking into account no-token nodes.
@@ -207,8 +220,9 @@ class ApproximateTokenSwapper(Generic[_V]):
     def parallel_map(self, mapping: Mapping[_V, _V],
                      trials: Optional[int] = None) -> List[List[Swap[_V]]]:
         """A convenience function to wrap each swap in a list.
-
-        Useful for code that expects a parallel sequence of swaps."""
+        
+        Useful for code that expects a parallel sequence of swaps.
+        """
         if trials is not None:
             sequential_swaps = self.map(mapping, trials=trials)
         else:

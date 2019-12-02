@@ -43,24 +43,32 @@ logger = logging.getLogger(__name__)
 
 class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
     """A depth mapper that will place the cheapest gate and move the rest closer.
-
+    
     After placing the most expensive gate, we place an upper bound on the movement cost
     of the remaining gates that is the twice that of the most expensive. The mapper will
-    then move the remaining gates only as close as that upper bound lets it."""
+    then move the remaining gates only as close as that upper bound lets it.
+
+    Args:
+
+    Returns:
+
+    """
 
     def map(self,
             circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
-        """
-        Provides a permutation that maps the circuit to the architecture.
-
+        """Provides a permutation that maps the circuit to the architecture.
+        
         If a chosen mapping has a cost increase associated to it,
         then we try to perform the operation locally instead.
 
-        :param circuit: A circuit to execute
-        :param current_mapping:
-        :return:
-        :raise RuntimeError: If the extremal placement was not found.
+        Args:
+          circuit: A circuit to execute
+          current_mapping:
+
+        Returns:
+          RuntimeError: If the extremal placement was not found.
+
         """
         binops = Mapper._binops_circuit(circuit)
         if not binops:

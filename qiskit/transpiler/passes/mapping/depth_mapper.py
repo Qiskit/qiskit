@@ -55,13 +55,14 @@ class DepthMapper(Mapper[Reg, ArchNode]):
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
                                          Iterable[List[Swap[ArchNode]]]],
                  max_placement_size: int = 4) -> None:
-        """Construct a dept mapper.
+        """Construct a depth mapper.
 
-        :param arch_graph: The directed architecture graph.
-        :param arch_permuter: The permuter on the architecture graph.
-        :param max_placement_size: The maximum size of a placement to cache.
-        This memory requires scale superexponentially in this parameter.
-        There are O(n!^2/(n-k)!^2) arch_mappings for k the size of the mapping.
+        Args:
+          arch_graph: The directed architecture graph.
+          arch_permuter: The permuter on the architecture graph.
+          max_placement_size: The maximum size of a placement to cache.
+            This memory requires scale superexponentially in this parameter.
+            There are O(n!^2/(n-k)!^2) arch_mappings for k the size of the mapping.
         """
         super().__init__(arch_graph)
         self.arch_permuter = arch_permuter
@@ -70,11 +71,13 @@ class DepthMapper(Mapper[Reg, ArchNode]):
 
     def placement_cost(self, placement: Placement[Reg, ArchNode]) -> Tuple[int, int]:
         """Find the cost of performing the placement in depth.
-
+        
         Will cache results for given small placements to speed up future computations.
-
-        :return: A tuple with the placement depth cost and its size. Suitable for depth-first
-            comparisons, and then break ties with the size."""
+        
+        Returns:
+            A tuple with the placement depth cost and its size. Suitable for depth-first
+            comparisons, and then break ties with the size.
+        """
         if placement in self.placement_costs:
             return self.placement_costs[placement]
 

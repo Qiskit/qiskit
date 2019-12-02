@@ -45,7 +45,7 @@ _V = TypeVar("_V")
 
 class Placement(Generic[Reg, ArchNode]):
     """A Placement represents a placement of quantum registers on architecture graph nodes.
-
+    
     IDEA: Replace with NamedTuple once it supports constructors/preconditions.
     TODO: Get rid of current_mapping and mapped_to fields.
     """
@@ -54,9 +54,9 @@ class Placement(Generic[Reg, ArchNode]):
                  mapped_to: Mapping[Reg, ArchNode]) -> None:
         """Construct a Placement object.
 
-
-        :param current_mapping: A mapping of qubits that are being placed.
-        :param mapped_to: A Map specifying where (some of) the qubits are being mapped to.
+        Args:
+            current_mapping: A mapping of qubits that are being placed.
+            mapped_to: A Map specifying where (some of) the qubits are being mapped to.
         """
         assert set(current_mapping.keys()).issuperset(set(mapped_to.keys())), \
             "The qubits in the current mapping must be a superset of the mapped qubits."
@@ -93,15 +93,16 @@ class Placement(Generic[Reg, ArchNode]):
 
     def place(self, permutation: rt.Permutation[ArchNode]) -> None:
         """Place this placement in the permutation.
+        
+        To place the qubits in the mapping and keep the mapping consistent,
+        we need to place the qubits on their mapped architecture nodes
+        and then remap the previously mapped qubits to those nodes
+        to the spots that have opened up.
 
-            To place the qubits in the mapping and keep the mapping consistent,
-            we need to place the qubits on their mapped architecture nodes
-            and then remap the previously mapped qubits to those nodes
-            to the spots that have opened up.
+        IDEA: Implement as sympy Permutations: (succ(current),mapped_to)*C1*C2
 
-            IDEA: Implement as sympy Permutations: (succ(current),mapped_to)*C1*C2
-
-            :param permutation: A permutation of nodes in the architecture graph.
+        Args:
+          permutation: A permutation of nodes in the architecture graph.
         """
         inv_permutation = {v: k for k, v in permutation.items()}
         for current_map, mapped_to in self.arch_mapping.items():
@@ -124,10 +125,14 @@ class Placement(Generic[Reg, ArchNode]):
                             ) -> 'pm.util.PermutationCircuit':
         """Construct a circuit that implements this placement as a (complete) permutation.
 
-        :param arch_permuter: The permuter of this circuit.
-            Also could support partial mappings. Function arguments are contravariant.
-        :param arch_graph: The architecture graph. Used to complete the mapping.
-        :return: A PermutationCircuit object that describes how to implement this placement."""
+        Args:
+          arch_permuter: The permuter of this circuit. Also could support partial mappings.
+            Function arguments are contravariant.
+          arch_graph: The architecture graph. Used to complete the mapping.
+
+        Returns:
+          A PermutationCircuit object that describes how to implement this placement.
+        """
         arch_perm = {i: i for i in arch_graph.nodes}
         self.place(arch_perm)
         swaps = arch_permuter(arch_perm)

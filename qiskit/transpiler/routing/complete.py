@@ -38,10 +38,14 @@ _V = TypeVar('_V')
 def partial_permute(mapping: Mapping[_V, _V], nodes: List[_V]) -> Iterable[List[Swap[_V]]]:
     """List swaps that implement a partial permutation on a complete graph.
 
-    :param mapping: A list of destination nodes
-    :param nodes: A collection of all nodes. We need this so we can complete the mapping.
+    Args:
+      mapping: A list of destination nodes
+      nodes: A collection of all nodes. We need this so we can complete the mapping.
         The right type here is Collection[_V] but that was introduced only in python 3.6.
-    :return: A list describing which matchings to swap at each step.
+
+    Returns:
+      A list describing which matchings to swap at each step.
+
     """
     if not mapping:
         return []
@@ -65,16 +69,20 @@ def partial_permute(mapping: Mapping[_V, _V], nodes: List[_V]) -> Iterable[List[
 
 def permute(permutation: Permutation[_V]) -> Iterable[List[Swap[_V]]]:
     """List swaps that implement a permutation on a complete graph.
-
+    
     Assumes full connectivity between all nodes in the given permutation.
     Implements the permutation in at most 2 depth.
-
+    
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
 
-    :param permutation: A list of destination nodes
-    :return: A list describing which matchings to swap at each step.
+    Args:
+      permutation: A list of destination nodes
+
+    Returns:
+      A list describing which matchings to swap at each step.
+
     """
     cyclic_perms = util.cycles(permutation)
 

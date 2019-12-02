@@ -39,14 +39,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[List[Swap[int]]]:
-    """
-    Gives a list of swaps to implement a permutation on the given regular modular graph.
+    """Gives a list of swaps to implement a permutation on the given regular modular graph.
 
-    :param mapping:
-    :param modulesize:
-    :param modules:
-    :return:
-    :raises RuntimeError: If too many iterations are used to implement the mapping.
+    Raises:
+      RuntimeError: If too many iterations are used to implement the mapping.
     """
     mapping = dict(mapping)
     already_mapped = {}  # type: Dict[int, int]
@@ -152,12 +148,14 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
 
 
 def _in_module(i: int, modulesize: int) -> int:
-    """
-    Takes the destination node and returns the destination module.
+    """Takes the destination node and returns the destination module.
 
-    :param i: The destination node
-    :param modulesize: The number of nodes per module
-    :return: The destination module.
+    Args:
+      i: The destination node
+      modulesize: The number of nodes per module
+
+    Returns:
+      The destination module.
     """
     return i // modulesize
 
@@ -166,14 +164,16 @@ def _distinct_permutation(mapping: Mapping[int, int],
                           already_mapped: Set[int],
                           modulesize: int,
                           modules: int) -> Set[int]:
-    """
-    Find a perfect matching in the mapping such that no destination module is repeated.
+    """Find a perfect matching in the mapping such that no destination module is repeated.
 
-    :param mapping:
-    :param already_mapped: The set of nodes that have already been mapped and should be ignored
-    :param modulesize: The module size
-    :param modules: The number of modules
-    :return: A dictionary mapping a module to a node that should be routed inter-modules.
+    Args:
+      mapping: param already_mapped: The set of nodes that have already been mapped and should be ignored
+      modulesize: The module size
+      modules: The number of modules
+
+    Returns:
+      A dictionary mapping a module to a node that should be routed inter-modules.
+
     """
 
     module_unmapped_nodes = [{node for node in range(i * modulesize, (i + 1) * modulesize)

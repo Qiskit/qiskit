@@ -40,8 +40,7 @@ from qiskit.transpiler.routing import Swap
 
 
 class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
-    """This mapper will attempt to place as many gates as possible from most-expensive to cheapest
-    """
+    """This mapper will attempt to place as many gates as possible from most-expensive to cheapest"""
 
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
@@ -54,17 +53,17 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
                  circuit: DAGCircuit,  # pylint: disable=unused-argument
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
-        """
-        Provides a mapping that maps possibly multiple gates of the circuit to the architecture.
-
+        """Provides a mapping that maps possibly multiple gates of the circuit to the architecture.
+        
         If a chosen mapping has a cost increase associated to it,
         then we try to perform the operation locally instead.
 
-        :param circuit: A circuit to execute
-        :param current_mapping:
-        :param binops: The binary operations to map
-        :return: A partial mapping
-        :raise RuntimeError: If no extremal placement was found.
+        Returns:
+          A partial mapping
+
+        Raises:
+            RuntimeError: If no extremal placement was found.
+
         """
 
         # The maximum matching gives us the maximum number of edges

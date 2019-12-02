@@ -45,22 +45,24 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
     def map(self,
             circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
-        """
-        Provides a permutation that maps the circuit to the architecture.
-
+        """Provides a permutation that maps the circuit to the architecture.
+        
         The approach to mapping is a greedy algorithm that tries to minimize the maximum circuit
         depth in a way that is similar to minimizing the maximum makespan. We find the 2-qubit
         operation that is the most expensive to perform and place it as well as possible using a
         matching graph. Then we iterate until all operations in the layer were placed or no
         placements are left.
-
+        
         If a chosen mapping has a cost increase associated to it, then we try to perform the
         operation locally instead.
 
-        :param circuit: A circuit to execute
-        :param current_mapping:
-        :return:
-        :raise RuntimeError: When no suitable placement is found.
+        Args:
+          circuit: A circuit to execute
+          current_mapping:
+
+        Raises:
+          RuntimeError: When no suitable placement is found.
+
         """
         binops = Mapper._binops_circuit(circuit)
         if not binops:
@@ -75,7 +77,16 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
 
         def placement_cost(place: Tuple[Placement[Reg, ArchNode], DAGNode]
                            ) -> Tuple[int, int]:
-            """Compute the cost of placing this placement with the current placement."""
+            """Compute the cost of placing this placement with the current placement.
+
+            Args:
+              place: Tuple[Placement[Reg: 
+              ArchNode]: 
+              DAGNode]: 
+
+            Returns:
+
+            """
             return self.placement_cost(current_placement + place[0])
 
         # We wish to minimize the depth of the circuit. This is similar to minimizing the maximum

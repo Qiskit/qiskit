@@ -38,10 +38,8 @@ _V = TypeVar('_V')
 
 
 def valid_parallel_swaps(tester: TestCase, swaps: List[List[Swap[_V]]]) -> None:
-    """
-    Tests if the given sequence of swaps does not perform multiple swaps
-    on the same node at the same time.
-    """
+    """Tests if the given sequence of swaps does not perform multiple swaps
+    on the same node at the same time."""
     for step in swaps:
         used = {sw1 for sw1, _ in step} | {sw2 for _, sw2 in step}
         tester.assertEqual(len(used), 2 * len(step))

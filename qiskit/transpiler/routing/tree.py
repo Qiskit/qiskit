@@ -57,8 +57,13 @@ class Pebble(Generic[_V]):
     def is_proper(self, current_tree: 'Tree') -> bool:
         """Decide if the node's destination is inside the tree.
 
-        :param current_tree: The tree the pebble is currently located in.
-        :return: Whether the node is proper."""
+        Args:
+          current_tree: The tree the pebble is currently located in.
+
+        Returns:
+          Whether the node is proper.
+
+        """
         if self._cached_tree != current_tree:
             self._cached_tree = current_tree
             self._cached_purity = self.destination in current_tree.graph.nodes
@@ -68,19 +73,25 @@ class Pebble(Generic[_V]):
 
 class RootPebble(Pebble):
     """A pebble that was created when the root tree became pure.
-
+    
     This pebble becomes impure when it has no impure children;
-    it becomes pure when it is in the root tree."""
+    it becomes pure when it is in the root tree.
+    """
 
     def is_proper(self, current_tree: 'Tree') -> bool:
         """Decide if the node's destination is inside the tree.
-
+        
          For the root destination pebble we always recompute the value,
          since it can change depending on other pebbles in the tree.
          And because there is only one RootPebble this stays cheap.
 
-        :param current_tree: The tree the pebble is currently located in.
-        :return: Whether the node is proper."""
+        Args:
+          current_tree: The tree the pebble is currently located in.
+
+        Returns:
+          Whether the node is proper.
+
+        """
         if self.destination in current_tree.graph.nodes:
             return True
 
@@ -100,9 +111,11 @@ class Tree(Generic[_V]):
     def __init__(self, root: _V, graph: nx.DiGraph, pebbles: Dict[_V, Pebble[_V]]) -> None:
         """Construct a tree object.
 
-        :param root: The root node of this tree.
-        :param graph: A directed graph representing parent-to-children relations.
-        :param pebbles: The pebbles located on this tree."""
+        Args:
+            root: The root node of this tree.
+            graph: A directed graph representing parent-to-children relations.
+            pebbles: The pebbles located on this tree.
+        """
         self.root = root
         self.graph = graph
         self.pebbles = pebbles
@@ -139,11 +152,12 @@ class Tree(Generic[_V]):
 
     def move_improper(self) -> Iterator[List[Swap[_V]]]:
         """Coroutine that lists of swaps that move improper vertices up towards the tree root.
-
+        
         Every yield, takes in the current new permutation, a new ignore_root parameter,
         and a new tr_was_pure parameter.
-
-        tr_was_pure indicates whether the tree Tr subgraph containing the root was pure."""
+        
+        tr_was_pure indicates whether the tree Tr subgraph containing the root was pure.
+        """
 
         # Make sets containing even and odd nodes
         even_nodes = {self.root}  # type: Set[_V]
@@ -204,9 +218,9 @@ class Tree(Generic[_V]):
 def permute(graph: nx.Graph,
             perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     """List swaps that implement the given permutation on a graph repressenting a tree.
-
+    
     The implementation is still fairly slow.
-
+    
     SEE: Algorithm by Louxin Zhang: https://doi.org/10.1137/S0895480197323159
     """
     root = centroid(graph)  # type: _V
@@ -216,9 +230,9 @@ def permute(graph: nx.Graph,
 
 def permute_tree(tree: Tree, perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     """List swaps that implement the given permutation on a tree.
-
+    
     The implementation is still fairly slow.
-
+    
     SEE: Algorithm by Louxin Zhang: https://doi.org/10.1137/S0895480197323159
     """
     # Empty graph or single node (base case)
@@ -338,10 +352,15 @@ def partition(tree: Tree,
               pebbles: Dict[_V, Pebble[_V]]) -> Tuple[List[Tree[_V]], Tree[_V]]:
     """Partition a tree graph into s+1 similarly-sized trees.
 
-    :param tree: The input tree to partition into subtrees according to a centroid.
-    :param pebbles: The pebbles to place on the nodes in the subtrees.
-    :return: A tuple containing the first s trees and the special s+1'th tree,
-    which contains the centroid node of the input graph."""
+    Args:
+      tree: The input tree to partition into subtrees according to a centroid.
+      pebbles: The pebbles to place on the nodes in the subtrees.
+
+    Returns:
+      A tuple containing the first s trees and the special s+1'th tree,
+      which contains the centroid node of the input graph.
+
+    """
     subtrees = []  # type: List[Tree]
     for adj_root in tree.graph.adj[tree.root]:
         # Create a subgraph consisting of the nodes reachable from adj_root.

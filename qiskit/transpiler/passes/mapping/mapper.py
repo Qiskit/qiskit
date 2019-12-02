@@ -43,10 +43,11 @@ Reg = TypeVar('Reg')
 
 class GenericMetaPass(MetaPass, type(Generic)):
     """A superclass for the Mapper class to be able to use Generic.
-
+    
     The metaclass of Generic was removed in 3.7 so we resolve it dynamically.
-
-    The need for this workaround was fixed in 3.7+: https://github.com/python/typing/issues/449"""
+    
+    The need for this workaround was fixed in 3.7+: https://github.com/python/typing/issues/449
+    """
     pass
 
 
@@ -77,7 +78,15 @@ class Mapper(Generic[Reg, ArchNode], AnalysisPass, metaclass=GenericMetaPass):
     @abstractmethod
     def map(self, circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
-        """Map (the layer of) the circuit to the architecture."""
+        """Map (the layer of) the circuit to the architecture.
+
+        Args:
+          circuit: The circuit to map to the architecture
+          current_mapping: The currently active mapping of qubits to architecture nodes.
+
+        Returns:
+            A partial mapping of qubits to architecture nodes.
+        """
         pass
 
     @staticmethod

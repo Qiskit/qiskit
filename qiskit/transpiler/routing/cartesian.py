@@ -45,9 +45,8 @@ LOGGER = logging.getLogger(__name__)
 
 class Point:
     """A node in the cartesian product of graphs.
-
-        Was originally implemented as subclass of NamedTuple (python 3.6+ only).
-    """
+    
+        Was originally implemented as subclass of NamedTuple (python 3.6+ only)."""
 
     def __init__(self, x, y):
         """Construct a Point object."""
@@ -93,7 +92,7 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
                               trials: int = 1) \
         -> List[List[Swap[int]]]:
     """Compute swaps that implement a mapping on a cartesian product of graphs.
-
+    
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628,
@@ -101,14 +100,20 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
     by A.M. Childs, E. Schoute, C.M. Unsal,
     DOI: https://doi.org/10.4230/LIPIcs.TQC.2019.3
 
-    :param mapping: A mapping of origin to destination nodes.
-    :param width: Length of x graph
-    :param height: Length of y graph
-    :param permute_x: Function to permute in the x direction
-    :param permute_y: function to permute in y direction
-    :param trials: Retry doing the permutation this many times, and take the best solution.
-    :return: A list describing which matchings to swap at each step.
-    :raise ValueError: If an axis in the graph has zero vertices.
+    Args:
+      mapping: A mapping of origin to destination nodes.
+      width: Length of x graph
+      height: Length of y graph
+      permute_x: Function to permute in the x direction
+      permute_y: function to permute in y direction
+      trials: Retry doing the permutation this many times, and take the best solution.
+
+    Returns:
+      A list describing which matchings to swap at each step.
+
+    Raises:
+        ValueError: If an axis in the graph has zero vertices.
+
     """
     if height == 0 or width == 0:
         if mapping:
@@ -156,19 +161,23 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
              destination: Point,
              y: int) -> float:
         """Compute overhead cost induced by routing to this row.
-
+        
         In the case of an unmapped qubit, the cost is a positive ε value.
-
+        
         Otherwise, the overhead cost is the cost of implementing the current mapping
         plus the mapping of point.y to y to destination.y,
         minus the cost of just routing directly from point.y to destination.y
         and the cost of implementing the current mapping
 
-        :param point: The origin point.
-        :param destination: The destination point
-        :param y: The current row that is being matched.
-        :return: A float that could be negative if cost was actually saved
-            over the starting position (by the current mapping).
+        Args:
+          point: The origin point.
+          destination: The destination point
+          y: The current row that is being matched.
+
+        Returns:
+          A float that could be negative if cost was actually saved
+          over the starting position (by the current mapping).
+
         """
         current_mapping = current_mappings[point.x]
         return _it_len(permute_y({**current_mapping, **{point.y: y}})) - \
@@ -303,14 +312,18 @@ def permute_grid(permutation: Permutation[int], height: int) \
         -> Iterator[List[Swap[int]]]:
     """List swaps that implement a permutation on a rectangle graph.
     Rectangle is a cartesian product of two paths.
-
+    
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
 
-    :param permutation: A list of destination nodes
-    :param height: Length of y graph
-    :return: A list describing which matchings to swap at each step.
+    Args:
+      permutation: A list of destination nodes
+      height: Length of y graph
+
+    Returns:
+      A list describing which matchings to swap at each step.
+
     """
     return permute_grid_partial(permutation, height, height, trials=1)
 
@@ -320,16 +333,20 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
         -> List[List[Swap[int]]]:
     """List swaps that implement a permutation on a rectangle graph.
     Rectangle is a cartesian product of two paths.
-
+    
     Based on the paper "Routing Permutations on Graphs via Matchings"
     by Noga Alon, F. R. K. Chung, and R. L. Graham,
     DOI: https://doi.org/10.1137/S0895480192236628
 
-    :param mapping: A (partial) mapping of origin to destination nodes.
-    :param height: Length of y graph.
-    :param width: Length of the x graph.
-    :param trials: Retry doing the permutation this many times, and take the best solution.
-    :return: A list describing which matchings to swap at each step.
+    Args:
+      mapping: A (partial) mapping of origin to destination nodes.
+      height: Length of y graph.
+      width: Length of the x graph.
+      trials: Retry doing the permutation this many times, and take the best solution.
+
+    Returns:
+      A list describing which matchings to swap at each step.
+
     """
     return permute_cartesian_partial(mapping, width, height,
                                      lambda m: fast_path.permute_path_partial(m, length=width),
@@ -339,7 +356,6 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
 
 def _it_len(iterable: Iterable[Any]) -> int:
     """Iterate through the iterable and get its length.
-
-    WARNING: May not halt for infinite iterables!
-    """
+    
+    WARNING: May not halt for infinite iterables!"""
     return sum(1 for _ in iterable)

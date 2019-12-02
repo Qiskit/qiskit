@@ -59,8 +59,7 @@ class TestCartesian(QiskitTestCase):
 
     def cartesian_generic_test(self, graph: nx.Graph, permutation: Permutation, height: int,
                                permute_x: PartialRouter, permute_y: PartialRouter) -> None:
-        """Permutes and performs verifications for
-        parallel, valid on graph, depth"""
+        """Permutes and performs verifications for parallel, valid on graph, depth"""
 
         size = nx.number_of_nodes(graph)
         width = size // height
@@ -76,8 +75,7 @@ class TestCartesian(QiskitTestCase):
         self.assertEqual(identity_dict, permutation)
 
     def grid_generic_test(self, permutation: Permutation, height: int) -> None:
-        """Permutes and performs verifications for
-        parallel, valid on graph, depth"""
+        """Permutes and performs verifications for parallel, valid on graph, depth"""
 
         size = len(permutation)
         width = size // height

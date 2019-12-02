@@ -54,9 +54,10 @@ logger = logging.getLogger(__name__)
 
 class SizeMapper(Mapper[Reg, ArchNode]):
     """An abstract superclass for mappers that optimize for size.
-
+    
     Internally caches outcomes of placement_cost for Placements in placement_costs.
-    This may consume quite a bit of memory."""
+    This may consume quite a bit of memory.
+    """
 
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
@@ -64,11 +65,12 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                  max_placement_size: int = 4) -> None:
         """Construct a SizeMapper object for mapping circuits to architectures, respecting size.
 
-        :param arch_graph: The directed architecture graph.
-        :param arch_permuter: The permuter on the architecture graph.
-        :param max_placement_size: The maximum size of a placement to cache.
-           This memory requires scale superexponentially in this parameter.
-           There are O(n!^2/(n-k)!^2) arch_mappings for k the size of the mapping.
+        Args:
+            arch_graph: The directed architecture graph.
+            arch_permuter: The permuter on the architecture graph.
+            max_placement_size: The maximum size of a placement to cache.
+               This memory requires scale superexponentially in this parameter.
+               There are O(n!^2/(n-k)!^2) arch_mappings for k the size of the mapping.
         """
         super().__init__(arch_graph.to_undirected(as_view=True))
         self.arch_permuter = arch_permuter
@@ -77,7 +79,7 @@ class SizeMapper(Mapper[Reg, ArchNode]):
 
     def placement_cost(self, placement: Placement) -> int:
         """Find the cost of performing the placement in size.
-
+        
         Will cache results for given small placements to speed up future computations."""
         if placement in self.placement_costs:
             return self.placement_costs[placement]
@@ -99,10 +101,10 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                       place_score: Callable[[Tuple[Placement[Reg, ArchNode], DAGNode]], int]) \
             -> Tuple[Placement[Reg, ArchNode], DAGNode]:
         """Internal function for computing a simple mapping of a set of gates.
-
+        
         Will place the highest-scoring gate from binops_qargs
         at the location that maximize the score.
-
+        
         Does not modify arguments."""
         max_max_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
         # Find the highest-scoring binop to perform and maximize the score.
@@ -134,9 +136,15 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                         binops: Iterable[DAGNode]) -> int:
         """Compute the correction cost of the CNOT gates.
 
-        :param placement: Asserts that mapped_to of this placement is of size 2.
-        :param binops: The CNOT nodes.
-        :return: The (integer) cost of correcting"""
+        Args:
+          placement: Asserts that mapped_to of this placement is of size 2.
+          binops: The CNOT nodes.
+          placement:
+          binops:
+
+        Returns:
+          The (integer) cost of correcting
+        """
         # Hadamards to correct the CNOT
         return sum(4 for binop in binops
                    if
@@ -148,11 +156,15 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                     current_mapping: Mapping[Reg, ArchNode] = None) -> int:
         """Compute how many SWAP gates are saved by the placement.
 
-        :param place: The placement to calculate the saved gates for.
-        :param current_placement: The currently planned placement.
+        Args:
+          place: The placement to calculate the saved gates for.
+          current_placement: The currently planned placement.
             Optional, but if used must also supply current_mapping.
-        :param current_mapping: The current mapping of qubits to nodes.
-        :return: The cost of gates saved. (>0 is good)"""
+          current_mapping: The current mapping of qubits to nodes.
+
+        Returns:
+          The cost of gates saved. (>0 is good)
+        """
         placement, binops = place
         if current_placement is None or current_mapping is None:
             return -self.placement_cost(placement) - self.correction_cost(placement, binops)

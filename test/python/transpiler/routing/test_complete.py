@@ -50,7 +50,7 @@ class TestComplete(QiskitTestCase):
 
     def test_permute_complete_4(self) -> None:
         """Test a permutation of 4 elements
-
+        
             permutation = (0)(321)
         """
         permutation = {0: 0, 1: 3, 2: 1, 3: 2}
@@ -64,7 +64,7 @@ class TestComplete(QiskitTestCase):
 
     def test_permute_complete_5(self) -> None:
         """Test a permutation of 5 elements
-
+        
             permutation = (0)(2)(431)
         """
         permutation = {0: 0, 1: 4, 2: 2, 3: 1, 4: 3}
@@ -78,7 +78,7 @@ class TestComplete(QiskitTestCase):
 
     def test_permute_complete_5_2(self) -> None:
         """Test a permutation of one transposition in 5 elements.
-
+        
             permutation = (02)
         """
         permutation = {0: 2, 1: 1, 2: 0, 3: 3, 4: 4}
@@ -92,7 +92,7 @@ class TestComplete(QiskitTestCase):
 
     def test_permute_complete_4_2(self) -> None:
         """Test a permutation with non-contiguous elements.
-
+        
             permutation = (3960)
         """
         permutation = {3: 9, 9: 6, 6: 0, 0: 3}

@@ -46,12 +46,7 @@ Reg = Tuple[str, int]
 
 
 def cycles(permutation: rt.Permutation[_V]) -> List[rt.Permutation[_V]]:
-    """
-    Break down the given permutation into cyclic permutations.
-
-    :param permutation:
-    :return:
-    """
+    """Break down the given permutation into cyclic permutations."""
 
     # Keep track of which items we haven't entered into a cycle yet, in order.
     todo = permutation.copy()
@@ -72,12 +67,7 @@ def cycles(permutation: rt.Permutation[_V]) -> List[rt.Permutation[_V]]:
 
 
 def flatten_swaps(swaps: Iterable[Iterable[List[rt.Swap[_V]]]]) -> Iterable[List[rt.Swap[_V]]]:
-    """
-    Transform multiple sequences of swaps that are disjoint into one sequence of swaps.
-
-    :param swaps:
-    :return:
-    """
+    """Transform multiple sequences of swaps that are disjoint into one sequence of swaps."""
 
     parallel = itertools.zip_longest(*swaps, fillvalue=[])  # Each time step zipped together
     # Make one list for each timestep.
@@ -85,23 +75,17 @@ def flatten_swaps(swaps: Iterable[Iterable[List[rt.Swap[_V]]]]) -> Iterable[List
 
 
 def optimize_swaps(swaps: Iterable[Iterable[rt.Swap[_V]]]) -> Iterator[List[rt.Swap[_V]]]:
-    """
-    Remove empty steps in the given sequence of swaps.
-
-    :param swaps:
-    :return:
-    """
+    """Remove empty steps in the given sequence of swaps."""
     return (el for el in (list(swap) for swap in swaps) if len(el) > 0)
 
 
 def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMapping[_K, _V],
                      allow_missing_keys: bool = False) -> None:
-    """
-    Given a circuit of swaps, apply them to the permutation (in-place).
+    """Given a circuit of swaps, apply them to the permutation (in-place).
 
-    :param swaps:
-    :param mapping: A mapping of Keys to Values, where the Keys are being swapped.
-    :param allow_missing_keys:
+    Args:
+      swaps: param mapping: A mapping of Keys to Values, where the Keys are being swapped.
+      allow_missing_keys: 
     """
     for swap_step in swaps:
         for sw1, sw2 in swap_step:
@@ -131,12 +115,16 @@ PermutationCircuit = NamedTuple('PermutationCircuit',
 
 def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
-
+    
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.
 
-        :param swaps: An iterable of swaps to perform.
-        :return: A MappingCircuit with the circuit and a mapping of node to qubit in the circuit.
+    Args:
+      swaps: An iterable of swaps to perform.
+
+    Returns:
+      A MappingCircuit with the circuit and a mapping of node to qubit in the circuit.
+
     """
     # Construct a circuit with each unique node id becoming a quantum register of size 1.
     dag = DAGCircuit()
@@ -187,11 +175,17 @@ def random_partial_permutation(domain: List[_V],
                                nr_elements: Optional[int] = None) -> Dict[_V, _V]:
     """Construct a random partial permutation
 
-    :param domain: All elements
-    :param nr_elements: Number of mappings in the partial permutation. If None, will pick include
+    Args:
+      domain: All elements
+      nr_elements: Number of mappings in the partial permutation. If None, will pick include
     a mapping of a node with probability 0.5
-    :raises ValueError: If the domain is too smal to contain the number of elements.
-    :return: A partial permutation
+
+    Returns:
+      A partial permutation
+
+    Raises:
+      ValueError: If the domain is too smal to contain the number of elements.
+
     """
     if nr_elements is None:
         nr_elements = np.random.binomial(len(domain), 0.5)

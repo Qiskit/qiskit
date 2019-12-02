@@ -41,15 +41,9 @@ class SimpleDepthMapper(DepthMapper[Reg, ArchNode]):
     def map(self, circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode] = None  # pylint: disable=unused-argument
             ) -> Mapping[Reg, ArchNode]:
-        """
-        Try to map as many two-qubit gates to a maximum matching as possible.
-
-        Note: Does not take into account the scoring function, nor the weights on the graph.
-
-        :param circuit: A circuit to execute
-        :param current_mapping: The current mapping of registers to archictecture nodes.
-        :return:
-        """
+        """Try to map as many two-qubit gates to a maximum matching as possible.
+        
+        Note: Does not take into account the scoring function, nor the weights on the graph."""
         binops = Mapper._binops_circuit(circuit)
         matching = Mapper.construct_matching(self.arch_graph)  # type: Set[FrozenSet[ArchNode]]
         # First assign the two-qubit gates, because they are restricted by the architecture
