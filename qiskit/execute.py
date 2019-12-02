@@ -21,6 +21,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
+from qiskit import QiskitError
 from qiskit.compiler import transpile, assemble
 
 
@@ -205,6 +206,12 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
+
+    # check for memory flag applied to backend that does not support memory
+    if memory and backend.configuration().memory is False:
+        raise QiskitError("memory not supported by backend {}"
+                          .format(backend.properties().backend_name))
+
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,
