@@ -15,12 +15,16 @@
 # pylint: disable=missing-docstring
 
 import unittest
+from inspect import signature
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Gate, ControlledGate
+from qiskit import BasicAer
+from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -665,53 +669,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_u0(self):
-        self.circuit.u0(1, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_wires(self):
-        self.circuit.u0(1, 1)
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_invalid(self):
-        qc = self.circuit
-        # CHECKME? self.assertRaises(CircuitError, qc.u0, self.cr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.u0, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.u0, self.qr[1], 0)
-        self.assertRaises(CircuitError, qc.u0, 0, self.cr[0])
-        self.assertRaises(CircuitError, qc.u0, 0, .0)
-        self.assertRaises(CircuitError, qc.u0, self.qr[2], self.qr[1])
-        self.assertRaises(CircuitError, qc.u0, 0, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.u0, 0, self.cr)
-        # TODO self.assertRaises(CircuitError, qc.u0, 'a', self.qr[1])
-        self.assertRaises(CircuitError, qc.u0, 0, 'a')
-
-    def test_u0_reg(self):
-        instruction_set = self.circuit.u0(1, self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_reg_inv(self):
-        instruction_set = self.circuit.u0(1, self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_pi(self):
-        qc = self.circuit
-        qc.u0(pi / 2, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [pi / 2])
-        self.assertEqual(qargs, [self.qr[1]])
-
     def test_u1(self):
         self.circuit.u1(1, self.qr[1])
         op, qargs, _ = self.circuit[0]
@@ -1256,6 +1213,41 @@ class TestStandard3Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1],
                          [self.qr[1], self.qr2[1], self.qr3[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
+
+class TestStandardMethods(QiskitTestCase):
+    """Standard Extension Test."""
+
+    def test_to_matrix(self):
+        """test gates implementing to_matrix generate matrix which matches
+        definition."""
+        params = [0.1 * i for i in range(10)]
+        gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        simulator = BasicAer.get_backend('unitary_simulator')
+        for gate_class in gate_class_list:
+            sig = signature(gate_class.__init__)
+            free_params = len(sig.parameters) - 1  # subtract "self"
+            try:
+                gate = gate_class(*params[0:free_params])
+            except (CircuitError, QiskitError, AttributeError):
+                self.log.info(
+                    'Cannot init gate with params only. Skipping %s',
+                    gate_class)
+                continue
+            if gate.name in ['U', 'CX']:
+                continue
+            circ = QuantumCircuit(gate.num_qubits)
+            circ.append(gate, range(gate.num_qubits))
+            try:
+                gate_matrix = gate.to_matrix()
+            except CircuitError:
+                # gate doesn't implement to_matrix method: skip
+                self.log.info('to_matrix method FAILED for "%s" gate',
+                              gate.name)
+                continue
+            definition_unitary = execute([circ], simulator).result().get_unitary()
+            self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+            self.assertTrue(is_unitary_matrix(gate_matrix))
 
 
 if __name__ == '__main__':

@@ -21,11 +21,11 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
+    import seaborn as sns
     import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
-    import matplotlib.cm as cm
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 
@@ -102,9 +102,16 @@ def plot_gate_map(backend, figsize=None,
         ImportError: if matplotlib not installed.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
 
-           from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, execute, IBMQ
            from qiskit.visualization import plot_gate_map
            %matplotlib inline
 
@@ -283,10 +290,17 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         VisualizationError: Circuit has no layout attribute.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
 
             import numpy as np
-            from qiskit import *
+            from qiskit import QuantumCircuit, IBMQ, transpile
             from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
             from qiskit.tools.monitor import job_monitor
             import matplotlib.pyplot as plt
@@ -363,9 +377,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         VisualizationError: Input is not IBMQ backend.
 
     Example:
-        .. code-block::
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
 
-            from qiskit import QuantumCircuit, BasicAer, execute, IBMQ
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
             from qiskit.visualization import plot_error_map
             %matplotlib inline
 
@@ -374,7 +395,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    color_map = cm.viridis
+    color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
@@ -480,7 +501,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         num_left = math.ceil(n_qubits / 2)
         num_right = n_qubits - num_left
 
-    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#007d79')
+    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#DDBBBA')
     left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
     left_ax.set_yticks(range(num_left))
     left_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
@@ -493,7 +514,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     if num_right:
         right_ax.barh(range(num_left, n_qubits), read_err[num_left:],
-                      align='center', color='#007d79')
+                      align='center', color='#DDBBBA')
         right_ax.axvline(avg_read_err, linestyle='--', color='#212121')
         right_ax.set_yticks(range(num_left, n_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])

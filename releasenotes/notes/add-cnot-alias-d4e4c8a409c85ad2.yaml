@@ -12,11 +12,3 @@ features:
     Add ``qiskit.QuantumCircuit.fredkin`` alias for the ``cswap`` method of
     ``QuantumCircuit``. The names ``fredkin`` and ``cswap`` are often used
     interchangeably now the `cswap` method can be called with either name.
-  - |
-    Add ``qiskit.QuantumCircuit.p`` alias for the ``s`` method of
-    ``QuantumCircuit``. The names ``p`` and ``s`` are often used
-    interchangeably now the `s` method can be called with either name.
-  - |
-    Add ``qiskit.QuantumCircuit.pdg`` alias for the ``sdg`` method of
-    ``QuantumCircuit``. The names ``pdg`` and ``sdg`` are often used
-    interchangeably now the `sdg` method can be called with either name.
