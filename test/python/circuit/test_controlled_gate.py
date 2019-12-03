@@ -410,9 +410,13 @@ class TestControlledGate(QiskitTestCase):
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     def test_all_inverses(self):
-        gateClasses = [cls for name, cls in allGates.__dict__.items()
-                       if isinstance(cls, type)]
-        for cls in gateClasses:
+        """
+        Test all gates in standard extensions except those that cannot be
+        controlled or are being deprecated.
+        """
+        gate_classes = [cls for name, cls in allGates.__dict__.items()
+                        if isinstance(cls, type)]
+        for cls in gate_classes:
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             if issubclass(cls, ControlledGate) or cls == allGates.IdGate \
@@ -423,7 +427,7 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len([param for param in sig.parameters.values()
                                if param.kind == param.POSITIONAL_ONLY
                                or (param.kind == param.POSITIONAL_OR_KEYWORD
-                               and param.default is param.empty)])
+                                   and param.default is param.empty)])
                 args = [1]*numargs
 
                 gate = cls(*args)
