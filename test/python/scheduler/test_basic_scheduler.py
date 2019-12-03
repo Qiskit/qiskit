@@ -325,9 +325,9 @@ class TestBasicSchedule(QiskitTestCase):
                 new_acquire = AcquireInstruction(command=inst.command,
                                                  acquires=inst.acquires,
                                                  mem_slots=mem_slots)
-                updated_old_sched |= new_acquire << time
+                updated_old_sched._union((time, new_acquire))
             elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched |= inst << time
+                updated_old_sched._union((time, inst))
         for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
@@ -360,9 +360,9 @@ class TestBasicSchedule(QiskitTestCase):
                 new_acquire = AcquireInstruction(command=inst.command,
                                                  acquires=inst.acquires,
                                                  mem_slots=mem_slots)
-                updated_old_sched |= new_acquire << time
+                updated_old_sched._union((time, new_acquire))
             elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched |= inst << time
+                updated_old_sched._union((time, inst))
         for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
@@ -398,9 +398,9 @@ class TestBasicSchedule(QiskitTestCase):
                 new_acquire = AcquireInstruction(command=inst.command,
                                                  acquires=inst.acquires,
                                                  mem_slots=mem_slots)
-                updated_old_sched |= new_acquire << time
+                updated_old_sched._union((time, new_acquire))
             elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched |= inst << time
+                updated_old_sched._union((time, inst))
         for actual, old in zip(sched.instructions, updated_old_sched.instructions):
             self.assertEqual(actual[0], old[0])
             self.assertEqual(actual[1].command, old[1].command)
