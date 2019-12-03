@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.quantum_info.random import random_unitary, random_density_matrix
 from qiskit.test import QiskitTestCase
 
+
 class TestRandomUtils(QiskitTestCase):
     """Testing qiskit.quantum_info.random.utils"""
 
@@ -28,27 +29,28 @@ class TestRandomUtils(QiskitTestCase):
         """ Test that a random unitary with set seed will not affect later
         results
         """
-        SEED = 314159
-        TEST_CASES = 100
-        random_unitary(4, seed=SEED)
-        rng_before = [np.random.randint(1000) for _ in range(TEST_CASES) ]
-        random_unitary(4, seed=SEED)
-        rng_after = [np.random.randint(1000) for _ in range(TEST_CASES) ]
-        array_equality = all( [ rng_before[i] == rng_after[i] for i in range(TEST_CASES) ])
+        seed = 314159
+        test_cases = 100
+        random_unitary(4, seed=seed)
+        rng_before = [np.random.randint(1000) for _ in range(test_cases)]
+        random_unitary(4, seed=seed)
+        rng_after = [np.random.randint(1000) for _ in range(test_cases)]
+        array_equality = all([rng_before[i] == rng_after[i] for i in range(test_cases)])
         self.assertFalse(array_equality)
 
     def test_density_matrix(self):
         """ Test that a random state with set seed will not affect later
         results.
         """
-        SEED = 314159
-        TEST_CASES = 100
-        random_density_matrix(4, seed=SEED)
-        rng_before = [np.random.randint(1000) for _ in range(TEST_CASES) ]
-        random_density_matrix(4, seed=SEED)
-        rng_after = [np.random.randint(1000) for _ in range(TEST_CASES) ]
-        array_equality = all( [ rng_before[i] == rng_after[i] for i in range(TEST_CASES) ])
+        seed = 314159
+        test_cases = 100
+        random_density_matrix(4, seed=seed)
+        rng_before = [np.random.randint(1000) for _ in range(test_cases)]
+        random_density_matrix(4, seed=seed)
+        rng_after = [np.random.randint(1000) for _ in range(test_cases)]
+        array_equality = all([rng_before[i] == rng_after[i] for i in range(test_cases)])
         self.assertFalse(array_equality)
+
 
 if __name__ == '__main__':
     unittest.main()
