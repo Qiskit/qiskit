@@ -181,7 +181,8 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
-            assert len(inst_qubits) == 1 and len(clbits) == 1
+            if (len(inst_qubits) != 1 and len(clbits) != 1):
+                raise QiskitError("Qubit or classical bit error")
             qubit_mem_slots[inst_qubits[0]] = clbits[0].index
         else:
             try:
