@@ -34,6 +34,7 @@ from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         ToffoliGate, HGate, RZGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate)
 from qiskit.extensions.unitary import UnitaryGate
+import qiskit.extensions.standard as allGates
 
 
 @ddt
@@ -407,6 +408,30 @@ class TestControlledGate(QiskitTestCase):
             base_gate = gate_class(*params[0:free_params])
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
+
+    def test_all_inverses(self):
+        gateClasses = [cls for name, cls in allGates.__dict__.items()
+                       if isinstance(cls, type)]
+        for cls in gateClasses:
+            # only verify basic gates right now, as already controlled ones
+            # will generate differing definitions
+            if issubclass(cls, ControlledGate) or cls == allGates.IdGate \
+                    or cls == allGates.UBase:
+                continue
+            try:
+                sig = signature(cls)
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY
+                               or (param.kind == param.POSITIONAL_OR_KEYWORD
+                               and param.default is param.empty)])
+                args = [1]*numargs
+
+                gate = cls(*args)
+                self.assertEqual(gate.inverse().control(2),
+                                 gate.control(2).inverse())
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
