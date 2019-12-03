@@ -108,10 +108,9 @@ def __ginibre_matrix(nrow, ncol=None, seed=None):
     """
     if ncol is None:
         ncol = nrow
-    if seed is not None:
-        np.random.seed(seed)
+    rng = np.random.RandomState(seed)
 
-    ginibre = np.random.normal(size=(nrow, ncol)) + np.random.normal(size=(nrow, ncol)) * 1j
+    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 
