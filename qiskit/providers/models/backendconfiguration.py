@@ -385,22 +385,18 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, qubit: int) -> ControlChannel:
+    def control(self, channel: int) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
-        Raises:
-            BackendConfigurationError: If the qubit is not a part of the system.
         Returns:
             Qubit control channel.
         """
         # TODO: Determine this from the hamiltonian.
         warnings.warn("The control channel appropriate for an interaction should be determined "
                       "from the hamiltonian. This will be determined for you in the future.")
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
-        return ControlChannel(qubit)
+        return ControlChannel(channel)
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """

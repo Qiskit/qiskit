@@ -175,6 +175,24 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(TimeslotCollection(), sched.timeslots)
         self.assertEqual([], list(sched.instructions))
 
+    def test_overlapping_schedules(self):
+        """Test overlapping schedules."""
+
+        def my_test_make_schedule(acquire: int, memoryslot: int, shift: int):
+            op = Acquire(acquire)
+            sched1 = op(AcquireChannel(0), MemorySlot(memoryslot))
+            sched2 = op(AcquireChannel(1), MemorySlot(memoryslot)).shift(shift)
+
+            return Schedule(sched1, sched2)
+
+        self.assertIsInstance(my_test_make_schedule(4, 0, 4), Schedule)
+        self.assertRaisesRegex(PulseError,
+                               r".* MemorySlot\(0\) over time range \[2, 4\] .*",
+                               my_test_make_schedule, 4, 0, 2)
+        self.assertRaisesRegex(PulseError,
+                               r".* MemorySlot\(1\) over time range \[0, 4\] .*",
+                               my_test_make_schedule, 4, 1, 0)
+
     def test_flat_instruction_sequence_returns_instructions(self):
         """Test if `flat_instruction_sequence` returns `Instruction`s."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
@@ -591,6 +609,45 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                lambda x: x[0] < 30)
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(len(excluded.instructions), 2)
+
+    def test_empty_filters(self):
+        """Test behavior on empty filters."""
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(self.config.drive(0)))
+        sched = sched.insert(10, lp0(self.config.drive(1)))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
+                                         [MemorySlot(i) for i in range(2)]))
+        sched = sched.insert(90, lp0(self.config.drive(0)))
+
+        # empty channels
+        filtered, excluded = self._filter_and_test_consistency(sched, channels=[])
+        self.assertTrue(len(filtered.instructions) == 0)
+        self.assertTrue(len(excluded.instructions) == 5)
+
+        # empty instruction_types
+        filtered, excluded = self._filter_and_test_consistency(sched, instruction_types=[])
+        self.assertTrue(len(filtered.instructions) == 0)
+        self.assertTrue(len(excluded.instructions) == 5)
+
+        # empty time_ranges
+        filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[])
+        self.assertTrue(len(filtered.instructions) == 0)
+        self.assertTrue(len(excluded.instructions) == 5)
+
+        # empty intervals
+        filtered, excluded = self._filter_and_test_consistency(sched, intervals=[])
+        self.assertTrue(len(filtered.instructions) == 0)
+        self.assertTrue(len(excluded.instructions) == 5)
+
+        # empty channels with other non-empty filters
+        filtered, excluded = self._filter_and_test_consistency(sched,
+                                                               channels=[],
+                                                               instruction_types=[PulseInstruction])
+        self.assertTrue(len(filtered.instructions) == 0)
+        self.assertTrue(len(excluded.instructions) == 5)
 
     def _filter_and_test_consistency(self, schedule: Schedule, *args, **kwargs):
         """
