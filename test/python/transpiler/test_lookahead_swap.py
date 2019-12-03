@@ -118,13 +118,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_measure_qargs = set(op.qargs[0]
+        mapped_measure_qargs = set(op.qargs[0] for op in mapped_dag.named_nodes('measure'))
 
-                                   for op in mapped_dag.named_nodes('measure'))
-
-        self.assertIn(mapped_measure_qargs,
-                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
-                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
+        self.assertIn(mapped_measure_qargs, [set((qr[0], qr[1])), set((qr[1], qr[2]))])
 
     def test_lookahead_swap_maps_barriers(self):
         """Verify barrier nodes are updated to re-mapped qregs.
@@ -149,13 +145,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_barrier_qargs = [set(op.qargs)
+        mapped_barrier_qargs = [set(op.qargs) for op in mapped_dag.named_nodes('barrier')][0]
 
-                                for op in mapped_dag.named_nodes('barrier')][0]
-
-        self.assertIn(mapped_barrier_qargs,
-                      [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
-                       set(((QuantumRegister(3, 'q'), 1), (QuantumRegister(3, 'q'), 2)))])
+        self.assertIn(mapped_barrier_qargs, [set((qr[0], qr[1])), set((qr[1], qr[2]))])
 
 
 if __name__ == '__main__':
