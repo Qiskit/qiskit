@@ -324,7 +324,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         qc.data.append((HGate(), [qr[0]], []))
         qc.data.append((CnotGate(), [0, 1], []))
-        qc.data.append((HGate(), [(qr, 1)], []))
+        qc.data.append((HGate(), [qr[1]], []))
 
         expected_qc = QuantumCircuit(qr)
 
@@ -344,7 +344,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         qc.data.insert(0, (HGate(), [qr[0]], []))
         qc.data.insert(1, (CnotGate(), [0, 1], []))
-        qc.data.insert(2, (HGate(), [(qr, 1)], []))
+        qc.data.insert(2, (HGate(), [qr[1]], []))
 
         expected_qc = QuantumCircuit(qr)
 
@@ -364,7 +364,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         qc.data.extend([(HGate(), [qr[0]], []),
                         (CnotGate(), [0, 1], []),
-                        (HGate(), [(qr, 1)], [])])
+                        (HGate(), [qr[1]], [])])
 
         expected_qc = QuantumCircuit(qr)
 
@@ -384,7 +384,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         qc.data = [(HGate(), [qr[0]], []),
                    (CnotGate(), [0, 1], []),
-                   (HGate(), [(qr, 1)], [])]
+                   (HGate(), [qr[1]], [])]
 
         expected_qc = QuantumCircuit(qr)
 
