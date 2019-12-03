@@ -22,29 +22,26 @@ and Operating Systems (ASPLOS), 2020.
 Please cite the paper if you use this pass.
 """
 
+import math
+import operator
+from itertools import chain, combinations
+from z3 import Real, Bool, Sum, Implies, And, Or, Not, Optimize
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.layout import Layout
-from qiskit.extensions.standard import SwapGate
-import networkx as nx
-from z3 import *
 from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CnotGate
 from qiskit.circuit import Measure
-import math
-from itertools import chain, combinations
-import pprint
-import operator
 from qiskit.extensions.standard.barrier import Barrier
 
 NUM_PREC = 10
 TWOQ_XTALK_THRESH = 3
 ONEQ_XTALK_THRESH = 2
-DebugMode = False
 
 
 class CrosstalkAdaptiveSchedule(TransformationPass):
-    def __init__(self, backend_prop, crosstalk_prop):
+    """
+    Crosstalk mitigation through adaptive instruction scheduling.
+    """
+    def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_indices=None):
         super().__init__()
         self.backend_prop = backend_prop
         self.crosstalk_prop = crosstalk_prop
@@ -67,14 +64,30 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.overlap_amounts = {}
         self.overlap_indicator = {}
         self.qubit_lifetime = {}
+        self.dag_overlap_set = {}
+        self.xtalk_overlap_set = {}
+        self.opt = Optimize()
+        self.measured_qubits = []
+        self.measure_start = None
+        self.last_gate_on_qubit = None
+        self.first_gate_on_qubit = None
+        self.fidelity_terms = []
+        self.coherence_terms = []
+        self.m = None
+        self.weight_factor = weight_factor
+        if measured_indices is None:
+            self.input_measured_indices = []
+        else:
+            self.input_measured_indices = measured_indices
+        self.dag = None
 
     def powerset(self, iterable):
         """
         Finds the set of all subsets of the given iterable
         This function is used to generate constraints for the Z3 optimization
         """
-        s = list(iterable)
-        return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+        l_s = list(iterable)
+        return chain.from_iterable(combinations(l_s, r) for r in range(len(l_s)+1))
 
     def parse_backend_properties(self):
         """
@@ -93,68 +106,80 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             qid += 1
         for ginfo in backend_prop.gates:
             if ginfo.gate == 'u1':
-                q0 = ginfo.qubits[0]
+                q_0 = ginfo.qubits[0]
                 for item in ginfo.parameters:
                     if item.name == 'gate_error':
                         if item.value == 1.0:
-                            self.bp_u1_err[q0] = 0.999999
+                            self.bp_u1_err[q_0] = 0.999999
                         else:
-                            self.bp_u1_err[q0] = round(item.value, NUM_PREC)
+                            self.bp_u1_err[q_0] = round(item.value, NUM_PREC)
                     elif item.name == "gate_length":
-                        self.bp_u1_dur[q0] = int(item.value)
+                        self.bp_u1_dur[q_0] = int(item.value)
             elif ginfo.gate == 'u2':
-                q0 = ginfo.qubits[0]
+                q_0 = ginfo.qubits[0]
                 for item in ginfo.parameters:
                     if item.name == 'gate_error':
                         if item.value == 1.0:
-                            self.bp_u2_err[q0] = 0.999999
+                            self.bp_u2_err[q_0] = 0.999999
                         else:
-                            self.bp_u2_err[q0] = round(item.value, NUM_PREC)
+                            self.bp_u2_err[q_0] = round(item.value, NUM_PREC)
                     elif item.name == "gate_length":
-                        self.bp_u2_dur[q0] = int(item.value)
+                        self.bp_u2_dur[q_0] = int(item.value)
             elif ginfo.gate == 'u3':
-                q0 = ginfo.qubits[0]
+                q_0 = ginfo.qubits[0]
                 for item in ginfo.parameters:
                     if item.name == 'gate_error':
                         if item.value == 1.0:
-                            self.bp_u3_err[q0] = 0.999999
+                            self.bp_u3_err[q_0] = 0.999999
                         else:
-                            self.bp_u3_err[q0] = round(item.value, NUM_PREC)
+                            self.bp_u3_err[q_0] = round(item.value, NUM_PREC)
                     elif item.name == "gate_length":
-                        self.bp_u3_dur[q0] = int(item.value)
+                        self.bp_u3_dur[q_0] = int(item.value)
             elif ginfo.gate == 'cx':
-                q0 = ginfo.qubits[0]
-                q1 = ginfo.qubits[1]
-                r0 = min(q0, q1)
-                r1 = max(q0, q1)
+                q_0 = ginfo.qubits[0]
+                q_1 = ginfo.qubits[1]
+                r_0 = min(q_0, q_1)
+                r_1 = max(q_0, q_1)
                 for item in ginfo.parameters:
                     if item.name == 'gate_error':
                         if item.value == 1.0:
-                            self.bp_cx_err[(r0, r1)] = 0.999999
+                            self.bp_cx_err[(r_0, r_1)] = 0.999999
                         else:
-                            self.bp_cx_err[(r0, r1)] = round(item.value, NUM_PREC)
+                            self.bp_cx_err[(r_0, r_1)] = round(item.value, NUM_PREC)
                     elif item.name == "gate_length":
-                        self.bp_cx_dur[(r0, r1)] = int(item.value)
+                        self.bp_cx_dur[(r_0, r_1)] = int(item.value)
 
     def cx_tuple(self, gate):
-        physical_q0 = gate.qargs[0].index
-        physical_q1 = gate.qargs[1].index
-        r0 = min(physical_q0, physical_q1)
-        r1 = max(physical_q0, physical_q1)
-        return (r0, r1)
+        """
+        Representation for two-qubit gate
+        """
+        physical_q_0 = gate.qargs[0].index
+        physical_q_1 = gate.qargs[1].index
+        r_0 = min(physical_q_0, physical_q_1)
+        r_1 = max(physical_q_0, physical_q_1)
+        return (r_0, r_1)
 
     def singleq_tuple(self, gate):
-        physical_q0 = gate.qargs[0].index
-        tup = (physical_q0)
+        """
+        Representation for single-qubit gate
+        """
+        physical_q_0 = gate.qargs[0].index
+        tup = (physical_q_0)
         return tup
 
     def gate_tuple(self, gate):
+        """
+        Representation for gate
+        """
         if len(gate.qargs) == 2:
             return self.cx_tuple(gate)
         else:
             return self.singleq_tuple(gate)
 
     def assign_gate_id(self, dag):
+        """
+        ID for each gate
+        """
         idx = 0
         for gate in dag.gate_nodes():
             self.gate_id[gate] = idx
@@ -165,17 +190,16 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Gate A, B are overlapping if
         A is neither a descendant nor an ancestor of B
         """
-        self.dag_overlap_set = {}
         for gate in dag.twoQ_gates():
-            s1 = [d for d in dag.descendants(gate)]
-            s2 = [a for a in dag.ancestors(gate)]
+            s_1 = [d for d in dag.descendants(gate)]
+            s_2 = [a for a in dag.ancestors(gate)]
             overlap_set = []
             for tmp_gate in dag.gate_nodes():
                 if tmp_gate == gate:
                     continue
-                if tmp_gate in s1:
+                if tmp_gate in s_1:
                     continue
-                if tmp_gate in s2:
+                if tmp_gate in s_2:
                     continue
                 overlap_set.append(tmp_gate)
             self.dag_overlap_set[gate] = overlap_set
@@ -188,17 +212,17 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         gate1_tup = self.gate_tuple(gate1)
         if len(gate2.qargs) == 2:
             gate2_tup = self.gate_tuple(gate2)
-            independent_err_g1 = self.bp_cx_err[gate1_tup]
-            independent_err_g2 = self.bp_cx_err[gate2_tup]
-            rg1 = self.crosstalk_prop[gate1_tup][gate2_tup]/independent_err_g1
-            rg2 = self.crosstalk_prop[gate2_tup][gate1_tup]/independent_err_g2
-            if rg1 > TWOQ_XTALK_THRESH or rg2 > TWOQ_XTALK_THRESH:
+            independent_err_g_1 = self.bp_cx_err[gate1_tup]
+            independent_err_g_2 = self.bp_cx_err[gate2_tup]
+            rg_1 = self.crosstalk_prop[gate1_tup][gate2_tup]/independent_err_g_1
+            rg_2 = self.crosstalk_prop[gate2_tup][gate1_tup]/independent_err_g_2
+            if rg_1 > TWOQ_XTALK_THRESH or rg_2 > TWOQ_XTALK_THRESH:
                 return True
         else:
             gate2_tup = self.gate_tuple(gate2)
-            independent_err_g1 = self.bp_cx_err[gate1_tup]
-            rg1 = self.crosstalk_prop[gate1_tup][gate2_tup]/independent_err_g1
-            if rg1 > ONEQ_XTALK_THRESH:
+            independent_err_g_1 = self.bp_cx_err[gate1_tup]
+            rg_1 = self.crosstalk_prop[gate1_tup][gate2_tup]/independent_err_g_1
+            if rg_1 > ONEQ_XTALK_THRESH:
                 return True
         return False
 
@@ -206,26 +230,22 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Extract the set of program gates which potentially have crosstalk noise
         """
-        self.xtalk_overlap_set = {}
-        for g in self.dag_overlap_set:
-            self.xtalk_overlap_set[g] = []
-            tup_g = self.gate_tuple(g)
+        for gate in self.dag_overlap_set:
+            self.xtalk_overlap_set[gate] = []
+            tup_g = self.gate_tuple(gate)
             if tup_g not in self.crosstalk_prop:
                 continue
-            for par_g in self.dag_overlap_set[g]:
+            for par_g in self.dag_overlap_set[gate]:
                 tup_par_g = self.gate_tuple(par_g)
                 if tup_par_g in self.crosstalk_prop[tup_g]:
-                    if self.is_significant_xtalk(g, par_g):
-                        if par_g not in self.xtalk_overlap_set[g]:
-                            self.xtalk_overlap_set[g].append(par_g)
-        if DebugMode:
-            for g in self.xtalk_overlap_set:
-                print("\nOverlap:", self.gate_tuple(g), "gate_id:", self.gate_id[g])
-                for par_g in self.xtalk_overlap_set[g]:
-                    print(self.gate_tuple(par_g), "gate_id:", self.gate_id[par_g])
+                    if self.is_significant_xtalk(gate, par_g):
+                        if par_g not in self.xtalk_overlap_set[gate]:
+                            self.xtalk_overlap_set[gate].append(par_g)
 
     def create_z3_vars(self):
-        self.opt = Optimize()
+        """
+        Setup the variables required for Z3 optimization
+        """
         for gate in self.dag.gate_nodes():
             if isinstance(gate, Measure):
                 continue
@@ -240,17 +260,17 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         for gate in self.xtalk_overlap_set:
             self.overlap_indicator[gate] = {}
             self.overlap_amounts[gate] = {}
-        for g1 in self.xtalk_overlap_set:
-            for g2 in self.xtalk_overlap_set[g1]:
-                if len(g2.qargs) == 2 and g1 in self.overlap_indicator[g2]:
-                    self.overlap_indicator[g1][g2] = self.overlap_indicator[g2][g1]
-                    self.overlap_amounts[g1][g2] = self.overlap_amounts[g2][g1]
+        for g_1 in self.xtalk_overlap_set:
+            for g_2 in self.xtalk_overlap_set[g_1]:
+                if len(g_2.qargs) == 2 and g_1 in self.overlap_indicator[g_2]:
+                    self.overlap_indicator[g_1][g_2] = self.overlap_indicator[g_2][g_1]
+                    self.overlap_amounts[g_1][g_2] = self.overlap_amounts[g_2][g_1]
                 else:
-                    # Indicator variable for overlap of g1 and g2
-                    var_name1 = 'olp_ind_' + str(self.gate_id[g1]) + '_' + str(self.gate_id[g2])
-                    self.overlap_indicator[g1][g2] = Bool(var_name1)
-                    var_name2 = 'olp_amnt_' + str(self.gate_id[g1]) + '_' + str(self.gate_id[g2])
-                    self.overlap_amounts[g1][g2] = Real(var_name2)
+                    # Indicator variable for overlap of g_1 and g_2
+                    var_name1 = 'olp_ind_' + str(self.gate_id[g_1]) + '_' + str(self.gate_id[g_2])
+                    self.overlap_indicator[g_1][g_2] = Bool(var_name1)
+                    var_name2 = 'olp_amnt_' + str(self.gate_id[g_1]) + '_' + str(self.gate_id[g_2])
+                    self.overlap_amounts[g_1][g_2] = Real(var_name2)
         active_qubits_list = []
         for gate in self.dag.gate_nodes():
             for q in gate.qargs:
@@ -274,16 +294,16 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         for gate in self.gate_start_time:
             self.opt.add(self.gate_start_time[gate] >= 0)
         for gate in self.gate_duration:
-            q0 = gate.qargs[0].index
+            q_0 = gate.qargs[0].index
             if isinstance(gate.op, U1Gate):
-                d = self.bp_u1_dur[q0]
+                dur = self.bp_u1_dur[q_0]
             elif isinstance(gate.op, U2Gate):
-                d = self.bp_u2_dur[q0]
+                dur = self.bp_u2_dur[q_0]
             elif isinstance(gate.op, U3Gate):
-                d = self.bp_u3_dur[q0]
+                dur = self.bp_u3_dur[q_0]
             elif isinstance(gate.op, CnotGate):
-                d = self.bp_cx_dur[self.cx_tuple(gate)]
-            self.opt.add(self.gate_duration[gate] == d)
+                dur = self.bp_cx_dur[self.cx_tuple(gate)]
+            self.opt.add(self.gate_duration[gate] == dur)
 
     def scheduling_constraints(self):
         """
@@ -300,27 +320,30 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     continue
                 fin_g = self.gate_start_time[gate] + self.gate_duration[gate]
                 self.opt.add(self.gate_start_time[dep_gate] > fin_g)
-        for g1 in self.xtalk_overlap_set:
-            for g2 in self.xtalk_overlap_set[g1]:
-                if len(g2.qargs) == 2 and self.gate_id[g1] > self.gate_id[g2]:
+        for g_1 in self.xtalk_overlap_set:
+            for g_2 in self.xtalk_overlap_set[g_1]:
+                if len(g_2.qargs) == 2 and self.gate_id[g_1] > self.gate_id[g_2]:
                     # Symmetry breaking
                     continue
-                s1 = self.gate_start_time[g1]
-                f1 = s1 + self.gate_duration[g1]
-                s2 = self.gate_start_time[g2]
-                f2 = s2 + self.gate_duration[g2]
+                s_1 = self.gate_start_time[g_1]
+                f_1 = s_1 + self.gate_duration[g_1]
+                s_2 = self.gate_start_time[g_2]
+                f_2 = s_2 + self.gate_duration[g_2]
                 # This constraint enforces full or zero overlap between two gates
-                before = (f1 < s2)
-                after = (f2 < s1)
-                overlap1 = And(s2 <= s1, f1 <= f2)
-                overlap2 = And(s1 <= s2, f2 <= f1)
+                before = (f_1 < s_2)
+                after = (f_2 < s_1)
+                overlap1 = And(s_2 <= s_1, f_1 <= f_2)
+                overlap2 = And(s_1 <= s_2, f_2 <= f_1)
                 self.opt.add(Or(before, after, overlap1, overlap2))
-                intervals_overlap = And(s2 <= f1, s1 <= f2)
-                self.opt.add(self.overlap_indicator[g1][g2] == intervals_overlap)
+                intervals_overlap = And(s_2 <= f_1, s_1 <= f_2)
+                self.opt.add(self.overlap_indicator[g_1][g_2] == intervals_overlap)
 
     def fidelity_constraints(self):
+        """
+        Set gate fidelity based on gate overlap conditions
+        """
         for gate in self.gate_start_time:
-            q0 = gate.qargs[0].index
+            q_0 = gate.qargs[0].index
             no_xtalk = False
             if gate not in self.xtalk_overlap_set:
                 no_xtalk = True
@@ -328,14 +351,14 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 no_xtalk = True
             if no_xtalk:
                 if isinstance(gate.op, U1Gate):
-                    f = math.log(1.0)
+                    fid = math.log(1.0)
                 elif isinstance(gate.op, U2Gate):
-                    f = math.log(1.0 - self.bp_u2_err[q0])
+                    fid = math.log(1.0 - self.bp_u2_err[q_0])
                 elif isinstance(gate.op, U3Gate):
-                    f = math.log(1.0 - self.bp_u3_err[q0])
+                    fid = math.log(1.0 - self.bp_u3_err[q_0])
                 elif isinstance(gate.op, CnotGate):
-                    f = math.log(1.0 - self.bp_cx_err[self.cx_tuple(gate)])
-                self.opt.add(self.gate_fidelity[gate] == round(f, NUM_PREC))
+                    fid = math.log(1.0 - self.bp_cx_err[self.cx_tuple(gate)])
+                self.opt.add(self.gate_fidelity[gate] == round(fid, NUM_PREC))
             else:
                 comb = list(self.powerset(self.xtalk_overlap_set[gate]))
                 xtalk_set = set(self.xtalk_overlap_set[gate])
@@ -343,12 +366,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     on_set = item
                     off_set = [i for i in xtalk_set if i not in on_set]
                     clauses = []
-                    for g in on_set:
-                        clauses.append(self.overlap_indicator[gate][g])
-                    for g in off_set:
-                        clauses.append(Not(self.overlap_indicator[gate][g]))
+                    for tmpg in on_set:
+                        clauses.append(self.overlap_indicator[gate][tmpg])
+                    for tmpg in off_set:
+                        clauses.append(Not(self.overlap_indicator[gate][tmpg]))
                     err = 0
-                    if len(on_set) == 0:
+                    if not on_set:
                         err = self.bp_cx_err[self.cx_tuple(gate)]
                     elif len(on_set) == 1:
                         on_gate = on_set[0]
@@ -365,6 +388,9 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     self.opt.add(Implies(And(*clauses), self.gate_fidelity[gate] == val))
 
     def coherence_constraints(self):
+        """
+        Set decoherence errors based on qubit lifetimes
+        """
         self.last_gate_on_qubit = {}
         for gate in self.dag.topological_op_nodes():
             if isinstance(gate.op, Measure):
@@ -372,27 +398,27 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             if isinstance(gate.op, Barrier):
                 continue
             if len(gate.qargs) == 1:
-                q0 = gate.qargs[0].index
-                self.last_gate_on_qubit[q0] = gate
+                q_0 = gate.qargs[0].index
+                self.last_gate_on_qubit[q_0] = gate
             else:
-                q0 = gate.qargs[0].index
-                q1 = gate.qargs[1].index
-                self.last_gate_on_qubit[q0] = gate
-                self.last_gate_on_qubit[q1] = gate
+                q_0 = gate.qargs[0].index
+                q_1 = gate.qargs[1].index
+                self.last_gate_on_qubit[q_0] = gate
+                self.last_gate_on_qubit[q_1] = gate
 
         self.first_gate_on_qubit = {}
         for gate in self.dag.topological_op_nodes():
             if len(gate.qargs) == 1:
-                q0 = gate.qargs[0].index
-                if q0 not in self.first_gate_on_qubit:
-                    self.first_gate_on_qubit[q0] = gate
+                q_0 = gate.qargs[0].index
+                if q_0 not in self.first_gate_on_qubit:
+                    self.first_gate_on_qubit[q_0] = gate
             else:
-                q0 = gate.qargs[0].index
-                q1 = gate.qargs[1].index
-                if q0 not in self.first_gate_on_qubit:
-                    self.first_gate_on_qubit[q0] = gate
-                if q1 not in self.first_gate_on_qubit:
-                    self.first_gate_on_qubit[q1] = gate
+                q_0 = gate.qargs[0].index
+                q_1 = gate.qargs[1].index
+                if q_0 not in self.first_gate_on_qubit:
+                    self.first_gate_on_qubit[q_0] = gate
+                if q_1 not in self.first_gate_on_qubit:
+                    self.first_gate_on_qubit[q_1] = gate
 
         for q in self.last_gate_on_qubit:
             g_last = self.last_gate_on_qubit[q]
@@ -408,6 +434,9 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 self.opt.add(self.qubit_lifetime[q] == finish_time - start_time)
 
     def objective_function(self):
+        """
+        Objective function is a weighted combination of gate errors and decoherence errors
+        """
         self.fidelity_terms = [self.gate_fidelity[gate] for gate in self.gate_fidelity]
         self.coherence_terms = []
         for q in self.qubit_lifetime:
@@ -422,16 +451,21 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.opt.maximize(Sum(all_terms))
 
     def r2f(self, val):
+        """
+        Convert Z3 Real to Python float
+        """
         return float(val.as_decimal(16).rstrip('?'))
 
     def extract_solution(self):
-        prec = 3
+        """
+        Extract gate start and finish times from Z3 solution
+        """
         self.m = self.opt.model()
         result = {}
-        for g in self.gate_start_time:
-            start = self.r2f(self.m[self.gate_start_time[g]])
-            dur = self.r2f(self.m[self.gate_duration[g]])
-            result[g] = (start, start+dur)
+        for tmpg in self.gate_start_time:
+            start = self.r2f(self.m[self.gate_start_time[tmpg]])
+            dur = self.r2f(self.m[self.gate_duration[tmpg]])
+            result[tmpg] = (start, start+dur)
         return result
 
     def solve_optimization(self):
@@ -451,22 +485,25 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         return result
 
     def check_dag_dependancy(self, gate1, gate2):
-        if gate2 in self.dag.descendants(gate1):
-            return True
-        else:
-            return False
+        """
+        gate2 is a DAG dependent of gate1 if it is a descendant of gate1
+        """
+        return gate2 in self.dag.descendants(gate1)
 
-    def check_xtalk_dependency(self, t1, t2):
-        g1 = t1[0]
-        s1 = t1[1]
-        f1 = t1[2]
-        g2 = t2[0]
-        s2 = t2[1]
-        f2 = t2[2]
+    def check_xtalk_dependency(self, t_1, t_2):
+        """
+        Check if two gates have a crosstalk dependency
+        """
+        g_1 = t_1[0]
+        s_1 = t_1[1]
+        f_1 = t_1[2]
+        g_2 = t_2[0]
+        s_2 = t_2[1]
+        f_2 = t_2[2]
         # We don't consider single qubit xtalk
-        if len(g1.qargs) == 1 and len(g2.qargs) == 1:
+        if len(g_1.qargs) == 1 and len(g_2.qargs) == 1:
             return False, ()
-        if s2 <= f1 and s1 <= f2:
+        if s_2 <= f_1 and s_1 <= f_2:
             # Z3 says it's ok to overlap these gates,
             # so no xtalk dependency needs to be checked
             return False, ()
@@ -474,31 +511,29 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             # Assert because we are iterating in Z3 gate start time order,
             # so if two gates are not overlapping, then the second gate has to
             # start after the first gate finishes
-            assert(s2 >= f1)
+            assert s_2 >= f_1
             # Not overlapping, but we care about this dependency
-            if len(g1.qargs) == 2 and len(g2.qargs) == 2:
-                if g2 in self.xtalk_overlap_set[g1]:
-                    cx1 = self.cx_tuple(g1)
-                    cx2 = self.cx_tuple(g2)
+            if len(g_1.qargs) == 2 and len(g_2.qargs) == 2:
+                if g_2 in self.xtalk_overlap_set[g_1]:
+                    cx1 = self.cx_tuple(g_1)
+                    cx2 = self.cx_tuple(g_2)
                     barrier = tuple(sorted([cx1[0], cx1[1], cx2[0], cx2[1]]))
                     return True, barrier
-            elif len(g1.qargs) == 1 and len(g2.qargs) == 2:
-                if g1 in self.xtalk_overlap_set[g2]:
-                    singleq = self.gate_tuple(g1)
-                    cx = self.cx_tuple(g2)
-                    print(singleq, cx)
-                    barrier = tuple(sorted([singleq, cx[0], cx[1]]))
+            elif len(g_1.qargs) == 1 and len(g_2.qargs) == 2:
+                if g_1 in self.xtalk_overlap_set[g_2]:
+                    singleq = self.gate_tuple(g_1)
+                    cx1 = self.cx_tuple(g_2)
+                    print(singleq, cx1)
+                    barrier = tuple(sorted([singleq, cx1[0], cx1[1]]))
                     return True, barrier
-            elif len(g1.qargs) == 2 and len(g2.qargs) == 1:
-                if g2 in self.xtalk_overlap_set[g1]:
-                    singleq = self.gate_tuple(g2)
-                    cx = self.cx_tuple(g1)
-                    barrier = tuple(sorted([singleq, cx[0], cx[1]]))
+            elif len(g_1.qargs) == 2 and len(g_2.qargs) == 1:
+                if g_2 in self.xtalk_overlap_set[g_1]:
+                    singleq = self.gate_tuple(g_2)
+                    cx1 = self.cx_tuple(g_1)
+                    barrier = tuple(sorted([singleq, cx1[0], cx1[1]]))
                     return True, barrier
-            else:
-                # Not overlapping, and we don't care about xtalk between these two gates
-                return False, ()
-        return False, ()
+            # Not overlapping, and we don't care about xtalk between these two gates
+            return False, ()
 
     def filter_candidates(self, candidates, layer, layer_id, triplet):
         """
@@ -507,12 +542,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         and if Z3 allows gates in L and G to overlap.
         """
         curr_gate = triplet[0]
-        curr_start = triplet[1]
-        curr_fin = triplet[2]
         for prev_triplet in layer:
             prev_gate = prev_triplet[0]
-            prev_start = prev_triplet[1]
-            prev_end = prev_triplet[2]
             is_dag_dep = self.check_dag_dependancy(prev_gate, curr_gate)
             is_xtalk_dep, _ = self.check_xtalk_dependency(prev_triplet, triplet)
             if is_dag_dep or is_xtalk_dep:
@@ -526,17 +557,20 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             return candidates
 
     def find_layer(self, layers, triplet):
+        """
+        Find the appropriate layer for a gate
+        """
         candidates = [i for i in range(len(layers))]
         for i, layer in enumerate(layers):
             candidates = self.filter_candidates(candidates, layer, i, triplet)
-        if len(candidates) == 0:
+        if not candidates:
             return len(layers)
             # Open a new layer
         else:
             return max(candidates)
             # Latest acceptable layer, right-alignment
 
-    def generate_barriers(self, dag, layers):
+    def generate_barriers(self, layers):
         """
         For each gate g, see if a barrier is required to serialize it with
         some previously processed gate
@@ -546,12 +580,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             barriers.append(set())
             if i == 0:
                 continue
-            for t2 in layer:
+            for t_2 in layer:
                 for j in range(i):
                     prev_layer = layers[j]
-                    for t1 in prev_layer:
-                        is_dag_dep = self.check_dag_dependancy(t1[0], t2[0])
-                        is_xtalk_dep, curr_barrier = self.check_xtalk_dependency(t1, t2)
+                    for t_1 in prev_layer:
+                        is_dag_dep = self.check_dag_dependancy(t_1[0], t_2[0])
+                        is_xtalk_dep, curr_barrier = self.check_xtalk_dependency(t_1, t_2)
                         if is_dag_dep:
                             # Don't insert a barrier since there is a DAG dependency
                             continue
@@ -587,7 +621,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
         return new_dag
 
-    def enforce_schedule_on_dag(self, dag, input_gate_times):
+    def enforce_schedule_on_dag(self, input_gate_times):
         """
         Z3 outputs start times for each gate.
         Some gates need to be serialized to implement the Z3 schedule.
@@ -608,18 +642,16 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             else:
                 layers[layer_idx].append(triplet)
         # Insert barries if necessray to enforce the above layers
-        barriers = self.generate_barriers(dag, layers)
+        barriers = self.generate_barriers(layers)
         new_dag = self.create_updated_dag(layers, barriers)
         return new_dag
 
-    def run(self, dag, weight_factor=0.5, measured_indices=[]):
+    def run(self, dag):
         """
         Main scheduling function
         """
         # pre-processing steps
-        self.weight_factor = weight_factor
         self.dag = dag
-        self.input_measured_indices = measured_indices
         self.parse_backend_properties()
 
         # process input program
@@ -631,5 +663,5 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         z3_result = self.solve_optimization()
 
         # post-process to insert barriers
-        new_dag = self.enforce_schedule_on_dag(self.dag, z3_result)
+        new_dag = self.enforce_schedule_on_dag(z3_result)
         return new_dag
