@@ -115,12 +115,6 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is depreciated.", DeprecationWarning)
-        label = str(label)
     # If no qubits are specified we add all qubits so it acts as a barrier
     # This is needed for full register snapshots like statevector
     if isinstance(qubits, QuantumRegister):
