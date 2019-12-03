@@ -18,21 +18,34 @@ import unittest
 
 import numpy as np
 
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_density_matrix
 from qiskit.test import QiskitTestCase
 
 class TestRandomUtils(QiskitTestCase):
     """Testing qiskit.quantum_info.random.utils"""
 
-    def test_random_unitary(self):
-        """ Test that a random circuit with set seed will not affect later
-        results.
+    def test_unitary(self):
+        """ Test that a random unitary with set seed will not affect later
+        results
         """
         SEED = 314159
         TEST_CASES = 100
         random_unitary(4, seed=SEED)
         rng_before = [np.random.randint(1000) for _ in range(TEST_CASES) ]
         random_unitary(4, seed=SEED)
+        rng_after = [np.random.randint(1000) for _ in range(TEST_CASES) ]
+        array_equality = all( [ rng_before[i] == rng_after[i] for i in range(TEST_CASES) ])
+        self.assertFalse(array_equality)
+
+    def test_density_matrix(self):
+        """ Test that a random state with set seed will not affect later
+        results.
+        """
+        SEED = 314159
+        TEST_CASES = 100
+        random_density_matrix(4, seed=SEED)
+        rng_before = [np.random.randint(1000) for _ in range(TEST_CASES) ]
+        random_density_matrix(4, seed=SEED)
         rng_after = [np.random.randint(1000) for _ in range(TEST_CASES) ]
         array_equality = all( [ rng_before[i] == rng_after[i] for i in range(TEST_CASES) ])
         self.assertFalse(array_equality)
