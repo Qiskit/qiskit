@@ -24,7 +24,6 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate
