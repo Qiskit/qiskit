@@ -374,6 +374,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+        ImportError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
