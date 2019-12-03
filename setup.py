@@ -37,6 +37,7 @@ REQUIREMENTS = [
     "scipy>=1.0",
     "sympy>=1.3",
     "dill>=0.3",
+    "z3-solver>=4.7"
 ]
 
 # Add Cython extensions here
