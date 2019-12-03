@@ -64,6 +64,8 @@ class ControlledGate(Gate):
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""
         params = self.params
+        if self.base_gate is Gate:
+            return super().inverse()
         # importing MSGate causes circular import error
         if self.base_gate.__name__ == 'MSGate':
             # MSGate contructor additionally requires number of qubits

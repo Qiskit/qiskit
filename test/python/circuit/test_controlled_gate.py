@@ -15,6 +15,7 @@
 
 """Test Qiskit's inverse gate operation."""
 
+import unittest
 from inspect import signature
 import numpy as np
 from numpy import pi
@@ -463,3 +464,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
         full_mat = np.exp(1j * phase) * full_mat
     full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
     return full_mat
+
+
+if __name__ == '__main__':
+    unittest.main()
