@@ -29,7 +29,6 @@ from .t import TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate
-from .ubase import UBase
 from .x import XGate
 from .y import YGate
 from .z import ZGate
