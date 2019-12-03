@@ -24,7 +24,7 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate
@@ -289,7 +289,7 @@ class AstInterpreter:
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.dag.apply_operation_back(UBase(*args, element), self.condition)
+                self.dag.apply_operation_back(U3Gate(*args, element), self.condition)
 
         elif node.type == "cnot":
             self._process_cnot(node)
