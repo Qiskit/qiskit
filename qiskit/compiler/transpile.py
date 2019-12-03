@@ -47,7 +47,7 @@ def transpile(circuits,
         backend (BaseBackend):
             If set, transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
-            If any other option is explicitly set (e.g. coupling_map), it
+            If any other option is explicitly set (e.g., coupling_map), it
             will override the backend's.
 
             Note: the backend arg is purely for convenience. The resulting
@@ -142,7 +142,7 @@ def transpile(circuits,
                 property_set (PropertySet): the property set.
                 count (int): the index for the pass execution.
 
-            The exact arguments passed expose the internals of the pass manager
+            The exact arguments passed expose the internals of the pass manager,
             and are subject to change as the pass manager internals change. If
             you intend to reuse a callback function over multiple releases, be
             sure to check that the arguments being passed are the same.

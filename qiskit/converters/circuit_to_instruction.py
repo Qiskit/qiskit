@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a circuit to an instruction"""
+"""Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
@@ -39,8 +39,8 @@ def circuit_to_instruction(circuit, parameter_map=None):
 
     Return:
         Instruction: an instruction equivalent to the action of the
-            input circuit. Upon decomposition, this instruction will
-            yield the components comprising the original circuit.
+        input circuit. Upon decomposition, this instruction will
+        yield the components comprising the original circuit.
     """
 
     if parameter_map is None:
