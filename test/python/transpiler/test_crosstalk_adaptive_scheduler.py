@@ -137,5 +137,6 @@ class TestCrosstalk(QiskitTestCase):
         scheduled_dag = pass_.run(dag)
         assert scheduled_dag.depth() == 1
 
+
 if __name__ == '__main__':
     unittest.main()
