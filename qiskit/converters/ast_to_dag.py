@@ -25,7 +25,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.ubase import UBase
-from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.cswap import FredkinGate
@@ -215,11 +214,11 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[idx]], [], self.condition)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[0]], [], self.condition)
             else:
-                self.dag.apply_operation_back(CXBase(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[0], id1[idx]], [], self.condition)
 
     def _process_measure(self, node):
         """Process a measurement node."""

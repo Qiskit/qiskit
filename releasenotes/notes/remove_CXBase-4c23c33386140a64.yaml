@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The previously deprecated gate ``CXBase``, which was deprecated
+    in the 0.9 release, has been removed. The gate ``CnotGate``
+    should be used instead.
