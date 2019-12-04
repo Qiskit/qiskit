@@ -195,7 +195,7 @@ class Instruction(ScheduleComponent):
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
-             scaling: float = 1,
+             scaling: float = None,
              channels: Optional[List[Channel]] = None):
         """Plot the instruction.
 
