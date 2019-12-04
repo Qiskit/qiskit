@@ -15,9 +15,9 @@
 
 """Test Qiskit's inverse gate operation."""
 
-from math import pi
 from inspect import signature
 import numpy as np
+from numpy import pi
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer
@@ -113,7 +113,7 @@ class TestControlledGate(QiskitTestCase):
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
         cgate.h(sub_q[0])
-        cgate.crz(np.pi/2, sub_q[0], sub_q[1])
+        cgate.crz(pi/2, sub_q[0], sub_q[1])
         cgate.swap(sub_q[0], sub_q[1])
         cgate.u3(0.1, 0.2, 0.3, sub_q[1])
         cgate.t(sub_q[0])
