@@ -343,7 +343,7 @@ class ScheduleDrawer:
 
     def _count_valid_waveforms(self, output_channels, scale=1, channels=None,
                                plot_all=False, scaling=None):
-        if scaling:
+        if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
