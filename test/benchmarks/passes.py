@@ -23,8 +23,73 @@ from qiskit.converters import circuit_to_dag
 from .utils import random_circuit
 
 
-class PassBenchmarks:
+class Collect2QPassBenchmarks:
+    params = ([1, 2, 5, 8, 14, 20],
+              [8, 128, 1024])
 
+    param_names = ['n_qubits', 'depth']
+    timeout = 300
+
+    def setup(self, n_qubits, depth):
+        seed = 42
+        self.circuit = random_circuit(n_qubits, depth, measure=True,
+                                      conditional=True, reset=True, seed=seed)
+        self.dag = circuit_to_dag(self.circuit)
+        collect_blocks = Collect2qBlocks()
+        collect_blocks.run(self.dag)
+        self.block_list = collect_blocks.property_set['block_list']
+
+    def time_consolidate_blocks(self, _, __):
+        _pass = ConsolidateBlocks()
+        _pass.property_set['block_list'] = self.block_list
+        _pass.run(self.dag)
+
+    def peakmem_consolidate_blocks(self, _, __):
+        _pass = ConsolidateBlocks()
+        _pass.property_set['block_list'] = self.block_list
+        _pass.run(self.dag)
+
+    def track_consolidate_blocks_depth(self, _, __):
+        _pass = ConsolidateBlocks()
+        _pass.property_set['block_list'] = self.block_list
+        return _pass.run(self.dag).depth()
+
+
+class CommutativeAnalysisPassBenchmarks:
+    params = ([1, 2, 5, 8, 14, 20],
+              [8, 128, 1024])
+
+    param_names = ['n_qubits', 'depth']
+    timeout = 300
+
+    def setup(self, n_qubits, depth):
+        seed = 42
+        self.circuit = random_circuit(n_qubits, depth, measure=True,
+                                      conditional=True, reset=True, seed=seed)
+        self.dag = circuit_to_dag(self.circuit)
+        commutative_analysis = CommutationAnalysis()
+        commutative_analysis.run(
+            self.dag)
+        self.commutation_set = commutative_analysis.property_set[
+            'commutation_set']
+
+    def time_commutative_cancellation(self, _, __):
+        _pass = CommutativeCancellation()
+        _pass.property_set['commutation_set'] = self.commutation_set
+        _pass.run(self.dag)
+
+    def peakmem_commutative_cancellation(self, _, __):
+        _pass = CommutativeCancellation()
+        _pass.property_set['commutation_set'] = self.commutation_set
+        _pass.run(self.dag)
+
+    def track_commutative_cancellation_depth(self, _, __):
+        _pass = CommutativeCancellation()
+        _pass.property_set['commutation_set'] = self.commutation_set
+        return _pass.run(self.dag).depth()
+
+
+class UnrolledPassBenchmarks:
     params = ([1, 2, 5, 8, 14, 20],
               [8, 128, 1024])
 
@@ -38,14 +103,30 @@ class PassBenchmarks:
         self.dag = circuit_to_dag(self.circuit)
         self.basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
         self.unrolled_dag = Unroller(self.basis_gates).run(self.dag)
-        commutative_analysis = CommutationAnalysis()
-        commutative_analysis.run(
-            self.dag)
-        self.commutation_set = commutative_analysis.property_set[
-            'commutation_set']
-        collect_blocks = Collect2qBlocks()
-        collect_blocks.run(self.dag)
-        self.block_list = collect_blocks.property_set['block_list']
+
+    def time_optimize_1q(self, _, __):
+        Optimize1qGates().run(self.unrolled_dag)
+
+    def peakmem_optimize_1q(self, _, __):
+        Optimize1qGates().run(self.unrolled_dag)
+
+    def track_optimize_1q_depth(self, _, __):
+        return Optimize1qGates().run(self.unrolled_dag).depth()
+
+
+class PassBenchmarks:
+    params = ([1, 2, 5, 8, 14, 20],
+              [8, 128, 1024])
+
+    param_names = ['n_qubits', 'depth']
+    timeout = 300
+
+    def setup(self, n_qubits, depth):
+        seed = 42
+        self.circuit = random_circuit(n_qubits, depth, measure=True,
+                                      conditional=True, reset=True, seed=seed)
+        self.dag = circuit_to_dag(self.circuit)
+        self.basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
     def time_unroller(self, _, __):
         Unroller(self.basis_gates).run(self.dag)
@@ -116,15 +197,6 @@ class PassBenchmarks:
     def peakmem_merge_adjacent_barriers(self, _, __):
         MergeAdjacentBarriers().run(self.dag)
 
-    def time_optimize_1q(self, _, __):
-        Optimize1qGates().run(self.unrolled_dag)
-
-    def peakmem_optimize_1q(self, _, __):
-        Optimize1qGates().run(self.unrolled_dag)
-
-    def track_optimize_1q_depth(self, _, __):
-        return Optimize1qGates().run(self.unrolled_dag).depth()
-
     def time_decompose_pass(self, _, __):
         Decompose().run(self.dag)
 
@@ -164,21 +236,6 @@ class PassBenchmarks:
     def peakmem_collect_2q_blocks(self, _, __):
         Collect2qBlocks().run(self.dag)
 
-    def time_commutative_cancellation(self, _, __):
-        _pass = CommutativeCancellation()
-        _pass.property_set['commutation_set'] = self.commutation_set
-        _pass.run(self.dag)
-
-    def peakmem_commutative_cancellation(self, _, __):
-        _pass = CommutativeCancellation()
-        _pass.property_set['commutation_set'] = self.commutation_set
-        _pass.run(self.dag)
-
-    def track_commutative_cancellation_depth(self, _, __):
-        _pass = CommutativeCancellation()
-        _pass.property_set['commutation_set'] = self.commutation_set
-        return _pass.run(self.dag).depth()
-
     def time_optimize_swap_before_measure(self, _, __):
         OptimizeSwapBeforeMeasure().run(self.dag)
 
@@ -187,21 +244,6 @@ class PassBenchmarks:
 
     def track_optimize_swap_before_measure_depth(self, _, __):
         return OptimizeSwapBeforeMeasure().run(self.dag).depth()
-
-    def time_consolidate_blocks(self, _, __):
-        _pass = ConsolidateBlocks()
-        _pass.property_set['block_list'] = self.block_list
-        _pass.run(self.dag)
-
-    def peakmem_consolidate_blocks(self, _, __):
-        _pass = ConsolidateBlocks()
-        _pass.property_set['block_list'] = self.block_list
-        _pass.run(self.dag)
-
-    def track_consolidate_blocks_depth(self, _, __):
-        _pass = ConsolidateBlocks()
-        _pass.property_set['block_list'] = self.block_list
-        return _pass.run(self.dag).depth()
 
     def time_barrier_before_final_measurements(self, _, __):
         BarrierBeforeFinalMeasurements().run(self.dag)
@@ -219,7 +261,7 @@ class PassBenchmarks:
         RemoveDiagonalGatesBeforeMeasure().run(self.dag)
 
     def track_remove_diagonal_gates_before_measurement(self, _, __):
-        return RemoveDiagonalGatesBeforeMeasure().run(self.dag).run()
+        return RemoveDiagonalGatesBeforeMeasure().run(self.dag).depth()
 
     def time_remove_final_measurements(self, _, __):
         RemoveFinalMeasurements().run(self.dag)
