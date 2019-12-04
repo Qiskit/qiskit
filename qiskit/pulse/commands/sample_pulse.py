@@ -106,7 +106,7 @@ class SamplePulse(Command):
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
-             scaling: float = 1):
+             scaling: float = None):
         """Plot the interpolated envelope of pulse.
 
         Args:
