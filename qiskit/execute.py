@@ -32,7 +32,7 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
+            schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE.value,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
@@ -152,7 +152,7 @@ def execute(experiments, backend,
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
         meas_return (str):

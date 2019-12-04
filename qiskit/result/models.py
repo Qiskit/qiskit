@@ -103,7 +103,7 @@ class ExperimentResult(BaseModel):
         meas_level (int): Measurement result level.
     """
 
-    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED.value, **kwargs):
+    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED, **kwargs):
         self.shots = shots
         self.success = success
         self.data = data

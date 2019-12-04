@@ -33,7 +33,7 @@ def assemble(experiments,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
-             schedule_los=None, meas_level=MeasLevel.CLASSIFIED.value,
+             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
              meas_return=MeasReturnType.AVERAGE.value, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
@@ -96,7 +96,7 @@ def assemble(experiments,
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
         meas_return (str):
