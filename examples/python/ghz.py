@@ -19,25 +19,25 @@ GHZ state example. It also compares running on experiment and simulator.
 from qiskit import QuantumCircuit
 from qiskit import BasicAer, execute
 
-if __name__ == '__main__':
-    ###############################################################
-    # Make a quantum circuit for the GHZ state.
-    ###############################################################
-    num_qubits = 5
-    qc = QuantumCircuit(num_qubits, num_qubits, name='ghz')
 
-    # Create a GHZ state
-    qc.h(0)
-    for i in range(num_qubits-1):
-        qc.cx(i, i+1)
-    # Insert a barrier before measurement
-    qc.barrier()
-    # Measure all of the qubits in the standard basis
-    for i in range(num_qubits):
-        qc.measure(i, i)
+###############################################################
+# Make a quantum circuit for the GHZ state.
+###############################################################
+num_qubits = 5
+qc = QuantumCircuit(num_qubits, num_qubits, name='ghz')
 
-    sim_backend = BasicAer.get_backend('qasm_simulator')
-    job = execute(qc, sim_backend, shots=1024)
-    result = job.result()
-    print('Qasm simulator : ')
-    print(result.get_counts(qc))
+# Create a GHZ state
+qc.h(0)
+for i in range(num_qubits-1):
+    qc.cx(i, i+1)
+# Insert a barrier before measurement
+qc.barrier()
+# Measure all of the qubits in the standard basis
+for i in range(num_qubits):
+    qc.measure(i, i)
+
+sim_backend = BasicAer.get_backend('qasm_simulator')
+job = execute(qc, sim_backend, shots=1024)
+result = job.result()
+print('Qasm simulator : ')
+print(result.get_counts(qc))
