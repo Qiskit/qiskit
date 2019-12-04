@@ -582,7 +582,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
-        if scaling:
+        if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
