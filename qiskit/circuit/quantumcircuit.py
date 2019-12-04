@@ -151,6 +151,8 @@ class QuantumCircuit:
                     # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
                     # "name" of the process is checked instead.
                     name += '-{}'.format(mp.current_process().pid)
+            else:
+                name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):

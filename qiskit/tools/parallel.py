@@ -51,7 +51,6 @@ from the multiprocessing library.
 """
 
 import os
-import platform
 from concurrent.futures import ProcessPoolExecutor
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
@@ -112,7 +111,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         Publisher().publish("terra.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
-    if platform.system() != 'Windows' and num_processes > 1 \
+    if num_processes > 1 \
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
