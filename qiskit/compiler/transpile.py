@@ -13,9 +13,6 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-
-import warnings
-
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.transpile_config import TranspileConfig
@@ -282,12 +279,6 @@ def _parse_basis_gates(basis_gates, backend, circuits):
         if getattr(backend, 'configuration', None):
             basis_gates = getattr(backend.configuration(), 'basis_gates', None)
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
-    if isinstance(basis_gates, str):
-        warnings.warn("The parameter basis_gates is now a list of strings. "
-                      "For example, this basis ['u1','u2','u3','cx'] should be used "
-                      "instead of 'u1,u2,u3,cx'. The string format will be "
-                      "removed after 0.9", DeprecationWarning, 2)
-        basis_gates = basis_gates.split(',')
     if basis_gates is None or (isinstance(basis_gates, list) and
                                all(isinstance(i, str) for i in basis_gates)):
         basis_gates = [basis_gates] * len(circuits)
