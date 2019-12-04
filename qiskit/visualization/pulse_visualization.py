@@ -60,7 +60,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         VisualizationError: when invalid data is given or lack of information
         ImportError: when matplotlib is not installed
     """
-    if scaling:
+    if scaling is not None:
         warnings.warn('The parameter "scaling" is being replaced by "scale"',
                       DeprecationWarning, 3)
         scale = scaling
