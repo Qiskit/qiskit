@@ -15,9 +15,8 @@
 """Test cases for the pulse scheduler passes."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
-from qiskit.pulse import Schedule, DriveChannel
+from qiskit.pulse import Schedule, DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.channels import MeasureChannel, MemorySlot
-from qiskit.pulse.commands import AcquireInstruction
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -155,29 +154,46 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(insts[3][0], 20)
 
     def test_measure_combined(self):
-        """Test that measures on different qubits are combined, but measures on the same qubit
-        adds another measure to the schedule."""
+        """
+        Test to check for measure on the same qubit which generated another measure schedule.
+
+        The measures on different qubits are combined, but measures on the same qubit
+        adds another measure to the schedule.
+        """
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
         qc.u2(3.14, 1.57, q[0])
         qc.cx(q[0], q[1])
+        qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
+        expected_channels = [
+            AcquireChannel(0),
+            AcquireChannel(1),
+            DriveChannel(0),
+            DriveChannel(1),
+            ControlChannel(0),
+            MemorySlot(0),
+            MemorySlot(1),
+            MeasureChannel(0),
+            MeasureChannel(1)
+        ]
+        expected_time = [0, 28, 38, 48, 50, 60]
         expected = Schedule(
             self.cmd_def.get('u2', [0], 3.14, 1.57),
             (28, self.cmd_def.get('cx', [0, 1])),
             (50, self.cmd_def.get('measure', [0, 1])),
-            (60, self.cmd_def.get('measure', [0, 1])))
-        deleted_measure_channels = set(expected.channels) - set(sched.channels)
-        for _, expect in expected.instructions:
-            if set(expect.channels) == deleted_measure_channels:
-                expected = expected.exclude(channels=[expect.channels[0]])
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            (60, self.cmd_def.get('measure', [0, 1]))).instructions
+        expected_command = []
+        for expect in expected:
+            expected_command += [expect[1].command]
+        for channel in sched.channels:
+            self.assertIn(channel, expected_channels)
+        for actual in sched.instructions:
+            self.assertIn(actual[0], expected_time)
+            self.assertIn(actual[1].command, expected_command)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
@@ -300,7 +316,7 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(excluded_measure_channel, {MeasureChannel(1)})
 
     def test_schedule_measure_one_in_3Q(self):
-        """Test that the new schedule for a circuit with only one qubit measured."""
+        """Test the new schedule for a circuit with only one qubit measured in a 3 qubit backend."""
         backend = FakeOpenPulse3Q()
         cmd_def = backend.defaults().build_cmd_def()
         q = QuantumRegister(3)
@@ -308,30 +324,27 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.measure(q[0], c[2])
         sched = schedule(qc, backend)
-        old_sched = Schedule(
+        expected = Schedule(
             cmd_def.get('measure', [0, 1, 2])
-        )
-        updated_old_sched = Schedule()
-        qubit_mem_slots = {0: 2}
-        for time, inst in old_sched.instructions:
-            unused_mem_slots = [1, 0]
-            if isinstance(inst, AcquireInstruction):
-                mem_slots = []
-                for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots.keys():
-                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
-                    else:
-                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
-                new_acquire = AcquireInstruction(command=inst.command,
-                                                 acquires=inst.acquires,
-                                                 mem_slots=mem_slots)
-                updated_old_sched._union((time, new_acquire))
-            elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched._union((time, inst))
-        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
-            self.assertEqual(actual[0], old[0])
-            self.assertEqual(actual[1].command, old[1].command)
-            self.assertEqual(actual[1].channels, old[1].channels)
+        ).instructions
+        expected_command = []
+        for expect in expected:
+            expected_command += [expect[1].command]
+        expected_channels = [
+            AcquireChannel(0),
+            AcquireChannel(1),
+            AcquireChannel(2),
+            MemorySlot(0),
+            MemorySlot(1),
+            MemorySlot(2),
+            MeasureChannel(0)
+        ]
+        expected_time = [0]
+        for channel in sched.channels:
+            self.assertIn(channel, expected_channels)
+        for actual in sched.instructions:
+            self.assertIn(actual[0], expected_time)
+            self.assertIn(actual[1].command, expected_command)
 
     def test_schedule_measure_two_in_3Q(self):
         """Test that the new schedule for a circuit with only one qubit measured."""
@@ -343,30 +356,26 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[0], c[2])
         qc.measure(q[1], c[1])
         sched = schedule(qc, backend)
-        old_sched = Schedule(
-            cmd_def.get('measure', [0, 1, 2])
-        )
-        updated_old_sched = Schedule()
-        qubit_mem_slots = {0: 2, 1: 1}
-        for time, inst in old_sched.instructions:
-            unused_mem_slots = [0]
-            if isinstance(inst, AcquireInstruction):
-                mem_slots = []
-                for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots.keys():
-                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
-                    else:
-                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
-                new_acquire = AcquireInstruction(command=inst.command,
-                                                 acquires=inst.acquires,
-                                                 mem_slots=mem_slots)
-                updated_old_sched._union((time, new_acquire))
-            elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched._union((time, inst))
-        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
-            self.assertEqual(actual[0], old[0])
-            self.assertEqual(actual[1].command, old[1].command)
-            self.assertEqual(actual[1].channels, old[1].channels)
+        expected = Schedule(cmd_def.get('measure', [0, 1, 2])).instructions
+        expected_command = []
+        for expect in expected:
+            expected_command += [expect[1].command]
+        expected_channels = [
+            AcquireChannel(0),
+            AcquireChannel(1),
+            AcquireChannel(2),
+            MemorySlot(0),
+            MemorySlot(1),
+            MemorySlot(2),
+            MeasureChannel(0),
+            MeasureChannel(1)
+        ]
+        expected_time = [0]
+        for channel in sched.channels:
+            self.assertIn(channel, expected_channels)
+        for actual in sched.instructions:
+            self.assertIn(actual[0], expected_time)
+            self.assertIn(actual[1].command, expected_command)
 
     def test_schedule_multiple_measure_in_3Q(self):
         """Test that the new schedule for a circuit with only one qubit measured multiple times."""
@@ -379,29 +388,37 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[0], c[2])
         qc.measure(q[0], c[2])
         sched = schedule(qc, backend)
-        old_sched = Schedule(
+        expected = Schedule(
             cmd_def.get('measure', [0, 1, 2]),
             (10, cmd_def.get('measure', [0, 1, 2])),
             (20, cmd_def.get('measure', [0, 1, 2]))
-        )
-        updated_old_sched = Schedule()
-        qubit_mem_slots = {0: 2}
-        for time, inst in old_sched.instructions:
-            unused_mem_slots = [1, 0]
-            if isinstance(inst, AcquireInstruction):
-                mem_slots = []
-                for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots.keys():
-                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
-                    else:
-                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
-                new_acquire = AcquireInstruction(command=inst.command,
-                                                 acquires=inst.acquires,
-                                                 mem_slots=mem_slots)
-                updated_old_sched._union((time, new_acquire))
-            elif inst.channels[0].index in qubit_mem_slots.keys():
-                updated_old_sched._union((time, inst))
-        for actual, old in zip(sched.instructions, updated_old_sched.instructions):
-            self.assertEqual(actual[0], old[0])
-            self.assertEqual(actual[1].command, old[1].command)
-            self.assertEqual(actual[1].channels, old[1].channels)
+        ).instructions
+        expected_command = []
+        for expect in expected:
+            expected_command += [expect[1].command]
+        expected_channels = [
+            AcquireChannel(0),
+            AcquireChannel(1),
+            AcquireChannel(2),
+            MemorySlot(0),
+            MemorySlot(1),
+            MemorySlot(2),
+            MeasureChannel(0)
+        ]
+        expected_time = [0, 10, 20]
+        for channel in sched.channels:
+            self.assertIn(channel, expected_channels)
+        for actual in sched.instructions:
+            self.assertIn(actual[0], expected_time)
+            self.assertIn(actual[1].command, expected_command)
+
+    def test_failing_channels(self):
+        """Test to catch unused MeasureChannel."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[1], c[1])
+        qc.measure(q[1], c[1])
+        sched_all_channels = schedule(qc, self.backend, method="as_soon_as_possible").channels
+        deleted_channels = [MeasureChannel(0)]
+        self.assertNotIn(sched_all_channels, deleted_channels)
