@@ -47,7 +47,7 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.synthesis import euler_angles_1q
+from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -121,7 +121,7 @@ class UCG(Gate):
         circuit = QuantumCircuit(q)
         # If there is no control, we use the ZYZ decomposition
         if not q_controls:
-            theta, phi, lamb = euler_angles_1q(self.params[0])
+            theta, phi, lamb, _ = OneQubitEulerDecomposer._params_u3(self.params[0])
             circuit.u3(theta, phi, lamb, q)
             return circuit, diag
         # If there is at least one control, first,

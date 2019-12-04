@@ -104,7 +104,7 @@ Synthesis
    euler_angles_1q
    two_qubit_cnot_decompose
    TwoQubitBasisDecomposer
-
+   OneQubitEulerDecomposer
 """
 
 from .operators.operator import Operator

@@ -216,6 +216,25 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary, 'XYX')
 
+    # R, R basis
+    def test_one_qubit_clifford_rr_basis(self):
+        """Verify for r, r basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'RR')
+
+    def test_one_qubit_hard_thetas_rr_basis(self):
+        """Verify for r, r basis and close-to-degenerate theta."""
+        # We lower tolerance for this test since decomposition since it
+        # appears to be less numerically accurate.
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'RR', 1e-7)
+
+    def test_one_qubit_random_rr_basis(self, nsamples=50):
+        """Verify for r, r basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'RR')
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(QiskitTestCase):
