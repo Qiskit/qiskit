@@ -1,0 +1,7 @@
+---
+prelude: >
+    The 0.11.0 release includes several new features and bug fixes. The biggest
+    changes for this release are the additions of the pulse scheduler. 0.11.0
+    is also the first release to include support for Python 3.8. It also
+    marks the beginning of deprecation for Python 3.5, which will be removed
+    when the upstream Python community stops supporting it.
