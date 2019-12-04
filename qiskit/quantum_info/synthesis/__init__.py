@@ -15,3 +15,4 @@
 """State and Unitary synthesis methods."""
 
 from .two_qubit_decompose import TwoQubitBasisDecomposer, euler_angles_1q, two_qubit_cnot_decompose
+from .one_qubit_decompose import OneQubitEulerDecomposer
