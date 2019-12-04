@@ -220,7 +220,7 @@ class Instruction(ScheduleComponent):
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling:
+        if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
