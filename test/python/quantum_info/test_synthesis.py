@@ -119,12 +119,7 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
         with self.subTest(operator=operator):
             target_unitary = operator.data
             decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
-                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance,
                             "Worst distance {}".format(maxdist))
 
