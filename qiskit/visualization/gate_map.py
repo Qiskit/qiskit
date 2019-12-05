@@ -131,6 +131,8 @@ def plot_gate_map(backend, figsize=None,
 
     mpl_data = {}
 
+    mpl_data[1] = [[0, 0]]
+
     mpl_data[20] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
                     [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
                     [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
@@ -186,7 +188,7 @@ def plot_gate_map(backend, figsize=None,
     max_dim = max(x_max, y_max)
 
     if figsize is None:
-        if x_max / max_dim > 0.33 and y_max / max_dim > 0.33:
+        if n_qubits == 1 or (x_max / max_dim > 0.33 and y_max / max_dim > 0.33):
             figsize = (5, 5)
         else:
             figsize = (9, 3)
@@ -199,56 +201,57 @@ def plot_gate_map(backend, figsize=None,
     if qubit_color is None:
         qubit_color = ['#648fff'] * config.n_qubits
     if line_color is None:
-        line_color = ['#648fff'] * len(cmap)
+        line_color = ['#648fff'] * len(cmap) if cmap else []
 
     # Add lines for couplings
-    for ind, edge in enumerate(cmap):
-        is_symmetric = False
-        if edge[::-1] in cmap:
-            is_symmetric = True
-        y_start = grid_data[edge[0]][0]
-        x_start = grid_data[edge[0]][1]
-        y_end = grid_data[edge[1]][0]
-        x_end = grid_data[edge[1]][1]
+    if n_qubits != 1:
+        for ind, edge in enumerate(cmap):
+            is_symmetric = False
+            if edge[::-1] in cmap:
+                is_symmetric = True
+            y_start = grid_data[edge[0]][0]
+            x_start = grid_data[edge[0]][1]
+            y_end = grid_data[edge[1]][0]
+            x_end = grid_data[edge[1]][1]
 
-        if is_symmetric:
-            if y_start == y_end:
-                x_end = (x_end - x_start) / 2 + x_start
-
-            elif x_start == x_end:
-                y_end = (y_end - y_start) / 2 + y_start
-
-            else:
-                x_end = (x_end - x_start) / 2 + x_start
-                y_end = (y_end - y_start) / 2 + y_start
-        ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
-                                 color=line_color[ind], linewidth=line_width,
-                                 zorder=0))
-        if plot_directed:
-            dx = x_end - x_start  # pylint: disable=invalid-name
-            dy = y_end - y_start  # pylint: disable=invalid-name
             if is_symmetric:
-                x_arrow = x_start + dx * 0.95
-                y_arrow = -y_start - dy * 0.95
-                dx_arrow = dx * 0.01
-                dy_arrow = -dy * 0.01
-                head_width = 0.15
-            else:
-                x_arrow = x_start + dx * 0.5
-                y_arrow = -y_start - dy * 0.5
-                dx_arrow = dx * 0.2
-                dy_arrow = -dy * 0.2
-                head_width = 0.2
-            ax.add_patch(mpatches.FancyArrow(x_arrow,
-                                             y_arrow,
-                                             dx_arrow,
-                                             dy_arrow,
-                                             head_width=head_width,
-                                             length_includes_head=True,
-                                             edgecolor=None,
-                                             linewidth=0,
-                                             facecolor=line_color[ind],
-                                             zorder=1))
+                if y_start == y_end:
+                    x_end = (x_end - x_start) / 2 + x_start
+
+                elif x_start == x_end:
+                    y_end = (y_end - y_start) / 2 + y_start
+
+                else:
+                    x_end = (x_end - x_start) / 2 + x_start
+                    y_end = (y_end - y_start) / 2 + y_start
+            ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
+                                     color=line_color[ind], linewidth=line_width,
+                                     zorder=0))
+            if plot_directed:
+                dx = x_end - x_start  # pylint: disable=invalid-name
+                dy = y_end - y_start  # pylint: disable=invalid-name
+                if is_symmetric:
+                    x_arrow = x_start + dx * 0.95
+                    y_arrow = -y_start - dy * 0.95
+                    dx_arrow = dx * 0.01
+                    dy_arrow = -dy * 0.01
+                    head_width = 0.15
+                else:
+                    x_arrow = x_start + dx * 0.5
+                    y_arrow = -y_start - dy * 0.5
+                    dx_arrow = dx * 0.2
+                    dy_arrow = -dy * 0.2
+                    head_width = 0.2
+                ax.add_patch(mpatches.FancyArrow(x_arrow,
+                                                 y_arrow,
+                                                 dx_arrow,
+                                                 dy_arrow,
+                                                 head_width=head_width,
+                                                 length_includes_head=True,
+                                                 edgecolor=None,
+                                                 linewidth=0,
+                                                 facecolor=line_color[ind],
+                                                 zorder=1))
 
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
