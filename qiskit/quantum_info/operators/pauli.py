@@ -461,10 +461,9 @@ class Pauli:
         Returns:
             Pauli: the random pauli
         """
-        if seed is not None:
-            np.random.seed(seed)
-        z = np.random.randint(2, size=num_qubits).astype(np.bool)
-        x = np.random.randint(2, size=num_qubits).astype(np.bool)
+        rng = np.random.RandomState(seed)
+        z = rng.randint(2, size=num_qubits).astype(np.bool)
+        x = rng.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
 
     @classmethod
