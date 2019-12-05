@@ -185,15 +185,20 @@ def transpile(circuits,
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_configs)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
-        # If coupling_map is not None
+        # If coupling_map is not None or n_qubits == 1
+        n_qubits = len(circuit.qubits)
         if isinstance(parsed_coupling_map, CouplingMap):
-            n_qubits = len(circuit.qubits)
             max_qubits = parsed_coupling_map.size()
-            if n_qubits > max_qubits:
-                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '.format(circuit.name) +
-                                      'is greater than maximum ({}) '.format(max_qubits) +
-                                      'in the coupling_map')
+
+        # Support 1Q devices with coupling_map is None
+        elif backend.configuration().n_qubits == 1 and not backend.configuration().simulator:
+            max_qubits = 1
+
+        if n_qubits > max_qubits:
+            raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                  'in {} '.format(circuit.name) +
+                                  'is greater than maximum ({}) '.format(max_qubits) +
+                                  'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
