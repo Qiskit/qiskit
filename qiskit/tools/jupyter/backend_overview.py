@@ -176,7 +176,7 @@ def backend_widget(backend):
                                                                           units=t1_units),
                               layout=widgets.Layout())
 
-    avg_cx_err ='NA'
+    avg_cx_err = 'NA'
     if config['coupling_map']:
         sum_cx_err = 0
         num_cx = 0
@@ -189,7 +189,7 @@ def backend_widget(backend):
                             sum_cx_err += param['value']
                             num_cx += 1
         avg_cx_err = round(sum_cx_err/(num_cx), 4)
-    
+
     cx_widget = widgets.HTML(value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err),
                              layout=widgets.Layout())
 
