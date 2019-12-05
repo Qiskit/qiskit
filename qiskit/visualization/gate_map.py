@@ -428,28 +428,31 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     cmap = config['coupling_map']
 
     directed = False
-    if n_qubits < 20:
-        for edge in cmap:
-            if not [edge[1], edge[0]] in cmap:
-                directed = True
-                break
+    line_colors = []
+    if cmap:
+        directed = False
+        if n_qubits < 20:
+            for edge in cmap:
+                if not [edge[1], edge[0]] in cmap:
+                    directed = True
+                    break
 
-    cx_errors = []
-    for line in cmap:
-        for item in props['gates']:
-            if item['qubits'] == line:
-                cx_errors.append(item['parameters'][0]['value'])
-                break
-        else:
-            continue
+        cx_errors = []
+        for line in cmap:
+            for item in props['gates']:
+                if item['qubits'] == line:
+                    cx_errors.append(item['parameters'][0]['value'])
+                    break
+            else:
+                continue
 
-    # Convert to percent
-    cx_errors = 100 * np.asarray(cx_errors)
-    avg_cx_err = np.mean(cx_errors)
+        # Convert to percent
+        cx_errors = 100 * np.asarray(cx_errors)
+        avg_cx_err = np.mean(cx_errors)
 
-    cx_norm = matplotlib.colors.Normalize(
-        vmin=min(cx_errors), vmax=max(cx_errors))
-    line_colors = [color_map(cx_norm(err)) for err in cx_errors]
+        cx_norm = matplotlib.colors.Normalize(
+            vmin=min(cx_errors), vmax=max(cx_errors))
+        line_colors = [color_map(cx_norm(err)) for err in cx_errors]
 
     # Measurement errors
 
@@ -474,7 +477,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     main_ax = plt.subplot(grid_spec[:11, 1:11])
     right_ax = plt.subplot(grid_spec[2:10, 11:])
     bleft_ax = plt.subplot(grid_spec[-1, :5])
-    bright_ax = plt.subplot(grid_spec[-1, 7:])
+    if cmap:
+        bright_ax = plt.subplot(grid_spec[-1, 7:])
 
     plot_gate_map(backend, qubit_color=q_colors,
                   line_color=line_colors,
@@ -484,23 +488,28 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
                   ax=main_ax)
     main_ax.axis('off')
     main_ax.set_aspect(1)
+    if cmap:
+        single_cb = matplotlib.colorbar.ColorbarBase(bleft_ax, cmap=color_map,
+                                                     norm=single_norm,
+                                                     orientation='horizontal')
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        single_cb.locator = tick_locator
+        single_cb.update_ticks()
+        single_cb.update_ticks()
+        bleft_ax.set_title('H error rate (%) [Avg. = {}]'.format(round(avg_1q_err, 3)))
 
-    single_cb = matplotlib.colorbar.ColorbarBase(bleft_ax, cmap=color_map,
-                                                 norm=single_norm,
+    if cmap is None:
+        bleft_ax.axis('off')
+        bleft_ax.set_title('H error rate (%) = {}'.format(round(avg_1q_err, 3)))
+
+    if cmap:
+        cx_cb = matplotlib.colorbar.ColorbarBase(bright_ax, cmap=color_map,
+                                                 norm=cx_norm,
                                                  orientation='horizontal')
-    tick_locator = ticker.MaxNLocator(nbins=5)
-    single_cb.locator = tick_locator
-    single_cb.update_ticks()
-    single_cb.update_ticks()
-    bleft_ax.set_title('H error rate (%) [Avg. = {}]'.format(round(avg_1q_err, 3)))
-
-    cx_cb = matplotlib.colorbar.ColorbarBase(bright_ax, cmap=color_map,
-                                             norm=cx_norm,
-                                             orientation='horizontal')
-    tick_locator = ticker.MaxNLocator(nbins=5)
-    cx_cb.locator = tick_locator
-    cx_cb.update_ticks()
-    bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        cx_cb.locator = tick_locator
+        cx_cb.update_ticks()
+        bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
 
     if n_qubits < 10:
         num_left = n_qubits
