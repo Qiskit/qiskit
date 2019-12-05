@@ -1,9 +1,4 @@
 ---
-prelude: >
-  Qiskit now supports scheduling a `QuantumCircuit` into a pulse
-  `Schedule`. This allows users to define their quantum program as a
-  `QuantumCircuit` and then map it to the underlying pulse instructions that
-  will control the quantum hardware to implement the circuit.
 features:
   - |
     A basic `scheduler` module has now been added to Qiskit. The `scheduler`
