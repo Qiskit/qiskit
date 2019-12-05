@@ -49,8 +49,15 @@ Local Optimizers
 
 Global Optimizers
 =================
-Global optimizers can only be used if their dependent NLopt package
-is manually installed. See instructions...
+The global optimizers here all use NLopt for their core function and can only be
+used if their dependent NLopt package is manually installed. See the following
+section for installation instructions.
+
+.. toctree::
+
+   qiskit.aqua.components.optimizers.nlopts
+
+The global optimizers are as follows:
 
 .. autosummary::
    :toctree: ../stubs/
