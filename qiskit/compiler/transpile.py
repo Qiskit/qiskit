@@ -187,14 +187,16 @@ def transpile(circuits,
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
         # If coupling_map is not None or n_qubits == 1
         n_qubits = len(circuit.qubits)
+        max_qubits = None
         if isinstance(parsed_coupling_map, CouplingMap):
             max_qubits = parsed_coupling_map.size()
 
         # Support 1Q devices with coupling_map is None
-        elif backend.configuration().n_qubits == 1 and not backend.configuration().simulator:
-            max_qubits = 1
+        elif backend:
+            if backend.configuration().n_qubits == 1 and not backend.configuration().simulator:
+                max_qubits = 1
 
-        if n_qubits > max_qubits:
+        if max_qubits and (n_qubits > max_qubits):
             raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
