@@ -17,7 +17,6 @@ Multiple-Control U3 gate. Not using ancillary qubits.
 
 import logging
 from math import pi
-from sympy.combinatorics.graycode import GrayCode
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit import QiskitError
 
@@ -42,6 +41,7 @@ def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 
     n = len(ctls)
 
+    from sympy.combinatorics.graycode import GrayCode
     gray_code = list(GrayCode(n).generate_gray())
     last_pattern = None
 
