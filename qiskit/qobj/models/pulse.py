@@ -192,9 +192,9 @@ class PulseQobjConfig(QobjConfig):
     full description of the model, please check ``PulseQobjConfigSchema``.
 
     Attributes:
-        meas_level (int): a value represents the level of measurement.
+        meas_level (int or MeasLevel): a value represents the level of measurement.
         meas_lo_freq (list[float]): local oscillator frequency of measurement pulse.
-        meas_return (str): a level of measurement information.
+        meas_return (str or MeasReturn): a level of measurement information.
         pulse_library (list[qiskit.qobj.PulseLibraryItem]): a pulse library.
         qubit_lo_freq (list[float]): local oscillator frequency of driving pulse.
     """

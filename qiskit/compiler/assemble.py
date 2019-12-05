@@ -34,7 +34,7 @@ def assemble(experiments,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
-             meas_return=MeasReturnType.AVERAGE.value, meas_map=None,
+             meas_return=MeasReturnType.AVERAGE, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
@@ -99,7 +99,7 @@ def assemble(experiments,
         meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str):
+        meas_return (str or MeasReturn):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
                 * "single" returns information from every shot.
