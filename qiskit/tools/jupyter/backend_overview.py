@@ -176,17 +176,20 @@ def backend_widget(backend):
                                                                           units=t1_units),
                               layout=widgets.Layout())
 
-    sum_cx_err = 0
-    num_cx = 0
-    for gate in props['gates']:
-        if gate['gate'] == 'cx':
-            for param in gate['parameters']:
-                if param['name'] == 'gate_error':
-                    # Value == 1.0 means gate effectively off
-                    if param['value'] != 1.0:
-                        sum_cx_err += param['value']
-                        num_cx += 1
-    avg_cx_err = round(sum_cx_err/(num_cx), 4)
+    avg_cx_err = 'NA'
+    if config['coupling_map']:
+        sum_cx_err = 0
+        num_cx = 0
+        for gate in props['gates']:
+            if gate['gate'] == 'cx':
+                for param in gate['parameters']:
+                    if param['name'] == 'gate_error':
+                        # Value == 1.0 means gate effectively off
+                        if param['value'] != 1.0:
+                            sum_cx_err += param['value']
+                            num_cx += 1
+        avg_cx_err = round(sum_cx_err/(num_cx), 4)
+
     cx_widget = widgets.HTML(value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err),
                              layout=widgets.Layout())
 
