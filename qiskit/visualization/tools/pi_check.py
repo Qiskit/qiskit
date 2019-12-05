@@ -45,6 +45,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     """
     if isinstance(inpt, ParameterExpression):
         return str(inpt)
+    elif isinstance(inpt, str):
+        return inpt
     inpt = float(inpt)
     if abs(inpt) < 1e-14:
         return str(0)
