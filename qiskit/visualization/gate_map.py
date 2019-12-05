@@ -25,7 +25,6 @@ if HAS_MATPLOTLIB:
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
-    import matplotlib.cm as cm
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 
@@ -375,6 +374,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+        ImportError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -395,7 +395,12 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    color_map = cm.viridis
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError('Must have seaborn installed to use plot_error_map')
+
+    color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
@@ -501,7 +506,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         num_left = math.ceil(n_qubits / 2)
         num_right = n_qubits - num_left
 
-    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#007d79')
+    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#DDBBBA')
     left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
     left_ax.set_yticks(range(num_left))
     left_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
@@ -514,7 +519,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     if num_right:
         right_ax.barh(range(num_left, n_qubits), read_err[num_left:],
-                      align='center', color='#007d79')
+                      align='center', color='#DDBBBA')
         right_ax.axvline(avg_read_err, linestyle='--', color='#212121')
         right_ax.set_yticks(range(num_left, n_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
