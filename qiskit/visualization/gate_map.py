@@ -21,7 +21,6 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
-    import seaborn as sns
     import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
@@ -375,6 +374,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+        ImportError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -395,6 +395,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError('Must have seaborn installed to use plot_error_map')
+
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     props = backend.properties().to_dict()
