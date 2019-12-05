@@ -190,7 +190,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
             raise QiskitError("memory not supported by backend {}"
-                              .format(backend.properties().backend_name))
+                              .format(backend_config.backend_name))
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
