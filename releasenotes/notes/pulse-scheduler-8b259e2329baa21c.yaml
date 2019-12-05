@@ -28,7 +28,7 @@ features:
     The scheduler currently supports two scheduling policies,
     `as_late_as_possible`(`alap`) and `as_soon_as_possible`(`asap`), which
     respectively schedule pulse instructions to occur as late as
-    possible or as soon as soon as possible across qubits in a circuit.
+    possible or as soon as possible across qubits in a circuit.
     The scheduling policy may be selected with the input argument `method`,
     for example::
 
@@ -36,11 +36,11 @@ features:
 
     It is easy to use a pulse `Schedule within a `QuantumCircuit` by mapping it
     to a custom circuit instruction such as a gate which may be used in a
-    `QuantumCircuit`. To do this, first define the custom gate and then add an
+    `QuantumCircuit`. To do this, first, define the custom gate and then add an
     entry into the `CmdDef` for the gate, for each qubit that the gate will be
-    applied to. The gate the can then be used in the `QuantumCircuit`.
+    applied to. The gate can then be used in the `QuantumCircuit`.
     At scheduling time the gate will be mapped to the underlying pulse schedule.
-    Using this technique allows easy integration with prexisting qiskit modules
+    Using this technique allows easy integration with preexisting qiskit modules
     such as Ignis.
 
     example::
