@@ -29,7 +29,7 @@ def emptycircuit():
 
 
 def circuit_3516():
-    """Circuit from https://github.com/Qiskit/qiskit-terra/issues/2532 should fail"""
+    """Circuit from https://github.com/Qiskit/qiskit-terra/issues/3516 should fail"""
     circuit = QuantumCircuit(2, 1)
     circuit.h(0)
     circuit.ry(0.11, 1)
