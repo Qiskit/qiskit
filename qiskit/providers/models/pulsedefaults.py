@@ -318,11 +318,6 @@ class InstructionScheduleMap():
             raise PulseError("Cannot add definition {} with no target qubits.".format(operation))
         if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
-        if self.has(operation, qubits):
-            warnings.warn("Replacing previous definition of {} on qubit{} "
-                          "{}.".format(operation,
-                                       's' if len(qubits) > 1 else '',
-                                       qubits if len(qubits) > 1 else qubits[0]))
         self._ops_def[operation][qubits] = schedule
         self._qubit_ops[qubits].append(operation)
 
