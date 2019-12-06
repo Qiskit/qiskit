@@ -4,7 +4,4 @@ prelude: >
     changes for this release are the additions of the pulse scheduler. This
     allows users to define their quantum program as a ``QuantumCircuit`` and
     then map it to the underlying pulse instructions that will control the
-    quantum hardware to implement the circuit. 0.11.0 is also the first release
-    to include support for Python 3.8. It also marks the beginning of
-    deprecation for Python 3.5, which will be removed when the upstream Python
-    community stops supporting it.
+    quantum hardware to implement the circuit.
