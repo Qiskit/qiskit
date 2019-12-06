@@ -195,7 +195,7 @@ def transpile(circuits,
         elif backend is not None:
             max_qubits = backend.configuration().n_qubits
 
-        if max_qubits and (n_qubits > max_qubits):
+        if max_qubits is not None and (n_qubits > max_qubits):
             raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
