@@ -50,6 +50,7 @@ class Test1QFailing(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             transpile(circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42)
 
+
 @ddt
 class Test1QWorking(QiskitTestCase):
     """1Q tests that should work."""
