@@ -133,7 +133,6 @@ class TestUnroller(QiskitTestCase):
         circuit.swap(qr[1], qr[2])
         circuit.t(qr[2])
         circuit.tdg(qr[0])
-        circuit.u0(1, qr[0])
         circuit.u1(0.1, qr[1])
         circuit.u2(0.2, -0.1, qr[0])
         circuit.u3(0.3, 0.0, -0.1, qr[2])
@@ -217,7 +216,6 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.cx(qr[1], qr[0])
         ref_circuit.u3(0, 0, pi/2, qr[0])
         ref_circuit.u3(0, 0, -pi/4, qr[0])
-        ref_circuit.u3(0, 0, 0, qr[0])
         ref_circuit.u3(pi/2, 0.2, -0.1, qr[0])
         ref_circuit.u3(0, 0, pi, qr[0])
         ref_circuit.u3(0, 0, -pi/2, qr[1])
@@ -272,18 +270,19 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
     def test_definition_unroll_parameterized(self):
-        """Verify that unrolling complex gates with parameters raises."""
+        """Verify that unrolling complex gates with parameters does not raise."""
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
         theta = Parameter('theta')
 
-        qc.cu1(theta, qr[0], qr[1])
+        qc.cu1(theta, qr[1], qr[0])
+        qc.cu1(theta * theta, qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        with self.assertRaisesRegex(QiskitError, 'unsupported'):
-            Unroller(['u1', 'cx']).run(dag)
-            raise QiskitError('unsupported')
+        out_dag = Unroller(['u1', 'cx']).run(dag)
+
+        self.assertEqual(out_dag.count_ops(), {'u1': 6, 'cx': 4})
 
     def test_definition_unroll_parameterized_with_expressions(self):
         """Verify that unrolling complex gates with parameter expressions raises."""

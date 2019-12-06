@@ -250,7 +250,8 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                wid = WID * 2.2
+                boxes_wide = round(max(len(subtext), len(text)) / 10, 1) or 1
+                wid = WID * 1.5 * boxes_wide
             else:
                 boxes_wide = round(len(text) / 10) or 1
                 wid = WID * 2.2 * boxes_wide
@@ -611,10 +612,10 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # bundle
             if this_creg['val'] > 1:
-                self.ax.plot([.6, .7], [y - .1, y + .1],
+                self.ax.plot([self.x_offset+1.1, self.x_offset+1.2], [y - .1, y + .1],
                              color=self._style.cc,
                              zorder=PORDER_LINE)
-                self.ax.text(0.5, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset+1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
@@ -637,7 +638,7 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary']
+        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary', 'r']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -663,8 +664,26 @@ class MatplotlibDrawer:
             for op in layer:
 
                 if op.name in _wide_gate:
+                    if op.type == 'op' and hasattr(op.op, 'params'):
+                        param = self.param_parse(op.op.params)
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (5 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
+                            box_width = round(len(param) / 10)
+                            # If more than 4 characters min width is 2
+                            if box_width <= 1:
+                                box_width = 2
+                            if layer_width < box_width:
+                                if box_width > 2:
+                                    layer_width = box_width * 2
+                                else:
+                                    layer_width = 2
                     if layer_width < 2:
                         layer_width = 2
+
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
@@ -675,7 +694,12 @@ class MatplotlibDrawer:
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
-                        if len(param) > len(op.name):
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (5 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
                             box_width = round(len(param) / 8)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
@@ -811,12 +835,8 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        prm = '({})'.format(param)
-                        if len(prm) < 20:
-                            self._gate(q_xy[0], wide=_iswide, text=disp,
-                                       subtext=prm)
-                        else:
-                            self._gate(q_xy[0], wide=_iswide, text=disp)
+                        self._gate(q_xy[0], wide=_iswide, text=disp,
+                                   subtext=str(param))
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
@@ -989,7 +1009,7 @@ class MatplotlibDrawer:
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
             try:
-                param_parts[i] = pi_check(e, output='mpl')
+                param_parts[i] = pi_check(e, output='mpl', ndigits=3)
             except TypeError:
                 param_parts[i] = str(e)
 
