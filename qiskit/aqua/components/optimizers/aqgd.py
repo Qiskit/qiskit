@@ -77,9 +77,7 @@ class AQGD(Optimizer):
     def __init__(self, maxiter=1000, eta=3.0, tol=1e-6, disp=False, momentum=0.25):
         """
         Constructor.
-
         Performs Analytical Quantum Gradient Descent (AQGD).
-
         Args:
             maxiter (int): Maximum number of iterations, each iteration evaluation gradient.
             eta (float): The coefficient of the gradient update. Increasing this value
@@ -89,7 +87,6 @@ class AQGD(Optimizer):
             disp (bool): Set to true to display convergence messages.
             momentum (float): Bias towards the previous gradient momentum in current update.
                               Must be within the bounds: [0,1)
-
         """
         self.validate(locals())
         super().__init__()
@@ -105,13 +102,11 @@ class AQGD(Optimizer):
         """
         Obtains the analytical quantum derivative of the objective function with
         respect to the jth parameter.
-
         Args:
             j (int): Index of the parameter to compute the derivative of.
             params (array): Current value of the parameters to evaluate
                             the objective function at.
             obj (callable): Objective function.
-
         Returns:
             float: The derivative of the objective function w.r.t. j
         """
@@ -129,7 +124,6 @@ class AQGD(Optimizer):
     def update(self, j, params, deriv, mprev):
         """
         Updates the jth parameter based on the derivative and previous momentum
-
         Args:
             j (int): Index of the parameter to compute the derivative of.
             params (array): Current value of the parameters to evaluate
@@ -147,13 +141,11 @@ class AQGD(Optimizer):
         """
         Determines if the objective function has converged by finding the difference between
         the current value and the previous n values.
-
         Args:
             objval (float): Current value of the objective function.
             n (int): Number of previous steps which must be within the convergence criteria
                      in order to be considered converged. Using a larger number will prevent
                      the optimizer from stopping early.
-
         Returns:
             bool: Whether or not the optimization has converged.
         """
