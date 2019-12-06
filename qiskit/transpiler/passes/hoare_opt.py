@@ -16,12 +16,15 @@
 
 import sys
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Gate
+from qiskit.extensions.unitary import UnitaryGate
+from qiskit.quantum_info.operators.predicates import matrix_equal
 import qiskit.transpiler.passes._gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
 except ModuleNotFoundError:
-    print("Please install Z3 via 'pip install z3-solver'.")
+    print("""Z3 package not found, which is required to run this pass.
+             Please install Z3 via 'pip install z3-solver'.""")
     sys.exit(1)
 
 
@@ -195,7 +198,7 @@ class HoareOptimizer(TransformationPass):
 
         return seqs
 
-    def _is_identity(self, sequence):
+    def _is_identity(sequence):
         """ determine whether the sequence of gates combines to the idendity
             (consider sequences of length 2 for now)
         Args:
@@ -204,8 +207,29 @@ class HoareOptimizer(TransformationPass):
             bool: if gate sequence combines to identity
         """
         assert len(sequence) == 2
-        # DOESN'T WORK FOR GATES WITH DIFFERENT CONTROL QUBITS YET
-        return isinstance(sequence[0].op, type(sequence[1].op.inverse()))
+
+        g1, g2 = sequence[0].op, sequence[1].op.inverse()
+        p1, p2 = g1.params, g2.params
+        d1, d2 = g1.definition, g2.definition
+
+        if isinstance(g1, ControlledGate):
+            g1 = g1.base_gate
+        else:
+            g1 = type(g1)
+        if isinstance(g2, ControlledGate):
+            g2 = g2.base_gate
+        else:
+            g2 = type(g2)
+
+        # equality of gates can be determined via type and parameters, unless
+        # the gates have no specific type, in which case definition is used
+        # or they are unitary gates, in which case matrix equality is used
+        if g1 is Gate and g2 is Gate:
+            return d1 == d2 and d1 and d2
+        elif g1 is UnitaryGate and g2 is UnitaryGate:
+            return matrix_equal(p1[0], p2[0], ignore_phase=True)
+
+        return g1 == g2 and p1 == p2
 
     def _seq_as_one(self, sequence):
         """ use z3 solver to determine if the gates in the sequence are either

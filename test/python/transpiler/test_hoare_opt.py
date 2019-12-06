@@ -19,7 +19,9 @@ from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import XGate
+from qiskit.extensions.standard import XGate, RZGate
+from qiskit.dagcircuit import DAGNode
+from numpy import pi
 
 
 class TestHoareOptimizer(QiskitTestCase):
@@ -223,7 +225,7 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.ccx(6, 3, 2)
         circuit.ccx(2, 3, 5)
         circuit.ccx(6, 5, 4)
-        circuit.append(XGate().q_if(3), [4, 5, 6, 7], [])
+        circuit.append(XGate().control(3), [4, 5, 6, 7], [])
         for i in range(1, -1, -1):
             circuit.ccx(i*2, i*2+1, i*2+3)
         circuit.cx(3, 5)
@@ -272,6 +274,17 @@ class TestHoareOptimizer(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_is_identity(self):
+        print('X')
+        seq = [DAGNode({'type': 'op', 'op': XGate().control()}),
+               DAGNode({'type': 'op', 'op': XGate().control(2)})]
+        self.assertEqual(True, HoareOptimizer._is_identity(seq))
+
+        print('RZ')
+        seq = [DAGNode({'type': 'op', 'op': RZGate(-pi/2).control()}),
+               DAGNode({'type': 'op', 'op': RZGate(pi/2).control(2)})]
+        self.assertEqual(True, HoareOptimizer._is_identity(seq))
 
 
 if __name__ == '__main__':
