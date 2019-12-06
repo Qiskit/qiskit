@@ -20,12 +20,12 @@ Installing NLopt
 
 In order to use any of the NLOpt based global optimizers NLopt must be installed.
 The `NLopt download and installation instructions
-<https://nlopt.readthedocs.io/en/latest/#download-and-installation>`_
+<https://nlopt.readthedocs.io/en/latest/#download-and-installation>`__
 describe how to do this.
 
 If you running Aqua on Windows, then you might want to refer to the specific
 `instructions for NLopt on Windows
-<https://nlopt.readthedocs.io/en/latest/NLopt_on_Windows/>`_.
+<https://nlopt.readthedocs.io/en/latest/NLopt_on_Windows/>`__.
 
 If you are running Aqua on a Unix-like system, first ensure that your environment is set
 to the Python executable for which the Qiskit_Aqua package is installed and running.
