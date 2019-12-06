@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Single-qubit gate transition visualization tool. Give 
+    it a list of gates to apply and it will return an animation
+    of qubit state transitions.
+
+    Only X, Y, Z, S, SDG, H and T gates supported.
+
+    for example::
+
+      from qiskit.visualization import animate_gates
+
+      list_of_gates = ['X', 'Y', 'S', 'T']
+      visualize_transition(list_of_gates)

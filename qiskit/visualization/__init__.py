@@ -80,6 +80,14 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
+Single Qubit State Transition Visualizations
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   visualize_transition
+
 Exceptions
 ==========
 
@@ -105,6 +113,7 @@ from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
 from .pass_manager_visualization import pass_manager_drawer
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
+from qiskit.visualization.transition_visualization import visualize_transition
 
 from .exceptions import VisualizationError
 from .matplotlib import HAS_MATPLOTLIB
