@@ -88,6 +88,7 @@ class TestPulseDefaults(QiskitTestCase):
         ops_def.add('tmp', 0, sched)
         self.assertIn('tmp', ops_def.ops())
         self.assertEqual(ops_def.qubits_with_op('tmp'), [0, 1])
+        self.assertTrue('tmp' in ops_def.qubit_ops(0))
         with self.assertRaises(PulseError):
             ops_def.add('tmp', (), sched)
         with self.assertRaises(PulseError):
