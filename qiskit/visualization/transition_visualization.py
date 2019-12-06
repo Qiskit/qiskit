@@ -20,6 +20,8 @@ try:
     from matplotlib import pyplot as plt
     from matplotlib import animation
     from mpl_toolkits.mplot3d import Axes3D
+    from qiskit.visualization.bloch import Bloch
+    from qiskit.visualization.exceptions import VisualizationError
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -29,9 +31,6 @@ try:
     HAS_IPYTHON = True
 except ImportError:
     HAS_IPYTHON = False
-
-from qiskit.visualization.bloch import Bloch
-from qiskit.visualization.exceptions import VisualizationError
 
 
 def _normalize(v, tolerance=0.00001):
