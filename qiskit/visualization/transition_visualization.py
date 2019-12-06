@@ -115,7 +115,7 @@ class _Quaternion:
 
     def __repr__(self):
         theta, v = self.get_axisangle()
-        return f"((%.6f; %.6f, %.6f, %.6f))" % (theta, v[0], v[1], v[2])
+        return "(({0}; {1}, {2}, {3}))".format(theta, v[0], v[1], v[2])
 
     def get_axisangle(self):
         """Returns angle and vector of quaternion"""
