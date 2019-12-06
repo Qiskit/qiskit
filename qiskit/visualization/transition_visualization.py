@@ -229,7 +229,7 @@ def visualize_transition(sequence_of_gates,
         return _ax
 
     ani = animation.FuncAnimation(fig, animate, range(frames_per_gate * len(sequence_of_gates)),
-                                  init_func=init, blit=False, repeat=False, interval=10)
+                                  init_func=init, blit=False, repeat=False, interval=20)
 
     if saveas:
         ani.save(saveas, fps=30)
