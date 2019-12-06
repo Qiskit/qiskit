@@ -20,6 +20,7 @@ import qiskit
 from qiskit import BasicAer
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
+from qiskit.quantum_info.analysis import hellinger_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -133,6 +134,51 @@ class TestAnalyzation(QiskitTestCase):
         self.assertEqual(list_out, list_expected)
         self.assertEqual(matrix_out, matrix_expected)
         self.assertEqual(long_list_out, long_list_expected)
+
+    def test_hellinger_fidelity_same(self):
+        """Test hellinger fidelity is one for same dist."""
+        qc = qiskit.QuantumCircuit(5, 5)
+        qc.h(2)
+        qc.cx(2, 1)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(1, 0)
+        qc.measure(range(5), range(5))
+
+        sim = BasicAer.get_backend('qasm_simulator')
+
+        res = qiskit.execute(qc, sim).result()
+
+        ans = hellinger_fidelity(res.get_counts(), res.get_counts())
+
+        self.assertEqual(ans, 1.0)
+
+    def test_hellinger_fidelity_no_overlap(self):
+        """Test hellinger fidelity is zero for no overlap."""
+        qc = qiskit.QuantumCircuit(5, 5)
+        qc.h(2)
+        qc.cx(2, 1)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(1, 0)
+        qc.measure(range(5), range(5))
+
+        qc2 = qiskit.QuantumCircuit(5, 5)
+        qc2.h(2)
+        qc2.cx(2, 1)
+        qc2.y(2)
+        qc2.cx(2, 3)
+        qc2.cx(1, 0)
+        qc2.measure(range(5), range(5))
+
+        sim = BasicAer.get_backend('qasm_simulator')
+
+        res1 = qiskit.execute(qc, sim).result()
+        res2 = qiskit.execute(qc2, sim).result()
+
+        ans = hellinger_fidelity(res1.get_counts(), res2.get_counts())
+
+        self.assertEqual(ans, 0.0)
 
 
 if __name__ == '__main__':

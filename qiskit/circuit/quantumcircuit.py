@@ -18,7 +18,6 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-from warnings import warn
 from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
@@ -32,17 +31,6 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
-
-
-def _is_bit(obj):
-    """Determine if obj is a bit"""
-    # If there is a bit type this could be replaced by isinstance.
-    if isinstance(obj, tuple) and len(obj) == 2:
-        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
-            warn('Referring to a bit as a tuple is being deprecated. '
-                 'Instead go of (qr, 0), use qr[0].', DeprecationWarning)
-            return True
-    return False
 
 
 class QuantumCircuit:
@@ -139,8 +127,18 @@ class QuantumCircuit:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32" and isinstance(mp.current_process(), mp.context.ForkProcess):
-                name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32":
+                if isinstance(mp.current_process(),
+                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
+                    name += '-{}'.format(mp.current_process().pid)
+                elif sys.version_info[0] == 3 \
+                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
+                        and mp.current_process().name != 'MainProcess':
+                    # It seems condition of if-statement doen't work in python 3.5 and 3.6
+                    # because processes created by "ProcessPoolExecutor" are not
+                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+                    # "name" of the process is checked instead.
+                    name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
@@ -395,12 +393,6 @@ class QuantumCircuit:
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 ret = in_array[bit_representation]
-            elif _is_bit(bit_representation):
-                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
-                ret = [bit_representation[0][bit_representation[1]]]
-            elif isinstance(bit_representation, list) and \
-                    all(_is_bit(bit) for bit in bit_representation):
-                ret = [bit[0][bit[1]] for bit in bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
@@ -408,7 +400,9 @@ class QuantumCircuit:
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
                 # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                ret = [in_array[index] for index in bit_representation]
+                # circuit.h([qr[0],1])  -> circuit.h([qr[0], qr[1]])
+                ret = [index if isinstance(index, Bit) else in_array[
+                    index] for index in bit_representation]
             else:
                 raise CircuitError('Not able to expand a %s (%s)' % (bit_representation,
                                                                      type(bit_representation)))
@@ -589,6 +583,22 @@ class QuantumCircuit:
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
+
+    def to_gate(self, parameter_map=None):
+        """Create a Gate out of this circuit.
+
+        Args:
+            parameter_map(dict): For parameterized circuits, a mapping from
+               parameters in the circuit to parameters to be used in the
+               gate. If None, existing circuit parameters will also
+               parameterize the gate.
+
+        Returns:
+            Gate: a composite gate encapsulating this circuit
+            (can be decomposed back)
+        """
+        from qiskit.converters.circuit_to_gate import circuit_to_gate
+        return circuit_to_gate(self, parameter_map)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,
@@ -882,6 +892,10 @@ class QuantumCircuit:
         for reg in self.qregs + self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
+
+        # If no registers return 0
+        if reg_offset == 0:
+            return 0
 
         # A list that holds the height of each qubit
         # and classical bit.
