@@ -146,7 +146,7 @@ class AQGD(Optimizer):
         """
         Determines if the objective function has converged by finding the difference between
         the current value and the previous n values.
-        
+
         Args:
             objval (float): Current value of the objective function.
             n (int): Number of previous steps which must be within the convergence criteria
