@@ -9,7 +9,7 @@ features:
 
     for example::
 
-      from qiskit.visualization import animate_gates
+      from qiskit.visualization import visualize_transition
 
       list_of_gates = ['X', 'Y', 'S', 'T']
       visualize_transition(list_of_gates)
