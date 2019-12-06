@@ -615,10 +615,10 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # bundle
             if this_creg['val'] > 1:
-                self.ax.plot([.6, .7], [y - .1, y + .1],
+                self.ax.plot([self.x_offset+1.1, self.x_offset+1.2], [y - .1, y + .1],
                              color=self._style.cc,
                              zorder=PORDER_LINE)
-                self.ax.text(0.5, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset+1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
