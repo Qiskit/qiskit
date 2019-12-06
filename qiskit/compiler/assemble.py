@@ -180,11 +180,19 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
+
+    Raises:
+        QiskitError: if the memory arg is True and the backend does not support
+        memory.
     """
     # grab relevant info from backend if it exists
     backend_config = None
     if backend:
         backend_config = backend.configuration()
+        # check for memory flag applied to backend that does not support memory
+        if memory and not backend_config.memory:
+            raise QiskitError("memory not supported by backend {}"
+                              .format(backend_config.backend_name))
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
