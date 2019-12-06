@@ -139,7 +139,13 @@ class PulseDefaults(BaseModel):
         self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.ops_def = InstructionScheduleMap(cmd_def, pulse_library)
+        self.ops_def = InstructionScheduleMap()
+
+        self.converter = QobjToInstructionConverter(pulse_library)
+        for op in cmd_def:
+            pulse_insts = [self.converter(inst) for inst in op.sequence]
+            schedule = ParameterizedSchedule(*pulse_insts, name=op.name)
+            self.ops_def.add(op.name, op.qubits, schedule)
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
@@ -166,28 +172,15 @@ class PulseDefaults(BaseModel):
 class InstructionScheduleMap():
     """Mapping from QuantumCircuit Instructions to Schedules."""
 
-    def __init__(self, cmd_def: Optional[List[Command]] = None,
-                 pulse_library: Optional[List[PulseLibraryItem]] = None):
+    def __init__(self):
         """
         Initialize an instruction -> schedule mapper. May take transport layer `backend.defaults()`
         args to initialize with backend data.
-
-        Args:
-            pulse_library: Pulse name and sample definitions.
-            cmd_def: Operation name and definition in terms of Commands.
         """
         # The processed and reformatted circuit operation definitions
         self._ops_def = defaultdict(dict)
         # A backwards mapping from qubit to supported operation
         self._qubit_ops = defaultdict(list)
-
-        # Build the above dictionaries from pulse_library and cmd_def
-        self.converter = QobjToInstructionConverter(pulse_library)
-        for op in cmd_def:
-            qubits = _to_tuple(op.qubits)
-            self._qubit_ops[qubits].append(op.name)
-            pulse_insts = [self.converter(inst) for inst in op.sequence]
-            self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     def ops(self) -> List[str]:
         """
@@ -337,6 +330,7 @@ class InstructionScheduleMap():
                                        's' if len(qubits) > 1 else '',
                                        qubits if len(qubits) > 1 else qubits[0]))
         self._ops_def[operation][qubits] = schedule
+        self._qubit_ops[qubits].append(operation)
 
     def remove(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
         """Remove the given operation from the defined operations.
