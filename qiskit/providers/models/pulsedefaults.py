@@ -16,7 +16,7 @@
 import warnings
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union
 from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
@@ -274,9 +274,6 @@ class InstructionScheduleMap():
 
         Returns:
             The Schedule defined for the input.
-
-        Raises:
-            PulseError: If the operation is not defined on the qubits.
         """
         self.assert_has(operation, qubits)
         schedule = self._ops_def[operation].get(_to_tuple(qubits))
@@ -294,9 +291,6 @@ class InstructionScheduleMap():
 
         Returns:
             The names of the parameters required by the operation.
-
-        Raises:
-            PulseError: If the operation is not defined on the qubits.
         """
         self.assert_has(operation, qubits)
         return self._ops_def[operation][_to_tuple(qubits)].parameters
@@ -341,9 +335,6 @@ class InstructionScheduleMap():
 
         Returns:
             None
-
-        Raises:
-            PulseError: If the operation is not present.
         """
         self.assert_has(operation, qubits)
         self._ops_def[operation].pop(_to_tuple(qubits))
@@ -364,9 +355,6 @@ class InstructionScheduleMap():
 
         Returns:
             The Schedule defined for the input.
-
-        Raises:
-            PulseError: If command for qubits is not available
         """
         self.assert_has(operation, qubits)
         schedule = self._ops_def[operation].pop(_to_tuple(qubits))
