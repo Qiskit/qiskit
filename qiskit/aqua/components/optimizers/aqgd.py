@@ -111,7 +111,6 @@ class AQGD(Optimizer):
             params (array): Current value of the parameters to evaluate
                             the objective function at.
             obj (callable): Objective function.
-
         Returns:
             float: The derivative of the objective function w.r.t. j
         """
