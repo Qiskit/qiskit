@@ -16,7 +16,6 @@
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CheckCXDirection(AnalysisPass):
@@ -54,7 +53,7 @@ class CheckCXDirection(AnalysisPass):
             physical_q0 = gate.qargs[0].index
             physical_q1 = gate.qargs[1].index
 
-            if isinstance(gate.op, (CXBase, CnotGate)) and (
+            if isinstance(gate.op, CnotGate) and (
                     physical_q0, physical_q1) not in edges:
                 self.property_set['is_direction_mapped'] = False
                 return
