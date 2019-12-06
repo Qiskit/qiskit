@@ -21,6 +21,7 @@ from qiskit.quantum_info.states import state_to_counts
 
 from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
+from qiskit.qobj.utils import MeasLevel
 from .models import ResultSchema
 
 
@@ -144,11 +145,11 @@ class Result(BaseModel):
 
             memory = self.data(experiment)['memory']
 
-            if meas_level == 2:
+            if meas_level == MeasLevel.CLASSIFIED:
                 return postprocess.format_level_2_memory(memory, header)
-            elif meas_level == 1:
+            elif meas_level == MeasLevel.KERNELED:
                 return postprocess.format_level_1_memory(memory)
-            elif meas_level == 0:
+            elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
                 raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
