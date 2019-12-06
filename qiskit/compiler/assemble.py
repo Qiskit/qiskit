@@ -23,6 +23,7 @@ from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -32,7 +33,8 @@ def assemble(experiments,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
-             schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
+             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
+             meas_return=MeasReturnType.AVERAGE, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
@@ -94,10 +96,10 @@ def assemble(experiments,
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str):
+        meas_return (str or MeasReturn):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
                 * "single" returns information from every shot.
