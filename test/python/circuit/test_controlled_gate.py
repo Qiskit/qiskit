@@ -15,6 +15,7 @@
 
 """Test Qiskit's inverse gate operation."""
 
+import unittest
 from inspect import signature
 import numpy as np
 from numpy import pi
@@ -34,6 +35,7 @@ from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         ToffoliGate, HGate, RZGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate)
 from qiskit.extensions.unitary import UnitaryGate
+import qiskit.extensions.standard as allGates
 
 
 @ddt
@@ -408,6 +410,33 @@ class TestControlledGate(QiskitTestCase):
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
+    def test_all_inverses(self):
+        """
+        Test all gates in standard extensions except those that cannot be
+        controlled or are being deprecated.
+        """
+        gate_classes = [cls for name, cls in allGates.__dict__.items()
+                        if isinstance(cls, type)]
+        for cls in gate_classes:
+            # only verify basic gates right now, as already controlled ones
+            # will generate differing definitions
+            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+                continue
+            try:
+                sig = signature(cls)
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY
+                               or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                   and param.default is param.empty)])
+                args = [1]*numargs
+
+                gate = cls(*args)
+                self.assertEqual(gate.inverse().control(2),
+                                 gate.control(2).inverse())
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
+
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
     """
@@ -434,3 +463,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
         full_mat = np.exp(1j * phase) * full_mat
     full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
     return full_mat
+
+
+if __name__ == '__main__':
+    unittest.main()
