@@ -22,6 +22,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 .. autofunction:: execute
 """
 from qiskit.compiler import transpile, assemble
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def execute(experiments, backend,
@@ -31,7 +32,8 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=2, meas_return='avg',
+            schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
+            meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
@@ -150,10 +152,10 @@ def execute(experiments, backend,
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str):
+        meas_return (str or MeasReturn):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
                 "single" returns information from every shot.
@@ -205,6 +207,7 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
+
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,
