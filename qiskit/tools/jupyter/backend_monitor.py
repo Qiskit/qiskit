@@ -513,7 +513,12 @@ def plot_job_history(jobs, interval='year'):
         Returns:
             dt: A datetime object.
         """
-        return datetime.datetime.strptime(job.creation_date(),
+        creation_date = job.creation_date()
+
+        if isinstance(creation_date, datetime.datetime):
+            return creation_date
+
+        return datetime.datetime.strptime(creation_date,
                                           '%Y-%m-%dT%H:%M:%S.%fZ')
 
     current_time = datetime.datetime.now()
