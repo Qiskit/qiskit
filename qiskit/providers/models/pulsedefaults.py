@@ -108,10 +108,9 @@ class Command(BaseModel):
 
 @bind_schema(PulseDefaultsSchema)
 class PulseDefaults(BaseModel):
-    """Description of default settings for Pulse systems. These are operations or settings that
-    may be good starting points for the Pulse user. The user may modify these defaults through
-    the provided methods to build a reference to custom operations, which may in turn be used
-    for building Schedules or converting circuits to Schedules.
+    """Description of default settings for Pulse systems. These are instructions or settings that
+    may be good starting points for the Pulse user. The user may modify these defaults for custom
+    scheduling.
     """
 
     def __init__(self,
@@ -139,21 +138,21 @@ class PulseDefaults(BaseModel):
         self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.ops_def = InstructionScheduleMap()
+        self.instruction_schedules = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
-        for op in cmd_def:
-            pulse_insts = [self.converter(inst) for inst in op.sequence]
-            schedule = ParameterizedSchedule(*pulse_insts, name=op.name)
-            self.ops_def.add(op.name, op.qubits, schedule)
+        for inst in cmd_def:
+            pulse_insts = [self.converter(inst) for inst in inst.sequence]
+            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
+            self.instruction_schedules.add(inst.name, inst.qubits, schedule)
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
         qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
         mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
-        return ("<{name}({ops}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, ops=str(self.ops_def),
+        return ("<{name}({insts}{qfreq}\n{mfreq})>"
+                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedules),
                           qfreq=qfreq, mfreq=mfreq))
 
     def build_cmd_def(self) -> 'InstructionScheduleMap':
@@ -164,156 +163,163 @@ class PulseDefaults(BaseModel):
             InstructionScheduleMap: `InstructionScheduleMap` instance generated from defaults
         """
         warnings.warn("This method is deprecated. Returning a InstructionScheduleMap instead. "
-                      "This can be accessed simply through the `ops_def` attribute of this "
-                      "PulseDefaults instance.", DeprecationWarning)
-        return self.ops_def
+                      "This can be accessed simply through the `instruction_schedules` attribute "
+                      "of this PulseDefaults instance.", DeprecationWarning)
+        return self.instruction_schedules
 
 
 class InstructionScheduleMap():
-    """Mapping from QuantumCircuit Instructions to Schedules."""
+    """Mapping from QuantumCircuit Instructions to Schedules.
+    """
 
     def __init__(self):
-        """
-        Initialize an instruction -> schedule mapper. May take transport layer `backend.defaults()`
-        args to initialize with backend data.
-        """
-        # The processed and reformatted circuit operation definitions
-        self._ops_def = defaultdict(dict)
-        # A backwards mapping from qubit to supported operation
-        self._qubit_ops = defaultdict(set)
+        """Initialize an mapper instance, with this mapping scheme:
 
-    def ops(self) -> List[str]:
+            Dict[str, Dict[Tuple[int], Schedule]]
+
+        where the first key is the name of a circuit instruction (e.g. 'u1', 'measure'), the
+        second key is a tuple of qubit indices, and the final value is a Schedule implementing
+        the requested instruction.
         """
-        Return all operations which are defined. By default, these are typically the basis gates
-        along with other operations such as measure and reset.
+        # The processed and reformatted circuit instruction definitions
+        self._map = defaultdict(dict)
+        # A backwards mapping from qubit to supported instructions
+        self._qubit_insts = defaultdict(set)
+
+    @property
+    def instructions(self) -> List[str]:
+        """
+        Return all instructions which have definitions. By default, these are typically the basis
+        gates along with other instructions such as measure and reset.
 
         Returns:
-            The names of all the circuit operations which have Schedule definitions in this.
+            The names of all the circuit instructions which have Schedule definitions in this.
         """
-        return list(self._ops_def.keys())
+        return list(self._map.keys())
 
-    def qubits_with_op(self, operation: str) -> List[Union[int, Tuple[int]]]:
+    def qubits_with_inst(self, instruction: str) -> List[Union[int, Tuple[int]]]:
         """
-        Return a list of the qubits for which the given operation is defined. Single qubit
-        operations return a flat list, and multiqubit operations return a list of ordered tuples.
+        Return a list of the qubits for which the given instruction is defined. Single qubit
+        instructions return a flat list, and multiqubit instructions return a list of ordered
+        tuples.
 
         Args:
-            operation: The name of the circuit operation.
+            instruction: The name of the circuit instruction.
 
         Returns:
-            Qubit indices which have the given operation defined. This is a list of tuples if the
-            operation has an arity greater than 1, or a flat list of ints otherwise.
+            Qubit indices which have the given instruction defined. This is a list of tuples if the
+            instruction has an arity greater than 1, or a flat list of ints otherwise.
         Raises:
-            PulseError: If the operation is not found.
+            PulseError: If the instruction is not found.
         """
-        if operation not in self._ops_def:
-            raise PulseError("No operation named: {op}".format(op=operation))
+        if instruction not in self._map:
+            raise PulseError("No instruction named: {inst}".format(inst=instruction))
         return [qubits[0] if len(qubits) == 1 else qubits
-                for qubits in sorted(self._ops_def[operation].keys())]
+                for qubits in sorted(self._map[instruction].keys())]
 
-    def qubit_ops(self, qubits: Union[int, Iterable[int]]) -> Set[str]:
+    def qubit_insts(self, qubits: Union[int, Iterable[int]]) -> Set[str]:
         """
-        Return a list of the operation names that are defined by the backend for the given qubit
+        Return a list of the instruction names that are defined by the backend for the given qubit
         or qubits.
 
         Args:
             qubits: A qubit index, or a list or tuple of indices.
 
         Returns:
-            All the operations which are defined on the qubits. For 1 qubit, all the 1Q
-            operations defined. For multiple qubits, all the operations which apply to that
+            All the instructions which are defined on the qubits. For 1 qubit, all the 1Q
+            instructions defined. For multiple qubits, all the instructions which apply to that
             whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
         Raises:
             PulseError: If the given qubits are not found.
         """
-        if _to_tuple(qubits) not in self._qubit_ops:
-            raise PulseError("No operations on qubits: {qubit}".format(qubit=qubits))
-        return self._qubit_ops[_to_tuple(qubits)]
+        if _to_tuple(qubits) not in self._qubit_insts:
+            raise PulseError("No instructions on qubits: {qubit}".format(qubit=qubits))
+        return self._qubit_insts[_to_tuple(qubits)]
 
-    def has(self, operation: str, qubits: Union[int, Iterable[int]]) -> bool:
+    def has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> bool:
         """
-        Is the operation defined for the given qubits?
+        Is the instruction defined for the given qubits?
 
         Args:
-            operation: The operation for which to look.
-            qubits: The specific qubits for the operation.
+            instruction: The instruction for which to look.
+            qubits: The specific qubits for the instruction.
 
         Returns:
-            True iff the operation is defined.
+            True iff the instruction is defined.
         """
-        return operation in self._ops_def and \
-            _to_tuple(qubits) in self._ops_def[operation]
+        return instruction in self._map and \
+            _to_tuple(qubits) in self._map[instruction]
 
-    def assert_has(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
+    def assert_has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> None:
         """
-        Convenience method to check that the given operation is defined, and error if it is not.
+        Convenience method to check that the given instruction is defined, and error if it is not.
 
         Args:
-            operation: The operation for which to look.
-            qubits: The specific qubits for the operation.
+            instruction: The instruction for which to look.
+            qubits: The specific qubits for the instruction.
 
         Returns:
             None
 
         Raises:
-            PulseError: If the operation is not defined on the qubits.
+            PulseError: If the instruction is not defined on the qubits.
         """
-        if not self.has(operation, _to_tuple(qubits)):
-            if operation in self._ops_def:
-                raise PulseError("Operation '{op}' exists, but is only defined for qubits "
-                                 "{qubits}.".format(op=operation,
-                                                    qubits=self.qubits_with_op(operation)))
-            raise PulseError("Operation '{op}' is not defined for this "
-                             "system.".format(op=operation))
+        if not self.has(instruction, _to_tuple(qubits)):
+            if instruction in self._map:
+                raise PulseError("Operation '{inst}' exists, but is only defined for qubits "
+                                 "{qubits}.".format(inst=instruction,
+                                                    qubits=self.qubits_with_inst(instruction)))
+            raise PulseError("Operation '{inst}' is not defined for this "
+                             "system.".format(inst=instruction))
 
     def get(self,
-            operation: str,
+            instruction: str,
             qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """
-        Return the defined Schedule for the given operation on the given qubits.
+        Return the defined Schedule for the given instruction on the given qubits.
 
         Args:
-            operation: Name of the operation.
-            qubits: The qubits for the operation.
+            instruction: Name of the instruction.
+            qubits: The qubits for the instruction.
             *params: Command parameters for generating the output schedule.
             **kwparams: Keyworded command parameters for generating the schedule.
 
         Returns:
             The Schedule defined for the input.
         """
-        self.assert_has(operation, qubits)
-        schedule = self._ops_def[operation].get(_to_tuple(qubits))
+        self.assert_has(instruction, qubits)
+        schedule = self._map[instruction].get(_to_tuple(qubits))
         if isinstance(schedule, ParameterizedSchedule):
             schedule = schedule.bind_parameters(*params, **kwparams)
         return schedule
 
-    def get_parameters(self, operation: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
+    def get_parameters(self, instruction: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """
-        Return the list of parameters taken by the given operation on the given qubits.
+        Return the list of parameters taken by the given instruction on the given qubits.
 
         Args:
-            operation: Name of the operation.
-            qubits: The qubits for the operation.
+            instruction: Name of the instruction.
+            qubits: The qubits for the instruction.
 
         Returns:
-            The names of the parameters required by the operation.
+            The names of the parameters required by the instruction.
         """
-        self.assert_has(operation, qubits)
-        return self._ops_def[operation][_to_tuple(qubits)].parameters
+        self.assert_has(instruction, qubits)
+        return self._map[instruction][_to_tuple(qubits)].parameters
 
     def add(self,
-            operation: str,
+            instruction: str,
             qubits: Union[int, Iterable[int]],
             schedule: [Schedule, ParameterizedSchedule]) -> None:
         """
-        Add a new known operation.
+        Add a new known instruction.
 
         Args:
-            operation: The name of the operation to add.
-            qubits: The qubits which the operation applies to.
-            schedule: The Schedule that implements the given operation.
+            instruction: The name of the instruction to add.
+            qubits: The qubits which the instruction applies to.
+            schedule: The Schedule that implements the given instruction.
 
         Returns:
             None
@@ -323,53 +329,53 @@ class InstructionScheduleMap():
         """
         qubits = _to_tuple(qubits)
         if qubits == ():
-            raise PulseError("Cannot add definition {} with no target qubits.".format(operation))
+            raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
         if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
-        self._ops_def[operation][qubits] = schedule
-        self._qubit_ops[qubits].add(operation)
+        self._map[instruction][qubits] = schedule
+        self._qubit_insts[qubits].add(instruction)
 
-    def remove(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
-        """Remove the given operation from the defined operations.
+    def remove(self, instruction: str, qubits: Union[int, Iterable[int]]) -> None:
+        """Remove the given instruction from the defined instructions.
 
         Args:
-            operation: The name of the operation to add.
-            qubits: The qubits which the operation applies to.
+            instruction: The name of the instruction to add.
+            qubits: The qubits which the instruction applies to.
 
         Returns:
             None
         """
         qubits = _to_tuple(qubits)
-        self.assert_has(operation, qubits)
-        self._ops_def[operation].pop(qubits)
-        self._qubit_ops[qubits].remove(operation)
-        if not self._ops_def[operation]:
-            self._ops_def.pop(operation)
-        if not self._qubit_ops[qubits]:
-            self._qubit_ops.pop(qubits)
+        self.assert_has(instruction, qubits)
+        self._map[instruction].pop(qubits)
+        self._qubit_insts[qubits].remove(instruction)
+        if not self._map[instruction]:
+            self._map.pop(instruction)
+        if not self._qubit_insts[qubits]:
+            self._qubit_insts.pop(qubits)
 
     def pop(self,
-            operation: str,
+            instruction: str,
             qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """
-        Remove and return the defined Schedule for the given operation on the given qubits.
+        Remove and return the defined Schedule for the given instruction on the given qubits.
 
         Args:
-            operation: Name of the operation.
-            qubits: The qubits for the operation.
+            instruction: Name of the instruction.
+            qubits: The qubits for the instruction.
             *params: Command parameters for generating the output schedule.
             **kwparams: Keyworded command parameters for generating the schedule.
 
         Returns:
             The Schedule defined for the input.
         """
-        self.assert_has(operation, qubits)
-        schedule = self._ops_def[operation][_to_tuple(qubits)]
+        self.assert_has(instruction, qubits)
+        schedule = self._map[instruction][_to_tuple(qubits)]
         if isinstance(schedule, ParameterizedSchedule):
             return schedule.bind_parameters(*params, **kwparams)
-        self.remove(operation, qubits)
+        self.remove(instruction, qubits)
         return schedule
 
     def cmds(self) -> List[str]:
@@ -377,36 +383,37 @@ class InstructionScheduleMap():
         Deprecated.
 
         Returns:
-            The names of all the circuit operations which have Schedule definitions in this.
+            The names of all the circuit instructions which have Schedule definitions in this.
         """
-        warnings.warn("Please use ops() instead of cmds().", DeprecationWarning)
-        return self.ops()
+        warnings.warn("Please use the `instructions` attribute instead of `cmds()`.",
+                      DeprecationWarning)
+        return self.instructions
 
     def cmd_qubits(self, cmd_name: str) -> List[Union[int, Tuple[int]]]:
         """
         Deprecated.
 
         Args:
-            cmd_name: The name of the circuit operation.
+            cmd_name: The name of the circuit instruction.
 
         Returns:
-            Qubit indices which have the given operation defined. This is a list of tuples if
-            the operation has an arity greater than 1, or a flat list of ints otherwise.
+            Qubit indices which have the given instruction defined. This is a list of tuples if
+            the instruction has an arity greater than 1, or a flat list of ints otherwise.
         """
-        warnings.warn("Please use qubits_with_op() instead of cmd_qubits().", DeprecationWarning)
-        return self.qubits_with_op(cmd_name)
+        warnings.warn("Please use qubits_with_inst() instead of cmd_qubits().", DeprecationWarning)
+        return self.qubits_with_inst(cmd_name)
 
     def __str__(self):
-        single_qops = "1Q operations:\n"
-        multi_qops = "Multi qubit operations:\n"
-        for qubits, ops in self._qubit_ops.items():
+        single_q_insts = "1Q instructions:\n"
+        multi_q_insts = "Multi qubit instructions:\n"
+        for qubits, insts in self._qubit_insts.items():
             if len(qubits) == 1:
-                single_qops += "  q{qubit}: {ops}\n".format(qubit=qubits[0], ops=ops)
+                single_q_insts += "  q{qubit}: {insts}\n".format(qubit=qubits[0], insts=insts)
             else:
-                multi_qops += "  {qubits}: {ops}\n".format(qubits=qubits, ops=ops)
-        ops = single_qops + multi_qops
-        return ("<{name}({ops})>"
-                "".format(name=self.__class__.__name__, ops=ops))
+                multi_q_insts += "  {qubits}: {insts}\n".format(qubits=qubits, insts=insts)
+        instructions = single_q_insts + multi_q_insts
+        return ("<{name}({insts})>"
+                "".format(name=self.__class__.__name__, insts=instructions))
 
 
 def _to_tuple(values):
