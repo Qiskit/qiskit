@@ -16,7 +16,7 @@
 import warnings
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
@@ -180,7 +180,7 @@ class InstructionScheduleMap():
         # The processed and reformatted circuit operation definitions
         self._ops_def = defaultdict(dict)
         # A backwards mapping from qubit to supported operation
-        self._qubit_ops = defaultdict(list)
+        self._qubit_ops = defaultdict(set)
 
     def ops(self) -> List[str]:
         """
@@ -203,11 +203,15 @@ class InstructionScheduleMap():
         Returns:
             Qubit indices which have the given operation defined. This is a list of tuples if the
             operation has an arity greater than 1, or a flat list of ints otherwise.
+        Raises:
+            PulseError: If the operation is not found.
         """
+        if operation not in self._ops_def:
+            raise PulseError("No operation named: {op}".format(op=operation))
         return [qubits[0] if len(qubits) == 1 else qubits
                 for qubits in sorted(self._ops_def[operation].keys())]
 
-    def qubit_ops(self, qubits: Union[int, Iterable[int]]) -> List[str]:
+    def qubit_ops(self, qubits: Union[int, Iterable[int]]) -> Set[str]:
         """
         Return a list of the operation names that are defined by the backend for the given qubit
         or qubits.
@@ -219,7 +223,11 @@ class InstructionScheduleMap():
             All the operations which are defined on the qubits. For 1 qubit, all the 1Q
             operations defined. For multiple qubits, all the operations which apply to that
             whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
+        Raises:
+            PulseError: If the given qubits are not found.
         """
+        if _to_tuple(qubits) not in self._qubit_ops:
+            raise PulseError("No operations on qubits: {qubit}".format(qubit=qubits))
         return self._qubit_ops[_to_tuple(qubits)]
 
     def has(self, operation: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -319,7 +327,7 @@ class InstructionScheduleMap():
         if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
         self._ops_def[operation][qubits] = schedule
-        self._qubit_ops[qubits].append(operation)
+        self._qubit_ops[qubits].add(operation)
 
     def remove(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
         """Remove the given operation from the defined operations.
@@ -331,8 +339,14 @@ class InstructionScheduleMap():
         Returns:
             None
         """
+        qubits = _to_tuple(qubits)
         self.assert_has(operation, qubits)
-        self._ops_def[operation].pop(_to_tuple(qubits))
+        self._ops_def[operation].pop(qubits)
+        self._qubit_ops[qubits].remove(operation)
+        if not self._ops_def[operation]:
+            self._ops_def.pop(operation)
+        if not self._qubit_ops[qubits]:
+            self._qubit_ops.pop(qubits)
 
     def pop(self,
             operation: str,
@@ -352,9 +366,10 @@ class InstructionScheduleMap():
             The Schedule defined for the input.
         """
         self.assert_has(operation, qubits)
-        schedule = self._ops_def[operation].pop(_to_tuple(qubits))
+        schedule = self._ops_def[operation][_to_tuple(qubits)]
         if isinstance(schedule, ParameterizedSchedule):
             return schedule.bind_parameters(*params, **kwparams)
+        self.remove(operation, qubits)
         return schedule
 
     def cmds(self) -> List[str]:
