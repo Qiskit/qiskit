@@ -13,9 +13,6 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-
-import warnings
-
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.transpile_config import TranspileConfig
@@ -188,15 +185,21 @@ def transpile(circuits,
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_configs)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
-        # If coupling_map is not None
+        # If coupling_map is not None or n_qubits == 1
+        n_qubits = len(circuit.qubits)
+        max_qubits = None
         if isinstance(parsed_coupling_map, CouplingMap):
-            n_qubits = len(circuit.qubits)
             max_qubits = parsed_coupling_map.size()
-            if n_qubits > max_qubits:
-                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '.format(circuit.name) +
-                                      'is greater than maximum ({}) '.format(max_qubits) +
-                                      'in the coupling_map')
+
+        # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
+        elif backend is not None:
+            max_qubits = backend.configuration().n_qubits
+
+        if max_qubits is not None and (n_qubits > max_qubits):
+            raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                  'in {} '.format(circuit.name) +
+                                  'is greater than maximum ({}) '.format(max_qubits) +
+                                  'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
@@ -282,12 +285,6 @@ def _parse_basis_gates(basis_gates, backend, circuits):
         if getattr(backend, 'configuration', None):
             basis_gates = getattr(backend.configuration(), 'basis_gates', None)
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
-    if isinstance(basis_gates, str):
-        warnings.warn("The parameter basis_gates is now a list of strings. "
-                      "For example, this basis ['u1','u2','u3','cx'] should be used "
-                      "instead of 'u1,u2,u3,cx'. The string format will be "
-                      "removed after 0.9", DeprecationWarning, 2)
-        basis_gates = basis_gates.split(',')
     if basis_gates is None or (isinstance(basis_gates, list) and
                                all(isinstance(i, str) for i in basis_gates)):
         basis_gates = [basis_gates] * len(circuits)
