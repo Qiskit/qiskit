@@ -54,6 +54,21 @@ Quantum Algorithms
 
 Classical Algorithms
 ====================
+Aqua includes some classical algorithms. While these algorithms do not use a quantum device or
+simulator, and rely on purely classical approaches, they may be useful in the near term to
+generate reference values while experimenting with, developing and testing quantum algorithms.
+
+The algorithms are designed to take the same input data as the quantum algorithms so that
+behavior, data validity and output can be evaluated and compared to a quantum result.
+
+Note: The :class:`CPLEX_Ising` algorithm requires `IBM ILOG CPLEX Optimization Studio
+<https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html>`__
+and its Python API to be installed. See the following for more information:
+
+.. toctree::
+   :maxdepth: 1
+
+   qiskit.aqua.algorithms.classical.cplex
 
 .. autosummary::
    :toctree: ../stubs/
