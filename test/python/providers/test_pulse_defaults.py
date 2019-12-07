@@ -72,12 +72,16 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertEqual(self.ops_def.qubits_with_op('u3'), [0, 1])
         self.assertEqual(self.ops_def.qubits_with_op('cx'), [(0, 1)])
         self.assertEqual(self.ops_def.qubits_with_op('measure'), [(0, 1)])
+        with self.assertRaises(PulseError):
+            self.ops_def.qubits_with_op('none')
 
     def test_qubit_ops(self):
         """Test `qubit_ops`."""
-        self.assertEqual(self.ops_def.qubit_ops(0), ['u1', 'u2', 'u3'])
-        self.assertEqual(self.ops_def.qubit_ops(1), ['u1', 'u2', 'u3'])
-        self.assertEqual(self.ops_def.qubit_ops((0, 1)), ['cx', 'ParametrizedGate', 'measure'])
+        self.assertEqual(self.ops_def.qubit_ops(0), {'u1', 'u2', 'u3'})
+        self.assertEqual(self.ops_def.qubit_ops(1), {'u1', 'u2', 'u3'})
+        self.assertEqual(self.ops_def.qubit_ops((0, 1)), {'cx', 'ParametrizedGate', 'measure'})
+        with self.assertRaises(PulseError):
+            self.ops_def.qubit_ops(10)
 
     def test_add(self):
         """Test add, and that errors are raised when expected."""
@@ -111,14 +115,19 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertFalse(self.ops_def.has('tmp', 0))
         with self.assertRaises(PulseError):
             self.ops_def.remove('not_there', (0,))
+        self.assertFalse('tmp' in self.ops_def.qubit_ops(0))
 
     def test_pop(self):
         """Test pop with default."""
         sched = Schedule()
         sched = sched.append(SamplePulse(np.ones(5))(DriveChannel(0)))
-        self.ops_def.add('tmp', 0, sched)
-        self.assertEqual(self.ops_def.pop('tmp', 0), sched)
-        self.assertFalse(self.ops_def.has('tmp', 0))
+        self.ops_def.add('tmp', 100, sched)
+        self.assertEqual(self.ops_def.pop('tmp', 100), sched)
+        self.assertFalse(self.ops_def.has('tmp', 100))
+        with self.assertRaises(PulseError):
+            self.ops_def.qubit_ops(100)
+        with self.assertRaises(PulseError):
+            self.ops_def.qubits_with_op('tmp')
         with self.assertRaises(PulseError):
             self.ops_def.pop('not_there', (0,))
 
@@ -187,10 +196,10 @@ class TestPulseDefaults(QiskitTestCase):
             # buffer no longer supported
             self.assertEqual(chan.buffer, 0)
 
-    # def test_str(self):
-    #     """Test that __repr__ method works."""
-    #     self.assertEqual(
-    #         str(self.ops_def),
-    #         "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u3']\n  q1: ['u3']\nMulti qubit "
-    #         "operations:\n  (0, 1): ['cx', 'measure']\nQubit Frequencies [GHz]\n[4.9, 5.0]"
-    #         "\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")
+    def test_str(self):
+        """Test that __str__ method works."""
+        self.assertEqual("<PulseDefaults(<InstructionScheduleMap(1Q operations:\n  q0: {",
+                         str(self.defs)[:61])
+        self.assertTrue("Multi qubit operations:\n  (0, 1): " in str(self.defs)[70:])
+        self.assertTrue("Qubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5, "
+                        "6.6] )>" in str(self.defs)[100:])
