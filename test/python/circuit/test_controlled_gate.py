@@ -294,7 +294,6 @@ class TestControlledGate(QiskitTestCase):
         grx = rx.RXGate(theta)
         gry = ry.RYGate(theta)
         grz = rz.RZGate(theta)
-        
 
         ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
         ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
@@ -307,13 +306,12 @@ class TestControlledGate(QiskitTestCase):
         cgry = ugry.control(num_ctrl)
         cgrz = ugrz.control(num_ctrl)
 
-        simulator = BasicAer.get_backend('unitary_simulator')
         for gate, cgate in zip([gu1, grx, gry, grz], [cgu1, cgrx, cgry, cgrz]):
             with self.subTest(i=gate.name):
                 if gate.name == 'rz':
-                    I = Operator.from_label('I')
-                    Z = Operator.from_label('Z')
-                    op_mat = (np.cos(0.5 * theta) * I -1j * np.sin(0.5 * theta) * Z).data
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    op_mat = (np.cos(0.5 * theta) * iden -1j * np.sin(0.5 * theta) * zgen).data
                 else:
                     op_mat = Operator(gate).data
                 ref_mat = Operator(cgate).data
@@ -390,7 +388,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(is_unitary_matrix(base_mat))
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @unittest.skip('This is known failure. Enable when resolved.')
+    #@unittest.skip('This is known failure. Enable when resolved.')
     @data(1, 2, 3, 4, 5)
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""
@@ -468,7 +466,6 @@ class TestControlledGate(QiskitTestCase):
         """
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
-        simulator = BasicAer.get_backend('unitary_simulator')
         theta = pi/2
         for cls in gate_classes:
             with self.subTest(i=cls):
@@ -483,13 +480,14 @@ class TestControlledGate(QiskitTestCase):
                 gate = cls(*args)
                 try:
                     cgate = gate.control(num_ctrl_qubits)
-                except:
+                except AttributeError:
+                    # 'object has no attribute "control"'
                     # skipping Id and Barrier
                     continue
                 if gate.name == 'rz':
-                    I = Operator.from_label('I')
-                    Z = Operator.from_label('Z')
-                    base_mat = (np.cos(0.5 * theta) * I -1j * np.sin(0.5 * theta) * Z).data
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    base_mat = (np.cos(0.5 * theta) * iden -1j * np.sin(0.5 * theta) * zgen).data
                 else:
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
