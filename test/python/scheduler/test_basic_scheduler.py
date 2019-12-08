@@ -15,7 +15,8 @@
 """Test cases for the pulse scheduler passes."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
-from qiskit.pulse import Schedule, DriveChannel
+from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
+                          MeasureChannel, MemorySlot)
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -108,10 +109,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u2', [1], 0.5, 0.25)),
             (56, self.cmd_def.get('cx', [0, 1])),
             (78, self.cmd_def.get('measure', [0, 1])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_alap_resource_respecting(self):
         """Test that the ALAP pass properly respects busy resources when backwards scheduling.
@@ -142,10 +140,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.cx(q[0], q[1])
         sched1 = schedule(qc, self.backend, method="as_soon_as_possible")
         sched2 = schedule(qc, self.backend, method="as_late_as_possible")
-        for asap, alap in zip(sched1.instructions, sched2.instructions):
-            self.assertEqual(asap[0], alap[0])
-            self.assertEqual(asap[1].command, alap[1].command)
-            self.assertEqual(asap[1].channels, alap[1].channels)
+        self.assertEqual(sched1.instructions, sched2.instructions)
         insts = sched1.instructions
         self.assertEqual(insts[0][0], 0)
         self.assertEqual(insts[1][0], 10)
@@ -153,8 +148,12 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(insts[3][0], 20)
 
     def test_measure_combined(self):
-        """Test that measures on different qubits are combined, but measures on the same qubit
-        adds another measure to the schedule."""
+        """
+        Test to check for measure on the same qubit which generated another measure schedule.
+
+        The measures on different qubits are combined, but measures on the same qubit
+        adds another measure to the schedule.
+        """
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
@@ -168,11 +167,10 @@ class TestBasicSchedule(QiskitTestCase):
             self.cmd_def.get('u2', [0], 3.14, 1.57),
             (28, self.cmd_def.get('cx', [0, 1])),
             (50, self.cmd_def.get('measure', [0, 1])),
-            (60, self.cmd_def.get('measure', [0, 1])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            (60, self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
+            (60, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
+                                      [MemorySlot(0), MemorySlot(1)])))
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
@@ -195,10 +193,7 @@ class TestBasicSchedule(QiskitTestCase):
             (50, cmd_def.get('cx', [1, 2])),
             (72, cmd_def.get('u2', [2], 0.778, 0.122)),
             (74, cmd_def.get('u3', [0], 3.14, 1.57)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_schedule_multi(self):
         """Test scheduling multiple circuits at once."""
@@ -210,10 +205,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc1.cx(q[0], q[1])
         schedules = schedule([qc0, qc1], self.backend)
         expected_insts = schedule(qc0, self.backend).instructions
-        for actual, expected in zip(schedules[0].instructions, expected_insts):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(schedules[0].instructions, expected_insts)
 
     def test_circuit_name_kept(self):
         """Test that the new schedule gets its name from the circuit."""
@@ -251,10 +243,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u1', [1], 3.14)),
             (28, self.cmd_def.get('u2', [0], 0, 0)),
             (28, self.cmd_def.get('u2', [1], 0, 0)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_barriers_in_middle(self):
         """As a follow on to `test_can_add_gates_into_free_space`, similar issues
@@ -276,7 +265,66 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u1', [1], 3.14)),
             (28, self.cmd_def.get('u2', [0], 0, 0)),
             (28, self.cmd_def.get('u2', [1], 0, 0)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_only_needed_measures(self):
+        """Test that `MeasureChannel`s are only added for measured qubits."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[1], c[1])
+        sched_all_channels = schedule(qc, self.backend, method="as_soon_as_possible").channels
+        deleted_channels = [MeasureChannel(0)]
+        self.assertNotIn(sched_all_channels, deleted_channels)
+
+    def test_user_mapping_for_memslots(self):
+        """
+        Test that the new schedule only has required `MeasureChannel`s and that the
+        `MemorySlot`s are mapped according to the input circuit.
+        """
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[1])
+        sched = schedule(qc, self.backend)
+        expected = Schedule(
+            self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
+            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
+                                 [MemorySlot(1), MemorySlot(0)]))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_user_mapping_for_memslots_3Q(self):
+        """Test measuring two of three qubits."""
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(3)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[1], c[2])
+        qc.measure(q[2], c[0])
+        sched = schedule(qc, backend)
+        expected = Schedule(
+            cmd_def.get('measure', [0, 1, 2]).filter(
+                channels=[MeasureChannel(1), MeasureChannel(2)]),
+            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
+                                 [MemorySlot(1), MemorySlot(2), MemorySlot(0)]))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_multiple_measure_in_3Q(self):
+        """Test multiple measure, user memslot mapping, 3Q."""
+        backend = FakeOpenPulse3Q()
+        cmd_def = backend.defaults().build_cmd_def()
+        q = QuantumRegister(3)
+        c = ClassicalRegister(5)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[2])
+        qc.measure(q[0], c[4])
+        sched = schedule(qc, backend)
+        expected = Schedule(
+            cmd_def.get('measure', [0, 1, 2]).filter(channels=[MeasureChannel(0)]),
+            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
+                                 [MemorySlot(2), MemorySlot(0), MemorySlot(1)]),
+            (10, cmd_def.get('measure', [0, 1, 2]).filter(channels=[MeasureChannel(0)])),
+            (10, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
+                                      [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
+        self.assertEqual(sched.instructions, expected.instructions)
