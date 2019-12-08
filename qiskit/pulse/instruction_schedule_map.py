@@ -25,7 +25,7 @@ This can be used for scheduling circuits with custom definitions, for instance:
 import warnings
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Set, Tuple, Union
+from typing import Dict, Iterable, List, Set, Tuple, Union
 
 from .schedule import Schedule, ParameterizedSchedule
 from .exceptions import PulseError
