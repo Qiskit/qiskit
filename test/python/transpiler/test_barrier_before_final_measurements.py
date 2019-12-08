@@ -217,36 +217,6 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
-    def test_remove_barrier_in_different_qregs(self):
-        """Two measurements in different qregs to the same creg
-
-         q0:--|--[m]------     q0:---|--[m]------
-                  |                  |   |
-         q1:--|---|--[m]--  -> q1:---|---|--[m]--
-                  |   |                  |   |
-         c0:------.---|---     c0:-------.---|---
-            ----------.---        -----------.---
-        """
-        qr0 = QuantumRegister(1, 'q0')
-        qr1 = QuantumRegister(1, 'q1')
-        cr0 = ClassicalRegister(2, 'c0')
-
-        circuit = QuantumCircuit(qr0, qr1, cr0)
-        circuit.barrier(qr0)
-        circuit.barrier(qr1)
-        circuit.measure(qr0, cr0[0])
-        circuit.measure(qr1, cr0[1])
-
-        expected = QuantumCircuit(qr0, qr1, cr0)
-        expected.barrier(qr0, qr1)
-        expected.measure(qr0, cr0[0])
-        expected.measure(qr1, cr0[1])
-
-        pass_ = BarrierBeforeFinalMeasurements()
-        result = pass_.run(circuit_to_dag(circuit))
-
-        self.assertEqual(result, circuit_to_dag(expected))
-
     def test_preserve_barriers_for_measurement_ordering(self):
         """If the circuit has a barrier to enforce a measurement order,
         preserve it in the output.
