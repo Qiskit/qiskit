@@ -56,3 +56,13 @@ class TestCircuitToGate(QiskitTestCase):
 
         with self.assertRaises(QiskitError):  # measure and reset are not valid
             circ2.to_gate()
+
+    def test_generated_gate_inverse(self):
+        """Test inverse of generated gate works."""
+        qr1 = QuantumRegister(2, 'qr1')
+        circ = QuantumCircuit(qr1)
+        circ.cx(qr1[1], qr1[0])
+
+        gate = circ.to_gate()
+        out_gate = gate.inverse()
+        self.assertIsInstance(out_gate, Gate)
