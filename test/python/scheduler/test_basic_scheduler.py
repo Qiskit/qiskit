@@ -109,10 +109,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u2', [1], 0.5, 0.25)),
             (56, self.cmd_def.get('cx', [0, 1])),
             (78, self.cmd_def.get('measure', [0, 1])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_alap_resource_respecting(self):
         """Test that the ALAP pass properly respects busy resources when backwards scheduling.
@@ -143,10 +140,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.cx(q[0], q[1])
         sched1 = schedule(qc, self.backend, method="as_soon_as_possible")
         sched2 = schedule(qc, self.backend, method="as_late_as_possible")
-        for asap, alap in zip(sched1.instructions, sched2.instructions):
-            self.assertEqual(asap[0], alap[0])
-            self.assertEqual(asap[1].command, alap[1].command)
-            self.assertEqual(asap[1].channels, alap[1].channels)
+        self.assertEqual(sched1.instructions, sched2.instructions)
         insts = sched1.instructions
         self.assertEqual(insts[0][0], 0)
         self.assertEqual(insts[1][0], 10)
@@ -176,10 +170,7 @@ class TestBasicSchedule(QiskitTestCase):
             (60, self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
             (60, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
                                       [MemorySlot(0), MemorySlot(1)])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
@@ -202,10 +193,7 @@ class TestBasicSchedule(QiskitTestCase):
             (50, cmd_def.get('cx', [1, 2])),
             (72, cmd_def.get('u2', [2], 0.778, 0.122)),
             (74, cmd_def.get('u3', [0], 3.14, 1.57)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_schedule_multi(self):
         """Test scheduling multiple circuits at once."""
@@ -217,10 +205,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc1.cx(q[0], q[1])
         schedules = schedule([qc0, qc1], self.backend)
         expected_insts = schedule(qc0, self.backend).instructions
-        for actual, expected in zip(schedules[0].instructions, expected_insts):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(schedules[0].instructions, expected_insts)
 
     def test_circuit_name_kept(self):
         """Test that the new schedule gets its name from the circuit."""
@@ -258,10 +243,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u1', [1], 3.14)),
             (28, self.cmd_def.get('u2', [0], 0, 0)),
             (28, self.cmd_def.get('u2', [1], 0, 0)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_barriers_in_middle(self):
         """As a follow on to `test_can_add_gates_into_free_space`, similar issues
@@ -283,10 +265,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.cmd_def.get('u1', [1], 3.14)),
             (28, self.cmd_def.get('u2', [0], 0, 0)),
             (28, self.cmd_def.get('u2', [1], 0, 0)))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_only_needed_measures(self):
         """Test that `MeasureChannel`s are only added for measured qubits."""
@@ -312,10 +291,7 @@ class TestBasicSchedule(QiskitTestCase):
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
                                  [MemorySlot(1), MemorySlot(0)]))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_user_mapping_for_memslots_3Q(self):
         """Test measuring two of three qubits."""
@@ -332,10 +308,7 @@ class TestBasicSchedule(QiskitTestCase):
                 channels=[MeasureChannel(1), MeasureChannel(2)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
                                  [MemorySlot(1), MemorySlot(2), MemorySlot(0)]))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_multiple_measure_in_3Q(self):
         """Test multiple measure, user memslot mapping, 3Q."""
@@ -354,7 +327,4 @@ class TestBasicSchedule(QiskitTestCase):
             (10, cmd_def.get('measure', [0, 1, 2]).filter(channels=[MeasureChannel(0)])),
             (10, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
                                       [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+        self.assertEqual(sched.instructions, expected.instructions)
