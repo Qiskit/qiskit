@@ -111,6 +111,41 @@ class UnitaryGate(Gate):
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
 
+    def control(self, num_ctrl_qubits=1, label=None):
+        """
+        Overrides definition in Gate to raise an exception until controlled gates
+        respect phase for unitaries.
+        """
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        return UnitaryGate(cmat, label=label)
+
+
+    def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
+        """
+        Compute the controlled version of the input matrix with qiskit ordering.
+
+        Args:
+            base_mat (ndarray): unitary to be controlled
+            num_ctrl_qubits (int): number of controls for new unitary
+            phase (float): The global phase of base_mat which is promoted to the
+                global phase of the controlled matrix
+
+        Returns:
+            ndarray: controlled version of base matrix.
+        """
+        num_target = int(np.log2(base_mat.shape[0]))
+        ctrl_dim = 2**num_ctrl_qubits
+        ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
+        full_mat_dim = ctrl_dim * base_mat.shape[0]
+        full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
+        for i in range(ctrl_dim-1):
+            full_mat += np.kron(np.eye(2**num_target),
+                                np.diag(np.roll(ctrl_grnd, i)))
+        if phase != 0:
+            full_mat = np.exp(1j * phase) * full_mat
+        full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+        return full_mat
+
     def qasm(self):
         """ The qasm for a custom unitary gate
         This is achieved by adding a custom gate that corresponds to the definition
