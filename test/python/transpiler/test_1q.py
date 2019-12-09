@@ -73,9 +73,7 @@ class Test1QWorking(QiskitTestCase):
         """All the levels with all the 1Q simulator backend"""
         # Set fake backend config to simulator
         backend = Fake1Q()
-        config = backend.configuration()
-        config.simulator = True
-        backend._configuration = config
+        backend._configuration.simulator = True
         result = transpile(circuit(), backend=backend, optimization_level=level,
                            seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
