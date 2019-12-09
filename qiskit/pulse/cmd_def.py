@@ -60,8 +60,6 @@ class CmdDef:
             schedules: Keys are tuples of (cmd_name, *qubits) and values are
                 `Schedule` or `ParameterizedSchedule`
         """
-        warnings.warn("The `CmdDef` object is now deprecated, please use the "
-                      "`InstructionScheduleMap` object instead.")
         self._cmd_dict = {}
 
         if schedules:
