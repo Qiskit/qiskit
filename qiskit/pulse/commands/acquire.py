@@ -113,52 +113,49 @@ class AcquireInstruction(Instruction):
 
     def __init__(self,
                  command: Acquire,
-                 acquires: Union[AcquireChannel, List[AcquireChannel]],
-                 mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 acquire: AcquireChannel,
+                 mem_slot: MemorySlot,
+                 reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
-        if not isinstance(acquires, list):
-            acquires = [acquires]
-
-        if isinstance(acquires[0], Qubit):
+        if isinstance(acquire, Qubit):
             raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
                              "which are deprecated.")
 
-        if not (mem_slots or reg_slots):
-            raise PulseError('Neither memoryslots or registers were supplied')
+        channels = [acquire, mem_slot, reg_slot]
 
-        if mem_slots:
-            if isinstance(mem_slots, MemorySlot):
-                mem_slots = [mem_slots]
-            elif len(acquires) != len(mem_slots):
-                raise PulseError("#mem_slots must be equals to #acquires")
+        super().__init__(command, *channels, name=name)
 
-        if reg_slots:
-            if isinstance(reg_slots, RegisterSlot):
-                reg_slots = [reg_slots]
-            if len(acquires) != len(reg_slots):
-                raise PulseError("#reg_slots must be equals to #acquires")
-        else:
-            reg_slots = []
+        self._acquire = acquire
+        self._mem_slot = mem_slot
+        self._reg_slot = reg_slot
 
-        super().__init__(command, *acquires, *mem_slots, *reg_slots, name=name)
+    @property
+    def acquire(self):
+        """Acquire channels to be acquired on."""
+        return self._acquire
 
-        self._acquires = acquires
-        self._mem_slots = mem_slots
-        self._reg_slots = reg_slots
+    @property
+    def mem_slot(self):
+        """MemorySlots."""
+        return self._mem_slot
+
+    @property
+    def reg_slot(self):
+        """RegisterSlots."""
+        return self._reg_slot
 
     @property
     def acquires(self):
         """Acquire channels to be acquired on."""
-        return self._acquires
+        return [self._acquire]
 
     @property
     def mem_slots(self):
         """MemorySlots."""
-        return self._mem_slots
+        return [self._mem_slot]
 
     @property
     def reg_slots(self):
         """RegisterSlots."""
-        return self._reg_slots
+        return [self._reg_slot]
