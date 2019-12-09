@@ -22,7 +22,6 @@ This can be used for scheduling circuits with custom definitions, for instance:
 
     sched = schedule(quantum_circuit, backend, inst_map)
 """
-import copy
 import warnings
 
 from collections import defaultdict
@@ -93,9 +92,8 @@ class InstructionScheduleMap():
             instructions defined. For multiple qubits, all the instructions which apply to that
             whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
         """
-        qubit_insts = self._qubit_insts.get(_to_tuple(qubits))
-        if qubit_insts:
-            return list(qubit_insts)
+        if _to_tuple(qubits) in self._qubit_insts:
+            return list(self._qubit_insts[_to_tuple(qubits)])
         return []
 
     def has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -249,7 +247,7 @@ class InstructionScheduleMap():
         """
         warnings.warn("Please use the `instructions` attribute instead of `cmds()`.",
                       DeprecationWarning)
-        return copy.copy(self.instructions)
+        return self.instructions
 
     def cmd_qubits(self, cmd_name: str) -> List[Union[int, Tuple[int]]]:
         """
