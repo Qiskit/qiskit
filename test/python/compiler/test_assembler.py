@@ -52,7 +52,6 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 1)
         self.assertEqual(qobj.experiments[0].instructions[1].name, 'cx')
 
-
     def test_assemble_multiple_circuits(self):
         """Test assembling multiple circuits, all should have the same config.
         """
