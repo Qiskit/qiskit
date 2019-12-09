@@ -42,7 +42,7 @@ class InstructionScheduleMap():
     """
 
     def __init__(self):
-        """Initialize a mapper instance."""
+        """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
         self._map = defaultdict(dict)
         # A backwards mapping from qubit to supported instructions
