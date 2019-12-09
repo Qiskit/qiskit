@@ -154,8 +154,12 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(insts[3][0], 20)
 
     def test_measure_combined(self):
-        """Test that measures on different qubits are combined, but measures on the same qubit
-        adds another measure to the schedule."""
+        """
+        Test to check for measure on the same qubit which generated another measure schedule.
+
+        The measures on different qubits are combined, but measures on the same qubit
+        adds another measure to the schedule.
+        """
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
@@ -169,11 +173,10 @@ class TestBasicSchedule(QiskitTestCase):
             self.inst_map.get('u2', [0], 3.14, 1.57),
             (28, self.inst_map.get('cx', [0, 1])),
             (50, self.inst_map.get('measure', [0, 1])),
-            (60, self.inst_map.get('measure', [0, 1])))
-        for actual, expected in zip(sched.instructions, expected.instructions):
-            self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            (60, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
+            (60, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
+                                      [MemorySlot(0), MemorySlot(1)])))
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
