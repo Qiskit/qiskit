@@ -22,7 +22,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMapping
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -137,7 +137,7 @@ class PulseDefaults(BaseModel):
         self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.instruction_schedules = InstructionScheduleMap()
+        self.instruction_schedules = InstructionScheduleMapping()
 
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
@@ -154,14 +154,14 @@ class PulseDefaults(BaseModel):
                 "".format(name=self.__class__.__name__, insts=str(self.instruction_schedules),
                           qfreq=qfreq, mfreq=mfreq))
 
-    def build_cmd_def(self) -> InstructionScheduleMap:
+    def build_cmd_def(self) -> InstructionScheduleMapping:
         """
-        Return the InstructionScheduleMap built for this PulseDefaults instance.
+        Return the InstructionScheduleMapping built for this PulseDefaults instance.
 
         Returns:
-            InstructionScheduleMap: `InstructionScheduleMap` instance generated from defaults
+            InstructionScheduleMapping: Generated from defaults.
         """
-        warnings.warn("This method is deprecated. Returning a InstructionScheduleMap instead. "
+        warnings.warn("This method is deprecated. Returning a InstructionScheduleMapping instead. "
                       "This can be accessed simply through the `instruction_schedules` attribute "
                       "of this PulseDefaults instance.", DeprecationWarning)
         return self.instruction_schedules

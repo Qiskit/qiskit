@@ -56,7 +56,7 @@ class TestPulseDefaults(QiskitTestCase):
 
     def test_str(self):
         """Test that __str__ method works."""
-        self.assertEqual("<PulseDefaults(<InstructionScheduleMap(1Q instructions:\n  q0:",
+        self.assertEqual("<PulseDefaults(<InstructionScheduleMapping(1Q instructions:\n  q0:",
                          str(self.defs)[:61])
         self.assertTrue("Multi qubit instructions:\n  (0, 1): " in str(self.defs)[70:])
         self.assertTrue("Qubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5, "
