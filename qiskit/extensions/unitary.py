@@ -127,15 +127,13 @@ class UnitaryGate(Gate):
         cmat = self._compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
         return UnitaryGate(cmat, label=label)
 
-    def _compute_control_matrix(self, base_mat, num_ctrl_qubits, phase=0):
+    def _compute_control_matrix(self, base_mat, num_ctrl_qubits):
         """
         Compute the controlled version of the input matrix with qiskit ordering.
 
         Args:
             base_mat (ndarray): unitary to be controlled
             num_ctrl_qubits (int): number of controls for new unitary
-            phase (float): The global phase of base_mat which is promoted to the
-                global phase of the controlled matrix
 
         Returns:
             ndarray: controlled version of base matrix.
@@ -145,12 +143,10 @@ class UnitaryGate(Gate):
         ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
         full_mat_dim = ctrl_dim * base_mat.shape[0]
         full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-        for i in range(ctrl_dim-1):
-            full_mat += numpy.kron(numpy.eye(2**num_target),
-                                   numpy.diag(numpy.roll(ctrl_grnd, i)))
-        if phase != 0:
-            full_mat = numpy.exp(1j * phase) * full_mat
-        full_mat += numpy.kron(base_mat, numpy.diag(numpy.roll(ctrl_grnd, ctrl_dim-1)))
+        ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_dim - 1))
+        full_mat = (numpy.kron(numpy.eye(2**num_target),
+                               numpy.eye(ctrl_dim) - ctrl_proj)
+                    + numpy.kron(base_mat, ctrl_proj))
         return full_mat
 
     def qasm(self):

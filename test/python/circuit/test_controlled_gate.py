@@ -22,7 +22,7 @@ from numpy import pi
 import scipy
 from ddt import ddt, data
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
@@ -388,7 +388,6 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(is_unitary_matrix(base_mat))
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    #@unittest.skip('This is known failure. Enable when resolved.')
     @data(1, 2, 3, 4, 5)
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""
@@ -399,25 +398,6 @@ class TestControlledGate(QiskitTestCase):
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
-
-    @unittest.skip('')
-    @data(1, 2, 3)
-    def test_global_phase(self, num_ctrl_qubits):
-        """test global phase"""
-        mat1 = np.array([[0, 1], [1, 0]], dtype=float)
-        mat2 = np.exp(1j) * mat1
-        gate1 = UnitaryGate(mat1)
-        gate2 = UnitaryGate(mat2)
-        cgate1 = gate1.control(num_ctrl_qubits)
-        cgate2 = gate2.control(num_ctrl_qubits)
-        cop_mat1 = _compute_control_matrix(mat1, num_ctrl_qubits)
-        cop_mat2 = _compute_control_matrix(mat2, num_ctrl_qubits, phase=1)
-        self.assertTrue(is_unitary_matrix(mat1))
-        self.assertTrue(is_unitary_matrix(mat2))
-        self.assertTrue(is_unitary_matrix(cop_mat1))
-        self.assertTrue(is_unitary_matrix(cop_mat2))
-        self.assertTrue(Operator(cgate1).equiv(Operator(cgate2)))
-        self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
 
     def test_base_gate_setting(self):
         """
@@ -480,7 +460,7 @@ class TestControlledGate(QiskitTestCase):
                 gate = cls(*args)
                 try:
                     cgate = gate.control(num_ctrl_qubits)
-                except AttributeError:
+                except (AttributeError, QiskitError):
                     # 'object has no attribute "control"'
                     # skipping Id and Barrier
                     continue
@@ -493,15 +473,13 @@ class TestControlledGate(QiskitTestCase):
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
+def _compute_control_matrix(base_mat, num_ctrl_qubits):
     """
     Compute the controlled version of the input matrix with qiskit ordering.
 
     Args:
         base_mat (ndarray): unitary to be controlled
         num_ctrl_qubits (int): number of controls for new unitary
-        phase (float): The global phase of base_mat which is promoted to the
-            global phase of the controlled matrix
 
     Returns:
         ndarray: controlled version of base matrix.
@@ -511,12 +489,10 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
     ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
     full_mat_dim = ctrl_dim * base_mat.shape[0]
     full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-    for i in range(ctrl_dim-1):
-        full_mat += np.kron(np.eye(2**num_target),
-                            np.diag(np.roll(ctrl_grnd, i)))
-    if phase != 0:
-        full_mat = np.exp(1j * phase) * full_mat
-    full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+    ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
+    full_mat = (np.kron(np.eye(2**num_target),
+                           np.eye(ctrl_dim) - ctrl_proj)
+                + np.kron(base_mat, ctrl_proj))
     return full_mat
 
 
