@@ -14,6 +14,7 @@
 
 """Model and schema for backend configuration."""
 from typing import Dict, List
+import warnings
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -266,6 +267,8 @@ class PulseBackendConfiguration(BackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    _dt_warning_done = False
+
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
@@ -328,6 +331,12 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+
+        # only raise dt/dtm warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).', DeprecationWarning)
+            PulseBackendConfiguration._dt_warning_done = True
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
