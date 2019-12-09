@@ -11,12 +11,12 @@ features:
     There are some differences from the CmdDef:
       - __init__ takes no arguments
       - cmds and cmd_qubits are deprecated and replaced with instructions and
-        qubits_with_inst
+        qubits_with_instruction
 
     Example:
         backend = provider.get_backend(backend_name)
         inst_map = backend.defaults().instruction_schedules
-        qubit = inst_map.qubits_with_inst('u3')[0]
+        qubit = inst_map.qubits_with_instruction('u3')[0]
         x_gate = inst_map.get('u3', qubit, P0=np.pi, P1=0, P2=np.pi)
         pulse_schedule = x_gate(DriveChannel(qubit))
 

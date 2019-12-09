@@ -42,7 +42,7 @@ class InstructionScheduleMap():
     """
 
     def __init__(self):
-        """Initialize a mapper instance."""
+        """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
         self._map = defaultdict(dict)
         # A backwards mapping from qubit to supported instructions
@@ -175,7 +175,7 @@ class InstructionScheduleMap():
             qubits: Union[int, Iterable[int]],
             schedule: [Schedule, ParameterizedSchedule]) -> None:
         """
-        Add a new known instruction.
+        Add a new known instruction for the given qubits and its mapping to a pulse schedule. 
 
         Args:
             instruction: The name of the instruction to add.
