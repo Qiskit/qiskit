@@ -311,7 +311,7 @@ class TestControlledGate(QiskitTestCase):
                 if gate.name == 'rz':
                     iden = Operator.from_label('I')
                     zgen = Operator.from_label('Z')
-                    op_mat = (np.cos(0.5 * theta) * iden -1j * np.sin(0.5 * theta) * zgen).data
+                    op_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
                 else:
                     op_mat = Operator(gate).data
                 ref_mat = Operator(cgate).data
@@ -467,11 +467,12 @@ class TestControlledGate(QiskitTestCase):
                 if gate.name == 'rz':
                     iden = Operator.from_label('I')
                     zgen = Operator.from_label('Z')
-                    base_mat = (np.cos(0.5 * theta) * iden -1j * np.sin(0.5 * theta) * zgen).data
+                    base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
                 else:
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits):
     """
@@ -491,7 +492,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits):
     full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
     full_mat = (np.kron(np.eye(2**num_target),
-                           np.eye(ctrl_dim) - ctrl_proj)
+                        np.eye(ctrl_dim) - ctrl_proj)
                 + np.kron(base_mat, ctrl_proj))
     return full_mat
 
