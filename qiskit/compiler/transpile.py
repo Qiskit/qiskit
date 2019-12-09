@@ -192,7 +192,7 @@ def transpile(circuits,
             max_qubits = parsed_coupling_map.size()
 
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
-        elif backend is not None:
+        elif backend is not None and not backend.configuration().simulator:
             max_qubits = backend.configuration().n_qubits
 
         if max_qubits is not None and (n_qubits > max_qubits):
