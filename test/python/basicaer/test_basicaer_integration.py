@@ -77,7 +77,7 @@ class TestBasicAerIntegration(QiskitTestCase):
         qc.x(0)
         qc.measure(0, 0)
         job = execute(qc, self.backend)
-        self.assertRaises(BasicAerError, lambda: job.result())
+        self.assertRaises(BasicAerError, job.result)
 
 
 if __name__ == '__main__':
