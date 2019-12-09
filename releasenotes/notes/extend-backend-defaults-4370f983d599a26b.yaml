@@ -2,8 +2,8 @@
 features:
   - |
     PulseDefaults (accessed normally as backend.defaults()) has an attribute,
-    `instruction_schedules` which has the methods of CmdDef. CmdDef will be
-    deprecated. The new `instruction_schedules` is an `InstructionScheduleMapping`
+    `circuit_instruction_map` which has the methods of CmdDef. CmdDef will be
+    deprecated. The new `circuit_instruction_map` is an `InstructionScheduleMap`
     object with three new functions beyond what CmdDef had:
       - qubit_instructions(qubits) returns the operations defined for the qubits
       - assert_has(instruction, qubits) raises an error if the op isn't defined
@@ -15,7 +15,7 @@ features:
 
     Example:
         backend = provider.get_backend(backend_name)
-        inst_map = backend.defaults().instruction_schedules
+        inst_map = backend.defaults().circuit_instruction_map
         qubit = inst_map.qubits_with_instruction('u3')[0]
         x_gate = inst_map.get('u3', qubit, P0=np.pi, P1=0, P2=np.pi)
         pulse_schedule = x_gate(DriveChannel(qubit))

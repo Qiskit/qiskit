@@ -28,7 +28,7 @@ class TestPulseDefaults(QiskitTestCase):
 
     def setUp(self):
         self.defs = FakeOpenPulse2Q().defaults()
-        self.inst_map = self.defs.instruction_schedules
+        self.inst_map = self.defs.circuit_instruction_map
 
     def test_buffer(self):
         """Test getting the buffer value."""
@@ -56,7 +56,7 @@ class TestPulseDefaults(QiskitTestCase):
 
     def test_str(self):
         """Test that __str__ method works."""
-        self.assertEqual("<PulseDefaults(<InstructionScheduleMapping(1Q instructions:\n  q0:",
+        self.assertEqual("<PulseDefaults(<InstructionScheduleMap(1Q instructions:\n  q0:",
                          str(self.defs)[:61])
         self.assertTrue("Multi qubit instructions:\n  (0, 1): " in str(self.defs)[70:])
         self.assertTrue("Qubit Frequencies [GHz]\n[4.9, 5.0]\nMeasurement Frequencies [GHz]\n[6.5, "

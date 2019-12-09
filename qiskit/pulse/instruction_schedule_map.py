@@ -17,7 +17,7 @@ A convenient way to track reusable subschedules by name and qubit.
 
 This can be used for scheduling circuits with custom definitions, for instance:
 
-    inst_map = InstructionScheduleMapping()
+    inst_map = InstructionScheduleMap()
     inst_map.add('new_inst', 0, qubit_0_new_inst_schedule)
 
     sched = schedule(quantum_circuit, backend, inst_map)
@@ -31,7 +31,7 @@ from .schedule import Schedule, ParameterizedSchedule
 from .exceptions import PulseError
 
 
-class InstructionScheduleMapping():
+class InstructionScheduleMap():
     """Mapping from QuantumCircuit Instruction names to Schedules. In particular:
 
          Dict[str, Dict[Tuple[int], Schedule]]

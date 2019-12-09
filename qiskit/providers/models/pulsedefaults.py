@@ -22,7 +22,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMapping
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -137,13 +137,13 @@ class PulseDefaults(BaseModel):
         self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.instruction_schedules = InstructionScheduleMapping()
+        self.circuit_instruction_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
-            self.instruction_schedules.add(inst.name, inst.qubits, schedule)
+            self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
@@ -151,17 +151,17 @@ class PulseDefaults(BaseModel):
         qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
         mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
         return ("<{name}({insts}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedules),
+                "".format(name=self.__class__.__name__, insts=str(self.circuit_instruction_map),
                           qfreq=qfreq, mfreq=mfreq))
 
-    def build_cmd_def(self) -> InstructionScheduleMapping:
+    def build_cmd_def(self) -> InstructionScheduleMap:
         """
-        Return the InstructionScheduleMapping built for this PulseDefaults instance.
+        Return the InstructionScheduleMap built for this PulseDefaults instance.
 
         Returns:
-            InstructionScheduleMapping: Generated from defaults.
+            InstructionScheduleMap: Generated from defaults.
         """
-        warnings.warn("This method is deprecated. Returning a InstructionScheduleMapping instead. "
-                      "This can be accessed simply through the `instruction_schedules` attribute "
+        warnings.warn("This method is deprecated. Returning a InstructionScheduleMap instead. "
+                      "This can be accessed simply through the `circuit_instruction_map` attribute "
                       "of this PulseDefaults instance.", DeprecationWarning)
-        return self.instruction_schedules
+        return self.circuit_instruction_map
