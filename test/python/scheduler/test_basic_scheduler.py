@@ -285,6 +285,7 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(actual[1].command, expected[1].command)
             self.assertEqual(actual[1].channels, expected[1].channels)
 
+
 class TestCmdDefBasicSchedule(QiskitTestCase):
     """Scheduling tests for CmdDef which will soon be deprecated."""
 
