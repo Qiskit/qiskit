@@ -169,7 +169,7 @@ class InstructionScheduleMap():
             The names of the parameters required by the instruction.
         """
         self.assert_has(instruction, qubits)
-        return list(self._map[instruction][_to_tuple(qubits)].parameters)
+        return self._map[instruction][_to_tuple(qubits)].parameters
 
     def add(self,
             instruction: str,

@@ -18,8 +18,10 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
+
 from qiskit.pulse import InstructionScheduleMap, SamplePulse, Schedule, PulseError
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -27,6 +29,22 @@ from qiskit.pulse.schedule import ParameterizedSchedule
 
 class TestInstructionScheduleMap(QiskitTestCase):
     """Test the InstructionScheduleMap."""
+
+    def setUp(self):
+        self.defs = FakeOpenPulse2Q().defaults()
+        self.inst_map = self.defs.instruction_schedules
+
+    def test_has(self):
+        """Test `has` and `assert_has` from mock data."""
+        self.assertTrue(self.inst_map.has('u1', [0]))
+        self.assertTrue(self.inst_map.has('cx', (0, 1)))
+        self.assertTrue(self.inst_map.has('u3', 0))
+        self.assertTrue(self.inst_map.has('measure', [0, 1]))
+        self.assertFalse(self.inst_map.has('u1', [0, 1]))
+        with self.assertRaises(PulseError):
+            self.inst_map.assert_has('dne', [0])
+        with self.assertRaises(PulseError):
+            self.inst_map.assert_has('cx', 100)
 
     def test_add(self):
         """Test add, and that errors are raised when expected."""
@@ -95,10 +113,10 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('u1', (1,), sched)
         inst_map.add('cx', [0, 1], sched)
 
-        self.assertEqual(inst_map.qubit_insts(0), {'u1'})
-        self.assertEqual(inst_map.qubit_insts(1), {'u1'})
-        self.assertEqual(inst_map.qubit_insts((0, 1)), {'cx'})
-        self.assertEqual(inst_map.qubit_insts(10), set())
+        self.assertEqual(inst_map.qubit_insts(0), ['u1'])
+        self.assertEqual(inst_map.qubit_insts(1), ['u1'])
+        self.assertEqual(inst_map.qubit_insts((0, 1)), ['cx'])
+        self.assertEqual(inst_map.qubit_insts(10), [])
 
     def test_get(self):
         """Test `get`."""
@@ -131,7 +149,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.pop('tmp', 100), sched)
         self.assertFalse(inst_map.has('tmp', 100))
 
-        self.assertEqual(inst_map.qubit_insts(100), set())
+        self.assertEqual(inst_map.qubit_insts(100), [])
         self.assertEqual(inst_map.qubits_with_inst('tmp'), [])
         with self.assertRaises(PulseError):
             inst_map.pop('not_there', (0,))
