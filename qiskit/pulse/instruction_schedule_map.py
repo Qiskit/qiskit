@@ -127,8 +127,9 @@ class InstructionScheduleMap():
         if not self.has(instruction, _to_tuple(qubits)):
             if instruction in self._map:
                 raise PulseError("Operation '{inst}' exists, but is only defined for qubits "
-                                 "{qubits}.".format(inst=instruction,
-                                                    qubits=self.qubits_with_instruction(instruction)))
+                                 "{qubits}.".format(
+                                     inst=instruction,
+                                     qubits=self.qubits_with_instruction(instruction)))
             raise PulseError("Operation '{inst}' is not defined for this "
                              "system.".format(inst=instruction))
 
@@ -260,7 +261,8 @@ class InstructionScheduleMap():
             Qubit indices which have the given instruction defined. This is a list of tuples if
             the instruction has an arity greater than 1, or a flat list of ints otherwise.
         """
-        warnings.warn("Please use qubits_with_instruction() instead of cmd_qubits().", DeprecationWarning)
+        warnings.warn("Please use qubits_with_instruction() instead of cmd_qubits().",
+                      DeprecationWarning)
         return self.qubits_with_instruction(cmd_name)
 
     def __str__(self):
