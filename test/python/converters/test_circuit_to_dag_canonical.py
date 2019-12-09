@@ -12,11 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the converters."""
+"""Test for the converter dag canonical to ciruit and circuit to dag canonical."""
 
 import unittest
 
-from qiskit.converters import dagcanonical_to_circuit, circuit_to_dagcanonical
+from qiskit.converters.dagcanonical_to_circuit import dagcanonical_to_circuit
+from qiskit.converters.circuit_to_dagcanonical import circuit_to_dagcanonical
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 

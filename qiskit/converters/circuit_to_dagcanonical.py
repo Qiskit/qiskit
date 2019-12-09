@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 '''Helper function for converting a circuit to a dag canonical'''
+
 from qiskit.dagcircuit.dagcanonical import DAGcanonical
 
 
@@ -23,7 +24,7 @@ def circuit_to_dagcanonical(circuit):
         circuit (QuantumCircuit): the input circuits.
 
     Return:
-        DAGcanonical: the DAG representing the input circuit as in the canonical form.
+        DAGcanonical: the DAG representing the input circuit as a dag canonical.
     """
     dagcircuit = DAGcanonical()
     dagcircuit.name = circuit.name

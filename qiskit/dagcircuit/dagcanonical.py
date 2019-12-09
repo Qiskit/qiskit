@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,9 +49,9 @@ import copy
 import heapq
 import networkx as nx
 import numpy as np
-import nxpd
 
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.quantum_info.operators import Operator
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -74,7 +74,9 @@ class DAGcanonical:
 
         # Map of qreg name to QuantumRegister object
         self.qregs = OrderedDict()
-
+        
+        # Map of creg name to ClassicalRegister object
+        self.cregs = OrderedDict()
         # Index of the last node added
         self._max_node_id = 0
 
@@ -100,8 +102,16 @@ class DAGcanonical:
         if qreg.name in self.qregs:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
+        
+    def add_creg(self, creg):
+        """Add all wires in a classical register."""
+        if not isinstance(creg, ClassicalRegister):
+            raise DAGCircuitError("not a ClassicalRegister instance.")
+        if creg.name in self.cregs:
+            raise DAGCircuitError("duplicate register %s" % creg.name)
+        self.cregs[creg.name] = creg
 
-    def add_node(self, operation, qargs, cargs, condition=None):
+    def add_node(self, operation, qargs, cargs):
         '''Add a node to the graph.
 
         Args:
@@ -117,7 +127,7 @@ class DAGcanonical:
             "name": operation.name,
             "qargs": qargs,
             "cargs": cargs,
-            "condition": condition
+            "condition": operation.condition
         }
 
         # Add a new operation node to the graph
@@ -257,15 +267,26 @@ class DAGcanonical:
     def predecessors(self, node_id):
         """Returns set of the descendants of a node as DAGNodes."""
         return self.to_networkx().nodes[node_id]['predecessors']
+    
+    def draw(self, scale=0.7, filename=None, style='color'):
+        """
+        Draws the dag circuit.
 
-    def draw(self):
-        '''
-        :return: Drawing of the DAG canonical
-        '''
-        # To be enhanced
-        canonical = self.to_networkx()
-        canonical.graph['dpi'] = 100 * 0.7
-        nxpd.draw(canonical, filename=None, show=True)
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
+
+        Args:
+            scale (float): scaling factor
+            filename (str): file path to save image to (format inferred from name)
+            style (str): 'plain': B&W graph
+                         'color' (default): color input/output/op nodes
+
+        Returns:
+            Ipython.display.Image: if in Jupyter notebook and not saving to file,
+                otherwise None.
+        """
+        from qiskit.visualization.dag_visualization import dag_drawer
+        return dag_drawer(self, scale=scale, filename=filename, style=style, type='canonical')
 
 def merge_no_duplicates(*iterables):
     '''
@@ -287,16 +308,47 @@ def commute(node1, node2):
     node2: second node operation
 
     Return:
-        True if the gates commute and false if it is not the case
+    True if the gates commute and false if it is not the case
     '''
-
-    # Identity always commute
-    if node1.name == 'id' or node2.name == 'id':
-        return True
 
     # Create set of qubits on which the operation acts
     qarg1 = [node1.qargs[i].index for i in range(0, len(node1.qargs))]
     qarg2 = [node2.qargs[i].index for i in range(0, len(node2.qargs))]
+
+    # Create set of cbits on which the operation acts
+    carg1 = [node1.qargs[i].index for i in range(0, len(node1.cargs))]
+    carg2 = [node2.qargs[i].index for i in range(0, len(node2.cargs))]
+
+    # Commutation for classical conditional gates
+    if node1.condition or node2.condition:
+        if len(set(qarg1).intersection(set(qarg2))) > 0:
+            return False
+        elif len(set(carg1)) > 0 or len(set(carg2)) > 0:
+            return False
+        else:
+            return True
+
+    # Commutation for measurement
+    if node1.name == 'measure' or node2.name == 'measure':
+        if len(set(qarg1).intersection(set(qarg2))) > 0:
+            return False
+        else:
+            return True
+
+    # Commutation for barrier
+    if node1.name == 'barrier' or node2.name == 'barrier':
+        if len(set(qarg1).intersection(set(qarg2))) > 0:
+            return False
+        else:
+            return True
+
+    # Commutation for snapshot
+    if node1.name == 'snapshot' or node2.name == 'snapshot':
+        return False
+
+    # Identity always commute
+    if node1.name == 'id' or node2.name == 'id':
+        return True
 
     # If the sets are disjoint return false
     if set(qarg1).intersection(set(qarg2)) == set():
@@ -318,7 +370,7 @@ def commute(node1, node2):
     if qarg1 == qarg2 and (set([node1.name, node2.name]) in commute_list):
         return True
 
-    # Create matrices to check commutation relation
+    # Create matrices to check commutation relation if no other criteria are matched
     qarg = list(set(node1.qargs + node2.qargs))
     qbit_num = len(qarg)
 

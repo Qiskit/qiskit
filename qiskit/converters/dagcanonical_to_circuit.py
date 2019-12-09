@@ -23,7 +23,7 @@ def dagcanonical_to_circuit(dagcanonical):
         dag (DAGCcanonical): the input dag.
 
     Return:
-        QuantumCircuit: the circuit representing the input dag.
+        QuantumCircuit: the circuit representing the input dag canonical.
     """
 
     name = dagcanonical.name or None

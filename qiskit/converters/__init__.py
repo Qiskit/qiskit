@@ -27,6 +27,8 @@ Circuit Converters (:mod:`qiskit.converters`)
    circuit_to_instruction
    circuit_to_gate
    ast_to_dag
+   dagcanonical_to_circuit
+   circuit_to_dagcanonical
 """
 
 from .circuit_to_dag import circuit_to_dag
@@ -34,6 +36,8 @@ from .dag_to_circuit import dag_to_circuit
 from .circuit_to_instruction import circuit_to_instruction
 from .circuit_to_gate import circuit_to_gate
 from .ast_to_dag import ast_to_dag
+from .circuit_to_dagcanonical import circuit_to_dagcanonical
+from .dagcanonical_to_circuit import dagcanonical_to_circuit
 
 
 def isinstanceint(obj):

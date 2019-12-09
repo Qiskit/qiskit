@@ -1,0 +1,38 @@
+---
+
+prelude: >
+    Added a new DAG to qiskit; the canonical form. In this DAG, the node are
+    operation (gates, measure, barrier, etc...). The edges corresponds to
+    non-commutation between two operations.
+features:
+  - |
+    The ''qiskit.dagcircuit.dagcanonical'' introduces the DAGcanonical class.
+    It allows to create an empty DAG canonical. For exmaple:
+    
+        from qiskit.dagcircuit.dagcanonical import DAGcanonical
+        
+        canonical=DAGcanonical()
+        
+  - |
+    The ''qiskit.converters.circuit_to_dagcanonical'' introduces a converter
+    from a QuantumCircuit() object to a DAGcanonical() object.
+    The ''qiskit.converters.dagconical_to_ciruit'' introduces a converter
+    from a DAGcanonical() object to aQuantumCircuit() object.
+    For exmaple:
+    
+    from qiskit.converters.dagcanonical_to_circuit import dagcanonical_to_circuit
+    from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+    
+    circuit_in = QuantumCircuit(2)
+    circuit_in.h(qr[0])
+    circuit_in.h(qr[1])
+
+    dag_canonical = circuit_to_dagcanonical(circuit_in)
+    circuit_out = dagcanonical_to_circuit(dag_canonical)
+    
+    
+    
+issues:
+  - |
+    In ''qiskit.dagcircuit.dagcanonical'' the function commute could be
+    improved.

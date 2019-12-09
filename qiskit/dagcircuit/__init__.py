@@ -27,6 +27,7 @@ DAG Circuits
 
    DAGCircuit
    DAGNode
+   DAGcanonical
 
 Exceptions
 ==========
@@ -39,3 +40,4 @@ Exceptions
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode
 from .exceptions import DAGCircuitError
+from .dagcanonical import DAGcanonical
