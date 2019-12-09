@@ -41,7 +41,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertIn('u1', inst_map.instructions)
         self.assertEqual(inst_map.qubits_with_inst('u1'), [0, 1])
-        self.assertTrue('u1' in inst_map.qubit_insts(0))
+        self.assertTrue('u1' in inst_map.qubit_instructions(0))
 
         with self.assertRaises(PulseError):
             inst_map.add('u1', (), sched)
@@ -101,8 +101,8 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.qubits_with_inst('cx'), [(0, 1)])
         self.assertEqual(inst_map.qubits_with_inst('none'), [])
 
-    def test_qubit_insts(self):
-        """Test `qubit_insts`."""
+    def test_qubit_instructions(self):
+        """Test `qubit_instructions`."""
         sched = Schedule()
         inst_map = InstructionScheduleMap()
 
@@ -110,10 +110,10 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('u1', (1,), sched)
         inst_map.add('cx', [0, 1], sched)
 
-        self.assertEqual(inst_map.qubit_insts(0), ['u1'])
-        self.assertEqual(inst_map.qubit_insts(1), ['u1'])
-        self.assertEqual(inst_map.qubit_insts((0, 1)), ['cx'])
-        self.assertEqual(inst_map.qubit_insts(10), [])
+        self.assertEqual(inst_map.qubit_instructions(0), ['u1'])
+        self.assertEqual(inst_map.qubit_instructions(1), ['u1'])
+        self.assertEqual(inst_map.qubit_instructions((0, 1)), ['cx'])
+        self.assertEqual(inst_map.qubit_instructions(10), [])
 
     def test_get(self):
         """Test `get`."""
@@ -135,7 +135,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertFalse(inst_map.has('tmp', 0))
         with self.assertRaises(PulseError):
             inst_map.remove('not_there', (0,))
-        self.assertFalse('tmp' in inst_map.qubit_insts(0))
+        self.assertFalse('tmp' in inst_map.qubit_instructions(0))
 
     def test_pop(self):
         """Test pop with default."""
@@ -146,7 +146,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.pop('tmp', 100), sched)
         self.assertFalse(inst_map.has('tmp', 100))
 
-        self.assertEqual(inst_map.qubit_insts(100), [])
+        self.assertEqual(inst_map.qubit_instructions(100), [])
         self.assertEqual(inst_map.qubits_with_inst('tmp'), [])
         with self.assertRaises(PulseError):
             inst_map.pop('not_there', (0,))
