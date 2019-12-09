@@ -32,10 +32,10 @@ features:
     
 - |
   The ''qiskit/visualization/dag_visualization'' has been updated such that
-  it can draw DAG canonical forms. It takes the argument type
+  it can draw DAG canonical forms. It takes the new argument 'type'.
     
     
 issues:
   - |
     In ''qiskit.dagcircuit.dagcanonical'' the function commute could be
-    improved.
+    improved. (Too many returns)

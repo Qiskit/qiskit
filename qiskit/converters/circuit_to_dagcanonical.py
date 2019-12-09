@@ -31,15 +31,14 @@ def circuit_to_dagcanonical(circuit):
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
-    
+
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
     for operation, qargs, cargs in circuit.data:
-            dagcircuit.add_node(operation, qargs, cargs)
-            dagcircuit.add_edge()
+        dagcircuit.add_node(operation, qargs, cargs)
+        dagcircuit.add_edge()
 
     dagcircuit.add_successors()
 
     return dagcircuit
-

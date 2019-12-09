@@ -20,7 +20,7 @@ def dagcanonical_to_circuit(dagcanonical):
     """Build a ``QuantumCircuit`` object from a ``DAGCanonical``.
 
     Args:
-        dag (DAGCcanonical): the input dag.
+        dagcanonical (DAGCcanonical): the input dag.
 
     Return:
         QuantumCircuit: the circuit representing the input dag canonical.
@@ -30,7 +30,7 @@ def dagcanonical_to_circuit(dagcanonical):
     circuit = QuantumCircuit(*dagcanonical.qregs.values(), *dagcanonical.cregs.values(), name=name)
 
     for node in list(dagcanonical.nodes()):
-        node_op=node[1]
+        node_op = node[1]
         # Get arguments for classical control (if any)
         inst = node_op.op.copy()
         inst.condition = node_op.condition

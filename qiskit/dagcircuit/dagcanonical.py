@@ -58,13 +58,13 @@ from .dagnode import DAGNode
 
 
 class DAGcanonical:
-    '''
-    Object to represent a quantum circuit as as
-    '''
+    """
+    Object to represent a quantum circuit in the DAG canonical.
+    """
     def __init__(self):
-        '''
+        """
         Create an empty directed acyclis graph (canonical form)
-        '''
+        """
         # Circuit name
         self.name = None
 
@@ -74,7 +74,7 @@ class DAGcanonical:
 
         # Map of qreg name to QuantumRegister object
         self.qregs = OrderedDict()
-        
+
         # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
         # Index of the last node added
@@ -102,7 +102,7 @@ class DAGcanonical:
         if qreg.name in self.qregs:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
-        
+
     def add_creg(self, creg):
         """Add all wires in a classical register."""
         if not isinstance(creg, ClassicalRegister):
@@ -112,15 +112,13 @@ class DAGcanonical:
         self.cregs[creg.name] = creg
 
     def add_node(self, operation, qargs, cargs):
-        '''Add a node to the graph.
+        """Add a DAGnode to the graph.
 
         Args:
-        op: operation as a quantum gate.
-        qargs: list of qubits on which the operation acts
-
-        Return:
-        Add a node to the DAG.
-        '''
+            operation (Instruction): operation as a quantum gate.
+            qargs (list[Qubit]): list of qubits on which the operation acts
+            cargs (list[Clbit]): list of classical wires to attach to.
+        """
         node_properties = {
             "type": "op",
             "op": operation,
@@ -138,15 +136,17 @@ class DAGcanonical:
         self._id_to_node[self._max_node_id] = new_node
 
     def _gather_pred(self, node_id, direct_pred):
-        '''
-        Function set an attribute predecessors and gather multiple lists
-        of direct predecessors into a single one
+        """Function set an attribute predecessors and gather multiple lists
+        of direct predecessors into a single one.
 
-        :param node_id: label of the considered node in the DAG
-        :param direct_pred: list of direct successors for the given node
-        :return: a multigraph with update of the attribute ['predecessors']
-        the lists of direct successors are put into a single one
-        '''
+        Args:
+            node_id (int): label of the considered node in the DAG
+            direct_pred (list): list of direct successors for the given node
+
+        Returns:
+            DAGcanonical: A multigraph with update of the attribute ['predecessors']
+            the lists of direct successors are put into a single one
+        """
         gather = self._multi_graph
         gather.nodes[node_id]['predecessors'] = []
         for d_pred in direct_pred:
@@ -155,16 +155,19 @@ class DAGcanonical:
             gather.nodes[node_id]['predecessors'].append(pred)
         return gather
 
-
     def _gather_succ(self, node_id, direct_succ):
-        '''
+        """
         Function set an attribute successors and gather multiple lists
         of direct successors into a single one.
-        :param node_id: label of the considered node in the DAG
-        :param direct_pred: list of direct successors for the given node
-        :return: a multigraph with update of the attribute ['predecessors']
-        the lists of direct successors are put into a single one
-        '''
+
+        Args:
+            node_id (int): label of the considered node in the DAG
+            direct_succ (lis): list of direct successors for the given node
+
+        Returns:
+            MultiDiGraph: with update of the attribute ['predecessors']
+            the lists of direct successors are put into a single one
+        """
         gather = self._multi_graph
         for d_succ in direct_succ:
             gather.nodes[node_id]['successors'].append([d_succ])
@@ -173,24 +176,25 @@ class DAGcanonical:
         return gather
 
     def _list_pred(self, node_id):
-        '''
+        """
         Use _gather_pred function and merge_no_duplicates to construct
         the list of predecessors for a given node.
-        :param node_id: label of the considered node
-        :return: multi graph updated
-        '''
+
+        Args:
+            node_id (int): label of the considered node
+        """
         direct_pred = sorted(list(self._multi_graph.predecessors(node_id)))
         self._multi_graph = self._gather_pred(node_id, direct_pred)
         self._multi_graph.nodes[node_id]['predecessors'] = list(
             merge_no_duplicates(*(self._multi_graph.nodes[node_id]['predecessors'])))
 
     def add_edge(self):
-        '''
+        """
         Function to verify the commutation relation and reachability
         for predecessors, the nodes do not commute and
-        if the predecessor is reachable.
-        :return: update the DAGcanonical by introducing edges and predecessors(attribute)
-        '''
+        if the predecessor is reachable. Update the DAGcanonical by
+        introducing edges and predecessors(attribute)
+        """
         node = self._id_to_node[self._max_node_id]
         max_id = self._max_node_id
         for current_node in range(1, max_id):
@@ -206,10 +210,10 @@ class DAGcanonical:
                     self._multi_graph.nodes[pred]['reachable'] = False
 
     def add_successors(self):
-        '''
-        Use _gather_succ and merge_no_duplicates to create the list of successors for each node.
-        :return: Update DAGcanonical with attributes successors
-        '''
+        """
+        Use _gather_succ and merge_no_duplicates to create the list of successors
+        for each node. Update DAGcanonical with attributes successors.
+        """
         for node_id in range(len(self._multi_graph), 0, -1):
 
             direct_successors = sorted(list(self._multi_graph.successors(node_id)))
@@ -220,36 +224,53 @@ class DAGcanonical:
                 merge_no_duplicates(*(self._multi_graph.nodes[node_id]['successors'])))
 
     def node(self, node_id):
-        '''
-        :param node_id: label of considered node
-        :return: the nodes corresponding to the label
-        '''
+        """
+        Args:
+            node_id (int): label of considered node.
+
+        Returns:
+            Node: corresponding to the label.
+        """
         return self._multi_graph.nodes[node_id]
 
     def nodes(self):
-        '''
-        :return: Generator of all nodes (label, DAGnode)
-        '''
+        """Function to return all nodes
+
+        Yields:
+            Iterator: generate all nodes (label, DAGnode).
+        """
         for node in self._multi_graph.nodes(data='operation'):
             yield node
 
     def edges(self):
-        '''
-        :return: Generator of all edges
-        '''
+        """Function to yield all edges.
+
+        Yields:
+            Iterator: generate all edges.
+        """
         for edge in self._multi_graph.edges(data=True):
             yield edge
 
     def in_edge(self, node_id):
-        '''
-        :return: Incoming edge (directed graph)
-        '''
+        """ Get the list of incoming nodes for a given node_id.
+
+        Args:
+            node_id (int): id of the corresponding node
+
+        Returns:
+            list[In_edges()]: List of all incoming edges.
+        """
         return self._multi_graph.in_edges(node_id)
 
     def out_edge(self, node_id):
-        '''
-        :return: Outgoing edge (directed graph)
-        '''
+        """List of all outgoing edges for the given node id.
+
+        Args:
+            node_id (int): id of the corresponding node.
+
+        Returns:
+            list[out_edges()]: List of all incoming edges.
+        """
         return self._multi_graph.out_edges(node_id)
 
     def direct_successors(self, node_id):
@@ -267,10 +288,10 @@ class DAGcanonical:
     def predecessors(self, node_id):
         """Returns set of the descendants of a node as DAGNodes."""
         return self.to_networkx().nodes[node_id]['predecessors']
-    
-    def draw(self, scale=0.7, filename=None, style='color'):
+
+    def draw(self, scale=0.7, filename=None, style='color', type='canonical'):
         """
-        Draws the dag circuit.
+        Draws the dag circuit (canonical).
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -280,36 +301,42 @@ class DAGcanonical:
             filename (str): file path to save image to (format inferred from name)
             style (str): 'plain': B&W graph
                          'color' (default): color input/output/op nodes
+            type(str): 'canonical' Other type of DAG
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
                 otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
-        return dag_drawer(self, scale=scale, filename=filename, style=style, type='canonical')
+        return dag_drawer(self, scale=scale, filename=filename, style=style, type=type)
+
 
 def merge_no_duplicates(*iterables):
-    '''
-    Merge K list without duplicate using python heapq ordered merging
-    :param iterables: A list of k sorted lists
-    :return: List from the merging of the k ones (without duplicates
-    '''
+    """Merge K list without duplicate using python heapq ordered merging
+
+    Args:
+        *iterables: A list of k sorted lists
+
+    Yields:
+        Iteraor: List from the merging of the k ones (without duplicates
+    """
     last = object()
     for val in heapq.merge(*iterables):
         if val != last:
             last = val
             yield val
 
+
 def commute(node1, node2):
-    '''Function to verify commutation relation between two nodes in the DAG
+    """Function to verify commutation relation between two nodes in the DAG
 
     Args:
-    node1: first node operation (attribute ['operation'] in the DAG)
-    node2: second node operation
+        node1 (DAGnode): first node operation (attribute ['operation'] in the DAG)
+        node2 (DAGnode): second node operation
 
     Return:
-    True if the gates commute and false if it is not the case
-    '''
+        if_commute (Boolean): True if the gates commute and false if it is not the case.
+    """
 
     # Create set of qubits on which the operation acts
     qarg1 = [node1.qargs[i].index for i in range(0, len(node1.qargs))]
@@ -321,23 +348,26 @@ def commute(node1, node2):
 
     # Commutation for classical conditional gates
     if node1.condition or node2.condition:
-        if len(set(qarg1).intersection(set(qarg2))) > 0:
+        intersection = set(qarg1).intersection(set(qarg2))
+        if intersection:
             return False
-        elif len(set(carg1)) > 0 or len(set(carg2)) > 0:
+        elif carg1 or carg2:
             return False
         else:
             return True
 
     # Commutation for measurement
     if node1.name == 'measure' or node2.name == 'measure':
-        if len(set(qarg1).intersection(set(qarg2))) > 0:
+        intersection = set(qarg1).intersection(set(qarg2))
+        if intersection:
             return False
         else:
             return True
 
     # Commutation for barrier
     if node1.name == 'barrier' or node2.name == 'barrier':
-        if len(set(qarg1).intersection(set(qarg2))) > 0:
+        intersection = set(qarg1).intersection(set(qarg2))
+        if intersection:
             return False
         else:
             return True
