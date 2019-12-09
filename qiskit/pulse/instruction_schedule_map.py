@@ -175,7 +175,7 @@ class InstructionScheduleMap():
             qubits: Union[int, Iterable[int]],
             schedule: [Schedule, ParameterizedSchedule]) -> None:
         """
-        Add a new known instruction.
+        Add a new known instruction for the given qubits and its mapping to a pulse schedule. 
 
         Args:
             instruction: The name of the instruction to add.
