@@ -253,13 +253,15 @@ class MatplotlibDrawer:
                 subtext_len = len(subtext)
                 if '$\\pi$' in subtext:
                     pi_count = subtext.count('pi')
-                    subtext_len = subtext_len - (5 * pi_count)
+                    subtext_len = subtext_len - (4 * pi_count)
 
                 boxes_wide = round(max(subtext_len, len(text)) / 10, 1) or 1
                 wid = WID * 1.5 * boxes_wide
             else:
                 boxes_wide = round(len(text) / 10) or 1
                 wid = WID * 2.2 * boxes_wide
+            if wid < WID:
+                wid = WID
         else:
             wid = WID
         if fc:
@@ -675,7 +677,7 @@ class MatplotlibDrawer:
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            len_param = len(param) - (4 * pi_count)
                         else:
                             len_param = len(param)
                         if len_param > len(op.name):
@@ -702,7 +704,7 @@ class MatplotlibDrawer:
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            len_param = len(param) - (4 * pi_count)
                         else:
                             len_param = len(param)
                         if len_param > len(op.name):
