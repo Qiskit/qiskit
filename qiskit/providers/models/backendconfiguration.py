@@ -335,7 +335,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         # only raise dt/dtm warning once
         if not PulseBackendConfiguration._dt_warning_done:
             warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
-                          'than nanoseconds(ns).', DeprecationWarning)
+                          'than nanoseconds(ns).')
             PulseBackendConfiguration._dt_warning_done = True
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
