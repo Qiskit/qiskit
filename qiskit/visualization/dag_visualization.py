@@ -123,7 +123,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', type=None):
         elif style == 'color':
             for node in G.nodes(data='operation'):
                 n = G.nodes[node[0]]
-                n['label'] = str(node[0])+ ': ' + node[1].name
+                n['label'] = str(node[0]) + ': ' + node[1].name
                 if node[1].name == 'measure':
                     n['color'] = 'blue'
                     n['style'] = 'filled'
