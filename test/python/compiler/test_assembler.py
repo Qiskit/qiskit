@@ -570,7 +570,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         test_dict = qobj.to_dict()
         self.assertEqual(test_dict['config']['meas_return'], 'avg')
-        self.assertEqual(test_dict['config']['meas_level'], '2')
+        self.assertEqual(test_dict['config']['meas_level'], 2)
 
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
