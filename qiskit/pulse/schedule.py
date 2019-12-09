@@ -364,7 +364,8 @@ class Schedule(ScheduleComponent):
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None,
-             channels: Optional[List[Channel]] = None):
+             channels: Optional[List[Channel]] = None,
+             show_framechange_channels: bool = True):
         """Plot the schedule.
 
         Args:
@@ -383,6 +384,7 @@ class Schedule(ScheduleComponent):
             framechange: Add framechange indicators
             scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
+            show_framechange_channels: Plot channels with only framechanges
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
@@ -402,11 +404,11 @@ class Schedule(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scale=scale,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange,
-                                          channels=channels)
+                                          scale=scale, plot_all=plot_all,
+                                          plot_range=plot_range, interactive=interactive,
+                                          table=table, label=label,
+                                          framechange=framechange, channels=channels,
+                                          show_framechange_channels=show_framechange_channels)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
