@@ -30,22 +30,6 @@ from qiskit.pulse.schedule import ParameterizedSchedule
 class TestInstructionScheduleMap(QiskitTestCase):
     """Test the InstructionScheduleMap."""
 
-    def setUp(self):
-        self.defs = FakeOpenPulse2Q().defaults()
-        self.inst_map = self.defs.instruction_schedules
-
-    def test_has(self):
-        """Test `has` and `assert_has` from mock data."""
-        self.assertTrue(self.inst_map.has('u1', [0]))
-        self.assertTrue(self.inst_map.has('cx', (0, 1)))
-        self.assertTrue(self.inst_map.has('u3', 0))
-        self.assertTrue(self.inst_map.has('measure', [0, 1]))
-        self.assertFalse(self.inst_map.has('u1', [0, 1]))
-        with self.assertRaises(PulseError):
-            self.inst_map.assert_has('dne', [0])
-        with self.assertRaises(PulseError):
-            self.inst_map.assert_has('cx', 100)
-
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
@@ -86,6 +70,19 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertTrue(inst_map.has('u1', [0]))
         self.assertTrue(inst_map.has('cx', (0, 1)))
+        with self.assertRaises(PulseError):
+            inst_map.assert_has('dne', [0])
+        with self.assertRaises(PulseError):
+            inst_map.assert_has('cx', 100)
+
+    def test_has_from_mock(self):
+        """Test `has` and `assert_has` from mock data."""
+        inst_map = FakeOpenPulse2Q().defaults().instruction_schedules
+        self.assertTrue(inst_map.has('u1', [0]))
+        self.assertTrue(inst_map.has('cx', (0, 1)))
+        self.assertTrue(inst_map.has('u3', 0))
+        self.assertTrue(inst_map.has('measure', [0, 1]))
+        self.assertFalse(inst_map.has('u1', [0, 1]))
         with self.assertRaises(PulseError):
             inst_map.assert_has('dne', [0])
         with self.assertRaises(PulseError):
