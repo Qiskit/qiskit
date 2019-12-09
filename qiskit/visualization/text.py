@@ -872,8 +872,12 @@ class TextDrawing():
         elif isinstance(instruction.op, ControlledGate):
             label = TextDrawing.label_for_box(instruction, controlled=True)
             gates = []
-            for _ in instruction.qargs[:-1]:
+            num_ctrl_qubits = instruction.op.num_ctrl_qubits
+            for _ in instruction.qargs[:num_ctrl_qubits]:
                 gates.append(Bullet(conditional=conditional))
+
+            layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
+
             gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
