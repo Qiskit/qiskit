@@ -46,7 +46,7 @@ class InstructionScheduleMap():
         # The processed and reformatted circuit instruction definitions
         self._map = defaultdict(dict)
         # A backwards mapping from qubit to supported instructions
-        self._qubit_insts = defaultdict(set)
+        self._qubit_instructions = defaultdict(set)
 
     @property
     def instructions(self) -> List[str]:
@@ -59,7 +59,7 @@ class InstructionScheduleMap():
         """
         return list(self._map.keys())
 
-    def qubits_with_inst(self, instruction: str) -> List[Union[int, Tuple[int]]]:
+    def qubits_with_instruction(self, instruction: str) -> List[Union[int, Tuple[int]]]:
         """
         Return a list of the qubits for which the given instruction is defined. Single qubit
         instructions return a flat list, and multiqubit instructions return a list of ordered
@@ -79,7 +79,7 @@ class InstructionScheduleMap():
         return [qubits[0] if len(qubits) == 1 else qubits
                 for qubits in sorted(self._map[instruction].keys())]
 
-    def qubit_insts(self, qubits: Union[int, Iterable[int]]) -> List[str]:
+    def qubit_instructions(self, qubits: Union[int, Iterable[int]]) -> List[str]:
         """
         Return a list of the instruction names that are defined by the backend for the given qubit
         or qubits.
@@ -92,8 +92,8 @@ class InstructionScheduleMap():
             instructions defined. For multiple qubits, all the instructions which apply to that
             whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
         """
-        if _to_tuple(qubits) in self._qubit_insts:
-            return list(self._qubit_insts[_to_tuple(qubits)])
+        if _to_tuple(qubits) in self._qubit_instructions:
+            return list(self._qubit_instructions[_to_tuple(qubits)])
         return []
 
     def has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -128,7 +128,7 @@ class InstructionScheduleMap():
             if instruction in self._map:
                 raise PulseError("Operation '{inst}' exists, but is only defined for qubits "
                                  "{qubits}.".format(inst=instruction,
-                                                    qubits=self.qubits_with_inst(instruction)))
+                                                    qubits=self.qubits_with_instruction(instruction)))
             raise PulseError("Operation '{inst}' is not defined for this "
                              "system.".format(inst=instruction))
 
@@ -193,7 +193,7 @@ class InstructionScheduleMap():
         if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
         self._map[instruction][qubits] = schedule
-        self._qubit_insts[qubits].add(instruction)
+        self._qubit_instructions[qubits].add(instruction)
 
     def remove(self, instruction: str, qubits: Union[int, Iterable[int]]) -> None:
         """Remove the given instruction from the defined instructions.
@@ -208,11 +208,11 @@ class InstructionScheduleMap():
         qubits = _to_tuple(qubits)
         self.assert_has(instruction, qubits)
         self._map[instruction].pop(qubits)
-        self._qubit_insts[qubits].remove(instruction)
+        self._qubit_instructions[qubits].remove(instruction)
         if not self._map[instruction]:
             self._map.pop(instruction)
-        if not self._qubit_insts[qubits]:
-            self._qubit_insts.pop(qubits)
+        if not self._qubit_instructions[qubits]:
+            self._qubit_instructions.pop(qubits)
 
     def pop(self,
             instruction: str,
@@ -260,13 +260,13 @@ class InstructionScheduleMap():
             Qubit indices which have the given instruction defined. This is a list of tuples if
             the instruction has an arity greater than 1, or a flat list of ints otherwise.
         """
-        warnings.warn("Please use qubits_with_inst() instead of cmd_qubits().", DeprecationWarning)
-        return self.qubits_with_inst(cmd_name)
+        warnings.warn("Please use qubits_with_instruction() instead of cmd_qubits().", DeprecationWarning)
+        return self.qubits_with_instruction(cmd_name)
 
     def __str__(self):
         single_q_insts = "1Q instructions:\n"
         multi_q_insts = "Multi qubit instructions:\n"
-        for qubits, insts in self._qubit_insts.items():
+        for qubits, insts in self._qubit_instructions.items():
             if len(qubits) == 1:
                 single_q_insts += "  q{qubit}: {insts}\n".format(qubit=qubits[0], insts=insts)
             else:

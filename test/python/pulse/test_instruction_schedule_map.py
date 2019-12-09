@@ -40,7 +40,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('u1', 0, sched)
 
         self.assertIn('u1', inst_map.instructions)
-        self.assertEqual(inst_map.qubits_with_inst('u1'), [0, 1])
+        self.assertEqual(inst_map.qubits_with_instruction('u1'), [0, 1])
         self.assertTrue('u1' in inst_map.qubit_instructions(0))
 
         with self.assertRaises(PulseError):
@@ -88,8 +88,8 @@ class TestInstructionScheduleMap(QiskitTestCase):
         with self.assertRaises(PulseError):
             inst_map.assert_has('cx', 100)
 
-    def test_qubits_with_inst(self):
-        """Test `qubits_with_inst`."""
+    def test_qubits_with_instruction(self):
+        """Test `qubits_with_instruction`."""
         sched = Schedule()
         inst_map = InstructionScheduleMap()
 
@@ -97,9 +97,9 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('u1', (1,), sched)
         inst_map.add('cx', [0, 1], sched)
 
-        self.assertEqual(inst_map.qubits_with_inst('u1'), [0, 1])
-        self.assertEqual(inst_map.qubits_with_inst('cx'), [(0, 1)])
-        self.assertEqual(inst_map.qubits_with_inst('none'), [])
+        self.assertEqual(inst_map.qubits_with_instruction('u1'), [0, 1])
+        self.assertEqual(inst_map.qubits_with_instruction('cx'), [(0, 1)])
+        self.assertEqual(inst_map.qubits_with_instruction('none'), [])
 
     def test_qubit_instructions(self):
         """Test `qubit_instructions`."""
@@ -147,7 +147,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertFalse(inst_map.has('tmp', 100))
 
         self.assertEqual(inst_map.qubit_instructions(100), [])
-        self.assertEqual(inst_map.qubits_with_inst('tmp'), [])
+        self.assertEqual(inst_map.qubits_with_instruction('tmp'), [])
         with self.assertRaises(PulseError):
             inst_map.pop('not_there', (0,))
 
