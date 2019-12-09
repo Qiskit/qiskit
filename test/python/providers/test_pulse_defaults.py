@@ -21,11 +21,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.qobj import PulseQobjInstruction
-from qiskit.pulse import SamplePulse, Schedule, PulseError
-from qiskit.pulse.channels import DriveChannel
-from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse import PulseError
 
 
 class TestPulseDefaults(QiskitTestCase):

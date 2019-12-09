@@ -26,7 +26,7 @@ import copy
 import warnings
 
 from collections import defaultdict
-from typing import Dict, Iterable, List, Set, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 from .schedule import Schedule, ParameterizedSchedule
 from .exceptions import PulseError

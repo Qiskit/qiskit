@@ -15,12 +15,9 @@
 # pylint: disable=missing-docstring
 
 """Test the InstructionScheduleMap."""
-import warnings
-
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import InstructionScheduleMap, SamplePulse, Schedule, PulseError
@@ -168,7 +165,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map = InstructionScheduleMap()
 
         inst_map.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
-                                                               name='inst_seq'))
+                                                          name='inst_seq'))
 
         with self.assertRaises(PulseError):
             inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3, P4=4, P5=5)
