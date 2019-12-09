@@ -22,6 +22,7 @@ This can be used for scheduling circuits with custom definitions, for instance:
 
     sched = schedule(quantum_circuit, backend, inst_map)
 """
+import copy
 import warnings
 
 from collections import defaultdict
@@ -75,7 +76,7 @@ class InstructionScheduleMap():
             PulseError: If the instruction is not found.
         """
         if instruction not in self._map:
-            raise PulseError("No instruction named: {inst}".format(inst=instruction))
+            return []
         return [qubits[0] if len(qubits) == 1 else qubits
                 for qubits in sorted(self._map[instruction].keys())]
 
@@ -91,12 +92,11 @@ class InstructionScheduleMap():
             All the instructions which are defined on the qubits. For 1 qubit, all the 1Q
             instructions defined. For multiple qubits, all the instructions which apply to that
             whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
-        Raises:
-            PulseError: If the given qubits are not found.
         """
-        if _to_tuple(qubits) not in self._qubit_insts:
-            raise PulseError("No instructions on qubits: {qubit}".format(qubit=qubits))
-        return self._qubit_insts[_to_tuple(qubits)]
+        qubit_insts = self._qubit_insts.get(_to_tuple(qubits))
+        if qubit_insts:
+            return copy.copy(qubit_insts)
+        return set()
 
     def has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> bool:
         """
