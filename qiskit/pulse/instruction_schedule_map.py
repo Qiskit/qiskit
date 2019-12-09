@@ -80,7 +80,7 @@ class InstructionScheduleMap():
         return [qubits[0] if len(qubits) == 1 else qubits
                 for qubits in sorted(self._map[instruction].keys())]
 
-    def qubit_insts(self, qubits: Union[int, Iterable[int]]) -> Set[str]:
+    def qubit_insts(self, qubits: Union[int, Iterable[int]]) -> List[str]:
         """
         Return a list of the instruction names that are defined by the backend for the given qubit
         or qubits.
@@ -95,8 +95,8 @@ class InstructionScheduleMap():
         """
         qubit_insts = self._qubit_insts.get(_to_tuple(qubits))
         if qubit_insts:
-            return copy.copy(qubit_insts)
-        return set()
+            return list(qubit_insts)
+        return []
 
     def has(self, instruction: str, qubits: Union[int, Iterable[int]]) -> bool:
         """
@@ -169,7 +169,7 @@ class InstructionScheduleMap():
             The names of the parameters required by the instruction.
         """
         self.assert_has(instruction, qubits)
-        return self._map[instruction][_to_tuple(qubits)].parameters
+        return list(self._map[instruction][_to_tuple(qubits)].parameters)
 
     def add(self,
             instruction: str,
@@ -249,7 +249,7 @@ class InstructionScheduleMap():
         """
         warnings.warn("Please use the `instructions` attribute instead of `cmds()`.",
                       DeprecationWarning)
-        return self.instructions
+        return copy.copy(self.instructions)
 
     def cmd_qubits(self, cmd_name: str) -> List[Union[int, Tuple[int]]]:
         """
