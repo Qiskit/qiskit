@@ -142,6 +142,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', type=None):
                     n['fillcolor'] = 'lightgreen'
         else:
             raise VisualizationError("Unrecognized style for the dag_drawer.")
+    else:
+        raise VisualizationError("Unrecognized of DAG")
 
     dot = to_pydot(G)
 

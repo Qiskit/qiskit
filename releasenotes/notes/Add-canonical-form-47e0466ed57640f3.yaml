@@ -13,7 +13,7 @@ features:
         
         canonical=DAGcanonical()
         
-  - |
+- |
     The ''qiskit.converters.circuit_to_dagcanonical'' introduces a converter
     from a QuantumCircuit() object to a DAGcanonical() object.
     The ''qiskit.converters.dagconical_to_ciruit'' introduces a converter
@@ -30,6 +30,9 @@ features:
     dag_canonical = circuit_to_dagcanonical(circuit_in)
     circuit_out = dagcanonical_to_circuit(dag_canonical)
     
+- |
+  The ''qiskit/visualization/dag_visualization'' has been updated such that
+  it can draw DAG canonical forms. It takes the argument type
     
     
 issues:
