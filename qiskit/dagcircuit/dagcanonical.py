@@ -59,7 +59,7 @@ from .dagnode import DAGNode
 
 class DAGcanonical:
     """
-    Object to represent a quantum circuit in the DAG canonical.
+    Object to represent a quantum circuit as a DAG in the canonical form.
     """
     def __init__(self):
         """
