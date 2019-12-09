@@ -124,7 +124,8 @@ def plot_quantum_channel_hinton(channel, title='', figsize=None,
     """Hinton diagram plot of the Chi-matrix representation of a quantum channel.
 
     Args:
-        channel (QuantumChannel): Arbitrary QuantumChannel object to visualize.
+        channel (QuantumChannel or QuantumCircuit): Arbitrary QuantumChannel
+            object to visualize.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
@@ -459,7 +460,8 @@ def plot_quantum_channel_city(channel, title="", figsize=None, color=None,
     part of the quantum channel.
 
     Args:
-        channel (QuantumChannel): Arbitrary QuantumChannel object to visualize.
+        channel (QuantumChannel or QuantumCircuit): Arbitrary QuantumChannel
+            object to visualize.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list): A list of len=2 giving colors for real and
