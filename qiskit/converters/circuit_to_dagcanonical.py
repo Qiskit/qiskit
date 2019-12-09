@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,12 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-'''
-Convert a QuantumCircuit object to the dag canonical form
-'''
+'''Helper function for converting a circuit to a dag canonical'''
 from qiskit.dagcircuit.dagcanonical import DAGcanonical
 
-def circuit_to_canonical(circuit):
+
+def circuit_to_dagcanonical(circuit):
     """Build a ``DAGCanonical`` object from a ``QuantumCircuit``.
 
     Args:
@@ -31,12 +30,15 @@ def circuit_to_canonical(circuit):
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
+    
+    for register in circuit.cregs:
+        dagcircuit.add_creg(register)
 
     for operation, qargs, cargs in circuit.data:
-        if operation.name not in {"barrier", "snapshot", "measure", "reset", "copy"}:
             dagcircuit.add_node(operation, qargs, cargs)
             dagcircuit.add_edge()
 
     dagcircuit.add_successors()
 
     return dagcircuit
+
