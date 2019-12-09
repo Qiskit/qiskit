@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.pulse import PulseError
 
 
 class TestPulseDefaults(QiskitTestCase):
@@ -43,24 +42,6 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertEqual(self.defs.meas_freq_est[0],
                          6.5 * 1e9)
         warnings.simplefilter("default")
-
-    def test_instructions(self):
-        """Test `instructions`."""
-        instructions = self.inst_map.instructions
-        for inst in ['u1', 'u3', 'cx', 'measure']:
-            self.assertTrue(inst in instructions)
-
-    def test_has(self):
-        """Test `has` and `assert_has`."""
-        self.assertTrue(self.inst_map.has('u1', [0]))
-        self.assertTrue(self.inst_map.has('cx', (0, 1)))
-        self.assertTrue(self.inst_map.has('u3', 0))
-        self.assertTrue(self.inst_map.has('measure', [0, 1]))
-        self.assertFalse(self.inst_map.has('u1', [0, 1]))
-        with self.assertRaises(PulseError):
-            self.inst_map.assert_has('dne', [0])
-        with self.assertRaises(PulseError):
-            self.inst_map.assert_has('cx', 100)
 
     def test_default_building(self):
         """Test building of ops definition is properly built from backend."""
