@@ -11,7 +11,7 @@ features:
     There are some differences from the CmdDef:
       - __init__ takes no arguments
       - cmds and cmd_qubits are deprecated and replaced with instructions and
-        qubits_with_inst
+        qubits_with_instruction
 
     Example:
         backend = provider.get_backend(backend_name)
