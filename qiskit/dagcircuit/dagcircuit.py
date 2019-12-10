@@ -886,17 +886,19 @@ class DAGCircuit:
         ):
             raise DAGCircuitError(
                 'Cannot replace node of width ({} qubits, {} clbits) with '
-                'instruction of mismatched with ({} qubits, {} clbits).'.format(
+                'instruction of mismatched width ({} qubits, {} clbits).'.format(
                     node.op.num_qubits, node.op.num_clbits,
                     op.num_qubits, op.num_clbits))
 
         if inplace:
             node.data_dict['op'] = op
+            node.data_dict['name'] = op.name
             return node
 
         self._max_node_id += 1
         new_data_dict = node.data_dict.copy()
         new_data_dict['op'] = op
+        new_data_dict['name'] = op.name
         new_node = DAGNode(new_data_dict, nid=self._max_node_id)
 
         self._multi_graph.add_node(new_node)

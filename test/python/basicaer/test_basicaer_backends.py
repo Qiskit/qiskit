@@ -42,15 +42,14 @@ class TestBasicAerBackends(providers.ProviderTestCase):
 
         deprecated_names = BasicAer._deprecated_backend_names()
         for oldname, newname in deprecated_names.items():
+            expected = "WARNING:qiskit.providers.providerutils:Backend '%s' is deprecated. " \
+                       "Use '%s'." % (oldname, newname)
             with self.subTest(oldname=oldname, newname=newname):
-                try:
+                with self.assertLogs('qiskit.providers.providerutils', level='WARNING') as context:
                     resolved_newname = _get_first_available_backend(BasicAer, newname)
                     real_backend = BasicAer.get_backend(resolved_newname)
-                except QiskitBackendNotFoundError:
-                    # The real name of the backend might not exist
-                    pass
-                else:
                     self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
+                self.assertEqual(context.output, [expected])
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""

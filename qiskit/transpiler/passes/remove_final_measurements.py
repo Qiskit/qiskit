@@ -12,24 +12,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-This pass removes final barriers and final measurements, as well as the
-ClassicalRegisters they are connected to if the ClassicalRegister
-is unused. Measurements and barriers are considered final if they are
-followed by no other operations (aside from other measurements or barriers.)
-"""
+"""Remove final measurements and barriers at the end of a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
 
 class RemoveFinalMeasurements(TransformationPass):
-    """Removes final measurements and barriers at the end of a circuit."""
+    """Remove final measurements and barriers at the end of a circuit.
+
+    This pass removes final barriers and final measurements, as well as the
+    ClassicalRegisters they are connected to if the ClassicalRegister
+    is unused. Measurements and barriers are considered final if they are
+    followed by no other operations (aside from other measurements or barriers.)
+    """
 
     def run(self, dag):
-        """Return a circuit with final measurements and barriers removed."""
+        """Run the RemoveFinalMeasurements pass on `dag`.
 
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
         final_op_types = ['measure', 'barrier']
         final_ops = []
         cregs_to_remove = dict()

@@ -15,7 +15,6 @@
 """
 SWAP gate.
 """
-
 import numpy
 
 from qiskit.circuit import Gate

@@ -1,0 +1,63 @@
+---
+features:
+  - |
+    A basic ``scheduler`` module has now been added to Qiskit. The `scheduler`
+    schedules an input transpiled ``QuantumCircuit`` into a pulse
+    ``Schedule``. The scheduler accepts as input a ``Schedule`` and either a
+    pulse ``Backend``, or a ``CmdDef`` which relates circuit ``Instruction``
+    objects on specific qubits to pulse Schedules and a ``meas_map`` which
+    determines which measurements must occur together.
+
+    Scheduling example::
+
+      from qiskit import QuantumCircuit, transpile, schedule
+      from qiskit.test.mock import FakeOpenPulse2Q
+
+      backend = FakeOpenPulse2Q()
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.cx(0,1)
+      qc_transpiled = transpile(qc, backend)
+      schedule(qc_transpiled, backend)
+
+    The scheduler currently supports two scheduling policies,
+    `as_late_as_possible` (``alap``) and `as_soon_as_possible` (``asap``), which
+    respectively schedule pulse instructions to occur as late as
+    possible or as soon as possible across qubits in a circuit.
+    The scheduling policy may be selected with the input argument ``method``,
+    for example::
+
+      schedule(qc_transpiled, backend, method='alap')
+
+    It is easy to use a pulse ``Schedule`` within a ``QuantumCircuit`` by
+    mapping it to a custom circuit instruction such as a gate which may be used
+    in a ``QuantumCircuit``. To do this, first, define the custom gate and then
+    add an entry into the ``CmdDef`` for the gate, for each qubit that the gate
+    will be applied to. The gate can then be used in the ``QuantumCircuit``.
+    At scheduling time the gate will be mapped to the underlying pulse schedule.
+    Using this technique allows easy integration with preexisting qiskit modules
+    such as Ignis.
+
+    For example::
+
+        from qiskit import pulse, circuit, schedule
+        from qiskit.pulse import pulse_lib
+
+        custom_cmd_def = pulse.CmdDef()
+
+        # create custom gate
+        custom_gate = circuit.Gate(name='custom_gate', num_qubits=1, params=[])
+
+        # define schedule for custom gate
+        custom_schedule = pulse.Schedule()
+        custom_schedule += pulse_lib.gaussian(20, 1.0, 10)(pulse.DriveChannel)
+
+        # add schedule to custom gate with same name
+        custom_cmd_def.add('custom_gate', (0,), custom_schedule)
+
+        # use custom gate in a circuit
+        custom_qc = circuit.QuantumCircuit(1)
+        custom_qc.append(custom_gate, qargs=[0])
+
+        # schedule the custom gate
+        schedule(custom_qc, cmd_def=custom_cmd_def, meas_map=[[0]])
