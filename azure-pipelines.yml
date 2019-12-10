@@ -434,3 +434,53 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.14'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run --concurrency 2
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_macos'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for macOS Python $(python.version)'
