@@ -289,9 +289,9 @@ class DAGcanonical:
         """Returns set of the descendants of a node as DAGNodes."""
         return self.to_networkx().nodes[node_id]['predecessors']
 
-    def draw(self, scale=0.7, filename=None, style='color', type='canonical'):
+    def draw(self, scale=0.7, filename=None, style='color', category='canonical'):
         """
-        Draws the dag circuit (canonical).
+        Draws the DAG canonical circuit.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -301,14 +301,14 @@ class DAGcanonical:
             filename (str): file path to save image to (format inferred from name)
             style (str): 'plain': B&W graph
                          'color' (default): color input/output/op nodes
-            type(str): 'canonical' Other type of DAG
+            category(str): 'canonical' Other type of DAG
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
                 otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
-        return dag_drawer(self, scale=scale, filename=filename, style=style, type=type)
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style, category=category)
 
 
 def merge_no_duplicates(*iterables):
