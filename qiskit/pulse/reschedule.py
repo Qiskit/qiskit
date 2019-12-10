@@ -26,13 +26,13 @@ from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .cmd_def import CmdDef
 from .commands import Acquire, AcquireInstruction, Delay
 from .exceptions import PulseError
-from .instruction_schedule_map import InstructionScheduleMap
+from .circuit_instruction_map import CircuitInstructionMap
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],
-                   inst_map: Optional[InstructionScheduleMap] = None,
+                   inst_map: Optional[CircuitInstructionMap] = None,
                    cmd_def: Optional[CmdDef] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,

@@ -14,7 +14,7 @@
 
 # pylint: disable=missing-docstring
 
-"""Test the InstructionScheduleMap."""
+"""Test the CircuitInstructionMap."""
 import numpy as np
 
 from qiskit.test import QiskitTestCase
@@ -22,19 +22,19 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 
-from qiskit.pulse import InstructionScheduleMap, SamplePulse, Schedule, PulseError
+from qiskit.pulse import CircuitInstructionMap, SamplePulse, Schedule, PulseError
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
-class TestInstructionScheduleMap(QiskitTestCase):
-    """Test the InstructionScheduleMap."""
+class TestCircuitInstructionMap(QiskitTestCase):
+    """Test the CircuitInstructionMap."""
 
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(DriveChannel(0)))
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', 1, sched)
         inst_map.add('u1', 0, sched)
@@ -51,7 +51,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_instructions(self):
         """Test `instructions`."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', 1, sched)
         inst_map.add('u3', 0, sched)
@@ -63,7 +63,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_has(self):
         """Test `has` and `assert_has`."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', (0,), sched)
         inst_map.add('cx', [0, 1], sched)
@@ -91,7 +91,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_qubits_with_instruction(self):
         """Test `qubits_with_instruction`."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', (0,), sched)
         inst_map.add('u1', (1,), sched)
@@ -104,7 +104,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_qubit_instructions(self):
         """Test `qubit_instructions`."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', (0,), sched)
         inst_map.add('u1', (1,), sched)
@@ -119,7 +119,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test `get`."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(DriveChannel(0)))
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('u1', 0, sched)
 
@@ -128,7 +128,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_remove(self):
         """Test removing a defined operation and removing an undefined operation."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('tmp', 0, sched)
         inst_map.remove('tmp', 0)
@@ -140,7 +140,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_pop(self):
         """Test pop with default."""
         sched = Schedule()
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('tmp', 100, sched)
         self.assertEqual(inst_map.pop('tmp', 100), sched)
@@ -157,7 +157,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P2*cos(np.pi*P1)')
         converted_instruction = converter(qobj)
 
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('pv_test', 0, converted_instruction)
         self.assertEqual(inst_map.get_parameters('pv_test', 0), ('P1', 'P2'))
@@ -177,7 +177,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
                  PulseQobjInstruction(name='fc', ch='d0', t0=30, phase='P3')]
         converted_instruction = [converter(qobj) for qobj in qobjs]
 
-        inst_map = InstructionScheduleMap()
+        inst_map = CircuitInstructionMap()
 
         inst_map.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
                                                           name='inst_seq'))

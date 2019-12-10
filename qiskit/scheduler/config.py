@@ -16,7 +16,7 @@
 
 from typing import List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.circuit_instruction_map import CircuitInstructionMap
 
 from qiskit.scheduler.utils import format_meas_map
 
@@ -25,7 +25,7 @@ class ScheduleConfig():
     """Configuration for pulse scheduling."""
 
     def __init__(self,
-                 inst_map: InstructionScheduleMap,
+                 inst_map: CircuitInstructionMap,
                  meas_map: List[List[int]]):
         """
         Container for information needed to schedule a QuantumCircuit into a pulse Schedule.
