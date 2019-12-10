@@ -15,7 +15,7 @@
 """Expand a gate in a circuit using its decomposition rules."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 class Decompose(TransformationPass):
