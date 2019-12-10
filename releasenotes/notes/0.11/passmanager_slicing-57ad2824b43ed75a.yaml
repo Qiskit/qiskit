@@ -8,6 +8,7 @@ features:
     run just the second pass on our circuit:
 
     .. code-block:: python
+
       pm[0:4].draw()
       circuit2 = pm[1].run(circuit)
 
@@ -15,5 +16,6 @@ features:
     directly adding a pass/list of passes to a PassManager.
 
     .. code-block:: python
+
       pm = pm1[0] + pm2[1:3]
       pm += [setLayout, unroller]
