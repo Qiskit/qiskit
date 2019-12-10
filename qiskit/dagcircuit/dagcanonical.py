@@ -201,7 +201,7 @@ class DAGcanonical:
             self._multi_graph.nodes[current_node]['reachable'] = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node in range(max_id - 1, 0, -1):
-            if self._multi_graph.nodes[prev_node]['reachable'] and not commute(
+            if self._multi_graph.nodes[prev_node]['reachable'] and not _commute(
                     self._multi_graph.nodes[prev_node]['operation'], node):
                 self._multi_graph.add_edge(prev_node, max_id)
                 self._list_pred(max_id)
@@ -327,7 +327,7 @@ def merge_no_duplicates(*iterables):
             yield val
 
 
-def commute(node1, node2):
+def _commute(node1, node2):
     """Function to verify commutation relation between two nodes in the DAG
 
     Args:
@@ -349,56 +349,39 @@ def commute(node1, node2):
     # Commutation for classical conditional gates
     if node1.condition or node2.condition:
         intersection = set(qarg1).intersection(set(qarg2))
-        if intersection:
-            return False
-        elif carg1 or carg2:
-            return False
+        if intersection or carg1 or carg2:
+            commute_condition = False
         else:
-            return True
+            commute_condition = True
+        return commute_condition
 
     # Commutation for measurement
     if node1.name == 'measure' or node2.name == 'measure':
         intersection = set(qarg1).intersection(set(qarg2))
         if intersection:
-            return False
+            commute_measurement = False
         else:
-            return True
+            commute_measurement = True
+        return commute_measurement
 
     # Commutation for barrier
     if node1.name == 'barrier' or node2.name == 'barrier':
         intersection = set(qarg1).intersection(set(qarg2))
         if intersection:
-            return False
+            commute_barrier = False
         else:
-            return True
+            commute_barrier = True
+        return commute_barrier
 
     # Commutation for snapshot
     if node1.name == 'snapshot' or node2.name == 'snapshot':
         return False
-
-    # Identity always commute
-    if node1.name == 'id' or node2.name == 'id':
-        return True
-
-    # If the sets are disjoint return false
-    if set(qarg1).intersection(set(qarg2)) == set():
-        return True
-
-    # if the operation are the same return true
-    if qarg1 == qarg2 and node1.op == node2.op:
-        return True
 
     # List of non commuting gates (TO DO: add more elements)
     non_commute_list = [set(['x', 'y']), set(['x', 'z'])]
 
     if qarg1 == qarg2 and (set([node1.name, node2.name]) in non_commute_list):
         return False
-
-    # List of commuting gates (TO DO: add more elements)
-    commute_list = [set([])]
-
-    if qarg1 == qarg2 and (set([node1.name, node2.name]) in commute_list):
-        return True
 
     # Create matrices to check commutation relation if no other criteria are matched
     qarg = list(set(node1.qargs + node2.qargs))
