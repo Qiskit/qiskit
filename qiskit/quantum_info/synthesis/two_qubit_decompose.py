@@ -59,7 +59,7 @@ def euler_angles_1q(unitary_matrix):
     """
     if unitary_matrix.shape != (2, 2):
         raise QiskitError("euler_angles_1q: expected 2x2 matrix")
-    phase = la.det(unitary_matrix) ** (-1.0 / 2.0)
+    phase = la.det(unitary_matrix)**(-1.0/2.0)
     U = phase * unitary_matrix  # U in SU(2)
     # OpenQASM SU(2) parameterization:
     # U[0, 0] = exp(-i(phi+lambda)/2) * cos(theta/2)
@@ -75,16 +75,16 @@ def euler_angles_1q(unitary_matrix):
     lamb = (phiplambda - phimlambda) / 2.0
 
     # Check the solution
-    Rzphi = np.array([[np.exp(-1j * phi / 2.0), 0],
-                      [0, np.exp(1j * phi / 2.0)]], dtype=complex)
-    Rytheta = np.array([[np.cos(theta / 2.0), -np.sin(theta / 2.0)],
-                        [np.sin(theta / 2.0), np.cos(theta / 2.0)]], dtype=complex)
-    Rzlambda = np.array([[np.exp(-1j * lamb / 2.0), 0],
-                         [0, np.exp(1j * lamb / 2.0)]], dtype=complex)
+    Rzphi = np.array([[np.exp(-1j*phi/2.0), 0],
+                      [0, np.exp(1j*phi/2.0)]], dtype=complex)
+    Rytheta = np.array([[np.cos(theta/2.0), -np.sin(theta/2.0)],
+                        [np.sin(theta/2.0), np.cos(theta/2.0)]], dtype=complex)
+    Rzlambda = np.array([[np.exp(-1j*lamb/2.0), 0],
+                         [0, np.exp(1j*lamb/2.0)]], dtype=complex)
     V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
     if la.norm(V - U) > _CUTOFF_PRECISION:
         raise QiskitError("compiling.euler_angles_1q incorrect result norm(V-U)={}".
-                          format(la.norm(V - U)))
+                          format(la.norm(V-U)))
     return theta, phi, lamb
 
 
@@ -94,10 +94,10 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     """
     # extract the right component
     R = special_unitary_matrix[:2, :2].copy()
-    detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
+    detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
     if abs(detR) < 0.1:
         R = special_unitary_matrix[2:, :2].copy()
-        detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
+        detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
     if abs(detR) < 0.1:
         raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detR < 0.1")
     R /= np.sqrt(detR)
@@ -106,7 +106,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     temp = np.kron(np.eye(2), R.T.conj())
     temp = special_unitary_matrix.dot(temp)
     L = temp[::2, ::2]
-    detL = L[0, 0] * L[1, 1] - L[0, 1] * L[1, 0]
+    detL = L[0, 0]*L[1, 1] - L[0, 1]*L[1, 0]
     if abs(detL) < 0.9:
         raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
     L /= np.sqrt(detL)
@@ -120,10 +120,10 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     return L, R
 
 
-_B = (1.0 / math.sqrt(2)) * np.array([[1, 1j, 0, 0],
-                                      [0, 0, 1j, 1],
-                                      [0, 0, 1j, -1],
-                                      [1, -1j, 0, 0]], dtype=complex)
+_B = (1.0/math.sqrt(2)) * np.array([[1, 1j, 0, 0],
+                                    [0, 0, 1j, 1],
+                                    [0, 0, 1j, -1],
+                                    [1, -1j, 0, 0]], dtype=complex)
 _Bd = _B.T.conj()
 _ipx = np.array([[0, 1j],
                  [1j, 0]], dtype=complex)
@@ -138,7 +138,6 @@ class TwoQubitWeylDecomposition:
     where U ∈ U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber"
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
-
     def __init__(self, unitary_matrix):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
@@ -149,12 +148,12 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
-        pi2 = np.pi / 2
-        pi4 = np.pi / 4
+        pi2 = np.pi/2
+        pi4 = np.pi/4
 
         # Make U be in SU(4)
         U = unitary_matrix.copy()
-        U *= la.det(U) ** (-0.25)
+        U *= la.det(U)**(-0.25)
 
         Up = _Bd.dot(U).dot(_B)
         M2 = Up.T.dot(Up)
@@ -163,7 +162,7 @@ class TwoQubitWeylDecomposition:
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
         for i in range(-50, 50):
-            M2real = (i / 50) * M2.real + (i / 25) * M2.imag
+            M2real = (i/50)*M2.real + (i/25)*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
@@ -171,13 +170,13 @@ class TwoQubitWeylDecomposition:
         else:
             raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
 
-        d = -np.angle(D) / 2
-        d[3] = -d[0] - d[1] - d[2]
-        cs = np.mod((d[:3] + d[3]) / 2, 2 * np.pi)
+        d = -np.angle(D)/2
+        d[3] = -d[0]-d[1]-d[2]
+        cs = np.mod((d[:3]+d[3])/2, 2*np.pi)
 
         # Reorder the eigenvalues to get in the Weyl chamber
         cstemp = np.mod(cs, pi2)
-        np.minimum(cstemp, pi2 - cstemp, cstemp)
+        np.minimum(cstemp, pi2-cstemp, cstemp)
         order = np.argsort(cstemp)[[1, 2, 0]]
         cs = cs[order]
         d[:3] = d[order]
@@ -188,7 +187,7 @@ class TwoQubitWeylDecomposition:
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
-        K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j * d))).dot(_Bd)
+        K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j*d))).dot(_Bd)
         K2 = _B.dot(P.T).dot(_Bd)
 
         K1l, K1r = decompose_two_qubit_product_gate(K1)
@@ -198,30 +197,30 @@ class TwoQubitWeylDecomposition:
 
         # Flip into Weyl chamber
         if cs[0] > pi2:
-            cs[0] -= 3 * pi2
+            cs[0] -= 3*pi2
             K1l = K1l.dot(_ipy)
             K1r = K1r.dot(_ipy)
         if cs[1] > pi2:
-            cs[1] -= 3 * pi2
+            cs[1] -= 3*pi2
             K1l = K1l.dot(_ipx)
             K1r = K1r.dot(_ipx)
         conjs = 0
         if cs[0] > pi4:
-            cs[0] = pi2 - cs[0]
+            cs[0] = pi2-cs[0]
             K1l = K1l.dot(_ipy)
             K2r = _ipy.dot(K2r)
             conjs += 1
         if cs[1] > pi4:
-            cs[1] = pi2 - cs[1]
+            cs[1] = pi2-cs[1]
             K1l = K1l.dot(_ipx)
             K2r = _ipx.dot(K2r)
             conjs += 1
         if cs[2] > pi2:
-            cs[2] -= 3 * pi2
+            cs[2] -= 3*pi2
             K1l = K1l.dot(_ipz)
             K1r = K1r.dot(_ipz)
         if conjs == 1:
-            cs[2] = pi2 - cs[2]
+            cs[2] = pi2-cs[2]
             K1l = K1l.dot(_ipz)
             K2r = _ipz.dot(K2r)
         if cs[2] > pi4:
@@ -249,17 +248,16 @@ class TwoQubitWeylDecomposition:
 def Ud(a, b, c):
     """Generates the array Exp(i(a xx + b yy + c zz))
     """
-    return np.array([[np.exp(1j * c) * np.cos(a - b), 0, 0, 1j * np.exp(1j * c) * np.sin(a - b)],
-                     [0, np.exp(-1j * c) * np.cos(a + b), 1j * np.exp(-1j * c) * np.sin(a + b), 0],
-                     [0, 1j * np.exp(-1j * c) * np.sin(a + b), np.exp(-1j * c) * np.cos(a + b), 0],
-                     [1j * np.exp(1j * c) * np.sin(a - b), 0, 0, np.exp(1j * c) * np.cos(a - b)]],
-                    dtype=complex)
+    return np.array([[np.exp(1j*c)*np.cos(a-b), 0, 0, 1j*np.exp(1j*c)*np.sin(a-b)],
+                     [0, np.exp(-1j*c)*np.cos(a+b), 1j*np.exp(-1j*c)*np.sin(a+b), 0],
+                     [0, 1j*np.exp(-1j*c)*np.sin(a+b), np.exp(-1j*c)*np.cos(a+b), 0],
+                     [1j*np.exp(1j*c)*np.sin(a-b), 0, 0, np.exp(1j*c)*np.cos(a-b)]], dtype=complex)
 
 
 def trace_to_fid(trace):
     """Average gate fidelity is Fbar = (d + |Tr (Utarget.U^dag)|^2) / d(d+1)
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
-    return (4 + np.abs(trace) ** 2) / 20
+    return (4 + np.abs(trace)**2)/20
 
 
 def rz_array(theta):
@@ -267,49 +265,46 @@ def rz_array(theta):
 
     Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
     """
-    return np.array([[np.exp(-1j * theta / 2.0), 0],
-                     [0, np.exp(1j * theta / 2.0)]], dtype=complex)
+    return np.array([[np.exp(-1j*theta/2.0), 0],
+                     [0, np.exp(1j*theta/2.0)]], dtype=complex)
 
 
 class TwoQubitBasisDecomposer():
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
     """
-
     def __init__(self, gate, basis_fidelity=1.0):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         basis = self.basis = TwoQubitWeylDecomposition(gate.to_matrix())
 
         # FIXME: find good tolerances
-        self.is_supercontrolled = np.isclose(basis.a, np.pi / 4) and np.isclose(basis.c, 0.)
+        self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)
 
         # Create some useful matrices U1, U2, U3 are equivalent to the basis,
         # expand as Ui = Ki1.Ubasis.Ki2
         b = basis.b
-        K11l = 1 / (1 + 1j) * np.array([[-1j * np.exp(-1j * b), np.exp(-1j * b)],
-                                        [-1j * np.exp(1j * b), -np.exp(1j * b)]], dtype=complex)
-        K11r = 1 / np.sqrt(2) * np.array([[1j * np.exp(-1j * b), -np.exp(-1j * b)],
-                                          [np.exp(1j * b), -1j * np.exp(1j * b)]], dtype=complex)
-        K12l = 1 / (1 + 1j) * np.array([[1j, 1j],
-                                        [-1, 1]], dtype=complex)
-        K12r = 1 / np.sqrt(2) * np.array([[1j, 1],
-                                          [-1, -1j]], dtype=complex)
-        K32lK21l = 1 / np.sqrt(2) * np.array([[1 + 1j * np.cos(2 * b), 1j * np.sin(2 * b)],
-                                              [1j * np.sin(2 * b), 1 - 1j * np.cos(2 * b)]],
-                                             dtype=complex)
-        K21r = 1 / (1 - 1j) * np.array([[-1j * np.exp(-2j * b), np.exp(-2j * b)],
-                                        [1j * np.exp(2j * b), np.exp(2j * b)]], dtype=complex)
-        K22l = 1 / np.sqrt(2) * np.array([[1, -1],
-                                          [1, 1]], dtype=complex)
+        K11l = 1/(1+1j) * np.array([[-1j*np.exp(-1j*b), np.exp(-1j*b)],
+                                    [-1j*np.exp(1j*b), -np.exp(1j*b)]], dtype=complex)
+        K11r = 1/np.sqrt(2) * np.array([[1j*np.exp(-1j*b), -np.exp(-1j*b)],
+                                        [np.exp(1j*b), -1j*np.exp(1j*b)]], dtype=complex)
+        K12l = 1/(1+1j) * np.array([[1j, 1j],
+                                    [-1, 1]], dtype=complex)
+        K12r = 1/np.sqrt(2) * np.array([[1j, 1],
+                                        [-1, -1j]], dtype=complex)
+        K32lK21l = 1/np.sqrt(2) * np.array([[1+1j*np.cos(2*b), 1j*np.sin(2*b)],
+                                            [1j*np.sin(2*b), 1-1j*np.cos(2*b)]], dtype=complex)
+        K21r = 1/(1-1j) * np.array([[-1j*np.exp(-2j*b), np.exp(-2j*b)],
+                                    [1j*np.exp(2j*b), np.exp(2j*b)]], dtype=complex)
+        K22l = 1/np.sqrt(2) * np.array([[1, -1],
+                                        [1, 1]], dtype=complex)
         K22r = np.array([[0, 1], [-1, 0]], dtype=complex)
-        K31l = 1 / np.sqrt(2) * np.array([[np.exp(-1j * b), np.exp(-1j * b)],
-                                          [-np.exp(1j * b), np.exp(1j * b)]], dtype=complex)
-        K31r = 1j * np.array([[np.exp(1j * b), 0],
-                              [0, -np.exp(-1j * b)]], dtype=complex)
-        K32r = 1 / (1 - 1j) * np.array([[np.exp(1j * b), -np.exp(-1j * b)],
-                                        [-1j * np.exp(1j * b), -1j * np.exp(-1j * b)]],
-                                       dtype=complex)
+        K31l = 1/np.sqrt(2) * np.array([[np.exp(-1j*b), np.exp(-1j*b)],
+                                        [-np.exp(1j*b), np.exp(1j*b)]], dtype=complex)
+        K31r = 1j * np.array([[np.exp(1j*b), 0],
+                              [0, -np.exp(-1j*b)]], dtype=complex)
+        K32r = 1/(1-1j) * np.array([[np.exp(1j*b), -np.exp(-1j*b)],
+                                    [-1j*np.exp(1j*b), -1j*np.exp(-1j*b)]], dtype=complex)
         k1ld = basis.K1l.T.conj()
         k1rd = basis.K1r.T.conj()
         k2ld = basis.K2l.T.conj()
@@ -354,13 +349,11 @@ class TwoQubitBasisDecomposer():
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
 
-        return [4 * (np.cos(target.a) * np.cos(target.b) * np.cos(target.c) +
-                     1j * np.sin(target.a) * np.sin(target.b) * np.sin(target.c)),
-                4 * (np.cos(np.pi / 4 - target.a) * np.cos(self.basis.b - target.b) * np.cos(
-                    target.c) +
-                     1j * np.sin(np.pi / 4 - target.a) * np.sin(self.basis.b - target.b) * np.sin(
-                            target.c)),
-                4 * np.cos(target.c),
+        return [4*(np.cos(target.a)*np.cos(target.b)*np.cos(target.c) +
+                   1j*np.sin(target.a)*np.sin(target.b)*np.sin(target.c)),
+                4*(np.cos(np.pi/4-target.a)*np.cos(self.basis.b-target.b)*np.cos(target.c) +
+                   1j*np.sin(np.pi/4-target.a)*np.sin(self.basis.b-target.b)*np.sin(target.c)),
+                4*np.cos(target.c),
                 4]
 
     @staticmethod
@@ -401,8 +394,8 @@ class TwoQubitBasisDecomposer():
 
         U0l = target.K1l.dot(self.q0l)
         U0r = target.K1r.dot(self.q0r)
-        U1l = self.q1la.dot(rz_array(-2 * target.a)).dot(self.q1lb)
-        U1r = self.q1ra.dot(rz_array(2 * target.b)).dot(self.q1rb)
+        U1l = self.q1la.dot(rz_array(-2*target.a)).dot(self.q1lb)
+        U1r = self.q1ra.dot(rz_array(2*target.b)).dot(self.q1rb)
         U2l = self.q2l.dot(target.K2l)
         U2r = self.q2r.dot(target.K2r)
 
@@ -416,9 +409,9 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(self.u0l)
         U0r = target.K1r.dot(self.u0r)
         U1l = self.u1l
-        U1r = self.u1ra.dot(rz_array(-2 * target.c)).dot(self.u1rb)
-        U2l = self.u2la.dot(rz_array(-2 * target.a)).dot(self.u2lb)
-        U2r = self.u2ra.dot(rz_array(2 * target.b)).dot(self.u2rb)
+        U1r = self.u1ra.dot(rz_array(-2*target.c)).dot(self.u1rb)
+        U2l = self.u2la.dot(rz_array(-2*target.a)).dot(self.u2lb)
+        U2r = self.u2ra.dot(rz_array(2*target.b)).dot(self.u2rb)
         U3l = self.u3l.dot(target.K2l)
         U3r = self.u3r.dot(target.K2r)
 
@@ -448,7 +441,7 @@ class TwoQubitBasisDecomposer():
 
         target_decomposed = TwoQubitWeylDecomposition(target)
         traces = self.traces(target_decomposed)
-        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity ** i for i in range(4)]
+        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
@@ -457,11 +450,11 @@ class TwoQubitBasisDecomposer():
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
         for i in range(best_nbasis):
-            return_circuit.append(U3Gate(*decomposition_angles[2 * i]), [q[0]])
-            return_circuit.append(U3Gate(*decomposition_angles[2 * i + 1]), [q[1]])
+            return_circuit.append(U3Gate(*decomposition_angles[2*i]), [q[0]])
+            return_circuit.append(U3Gate(*decomposition_angles[2*i+1]), [q[1]])
             return_circuit.append(self.gate, [q[0], q[1]])
-        return_circuit.append(U3Gate(*decomposition_angles[2 * best_nbasis]), [q[0]])
-        return_circuit.append(U3Gate(*decomposition_angles[2 * best_nbasis + 1]), [q[1]])
+        return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis]), [q[0]])
+        return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis+1]), [q[1]])
 
         return return_circuit
 
@@ -475,12 +468,12 @@ class TwoQubitBasisDecomposer():
             unitary = unitary.to_matrix()
         unitary = np.asarray(unitary, dtype=complex)
         a, b, c = weyl_coordinates(unitary)[:]
-        traces = [4 * (np.cos(a) * np.cos(b) * np.cos(c) + 1j * np.sin(a) * np.sin(b) * np.sin(c)),
-                  4 * (np.cos(np.pi / 4 - a) * np.cos(self.basis.b - b) * np.cos(c) +
-                       1j * np.sin(np.pi / 4 - a) * np.sin(self.basis.b - b) * np.sin(c)),
-                  4 * np.cos(c),
+        traces = [4*(np.cos(a)*np.cos(b)*np.cos(c)+1j*np.sin(a)*np.sin(b)*np.sin(c)),
+                  4*(np.cos(np.pi/4-a)*np.cos(self.basis.b-b)*np.cos(c) +
+                     1j*np.sin(np.pi/4-a)*np.sin(self.basis.b-b)*np.sin(c)),
+                  4*np.cos(c),
                   4]
-        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
+        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
