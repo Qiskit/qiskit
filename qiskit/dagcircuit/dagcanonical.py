@@ -335,7 +335,7 @@ def commute(node1, node2):
         node2 (DAGnode): second node operation
 
     Return:
-        if_commute (Boolean): True if the gates commute and false if it is not the case.
+        bool: True if the gates commute and false if it is not the case.
     """
 
     # Create set of qubits on which the operation acts
