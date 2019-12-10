@@ -13,8 +13,8 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
-import warnings
 from typing import Dict, List
+import warnings
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -267,6 +267,8 @@ class PulseBackendConfiguration(BackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    _dt_warning_done = False
+
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
@@ -330,6 +332,12 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
+        # only raise dt/dtm warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
@@ -355,8 +363,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit drive channel.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -368,8 +376,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement stimulus line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -381,26 +389,20 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement acquisition line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, qubit: int) -> ControlChannel:
+    def control(self, channel: int) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
-        Raises:
-            BackendConfigurationError: If the qubit is not a part of the system.
         Returns:
             Qubit control channel.
         """
         # TODO: Determine this from the hamiltonian.
-        warnings.warn("The control channel appropriate for an interaction should be determined "
-                      "from the hamiltonian. This will be determined for you in the future.")
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
-        return ControlChannel(qubit)
+        return ControlChannel(channel)
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """

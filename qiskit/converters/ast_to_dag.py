@@ -24,8 +24,6 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-from qiskit.extensions.standard.ubase import UBase
-from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.cswap import FredkinGate
@@ -66,6 +64,26 @@ def ast_to_dag(ast):
 
     Raises:
         QiskitError: if the AST is malformed.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit.converters import ast_to_dag
+            from qiskit import qasm, QuantumCircuit, ClassicalRegister, QuantumRegister
+            from qiskit.visualization import dag_drawer
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            qasm_str = circ.qasm()
+            ast = qasm.Qasm(data=qasm_str).parse()
+            dag = ast_to_dag(ast)
+            dag_drawer(dag)
     """
     dag = DAGCircuit()
     AstInterpreter(dag)._process_node(ast)
@@ -215,11 +233,11 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[idx]], [], self.condition)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[0]], [], self.condition)
             else:
-                self.dag.apply_operation_back(CXBase(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[0], id1[idx]], [], self.condition)
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -289,7 +307,7 @@ class AstInterpreter:
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.dag.apply_operation_back(UBase(*args, element), self.condition)
+                self.dag.apply_operation_back(U3Gate(*args, element), self.condition)
 
         elif node.type == "cnot":
             self._process_cnot(node)
