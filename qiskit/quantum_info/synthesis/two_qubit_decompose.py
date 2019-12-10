@@ -85,7 +85,7 @@ def euler_angles_1q(unitary_matrix):
                          [0, np.exp(1j*lamb/2.0)]], dtype=complex)
     V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
     if la.norm(V - U) > _CUTOFF_PRECISION:
-        raise QiskitError("compiling.euler_angles_1q incorrect result norm(V-U)={}".
+        raise QiskitError("euler_angles_1q incorrect result norm(V-U)={}".
                           format(la.norm(V-U)))
     return theta, phi, lamb
 

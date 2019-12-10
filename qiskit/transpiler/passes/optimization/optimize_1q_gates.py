@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+"""Optimize chains of single-qubit u1, u2, u3 gates by combining them
+into a single gate.
+"""
 
 from itertools import groupby
 
@@ -28,7 +30,9 @@ _CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
-    """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+    """Optimize chains of single-qubit u1, u2, u3 gates by combining
+    them into a single gate.
+    """
 
     def __init__(self, basis=None, eps=1e-15):
         """Optimize1qGates initializer.
@@ -134,19 +138,6 @@ class Optimize1qGates(TransformationPass):
                                                                   right_parameters[0],
                                                                   right_parameters[1],
                                                                   right_parameters[2])
-                    # Why evalf()? This program:
-                    #   OPENQASM 2.0;
-                    #   include "qelib1.inc";
-                    #   qreg q[2];
-                    #   creg c[2];
-                    #   u3(0.518016983430947*pi,1.37051598592907*pi,1.36816383603222*pi) q[0];
-                    #   u3(1.69867232277986*pi,0.371448347747471*pi,0.461117217930936*pi) q[0];
-                    #   u3(0.294319836336836*pi,0.450325871124225*pi,1.46804720442555*pi) q[0];
-                    #   measure q -> c;
-                    # took >630 seconds (did not complete) to optimize without
-                    # calling evalf() at all, 19 seconds to optimize calling
-                    # evalf() AFTER compose_u3, and 1 second to optimize
-                    # calling evalf() BEFORE compose_u3.
                 # 1. Here down, when we simplify, we add f(theta) to lambda to
                 # correct the global phase when f(theta) is 2*pi. This isn't
                 # necessary but the other steps preserve the global phase, so
@@ -155,8 +146,6 @@ class Optimize1qGates(TransformationPass):
                 # 3. Note that is_zero is true only if the expression is exactly
                 # zero. If the input expressions have already been evaluated
                 # then these final simplifications will not occur.
-                # TODO After we refactor, we should have separate passes for
-                # exact and approximate rewriting.
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
                 if abs(np.mod(right_parameters[0],
@@ -211,13 +200,13 @@ class Optimize1qGates(TransformationPass):
 
             dag.global_phase += right_global_phase
 
-            if right_name != 'nop':
-                dag.substitute_node(run[0], new_op, inplace=True)
-
             # Delete the other nodes in the run
             for current_node in run[1:]:
                 dag.remove_op_node(current_node)
-            if right_name == "nop":
+
+            if right_name != 'nop':
+                dag.substitute_node(run[0], new_op, inplace=True)
+            else:
                 dag.remove_op_node(run[0])
 
         return dag
