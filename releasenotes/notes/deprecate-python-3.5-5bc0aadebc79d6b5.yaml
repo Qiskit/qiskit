@@ -6,12 +6,12 @@ issues:
     ``qiskit.transpiler.passmanager.PassManager.run()``) may not work when
     called from a script running outside of a ``if __name__ == '__main__':``
     block when using Python 3.8 on MacOS. Other environments are uneffected by
-    this issues. This is due to changes in how parallel processes are launched
+    this issue. This is due to changes in how parallel processes are launched
     by Python 3.8 on MacOS. If ``RuntimeError`` or ``AttributeError`` are raised
-    by scripts with that are directly calling ``parallel_map()`` or when
+    by scripts that are directly calling ``parallel_map()`` or when
     calling a function that uses it internally with Python 3.8 on MacOS
     embedding the script calls inside ``if __name__ == '__main__':`` should
-    workaround the issues. For exmaple::
+    workaround the issue. For example::
 
         from qiskit import QuantumCircuit, QiskitError
         from qiskit import execute, BasicAer
