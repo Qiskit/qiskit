@@ -32,3 +32,4 @@ from .backends import *
 from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
+from .fake_1q import Fake1Q

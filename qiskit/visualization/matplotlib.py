@@ -250,11 +250,18 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                boxes_wide = round(max(len(subtext), len(text)) / 10, 1) or 1
+                subtext_len = len(subtext)
+                if '$\\pi$' in subtext:
+                    pi_count = subtext.count('pi')
+                    subtext_len = subtext_len - (4 * pi_count)
+
+                boxes_wide = round(max(subtext_len, len(text)) / 10, 1) or 1
                 wid = WID * 1.5 * boxes_wide
             else:
                 boxes_wide = round(len(text) / 10) or 1
                 wid = WID * 2.2 * boxes_wide
+            if wid < WID:
+                wid = WID
         else:
             wid = WID
         if fc:
@@ -612,10 +619,10 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # bundle
             if this_creg['val'] > 1:
-                self.ax.plot([.6, .7], [y - .1, y + .1],
+                self.ax.plot([self.x_offset+1.1, self.x_offset+1.2], [y - .1, y + .1],
                              color=self._style.cc,
                              zorder=PORDER_LINE)
-                self.ax.text(0.5, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset+1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
@@ -664,25 +671,26 @@ class MatplotlibDrawer:
             for op in layer:
 
                 if op.name in _wide_gate:
+                    if layer_width < 2:
+                        layer_width = 2
                     if op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            len_param = len(param) - (4 * pi_count)
                         else:
                             len_param = len(param)
                         if len_param > len(op.name):
-                            box_width = round(len(param) / 10)
+                            box_width = math.floor(len(param) / 10)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
                                 box_width = 2
                             if layer_width < box_width:
                                 if box_width > 2:
-                                    layer_width = box_width * 2
+                                    layer_width = box_width
                                 else:
                                     layer_width = 2
-                    if layer_width < 2:
-                        layer_width = 2
+                            continue
 
                 # if custom gate with a longer than standard name determine
                 # width
@@ -696,11 +704,11 @@ class MatplotlibDrawer:
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
-                            len_param = len(param) - (5 * pi_count)
+                            len_param = len(param) - (4 * pi_count)
                         else:
                             len_param = len(param)
                         if len_param > len(op.name):
-                            box_width = round(len(param) / 8)
+                            box_width = math.floor(len(param) / 8)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
                                 box_width = 2

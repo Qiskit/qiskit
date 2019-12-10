@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Allowed values of ``meas_level`` are now of class ``IntEnum``. For instance,
-    ``meas_level = MeasLevel.CLASSIFIED`` and ``meas_level = 2`` can be used.
-    (Related to Github `issue #2638 <https://github.com/Qiskit/qiskit-terra/issues/2638>`__)

@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The ``qiskit.pulse.CmdDef`` class has been deprecated. Instead you should
+    use the ``qiskit.pulse.InstructionScheduleMap``. The
+    ``InstructionScheduleMap`` object for a pulse enabled system can be
+    accessed at ``backend.defaults().instruction_schedules``.
+

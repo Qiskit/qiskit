@@ -34,6 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
                           Acquire, PulseError)
+from qiskit.pulse.commands.frame_change import FrameChangeInstruction
 
 
 class EventsOutputChannels:
@@ -281,17 +282,23 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule, channels, t0, tf):
+    def _build_channels(self, schedule, channels, t0, tf, show_framechange_channels=True):
         # prepare waveform channels
         drive_channels = collections.OrderedDict()
         measure_channels = collections.OrderedDict()
         control_channels = collections.OrderedDict()
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
+        _channels = set()
+        if show_framechange_channels:
+            _channels.update(schedule.channels)
+        # take channels that do not only contain framechanges
+        else:
+            for start_time, instruction in schedule.instructions:
+                if not isinstance(instruction, FrameChangeInstruction):
+                    _channels.update(instruction.channels)
 
-        _channels = list(schedule.channels) + channels
-        _channels = list(set(_channels))
-
+        _channels.update(channels)
         for chan in _channels:
             if isinstance(chan, DriveChannel):
                 try:
@@ -386,7 +393,11 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-
+            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
+            nrows = int(min(nrows, max_rows))
+            # don't overflow plot with table data
+            table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
             h_waves = (self.style.figsize[1] - h_table)
@@ -550,7 +561,7 @@ class ScheduleDrawer:
     def draw(self, schedule, dt, interp_method, plot_range,
              scaling=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True,
-             channels=None):
+             channels=None, show_framechange_channels=True):
         """Draw figure.
 
         Args:
@@ -566,6 +577,7 @@ class ScheduleDrawer:
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
             channels (list[OutputChannel]): channels to draw
+            show_framechange_channels (bool): Plot channels with only framechanges
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -600,7 +612,8 @@ class ScheduleDrawer:
 
         # prepare waveform channels
         (schedule_channels, output_channels,
-         snapshot_channels) = self._build_channels(schedule, channels, t0, tf)
+         snapshot_channels) = self._build_channels(schedule, channels, t0, tf,
+                                                   show_framechange_channels)
 
         # count numbers of valid waveform
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,

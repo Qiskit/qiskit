@@ -886,7 +886,7 @@ class DAGCircuit:
         ):
             raise DAGCircuitError(
                 'Cannot replace node of width ({} qubits, {} clbits) with '
-                'instruction of mismatched with ({} qubits, {} clbits).'.format(
+                'instruction of mismatched width ({} qubits, {} clbits).'.format(
                     node.op.num_qubits, node.op.num_clbits,
                     op.num_qubits, op.num_clbits))
 

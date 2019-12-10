@@ -71,12 +71,12 @@ def make_labels():
     return labels
 
 
-def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg=''):
+def create_job_widget(watcher, job, backend, status='', queue_pos=None, msg=''):
     """Creates a widget corresponding to a particular job instance.
 
     Args:
         watcher (widget): The job watcher instance.
-        job_id (str): The job id.
+        job (IBMQJob): The job.
         backend (str): The backend the job is running on.
         status (str): The job status.
         queue_pos (int): Queue position, if any.
@@ -85,6 +85,8 @@ def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg='
     Returns:
         widget: The job widget
     """
+    job_id = job.job_id()
+
     id_label = widgets.HTML(value="{}".format(job_id),
                             layout=widgets.Layout(width='190px'))
     backend_label = widgets.HTML(value="{}".format(backend),
@@ -106,15 +108,16 @@ def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg='
                                                         margin="0px 5px 0px 0px"))
     close_button.style.button_color = 'white'
 
-    def close_on_click(_):
-        watcher.remove_job(job_id)
-    close_button.on_click(close_on_click)
+    def cancel_on_click(_):
+        watcher.cancel_job(job_id)
+    close_button.on_click(cancel_on_click)
 
     job_grid = widgets.HBox(children=[close_button, id_label, backend_label,
                                       status_label, queue_label, msg_label],
                             layout=widgets.Layout(min_width='700px',
                                                   max_width='700px'))
     job_grid.job_id = job_id
+    job_grid.job = job
     return job_grid
 
 
