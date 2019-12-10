@@ -393,7 +393,6 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-            full_size = nrows * self.style.fig_unit_h_table
             max_size = self.style.max_table_ratio * self.style.figsize[1]
             max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
             nrows = int(min(nrows, max_rows))
