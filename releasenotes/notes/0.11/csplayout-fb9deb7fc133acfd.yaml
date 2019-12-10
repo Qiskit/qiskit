@@ -30,8 +30,8 @@ features:
         })
 
 
-    The parameter `CSPLayout(...,strict_direction=True)` is more restrictive but it will guarantee
-    there is no need of running `CXDirection` after.
+    The parameter ``CSPLayout(...,strict_direction=True)`` is more restrictive
+    but it will guarantee there is no need of running ``CXDirection`` after.
 
     .. code-block:: python
 

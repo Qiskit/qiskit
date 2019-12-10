@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When transpiling without a coupling map, there were no check in the amount
+    of qubits of the circuit to transpile. Now the transpile process checks
+    that the backend has enough qubits to allocate the circuit.
