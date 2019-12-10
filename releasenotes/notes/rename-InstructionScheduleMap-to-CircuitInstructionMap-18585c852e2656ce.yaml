@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The ``qiskit.pulse.InstructionScheduleMap`` class has been renamed. Instead you should
+    use the ``qiskit.pulse.CircuitInstructionMap``.
