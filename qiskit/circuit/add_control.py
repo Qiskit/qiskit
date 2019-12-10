@@ -44,6 +44,8 @@ def _control_definition_known(operation, num_ctrl_qubits):
         return True
     elif num_ctrl_qubits == 1:
         return operation.name in {'x', 'y', 'z', 'h', 'rz', 'swap', 'u1', 'u3', 'cx'}
+    elif operation.name == 'rz' and num_ctrl_qubits > 1:
+        return True
     else:
         return False
 
@@ -70,6 +72,11 @@ def _control_predefined(operation, num_ctrl_qubits):
     elif operation.name == 'rz':
         import qiskit.extensions.standard.crz
         cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
+        if num_ctrl_qubits == 1:
+            return cgate
+        else:
+            # use crz as base gate for phase correctness
+            return cgate.control(num_ctrl_qubits - 1)
     elif operation.name == 'swap':
         import qiskit.extensions.standard.cswap
         cgate = qiskit.extensions.standard.cswap.FredkinGate()
