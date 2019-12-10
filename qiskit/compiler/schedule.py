@@ -20,14 +20,14 @@ from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.cmd_def import CmdDef
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse import CmdDef, InstructionScheduleMap, Schedule
 
 from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              backend: Optional['BaseBackend'] = None,
+             inst_map: Optional[InstructionScheduleMap] = None,
              cmd_def: Optional[CmdDef] = None,
              meas_map: Optional[List[List[int]]] = None,
              method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
@@ -39,27 +39,30 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Args:
         circuits: The quantum circuit or circuits to translate
         backend: A backend instance, which contains hardware-specific data required for scheduling
-        cmd_def: Mapping of circuit operations to pulse schedules. If None, defaults to the
-                 `backend` `cmd_def`
+        inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
+                  `backend` `circuit_instruction_map`
+        cmd_def: Deprecated
         meas_map: List of sets of qubits that must be measured together. If `None`, defaults to
                   the `backend` `meas_map`
         method: Optionally specify a particular scheduling method
     Returns:
         A pulse `Schedule` that implements the input circuit
     Raises:
-        QiskitError: If `cmd_def` and `meas_map` are not passed and `backend` is not passed
+        QiskitError: If `inst_map` and `meas_map` are not passed and `backend` is not passed
     """
-    if cmd_def is None:
+    if inst_map is None:
+        if cmd_def is not None:
+            inst_map = cmd_def
         if backend is None:
-            raise QiskitError("Must supply either a backend or CmdDef for scheduling passes.")
-        defaults = backend.defaults()
-        cmd_def = CmdDef.from_defaults(defaults.cmd_def, defaults.pulse_library)
+            raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
+                              "scheduling passes.")
+        inst_map = backend.defaults().circuit_instruction_map
     if meas_map is None:
         if backend is None:
             raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
         meas_map = backend.configuration().meas_map
 
-    schedule_config = ScheduleConfig(cmd_def=cmd_def, meas_map=meas_map)
+    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules
