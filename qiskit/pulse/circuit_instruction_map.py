@@ -278,10 +278,10 @@ class CircuitInstructionMap():
                 "".format(name=self.__class__.__name__, insts=instructions))
 
 
-class CircuitInstructionMap(CircuitInstructionMap):
-    """Deprecated name for CircuitInstructionMap."""
+class InstructionScheduleMap(CircuitInstructionMap):
+    """Deprecated for CircuitInstructionMap."""
     def __init__(self):
-        raise warnings.warn("CircuitInstructionMap has been renamed to CircuitInstructionMap, "
+        raise warnings.warn("InstructionScheduleMap has been renamed to CircuitInstructionMap, "
                             "please use this instead.", DeprecationWarning)
 
         super().__init__()
