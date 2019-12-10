@@ -257,8 +257,10 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
-    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', None)
-    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', None)
+    if not qubit_lo_freq and hasattr(backend_default, 'qubit_freq_est'):
+        qubit_lo_freq = [freq / 1e9 for freq in backend_default.qubit_freq_est]
+    if not meas_lo_freq and hasattr(backend_default, 'meas_freq_est'):
+        meas_lo_freq = [freq / 1e9 for freq in backend_default.meas_freq_est]
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
