@@ -99,10 +99,10 @@ def as_late_as_possible(circuit: QuantumCircuit,
     # The time is initialized to 0 because all qubits are involved in the final barrier.
     qubit_available_until = defaultdict(lambda: 0)
 
-    def update_times(inst_qubits: List[int], shift: int = 0, cmd_start_time: int = 0) -> None:
+    def update_times(inst_qubits: List[int], shift: int = 0, inst_start_time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
-            qubit_available_until[q] = cmd_start_time
+            qubit_available_until[q] = inst_start_time
         for q in qubit_available_until.keys():
             if q not in inst_qubits:
                 # Uninvolved qubits might be free for the duration of the new instruction
@@ -110,16 +110,16 @@ def as_late_as_possible(circuit: QuantumCircuit,
 
     circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in reversed(circ_pulse_defs):
-        cmd_sched = circ_pulse_def.schedule
+        inst_sched = circ_pulse_def.schedule
         # The new instruction should end when one of its qubits becomes occupied
-        cmd_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
-                          - getattr(cmd_sched, 'duration', 0))  # Barrier has no duration
-        # We have to translate qubit times forward when the cmd_start_time is negative
-        shift_amount = max(0, -cmd_start_time)
-        cmd_start_time = max(cmd_start_time, 0)
+        inst_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
+                           - getattr(inst_sched, 'duration', 0))  # Barrier has no duration
+        # We have to translate qubit times forward when the inst_start_time is negative
+        shift_amount = max(0, -inst_start_time)
+        inst_start_time = max(inst_start_time, 0)
         if not isinstance(circ_pulse_def.schedule, Barrier):
-            sched = cmd_sched.shift(cmd_start_time).insert(shift_amount, sched, name=sched.name)
-        update_times(circ_pulse_def.qubits, shift_amount, cmd_start_time)
+            sched = inst_sched.shift(inst_start_time).insert(shift_amount, sched, name=sched.name)
+        update_times(circ_pulse_def.qubits, shift_amount, inst_start_time)
     return sched
 
 
@@ -137,11 +137,11 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element
     Raises:
-        QiskitError: If circuit uses a command that isn't defined in config.cmd_def
+        QiskitError: If circuit uses a command that isn't defined in config.inst_map
     """
     circ_pulse_defs = []
 
-    cmd_def = schedule_config.cmd_def
+    inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     def get_measure_schedule() -> CircuitPulseDef:
@@ -154,7 +154,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         for qubits in measures:
             all_qubits.update(qubits)
             unused_mem_slots = set(qubits) - set(qubit_mem_slots.values())
-            default_sched = cmd_def.get('measure', qubits)
+            default_sched = inst_map.get('measure', qubits)
             for time, inst in default_sched.instructions:
                 if isinstance(inst, AcquireInstruction):
                     mem_slots = []
@@ -189,7 +189,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         else:
             try:
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=cmd_def.get(inst.name, inst_qubits, *inst.params),
+                    CircuitPulseDef(schedule=inst_map.get(inst.name, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
             except PulseError:
                 raise QiskitError("Operation '{0}' on qubit(s) {1} not supported by the backend "
