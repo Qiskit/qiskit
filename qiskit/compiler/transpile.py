@@ -179,9 +179,9 @@ def transpile(circuits,
     # Get transpiler argument(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                              backend_properties, initial_layout,
-                                              seed_transpiler, optimization_level,
-                                              pass_manager, callback, output_name)
+                                           backend_properties, initial_layout,
+                                           seed_transpiler, optimization_level,
+                                           pass_manager, callback, output_name)
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_args)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
