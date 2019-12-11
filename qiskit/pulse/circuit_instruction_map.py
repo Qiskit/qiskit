@@ -286,6 +286,7 @@ class InstructionScheduleMap(CircuitInstructionMap):
 
         super().__init__()
 
+
 def _to_tuple(values):
     """
     Return the input as a tuple, even if it is an integer.
