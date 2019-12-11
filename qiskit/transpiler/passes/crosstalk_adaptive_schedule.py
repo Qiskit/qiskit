@@ -87,6 +87,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 The arg is useful when a subsequent module such as state_tomography_circuits
                 inserts the measure gates. If CrosstalkAdaptiveSchedule is made aware of those
                 measurements, it is included in the optimization.
+        Raises:
+            ImportError: if unable to import z3 solver
 
         """
         super().__init__()
