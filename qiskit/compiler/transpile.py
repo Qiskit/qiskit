@@ -183,7 +183,7 @@ def transpile(circuits,
                                            seed_transpiler, optimization_level,
                                            pass_manager, callback, output_name)
     # Check circuit width against number of qubits in coupling_map(s)
-    coupling_maps_list = list(config.coupling_map for config in transpile_args)
+    coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in transpile_args)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
         # If coupling_map is not None or n_qubits == 1
         n_qubits = len(circuit.qubits)
