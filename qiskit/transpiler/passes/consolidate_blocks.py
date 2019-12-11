@@ -14,10 +14,7 @@
 
 # pylint: disable=cell-var-from-loop
 
-"""
-Replace each block of consecutive gates by a single Unitary node.
-The blocks are collected by a previous pass, such as Collect2qBlocks.
-"""
+"""Replace each block of consecutive gates by a single Unitary node."""
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
@@ -29,15 +26,20 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ConsolidateBlocks(TransformationPass):
-    """
+    """Replace each block of consecutive gates by a single Unitary node.
+
     Pass to consolidate sequences of uninterrupted gates acting on
     the same qubits into a Unitary node, to be resynthesized later,
     to a potentially more optimal subcircuit.
-    Important note: this pass assumes that the 'blocks_list' property that
-    it reads is given such that blocks are in topological order.
+
+    Notes:
+        This pass assumes that the 'blocks_list' property that it reads is
+        given such that blocks are in topological order. The blocks are
+        collected by a previous pass, such as `Collect2qBlocks`.
     """
     def __init__(self, kak_basis_gate=CnotGate(), force_consolidate=False):
-        """
+        """ConsolidateBlocks initializer.
+
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
@@ -47,7 +49,9 @@ class ConsolidateBlocks(TransformationPass):
         self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
 
     def run(self, dag):
-        """iterate over each block and replace it with an equivalent Unitary
+        """Run the ConsolidateBlocks pass on `dag`.
+
+        Iterate over each block and replace it with an equivalent Unitary
         on the same wires.
         """
         new_dag = DAGCircuit()
@@ -125,12 +129,13 @@ class ConsolidateBlocks(TransformationPass):
         return new_dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
-        """
-        Map each qubit in block_qargs to its wire position among the block's wires.
+        """Map each qubit in block_qargs to its wire position among the block's wires.
+
         Args:
             block_qargs (list): list of qubits that a block acts on
             global_index_map (dict): mapping from each qubit in the
                 circuit to its wire position within that circuit
+
         Returns:
             dict: mapping from qarg to position in block
         """

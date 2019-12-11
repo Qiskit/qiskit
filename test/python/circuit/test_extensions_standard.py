@@ -15,11 +15,16 @@
 # pylint: disable=missing-docstring
 
 import unittest
+from inspect import signature
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Gate, ControlledGate
+from qiskit import BasicAer
+from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -47,10 +52,10 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_barrier_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.barrier, self.cr[0])
-        self.assertRaises(QiskitError, qc.barrier, self.cr)
-        self.assertRaises(QiskitError, qc.barrier, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.barrier, .0)
+        self.assertRaises(CircuitError, qc.barrier, self.cr[0])
+        self.assertRaises(CircuitError, qc.barrier, self.cr)
+        self.assertRaises(CircuitError, qc.barrier, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.barrier, .0)
 
     def test_conditional_barrier_invalid(self):
         qc = self.circuit
@@ -86,11 +91,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_ccx_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.ccx, self.cr[0], self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.ccx, self.qr[0], self.qr[0], self.qr[2])
-        self.assertRaises(QiskitError, qc.ccx, 0.0, self.qr[0], self.qr[2])
-        self.assertRaises(QiskitError, qc.ccx, self.cr, self.qr, self.qr)
-        self.assertRaises(QiskitError, qc.ccx, 'a', self.qr[1], self.qr[2])
+        self.assertRaises(CircuitError, qc.ccx, self.cr[0], self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.ccx, self.qr[0], self.qr[0], self.qr[2])
+        self.assertRaises(CircuitError, qc.ccx, 0.0, self.qr[0], self.qr[2])
+        self.assertRaises(CircuitError, qc.ccx, self.cr, self.qr, self.qr)
+        self.assertRaises(CircuitError, qc.ccx, 'a', self.qr[1], self.qr[2])
 
     def test_ch(self):
         self.circuit.ch(self.qr[0], self.qr[1])
@@ -106,12 +111,12 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_ch_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.ch, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.ch, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.ch, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.ch, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.ch, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.ch, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.ch, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.ch, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.ch, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.ch, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.ch, 'a', self.qr[1])
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
@@ -129,14 +134,14 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_crz_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.crz, 0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.crz, 0, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.crz, 0, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.crz, self.qr[2], self.qr[1], self.qr[0])
-        self.assertRaises(QiskitError, qc.crz, 0, self.qr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.crz, 0, (self.qr, 3), self.qr[1])
-        self.assertRaises(QiskitError, qc.crz, 0, self.cr, self.qr)
-        # TODO self.assertRaises(QiskitError, qc.crz, 'a', self.qr[1], self.qr[2])
+        self.assertRaises(CircuitError, qc.crz, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.crz, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.crz, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.crz, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.crz, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.crz, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.crz, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.crz, 'a', self.qr[1], self.qr[2])
 
     def test_cswap(self):
         self.circuit.cswap(self.qr[0], self.qr[1], self.qr[2])
@@ -154,15 +159,15 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cswap_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cswap, self.cr[0], self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cswap, self.qr[1], self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cswap, self.qr[1], .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cswap, self.cr[0], self.cr[1], self.qr[0])
-        self.assertRaises(QiskitError, qc.cswap, self.qr[0], self.qr[0], self.qr[1])
-        self.assertRaises(QiskitError, qc.cswap, .0, self.qr[0], self.qr[1])
-        self.assertRaises(QiskitError, qc.cswap, (self.qr, 3), self.qr[0], self.qr[1])
-        self.assertRaises(QiskitError, qc.cswap, self.cr, self.qr[0], self.qr[1])
-        self.assertRaises(QiskitError, qc.cswap, 'a', self.qr[1], self.qr[2])
+        self.assertRaises(CircuitError, qc.cswap, self.cr[0], self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cswap, self.qr[1], self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cswap, self.qr[1], .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cswap, self.cr[0], self.cr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.cswap, self.qr[0], self.qr[0], self.qr[1])
+        self.assertRaises(CircuitError, qc.cswap, .0, self.qr[0], self.qr[1])
+        self.assertRaises(CircuitError, qc.cswap, (self.qr, 3), self.qr[0], self.qr[1])
+        self.assertRaises(CircuitError, qc.cswap, self.cr, self.qr[0], self.qr[1])
+        self.assertRaises(CircuitError, qc.cswap, 'a', self.qr[1], self.qr[2])
 
     def test_cu1(self):
         self.circuit.cu1(1, self.qr[1], self.qr[2])
@@ -180,17 +185,17 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cu1_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cu1, self.cr[0], self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cu1, 1, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cu1, self.qr[1], 0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cu1, 0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.cu1, 0, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cu1, 0, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cu1, self.qr[2], self.qr[1], self.qr[0])
-        self.assertRaises(QiskitError, qc.cu1, 0, self.qr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cu1, 0, (self.qr, 3), self.qr[1])
-        self.assertRaises(QiskitError, qc.cu1, 0, self.cr, self.qr)
-        # TODO self.assertRaises(QiskitError, qc.cu1, 'a', self.qr[1], self.qr[2])
+        self.assertRaises(CircuitError, qc.cu1, self.cr[0], self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cu1, 1, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cu1, self.qr[1], 0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cu1, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.cu1, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cu1, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cu1, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.cu1, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cu1, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.cu1, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.cu1, 'a', self.qr[1], self.qr[2])
 
     def test_cu3(self):
         self.circuit.cu3(1, 2, 3, self.qr[1], self.qr[2])
@@ -208,14 +213,14 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cu3_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, self.qr[0], self.qr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, self.qr[1], 0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, 0, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, 0, (self.qr, 3), self.qr[1])
-        self.assertRaises(QiskitError, qc.cu3, 0, 0, 0, self.cr, self.qr)
-        # TODO self.assertRaises(QiskitError, qc.cu3, 0, 0, 'a', self.qr[1], self.qr[2])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[0], self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[1], 0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.cu3, 0, 0, 'a', self.qr[1], self.qr[2])
 
     def test_cx(self):
         self.circuit.cx(self.qr[1], self.qr[2])
@@ -233,12 +238,12 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cx_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cx, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cx, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cx, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cx, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.cx, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.cx, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.cx, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cx, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cx, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cx, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.cx, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.cx, 'a', self.qr[1])
 
     def test_cy(self):
         self.circuit.cy(self.qr[1], self.qr[2])
@@ -256,12 +261,12 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cy_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cy, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cy, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cy, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cy, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.cy, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.cy, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.cy, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cy, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cy, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cy, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.cy, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.cy, 'a', self.qr[1])
 
     def test_cz(self):
         self.circuit.cz(self.qr[1], self.qr[2])
@@ -279,12 +284,12 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cz_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.cz, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cz, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cz, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cz, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.cz, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.cz, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.cz, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cz, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cz, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cz, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.cz, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.cz, 'a', self.qr[1])
 
     def test_h(self):
         self.circuit.h(self.qr[1])
@@ -300,11 +305,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_h_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.h, self.cr[0])
-        self.assertRaises(QiskitError, qc.h, self.cr)
-        self.assertRaises(QiskitError, qc.h, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.h, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.h, .0)
+        self.assertRaises(CircuitError, qc.h, self.cr[0])
+        self.assertRaises(CircuitError, qc.h, self.cr)
+        self.assertRaises(CircuitError, qc.h, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.h, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.h, .0)
 
     def test_h_reg(self):
         instruction_set = self.circuit.h(self.qr)
@@ -332,11 +337,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_iden_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.iden, self.cr[0])
-        self.assertRaises(QiskitError, qc.iden, self.cr)
-        self.assertRaises(QiskitError, qc.iden, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.iden, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.iden, .0)
+        self.assertRaises(CircuitError, qc.iden, self.cr[0])
+        self.assertRaises(CircuitError, qc.iden, self.cr)
+        self.assertRaises(CircuitError, qc.iden, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.iden, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.iden, .0)
 
     def test_iden_reg(self):
         instruction_set = self.circuit.iden(self.qr)
@@ -364,15 +369,15 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_rx_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.rx, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.rx, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.rx, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.rx, 0, .0)
-        self.assertRaises(QiskitError, qc.rx, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.rx, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.rx, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.rx, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.rx, 0, 'a')
+        self.assertRaises(CircuitError, qc.rx, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.rx, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.rx, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.rx, 0, .0)
+        self.assertRaises(CircuitError, qc.rx, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.rx, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.rx, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.rx, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.rx, 0, 'a')
 
     def test_rx_reg(self):
         instruction_set = self.circuit.rx(1, self.qr)
@@ -412,15 +417,15 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_ry_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.ry, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.ry, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.ry, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.ry, 0, .0)
-        self.assertRaises(QiskitError, qc.ry, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.ry, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.ry, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.ry, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.ry, 0, 'a')
+        self.assertRaises(CircuitError, qc.ry, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.ry, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.ry, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.ry, 0, .0)
+        self.assertRaises(CircuitError, qc.ry, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.ry, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.ry, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.ry, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.ry, 0, 'a')
 
     def test_ry_reg(self):
         instruction_set = self.circuit.ry(1, self.qr)
@@ -457,15 +462,15 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_rz_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.rz, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.rz, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.rz, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.rz, 0, .0)
-        self.assertRaises(QiskitError, qc.rz, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.rz, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.rz, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.rz, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.rz, 0, 'a')
+        self.assertRaises(CircuitError, qc.rz, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.rz, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.rz, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.rz, 0, .0)
+        self.assertRaises(CircuitError, qc.rz, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.rz, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.rz, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.rz, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.rz, 0, 'a')
 
     def test_rz_reg(self):
         instruction_set = self.circuit.rz(1, self.qr)
@@ -500,14 +505,14 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_rzz_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.rzz, 1, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.rzz, 1, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.rzz, 1, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.rzz, 1, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.rzz, 1, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.rzz, 1, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.rzz, 1, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.rzz, 1, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.rzz, 1, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.rzz, 1, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.rzz, 1, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.rzz, 1, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
 
     def test_s(self):
         self.circuit.s(self.qr[1])
@@ -525,11 +530,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_s_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.s, self.cr[0])
-        self.assertRaises(QiskitError, qc.s, self.cr)
-        self.assertRaises(QiskitError, qc.s, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.s, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.s, .0)
+        self.assertRaises(CircuitError, qc.s, self.cr[0])
+        self.assertRaises(CircuitError, qc.s, self.cr)
+        self.assertRaises(CircuitError, qc.s, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.s, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.s, .0)
 
     def test_s_reg(self):
         instruction_set = self.circuit.s(self.qr)
@@ -557,11 +562,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_sdg_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.sdg, self.cr[0])
-        self.assertRaises(QiskitError, qc.sdg, self.cr)
-        self.assertRaises(QiskitError, qc.sdg, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.sdg, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.sdg, .0)
+        self.assertRaises(CircuitError, qc.sdg, self.cr[0])
+        self.assertRaises(CircuitError, qc.sdg, self.cr)
+        self.assertRaises(CircuitError, qc.sdg, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.sdg, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.sdg, .0)
 
     def test_sdg_reg(self):
         instruction_set = self.circuit.sdg(self.qr)
@@ -589,14 +594,14 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_swap_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.swap, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.swap, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.swap, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.swap, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.swap, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.swap, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.swap, self.qr, self.qr2[[1, 2]])
-        self.assertRaises(QiskitError, qc.swap, self.qr[:2], self.qr2)
+        self.assertRaises(CircuitError, qc.swap, self.cr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.swap, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.swap, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.swap, (self.qr, 3), self.qr[0])
+        self.assertRaises(CircuitError, qc.swap, self.cr, self.qr)
+        self.assertRaises(CircuitError, qc.swap, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.swap, self.qr, self.qr2[[1, 2]])
+        self.assertRaises(CircuitError, qc.swap, self.qr[:2], self.qr2)
 
     def test_t(self):
         self.circuit.t(self.qr[1])
@@ -614,11 +619,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_t_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.t, self.cr[0])
-        self.assertRaises(QiskitError, qc.t, self.cr)
-        self.assertRaises(QiskitError, qc.t, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.t, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.t, .0)
+        self.assertRaises(CircuitError, qc.t, self.cr[0])
+        self.assertRaises(CircuitError, qc.t, self.cr)
+        self.assertRaises(CircuitError, qc.t, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.t, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.t, .0)
 
     def test_t_reg(self):
         instruction_set = self.circuit.t(self.qr)
@@ -646,11 +651,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_tdg_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.tdg, self.cr[0])
-        self.assertRaises(QiskitError, qc.tdg, self.cr)
-        self.assertRaises(QiskitError, qc.tdg, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.tdg, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.tdg, .0)
+        self.assertRaises(CircuitError, qc.tdg, self.cr[0])
+        self.assertRaises(CircuitError, qc.tdg, self.cr)
+        self.assertRaises(CircuitError, qc.tdg, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.tdg, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.tdg, .0)
 
     def test_tdg_reg(self):
         instruction_set = self.circuit.tdg(self.qr)
@@ -663,53 +668,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[0].name, 't')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_u0(self):
-        self.circuit.u0(1, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_wires(self):
-        self.circuit.u0(1, 1)
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [1])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_u0_invalid(self):
-        qc = self.circuit
-        # CHECKME? self.assertRaises(QiskitError, qc.u0, self.cr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.u0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.u0, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.u0, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.u0, 0, .0)
-        self.assertRaises(QiskitError, qc.u0, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.u0, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.u0, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.u0, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.u0, 0, 'a')
-
-    def test_u0_reg(self):
-        instruction_set = self.circuit.u0(1, self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_reg_inv(self):
-        instruction_set = self.circuit.u0(1, self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'u0')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1])
-
-    def test_u0_pi(self):
-        qc = self.circuit
-        qc.u0(pi / 2, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'u0')
-        self.assertEqual(op.params, [pi / 2])
-        self.assertEqual(qargs, [self.qr[1]])
 
     def test_u1(self):
         self.circuit.u1(1, self.qr[1])
@@ -727,16 +685,16 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u1_invalid(self):
         qc = self.circuit
-        # CHECKME? self.assertRaises(QiskitError, qc.u1, self.cr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.u1, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.u1, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.u1, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.u1, 0, .0)
-        self.assertRaises(QiskitError, qc.u1, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.u1, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.u1, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.u1, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.u1, 0, 'a')
+        # CHECKME? self.assertRaises(CircuitError, qc.u1, self.cr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.u1, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.u1, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.u1, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.u1, 0, .0)
+        self.assertRaises(CircuitError, qc.u1, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.u1, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.u1, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.u1, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.u1, 0, 'a')
 
     def test_u1_reg(self):
         instruction_set = self.circuit.u1(1, self.qr)
@@ -774,16 +732,16 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u2_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.u2, 0, self.cr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.u2, 0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.u2, 0, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.u2, 0, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.u2, 0, 0, .0)
-        self.assertRaises(QiskitError, qc.u2, 0, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.u2, 0, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.u2, 0, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.u2, 0, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.u2, 0, 0, 'a')
+        self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.u2, 0, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.u2, 0, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.u2, 0, 0, .0)
+        self.assertRaises(CircuitError, qc.u2, 0, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.u2, 0, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.u2, 0, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.u2, 0, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.u2, 0, 0, 'a')
 
     def test_u2_reg(self):
         instruction_set = self.circuit.u2(1, 2, self.qr)
@@ -820,16 +778,16 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u3_invalid(self):
         qc = self.circuit
-        # TODO self.assertRaises(QiskitError, qc.u3, 0, self.cr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.u3, 0, 0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.u3, 0, 0, self.qr[1], 0)
-        self.assertRaises(QiskitError, qc.u3, 0, 0, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.u3, 0, 0, 0, .0)
-        self.assertRaises(QiskitError, qc.u3, 0, 0, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.u3, 0, 0, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.u3, 0, 0, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.u3, 0, 0, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.u3, 0, 0, 0, 'a')
+        # TODO self.assertRaises(CircuitError, qc.u3, 0, self.cr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.u3, 0, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.u3, 0, 0, self.qr[1], 0)
+        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, self.cr[0])
+        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, .0)
+        self.assertRaises(CircuitError, qc.u3, 0, 0, self.qr[2], self.qr[1])
+        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, self.cr)
+        # TODO self.assertRaises(CircuitError, qc.u3, 0, 0, 'a', self.qr[1])
+        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, 'a')
 
     def test_u3_reg(self):
         instruction_set = self.circuit.u3(1, 2, 3, self.qr)
@@ -866,10 +824,10 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_x_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.x, self.cr[0])
-        self.assertRaises(QiskitError, qc.x, self.cr)
-        self.assertRaises(QiskitError, qc.x, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.x, 0.0)
+        self.assertRaises(CircuitError, qc.x, self.cr[0])
+        self.assertRaises(CircuitError, qc.x, self.cr)
+        self.assertRaises(CircuitError, qc.x, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.x, 0.0)
 
     def test_x_reg(self):
         instruction_set = self.circuit.x(self.qr)
@@ -899,10 +857,10 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_y_invalid(self):
         qc = self.circuit
-        self.assertRaises(QiskitError, qc.y, self.cr[0])
-        self.assertRaises(QiskitError, qc.y, self.cr)
-        self.assertRaises(QiskitError, qc.y, (self.qr, 'a'))
-        self.assertRaises(QiskitError, qc.y, 0.0)
+        self.assertRaises(CircuitError, qc.y, self.cr[0])
+        self.assertRaises(CircuitError, qc.y, self.cr)
+        self.assertRaises(CircuitError, qc.y, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.y, 0.0)
 
     def test_y_reg(self):
         instruction_set = self.circuit.y(self.qr)
@@ -1255,6 +1213,41 @@ class TestStandard3Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1],
                          [self.qr[1], self.qr2[1], self.qr3[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
+
+class TestStandardMethods(QiskitTestCase):
+    """Standard Extension Test."""
+
+    def test_to_matrix(self):
+        """test gates implementing to_matrix generate matrix which matches
+        definition."""
+        params = [0.1 * i for i in range(10)]
+        gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        simulator = BasicAer.get_backend('unitary_simulator')
+        for gate_class in gate_class_list:
+            sig = signature(gate_class.__init__)
+            free_params = len(sig.parameters) - 1  # subtract "self"
+            try:
+                gate = gate_class(*params[0:free_params])
+            except (CircuitError, QiskitError, AttributeError):
+                self.log.info(
+                    'Cannot init gate with params only. Skipping %s',
+                    gate_class)
+                continue
+            if gate.name in ['U', 'CX']:
+                continue
+            circ = QuantumCircuit(gate.num_qubits)
+            circ.append(gate, range(gate.num_qubits))
+            try:
+                gate_matrix = gate.to_matrix()
+            except CircuitError:
+                # gate doesn't implement to_matrix method: skip
+                self.log.info('to_matrix method FAILED for "%s" gate',
+                              gate.name)
+                continue
+            definition_unitary = execute([circ], simulator).result().get_unitary()
+            self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+            self.assertTrue(is_unitary_matrix(gate_matrix))
 
 
 if __name__ == '__main__':

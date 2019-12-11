@@ -12,25 +12,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 controlled-Y gate.
 """
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.y import YGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.cx import CnotGate
 
 
-class CyGate(Gate):
+class CyGate(ControlledGate):
     """controlled-Y gate."""
 
     def __init__(self):
         """Create new CY gate."""
-        super().__init__("cy", 2, [])
+        super().__init__("cy", 2, [], num_ctrl_qubits=1)
+        self.base_gate = YGate
+        self.base_gate_name = "y"
 
     def _define(self):
         """
@@ -52,7 +53,7 @@ class CyGate(Gate):
         return CyGate()  # self-inverse
 
 
-def cy(self, ctl, tgt):
+def cy(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CY to circuit."""
     return self.append(CyGate(), [ctl, tgt], [])
 

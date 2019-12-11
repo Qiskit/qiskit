@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Initial support for executing experiments on ion trap backends has been
+    added.
+  - |
+    An Rxx gate (rxx) and a global Mølmer–Sørensen gate (ms) have been added
+    to the standard gate set.
+  - |
+    A Cnot to Rxx/Rx/Ry decomposer ``cnot_rxx_decompose`` and a single qubit
+    Euler angle decomposer ``OneQubitEulerDecomposer`` have been added to the
+    ``quantum_info.synthesis`` module.
+  - |
+    A transpiler pass ``MSBasisDecomposer`` has been added to unroll circuits
+    defined over U3 and Cnot gates into a circuit defined over Rxx,Ry and Rx.
+    This pass will be included in preset pass managers for backends which
+    include the 'rxx' gate in their supported basis gates.

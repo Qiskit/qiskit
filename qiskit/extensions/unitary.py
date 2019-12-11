@@ -16,6 +16,7 @@
 Arbitrary unitary circuit instruction.
 """
 
+from collections import OrderedDict
 import numpy
 
 from qiskit.circuit import Gate
@@ -62,6 +63,10 @@ class UnitaryGate(Gate):
         if input_dim != output_dim or 2**n_qubits != input_dim:
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
+
+        self._qasm_name = None
+        self._qasm_definition = None
+        self._qasm_def_written = False
         # Store instruction params
         super().__init__('unitary', n_qubits, [data], label=label)
 
@@ -105,6 +110,93 @@ class UnitaryGate(Gate):
         else:
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
+
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate
+
+        Args:
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
+            label (str): optional gate label
+
+        Returns:
+            UnitaryGate: controlled version of gate.
+
+        Raises:
+            QiskitError: unrecognized mode
+        """
+        cmat = self._compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        return UnitaryGate(cmat, label=label)
+
+    def _compute_control_matrix(self, base_mat, num_ctrl_qubits):
+        """
+        Compute the controlled version of the input matrix with qiskit ordering.
+
+        Args:
+            base_mat (ndarray): unitary to be controlled
+            num_ctrl_qubits (int): number of controls for new unitary
+
+        Returns:
+            ndarray: controlled version of base matrix.
+        """
+        num_target = int(numpy.log2(base_mat.shape[0]))
+        ctrl_dim = 2**num_ctrl_qubits
+        ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
+        full_mat_dim = ctrl_dim * base_mat.shape[0]
+        full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
+        ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_dim - 1))
+        full_mat = (numpy.kron(numpy.eye(2**num_target),
+                               numpy.eye(ctrl_dim) - ctrl_proj)
+                    + numpy.kron(base_mat, ctrl_proj))
+        return full_mat
+
+    def qasm(self):
+        """ The qasm for a custom unitary gate
+        This is achieved by adding a custom gate that corresponds to the definition
+        of this gate. It gives the gate a random name if one hasn't been given to it.
+        """
+        # if this is true then we have written the gate definition already
+        # so we only need to write the name
+        if self._qasm_def_written:
+            return self._qasmif(self._qasm_name)
+
+        # we have worked out the definition before, but haven't written it yet
+        # so we need to write definition + name
+        if self._qasm_definition:
+            self._qasm_def_written = True
+            return self._qasm_definition + self._qasmif(self._qasm_name)
+
+        # need to work out the definition and then write it
+
+        # give this unitary a name
+        self._qasm_name = self.label if self.label else "unitary" + str(id(self))
+
+        # map from gates in the definition to params in the method
+        reg_to_qasm = OrderedDict()
+        current_reg = 0
+
+        gates_def = ""
+        for gate in self.definition:
+
+            # add regs from this gate to the overall set of params
+            for reg in gate[1] + gate[2]:
+                if reg not in reg_to_qasm:
+                    reg_to_qasm[reg] = 'p' + str(current_reg)
+                    current_reg += 1
+
+            curr_gate = "\t%s %s;\n" % (gate[0].qasm(),
+                                        ",".join([reg_to_qasm[j]
+                                                  for j in gate[1] + gate[2]]))
+            gates_def += curr_gate
+
+        # name of gate + params + {definition}
+        overall = "gate " + self._qasm_name + \
+                  " " + ",".join(reg_to_qasm.values()) + \
+                  " {\n" + gates_def + "}\n"
+
+        self._qasm_def_written = True
+        self._qasm_definition = overall
+
+        return self._qasm_definition + self._qasmif(self._qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):

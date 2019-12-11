@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    The matplotlib drawer raises a warning when the `style` argument dictonary includes
-    a key that is not supported by the drawer. In the future, unsupported keys will raise
-    an exception.

@@ -21,8 +21,8 @@ by creating a stack of lexers.
 
 import os
 
+import numpy as np
 import ply.lex as lex
-from sympy import Number
 
 from . import node
 from .exceptions import QasmError
@@ -106,9 +106,10 @@ class QasmLexer:
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
-        t.value = Number(t.value)
-        # tad nasty, see mkfloat.py to see how this is derived from python spec
-        return t
+        if np.iscomplex(t):
+            return t.real
+        else:
+            return t
 
     def t_NNINTEGER(self, t):
         r'[1-9]+[0-9]*|0'

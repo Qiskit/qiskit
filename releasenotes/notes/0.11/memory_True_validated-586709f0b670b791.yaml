@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Backend support for ``memory=True`` now checked when that kwarg is passed.
+    ``QiskitError`` results if not supported.

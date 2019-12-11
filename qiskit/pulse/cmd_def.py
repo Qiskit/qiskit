@@ -15,6 +15,8 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
+import warnings
+
 from typing import List, Tuple, Iterable, Union, Dict, Optional
 
 from qiskit.qobj import PulseQobjInstruction
@@ -30,6 +32,7 @@ from .schedule import Schedule, ParameterizedSchedule
 
 def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
     """Convert argument to tuple.
+
     Args:
         qubit_tuple: Qubits to enforce as tuple.
 
@@ -57,6 +60,10 @@ class CmdDef:
             schedules: Keys are tuples of (cmd_name, *qubits) and values are
                 `Schedule` or `ParameterizedSchedule`
         """
+        warnings.warn("The CmdDef is being deprecated. All CmdDef methods are now supported by "
+                      "`InstructionScheduleMap` accessible as "
+                      "`backend.defaults().circuit_instruction_map` for any Pulse enabled system.",
+                      DeprecationWarning)
         self._cmd_dict = {}
 
         if schedules:
@@ -68,12 +75,15 @@ class CmdDef:
                       pulse_library: Dict[str, SamplePulse],
                       buffer: int = 0) -> 'CmdDef':
         """Create command definition from backend defaults output.
+
         Args:
             flat_cmd_def: Command definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
             buffer: Buffer between instructions on channel
         """
-        converter = QobjToInstructionConverter(pulse_library, buffer=buffer)
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        converter = QobjToInstructionConverter(pulse_library)
         cmd_def = cls()
 
         for cmd in flat_cmd_def:
@@ -121,6 +131,7 @@ class CmdDef:
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Get command from command definition.
+
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
@@ -145,6 +156,7 @@ class CmdDef:
 
     def get_parameters(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """Get command parameters from command definition.
+
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to

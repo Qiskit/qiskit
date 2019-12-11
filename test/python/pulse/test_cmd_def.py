@@ -20,18 +20,18 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
-from qiskit.pulse import (CmdDef, SamplePulse, Schedule, PulseChannelSpec,
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule,
                           PulseError, PersistentValue)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
 class TestCmdDef(QiskitTestCase):
-    """Test CmdDef methods."""
+    """Test CmdDef methods. Deprecated."""
 
     def setUp(self):
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_openpulse_2q')
-        self.device = PulseChannelSpec.from_backend(self.backend)
+        self.config = self.backend.configuration()
 
     def test_get_backend(self):
         """Test that backend is fetchable with cmd def present."""
@@ -39,14 +39,14 @@ class TestCmdDef(QiskitTestCase):
     def test_init(self):
         """Test `init`, `has`."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.drives[0]))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef({('tmp', 0): sched})
         self.assertTrue(cmd_def.has('tmp', 0))
 
     def test_add(self):
         """Test `add`, `has`, `get`, `cmdss`."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.drives[0]))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 1, sched)
         cmd_def.add('tmp', 0, sched)
@@ -58,7 +58,7 @@ class TestCmdDef(QiskitTestCase):
     def test_pop(self):
         """Test pop with default."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.drives[0]))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
         cmd_def.pop('tmp', 0)
@@ -70,14 +70,14 @@ class TestCmdDef(QiskitTestCase):
     def test_repr(self):
         """Test repr."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.drives[0]))
+        sched.append(SamplePulse(np.ones(5))(self.config.drive(0)))
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)
 
     def test_parameterized_schedule(self):
         """Test building parameterized schedule."""
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P2*cos(np.pi*P1)')
         converted_instruction = converter(qobj)
 
@@ -101,7 +101,7 @@ class TestCmdDef(QiskitTestCase):
     def test_sequenced_parameterized_schedule(self):
         """Test parametrized schedule consist of multiple instruction. """
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='P2'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=30, phase='P3')]
@@ -136,7 +136,7 @@ class TestCmdDef(QiskitTestCase):
     def test_negative_phases(self):
         """Test bind parameters with negative values."""
         cmd_def = CmdDef()
-        converter = QobjToInstructionConverter([], buffer=0)
+        converter = QobjToInstructionConverter([])
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P2)')]
         converted_instruction = [converter(qobj) for qobj in qobjs]
@@ -153,7 +153,7 @@ class TestCmdDef(QiskitTestCase):
         defaults = self.backend.defaults()
         cmd_def = defaults.build_cmd_def()
 
-        cx_pv = cmd_def.get('cx', (0, 1), P2=0)
+        cx_pv = cmd_def.get('ParametrizedGate', (0, 1), P2=0)
         pv_found = False
         for _, instr in cx_pv.instructions:
             cmd = instr.command
@@ -167,6 +167,3 @@ class TestCmdDef(QiskitTestCase):
         u1_minus_pi = cmd_def.get('u1', 0, P1=1)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
-
-        for chan in u1_minus_pi.channels:
-            self.assertEqual(chan.buffer, defaults.buffer)

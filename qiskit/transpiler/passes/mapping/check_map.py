@@ -12,23 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This pass checks if a DAG circuit is already mapped to a coupling map.
-
-It checks that all 2-qubit interactions are laid out to be physically close.
-"""
+"""Check if a DAG circuit is already mapped to a coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CheckMap(AnalysisPass):
-    """
-    Checks if a DAGCircuit is mapped to `coupling_map`, setting `is_swap_mapped`
-    in the property set as True if mapped. False otherwise.
+    """Check if a DAG circuit is already mapped to a coupling map.
+
+    Check if a DAGCircuit is mapped to `coupling_map` by checking that all
+    2-qubit interactions are laid out to be physically close, setting the
+    property ``is_swap_mapped`` to ``True`` or ``False`` accordingly.
     """
 
     def __init__(self, coupling_map):
-        """
-        Checks if a DAGCircuit is mapped to `coupling_map`.
+        """CheckMap initializer.
+
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
         """
@@ -36,7 +35,8 @@ class CheckMap(AnalysisPass):
         self.coupling_map = coupling_map
 
     def run(self, dag):
-        """
+        """Run the CheckMap pass on `dag`.
+
         If `dag` is mapped to `coupling_map`, the property
         `is_swap_mapped` is set to True (or to False otherwise).
 

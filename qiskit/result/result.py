@@ -17,9 +17,11 @@
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.states import state_to_counts
 
 from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
+from qiskit.qobj.utils import MeasLevel
 from .models import ResultSchema
 
 
@@ -37,7 +39,7 @@ class Result(BaseModel):
         job_id (str): unique execution id from the backend.
         success (bool): True if complete input qobj executed correctly. (Implies
             each experiment success)
-        results (ExperimentResult): corresponding results for array of
+        results (list[ExperimentResult]): corresponding results for array of
             experiments of the input qobj
     """
 
@@ -143,11 +145,11 @@ class Result(BaseModel):
 
             memory = self.data(experiment)['memory']
 
-            if meas_level == 2:
+            if meas_level == MeasLevel.CLASSIFIED:
                 return postprocess.format_level_2_memory(memory, header)
-            elif meas_level == 1:
+            elif meas_level == MeasLevel.KERNELED:
                 return postprocess.format_level_1_memory(memory)
-            elif meas_level == 0:
+            elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
                 raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
@@ -171,16 +173,19 @@ class Result(BaseModel):
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
+        exp = self._get_experiment(experiment)
         try:
-            exp = self._get_experiment(experiment)
-            try:
-                header = exp.header.to_dict()
-            except (AttributeError, QiskitError):  # header is not available
-                header = None
+            header = exp.header.to_dict()
+        except (AttributeError, QiskitError):  # header is not available
+            header = None
 
+        if 'counts' in self.data(experiment).keys():
             return postprocess.format_counts(self.data(experiment)['counts'],
                                              header)
-        except KeyError:
+        elif 'statevector' in self.data(experiment).keys():
+            vec = postprocess.format_statevector(self.data(experiment)['statevector'])
+            return state_to_counts(vec)
+        else:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_statevector(self, experiment=None, decimals=None):
@@ -231,7 +236,7 @@ class Result(BaseModel):
 
         Args:
             key (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data()``.
 
         Returns:
             ExperimentResult: the results for an experiment.
@@ -240,32 +245,34 @@ class Result(BaseModel):
             QiskitError: if there is no data for the experiment, or an unhandled
                 error occurred while fetching the data.
         """
-        if not self.success:
-            raise QiskitError(getattr(self, 'status',
-                                      'Result was not successful'))
-
         # Automatically return the first result if no key was provided.
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
                     'You have to select a circuit or schedule when there is more than '
                     'one available')
-
             key = 0
-
-        # Key is an integer: return result by index.
-        if isinstance(key, int):
-            return self.results[key]
 
         # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
         if isinstance(key, (QuantumCircuit, Schedule)):
             key = key.name
+        # Key is an integer: return result by index.
+        if isinstance(key, int):
+            exp = self.results[key]
+        else:
+            try:
+                # Look into `result[x].header.name` for the names.
+                exp = next(result for result in self.results
+                           if getattr(getattr(result, 'header', None),
+                                      'name', '') == key)
+            except StopIteration:
+                raise QiskitError('Data for experiment "%s" could not be found.' %
+                                  key)
 
-        try:
-            # Look into `result[x].header.name` for the names.
-            return next(result for result in self.results
-                        if getattr(getattr(result, 'header', None),
-                                   'name', '') == key)
-        except StopIteration:
-            raise QiskitError('Data for experiment "%s" could not be found.' %
-                              key)
+        # Check that the retrieved experiment was successful
+        if getattr(exp, 'success', False):
+            return exp
+        # If unsuccessful check experiment and result status and raise exception
+        result_status = getattr(self, 'status', 'Result was not successful')
+        exp_status = getattr(exp, 'status', 'Experiment was not successful')
+        raise QiskitError(result_status, ", ", exp_status)

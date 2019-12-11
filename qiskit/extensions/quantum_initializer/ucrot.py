@@ -15,8 +15,6 @@
 # The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
 # which was supervised by Raban Iten and Prof. Renato Renner.
 
-# pylint: disable=invalid-name
-
 """
 (Abstract) base class for uniformly controlled (also called multiplexed) single-qubit rotations R_t.
 This class provides a basis for the decomposition of uniformly controlled R_x,R_y and R_z gates
@@ -55,9 +53,9 @@ class UCRot(Gate):
         if not isinstance(angle_list, list):
             raise QiskitError("The angles are not provided in a list.")
         # Check if the angles in angle_list are real numbers
-        for a in angle_list:
+        for angle in angle_list:
             try:
-                float(a)
+                float(angle)
             except TypeError:
                 raise QiskitError(
                     "An angle cannot be converted to type float (real angles are expected).")
@@ -109,7 +107,7 @@ class UCRot(Gate):
             # First, we find the rotation angles of the single-qubit rotations acting
             #  on the target qubit
             angles = self.params.copy()
-            _dec_uc_rotations(angles, 0, len(angles), False)
+            UCRot._dec_uc_rotations(angles, 0, len(angles), False)
             # Now, it is easy to place the C-NOT gates to get back the full decomposition.s
             for (i, angle) in enumerate(angles):
                 if self.rot_axes == "X":
@@ -141,29 +139,30 @@ class UCRot(Gate):
                     circuit.ry(-np.pi / 2, q_target)
         return circuit
 
-
-# Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at the end of
-# the circuit. The rotation angles of the gate R_t are stored in angles[start_index:end_index].
-# If reversed == True, it decomposes the gate such that there is a C-NOT gate at the start
-# of the circuit (in fact, the circuit topology for the reversed decomposition is the reversed
-# one of the original decomposition)
-def _dec_uc_rotations(angles, start_index, end_index, reversedDec):
-    interval_len_half = (end_index - start_index) // 2
-    for i in range(start_index, start_index + interval_len_half):
-        if not reversedDec:
-            angles[i], angles[i + interval_len_half] = _update_angles(angles[i],
-                                                                      angles[i + interval_len_half])
+    @staticmethod
+    def _dec_uc_rotations(angles, start_index, end_index, reversedDec):
+        """
+        Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at
+        the end of the circuit. The rotation angles of the gate R_t are stored in
+        angles[start_index:end_index]. If reversed == True, it decomposes the gate such that
+        there is a C-NOT gate at the start of the circuit (in fact, the circuit topology for
+        the reversed decomposition is the reversed one of the original decomposition)
+        """
+        interval_len_half = (end_index - start_index) // 2
+        for i in range(start_index, start_index + interval_len_half):
+            if not reversedDec:
+                angles[i], angles[i + interval_len_half] = UCRot._update_angles(angles[i], angles[
+                    i + interval_len_half])
+            else:
+                angles[i + interval_len_half], angles[i] = UCRot._update_angles(angles[i], angles[
+                    i + interval_len_half])
+        if interval_len_half <= 1:
+            return
         else:
-            angles[i + interval_len_half], angles[i] = _update_angles(angles[i],
-                                                                      angles[i + interval_len_half])
-    if interval_len_half <= 1:
-        return
-    else:
-        _dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
-        _dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
+            UCRot._dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
+            UCRot._dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
 
-
-# Calculate the new rotation angles according to Shende's decomposition
-
-def _update_angles(a1, a2):
-    return (a1 + a2) / 2.0, (a1 - a2) / 2.0
+    @staticmethod
+    def _update_angles(angle1, angle2):
+        """Calculate the new rotation angles according to Shende's decomposition"""
+        return (angle1 + angle2) / 2.0, (angle1 - angle2) / 2.0
