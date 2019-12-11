@@ -69,6 +69,22 @@ def _control_predefined(operation, num_ctrl_qubits):
     elif operation.name == 'h':
         import qiskit.extensions.standard.ch
         cgate = qiskit.extensions.standard.ch.CHGate()
+    elif operation.name == 'rx':
+        import qiskit.extensions.standard.crx
+        cgate = qiskit.extensions.standard.crx.CrxGate(*operation.params)
+        if num_ctrl_qubits == 1:
+            return cgate
+        else:
+            # use crx as base gate for phase correctness
+            return cgate.control(num_ctrl_qubits - 1)
+    elif operation.name == 'ry':
+        import qiskit.extensions.standard.cry
+        cgate = qiskit.extensions.standard.cry.CryGate(*operation.params)
+        if num_ctrl_qubits == 1:
+            return cgate
+        else:
+            # use cry as base gate for phase correctness
+            return cgate.control(num_ctrl_qubits - 1)
     elif operation.name == 'rz':
         import qiskit.extensions.standard.crz
         cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)

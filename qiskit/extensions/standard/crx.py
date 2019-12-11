@@ -22,6 +22,7 @@ from qiskit.extensions.standard.cu3 import Cu3Gate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.qasm import pi
 
+
 class CrxGate(ControlledGate):
     """controlled-rx gate."""
 
@@ -55,5 +56,6 @@ class CrxGate(ControlledGate):
 def crx(self, theta, ctl, tgt):
     """Apply crx from ctl to tgt with angle theta."""
     return self.append(CrxGate(theta), [ctl, tgt], [])
+
 
 QuantumCircuit.crx = crx
