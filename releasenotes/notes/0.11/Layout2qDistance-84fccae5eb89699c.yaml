@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added a new analysis pass ``Layout2qDistance``. This pass allows to "score"
+    a layout selection, once ``property_set['layout']`` is set.  The score will
+    be the sum of distances for each two-qubit gate in the circuit, when they
+    are not directly connected. This scoring does not consider direction in the
+    coupling map. The lower the number, the better the layout selection is.
+
+    For example, consider a linear coupling map ``[0]--[2]--[1]`` and the
+    following circuit::
+
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+       
+    If the layout is ``{qr[0]:0, qr[1]:1}``, ``Layout2qDistance`` will set
+    ``property_set['layout_score'] = 1``. If the layout
+    is ``{qr[0]:0, qr[1]:2}``, then the result
+    is ``property_set['layout_score'] = 0``. The lower the score, the better.
