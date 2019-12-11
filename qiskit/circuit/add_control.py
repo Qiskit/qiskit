@@ -43,7 +43,7 @@ def _control_definition_known(operation, num_ctrl_qubits):
     if num_ctrl_qubits == 2 and operation.name == 'x':
         return True
     elif num_ctrl_qubits == 1:
-        return operation.name in {'x', 'y', 'z', 'h', 'rz', 'swap', 'u1', 'u3', 'cx'}
+        return operation.name in {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'u1', 'u3', 'cx'}
     elif operation.name == 'rz' and num_ctrl_qubits > 1:
         return True
     else:
