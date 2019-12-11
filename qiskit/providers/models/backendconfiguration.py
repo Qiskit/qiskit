@@ -327,7 +327,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in qubit_lo_range]
         self.meas_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in meas_lo_range]
-        self.dt = dt * 1e-9
+        self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
