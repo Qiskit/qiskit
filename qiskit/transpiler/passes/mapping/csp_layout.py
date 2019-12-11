@@ -29,7 +29,7 @@ class CSPLayout(AnalysisPass):
     If possible, chooses a Layout as a CSP, using backtracking.
     """
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000):
+    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=None):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
         does not set the layout property.
@@ -41,7 +41,7 @@ class CSPLayout(AnalysisPass):
             seed (int): Sets the seed of the PRNG.
             call_limit (int): Amount of times that
                 ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` will be called.
-                Default: 1000
+                The default is None, which means, no call limit.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -65,7 +65,8 @@ class CSPLayout(AnalysisPass):
 
         class CustomSolver(RecursiveBacktrackingSolver):
             """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
-            def __init__(self, call_limit):
+
+            def __init__(self, call_limit=None):
                 self.call_limit = call_limit
                 super().__init__()
 
@@ -79,7 +80,10 @@ class CSPLayout(AnalysisPass):
                 return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
                                                      single)
 
-        problem = Problem(CustomSolver(call_limit=self.call_limit))
+        if self.call_limit is None:
+            problem = Problem(RecursiveBacktrackingSolver())
+        else:
+            problem = Problem(CustomSolver(call_limit=self.call_limit))
 
         problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
 
