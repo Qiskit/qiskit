@@ -20,7 +20,7 @@ from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
-from qiskit.qobj.models.pulse import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
+from qiskit.qobj.models.pulse import PulseLibraryItemSchema, PulseQobjInstructionSchema
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -116,7 +116,7 @@ class PulseDefaults(BaseModel):
                  qubit_freq_est: List[float],
                  meas_freq_est: List[float],
                  buffer: int,
-                 pulse_library: List[PulseLibraryItem],
+                 pulse_library,
                  cmd_def: List[Command],
                  **kwargs: Dict[str, Any]):
         """
