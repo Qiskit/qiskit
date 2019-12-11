@@ -100,11 +100,11 @@ class Acquire(Command):
 
     # pylint: disable=arguments-differ
     def to_instruction(self,
-                       qubits: Union[Qubit, List[Qubit]],
-                       mem_slots: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       qubit: Qubit,
+                       mem_slot: MemorySlot = None,
+                       reg_slot: RegisterSlot = None,
                        name: Optional[str] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
+        return AcquireInstruction(self, qubit.acquire, mem_slot, reg_slot, name)
     # pylint: enable=arguments-differ
 
 

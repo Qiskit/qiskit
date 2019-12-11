@@ -323,8 +323,10 @@ class QobjToInstructionConverter:
 
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
-        schedule |= commands.AcquireInstruction(cmd, qubit_channels, mem_slots,
-                                                register_slots) << t0
+
+        for qubit_channel, mem_slot in zip(qubit_channels, mem_slots):
+            schedule |= commands.AcquireInstruction(cmd, qubit_channel, mem_slot)
+        schedule << t0
 
         return schedule
 
