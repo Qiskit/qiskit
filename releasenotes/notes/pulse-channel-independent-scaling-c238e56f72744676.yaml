@@ -1,0 +1,31 @@
+---
+upgrade:
+  - |
+    Pulse visualizer can apply scaling factor independently to each channel.
+    This option is available only for visualizing pulse schedules.
+    Without specifying, visualizer checks maximum amplitude of pulses in
+    each channel and apply best scaling factor to it. The scaling factor is
+    displayed just below the channel aliases. If you want to apply cunstom
+    scaling factors, you can use python dictionary as following example.
+
+    example::
+      import qiskit
+      import qiskit.pulse.pulse_lib as pulse_lib
+
+      drive0 = qiskit.pulse.DriveChannel(0)
+      drive1 = qiskit.pulse.DriveChannel(1)
+
+      # schedule to plot
+      sched = qiskit.pulse.Schedule()
+      sched = sched | pulse_lib.drag(30, 0.5, 5, 1)(drive0)
+      sched = sched | pulse_lib.drag(30, 0.05, 5, 1)(drive1)
+
+      # custom scaling factor
+      scalings = {drive0: 1, drive1: 10}
+
+      sched.draw(scaling=scalings)
+
+    If you apply single scaling factor, the visualizer use that value to all channels.
+
+    example::
+      scalings = 10
