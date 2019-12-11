@@ -20,12 +20,24 @@ Software Mitigation of Crosstalk on Noisy Intermediate-Scale Quantum Computers,
 in International Conference on Architectural Support for Programming Languages
 and Operating Systems (ASPLOS), 2020.
 Please cite the paper if you use this pass.
+
+The method handles crosstalk noise on two-qubit gates. This includes crosstalk
+with simultaneous two-qubit and one-qubit gates. The method ignores
+crosstalk between pairs of single qubit gates.
+
+The method assumes that all qubits get measured simultaneously whether or not
+they need a measurement. This assumption is based on current device properties
+and may need to be revised for future device generations.
 """
 
 import math
 import operator
 from itertools import chain, combinations
-from z3 import Real, Bool, Sum, Implies, And, Or, Not, Optimize
+try:
+    from z3 import Real, Bool, Sum, Implies, And, Or, Not, Optimize
+    Z3_AVAIL = True
+except ImportError:
+    Z3_AVAIL = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CnotGate
@@ -41,8 +53,45 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
     """
     Crosstalk mitigation through adaptive instruction scheduling.
     """
-    def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_indices=None):
+    def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
+        """
+        CrosstalkAdaptiveSchedule initializer.
+
+        Args:
+            backend_prop (BackendProperties): backend properties object
+            crosstalk_prop (dict): crosstalk properties object
+                crosstalk_prop[g1][g2] specifies the conditional error rate of
+                g1 when g1 and g2 are executed simultaneously.
+                g1 should be a two-qubit tuple of the form (x,y) where x and y are physical
+                qubit ids. g2 can be either two-qubit tuple (x,y) or single-qubit tuple (x).
+                We currently ignore crosstalk between pairs of single-qubit gates.
+                Gate pairs which are not specified are assumed to be crosstalk free.
+
+                Example: crosstalk_prop = {(0, 1) : {(2, 3) : 0.2, (2) : 0.15},
+                                           (4, 5) : {(2, 3) : 0.1},
+                                           (2, 3) : {(0, 1) : 0.05, (4, 5): 0.05}}
+                The keys of the crosstalk_prop are tuples for ordered tuples for CX gates
+                e.g., (0, 1) corresponding to CX 0, 1 in the hardware.
+                Each key has an associated value dict which specifies the conditional error rates
+                with nearby gates e.g., (0, 1) : {(2, 3) : 0.2, (2) : 0.15} means that
+                CNOT 0, 1 has an error rate of 0.2 when it is executed in parallel with CNOT 2,3
+                and an error rate of 0.15 when it is executed in parallel with a single qubit
+                gate on qubit 2.
+            weight_factor (float): weight of gate error/crosstalk terms in the objective
+                weight_factor*fidelities + (1-weight_factor)*decoherence errors.
+                Weight can be varied from 0 to 1, with 0 meaning that only decoherence
+                errors are optimized and 1 meaning that only crosstalk errors are optimized.
+                weight_factor should be tuned per application to get the best results.
+            measured_qubits (list): a list of qubits that will be measured in a particular circuit.
+                This arg need not be specified for circuits which already include measure gates.
+                The arg is useful when a subsequent module such as state_tomography_circuits
+                inserts the measure gates. If CrosstalkAdaptiveSchedule is made aware of those
+                measurements, it is included in the optimization.
+
+        """
         super().__init__()
+        if not Z3_AVAIL:
+            raise ImportError('z3-solver is required to use CrosstalkAdaptiveSchedule')
         self.backend_prop = backend_prop
         self.crosstalk_prop = crosstalk_prop
         self.gate_id = {}
@@ -73,12 +122,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.first_gate_on_qubit = None
         self.fidelity_terms = []
         self.coherence_terms = []
-        self.m = None
+        self.model = None
         self.weight_factor = weight_factor
-        if measured_indices is None:
-            self.input_measured_indices = []
+        if measured_qubits is None:
+            self.input_measured_qubits = []
         else:
-            self.input_measured_indices = measured_indices
+            self.input_measured_qubits = measured_qubits
         self.dag = None
 
     def powerset(self, iterable):
@@ -152,6 +201,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
     def cx_tuple(self, gate):
         """
         Representation for two-qubit gate
+        Note: current implementation assumes that the CX error rates and
+        crosstalk behavior are independent of gate direction
         """
         physical_q_0 = gate.qargs[0].index
         physical_q_1 = gate.qargs[1].index
@@ -188,18 +239,18 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
     def extract_dag_overlap_sets(self, dag):
         """
         Gate A, B are overlapping if
-        A is neither a descendant nor an ancestor of B
+        A is neither a descendant nor an ancestor of B.
+        Currenty overlaps (A,B) are considered when A is a 2q gate and
+        B is either 2q or 1q gate.
         """
         for gate in dag.twoQ_gates():
-            s_1 = [d for d in dag.descendants(gate)]
-            s_2 = [a for a in dag.ancestors(gate)]
             overlap_set = []
             for tmp_gate in dag.gate_nodes():
                 if tmp_gate == gate:
                     continue
-                if tmp_gate in s_1:
+                if tmp_gate in dag.descendants(gate):
                     continue
-                if tmp_gate in s_2:
+                if tmp_gate in dag.ancestors(gate):
                     continue
                 overlap_set.append(tmp_gate)
             self.dag_overlap_set[gate] = overlap_set
@@ -247,10 +298,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Setup the variables required for Z3 optimization
         """
         for gate in self.dag.gate_nodes():
-            if isinstance(gate, Measure):
-                continue
-            if isinstance(gate, Barrier):
-                continue
             t_var_name = 't_' + str(self.gate_id[gate])
             d_var_name = 'd_' + str(self.gate_id[gate])
             f_var_name = 'f_' + str(self.gate_id[gate])
@@ -284,7 +331,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             if isinstance(node.op, Measure):
                 meas_q.append(node.qargs[0].index)
 
-        self.measured_qubits = list(set(self.input_measured_indices).union(set(meas_q)))
+        self.measured_qubits = list(set(self.input_measured_qubits).union(set(meas_q)))
         self.measure_start = Real('meas_start')
 
     def basic_bounds(self):
@@ -323,7 +370,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         for g_1 in self.xtalk_overlap_set:
             for g_2 in self.xtalk_overlap_set[g_1]:
                 if len(g_2.qargs) == 2 and self.gate_id[g_1] > self.gate_id[g_2]:
-                    # Symmetry breaking
+                    # Symmetry breaking: create only overlap variable for a pair
+                    # of gates
                     continue
                 s_1 = self.gate_start_time[g_1]
                 f_1 = s_1 + self.gate_duration[g_1]
@@ -460,11 +508,11 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Extract gate start and finish times from Z3 solution
         """
-        self.m = self.opt.model()
+        self.model = self.opt.model()
         result = {}
         for tmpg in self.gate_start_time:
-            start = self.r2f(self.m[self.gate_start_time[tmpg]])
-            dur = self.r2f(self.m[self.gate_duration[tmpg]])
+            start = self.r2f(self.model[self.gate_start_time[tmpg]])
+            dur = self.r2f(self.model[self.gate_duration[tmpg]])
             result[tmpg] = (start, start+dur)
         return result
 
@@ -492,7 +540,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
     def check_xtalk_dependency(self, t_1, t_2):
         """
-        Check if two gates have a crosstalk dependency
+        Check if two gates have a crosstalk dependency.
+        We do not consider crosstalk between pairs of single qubit gates.
         """
         g_1 = t_1[0]
         s_1 = t_1[1]
@@ -500,7 +549,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         g_2 = t_2[0]
         s_2 = t_2[1]
         f_2 = t_2[2]
-        # We don't consider single qubit xtalk
         if len(g_1.qargs) == 1 and len(g_2.qargs) == 1:
             return False, ()
         if s_2 <= f_1 and s_1 <= f_2:
