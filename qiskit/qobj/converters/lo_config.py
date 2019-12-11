@@ -64,11 +64,11 @@ class LoConfigConverter:
 
         q_los = self.get_qubit_los(user_lo_config)
         if q_los:
-            lo_config['qubit_lo_freq'] = q_los
+            lo_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
 
         m_los = self.get_meas_los(user_lo_config)
         if m_los:
-            lo_config['meas_lo_freq'] = m_los
+            lo_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
 
         return self.qobj_model(**lo_config)
 

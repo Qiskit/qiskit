@@ -77,20 +77,20 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies. Will be overridden by
+            List of default qubit lo frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies. Will be overridden by
+            List of default measurement lo frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges used to validate that the supplied qubit los
-            are valid.
+            List of drive lo ranges [range_min, range_max] in Hz, used to validate
+            that the supplied qubit los are valid.
 
         meas_lo_range (list):
-            List of meas lo ranges used to validate that the supplied measurement los
-            are valid.
+            List of measurement lo ranges [range_min, range_max] in Hz, used to validate
+            that the supplied qubit los are valid.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -258,9 +258,9 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                     for lo_config in schedule_los]
 
     if not qubit_lo_freq and hasattr(backend_default, 'qubit_freq_est'):
-        qubit_lo_freq = [freq / 1e9 for freq in backend_default.qubit_freq_est]
+        qubit_lo_freq = backend_default.qubit_freq_est
     if not meas_lo_freq and hasattr(backend_default, 'meas_freq_est'):
-        meas_lo_freq = [freq / 1e9 for freq in backend_default.meas_freq_est]
+        meas_lo_freq = backend_default.meas_freq_est
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)

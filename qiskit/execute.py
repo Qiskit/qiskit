@@ -143,10 +143,10 @@ def execute(experiments, backend,
             Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (list):
-            List of default qubit lo frequencies
+            List of default qubit lo frequencies in Hz
 
         default_meas_los (list):
-            List of default meas lo frequencies
+            List of default meas lo frequencies Hz
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
