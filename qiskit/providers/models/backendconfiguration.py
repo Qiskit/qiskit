@@ -334,7 +334,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
-        channel_bandwidth = kwargs.pop(channel_bandwidth)
+        channel_bandwidth = kwargs.pop('channel_bandwidth')
         if channel_bandwidth:
             self.channel_bandwidth = [[range[0] * 1e9, range[1] * 1e9] for range in channel_bandwidth]
 
