@@ -179,10 +179,27 @@ def transpile(circuits,
     # Get transpiler argument(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                           backend_properties, initial_layout,
-                                           seed_transpiler, optimization_level,
-                                           pass_manager, callback, output_name)
+                                              backend_properties, initial_layout,
+                                              seed_transpiler, optimization_level,
+                                              pass_manager, callback, output_name)
+    # Check circuit width against number of qubits in coupling_map(s)
+    coupling_maps_list = list(config.coupling_map for config in transpile_args)
+    for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
+        # If coupling_map is not None or n_qubits == 1
+        n_qubits = len(circuit.qubits)
+        max_qubits = None
+        if isinstance(parsed_coupling_map, CouplingMap):
+            max_qubits = parsed_coupling_map.size()
 
+        # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
+        elif backend is not None and not backend.configuration().simulator:
+            max_qubits = backend.configuration().n_qubits
+
+        if max_qubits is not None and (n_qubits > max_qubits):
+            raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                  'in {} '.format(circuit.name) +
+                                  'is greater than maximum ({}) '.format(max_qubits) +
+                                  'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(transpile_circuit, transpile_args)
 

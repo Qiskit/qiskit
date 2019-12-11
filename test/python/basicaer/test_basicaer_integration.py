@@ -20,6 +20,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit.result import Result
+from qiskit.providers.basicaer import BasicAerError
 from qiskit.test import QiskitTestCase
 
 
@@ -69,6 +70,14 @@ class TestBasicAerIntegration(QiskitTestCase):
         job = execute([qc, qc_extra], self.backend)
         result = job.result()
         self.assertIsInstance(result, Result)
+
+    def test_basicaer_nqubits(self):
+        """Test BasicAerError is raised if n_qubits too large to simulate."""
+        qc = QuantumCircuit(50, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        job = execute(qc, self.backend)
+        self.assertRaises(BasicAerError, job.result)
 
 
 if __name__ == '__main__':

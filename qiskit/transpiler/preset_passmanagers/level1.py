@@ -85,12 +85,11 @@ def level_1_pass_manager(pass_manager_config):
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
-    _add_barrier = BarrierBeforeFinalMeasurements()
-
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
 
-    _swap = [Unroll3qOrMore(),
+    _swap = [BarrierBeforeFinalMeasurements(),
+             Unroll3qOrMore(),
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
@@ -122,7 +121,6 @@ def level_1_pass_manager(pass_manager_config):
     pm1.append(_unroll)
     if coupling_map:
         pm1.append(_swap_check)
-        pm1.append(_add_barrier)
         pm1.append(_swap, condition=_swap_condition)
         if not coupling_map.is_symmetric:
             pm1.append(_direction_check)

@@ -17,7 +17,6 @@ from .barrier import Barrier
 from .ccx import ToffoliGate
 from .cswap import FredkinGate
 from .cx import CnotGate
-from .cxbase import CXBase
 from .cy import CyGate
 from .cz import CzGate
 from .swap import SwapGate
