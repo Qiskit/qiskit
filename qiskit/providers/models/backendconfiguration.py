@@ -334,6 +334,10 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
+        channel_bandwidth = kwargs.pop(channel_bandwidth)
+        if channel_bandwidth:
+            self.channel_bandwidth = [[range[0] * 1e9, range[1] * 1e9] for range in channel_bandwidth]
+
         # only raise dt/dtm warning once
         if not PulseBackendConfiguration._dt_warning_done:
             warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
