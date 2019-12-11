@@ -85,16 +85,16 @@ def assemble(experiments,
             `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges [range_min, range_max] in Hz, used to validate
-            that the supplied qubit los are valid.
+            List of drive lo ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate that the supplied qubit los are valid.
 
         meas_lo_range (list):
-            List of measurement lo ranges [range_min, range_max] in Hz, used to validate
-            that the supplied qubit los are valid.
+            List of measurement lo ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate that the supplied qubit los are valid.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
-            Experiment LO configurations
+            Experiment LO configurations, frequencies are given in Hz.
 
         meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
