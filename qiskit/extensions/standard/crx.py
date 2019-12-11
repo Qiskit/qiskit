@@ -34,8 +34,7 @@ class CrxGate(ControlledGate):
     def _define(self):
         """
         gate crx(lambda) a,b
-        { u3(lambda/2,-pi/2,pi/2) b; cx a,b;
-          u3(-lambda/2,-pi/2,pi/2) b; cx a,b;
+        { cu3(lambda,-pi/2,pi/2) a,b;
         }
 
         """
