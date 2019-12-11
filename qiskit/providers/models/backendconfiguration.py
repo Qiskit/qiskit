@@ -325,8 +325,10 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
-        self.qubit_lo_range = qubit_lo_range
-        self.meas_lo_range = meas_lo_range
+        self.qubit_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in qubit_lo_range]
+        self.meas_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in meas_lo_range]
+        self.dt = dt * 1e-9
+        self.dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
@@ -342,12 +344,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
-                         n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
-                         meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
-                         meas_lo_range=meas_lo_range,
-                         dt=dt * 1e-9, dtm=dtm * 1e-9,
-                         rep_times=rep_times, meas_kernels=meas_kernels,
-                         discriminators=discriminators, **kwargs)
+                         **kwargs)
 
     @property
     def sample_rate(self) -> float:
