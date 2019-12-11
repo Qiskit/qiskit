@@ -16,25 +16,41 @@
 
 import unittest.mock
 from qiskit.test import QiskitTestCase
-from ._dummy_passes import DummyAP, DummyTP, PassA_TP_NR_NP, PassD_TP_NR_NP, PassE_AP_NR_NP
+from ._dummy_passes import *
 
 
 class TestGenericPass(QiskitTestCase):
     """ Passes have common characteristics defined in BasePass."""
 
-    def test_is_TP_or_AP(self):
+    def test_is_TP_or_AP_VP(self):
         """ Passes have is_transformation_pass and is_analysis_pass properties."""
         tp_pass = DummyTP()
         self.assertTrue(tp_pass.is_transformation_pass)
         self.assertFalse(tp_pass.is_analysis_pass)
+        self.assertFalse(tp_pass.is_validation_pass)
         ap_pass = DummyAP()
         self.assertFalse(ap_pass.is_transformation_pass)
         self.assertTrue(ap_pass.is_analysis_pass)
+        self.assertFalse(ap_pass.is_validation_pass)
+        vp_pass = DummyVP()
+        self.assertFalse(vp_pass.is_transformation_pass)
+        self.assertFalse(vp_pass.is_analysis_pass)
+        self.assertTrue(vp_pass.is_validation_pass)
 
     def test_pass_diff_TP_AP(self):
         """ Different passes are different """
         pass1 = DummyAP()
         pass2 = DummyTP()
+        self.assertNotEqual(pass1, pass2)
+
+    def test_pass_diff_TP_VP(self):
+        pass1 = DummyTP()
+        pass2 = DummyVP()
+        self.assertNotEqual(pass1, pass2)
+
+    def test_pass_diff_AP_VP(self):
+        pass1 = DummyAP()
+        pass2 = DummyVP()
         self.assertNotEqual(pass1, pass2)
 
     def test_pass_diff_parent_child(self):

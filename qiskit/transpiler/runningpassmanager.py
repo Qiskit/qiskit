@@ -205,6 +205,21 @@ class RunningPassManager():
                               count=self.count)
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
+        elif pass_.is_validation_pass:
+            pass_.property_set = self.fenced_property_set
+            # Measure time if we have a callback or logging set
+            start_time = time()
+            pass_.run(FencedDAGCircuit(dag))
+            end_time = time()
+            run_time = end_time - start_time
+            # Execute the callback function if one is set
+            if self.callback:
+                self.callback(pass_=pass_, dag=dag,
+                              time=run_time,
+                              property_set=self.property_set,
+                              count=self.count)
+                self.count += 1
+            self._log_pass(start_time, end_time, pass_.name())
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
         return dag

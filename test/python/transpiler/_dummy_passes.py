@@ -39,6 +39,13 @@ class DummyAP(AnalysisPass):
         logging.getLogger(logger).info('run analysis pass %s', self.name())
 
 
+class DummyVP(AnalysisPass):
+    """ A dummy analysis pass."""
+
+    def run(self, dag):
+        logging.getLogger(logger).info('run validation pass %s', self.name())
+
+
 class PassA_TP_NR_NP(DummyTP):
     """ A dummy pass without any requires/preserves.
     TP: Transformation Pass

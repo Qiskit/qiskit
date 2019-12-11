@@ -97,6 +97,17 @@ class BasePass(metaclass=MetaPass):
         """
         return isinstance(self, AnalysisPass)
 
+    @property
+    def is_validation_pass(self):
+        """Check if the pass is a validation pass.
+
+        If the pass is an ValidationPass, that means that the pass can analyze
+        the DAG for errors or any other issues that make it invalid or not able
+        to run on a specific backend. They can not modify the property set or
+        DAG.
+        """
+        return isinstance(self, ValidationPass)
+
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
@@ -105,4 +116,9 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
+    pass
+
+
+class ValidationPass(BasePass):  # pylint: disable=abstract-method
+    """A validation pass: don't change property set or DAG."""
     pass
