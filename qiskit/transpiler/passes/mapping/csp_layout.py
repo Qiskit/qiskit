@@ -18,6 +18,7 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
+from time import time
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -29,7 +30,8 @@ class CSPLayout(AnalysisPass):
     If possible, chooses a Layout as a CSP, using backtracking.
     """
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=None):
+    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=None,
+                 time_limit=None):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
         does not set the layout property.
@@ -47,6 +49,7 @@ class CSPLayout(AnalysisPass):
         self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.call_limit = call_limit
+        self.time_limit = time_limit
         self.seed = seed
 
     def run(self, dag):
@@ -66,24 +69,43 @@ class CSPLayout(AnalysisPass):
         class CustomSolver(RecursiveBacktrackingSolver):
             """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
 
-            def __init__(self, call_limit=None):
+            def __init__(self, call_limit=None, time_limit=None):
                 self.call_limit = call_limit
+                self.time_limit = time_limit
+                self.call_current = None
+                self.time_start = None
                 super().__init__()
+
+            def limit_reached(self):
+                if self.call_current is not None:
+                    self.call_current += 1
+                    if self.call_current > self.call_limit:
+                        return True
+                if self.time_start is not None:
+                    if time() - self.time_start > self.time_limit:
+                        return True
+                return False
+
+            def getSolution(self, domains, constraints, vconstraints):
+                if self.call_limit is not None:
+                    self.call_current = 0
+                if self.time_limit is not None:
+                    self.time_start = time()
+                return super().getSolution(domains, constraints, vconstraints)
 
             def recursiveBacktracking(self,  # pylint: disable=invalid-name
                                       solutions, domains, vconstraints, assignments, single):
                 """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
                 limited in the amount of calls by ``self.call_limit`` """
-                self.call_limit -= 1
-                if self.call_limit < 0:
+                if self.limit_reached():
                     return None
                 return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
                                                      single)
 
-        if self.call_limit is None:
+        if self.time_limit is None and self.call_limit is None:
             problem = Problem(RecursiveBacktrackingSolver())
         else:
-            problem = Problem(CustomSolver(call_limit=self.call_limit))
+            problem = Problem(CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit))
 
         problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
 
