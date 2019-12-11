@@ -116,6 +116,8 @@ class TestUnroller(QiskitTestCase):
         circuit.ccx(qr[0], qr[1], qr[2])
         circuit.ch(qr[0], qr[2])
         circuit.crz(0.5, qr[1], qr[2])
+        circuit.cry(0.5, qr[1], qr[2])
+        circuit.crx(0.5, qr[1], qr[2])
         circuit.cswap(qr[1], qr[0], qr[2])
         circuit.cu1(0.1, qr[0], qr[2])
         circuit.cu3(0.2, 0.1, 0.0, qr[1], qr[2])
