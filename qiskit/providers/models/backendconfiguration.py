@@ -336,7 +336,8 @@ class PulseBackendConfiguration(BackendConfiguration):
 
         channel_bandwidth = kwargs.pop('channel_bandwidth', None)
         if channel_bandwidth:
-            self.channel_bandwidth = [[range[0] * 1e9, range[1] * 1e9] for range in channel_bandwidth]
+            self.channel_bandwidth = [[range[0] * 1e9, range[1] * 1e9] for
+                                      range in channel_bandwidth]
 
         # only raise dt/dtm warning once
         if not PulseBackendConfiguration._dt_warning_done:
