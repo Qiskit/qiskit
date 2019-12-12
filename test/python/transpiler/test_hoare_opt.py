@@ -19,7 +19,8 @@ from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import XGate, RZGate
+from qiskit.extensions.standard import XGate, RZGate, FredkinGate, SwapGate
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.dagcircuit import DAGNode
 from numpy import pi
 
@@ -192,7 +193,6 @@ class TestHoareOptimizer(QiskitTestCase):
         """ Should remove target successive identity gates
             with DIFFERENT sets of control qubits.
             In this case CCCX(4,5,6,7) & CCX(5,6,7).
-            Doesn't work yet.
         """
         circuit = QuantumCircuit(8)
         circuit.h(0)
@@ -276,15 +276,23 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_is_identity(self):
-        print('X')
         seq = [DAGNode({'type': 'op', 'op': XGate().control()}),
                DAGNode({'type': 'op', 'op': XGate().control(2)})]
-        self.assertEqual(True, HoareOptimizer._is_identity(seq))
+        self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        print('RZ')
         seq = [DAGNode({'type': 'op', 'op': RZGate(-pi/2).control()}),
                DAGNode({'type': 'op', 'op': RZGate(pi/2).control(2)})]
-        self.assertEqual(True, HoareOptimizer._is_identity(seq))
+        self.assertTrue(HoareOptimizer()._is_identity(seq))
+
+        seq = [DAGNode({'type': 'op', 'op': FredkinGate()}),
+               DAGNode({'type': 'op', 'op': SwapGate()})]
+        self.assertTrue(HoareOptimizer()._is_identity(seq))
+
+        seq = [DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
+                                                         [0, 1j]]).control(2)}),
+               DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
+                                                         [0, -1j]]).control()})]
+        self.assertTrue(HoareOptimizer()._is_identity(seq))
 
 
 if __name__ == '__main__':

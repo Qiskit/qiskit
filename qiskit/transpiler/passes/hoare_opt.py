@@ -155,7 +155,7 @@ class HoareOptimizer(TransformationPass):
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
                 dag.remove_op_node(node)
-            elif self.size > 1 and not trivial:
+            elif self.size > 1:
                 for qbt in node.qargs:
                     self.gatecache[qbt.index].append(node)
                     self.varnum[qbt.index][node] = self.gatenum[qbt.index]-1
@@ -198,7 +198,7 @@ class HoareOptimizer(TransformationPass):
 
         return seqs
 
-    def _is_identity(sequence):
+    def _is_identity(self, sequence):
         """ determine whether the sequence of gates combines to the idendity
             (consider sequences of length 2 for now)
         Args:
@@ -277,6 +277,10 @@ class HoareOptimizer(TransformationPass):
                     if max_idx is None:
                         for qbt in node.qargs:
                             self.gatecache[qbt.index].remove(node)
+                    else:
+                        if self.gatecache[qb_id].index(node) > max_idx:
+                            for qbt in node.qargs:
+                                self.gatecache[qbt.index].remove(node)
 
         if len(self.gatecache[qb_id]) < self.size and max_idx is None:
             # unless in a rec call, we are done if the cache isn't full
@@ -288,7 +292,7 @@ class HoareOptimizer(TransformationPass):
             dnt_rec.add(qb_id)
             gates_tbr = [self.gatecache[qb_id][0]]
         else:
-            # need to remove all gates up to max_idx
+            # need to remove all gates up to max_idx (in reverse order)
             gates_tbr = self.gatecache[qb_id][max_idx::-1]
 
         for node in gates_tbr:
