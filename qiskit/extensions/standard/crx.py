@@ -18,8 +18,10 @@ controlled-rx gate.
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.rx import RXGate
+from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
@@ -34,15 +36,22 @@ class CrxGate(ControlledGate):
 
     def _define(self):
         """
-        gate crx(lambda) a,b
-        { cu3(lambda,-pi/2,pi/2) a,b;
+        gate cu3(theta,phi,lambda) c, t
+        { u1(pi/2) t;
+          cx c,t;
+          u3(-theta/2,0,0) t;
+          cx c,t;
+          u3(theta/2,-pi/2,0) t;
         }
-
         """
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
-            (Cu3Gate(self.params[0], -pi/2, pi/2), [q[0], q[1]], [])
+            (U1Gate(pi / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
