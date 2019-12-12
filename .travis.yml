@@ -33,6 +33,12 @@ stage_generic: &stage_generic
     - stestr run
   after_failure:
     - python tools/report_ci_failure.py
+  before_script:
+    - |
+      if [ ! "$(ls -A .stestr)" ]; then
+          rm -rf .stestr
+      fi
+
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -55,6 +61,10 @@ jobs:
         - coverage xml || true
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
+
+    - name: Python 3.8 Tests
+      <<: *stage_linux
+      python: 3.8
 
     # Randomized testing
     - name: Randomized tests
