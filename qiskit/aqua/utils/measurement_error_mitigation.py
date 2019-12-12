@@ -122,7 +122,6 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
     else:
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
-
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
 
