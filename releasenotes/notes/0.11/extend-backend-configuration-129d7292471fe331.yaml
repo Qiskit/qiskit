@@ -4,9 +4,8 @@ features:
     PulseBackendConfiguration (accessed normally as backend.configuration())
     has been extended with useful methods to explore its data and the
     functionality that exists in PulseChannelSpec. PulseChannelSpec will be 
-    deprecated in the future.
+    deprecated in the future. For Example::
 
-    Example:
         backend = provider.get_backend(backend_name)
         config = backend.configuration()
         q0_drive = config.drive(0)  # or, DriveChannel(0)
@@ -14,11 +13,3 @@ features:
         q0_acquire = config.acquire(0)  # AcquireChannel(0)
         config.hamiltonian  # Returns a dictionary with hamiltonian info
         config.sample_rate()  # New method which returns 1 / dt
-other:
-  - |
-    The PulseBackendConfiguration `dt` and `dtm` attributes now return their
-    values in standard units of seconds rather than nanoseconds. A warning is
-    printed to the user.
-
-        backend.configuration().dt   # in units of SECONDS
-        backend.configuration().dtm  # in units of SECONDS
