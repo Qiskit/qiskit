@@ -15,6 +15,7 @@
 """Test the HoareOptimizer pass"""
 
 import unittest
+from numpy import pi
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
@@ -22,7 +23,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.extensions.standard import XGate, RZGate, FredkinGate, SwapGate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.dagcircuit import DAGNode
-from numpy import pi
 
 
 class TestHoareOptimizer(QiskitTestCase):
@@ -276,6 +276,9 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_is_identity(self):
+        """ The is_identity function determines whether a pair of gates
+            forms the identity, when ignoring control qubits.
+        """
         seq = [DAGNode({'type': 'op', 'op': XGate().control()}),
                DAGNode({'type': 'op', 'op': XGate().control(2)})]
         self.assertTrue(HoareOptimizer()._is_identity(seq))

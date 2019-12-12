@@ -208,28 +208,28 @@ class HoareOptimizer(TransformationPass):
         """
         assert len(sequence) == 2
 
-        g1, g2 = sequence[0].op, sequence[1].op.inverse()
-        p1, p2 = g1.params, g2.params
-        d1, d2 = g1.definition, g2.definition
+        gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
+        par1, par2 = gate1.params, gate2.params
+        def1, def2 = gate1.definition, gate2.definition
 
-        if isinstance(g1, ControlledGate):
-            g1 = g1.base_gate
+        if isinstance(gate1, ControlledGate):
+            gate1 = gate1.base_gate
         else:
-            g1 = type(g1)
-        if isinstance(g2, ControlledGate):
-            g2 = g2.base_gate
+            gate1 = type(gate1)
+        if isinstance(gate2, ControlledGate):
+            gate2 = gate2.base_gate
         else:
-            g2 = type(g2)
+            gate2 = type(gate2)
 
         # equality of gates can be determined via type and parameters, unless
         # the gates have no specific type, in which case definition is used
         # or they are unitary gates, in which case matrix equality is used
-        if g1 is Gate and g2 is Gate:
-            return d1 == d2 and d1 and d2
-        elif g1 is UnitaryGate and g2 is UnitaryGate:
-            return matrix_equal(p1[0], p2[0], ignore_phase=True)
+        if gate1 is Gate and gate2 is Gate:
+            return def1 == def2 and def1 and def2
+        elif gate1 is UnitaryGate and gate2 is UnitaryGate:
+            return matrix_equal(par1[0], par2[0], ignore_phase=True)
 
-        return g1 == g2 and p1 == p2
+        return gate1 == gate2 and par1 == par2
 
     def _seq_as_one(self, sequence):
         """ use z3 solver to determine if the gates in the sequence are either
