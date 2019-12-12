@@ -27,7 +27,7 @@ from qiskit.pulse.channels import MemorySlot, AcquireChannel
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeYorktown
 
 
 class TestCircuitAssembler(QiskitTestCase):
@@ -95,6 +95,23 @@ class TestCircuitAssembler(QiskitTestCase):
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 1024)
+
+    def test_shots_greater_than_max_shots(self):
+        """Test assembling with shots greater than max shots"""
+        qr = QuantumRegister(2, name='q')
+        qc = ClassicalRegister(2, name='c')
+        circ = QuantumCircuit(qr, qc, name='circ')
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.measure(qr, qc)
+        backend = FakeYorktown()
+
+        qobj = assemble(circ, backend, shots=1024000)
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.shots, 65536)
+
 
     def test_assemble_initialize(self):
         """Test assembling a circuit with an initialize.

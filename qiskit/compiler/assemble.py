@@ -15,6 +15,7 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
 import copy
+import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -207,6 +208,14 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     qobj_header = {**dict(backend_name=backend_name, backend_version=backend_version),
                    **qobj_header}
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
+
+    max_shots = getattr(backend_config, 'max_shots')
+    if max_shots and max_shots < shots:
+        warnings.warn(
+            'Number of shots specified: %s exceeds max_shots property of the '
+            'backend: %s. Reducing shots to max_shots' % (shots, max_shots),
+            RuntimeWarning)
+        shots = max_shots
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
