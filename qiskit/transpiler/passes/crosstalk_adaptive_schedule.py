@@ -222,12 +222,14 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         for gate in dag.twoQ_gates():
             overlap_set = []
+            descendants = dag.descendants(gate)
+            ancestors = dag.ancestors(gate)
             for tmp_gate in dag.gate_nodes():
                 if tmp_gate == gate:
                     continue
-                if tmp_gate in dag.descendants(gate):
+                if tmp_gate in descendants:
                     continue
-                if tmp_gate in dag.ancestors(gate):
+                if tmp_gate in ancestors:
                     continue
                 overlap_set.append(tmp_gate)
             self.dag_overlap_set[gate] = overlap_set
