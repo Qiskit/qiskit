@@ -65,6 +65,7 @@ def create_fake_machine():
     gu12 = Gate(name="u1_2", gate="u1", parameters=u_1, qubits=[2])
     gu13 = Gate(name="u1_3", gate="u1", parameters=u_1, qubits=[3])
     gu14 = Gate(name="u1_4", gate="u1", parameters=u_1, qubits=[4])
+    gu15 = Gate(name="u1_4", gate="u1", parameters=u_1, qubits=[5])
     u_2 = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
            Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
     gu20 = Gate(name="u2_0", gate="u2", parameters=u_2, qubits=[0])
@@ -72,6 +73,7 @@ def create_fake_machine():
     gu22 = Gate(name="u2_2", gate="u2", parameters=u_2, qubits=[2])
     gu23 = Gate(name="u2_3", gate="u2", parameters=u_2, qubits=[3])
     gu24 = Gate(name="u2_4", gate="u2", parameters=u_2, qubits=[4])
+    gu25 = Gate(name="u2_4", gate="u2", parameters=u_2, qubits=[5])
     u_3 = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
            Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
     gu30 = Gate(name="u3_0", gate="u3", parameters=u_3, qubits=[0])
@@ -79,11 +81,12 @@ def create_fake_machine():
     gu32 = Gate(name="u3_2", gate="u3", parameters=u_3, qubits=[2])
     gu33 = Gate(name="u3_3", gate="u3", parameters=u_3, qubits=[3])
     gu34 = Gate(name="u3_4", gate="u3", parameters=u_3, qubits=[4])
+    gu35 = Gate(name="u3_5", gate="u3", parameters=u_3, qubits=[5])
 
     gate_list = [gcx01, gcx12, gcx23, gcx34, gcx45,
-                 gu10, gu11, gu12, gu13, gu14,
-                 gu20, gu21, gu22, gu23, gu24,
-                 gu30, gu31, gu32, gu33, gu34]
+                 gu10, gu11, gu12, gu13, gu14, gu15,
+                 gu20, gu21, gu22, gu23, gu24, gu25,
+                 gu30, gu31, gu32, gu33, gu34, gu35]
 
     bprop = BackendProperties(last_update_date=calib_time, backend_name="test_backend",
                               qubits=qubit_list, backend_version="1.0.0", gates=gate_list,

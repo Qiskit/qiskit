@@ -142,63 +142,38 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
     def parse_backend_properties(self):
         """
-        This function assumes that T1, T2 times are in microseconds and
-        gate times are in nanoseconds in backend.properties()
+        This function assumes that gate durations and coherence times
+        are in seconds in backend.properties()
         """
         backend_prop = self.backend_prop
-        qid = 0
-        for qinfo in backend_prop.qubits:
-            for item in qinfo:
-                if item.name == "T1":
-                    # Convert us to ns
-                    self.bp_t1_time[qid] = int(item.value*1000)
-                elif item.name == "T2":
-                    self.bp_t2_time[qid] = int(item.value*1000)
-            qid += 1
+        for qid in range(len(backend_prop.qubits)):
+            self.bp_t1_time[qid] = int(backend_prop.t1(qid)*10**9)
+            self.bp_t2_time[qid] = int(backend_prop.t2(qid)*10**9)
+            self.bp_u1_dur[qid] = int(backend_prop.gate_length('u1', qid))*10**9
+            u1_err = backend_prop.gate_error('u1', qid)
+            if u1_err == 1.0:
+                u1_err = 0.9999
+            self.bp_u1_err = round(u1_err, NUM_PREC)
+            self.bp_u2_dur[qid] = int(backend_prop.gate_length('u2', qid))*10**9
+            u2_err = backend_prop.gate_error('u2', qid)
+            if u2_err == 1.0:
+                u2_err = 0.9999
+            self.bp_u2_err = round(u2_err, NUM_PREC)
+            self.bp_u3_dur[qid] = int(backend_prop.gate_length('u3', qid))*10**9
+            u3_err = backend_prop.gate_error('u3', qid)
+            if u3_err == 1.0:
+                u3_err = 0.9999
+            self.bp_u3_err = round(u3_err, NUM_PREC)
         for ginfo in backend_prop.gates:
-            if ginfo.gate == 'u1':
-                q_0 = ginfo.qubits[0]
-                for item in ginfo.parameters:
-                    if item.name == 'gate_error':
-                        if item.value == 1.0:
-                            self.bp_u1_err[q_0] = 0.999999
-                        else:
-                            self.bp_u1_err[q_0] = round(item.value, NUM_PREC)
-                    elif item.name == "gate_length":
-                        self.bp_u1_dur[q_0] = int(item.value)
-            elif ginfo.gate == 'u2':
-                q_0 = ginfo.qubits[0]
-                for item in ginfo.parameters:
-                    if item.name == 'gate_error':
-                        if item.value == 1.0:
-                            self.bp_u2_err[q_0] = 0.999999
-                        else:
-                            self.bp_u2_err[q_0] = round(item.value, NUM_PREC)
-                    elif item.name == "gate_length":
-                        self.bp_u2_dur[q_0] = int(item.value)
-            elif ginfo.gate == 'u3':
-                q_0 = ginfo.qubits[0]
-                for item in ginfo.parameters:
-                    if item.name == 'gate_error':
-                        if item.value == 1.0:
-                            self.bp_u3_err[q_0] = 0.999999
-                        else:
-                            self.bp_u3_err[q_0] = round(item.value, NUM_PREC)
-                    elif item.name == "gate_length":
-                        self.bp_u3_dur[q_0] = int(item.value)
-            elif ginfo.gate == 'cx':
+            if ginfo.gate == 'cx':
                 q_0 = ginfo.qubits[0]
                 q_1 = ginfo.qubits[1]
-                r_0 = min(q_0, q_1)
-                r_1 = max(q_0, q_1)
-                for item in ginfo.parameters:
-                    if item.name == 'gate_error':
-                        if item.value == 1.0:
-                            self.bp_cx_err[(r_0, r_1)] = 0.999999
-                        else:
-                            self.bp_cx_err[(r_0, r_1)] = round(item.value, NUM_PREC)
-                    elif item.name == "gate_length":
-                        self.bp_cx_dur[(r_0, r_1)] = int(item.value)
+                cx_tup = (min(q_0, q_1), max(q_0, q_1))
+                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length('cx', cx_tup))*10**9
+                cx_err = backend_prop.gate_error('cx', cx_tup)
+                if cx_err == 1.0:
+                    cx_err = 0.9999
+                self.bp_cx_err[cx_tup] = round(cx_err, NUM_PREC)
 
     def cx_tuple(self, gate):
         """
