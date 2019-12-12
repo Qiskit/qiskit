@@ -402,7 +402,11 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-
+            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
+            nrows = int(min(nrows, max_rows))
+            # don't overflow plot with table data
+            table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
             h_waves = (self.style.figsize[1] - h_table)
