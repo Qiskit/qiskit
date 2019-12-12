@@ -341,7 +341,6 @@ class PulseBackendConfiguration(BackendConfiguration):
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
                          meas_lo_range=meas_lo_range,
-                         _dt=dt * 1e-9, dtm=dtm * 1e-9,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
 
