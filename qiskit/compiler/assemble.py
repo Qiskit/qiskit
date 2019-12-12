@@ -209,7 +209,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
                    **qobj_header}
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
 
-    max_shots = getattr(backend_config, 'max_shots')
+    max_shots = getattr(backend_config, 'max_shots', None)
     if max_shots and max_shots < shots:
         warnings.warn(
             'Number of shots specified: %s exceeds max_shots property of the '

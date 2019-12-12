@@ -112,7 +112,6 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 65536)
 
-
     def test_assemble_initialize(self):
         """Test assembling a circuit with an initialize.
         """
