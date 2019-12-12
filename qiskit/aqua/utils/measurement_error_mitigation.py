@@ -14,6 +14,7 @@
 
 """ Measurement error mitigation """
 
+import copy
 import logging
 
 from qiskit import compiler
@@ -91,7 +92,7 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
                                             run_config=None):
     """
         Args:
-            qubit_list (list[int]): list of qubits used in the algorithm
+            qubit_list (list[int]): list of ordered qubits used in the algorithm
             fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
             backend (BaseBackend): backend instance
             backend_config (dict, optional): configuration for backend
@@ -114,14 +115,19 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
 
     if fitter_cls == CompleteMeasFitter:
         meas_calibs_circuits, state_labels = \
-            complete_meas_cal(qubit_list=qubit_list, circlabel=circlabel)
+            complete_meas_cal(qubit_list=range(len(qubit_list)), circlabel=circlabel)
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
         raise AquaError("Does not support TensoredMeasFitter yet.")
     else:
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
+    # the provided `qubit_list` would be used as the initial layout to
+    # assure the consistent qubit mapping used in the main circuits.
+
+    tmp_compile_config = copy.deepcopy(compile_config)
+    tmp_compile_config['initial_layout'] = qubit_list
     t_meas_calibs_circuits = compiler.transpile(meas_calibs_circuits, backend,
-                                                **backend_config, **compile_config)
+                                                **backend_config, **tmp_compile_config)
     cals_qobj = compiler.assemble(t_meas_calibs_circuits, backend, **run_config.to_dict())
     return cals_qobj, state_labels, circlabel
