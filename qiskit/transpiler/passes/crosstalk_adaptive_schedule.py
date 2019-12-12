@@ -192,7 +192,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Representation for single-qubit gate
         """
         physical_q_0 = gate.qargs[0].index
-        tup = (physical_q_0)
+        tup = (physical_q_0,)
         return tup
 
     def gate_tuple(self, gate):
