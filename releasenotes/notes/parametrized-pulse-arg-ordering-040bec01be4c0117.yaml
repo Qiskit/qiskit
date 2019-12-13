@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Keep given order of parameters in ``ParametrizedSchedule`` by default. Previously
+    the order is not maintained and forcibly sorted by alphabetical order.
+    By setting ``sort=True``, ``ParametrizedSchedule`` reorders the parameters as before.
