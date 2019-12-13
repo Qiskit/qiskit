@@ -491,6 +491,8 @@ class ParameterizedSchedule:
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
 
+        # pylint: disable=expression-not-assigned
+
         # NOTE: In IBM Q command definition, FCs in U2, U3 instructions are not ordered
         # in the alphabetical order of its parameter names. For compatibility with
         # circuit definition, it should be sorted when registered.
