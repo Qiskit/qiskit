@@ -470,8 +470,8 @@ class ParameterizedSchedule:
         into the `Schedule` class.
     """
 
-    def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
-                 name: Optional[str] = None):
+    def __init__(self, *schedules, parameters: Optional[List[str]] = None,
+                 name: Optional[str] = None, sort=False):
         full_schedules = []
         parameterized = []
         parameters = parameters or []
@@ -490,7 +490,15 @@ class ParameterizedSchedule:
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
-        self._parameters = tuple(sorted(set(parameters)))
+
+        # NOTE: In IBM Q command definition, FCs in U2, U3 instructions are not ordered
+        # in the alphabetical order of its parameter names. For compatibility with
+        # circuit definition, it should be sorted when registered.
+        # The sort option is prepared for such special cases, but usually it is recommended to
+        # disable this to keep the original argument order as normal callback functions do.
+        pnames = sorted(set(parameters)) if sort else set(parameters)
+
+        self._parameters = tuple(pnames)
 
     @property
     def parameters(self) -> Tuple[str]:

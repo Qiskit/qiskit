@@ -144,7 +144,7 @@ class PulseDefaults(BaseModel):
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
+            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name, sort=True)
             self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
 
     @property

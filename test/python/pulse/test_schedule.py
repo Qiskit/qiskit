@@ -347,6 +347,23 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
 
+    def test_out_of_order_parameters(self):
+        """Test parameterized schedule doesn't fail when parameters out of order."""
+
+        def test_fun(b, a):
+            sched = Schedule()
+            sched += FrameChange(a)(DriveChannel(0))
+            sched += FrameChange(b)(DriveChannel(0))
+            return sched
+
+        ref_sched = Schedule()
+        ref_sched += FrameChange(1)(DriveChannel(0))
+        ref_sched += FrameChange(0)(DriveChannel(0))
+
+        par_sched = ParameterizedSchedule(test_fun, parameters=['b', 'a'])
+
+        self.assertEqual(ref_sched, par_sched.bind_parameters(0, 1))
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
