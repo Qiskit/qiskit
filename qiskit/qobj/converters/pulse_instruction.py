@@ -24,6 +24,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
+from qiskit.qobj.utils import MeasLevel
 
 
 class ParametricPulseShapes(Enum):
@@ -136,7 +137,7 @@ class InstructionToQobjConverter:
             'qubits': [q.index for q in instruction.acquires],
             'memory_slot': [m.index for m in instruction.mem_slots]
         }
-        if meas_level == 2:
+        if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
             if instruction.command.discriminator:
                 command_dict.update({
@@ -151,7 +152,7 @@ class InstructionToQobjConverter:
                 command_dict.update({
                     'register_slot': [regs.index for regs in instruction.reg_slots]
                 })
-        if meas_level >= 1:
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
             if instruction.command.kernel:
                 command_dict.update({

@@ -16,7 +16,7 @@
 
 from marshmallow.validate import Range, Regexp, Length, OneOf
 
-from qiskit.qobj.utils import MeasReturnType
+from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.validation import BaseSchema, bind_schema, BaseModel
 from qiskit.validation.fields import (Integer, String, Number, Float, Complex, List,
                                       Nested, DictParameters, ByType)
@@ -88,7 +88,9 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     """Schema for PulseQobjConfig of device backend."""
 
     # Required properties.
-    meas_level = Integer(required=True, validate=Range(min=0, max=2))
+    meas_level = Integer(required=True, validate=OneOf(choices=(MeasLevel.RAW,
+                                                                MeasLevel.KERNELED,
+                                                                MeasLevel.CLASSIFIED)))
     meas_return = String(required=True, validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                                 MeasReturnType.SINGLE)))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
@@ -191,9 +193,9 @@ class PulseQobjConfig(QobjConfig):
     full description of the model, please check ``PulseQobjConfigSchema``.
 
     Attributes:
-        meas_level (int): a value represents the level of measurement.
+        meas_level (int or MeasLevel): a value represents the level of measurement.
         meas_lo_freq (list[float]): local oscillator frequency of measurement pulse.
-        meas_return (str): a level of measurement information.
+        meas_return (str or MeasReturn): a level of measurement information.
         pulse_library (list[qiskit.qobj.PulseLibraryItem]): a pulse library.
         qubit_lo_freq (list[float]): local oscillator frequency of driving pulse.
     """

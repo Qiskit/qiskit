@@ -33,6 +33,12 @@ class TestCircuitProperties(QiskitTestCase):
         qc = QuantumCircuit(q)
         self.assertEqual(qc.depth(), 0)
 
+    def test_circuit_depth_no_reg(self):
+        """Test depth of no register circuits
+        """
+        qc = QuantumCircuit()
+        self.assertEqual(qc.depth(), 0)
+
     def test_circuit_depth_meas_only(self):
         """Test depth of measurement only
         """
