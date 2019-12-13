@@ -315,7 +315,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             meas_lo_range: Measurement lo ranges for each qubit with form (min, max) in GHz.
             dt: Qubit drive channel timestep in nanoseconds.
             dtm: Measurement drive channel timestep in nanoseconds.
-            rep_times: Supported repetition times for device in seconds.
+            rep_times: Supported repetition times for device in microseconds.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
