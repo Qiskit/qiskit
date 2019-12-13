@@ -116,7 +116,7 @@ class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
                                             validate=Length(equal=2)), required=True)
     dt = fields.Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
     dtm = fields.Float(required=True, validate=Range(min=0))
-    rep_times = fields.List(fields.Integer(validate=Range(min=0)), required=True)
+    rep_times = fields.List(fields.Float(validate=Range(min=0)), required=True)
     meas_kernels = fields.List(fields.String(), required=True)
     discriminators = fields.List(fields.String(), required=True)
 
@@ -161,8 +161,8 @@ class UchannelLO(BaseModel):
         q: Qubit that scale corresponds too.
         scale: Scale factor for qubit frequency.
     """
-    def __init__(self, q: int, scale: complex, **kwargs):
 
+    def __init__(self, q: int, scale: complex, **kwargs):
         self.q = q
         self.scale = scale
 
@@ -203,7 +203,6 @@ class BackendConfiguration(BaseModel):
                  memory: bool,
                  max_shots: int,
                  **kwargs):
-
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.n_qubits = n_qubits
@@ -253,7 +252,6 @@ class QasmBackendConfiguration(BackendConfiguration):
                  memory: bool,
                  max_shots: int,
                  **kwargs):
-
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
@@ -268,6 +266,7 @@ class PulseBackendConfiguration(BackendConfiguration):
     """
 
     _dt_warning_done = False
+    _rep_time_warning_done = False
 
     def __init__(self,
                  backend_name: str,
@@ -316,7 +315,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             meas_lo_range: Measurement lo ranges for each qubit with form (min, max) in GHz.
             dt: Qubit drive channel timestep in nanoseconds.
             dtm: Measurement drive channel timestep in nanoseconds.
-            rep_times: Supported repetition times for device in microseconds.
+            rep_times: Supported repetition times for device in seconds.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
@@ -327,10 +326,10 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+        self._rep_times = [_rt * 1e-6 for _rt in rep_times]
         self._dt = dt*1e-9
         self._dtm = dtm*1e-9
 
@@ -341,7 +340,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
                          meas_lo_range=meas_lo_range,
-                         rep_times=rep_times, meas_kernels=meas_kernels,
+                         meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
 
     @property
@@ -365,6 +364,17 @@ class PulseBackendConfiguration(BackendConfiguration):
             PulseBackendConfiguration._dt_warning_done = True
 
         return self._dtm
+
+    @property
+    def rep_times(self) -> List[float]:  # pylint: disable=invalid-name
+        """Measure channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._rep_time_warning_done:
+            warnings.warn('`rep_time` now has units of seconds(s) rather '
+                          'than microseconds(mu s).')
+            PulseBackendConfiguration._rep_time_warning_done = True
+
+        return self._rep_times
 
     @property
     def sample_rate(self) -> float:
