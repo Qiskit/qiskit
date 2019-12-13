@@ -166,7 +166,11 @@ class PulseDefaults:
     scheduling.
     """
 
+<<<<<<< HEAD
     _data = {}
+=======
+    _freq_warning_done = False
+>>>>>>> 8b436bc61... Added one time warnings for dt and qubit_freq_est turning into properties (#3594)
 
     def __init__(self,
                  qubit_freq_est: List[float],
@@ -191,10 +195,15 @@ class PulseDefaults:
         """
         self._data = {}
         self.buffer = buffer
+<<<<<<< HEAD
         self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
         """Qubit frequencies in Hertz."""
         self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         """Measurement frequencies in Hertz."""
+=======
+        self._qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        self._meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+>>>>>>> 8b436bc61... Added one time warnings for dt and qubit_freq_est turning into properties (#3594)
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
         self.instruction_schedule_map = InstructionScheduleMap()
@@ -269,6 +278,28 @@ class PulseDefaults:
             in_data['discriminator'] = Discriminator.from_dict(
                 in_data.pop('discriminator'))
         return cls(**in_data)
+
+    @property
+    def qubit_freq_est(self) -> float:  # pylint: disable=invalid-name
+        """Qubit frequencies in Hertz(Hz)."""
+        # only raise qubit_freq_est warning once
+        if not PulseDefaults._freq_warning_done:
+            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
+                          'Hertz(Hz) rather than gigahertz(GHz).')
+            PulseDefaults._freq_warning_done = True
+
+        return self._qubit_freq_est
+
+    @property
+    def meas_freq_est(self) -> float:  # pylint: disable=invalid-name
+        """Measurement frequencies in Hertz(Hz)."""
+        # only raise qubit_freq_est warning once
+        if not PulseDefaults._freq_warning_done:
+            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
+                          'Hertz(Hz) rather than gigahertz(GHz).')
+            PulseDefaults._freq_warning_done = True
+
+        return self._meas_freq_est
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]

@@ -538,6 +538,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+<<<<<<< HEAD
         if hamiltonian is not None:
             self.hamiltonian = dict(hamiltonian)
             self.hamiltonian['vars'] = {
@@ -566,10 +567,16 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             self.conditional_latency = conditional_latency
         if meas_map is not None:
             self.meas_map = meas_map
+=======
+        self._dt = dt*1e-9
+        self._dtm = dtm*1e-9
+
+>>>>>>> 8b436bc61... Added one time warnings for dt and qubit_freq_est turning into properties (#3594)
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
+<<<<<<< HEAD
                          coupling_map=coupling_map, max_experiments=max_experiments,
                          sample_name=sample_name, n_registers=n_registers,
                          register_map=register_map, configurable=configurable,
@@ -673,6 +680,35 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             if self.to_dict() == other.to_dict():
                 return True
         return False
+=======
+                         n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
+                         meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
+                         meas_lo_range=meas_lo_range,
+                         rep_times=rep_times, meas_kernels=meas_kernels,
+                         discriminators=discriminators, **kwargs)
+>>>>>>> 8b436bc61... Added one time warnings for dt and qubit_freq_est turning into properties (#3594)
+
+    @property
+    def dt(self) -> float:  # pylint: disable=invalid-name
+        """Drive channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dt
+
+    @property
+    def dtm(self) -> float:  # pylint: disable=invalid-name
+        """Measure channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dtm
 
     @property
     def sample_rate(self) -> float:
