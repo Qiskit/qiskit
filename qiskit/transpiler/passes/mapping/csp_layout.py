@@ -30,11 +30,16 @@ class CSPLayout(AnalysisPass):
     If possible, chooses a Layout as a CSP, using backtracking.
     """
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=None,
+    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000,
                  time_limit=None):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
-        does not set the layout property.
+        does not set the layout property. In all the cases, the property ``CSP_stop_reason``
+        will be added with one of the following values:
+         - solution found: If a perfect layout was found.
+         - nonexistent solution: If no perfect layout was found and every combination was checked.
+         - call limit reached: If no perfect layout was found and the call limit was reached.
+         - time limit reached: If no perfect layout was found and the time limit was reached.
 
         Args:
             coupling_map (Coupling): Directed graph representing a coupling map.
@@ -43,7 +48,9 @@ class CSPLayout(AnalysisPass):
             seed (int): Sets the seed of the PRNG.
             call_limit (int): Amount of times that
                 ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` will be called.
-                The default is None, which means, no call limit.
+                None means no call limit. Default: 1000.
+            time_limit (int): Amount of seconds that the pass will try to find a solution.
+                None means no time limit. Default: 10 seconds.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -74,6 +81,7 @@ class CSPLayout(AnalysisPass):
                 self.time_limit = time_limit
                 self.call_current = None
                 self.time_start = None
+                self.time_current = None
                 super().__init__()
 
             def limit_reached(self):
@@ -82,7 +90,8 @@ class CSPLayout(AnalysisPass):
                     if self.call_current > self.call_limit:
                         return True
                 if self.time_start is not None:
-                    if time() - self.time_start > self.time_limit:
+                    self.time_current = time() - self.time_start
+                    if  self.time_current > self.time_limit:
                         return True
                 return False
 
@@ -103,12 +112,12 @@ class CSPLayout(AnalysisPass):
                                                      single)
 
         if self.time_limit is None and self.call_limit is None:
-            problem = Problem(RecursiveBacktrackingSolver())
+            solver = RecursiveBacktrackingSolver()
         else:
-            problem = Problem(CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit))
+            solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
+        problem = Problem(solver)
         problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
-
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
 
         if self.strict_direction:
@@ -125,6 +134,15 @@ class CSPLayout(AnalysisPass):
         solution = problem.getSolution()
 
         if solution is None:
-            return
+            if isinstance(solver, CustomSolver):
+                if solver.time_current >= self.time_limit:
+                    stop_reason = 'time limit reached'
+                elif solver.call_current >= self.call_limit:
+                    stop_reason = 'call limit reached'
+            else:
+                stop_reason = 'nonexistent solution'
+        else:
+            stop_reason = 'solution found'
+            self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
 
-        self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
+        self.property_set['CSP_stop_reason'] = stop_reason
