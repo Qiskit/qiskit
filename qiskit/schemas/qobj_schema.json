@@ -1056,7 +1056,7 @@
                                         "properties": {
                                             "instructions": {
                                                 "items": {
-                                                    "$ref": "#definitions/openqasm_instructions"
+                                                    "$ref": "#/definitions/openqasm_instructions"
                                                 }
                                             }
                                         }
