@@ -98,7 +98,7 @@ class PulseQobjConfigSchema(QobjConfigSchema):
 
     # Optional properties.
     memory_slot_size = Integer(validate=Range(min=1))
-    rep_time = Integer(validate=Range(min=0))
+    rep_time = Float(validate=Range(min=0))
 
 
 @bind_schema(QobjMeasurementOptionSchema)

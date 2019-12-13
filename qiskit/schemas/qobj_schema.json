@@ -1005,8 +1005,8 @@
                             "type": "array"
                         },
                         "rep_time": {
-                            "minimum": 1,
-                            "type": "integer"
+                            "minimum": 1e-6,
+                            "type": "number"
                         }
                     },
                     "required": [

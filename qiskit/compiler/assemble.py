@@ -111,7 +111,7 @@ def assemble(experiments,
         memory_slot_size (int):
             Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
+        rep_time (float): repetition time of the experiment in s.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 

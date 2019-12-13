@@ -116,7 +116,7 @@ class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
                                             validate=Length(equal=2)), required=True)
     dt = fields.Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
     dtm = fields.Float(required=True, validate=Range(min=0))
-    rep_times = fields.List(fields.Float(validate=Range(min=0)), required=True)
+    rep_times = fields.List(fields.Number(validate=Range(min=0)), required=True)
     meas_kernels = fields.List(fields.String(), required=True)
     discriminators = fields.List(fields.String(), required=True)
 
@@ -367,8 +367,8 @@ class PulseBackendConfiguration(BackendConfiguration):
 
     @property
     def rep_times(self) -> List[float]:  # pylint: disable=invalid-name
-        """Measure channel sampling time in seconds(s)."""
-        # only raise dt warning once
+        """Supported repetition times for device in microseconds."""
+        # only raise rep_time warning once
         if not PulseBackendConfiguration._rep_time_warning_done:
             warnings.warn('`rep_time` now has units of seconds(s) rather '
                           'than microseconds(mu s).')
