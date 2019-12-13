@@ -147,7 +147,7 @@ class GaussianSquare(ParametricPulse):
                  amp: complex,
                  sigma: float,
                  width: float):
-        """Initialize the gaussian square command.
+        """Initialize the gaussian square pulse command.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.

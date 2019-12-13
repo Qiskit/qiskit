@@ -5,12 +5,12 @@ prelude: >
     rather than sample points to describe a pulse. They can be played on
     channels and added to schedules exactly like other commands. This creates
     a more consistent interface for adding commands from the pulse_lib, and
-    dramatically reduces the size of assembled PulseQobjs when the backend
+    dramatically reduces the size of assembled pulse-Qobjs when the backend
     supports parametric pulses.
 features:
   - |
     Parametric pulses have been added to OpenPulse. These are pulse commands
-    which are described by some known formula. Arbitrary pulse shapes are
+    which are parameterized and understood by the backend. Arbitrary pulse shapes are
     still supported by the SamplePulse Command. The new supported pulses are:
 
       - ConstantPulse
@@ -31,9 +31,9 @@ features:
                                 width=140)(MeasureChannel(0)) << sched.duration
 
     The resulting schedule will be similar to a SamplePulse schedule built
-    using `pulse.pulse_lib`, but the eventual sampling will be handled by the
+    using `pulse.pulse_lib`, however, waveform sampling will be performed by the
     backend. Using `sched.draw()` will use the related definition in
-    `pulse.pulse_lib` to sample the function and display those samples.
+    `pulse.pulse_lib` to sample the function and display the pulse.
 
     This feature can be used to construct Pulse programs for any backend, but
     the pulses will be converted to `SamplePulse`s if the backend does not
@@ -43,7 +43,7 @@ features:
         backend.configuration().parametric_pulses: List[str]
         # e.g. ['gaussian', 'drag', 'constant']
 
-    Note that the backend does not necessarily support all of the parametric
+    Note that the backend does not need to support all of the parametric
     pulses defined in Qiskit.
 
     When the backend supports parametric pulses, and the Pulse schedule is
