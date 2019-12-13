@@ -496,9 +496,13 @@ class ParameterizedSchedule:
         # circuit definition, it should be sorted when registered.
         # The sort option is prepared for such special cases, but usually it is recommended to
         # disable this to keep the original argument order as normal callback functions do.
-        pnames = sorted(set(parameters)) if sort else set(parameters)
+        params_set = []
+        # do not use built-in function set because this is not order sensitive
+        [params_set.append(pname) for pname in parameters if pname not in params_set]
 
-        self._parameters = tuple(pnames)
+        params_set = tuple(sorted(params_set)) if sort else tuple(params_set)
+
+        self._parameters = params_set
 
     @property
     def parameters(self) -> Tuple[str]:

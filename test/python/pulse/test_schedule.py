@@ -333,10 +333,10 @@ class TestScheduleBuilding(BaseTestSchedule):
             return 5, result
 
         par_sched_in_0 = ParameterizedSchedule(
-            my_test_par_sched_one, parameters={'x': 0, 'y': 1, 'z': 2}
+            my_test_par_sched_one, parameters=['x', 'y', 'z']
         )
         par_sched_in_1 = ParameterizedSchedule(
-            my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
+            my_test_par_sched_two, parameters=['x', 'y', 'z']
         )
         par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
         actual = par_sched(0.01, 0.02, 0.03)
