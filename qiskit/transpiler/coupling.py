@@ -248,6 +248,41 @@ class CouplingMap:
 
         return CouplingMap(reduced_cmap)
 
+    @classmethod
+    def full(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cm = cls()
+        for i in range(num_qubits):
+            for j in range(i):
+                cm.add_edge(j, i)
+                if bidirectional:
+                    cm.add_edge(i, j)
+        return cm
+
+    @classmethod
+    def line(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cm = cls()
+        for i in range(num_qubits-1):
+            cm.add_edge(i, i+1)
+            if bidirectional:
+                cm.add_edge(i+1, i)
+        return cm
+
+    @classmethod
+    def ring(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cm = cls()
+        for i in range(num_qubits):
+            if i == num_qubits - 1:
+                k = 0
+            else:
+                k = i + 1
+            cm.add_edge(i, k)
+            if bidirectional:
+                cm.add_edge(k, i)
+        return cm
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
