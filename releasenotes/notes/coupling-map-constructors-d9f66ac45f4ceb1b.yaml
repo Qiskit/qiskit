@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``qiskit.transpiler.CouplingMap`` class now has constructors for basic
+    qubit coupling graphs. e.g. use ``CouplingMap.line(5)`` to get a coupling
+    map of 5 linear chain of qubits.
