@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Changed ``try`` ``except`` to ``if`` ``else`` for imports of
+    Aer and IBMQ so as not to mask import errors during development.
