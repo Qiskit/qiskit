@@ -205,43 +205,40 @@ class TestCSPLayout(QiskitTestCase):
     @staticmethod
     def create_hard_dag():
         """Creates a particularly hard circuit (returns its dag) for Tokyo"""
-        qasm = """OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[20];
-        cx q[13],q[12];
-        cx q[6],q[0];
-        cx q[5],q[10];
-        cx q[10],q[7];
-        cx q[5],q[12];
-        cx q[2],q[15];
-        cx q[16],q[18];
-        cx q[6],q[4];
-        cx q[10],q[3];
-        cx q[11],q[10];
-        cx q[18],q[16];
-        cx q[5],q[12];
-        cx q[4],q[0];
-        cx q[18],q[16];
-        cx q[2],q[15];
-        cx q[7],q[8];
-        cx q[9],q[6];
-        cx q[16],q[17];
-        cx q[9],q[3];
-        cx q[14],q[12];
-        cx q[2],q[15];
-        cx q[1],q[16];
-        cx q[5],q[3];
-        cx q[8],q[12];
-        cx q[2],q[1];
-        cx q[5],q[3];
-        cx q[13],q[5];
-        cx q[12],q[14];
-        cx q[12],q[13];
-        cx q[6],q[4];
-        cx q[15],q[18];
-        cx q[15],q[18];
-        """
-        return circuit_to_dag(QuantumCircuit.from_qasm_str(qasm))
+        circuit = QuantumCircuit(20)
+        circuit.cx(13, 12)
+        circuit.cx(6, 0)
+        circuit.cx(5, 10)
+        circuit.cx(10, 7)
+        circuit.cx(5, 12)
+        circuit.cx(2, 15)
+        circuit.cx(16, 18)
+        circuit.cx(6, 4)
+        circuit.cx(10, 3)
+        circuit.cx(11, 10)
+        circuit.cx(18, 16)
+        circuit.cx(5, 12)
+        circuit.cx(4, 0)
+        circuit.cx(18, 16)
+        circuit.cx(2, 15)
+        circuit.cx(7, 8)
+        circuit.cx(9, 6)
+        circuit.cx(16, 17)
+        circuit.cx(9, 3)
+        circuit.cx(14, 12)
+        circuit.cx(2, 15)
+        circuit.cx(1, 16)
+        circuit.cx(5, 3)
+        circuit.cx(8, 12)
+        circuit.cx(2, 1)
+        circuit.cx(5, 3)
+        circuit.cx(13, 5)
+        circuit.cx(12, 14)
+        circuit.cx(12, 13)
+        circuit.cx(6, 4)
+        circuit.cx(15, 18)
+        circuit.cx(15, 18)
+        return circuit_to_dag(circuit)
 
     def test_time_limit(self):
         """Hard to solve situations hit the time limit"""
@@ -268,6 +265,7 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertLess(runtime, 1)
         self.assertEqual(pass_.property_set['CSP_stop_reason'], 'call limit reached')
+
 
 if __name__ == '__main__':
     unittest.main()
