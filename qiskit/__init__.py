@@ -66,11 +66,11 @@ else:
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute import execute
-from qiskit.compiler import transpile, assemble, schedule
+from qiskit.execute import execute  # noqa: E402
+from qiskit.compiler import transpile, assemble, schedule  # noqa: E402
 
-from .version import __version__
-from .version import _get_qiskit_versions
+from .version import __version__  # noqa: E402
+from .version import _get_qiskit_versions  # noqa: E402
 
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 5:
