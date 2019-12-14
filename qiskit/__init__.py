@@ -21,6 +21,8 @@ import pkgutil
 import sys
 import warnings
 
+from importlib.util import find_spec
+
 # First, check for required Python and API version
 from . import util
 
@@ -47,16 +49,16 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 from qiskit.providers.basicaer import BasicAer
 
 # Try to import the Aer provider if installed.
-try:
+if find_spec('qiskit.providers.aer'):
     from qiskit.providers.aer import Aer
-except ImportError:
+else:
     warnings.warn('Could not import the Aer provider from the qiskit-aer '
                   'package. Install qiskit-aer or check your installation.',
                   RuntimeWarning)
 # Try to import the IBMQ provider if installed.
-try:
+if find_spec('qiskit.providers.aer'):
     from qiskit.providers.ibmq import IBMQ
-except ImportError:
+else:
     warnings.warn('Could not import the IBMQ provider from the '
                   'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
                   'or check your installation.',
