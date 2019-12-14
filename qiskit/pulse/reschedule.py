@@ -150,8 +150,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
             for i in all_qubits:
-                new_schedule |= AcquireInstruction(cmd, AcquireChannel(i), MemorySlot(i))
-            new_schedule << time
+                new_schedule |= AcquireInstruction(cmd, AcquireChannel(i), MemorySlot(i)) << time
         else:
             new_schedule |= inst << time
 

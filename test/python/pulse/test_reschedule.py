@@ -144,8 +144,9 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
-        self.sched = sched.insert(5, acquire([self.config.acquire(0), self.config.acquire(1)],
-                                             [MemorySlot(0), MemorySlot(1)]))
+        sched = sched.insert(5, acquire(self.config.acquire(0), MemorySlot(0)))
+        sched = sched.insert(5, acquire(self.config.acquire(1), MemorySlot(1)))
+        self.sched = sched
 
     def test_add_implicit(self):
         """Test that implicit acquires are made explicit according to the meas map."""

@@ -104,7 +104,7 @@ class Acquire(Command):
                        mem_slot: MemorySlot = None,
                        reg_slot: RegisterSlot = None,
                        name: Optional[str] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubit.acquire, mem_slot, reg_slot, name)
+        return AcquireInstruction(self, qubit, mem_slot, reg_slot, name)
     # pylint: enable=arguments-differ
 
 
@@ -158,4 +158,4 @@ class AcquireInstruction(Instruction):
     @property
     def reg_slots(self):
         """RegisterSlots."""
-        return [self._reg_slot]
+        return [self._reg_slot] if self._reg_slot is not None else []

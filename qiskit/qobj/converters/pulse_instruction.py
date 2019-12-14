@@ -296,7 +296,7 @@ class QobjToInstructionConverter:
             register_slots = [channels.RegisterSlot(instruction.register_slot[i])
                               for i in range(len(qubits))]
         else:
-            register_slots = None
+            register_slots = [None for _ in range(len(qubits))]
 
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
@@ -324,8 +324,8 @@ class QobjToInstructionConverter:
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
 
-        for qubit_channel, mem_slot in zip(qubit_channels, mem_slots):
-            schedule |= commands.AcquireInstruction(cmd, qubit_channel, mem_slot)
+        for qubit_channel, mem_slot, reg_slot in zip(qubit_channels, mem_slots, register_slots):
+            schedule |= commands.AcquireInstruction(cmd, qubit_channel, mem_slot, reg_slot)
         schedule << t0
 
         return schedule
