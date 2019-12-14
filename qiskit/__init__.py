@@ -56,7 +56,7 @@ else:
                   'package. Install qiskit-aer or check your installation.',
                   RuntimeWarning)
 # Try to import the IBMQ provider if installed.
-if find_spec('qiskit.providers.aer'):
+if find_spec('qiskit.providers.ibmq'):
     from qiskit.providers.ibmq import IBMQ
 else:
     warnings.warn('Could not import the IBMQ provider from the '
