@@ -49,15 +49,15 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 from qiskit.providers.basicaer import BasicAer
 
 # Try to import the Aer provider if installed.
-if find_spec('qiskit.providers.aer'):
-    from qiskit.providers.aer import Aer
+if find_spec('qiskit.providers.aer'):  # Don't mask errs during development
+    from qiskit.providers.aer import Aer  # pylint: disable=import-outside-toplevel
 else:
     warnings.warn('Could not import the Aer provider from the qiskit-aer '
                   'package. Install qiskit-aer or check your installation.',
                   RuntimeWarning)
 # Try to import the IBMQ provider if installed.
-if find_spec('qiskit.providers.ibmq'):
-    from qiskit.providers.ibmq import IBMQ
+if find_spec('qiskit.providers.ibmq'):  # Don't mask errs during development
+    from qiskit.providers.ibmq import IBMQ   # pylint: disable=import-outside-toplevel
 else:
     warnings.warn('Could not import the IBMQ provider from the '
                   'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
