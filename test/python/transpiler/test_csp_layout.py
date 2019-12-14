@@ -15,13 +15,14 @@
 """Test the CSPLayout pass"""
 
 import unittest
+from time import process_time
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
 
 try:
     import constraint  # pylint: disable=unused-import, import-error
@@ -201,6 +202,72 @@ class TestCSPLayout(QiskitTestCase):
         layout = pass_.property_set['layout']
         self.assertIsNone(layout)
 
+    @staticmethod
+    def create_hard_dag():
+        """Creates a particularly hard circuit (returns its dag) for Tokyo"""
+        qasm = """OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[20];
+        cx q[13],q[12];
+        cx q[6],q[0];
+        cx q[5],q[10];
+        cx q[10],q[7];
+        cx q[5],q[12];
+        cx q[2],q[15];
+        cx q[16],q[18];
+        cx q[6],q[4];
+        cx q[10],q[3];
+        cx q[11],q[10];
+        cx q[18],q[16];
+        cx q[5],q[12];
+        cx q[4],q[0];
+        cx q[18],q[16];
+        cx q[2],q[15];
+        cx q[7],q[8];
+        cx q[9],q[6];
+        cx q[16],q[17];
+        cx q[9],q[3];
+        cx q[14],q[12];
+        cx q[2],q[15];
+        cx q[1],q[16];
+        cx q[5],q[3];
+        cx q[8],q[12];
+        cx q[2],q[1];
+        cx q[5],q[3];
+        cx q[13],q[5];
+        cx q[12],q[14];
+        cx q[12],q[13];
+        cx q[6],q[4];
+        cx q[15],q[18];
+        cx q[15],q[18];
+        """
+        return circuit_to_dag(QuantumCircuit.from_qasm_str(qasm))
+
+    def test_time_limit(self):
+        """Hard to solve situations hit the time limit"""
+        dag = TestCSPLayout.create_hard_dag()
+        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
+
+        start = process_time()
+        pass_.run(dag)
+        runtime = process_time() - start
+
+        self.assertLess(runtime, 2)
+        self.assertEqual(pass_.property_set['CSP_stop_reason'], 'time limit reached')
+
+    def test_call_limit(self):
+        """Hard to solve situations hit the call limit"""
+        dag = TestCSPLayout.create_hard_dag()
+        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        pass_ = CSPLayout(coupling_map, call_limit=1, time_limit=None)
+
+        start = process_time()
+        pass_.run(dag)
+        runtime = process_time() - start
+
+        self.assertLess(runtime, 1)
+        self.assertEqual(pass_.property_set['CSP_stop_reason'], 'call limit reached')
 
 if __name__ == '__main__':
     unittest.main()
