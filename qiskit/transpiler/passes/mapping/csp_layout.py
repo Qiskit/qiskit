@@ -91,7 +91,7 @@ class CSPLayout(AnalysisPass):
                         return True
                 if self.time_start is not None:
                     self.time_current = time() - self.time_start
-                    if  self.time_current > self.time_limit:
+                    if self.time_current > self.time_limit:
                         return True
                 return False
 
