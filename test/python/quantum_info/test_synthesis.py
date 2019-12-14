@@ -66,7 +66,6 @@ def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9
 
 HARD_THETA_ONEQS = make_hard_thetas_oneq()
 
-
 # It's too slow to use all 24**4 Clifford combos. If we can make it faster, use a larger set
 K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORDS[21]),
          (ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[6], ONEQ_CLIFFORDS[9], ONEQ_CLIFFORDS[7]),
@@ -101,12 +100,11 @@ class TestEulerAngles1Q(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_euler_angles_1q_random(self, nsamples=100):
-        """Verify euler_angles_1q produces correct Euler angles for random unitaries.
+    def test_euler_angles_1q_random(self):
+        """Verify euler_angles_1q produces correct Euler angles for random_unitary.
         """
-        for _ in range(nsamples):
-            unitary = random_unitary(2, seed=442)
-            self.check_one_qubit_euler_angles(unitary)
+        unitary = random_unitary(2, seed=442)
+        self.check_one_qubit_euler_angles(unitary)
 
 
 class TestOneQubitEulerDecomposer(QiskitTestCase):
@@ -181,41 +179,37 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
 
-    def test_one_qubit_random_u3_basis(self, nsamples=50):
-        """Verify for u3 basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2, seed=1)
-            self.check_one_qubit_euler_angles(unitary, 'U3')
+    def test_one_qubit_random_u3_basis(self):
+        """Verify for u3 basis and random_unitary."""
+        unitary = random_unitary(2, seed=1)
+        self.check_one_qubit_euler_angles(unitary, 'U3')
 
-    def test_one_qubit_random_u1x_basis(self, nsamples=50):
-        """Verify for u1, x90 basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2, seed=2)
-            self.check_one_qubit_euler_angles(unitary, 'U1X')
+    def test_one_qubit_random_u1x_basis(self):
+        """Verify for u1, x90 basis and random_unitary."""
+        unitary = random_unitary(2, seed=2)
+        self.check_one_qubit_euler_angles(unitary, 'U1X')
 
-    def test_one_qubit_random_zyz_basis(self, nsamples=50):
-        """Verify for rz, ry, rz basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2, seed=4)
-            self.check_one_qubit_euler_angles(unitary, 'ZYZ')
+    def test_one_qubit_random_zyz_basis(self):
+        """Verify for rz, ry, rz basis and random_unitary."""
+        unitary = random_unitary(2, seed=4)
+        self.check_one_qubit_euler_angles(unitary, 'ZYZ')
 
-    def test_one_qubit_random_zxz_basis(self, nsamples=50):
-        """Verify for rz, rx, rz basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
-            self.check_one_qubit_euler_angles(unitary, 'ZXZ')
+    def test_one_qubit_random_zxz_basis(self):
+        """Verify for rz, rx, rz basis and random_unitary."""
+        unitary = random_unitary(2, seed=5)
+        self.check_one_qubit_euler_angles(unitary, 'ZXZ')
 
-    def test_one_qubit_random_xyx_basis(self, nsamples=50):
-        """Verify for rx, ry, rx basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2, seed=5)
-            self.check_one_qubit_euler_angles(unitary, 'XYX')
+    def test_one_qubit_random_xyx_basis(self):
+        """Verify for rx, ry, rx basis and random_unitary."""
+        unitary = random_unitary(2, seed=6)
+        self.check_one_qubit_euler_angles(unitary, 'XYX')
 
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(QiskitTestCase):
     """Test TwoQubitWeylDecomposition()
     """
+
     # pylint: disable=invalid-name
     # FIXME: should be possible to set this tolerance tighter after improving the function
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
@@ -244,7 +238,7 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
         for k1l, k1r, k2l, k2r in K1K2S:
             k1 = np.kron(k1l.data, k1r.data)
             k2 = np.kron(k2l.data, k2r.data)
-            a = Ud(np.pi/4, 0, 0)
+            a = Ud(np.pi / 4, 0, 0)
             self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
     def test_two_qubit_weyl_decomposition_iswap(self):
@@ -252,7 +246,7 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
         for k1l, k1r, k2l, k2r in K1K2S:
             k1 = np.kron(k1l.data, k1r.data)
             k2 = np.kron(k2l.data, k2r.data)
-            a = Ud(np.pi/4, np.pi/4, 0)
+            a = Ud(np.pi / 4, np.pi / 4, 0)
             self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
     def test_two_qubit_weyl_decomposition_swap(self):
@@ -380,6 +374,7 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
 class TestTwoQubitDecomposeExact(QiskitTestCase):
     """Test TwoQubitBasisDecomposer() for exact decompositions
     """
+
     # pylint: disable=invalid-name
     def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
         """Check exact decomposition for a particular target"""
@@ -405,12 +400,11 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         for decomp in decomps:
             self.assertTrue(cnot.equiv(decomp))
 
-    def test_exact_two_qubit_cnot_decompose_random(self, nsamples=10):
-        """Verify exact CNOT decomposition for random Haar 4x4 unitaries.
+    def test_exact_two_qubit_cnot_decompose_random(self):
+        """Verify exact CNOT decomposition for random Haar 4x4 unitary.
         """
-        for _ in range(nsamples):
-            unitary = random_unitary(4, seed=42)
-            self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
+        unitary = random_unitary(4, seed=42)
+        self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     def test_exact_two_qubit_cnot_decompose_paulis(self):
         """Verify exact CNOT decomposition for Paulis
@@ -419,15 +413,13 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         unitary = Operator(pauli_xz)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
-    def test_exact_supercontrolled_decompose_random(self, nsamples=10):
+    def test_exact_supercontrolled_decompose_random(self):
         """Verify exact decomposition for random supercontrolled basis and random target"""
-
-        for _ in range(nsamples):
-            k1 = np.kron(random_unitary(2, seed=42).data, random_unitary(2, seed=44).data)
-            k2 = np.kron(random_unitary(2, seed=43).data, random_unitary(2, seed=45).data)
-            basis_unitary = k1 @ Ud(np.pi/4, 0, 0) @ k2
-            decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
-            self.check_exact_decomposition(random_unitary(4, seed=50).data, decomposer)
+        k1 = np.kron(random_unitary(2, seed=42).data, random_unitary(2, seed=44).data)
+        k2 = np.kron(random_unitary(2, seed=43).data, random_unitary(2, seed=45).data)
+        basis_unitary = k1 @ Ud(np.pi/4, 0, 0) @ k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        self.check_exact_decomposition(random_unitary(4, seed=50).data, decomposer)
 
     def test_exact_nonsupercontrolled_decompose(self):
         """Check that the nonsupercontrolled basis throws a warning"""
@@ -515,6 +507,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         sim = UnitarySimulatorPy()
         U = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
+
 
 # FIXME: need to write tests for the approximate decompositions
 
