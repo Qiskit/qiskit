@@ -85,6 +85,7 @@ class CSPLayout(AnalysisPass):
                 super().__init__()
 
             def limit_reached(self):
+                """Checks if a limit is reached."""
                 if self.call_current is not None:
                     self.call_current += 1
                     if self.call_current > self.call_limit:
@@ -95,7 +96,9 @@ class CSPLayout(AnalysisPass):
                         return True
                 return False
 
-            def getSolution(self, domains, constraints, vconstraints):
+            def getSolution(self,  # pylint: disable=invalid-name
+                            domains, constraints, vconstraints):
+                """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
                 if self.call_limit is not None:
                     self.call_current = 0
                 if self.time_limit is not None:
