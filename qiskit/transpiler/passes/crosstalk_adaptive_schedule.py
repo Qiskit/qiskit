@@ -96,7 +96,11 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             raise ImportError('z3-solver is required to use CrosstalkAdaptiveSchedule')
         self.backend_prop = backend_prop
         self.crosstalk_prop = crosstalk_prop
-        self.gate_id = {}
+        self.weight_factor = weight_factor
+        if measured_qubits is None:
+            self.input_measured_qubits = []
+        else:
+            self.input_measured_qubits = measured_qubits
         self.bp_u1_err = {}
         self.bp_u1_dur = {}
         self.bp_u2_err = {}
@@ -107,8 +111,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.bp_cx_dur = {}
         self.bp_t1_time = {}
         self.bp_t2_time = {}
-
-        # Z3 variables
+        self.gate_id = {}
         self.gate_start_time = {}
         self.gate_duration = {}
         self.gate_fidelity = {}
@@ -125,12 +128,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.fidelity_terms = []
         self.coherence_terms = []
         self.model = None
-        self.weight_factor = weight_factor
-        if measured_qubits is None:
-            self.input_measured_qubits = []
-        else:
-            self.input_measured_qubits = measured_qubits
         self.dag = None
+        self.parse_backend_properties()
 
     def powerset(self, iterable):
         """
@@ -144,6 +143,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         This function assumes that gate durations and coherence times
         are in seconds in backend.properties()
+        This function converts gate durations and coherence times to
+        nanoseconds.
         """
         backend_prop = self.backend_prop
         for qid in range(len(backend_prop.qubits)):
@@ -499,6 +500,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Setup and solve a Z3 optimization for finding the best schedule
         """
+        self.opt = Optimize()
         self.create_z3_vars()
         self.basic_bounds()
         self.scheduling_constraints()
@@ -673,13 +675,32 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         new_dag = self.create_updated_dag(layers, barriers)
         return new_dag
 
+    def reset(self):
+        """
+        Reset variables
+        """
+        self.gate_id = {}
+        self.gate_start_time = {}
+        self.gate_duration = {}
+        self.gate_fidelity = {}
+        self.overlap_amounts = {}
+        self.overlap_indicator = {}
+        self.qubit_lifetime = {}
+        self.dag_overlap_set = {}
+        self.xtalk_overlap_set = {}
+        self.measured_qubits = []
+        self.measure_start = None
+        self.last_gate_on_qubit = None
+        self.first_gate_on_qubit = None
+        self.fidelity_terms = []
+        self.coherence_terms = []
+        self.model = None
+
     def run(self, dag):
         """
         Main scheduling function
         """
-        # pre-processing steps
         self.dag = dag
-        self.parse_backend_properties()
 
         # process input program
         self.assign_gate_id(self.dag)
@@ -691,4 +712,5 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
         # post-process to insert barriers
         new_dag = self.enforce_schedule_on_dag(z3_result)
+        self.reset()
         return new_dag

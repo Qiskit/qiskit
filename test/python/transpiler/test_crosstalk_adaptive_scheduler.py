@@ -140,6 +140,29 @@ class TestCrosstalk(QiskitTestCase):
         scheduled_dag = pass_.run(dag)
         assert scheduled_dag.depth() == 1
 
+    def test_schedule_length3(self):
+        """Testing with repeated calls to run"""
+        bprop = create_fake_machine()
+        crosstalk_prop = {}
+        crosstalk_prop[(0, 1)] = {(2, 3): 0.2}
+        crosstalk_prop[(2, 3)] = {(0, 1): 0.05, (4, 5): 0.05}
+        crosstalk_prop[(4, 5)] = {(2, 3): 0.05}
+        crosstalk_prop[(1, 2)] = {(3, 4): 0.05}
+        crosstalk_prop[(3, 4)] = {(1, 2): 0.05}
+        qr = QuantumRegister(6, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+        mapping = [0, 1, 2, 3, 4, 5]
+        layout = Layout({qr[i]: mapping[i] for i in range(6)})
+        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        dag = circuit_to_dag(new_circ)
+        pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
+        scheduled_dag1 = pass_.run(dag)
+        scheduled_dag2 = pass_.run(dag)
+        assert scheduled_dag1.depth() == 3
+        assert scheduled_dag2.depth() == 3
+
 
 if __name__ == '__main__':
     unittest.main()
