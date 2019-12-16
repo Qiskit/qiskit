@@ -31,7 +31,7 @@ class CSPLayout(AnalysisPass):
     """
 
     def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000,
-                 time_limit=None):
+                 time_limit=10):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
         does not set the layout property. In all the cases, the property ``CSP_stop_reason``
