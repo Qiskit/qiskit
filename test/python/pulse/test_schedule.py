@@ -22,7 +22,7 @@ from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, Acqui
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
-from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
+from qiskit.pulse import pulse_lib, SamplePulse
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
@@ -339,17 +339,13 @@ class TestScheduleBuilding(BaseTestSchedule):
             my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
         )
         par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
-
-        cmd_def = CmdDef()
-        cmd_def.add('test', 0, par_sched)
-
-        actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
+        actual = par_sched(0.01, 0.02, 0.03)
         expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
             par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
         self.assertEqual(actual.start_time, expected.start_time)
         self.assertEqual(actual.stop_time, expected.stop_time)
 
-        self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
+        self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
 
 
 class TestDelay(BaseTestSchedule):

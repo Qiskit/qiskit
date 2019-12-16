@@ -1,12 +1,12 @@
 ---
 features:
   - |
-    A basic `scheduler` module has now been added to Qiskit. The `scheduler`
-    schedules an input transpiled `QuantumCircuit`(s) into a pulse `Schedule`.
-    The scheduler accepts as input a `Schedule`(s) and either a pulse `Backend`,
-    or a `CmdDef` which relates circuit `Instruction`s on specific qubits to
-    pulse Schedules and a `meas_map` which determines which measurements must
-    occur together.
+    A basic ``scheduler`` module has now been added to Qiskit. The `scheduler`
+    schedules an input transpiled ``QuantumCircuit`` into a pulse
+    ``Schedule``. The scheduler accepts as input a ``Schedule`` and either a
+    pulse ``Backend``, or a ``CmdDef`` which relates circuit ``Instruction``
+    objects on specific qubits to pulse Schedules and a ``meas_map`` which
+    determines which measurements must occur together.
 
     Scheduling example::
 
@@ -21,24 +21,25 @@ features:
       schedule(qc_transpiled, backend)
 
     The scheduler currently supports two scheduling policies,
-    `as_late_as_possible`(`alap`) and `as_soon_as_possible`(`asap`), which
+    `as_late_as_possible` (``alap``) and `as_soon_as_possible` (``asap``), which
     respectively schedule pulse instructions to occur as late as
     possible or as soon as possible across qubits in a circuit.
-    The scheduling policy may be selected with the input argument `method`,
+    The scheduling policy may be selected with the input argument ``method``,
     for example::
 
       schedule(qc_transpiled, backend, method='alap')
 
-    It is easy to use a pulse `Schedule within a `QuantumCircuit` by mapping it
-    to a custom circuit instruction such as a gate which may be used in a
-    `QuantumCircuit`. To do this, first, define the custom gate and then add an
-    entry into the `CmdDef` for the gate, for each qubit that the gate will be
-    applied to. The gate can then be used in the `QuantumCircuit`.
+    It is easy to use a pulse ``Schedule`` within a ``QuantumCircuit`` by
+    mapping it to a custom circuit instruction such as a gate which may be used
+    in a ``QuantumCircuit``. To do this, first, define the custom gate and then
+    add an entry into the ``CmdDef`` for the gate, for each qubit that the gate
+    will be applied to. The gate can then be used in the ``QuantumCircuit``.
     At scheduling time the gate will be mapped to the underlying pulse schedule.
     Using this technique allows easy integration with preexisting qiskit modules
     such as Ignis.
 
-    example::
+    For example::
+
         from qiskit import pulse, circuit, schedule
         from qiskit.pulse import pulse_lib
 

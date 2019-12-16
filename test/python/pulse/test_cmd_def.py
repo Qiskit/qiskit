@@ -26,7 +26,7 @@ from qiskit.pulse.schedule import ParameterizedSchedule
 
 
 class TestCmdDef(QiskitTestCase):
-    """Test CmdDef methods."""
+    """Test CmdDef methods. Deprecated."""
 
     def setUp(self):
         self.provider = FakeProvider()
