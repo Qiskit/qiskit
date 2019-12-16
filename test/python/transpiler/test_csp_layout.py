@@ -53,6 +53,7 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertEqual(layout[qr[0]], 0)
         self.assertEqual(layout[qr[1]], 1)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling(self):
         """ 3 qubits in Tenerife, without considering the direction
@@ -78,6 +79,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[0]], 0)
         self.assertEqual(layout[qr[1]], 1)
         self.assertEqual(layout[qr[2]], 2)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_9q_circuit_16q_coupling(self):
         """ 9 qubits in Rueschlikon, without considering the direction
@@ -108,6 +110,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[2]], 7)
         self.assertEqual(layout[qr1[3]], 3)
         self.assertEqual(layout[qr1[4]], 15)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_2q_circuit_2q_coupling_sd(self):
         """ A simple example, considering the direction
@@ -125,6 +128,7 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertEqual(layout[qr[0]], 1)
         self.assertEqual(layout[qr[1]], 0)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling_sd(self):
         """ 3 qubits in Tenerife, considering the direction
@@ -150,6 +154,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[0]], 1)
         self.assertEqual(layout[qr[1]], 2)
         self.assertEqual(layout[qr[2]], 0)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_9q_circuit_16q_coupling_sd(self):
         """ 9 qubits in Rueschlikon, considering the direction
@@ -180,6 +185,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[2]], 7)
         self.assertEqual(layout[qr1[3]], 3)
         self.assertEqual(layout[qr1[4]], 15)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_5q_circuit_16q_coupling_no_solution(self):
         """ 5 qubits in Rueschlikon, no solution
@@ -201,6 +207,7 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
         self.assertIsNone(layout)
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'nonexistent solution')
 
     @staticmethod
     def create_hard_dag():
@@ -251,7 +258,7 @@ class TestCSPLayout(QiskitTestCase):
         runtime = process_time() - start
 
         self.assertLess(runtime, 2)
-        self.assertEqual(pass_.property_set['CSP_stop_reason'], 'time limit reached')
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'time limit reached')
 
     def test_call_limit(self):
         """Hard to solve situations hit the call limit"""
@@ -264,7 +271,7 @@ class TestCSPLayout(QiskitTestCase):
         runtime = process_time() - start
 
         self.assertLess(runtime, 1)
-        self.assertEqual(pass_.property_set['CSP_stop_reason'], 'call limit reached')
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'call limit reached')
 
 
 if __name__ == '__main__':

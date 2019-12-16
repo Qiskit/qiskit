@@ -34,7 +34,7 @@ class CSPLayout(AnalysisPass):
                  time_limit=10):
         """
         If possible, chooses a Layout as a CSP, using backtracking. If not possible,
-        does not set the layout property. In all the cases, the property ``CSP_stop_reason``
+        does not set the layout property. In all the cases, the property ``CSPLayout_stop_reason``
         will be added with one of the following values:
          - solution found: If a perfect layout was found.
          - nonexistent solution: If no perfect layout was found and every combination was checked.
@@ -147,4 +147,4 @@ class CSPLayout(AnalysisPass):
             stop_reason = 'solution found'
             self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
 
-        self.property_set['CSP_stop_reason'] = stop_reason
+        self.property_set['CSPLayout_stop_reason'] = stop_reason
