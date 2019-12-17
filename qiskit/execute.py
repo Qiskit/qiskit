@@ -195,7 +195,7 @@ def execute(experiments, backend,
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
 
     Example:
-        Construct a 5 qubit GHZ circuit, execute 4321 shots on a backend.
+        Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
 
         .. jupyter-execute::
 
