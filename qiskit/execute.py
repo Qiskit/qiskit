@@ -30,7 +30,7 @@ def execute(experiments, backend,
             backend_properties=None, initial_layout=None,
             seed_transpiler=None, optimization_level=None, pass_manager=None,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
-            memory=False, max_credits=10, seed_simulator=None,
+            memory=False, max_credits=10, seed_simulator=None, job_name=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
@@ -142,6 +142,9 @@ def execute(experiments, backend,
         seed_simulator (int):
             Random seed to control sampling, for when backend is a simulator
 
+        job_name (str): The non-unique name of the returned job instance
+                        when executing on non-local (IBMQ) devices.
+
         default_qubit_los (list):
             List of default qubit lo frequencies
 
@@ -192,7 +195,8 @@ def execute(experiments, backend,
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
 
     Example:
-        Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
+        Construct a 5 qubit GHZ circuit, execute 4321 shots on a backend with the
+        name 'ghz_sim'.
 
         .. jupyter-execute::
 
@@ -205,7 +209,7 @@ def execute(experiments, backend,
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-            job = execute(qc, backend, shots=4321)
+            job = execute(qc, backend, shots=4321, job_name='ghz_sim')
     """
 
     # transpiling the circuits using given transpile options
@@ -242,4 +246,8 @@ def execute(experiments, backend,
                     )
 
     # executing the circuits on the backend and returning the job
-    return backend.run(qobj, **run_config)
+    if not backend.configuration().local:
+        return backend.run(qobj, job_name=job_name,
+                           **run_config)
+    else:
+        return backend.run(qobj, **run_config)
