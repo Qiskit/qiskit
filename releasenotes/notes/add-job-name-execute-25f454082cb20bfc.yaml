@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added the ability to assign a name to a job executed on IBMQ backends.
