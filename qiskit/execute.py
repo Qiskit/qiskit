@@ -245,7 +245,7 @@ def execute(experiments, backend,
                     )
 
     # executing the circuits on the backend and returning the job
-    if backend.name().split('_')[0] == 'ibmq':
+    if type(backend).__name__ == 'IBMQBackend':
         return backend.run(qobj, job_name=job_name,
                            **run_config)
     else:
