@@ -45,6 +45,7 @@ Quantum Algorithms
    IQPE
    QPE
    AmplitudeEstimation
+   IterativeAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimation
    Simon
    DeutschJozsa
