@@ -18,7 +18,6 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse.cmd_def import CmdDef
 from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
@@ -34,7 +33,7 @@ class TestAutoMerge(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.cmd_def = self.backend.defaults().build_cmd_def()
+        self.cmd_def = self.backend.defaults().circuit_instruction_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -136,9 +135,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.cmd_def = self.backend.defaults().circuit_instruction_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
         acquire = pulse.Acquire(5)

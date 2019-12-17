@@ -16,7 +16,6 @@
 Pulse utilities.
 """
 import warnings
-
 # pylint: disable=unused-argument
 
 

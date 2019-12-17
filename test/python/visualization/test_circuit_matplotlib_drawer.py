@@ -114,6 +114,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skip('Unreliable across python version')
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
