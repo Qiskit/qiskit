@@ -49,62 +49,62 @@ class BaseOperator(ABC):
 
     @abstractmethod
     def __add__(self, other):
-        """Overload + operation."""
+        """ Overload + operation """
         raise NotImplementedError
 
     @abstractmethod
     def __iadd__(self, other):
-        """Overload += operation."""
+        """ Overload += operation """
         raise NotImplementedError
 
     @abstractmethod
     def __sub__(self, other):
-        """Overload - operation."""
+        """ Overload - operation """
         raise NotImplementedError
 
     @abstractmethod
     def __isub__(self, other):
-        """Overload -= operation."""
+        """ Overload -= operation """
         raise NotImplementedError
 
     @abstractmethod
     def __neg__(self):
-        """Overload unary - ."""
+        """ Overload unary - """
         raise NotImplementedError
 
     @abstractmethod
     def __eq__(self, other):
-        """Overload == operation."""
+        """ Overload == operation """
         raise NotImplementedError
 
     @abstractmethod
     def __str__(self):
-        """Overload str()."""
+        """Overload str() """
         raise NotImplementedError
 
     @abstractmethod
     def __mul__(self, other):
-        """Overload *."""
+        """ Overload * """
         raise NotImplementedError
 
     @abstractmethod
     def construct_evaluation_circuit(self, wave_function, statevector_mode, **kwargs):
-        """Build circuits to compute the expectation w.r.t the wavefunction."""
+        """ Build circuits to compute the expectation w.r.t the wavefunction. """
         raise NotImplementedError
 
     @abstractmethod
     def evaluate_with_result(self, result, statevector_mode, **kwargs):
         """
         Consume the result from the quantum computer to build the expectation,
-        will be only used along with the `construct_evaluation_circuit` method.
+        will be only used along with the :meth:`construct_evaluation_circuit` method.
         """
         raise NotImplementedError
 
     @abstractmethod
     def evolve(self, state_in, evo_time, num_time_slices, expansion_mode, expansion_order,
                **kwargs):
-        """
-        Time evolution, exp^(-jt H).
+        r"""
+        Time evolution, exp\^(-jt H).
         """
         raise NotImplementedError
 

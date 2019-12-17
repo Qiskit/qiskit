@@ -203,7 +203,7 @@ class MatrixOperator(BaseOperator):
     def print_details(self):
         """
         Returns:
-            str: a formated operator.
+            str: a formatted operator.
         """
         ret = str(self._matrix)
         return ret

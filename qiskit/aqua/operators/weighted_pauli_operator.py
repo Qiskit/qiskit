@@ -39,22 +39,22 @@ logger = logging.getLogger(__name__)
 
 class WeightedPauliOperator(BaseOperator):
     """ Weighted Pauli Operator """
+
     def __init__(self, paulis, basis=None, z2_symmetries=None, atol=1e-12, name=None):
         """
         Args:
             paulis (list[[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is
-                                            composed of
-                                         a length-2 list and the first item is the weight and
-                                         the second item is the Pauli object.
+                                             composed of a length-2 list and the first item is the
+                                             weight and the second item is the Pauli object.
             basis (list[tuple(object, [int])], optional): the grouping basis, each element is a
                                                           tuple composed of the basis
                                                           and the indices to paulis which are
                                                           belonged to that group.
                                                           e.g., if tpb basis is used, the object
                                                           will be a pauli.
-                                                          by default, the group is equal to
+                                                          By default, the group is equal to
                                                           non-grouping, each pauli is its own basis.
-            z2_symmetries (Z2Symmetires): recording the z2 symmetries info
+            z2_symmetries (Z2Symmetries): recording the z2 symmetries info
             atol (float, optional): the threshold used in truncating paulis
             name (str, optional): the name of operator.
         """
@@ -76,11 +76,12 @@ class WeightedPauliOperator(BaseOperator):
         Args:
             paulis (list[Pauli]): the list of Paulis
             weights (list[complex], optional): the list of weights,
-                    if it is None, all weights are 1.
+                                               if it is None, all weights are 1.
             name (str, optional): name of the operator.
 
         Returns:
             WeightedPauliOperator: operator
+
         Raises:
             ValueError: The length of weights and paulis must be the same
         """
@@ -108,11 +109,10 @@ class WeightedPauliOperator(BaseOperator):
     @property
     def num_qubits(self):
         """
-        number of qubits required for the operator.
+        Number of qubits required for the operator.
 
         Returns:
             int: number of qubits
-
         """
         if not self.is_empty():
             return self._paulis[0][1].numberofqubits
@@ -121,7 +121,7 @@ class WeightedPauliOperator(BaseOperator):
             return 0
 
     def __eq__(self, other):
-        """Overload == operation"""
+        """ Overload == operation """
         # need to clean up the zeros
         self.simplify()
         other.simplify()
@@ -180,7 +180,8 @@ class WeightedPauliOperator(BaseOperator):
         return ret_op
 
     def add(self, other, copy=False):
-        """Perform self + other.
+        """
+        Perform self + other.
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
@@ -193,7 +194,8 @@ class WeightedPauliOperator(BaseOperator):
         return self._add_or_sub(other, op_add, copy=copy)
 
     def sub(self, other, copy=False):
-        """Perform self - other.
+        """
+        Perform self - other.
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
@@ -206,19 +208,19 @@ class WeightedPauliOperator(BaseOperator):
         return self._add_or_sub(other, op_sub, copy=copy)
 
     def __add__(self, other):
-        """Overload + operator."""
+        """ Overload + operator """
         return self.add(other, copy=True)
 
     def __iadd__(self, other):
-        """Overload += operator."""
+        """ Overload += operator """
         return self.add(other, copy=False)
 
     def __sub__(self, other):
-        """Overload - operator."""
+        """ Overload - operator """
         return self.sub(other, copy=True)
 
     def __isub__(self, other):
-        """Overload -= operator."""
+        """ Overload -= operator """
         return self.sub(other, copy=False)
 
     def _scaling_weight(self, scaling_factor, copy=False):
@@ -264,25 +266,25 @@ class WeightedPauliOperator(BaseOperator):
         return ret_op
 
     def __rmul__(self, other):
-        """Overload other * self."""
+        """ Overload other * self """
         if isinstance(other, (int, float, complex, np.int, np.float, np.complex)):
             return self._scaling_weight(other, copy=True)
         else:
             return other.multiply(self)
 
     def __mul__(self, other):
-        """Overload self * other."""
+        """ Overload self * other """
         if isinstance(other, (int, float, complex, np.int, np.float, np.complex)):
             return self._scaling_weight(other, copy=True)
         else:
             return self.multiply(other)
 
     def __neg__(self):
-        """Overload unary -."""
+        """Overload unary - """
         return self._scaling_weight(-1.0, copy=True)
 
     def __str__(self):
-        """Overload str()."""
+        """ Overload str() """
         curr_repr = 'paulis'
         length = len(self._paulis)
         name = "" if self._name == '' else "{}: ".format(self._name)
@@ -307,7 +309,7 @@ class WeightedPauliOperator(BaseOperator):
         return ret
 
     def copy(self):
-        """Get a copy of self."""
+        """ Get a copy of self """
         return deepcopy(self)
 
     def simplify(self, copy=False):
@@ -315,7 +317,7 @@ class WeightedPauliOperator(BaseOperator):
         Merge the paulis whose bases are identical and the pauli with zero coefficient
         would be removed.
 
-        Notes:
+        Note:
             This behavior of this method is slightly changed,
             it will remove the paulis whose weights are zero.
 
@@ -373,7 +375,8 @@ class WeightedPauliOperator(BaseOperator):
         return op
 
     def rounding(self, decimals, copy=False):
-        """Rounding the weight.
+        """
+        Rounding the weight.
 
         Args:
             decimals (int): rounding the weight to the decimals.
@@ -391,11 +394,11 @@ class WeightedPauliOperator(BaseOperator):
     def chop(self, threshold=None, copy=False):
         """
         Eliminate the real and imagine part of weight in each pauli by `threshold`.
-        If pauli's weight is less then `threshold` in both real and imagine parts,
+        If pauli's weight is less then `threshold` in both real and imaginary parts,
         the pauli is removed.
 
         Note:
-            If weight is real-only, the imag part is skipped.
+            If weight is real-only, the imaginary part is skipped.
 
         Args:
             threshold (float): the threshold is used to remove the paulis
@@ -451,11 +454,11 @@ class WeightedPauliOperator(BaseOperator):
         return op
 
     def commute_with(self, other):
-        """ commute with """
+        """ Commutes with """
         return check_commutativity(self, other)
 
     def anticommute_with(self, other):
-        """ anti commute with """
+        """ Anti commutes with """
         return check_commutativity(self, other, anti=True)
 
     def is_empty(self):
@@ -463,7 +466,7 @@ class WeightedPauliOperator(BaseOperator):
         Check Operator is empty or not.
 
         Returns:
-            bool: is empty?
+            bool: True if empty, False otherwise
         """
         if not self._paulis:
             return True
@@ -501,25 +504,30 @@ class WeightedPauliOperator(BaseOperator):
     @classmethod
     def from_dict(cls, dictionary, before_04=False):
         """
-        Load paulis in a dict to construct an Operator, \
-        the dict must be represented as follows: label and coeff (real and imag). \
-        E.g.: \
-           {'paulis': \
-               [ \
-                   {'label': 'IIII', \
-                    'coeff': {'real': -0.33562957575267038, 'imag': 0.0}}, \
-                   {'label': 'ZIII', \
-                    'coeff': {'real': 0.28220597164664896, 'imag': 0.0}}, \
-                    ... \
-                ] \
-            } \
+        Load paulis from a dictionary to construct an Operator. The dictionary must
+        comprise the key 'paulis' having a value which is an array of pauli dicts.
+        Each dict in this array must be represented by label and coeff (real and imag)
+        such as in the following example:
+
+        .. code-block:: python
+
+           {'paulis':
+               [
+                   {'label': 'IIII',
+                    'coeff': {'real': -0.33562957575267038, 'imag': 0.0}},
+                   {'label': 'ZIII',
+                    'coeff': {'real': 0.28220597164664896, 'imag': 0.0}},
+                    ...
+               ]
+            }
 
         Args:
             dictionary (dict): dictionary, which contains a list of Paulis and coefficients.
             before_04 (bool): support the format before Aqua 0.4.
 
         Returns:
-            WeightedPauliOperator: the loaded operator.
+            WeightedPauliOperator: the operator created from the input dictionary.
+
         Raises:
             AquaError: Invalid dictionary
         """
@@ -571,7 +579,6 @@ class WeightedPauliOperator(BaseOperator):
 
     def evaluate_with_statevector(self, quantum_state):
         """
-
         Args:
             quantum_state (numpy.ndarray): a quantum state.
 
@@ -594,21 +601,22 @@ class WeightedPauliOperator(BaseOperator):
     def construct_evaluation_circuit(self, wave_function, statevector_mode,
                                      qr=None, cr=None, use_simulator_snapshot_mode=False,
                                      circuit_name_prefix=''):
-        """
-        Construct the circuits for evaluation, which calculating the expectation <psi|H|psi>.
+        r"""
+        Construct the circuits for evaluation, which calculating the expectation <psi\|H\|psi>.
 
         At statevector mode: to simplify the computation, we do not build the whole
         circuit for <psi|H|psi>, instead of
-        that we construct an individual circuit <psi|, and a bundle circuit for H|psi>
+        that we construct an individual circuit <psi\|, and a bundle circuit for H\|psi>
 
         Args:
             wave_function (QuantumCircuit): the quantum circuit.
             statevector_mode (bool): indicate which type of simulator are going to use.
             qr (QuantumRegister, optional): the quantum register associated with the input_circuit
             cr (ClassicalRegister, optional): the classical register associated
-                                                with the input_circuit
+                                              with the input_circuit
             use_simulator_snapshot_mode (bool, optional): if aer_provider is used, we can do faster
-                                                evaluation for pauli mode on statevector simulation
+                                                          evaluation for pauli mode on
+                                                          statevector simulation
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
@@ -673,7 +681,6 @@ class WeightedPauliOperator(BaseOperator):
 
     def evaluation_instruction(self, statevector_mode, use_simulator_snapshot_mode=False):
         """
-
         Args:
             statevector_mode (bool): will it be run on statevector simulator or not
             use_simulator_snapshot_mode (bool): will it use qiskit aer simulator operator mode
@@ -719,8 +726,8 @@ class WeightedPauliOperator(BaseOperator):
                              circuit_name_prefix=''):
         """
         This method can be only used with the circuits generated by the
-        `construct_evaluation_circuit` method with the same `circuit_name_prefix`
-        since the circuit names are tied to some meanings.
+        :meth:`construct_evaluation_circuit` method with the same `circuit_name_prefix`
+        name since the circuit names are tied to some meanings.
 
         Calculate the evaluated value with the measurement results.
 
@@ -728,7 +735,8 @@ class WeightedPauliOperator(BaseOperator):
             result (qiskit.Result): the result from the backend.
             statevector_mode (bool): indicate which type of simulator are used.
             use_simulator_snapshot_mode (bool): if aer_provider is used, we can do faster
-                           evaluation for pauli mode on statevector simulation
+                                                evaluation for pauli mode on
+                                                statevector simulation
             circuit_name_prefix (str): a prefix of circuit name
 
         Returns:
@@ -833,7 +841,7 @@ class WeightedPauliOperator(BaseOperator):
             evo_time (Union(complex, float, Parameter, ParameterExpression)): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             quantum_registers (QuantumRegister): The QuantumRegister to build
-                                                the QuantumCircuit off of
+                                                 the QuantumCircuit off of
             expansion_mode (str): The mode under which the expansion is to be done.
                 Currently support 'trotter', which follows the expansion as discussed in
                 http://science.sciencemag.org/content/273/5278/1073,
@@ -843,6 +851,7 @@ class WeightedPauliOperator(BaseOperator):
 
         Returns:
             QuantumCircuit: The constructed circuit.
+
         Raises:
             AquaError: quantum_registers must be in the provided state_in circuit
             AquaError: if operator is empty
@@ -885,6 +894,7 @@ class WeightedPauliOperator(BaseOperator):
 
         Returns:
             QuantumCircuit: The constructed QuantumCircuit.
+
         Raises:
             ValueError: Number of time slices should be a non-negative integer
             NotImplementedError: expansion mode not supported
@@ -918,17 +928,17 @@ class WeightedPauliOperator(BaseOperator):
 
 class Z2Symmetries:
     """ Z2 Symmetries """
+
     def __init__(self, symmetries, sq_paulis, sq_list, tapering_values=None):
         """
-        Constructor.
-
         Args:
             symmetries (list[Pauli]): the list of Pauli objects representing the Z_2 symmetries
             sq_paulis (list[Pauli]): the list of single - qubit Pauli objects to construct the
-                                    Clifford operators
+                                     Clifford operators
             sq_list (list[int]): the list of support of the single-qubit Pauli objects used to build
-                                    the clifford operators
+                                 the Clifford operators
             tapering_values (list[int], optional): values determines the sector.
+
         Raises:
             AquaError: Invalid paulis
         """
@@ -964,6 +974,7 @@ class Z2Symmetries:
     def cliffords(self):
         """
         Get clifford operators, build based on symmetries and single-qubit X.
+
         Returns:
             list[WeightedPauliOperator]: a list of unitaries used to diagonalize the Hamiltonian.
         """
@@ -1041,7 +1052,7 @@ class Z2Symmetries:
 
         Returns:
             Z2Symmetries: a z2_symmetries object contains symmetries,
-                        single-qubit X, single-qubit list.
+                          single-qubit X, single-qubit list.
         """
         # pylint: disable=invalid-name
         pauli_symmetries = []
@@ -1140,12 +1151,13 @@ class Z2Symmetries:
         Args:
             operator (WeightedPauliOperator): the to-be-tapered operator.
             tapering_values (list[int], optional): if None, returns operators at each sector;
-                                                otherwise, returns
-                                               the operator located in that sector.
+                                                   otherwise, returns
+                                                   the operator located in that sector.
         Returns:
-            list[WeightedPauliOperator] or WeightedPauliOperator:
-                - if tapering_values is None: [WeightedPauliOperator];
-                    otherwise, WeightedPauliOperator
+            list[WeightedPauliOperator] or WeightedPauliOperator: If
+                tapering_values is None: [:class`WeightedPauliOperator`];
+                otherwise, :class:`WeightedPauliOperator`
+
         Raises:
             AquaError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
         """
@@ -1202,8 +1214,8 @@ class Z2Symmetries:
         Args:
             operator (WeightedPauliOperator): the operator
             num_particles (Union(list, int)): number of particles, if it is a list,
-                                        the first number is alpha
-                                        and the second number if beta.
+                                              the first number is alpha
+                                              and the second number if beta.
 
         Returns:
             WeightedPauliOperator: a new operator whose qubit number is reduced by 2.
@@ -1249,14 +1261,14 @@ class Z2Symmetries:
     def consistent_tapering(self, operator):
         """
         Tapering the `operator` with the same manner of how this tapered operator
-        is created. i.e., using the same
-        cliffords and tapering values.
+        is created. i.e., using the same Cliffords and tapering values.
 
         Args:
             operator (WeightedPauliOperator): the to-be-tapered operator
 
         Returns:
             TaperedWeightedPauliOperator: the tapered operator
+
         Raises:
             AquaError: The given operator does not commute with the symmetry
         """
