@@ -143,7 +143,7 @@ def execute(experiments, backend,
             Random seed to control sampling, for when backend is a simulator
 
         job_name (str): The non-unique name of the returned job instance
-                        when executing on non-local (IBMQ) devices.
+                        when executing on IBMQ devices.
 
         default_qubit_los (list):
             List of default qubit lo frequencies
