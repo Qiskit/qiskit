@@ -70,6 +70,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # instructions
         max_memory_slot = 0
         qobj_instructions = []
+        acquire_instuctions = []
 
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
@@ -92,12 +93,15 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             elif isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
-                if meas_map:
-                    # verify all acquires satisfy meas_map
-                    _validate_meas_map(instruction, meas_map)
+
+                acquire_instuctions.append(instruction)
 
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
+
+        if meas_map:
+            # verify all acquires satisfy meas_map
+            _validate_meas_map(acquire_instuctions, meas_map)
 
         # memory slot size is memory slot index + 1 because index starts from zero
         exp_memory_slot_size = max_memory_slot + 1
@@ -176,11 +180,11 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                      header=qobj_header)
 
 
-def _validate_meas_map(acquire, meas_map):
+def _validate_meas_map(acquires, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
+    measured_qubits = {acq_ch.acquire.index for acq_ch in acquires}
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:
