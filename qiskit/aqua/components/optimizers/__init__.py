@@ -12,7 +12,64 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Optimizer Packages """
+"""
+Optimizers (:mod:`qiskit.aqua.components.optimizers`)
+=====================================================
+Optimizers, local and global
+
+.. currentmodule:: qiskit.aqua.components.optimizers
+
+Optimizer Base Class
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   Optimizer
+
+Local Optimizers
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   ADAM
+   CG
+   COBYLA
+   L_BFGS_B
+   NELDER_MEAD
+   P_BFGS
+   POWELL
+   SLSQP
+   SPSA
+   TNC
+   AQGD
+
+Global Optimizers
+=================
+The global optimizers here all use NLopt for their core function and can only be
+used if their dependent NLopt package is manually installed. See the following
+section for installation instructions.
+
+.. toctree::
+
+   qiskit.aqua.components.optimizers.nlopts
+
+The global optimizers are as follows:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   CRS
+   DIRECT_L
+   DIRECT_L_RAND
+   ESCH
+   ISRES
+
+"""
 
 from .optimizer import Optimizer
 from .adam_amsgrad import ADAM

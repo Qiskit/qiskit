@@ -12,7 +12,34 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" variational forms packages """
+"""
+Variational Forms (:mod:`qiskit.aqua.components.variational_forms`)
+===================================================================
+Variational ansatzes
+
+.. currentmodule:: qiskit.aqua.components.variational_forms
+
+Variational Form Base Class
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   VariationalForm
+
+Variational Forms
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   RY
+   RYRZ
+   SwapRZ
+
+"""
 
 from .variational_form import VariationalForm
 from .ry import RY
