@@ -34,6 +34,8 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecom
                                                                euler_angles_1q)
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
+from test import combine
+from ddt import ddt
 
 
 def make_oneq_cliffords():
@@ -74,6 +76,7 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
           [(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.001, 0.97, 2.2), (3.14, 2.1, 0.9)]]]
 
 
+@ddt
 class TestEulerAngles1Q(QiskitTestCase):
     """Test euler_angles_1q()"""
 
@@ -100,10 +103,14 @@ class TestEulerAngles1Q(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_euler_angles_1q_random(self):
+    @combine(seed=range(5),
+             name='test_euler_angles_1q_random_{seed}',
+             dsc='Verify euler_angles_1q produces correct '
+                 'Euler angles for random_unitary (seed={seed})')
+    def test_euler_angles_1q_random(self, seed):
         """Verify euler_angles_1q produces correct Euler angles for random_unitary.
         """
-        unitary = random_unitary(2, seed=442)
+        unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary)
 
 
