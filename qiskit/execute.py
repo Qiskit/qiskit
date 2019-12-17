@@ -195,8 +195,7 @@ def execute(experiments, backend,
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
 
     Example:
-        Construct a 5 qubit GHZ circuit, execute 4321 shots on a backend with the
-        name 'ghz_sim'.
+        Construct a 5 qubit GHZ circuit, execute 4321 shots on a backend.
 
         .. jupyter-execute::
 
@@ -209,7 +208,7 @@ def execute(experiments, backend,
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-            job = execute(qc, backend, shots=4321, job_name='ghz_sim')
+            job = execute(qc, backend, shots=4321)
     """
 
     # transpiling the circuits using given transpile options
