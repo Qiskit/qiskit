@@ -329,7 +329,8 @@ class TestPulseAssembler(QiskitTestCase):
         #     [self.backend_config.acquire(i) for i in range(self.backend_config.n_qubits)],
         #     [MemorySlot(i) for i in range(self.backend_config.n_qubits)]))
         for i in range(self.backend_config.n_qubits):
-            self.schedule = self.schedule.insert(5, acquire(self.backend_config.acquire(i), MemorySlot(i)))
+            self.schedule = self.schedule.insert(5, acquire(self.backend_config.acquire(i),
+                                                            MemorySlot(i)))
 
         self.user_lo_config_dict = {self.backend_config.drive(0): 4.91}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)

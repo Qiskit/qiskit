@@ -582,7 +582,8 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split based on AcquireInstruction in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
-                                                               instruction_types=[AcquireInstruction],
+                                                               instruction_types=[
+                                                                   AcquireInstruction],
                                                                time_ranges=[(25, 100)])
         self.assertTrue(len(excluded.instructions), 4)
         for _, inst in filtered.instructions:
