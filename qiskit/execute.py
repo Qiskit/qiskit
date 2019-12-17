@@ -30,7 +30,7 @@ def execute(experiments, backend,
             backend_properties=None, initial_layout=None,
             seed_transpiler=None, optimization_level=None, pass_manager=None,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
-            memory=False, max_credits=10, seed_simulator=None,
+            memory=False, max_credits=10, seed_simulator=None, job_name=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
@@ -142,6 +142,9 @@ def execute(experiments, backend,
         seed_simulator (int):
             Random seed to control sampling, for when backend is a simulator
 
+        job_name (str): The non-unique name of the returned job instance
+                        when executing on IBMQ devices.
+
         default_qubit_los (list):
             List of default qubit lo frequencies
 
@@ -242,4 +245,8 @@ def execute(experiments, backend,
                     )
 
     # executing the circuits on the backend and returning the job
-    return backend.run(qobj, **run_config)
+    if backend.name().split('_')[0] == 'ibmq':
+        return backend.run(qobj, job_name=job_name,
+                           **run_config)
+    else:
+        return backend.run(qobj, **run_config)
