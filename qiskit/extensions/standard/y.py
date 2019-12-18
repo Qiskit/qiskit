@@ -21,6 +21,9 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class YGate(Gate):
@@ -40,6 +43,20 @@ class YGate(Gate):
             definition.append(inst)
         self.definition = definition
 
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if num_ctrl_qubits == 1:
+            return CyGate()
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+
     def inverse(self):
         """Invert this gate."""
         return YGate()  # self-inverse
@@ -56,3 +73,40 @@ def y(self, q):
 
 
 QuantumCircuit.y = y
+
+
+class CyGate(ControlledGate):
+    """controlled-Y gate."""
+
+    def __init__(self):
+        """Create new CY gate."""
+        super().__init__("cy", 2, [], num_ctrl_qubits=1)
+        self.base_gate = YGate
+        self.base_gate_name = "y"
+
+    def _define(self):
+        """
+        gate cy a,b { sdg b; cx a,b; s b; }
+        """
+        definition = []
+        q = QuantumRegister(2, "q")
+        rule = [
+            (SdgGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (SGate(), [q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return CyGate()  # self-inverse
+
+
+def cy(self, ctl, tgt):  # pylint: disable=invalid-name
+    """Apply CY to circuit."""
+    return self.append(CyGate(), [ctl, tgt], [])
+
+
+QuantumCircuit.cy = cy
