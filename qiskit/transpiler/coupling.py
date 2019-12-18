@@ -20,6 +20,7 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+import io
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -256,3 +257,28 @@ class CouplingMap:
             string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
             string += "]"
         return string
+
+    def draw(self):
+        """Draws the coupling map.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
+
+        Returns:
+            PIL.Image: Drawn coupling map.
+
+        Raises:
+            ImportError: when pydot or pillow are not installed.
+        """
+
+        try:
+            import pydot  # pylint: disable=unused-import
+            from PIL import Image
+        except ImportError:
+            raise ImportError("CouplingMap.draw requires pydot and pillow. "
+                              "Run 'pip install pydot pillow'.")
+
+        dot = nx.drawing.nx_pydot.to_pydot(self.graph)
+        png = dot.create_png(prog='neato')
+
+        return Image.open(io.BytesIO(png))
