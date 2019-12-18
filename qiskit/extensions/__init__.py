@@ -28,6 +28,8 @@ Standard Extensions
    Barrier
    ToffoliGate
    CHGate
+   CrxGate
+   CryGate
    CrzGate
    FredkinGate
    Cu1Gate
