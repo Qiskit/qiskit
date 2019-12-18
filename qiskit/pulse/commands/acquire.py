@@ -15,7 +15,7 @@
 """
 Acquire.
 """
-from typing import Union, List, Optional
+from typing import Optional
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
