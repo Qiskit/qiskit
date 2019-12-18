@@ -87,8 +87,10 @@ class OneQubitEulerDecomposer:
 
     def _angles(self, unitary_mat):
         """Return Euler angles for given basis."""
-        if self._basis in ['U3', 'U1X', 'ZYZ', 'ZXZ']:
+        if self._basis in ['U3', 'U1X', 'ZYZ']:
             return self._angles_zyz(unitary_mat)
+        if self._basis == 'ZXZ':
+            return self._angles_zxz(unitary_mat)
         if self._basis == 'XYX':
             return self._angles_xyx(unitary_mat)
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
@@ -145,6 +147,15 @@ class OneQubitEulerDecomposer:
         phi = (phiplambda + phimlambda) / 2.0
         lam = (phiplambda - phimlambda) / 2.0
         return theta, phi, lam, phase
+
+    @staticmethod
+    def _angles_zxz(unitary_mat):
+        """Return euler angles for special unitary matrix in ZXZ basis.
+
+        In this representation U = exp(1j * phase) * Rz(phi).Rx(theta).Rz(lam)
+        """
+        theta, phi, lam, phase = OneQubitEulerDecomposer._angles_zyz(unitary_mat)
+        return theta, phi + np.pi / 2, lam - np.pi / 2, phase
 
     @staticmethod
     def _angles_xyx(unitary_mat):
@@ -211,12 +222,12 @@ class OneQubitEulerDecomposer:
             circuit.append(RZGate(phi + lam), [0])
             return circuit
         circuit = QuantumCircuit(1)
-        if not simplify or not np.isclose(lam, np.pi / 2, atol=atol):
-            circuit.append(RZGate(lam - np.pi / 2), [0])
+        if not simplify or not np.isclose(lam, 0.0, atol=atol):
+            circuit.append(RZGate(lam), [0])
         if not simplify or not np.isclose(theta, 0.0, atol=atol):
             circuit.append(RXGate(theta), [0])
-        if not simplify or not np.isclose(phi, -np.pi / 2, atol=atol):
-            circuit.append(RZGate(phi + np.pi / 2), [0])
+        if not simplify or not np.isclose(phi, 0.0, atol=atol):
+            circuit.append(RZGate(phi), [0])
         return circuit
 
     @staticmethod
