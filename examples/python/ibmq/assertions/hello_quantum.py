@@ -19,14 +19,6 @@ from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 
-# Authenticate for access to remote backends
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk.
-             You must store your credentials using IBMQ.save_account(token, url).
-             For now, there's only access to local simulator backends...""")
-
 # Create a Quantum Circuit
 qc = QuantumCircuit(2, 2)
 
@@ -47,39 +39,48 @@ print("BasicAer backends: ", BasicAer.backends())
 backend_sim = BasicAer.get_backend('qasm_simulator')
 
 # Compile and run the Quantum circuit on a simulator backend
-job_sim = execute([breakpoint, qc], backend_sim)
+job_sim = execute(qc, backend_sim)
 result_sim = job_sim.result()
 
 # Show the assertion
 print("Simulated Results of our " + result_sim.get_assertion_type(breakpoint) + " Assertion:")
-tup = result_sim.get_assertion_stats(breakpoint)
+tup = result_sim.get_assertion_stats(breakpoint, qc)
 print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
-assert ( result_sim.get_assertion_passed(breakpoint) )
+assert ( result_sim.get_assertion_passed(breakpoint, qc) )
 
 # Show the results
 print(result_sim.get_counts(qc))
 
+# Authenticate for access to remote backends
+try:
+    provider = IBMQ.load_account()
+except:
+    print("""WARNING: No valid IBMQ credentials found on disk.
+             You must store your credentials using IBMQ.save_account(token, url).
+             For now, there's only access to local simulator backends...""")
+    exit(0)
+
 # see a list of available remote backends
-ibmq_backends = IBMQ.backends()
+ibmq_backends = provider.backends()
 
 print("Remote backends: ", ibmq_backends)
 # Compile and run the Quantum Program on a real device backend
 try:
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(simulator=False))
 except:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)
 
 #running the job
-job_exp = execute([breakpoint, qc], least_busy_device, shots=1024, max_credits=10)
+job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
 result_exp = job_exp.result()
 
 # Show the assertion
 print("Experimental Results of our " + result_exp.get_assertion_type(breakpoint) + " Assertion:")
-tup = result_exp.get_assertion_stats(breakpoint)
+tup = result_exp.get_assertion_stats(breakpoint, qc)
 print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
-assert ( result_exp.get_assertion_passed(breakpoint) )
+assert ( result_exp.get_assertion_passed(breakpoint, qc) )
 
 # Show the results
 print('Counts: ', result_exp.get_counts(qc))

@@ -20,6 +20,7 @@ import math
 from qiskit import QuantumCircuit
 from qiskit import execute, BasicAer
 
+
 ###############################################################
 # make the qft
 ###############################################################
@@ -69,7 +70,11 @@ qft5.barrier()
 for j in range(5):
     qft5.measure(j, j)
 
-# setting up the backend, running the breakpoint and the job
+print(qft3)
+print(qft4)
+print(qft5)
+
+print('Qasm simulator')
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute([breakpoint1, breakpoint2, qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()

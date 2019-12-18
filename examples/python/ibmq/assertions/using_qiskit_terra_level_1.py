@@ -41,7 +41,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
-IBMQ.load_accounts()
+provider = IBMQ.load_account()
 
 breakpoints = []
 
@@ -72,12 +72,12 @@ qasm_simulator = BasicAer.get_backend('qasm_simulator')
 # Compile and run the circuit on a real device backend
 # See a list of available remote backends
 print("\n(IBMQ Backends)")
-for backend in IBMQ.backends():
+for backend in provider.backends():
     print(backend.status())
 
 try:
     # select least busy available device and execute.
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(simulator=False))
 except:
     print("All devices are currently unavailable.")
 
