@@ -41,7 +41,7 @@ class TestRandomUtils(QiskitTestCase):
                               -0.23722636 - 0.47383058j, 0.40993924 - 0.57656653j],
                              [0.04033726 - 0.4089958j, 0.39452908 + 0.4163953j,
                               0.37036483 + 0.26451022j, 0.08430501 - 0.53648299j]])
-        assert_allclose(unitary.data, expected)
+        assert_allclose(unitary.data, expected, atol=1e-8)
 
     def test_unitary(self):
         """ Test that a random unitary with set seed will not affect later
