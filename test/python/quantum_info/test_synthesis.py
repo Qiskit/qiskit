@@ -15,6 +15,8 @@
 """Tests for quantum synthesis methods."""
 
 import unittest
+from test import combine
+from ddt import ddt
 
 import numpy as np
 import scipy.linalg as la
@@ -34,8 +36,6 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecom
                                                                euler_angles_1q)
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
-from test import combine
-from ddt import ddt
 
 
 def make_oneq_cliffords():

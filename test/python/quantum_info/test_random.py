@@ -26,6 +26,7 @@ class TestRandomUtils(QiskitTestCase):
     """Testing qiskit.quantum_info.random.utils"""
 
     def test_determinisitc_random_unitary(self):
+        """TODO"""
         seed = 314159
         unitary = random_unitary(4, seed=seed)
         expected = np.array([[0.07749745 + 0.65152329j, 0.40784587 - 0.36593286j,
