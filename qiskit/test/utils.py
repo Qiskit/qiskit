@@ -108,6 +108,8 @@ def generate_cases(dsc=None, name=None, **kwargs):
         case = Case(zip(keys, values))
         if dsc is not None:
             setattr(case, "__doc__", dsc.format(**case))
+        else:
+            setattr(case, "__doc__", case.__doc__.format(**case))
         if name is not None:
             setattr(case, "__name__", name.format(**case))
         ret.append(case)
