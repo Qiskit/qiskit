@@ -340,6 +340,36 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.crz(pi / 2, qr[2], qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_cry(self):
+        """ cry drawing. """
+        expected = '\n'.join(["                    ┌──────────┐",
+                              "q_0: |0>─────■──────┤ Ry(pi/2) ├",
+                              "        ┌────┴─────┐└────┬─────┘",
+                              "q_1: |0>┤ Ry(pi/2) ├─────┼──────",
+                              "        └──────────┘     │      ",
+                              "q_2: |0>─────────────────■──────",
+                              "                                "])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cry(pi / 2, qr[0], qr[1])
+        circuit.cry(pi / 2, qr[2], qr[0])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_crx(self):
+        """ crx drawing. """
+        expected = '\n'.join(["                    ┌──────────┐",
+                              "q_0: |0>─────■──────┤ Rx(pi/2) ├",
+                              "        ┌────┴─────┐└────┬─────┘",
+                              "q_1: |0>┤ Rx(pi/2) ├─────┼──────",
+                              "        └──────────┘     │      ",
+                              "q_2: |0>─────────────────■──────",
+                              "                                "])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.crx(pi / 2, qr[0], qr[1])
+        circuit.crx(pi / 2, qr[2], qr[0])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_cx(self):
         """ cx drawing. """
         expected = '\n'.join(["             ┌───┐",
