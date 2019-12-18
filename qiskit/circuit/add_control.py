@@ -43,7 +43,7 @@ def _control_definition_known(operation, num_ctrl_qubits):
     if num_ctrl_qubits == 2 and operation.name == 'x':
         return True
     elif num_ctrl_qubits == 1:
-        return operation.name in {'x', 'y', 'z', 'h', 'rz', 'swap', 'u1', 'u3', 'cx'}
+        return operation.name in {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'u1', 'u3', 'cx'}
     elif operation.name == 'rz' and num_ctrl_qubits > 1:
         return True
     else:
@@ -69,13 +69,20 @@ def _control_predefined(operation, num_ctrl_qubits):
     elif operation.name == 'h':
         import qiskit.extensions.standard.ch
         cgate = qiskit.extensions.standard.ch.CHGate()
-    elif operation.name == 'rz':
-        import qiskit.extensions.standard.crz
-        cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
+    elif operation.name in {'rx', 'ry', 'rz'}:
+        if operation.name == 'rx':
+            import qiskit.extensions.standard.crx
+            cgate = qiskit.extensions.standard.crx.CrxGate(*operation.params)
+        elif operation.name == 'ry':
+            import qiskit.extensions.standard.cry
+            cgate = qiskit.extensions.standard.cry.CryGate(*operation.params)
+        else:  # operation.name == 'rz'
+            import qiskit.extensions.standard.crz
+            cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
         if num_ctrl_qubits == 1:
             return cgate
         else:
-            # use crz as base gate for phase correctness
+            # only predefined for one control qubit
             return cgate.control(num_ctrl_qubits - 1)
     elif operation.name == 'swap':
         import qiskit.extensions.standard.cswap
