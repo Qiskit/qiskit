@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Methods to create random unitaries, states, etc.
 """
@@ -47,8 +45,8 @@ def random_state(dim, seed=None):
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = rng.rand(dim)*2.0*np.pi
-    return np.sqrt(x/sumx)*np.exp(1j*phases)
+    phases = rng.rand(dim) * 2.0 * np.pi
+    return np.sqrt(x / sumx) * np.exp(1j * phases)
 
 
 def random_unitary(dim, seed=None):
@@ -65,11 +63,9 @@ def random_unitary(dim, seed=None):
     Raises:
         QiskitError: if dim is not a positive power of 2.
     """
-    if seed is not None:
-        np.random.seed(seed)
     if dim == 0 or not math.log2(dim).is_integer():
         raise QiskitError("Desired unitary dimension not a positive power of 2.")
-    return Operator(unitary_group.rvs(dim))
+    return Operator(unitary_group.rvs(dim, random_state=seed))
 
 
 # TODO: return a DensityMatrix object.
@@ -112,43 +108,42 @@ def __ginibre_matrix(nrow, ncol=None, seed=None):
     """
     if ncol is None:
         ncol = nrow
-    if seed is not None:
-        np.random.seed(seed)
-    G = np.random.normal(size=(nrow, ncol)) + \
-        np.random.normal(size=(nrow, ncol)) * 1j
-    return G
+    rng = np.random.RandomState(seed)
+
+    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
+    return ginibre
 
 
-def __random_density_hs(N, rank=None, seed=None):
+def __random_density_hs(length, rank=None, seed=None):
     """
     Generate a random density matrix from the Hilbert-Schmidt metric.
 
     Args:
-        N (int): the length of the density matrix.
+        length (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
         seed (int): Optional. To set a random seed.
     Returns:
         ndarray: rho (N,N  a density matrix.
     """
-    G = __ginibre_matrix(N, rank, seed)
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
+    ginibre = __ginibre_matrix(length, rank, seed)
+    ginibre = ginibre.dot(ginibre.conj().T)
+    return ginibre / np.trace(ginibre)
 
 
-def __random_density_bures(N, rank=None, seed=None):
+def __random_density_bures(length, rank=None, seed=None):
     """
     Generate a random density matrix from the Bures metric.
 
     Args:
-        N (int): the length of the density matrix.
+        length (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
         seed (int): Optional. To set a random seed.
     Returns:
         ndarray: rho (N,N) a density matrix.
     """
-    P = np.eye(N) + random_unitary(N).data
-    G = P.dot(__ginibre_matrix(N, rank, seed))
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
+    density = np.eye(length) + random_unitary(length).data
+    ginibre = density.dot(__ginibre_matrix(length, rank, seed))
+    ginibre = ginibre.dot(ginibre.conj().T)
+    return ginibre / np.trace(ginibre)

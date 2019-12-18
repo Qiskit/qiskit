@@ -53,6 +53,7 @@ __all__ = ['Bloch']
 
 import os
 import numpy as np
+from matplotlib import get_backend
 import matplotlib.pyplot as plt  # pylint: disable=import-error
 from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
 from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
@@ -309,6 +310,7 @@ class Bloch():
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
+
         Args:
             points (array_like):
                 Collection of data points.
@@ -547,7 +549,7 @@ class Bloch():
                     np.real(self.points[k][2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
-                    edgecolor='none',
+                    edgecolor=None,
                     zdir='z',
                     color=self.point_color[np.mod(k, len(self.point_color))],
                     marker=self.point_marker[np.mod(k,
@@ -565,7 +567,7 @@ class Bloch():
                 self.axes.scatter(np.real(self.points[k][1][indperm]),
                                   -np.real(self.points[k][0][indperm]),
                                   np.real(self.points[k][2][indperm]),
-                                  s=pnt_size, alpha=1, edgecolor='none',
+                                  s=pnt_size, alpha=1, edgecolor=None,
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 
@@ -600,6 +602,7 @@ class Bloch():
 
     def save(self, name=None, output='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
+
         Args:
             name (str):
                 Name of saved image. Must include path and format as well.
@@ -626,7 +629,9 @@ class Bloch():
             self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
-            plt.close(self.fig)
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):

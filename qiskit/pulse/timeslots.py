@@ -17,7 +17,7 @@ Timeslots for channels.
 """
 from collections import defaultdict
 import itertools
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 from .channels import Channel
 from .exceptions import PulseError
@@ -95,6 +95,30 @@ class Interval:
             bool: are self and other equal.
         """
         return self.start == other.start and self.stop == other.stop
+
+    def stops_before(self, other):
+        """Whether intervals stops at value less than or equal to the
+        other interval's starting time.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        return self.stop <= other.start
+
+    def starts_after(self, other):
+        """Whether intervals starts at value greater than or equal to the
+        other interval's stopping time.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        return self.start >= other.stop
 
     def __repr__(self):
         """Return a readable representation of Interval Object"""
@@ -257,8 +281,12 @@ class TimeslotCollection:
             if interval.start >= ch_interval.stop:
                 break
             elif interval.has_overlap(ch_interval):
-                raise PulseError("Timeslot: {0} overlaps with existing"
-                                 "Timeslot: {1}".format(timeslot, ch_timeslot))
+                overlap_start = interval.start if interval.start > ch_interval.start \
+                    else ch_interval.start
+                overlap_end = ch_interval.stop if interval.stop > ch_interval.stop \
+                    else interval.stop
+                raise PulseError("Overlap on channel {0} over time range [{1}, {2}]"
+                                 "".format(timeslot.channel, overlap_start, overlap_end))
 
             insert_idx -= 1
 
@@ -346,8 +374,40 @@ class TimeslotCollection:
         Args:
             time: time to be shifted by
         """
-        slots = [slot.shift(time) for slot in self.timeslots]
-        return TimeslotCollection(*slots)
+        new_tc = TimeslotCollection()
+        new_tc_table = new_tc._table
+        for channel, timeslots in self._table.items():
+            new_tc_table[channel] = [tc.shift(time) for tc in timeslots]
+        return new_tc
+
+    def complement(self, stop_time: Optional[int] = None) -> 'TimeslotCollection':
+        """Return a complement TimeSlotCollection containing all unoccupied Timeslots
+        within this TimeSlotCollection.
+
+
+        Args:
+            stop_time: Final time too which complement Timeslot's will be returned.
+                If not set, defaults to last time in this TimeSlotCollection
+        """
+
+        timeslots = []
+
+        stop_time = stop_time or self.stop_time
+
+        for channel in self.channels:
+            curr_time = 0
+            for timeslot in self.ch_timeslots(channel):
+                next_time = timeslot.interval.start
+                if next_time-curr_time > 0:
+                    timeslots.append(Timeslot(Interval(curr_time, next_time), channel))
+
+                curr_time = timeslot.interval.stop
+
+            # pad out channel to stop_time
+            if stop_time-curr_time > 0:
+                timeslots.append(Timeslot(Interval(curr_time, stop_time), channel))
+
+        return TimeslotCollection(*timeslots)
 
     def __eq__(self, other) -> bool:
         """Two time-slot collections are the same if they have the same time-slots.
@@ -357,6 +417,7 @@ class TimeslotCollection:
         """
         if set(self.channels) != set(other.channels):
             return False
+
         for channel in self.channels:
             if self.ch_timeslots(channel) != self.ch_timeslots(channel):
                 return False

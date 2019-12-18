@@ -12,9 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A pass for transforming a circuit with virtual qubits into a circuit with physical qubits.
-"""
+"""Transform a circuit with virtual qubits into a circuit with physical qubits."""
+
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -22,7 +21,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ApplyLayout(TransformationPass):
-    """
+    """Transform a circuit with virtual qubits into a circuit with physical qubits.
+
     Transforms a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
     by applying the Layout given in `property_set`.
     Requires either of passes to set/select Layout, e.g. `SetLayout`, `TrivialLayout`.
@@ -30,12 +30,14 @@ class ApplyLayout(TransformationPass):
     """
 
     def run(self, dag):
-        """
-        Runs the ApplyLayout pass on `dag`.
+        """Run the ApplyLayout pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to map.
+
         Returns:
             DAGCircuit: A mapped DAG (with physical qubits).
+
         Raises:
             TranspilerError: if no layout is found in `property_set` or no full physical qubits.
         """

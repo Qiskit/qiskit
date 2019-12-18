@@ -14,7 +14,7 @@
 
 """Test the decompose pass"""
 
-from sympy import pi
+from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
@@ -88,3 +88,17 @@ class TestDecompose(QiskitTestCase):
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(after_dag, ref_dag)
+
+    def test_decompose_oversized_instruction(self):
+        """Test decompose on a single-op gate that doesn't use all qubits."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/3440
+        qc1 = QuantumCircuit(2)
+        qc1.x(0)
+        gate = qc1.to_gate()
+
+        qc2 = QuantumCircuit(2)
+        qc2.append(gate, [0, 1])
+
+        output = qc2.decompose()
+
+        self.assertEqual(qc1, output)

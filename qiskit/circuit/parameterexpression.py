@@ -19,9 +19,8 @@ import numbers
 import operator
 
 import numpy
-import sympy
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class ParameterExpression():
@@ -54,7 +53,7 @@ class ParameterExpression():
                                      numeric value to which they will be bound.
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_values contains Parameters outside those in self.
                 - If a non-numeric value is passed in parameter_values.
             ZeroDivisionError:
@@ -98,7 +97,7 @@ class ParameterExpression():
                                   replaced.
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_map contains Parameters outside those in self.
                 - If the replacement Parameters in parameter_map would result in
                   a name conflict in the generated expression.
@@ -111,7 +110,8 @@ class ParameterExpression():
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
         self._raise_if_parameter_names_conflict(parameter_map.keys())
 
-        new_parameter_symbols = {p: sympy.Symbol(p.name)
+        from sympy import Symbol
+        new_parameter_symbols = {p: Symbol(p.name)
                                  for p in parameter_map.values()}
 
         # Include existing parameters in self not set to be replaced.
@@ -131,16 +131,15 @@ class ParameterExpression():
     def _raise_if_passed_unknown_parameters(self, parameters):
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
-            raise QiskitError('Cannot bind Parameters ({}) not present in '
-                              'expression.'.format(
-                                  [str(p) for p in unknown_parameters]))
+            raise CircuitError('Cannot bind Parameters ({}) not present in '
+                               'expression.'.format([str(p) for p in unknown_parameters]))
 
     def _raise_if_passed_non_real_value(self, parameter_values):
         nonreal_parameter_values = {p: v for p, v in parameter_values.items()
                                     if not isinstance(v, numbers.Real)}
         if nonreal_parameter_values:
-            raise QiskitError('Expression cannot bind non-real or non-numeric '
-                              'values ({}).'.format(nonreal_parameter_values))
+            raise CircuitError('Expression cannot bind non-real or non-numeric '
+                               'values ({}).'.format(nonreal_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, other_parameters):
         self_names = {p.name: p for p in self.parameters}
@@ -150,8 +149,8 @@ class ParameterExpression():
         conflicting_names = {name for name in shared_names
                              if self_names[name] != other_names[name]}
         if conflicting_names:
-            raise QiskitError('Name conflict applying operation for parameters: '
-                              '{}'.format(conflicting_names))
+            raise CircuitError('Name conflict applying operation for parameters: '
+                               '{}'.format(conflicting_names))
 
     def _apply_operation(self, operation, other, reflected=False):
         """Base method implementing math operations between Parameters and
@@ -159,14 +158,14 @@ class ParameterExpression():
 
         Args:
             operation (function): One of operator.{add,sub,mul,truediv}.
-            other (Parameter or number.real): The second argument to be used
+            other (Parameter or numbers.Real): The second argument to be used
                with self in operation.
             reflected (bool): Optional - The default ordering is
                 "self operator other". If reflected is True, this is switched
                 to "other operator self". For use in e.g. __radd__, ...
 
         Raises:
-            QiskitError:
+            CircuitError:
                 - If parameter_map contains Parameters outside those in self.
                 - If the replacement Parameters in parameter_map would result in
                   a name conflict in the generated expression.
@@ -211,6 +210,9 @@ class ParameterExpression():
     def __mul__(self, other):
         return self._apply_operation(operator.mul, other)
 
+    def __neg__(self):
+        return self._apply_operation(operator.mul, -1.0)
+
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
 
@@ -232,7 +234,6 @@ class ParameterExpression():
         if self.parameters:
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
-
         return float(self._symbol_expr)
 
     def __copy__(self):

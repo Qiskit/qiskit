@@ -17,6 +17,7 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
+import warnings
 
 import numpy as np
 
@@ -33,6 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
                           Acquire, PulseError)
+from qiskit.pulse.commands.frame_change import FrameChangeInstruction
 
 
 class EventsOutputChannels:
@@ -190,7 +192,7 @@ class EventsOutputChannels:
                         last_pv = None
 
                 elif isinstance(command, Acquire):
-                    wf[time:tf] = np.ones(command.duration)
+                    wf[time:tf] = np.ones(tf - time)
                     self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
@@ -225,6 +227,7 @@ class SamplePulseDrawer:
 
     def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
+
         Args:
             pulse (SamplePulse): SamplePulse to draw
             dt (float): time interval
@@ -279,17 +282,23 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule, channels_to_plot, t0, tf):
+    def _build_channels(self, schedule, channels, t0, tf, show_framechange_channels=True):
         # prepare waveform channels
         drive_channels = collections.OrderedDict()
         measure_channels = collections.OrderedDict()
         control_channels = collections.OrderedDict()
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
+        _channels = set()
+        if show_framechange_channels:
+            _channels.update(schedule.channels)
+        # take channels that do not only contain framechanges
+        else:
+            for start_time, instruction in schedule.instructions:
+                if not isinstance(instruction, FrameChangeInstruction):
+                    _channels.update(instruction.channels)
 
-        _channels = list(schedule.channels) + channels_to_plot
-        _channels = list(set(_channels))
-
+        _channels.update(channels)
         for chan in _channels:
             if isinstance(chan, DriveChannel):
                 try:
@@ -334,14 +343,14 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
+    def _count_valid_waveforms(self, output_channels, scaling=1, channels=None,
                                plot_all=False):
         # count numbers of valid waveform
         n_valid_waveform = 0
         v_max = 0
-        for channel, events in channels.items():
-            if channels_to_plot:
-                if channel in channels_to_plot:
+        for channel, events in output_channels.items():
+            if channels:
+                if channel in channels:
                     waveform = events.waveform
                     v_max = max(v_max,
                                 max(np.abs(np.real(waveform))),
@@ -365,7 +374,7 @@ class ScheduleDrawer:
         if scaling:
             v_max = 0.5 * scaling
         else:
-            v_max = 0.5 / (1.2 * v_max)
+            v_max = 0.5 / (v_max)
 
         return n_valid_waveform, v_max
 
@@ -384,7 +393,11 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-
+            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
+            nrows = int(min(nrows, max_rows))
+            # don't overflow plot with table data
+            table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
             h_waves = (self.style.figsize[1] - h_table)
@@ -503,6 +516,8 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
+                # Minimum amplitude scaled
+                amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -530,18 +545,25 @@ class ScheduleDrawer:
 
             else:
                 continue
+
             # plot label
             ax.text(x=0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
 
-            y0 -= 1
+            # change the y0 offset for removing spacing when a channel has negative values
+            if self.style.remove_spacing:
+                y0 -= 0.5 + amp_min
+            else:
+                y0 -= 1
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=1, channels_to_plot=None, plot_all=True,
-             table=True, label=False, framechange=True):
+             scaling=None, channels_to_plot=None, plot_all=True,
+             table=True, label=False, framechange=True,
+             channels=None, show_framechange_channels=True):
         """Draw figure.
+
         Args:
             schedule (ScheduleComponent): Schedule to draw
             dt (float): time interval
@@ -549,11 +571,13 @@ class ScheduleDrawer:
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
             scaling (float): Relative visual scaling of waveform amplitudes
-            channels_to_plot (list[OutputChannel]): channels to draw
+            channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
+            channels (list[OutputChannel]): channels to draw
+            show_framechange_channels (bool): Plot channels with only framechanges
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -562,8 +586,13 @@ class ScheduleDrawer:
         """
         figure = plt.figure()
 
-        if not channels_to_plot:
-            channels_to_plot = []
+        if channels_to_plot is not None:
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
+            channels = channels_to_plot
+
+        if channels is None:
+            channels = []
         interp_method = interp_method or interpolation.step_wise
 
         # setup plot range
@@ -575,18 +604,24 @@ class ScheduleDrawer:
             # when input schedule is empty or comprises only frame changes,
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
-            tf = schedule.stop_time or 1
+            if channels:
+                tf = schedule.timeslots.ch_duration(*channels)
+            else:
+                tf = schedule.stop_time
+            tf = tf or 1
+
         # prepare waveform channels
-        (channels, output_channels,
-         snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
+        (schedule_channels, output_channels,
+         snapshot_channels) = self._build_channels(schedule, channels, t0, tf,
+                                                   show_framechange_channels)
 
         # count numbers of valid waveform
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
-                                                              channels_to_plot=channels_to_plot,
+                                                              channels=channels,
                                                               plot_all=plot_all)
 
         if table:
-            ax = self._draw_table(figure, channels, dt, n_valid_waveform)
+            ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
 
         else:
             ax = figure.add_subplot(111)

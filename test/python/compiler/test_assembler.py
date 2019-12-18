@@ -23,7 +23,9 @@ from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
-from qiskit.qobj import QasmQobj
+from qiskit.pulse.channels import MemorySlot, AcquireChannel
+from qiskit.qobj import QasmQobj, validate_qobj_against_schema
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -42,6 +44,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.measure(qr, cr)
 
         qobj = assemble(circ, shots=2000, memory=True)
+        validate_qobj_against_schema(qobj)
+
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 2000)
         self.assertEqual(qobj.config.memory, True)
@@ -67,6 +71,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ1.measure(qr1, qc1)
 
         qobj = assemble([circ0, circ1], shots=100, memory=False, seed_simulator=6)
+        validate_qobj_against_schema(qobj)
+
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.seed_simulator, 6)
         self.assertEqual(len(qobj.experiments), 2)
@@ -85,6 +91,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.measure(qr, qc)
 
         qobj = assemble(circ)
+        validate_qobj_against_schema(qobj)
+
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 1024)
 
@@ -96,6 +104,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
 
         qobj = assemble(circ)
+        validate_qobj_against_schema(qobj)
+
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
@@ -109,7 +119,10 @@ class TestCircuitAssembler(QiskitTestCase):
         c = ClassicalRegister(4, name='c')
         circ = QuantumCircuit(q, c, name='circ')
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
+
         qobj = assemble(circ)
+        validate_qobj_against_schema(qobj)
+
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(len(qobj.experiments[0].instructions), 1)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'my_inst')
@@ -130,6 +143,7 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.h(qr[1]).c_if(cr2, 3)
 
         qobj = assemble(qc)
+        validate_qobj_against_schema(qobj)
 
         first_measure, second_measure = [op for op in qobj.experiments[0].instructions
                                          if op.name == 'measure']
@@ -148,6 +162,7 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.h(qr[0]).c_if(cr, 1)
 
         qobj = assemble(qc)
+        validate_qobj_against_schema(qobj)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -171,6 +186,7 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.h(qr[0]).c_if(cr2, 2)
 
         qobj = assemble(qc)
+        validate_qobj_against_schema(qobj)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -267,6 +283,7 @@ class TestCircuitAssembler(QiskitTestCase):
                                          {x: 1, y: 1}]}
 
         qobj = assemble([qc1, qc2, qc3], **bind_args)
+        validate_qobj_against_schema(qobj)
 
         self.assertEqual(len(qobj.experiments), 9)
         self.assertEqual([len(expt.instructions) for expt in qobj.experiments],
@@ -297,7 +314,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
-        self.device = pulse.PulseChannelSpec.from_backend(FakeOpenPulse2Q())
+        self.backend_config = FakeOpenPulse2Q().configuration()
 
         test_pulse = pulse.SamplePulse(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
@@ -306,11 +323,12 @@ class TestPulseAssembler(QiskitTestCase):
         acquire = pulse.Acquire(5)
 
         self.schedule = pulse.Schedule(name='fake_experiment')
-        self.schedule = self.schedule.insert(0, test_pulse(self.device.drives[0]))
-        self.schedule = self.schedule.insert(5, acquire(self.device.acquires,
-                                                        self.device.memoryslots))
+        self.schedule = self.schedule.insert(0, test_pulse(self.backend_config.drive(0)))
+        self.schedule = self.schedule.insert(5, acquire(
+            [self.backend_config.acquire(i) for i in range(self.backend_config.n_qubits)],
+            [MemorySlot(i) for i in range(self.backend_config.n_qubits)]))
 
-        self.user_lo_config_dict = {self.device.drives[0]: 4.91}
+        self.user_lo_config_dict = {self.backend_config.drive(0): 4.91}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.default_qubit_lo_freq = [4.9, 5.0]
@@ -336,8 +354,9 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_lo_freq=self.default_meas_lo_freq,
                         schedule_los=[],
                         **self.config)
-        test_dict = qobj.to_dict()
+        validate_qobj_against_schema(qobj)
 
+        test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
@@ -349,8 +368,9 @@ class TestPulseAssembler(QiskitTestCase):
                         qubit_lo_freq=self.default_qubit_lo_freq,
                         meas_lo_freq=self.default_meas_lo_freq,
                         **self.config)
-        test_dict = qobj.to_dict()
+        validate_qobj_against_schema(qobj)
 
+        test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
@@ -363,8 +383,9 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_lo_freq=self.default_meas_lo_freq,
                         schedule_los=self.user_lo_config,
                         **self.config)
-        test_dict = qobj.to_dict()
+        validate_qobj_against_schema(qobj)
 
+        test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
@@ -377,8 +398,9 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_lo_freq=self.default_meas_lo_freq,
                         schedule_los=self.user_lo_config_dict,
                         **self.config)
-        test_dict = qobj.to_dict()
+        validate_qobj_against_schema(qobj)
 
+        test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
@@ -407,8 +429,9 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_lo_freq=self.default_meas_lo_freq,
                         schedule_los=[self.user_lo_config, self.user_lo_config],
                         **self.config)
-        test_dict = qobj.to_dict()
+        validate_qobj_against_schema(qobj)
 
+        test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
@@ -428,11 +451,13 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
-        schedule = acquire(self.device.acquires, mem_slots=self.device.memoryslots)
-        assemble(schedule,
-                 qubit_lo_freq=self.default_qubit_lo_freq,
-                 meas_lo_freq=self.default_meas_lo_freq,
-                 meas_map=[[0], [1]])
+        schedule = acquire([AcquireChannel(0), AcquireChannel(1)],
+                           [MemorySlot(0), MemorySlot(1)])
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
+        validate_qobj_against_schema(qobj)
 
         with self.assertRaises(QiskitError):
             assemble(schedule,
@@ -446,26 +471,56 @@ class TestPulseAssembler(QiskitTestCase):
         n_memoryslots = 10
 
         # single acquisition
-        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = acquire(self.backend_config.acquire(0),
+                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
                         meas_lo_freq=self.default_meas_lo_freq,
                         meas_map=[[0], [1]])
+        validate_qobj_against_schema(qobj)
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
+        # this should be in experimental header as well
+        self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
 
         # multiple acquisition
-        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
-        schedule = schedule.insert(10, acquire(self.device.acquires[0],
+        schedule = acquire(self.backend_config.acquire(0),
+                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = schedule.insert(10, acquire(self.backend_config.acquire(0),
                                                mem_slots=pulse.MemorySlot(n_memoryslots-1)))
 
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
                         meas_lo_freq=self.default_meas_lo_freq,
                         meas_map=[[0], [1]])
+        validate_qobj_against_schema(qobj)
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
+        # this should be in experimental header as well
+        self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
+
+    def test_assemble_memory_slots_for_schedules(self):
+        """Test assembling schedules with different memory slots."""
+        acquire = pulse.Acquire(5)
+        n_memoryslots = [10, 5, 7]
+
+        schedules = []
+        for n_memoryslot in n_memoryslots:
+            schedule = acquire(self.backend_config.acquire(0),
+                               mem_slots=pulse.MemorySlot(n_memoryslot-1))
+            schedules.append(schedule)
+
+        qobj = assemble(schedules,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
+        validate_qobj_against_schema(qobj)
+
+        self.assertEqual(qobj.config.memory_slots, max(n_memoryslots))
+        self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots[0])
+        self.assertEqual(qobj.experiments[1].header.memory_slots, n_memoryslots[1])
+        self.assertEqual(qobj.experiments[2].header.memory_slots, n_memoryslots[2])
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
@@ -473,13 +528,14 @@ class TestPulseAssembler(QiskitTestCase):
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
-        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.device.drives[1]))
+        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.backend_config.drive(1)))
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
                         meas_lo_freq=self.default_meas_lo_freq,
                         schedule_los=[],
                         **self.config)
+        validate_qobj_against_schema(qobj)
 
         self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
@@ -490,13 +546,30 @@ class TestPulseAssembler(QiskitTestCase):
         backend = FakeOpenPulse2Q()
 
         orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10)(self.device.drives[0])
+        delay_schedule = orig_schedule + pulse.Delay(10)(self.backend_config.drive(0))
 
         orig_qobj = assemble(orig_schedule, backend)
+        validate_qobj_against_schema(orig_qobj)
         delay_qobj = assemble(delay_schedule, backend)
+        validate_qobj_against_schema(delay_qobj)
 
         self.assertEqual(orig_qobj.experiments[0].to_dict(),
                          delay_qobj.experiments[0].to_dict())
+
+    def test_assemble_schedule_enum(self):
+        """Test assembling a schedule with enum input values to assemble."""
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[],
+                        meas_level=MeasLevel.CLASSIFIED,
+                        meas_return=MeasReturnType.AVERAGE)
+        validate_qobj_against_schema(qobj)
+
+        test_dict = qobj.to_dict()
+        self.assertEqual(test_dict['config']['meas_return'], 'avg')
+        self.assertEqual(test_dict['config']['meas_level'], 2)
 
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
@@ -509,8 +582,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.qubit_lo_freq = self.defaults.qubit_freq_est
-        self.meas_lo_freq = self.defaults.meas_freq_est
+        self.qubit_lo_freq = [freq / 1e9 for freq in self.defaults.qubit_freq_est]
+        self.meas_lo_freq = [freq / 1e9 for freq in self.defaults.meas_freq_est]
         self.qubit_lo_range = self.config.qubit_lo_range
         self.meas_lo_range = self.config.meas_lo_range
         self.schedule_los = {pulse.DriveChannel(0): self.qubit_lo_freq[0],
@@ -523,15 +596,16 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_defaults(self):
         """Test defaults work."""
-        assemble(self.schedule,
-                 qubit_lo_freq=self.qubit_lo_freq,
-                 meas_lo_freq=self.meas_lo_freq,
-                 qubit_lo_range=self.qubit_lo_range,
-                 meas_lo_range=self.meas_lo_range,
-                 schedule_los=self.schedule_los,
-                 meas_map=self.meas_map,
-                 memory_slots=self.memory_slots,
-                 rep_time=self.rep_time)
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=self.memory_slots,
+                        rep_time=self.rep_time)
+        validate_qobj_against_schema(qobj)
 
     def test_missing_qubit_lo_freq(self):
         """Test error raised if qubit_lo_freq missing."""
@@ -561,54 +635,58 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_missing_memory_slots(self):
         """Test error is not raised if memory_slots are missing."""
-        assemble(self.schedule,
-                 qubit_lo_freq=self.qubit_lo_freq,
-                 meas_lo_freq=self.meas_lo_freq,
-                 qubit_lo_range=self.qubit_lo_range,
-                 meas_lo_range=self.meas_lo_range,
-                 schedule_los=self.schedule_los,
-                 meas_map=self.meas_map,
-                 memory_slots=None,
-                 rep_time=self.rep_time)
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=None,
+                        rep_time=self.rep_time)
+        validate_qobj_against_schema(qobj)
 
     def test_missing_rep_time(self):
         """Test that assembly still works if rep_time is missing.
 
         The case of no rep_time will exist for a simulator.
         """
-        assemble(self.schedule,
-                 qubit_lo_freq=self.qubit_lo_freq,
-                 meas_lo_freq=self.meas_lo_freq,
-                 qubit_lo_range=self.qubit_lo_range,
-                 meas_lo_range=self.meas_lo_range,
-                 schedule_los=self.schedule_los,
-                 meas_map=self.meas_map,
-                 memory_slots=self.memory_slots,
-                 rep_time=None)
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=self.memory_slots,
+                        rep_time=None)
+        validate_qobj_against_schema(qobj)
 
     def test_missing_meas_map(self):
         """Test that assembly still works if meas_map is missing."""
-        assemble(self.schedule,
-                 qubit_lo_freq=self.qubit_lo_freq,
-                 meas_lo_freq=self.meas_lo_freq,
-                 qubit_lo_range=self.qubit_lo_range,
-                 meas_lo_range=self.meas_lo_range,
-                 schedule_los=self.schedule_los,
-                 meas_map=None,
-                 memory_slots=self.memory_slots,
-                 rep_time=self.rep_time)
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=None,
+                        memory_slots=self.memory_slots,
+                        rep_time=self.rep_time)
+        validate_qobj_against_schema(qobj)
 
     def test_missing_lo_ranges(self):
         """Test that assembly still works if lo_ranges are missing."""
-        assemble(self.schedule,
-                 qubit_lo_freq=self.qubit_lo_freq,
-                 meas_lo_freq=self.meas_lo_freq,
-                 qubit_lo_range=None,
-                 meas_lo_range=None,
-                 schedule_los=self.schedule_los,
-                 meas_map=self.meas_map,
-                 memory_slots=self.memory_slots,
-                 rep_time=self.rep_time)
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=None,
+                        meas_lo_range=None,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=self.memory_slots,
+                        rep_time=self.rep_time)
+        validate_qobj_against_schema(qobj)
 
 
 if __name__ == '__main__':

@@ -22,14 +22,17 @@ from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate)
+                                        XGate, YGate, ZGate, CnotGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis import (two_qubit_cnot_decompose, euler_angles_1q,
-                                           TwoQubitBasisDecomposer)
+from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
-                                                               Ud)
+                                                               two_qubit_cnot_decompose,
+                                                               TwoQubitBasisDecomposer,
+                                                               Ud,
+                                                               euler_angles_1q)
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
 
 
@@ -76,8 +79,7 @@ class TestEulerAngles1Q(QiskitTestCase):
     """Test euler_angles_1q()"""
 
     def check_one_qubit_euler_angles(self, operator, tolerance=1e-14):
-        """Check euler_angles_1q works for the given unitary
-        """
+        """Check euler_angles_1q works for the given unitary"""
         with self.subTest(operator=operator):
             target_unitary = operator.data
             angles = euler_angles_1q(target_unitary)
@@ -89,23 +91,125 @@ class TestEulerAngles1Q(QiskitTestCase):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    def test_one_qubit_euler_angles_clifford(self):
-        """Verify euler_angles_1q produces correct Euler angles for all Cliffords.
-        """
+    def test_euler_angles_1q_clifford(self):
+        """Verify euler_angles_1q produces correct Euler angles for all Cliffords."""
         for clifford in ONEQ_CLIFFORDS:
             self.check_one_qubit_euler_angles(clifford)
 
-    def test_one_qubit_hard_thetas(self):
+    def test_euler_angles_1q_hard_thetas(self):
         """Verify euler_angles_1q for close-to-degenerate theta"""
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_one_qubit_euler_angles_random(self, nsamples=100):
+    def test_euler_angles_1q_random(self, nsamples=100):
         """Verify euler_angles_1q produces correct Euler angles for random unitaries.
         """
         for _ in range(nsamples):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary)
+
+
+class TestOneQubitEulerDecomposer(QiskitTestCase):
+    """Test OneQubitEulerDecomposer"""
+
+    def check_one_qubit_euler_angles(self, operator, basis='U3',
+                                     tolerance=1e-12):
+        """Check euler_angles_1q works for the given unitary"""
+        decomposer = OneQubitEulerDecomposer(basis)
+        with self.subTest(operator=operator):
+            target_unitary = operator.data
+            decomp_unitary = Operator(decomposer(target_unitary)).data
+            # Add global phase to make special unitary
+            target_unitary *= la.det(target_unitary)**(-0.5)
+            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
+            maxdist = np.max(np.abs(target_unitary - decomp_unitary))
+            if maxdist > 0.1:
+                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
+            self.assertTrue(np.abs(maxdist) < tolerance,
+                            "Worst distance {}".format(maxdist))
+
+    def test_one_qubit_clifford_u3_basis(self):
+        """Verify for u3 basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'U3')
+
+    def test_one_qubit_clifford_u1x_basis(self):
+        """Verify for u1, x90 basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'U1X')
+
+    def test_one_qubit_clifford_zyz_basis(self):
+        """Verify for rz, ry, rz basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'ZYZ')
+
+    def test_one_qubit_clifford_zxz_basis(self):
+        """Verify for rz, rx, rz basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'ZXZ')
+
+    def test_one_qubit_clifford_xyx_basis(self):
+        """Verify for rx, ry, rx basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'XYX')
+
+    def test_one_qubit_hard_thetas_u3_basis(self):
+        """Verify for u3 basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'U3')
+
+    def test_one_qubit_hard_thetas_u1x_basis(self):
+        """Verify for u1, x90 basis and close-to-degenerate theta."""
+        # We lower tolerance for this test since decomposition is
+        # less numerically accurate. This is due to it having 5 matrix
+        # multiplications and the X90 gates
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'U1X', 1e-7)
+
+    def test_one_qubit_hard_thetas_zyz_basis(self):
+        """Verify for rz, ry, rz basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ')
+
+    def test_one_qubit_hard_thetas_zxz_basis(self):
+        """Verify for rz, rx, rz basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZXZ')
+
+    def test_one_qubit_hard_thetas_xyx_basis(self):
+        """Verify for rx, ry, rx basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
+
+    def test_one_qubit_random_u3_basis(self, nsamples=50):
+        """Verify for u3 basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'U3')
+
+    def test_one_qubit_random_u1x_basis(self, nsamples=50):
+        """Verify for u1, x90 basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'U1X')
+
+    def test_one_qubit_random_zyz_basis(self, nsamples=50):
+        """Verify for rz, ry, rz basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'ZYZ')
+
+    def test_one_qubit_random_zxz_basis(self, nsamples=50):
+        """Verify for rz, rx, rz basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'ZXZ')
+
+    def test_one_qubit_random_xyx_basis(self, nsamples=50):
+        """Verify for rx, ry, rx basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'XYX')
 
 
 # FIXME: streamline the set of test cases
@@ -289,6 +393,17 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
                         for phase in [1, 1j, -1, -1j]]
             maxdist = np.min(maxdists)
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+
+    def test_cnot_rxx_decompose(self):
+        """Verify CNOT decomposition into RXX gate is correct"""
+        cnot = Operator(CnotGate())
+        decomps = [cnot_rxx_decompose(),
+                   cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
+                   cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
+                   cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
+                   cnot_rxx_decompose(plus_ry=False, plus_rxx=False)]
+        for decomp in decomps:
+            self.assertTrue(cnot.equiv(decomp))
 
     def test_exact_two_qubit_cnot_decompose_random(self, nsamples=10):
         """Verify exact CNOT decomposition for random Haar 4x4 unitaries.

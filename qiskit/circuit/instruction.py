@@ -34,11 +34,12 @@ The circuit itself keeps this context.
 """
 import copy
 from itertools import zip_longest
-import sympy
+import warnings
+
 import numpy
 
 from qiskit.qasm.node import node
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.models.qasm import QasmQobjInstruction
@@ -52,18 +53,20 @@ class Instruction:
 
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
+
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
+            params (list[int|float|complex|str|ndarray|ParameterExpression]): list of parameters
+
         Raises:
-            QiskitError: when the register is not in the correct format.
+            CircuitError: when the register is not in the correct format.
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
-            raise QiskitError("num_qubits and num_clbits must be integer.")
+            raise CircuitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
-            raise QiskitError(
+            raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." %
                 num_qubits, num_clbits)
         self.name = name
@@ -73,7 +76,7 @@ class Instruction:
         self._params = []  # a list of gate params stored
 
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
-        self.control = None
+        self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
@@ -136,34 +139,74 @@ class Instruction:
         self._params = []
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression, sympy.Basic)):
+            if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
+                warnings.warn('Using qasm ast node as a circuit.Instruction '
+                              'parameter is deprecated as of the 0.11.0, and '
+                              'will be removed no earlier than 3 months after '
+                              'that release date. You should convert the qasm '
+                              'node to a supported type int, float, complex, '
+                              'str, circuit.ParameterExpression, or ndarray '
+                              'before setting Instruction.parameters',
+                              DeprecationWarning, stacklevel=3)
+
                 self._params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
-                self._params.append(sympy.Number(single_param))
+                self._params.append(single_param)
             # example: Initialize([complex(0,1), complex(0,0)])
             elif isinstance(single_param, complex):
-                self._params.append(single_param.real +
-                                    single_param.imag * sympy.I)
+                self._params.append(single_param)
             # example: snapshot('label')
             elif isinstance(single_param, str):
-                self._params.append(sympy.Symbol(single_param))
+                self._params.append(single_param)
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
-            # example: sympy.Matrix([[1, 0], [0, 1]])
-            elif isinstance(single_param, sympy.Matrix):
-                self._params.append(single_param)
-            elif isinstance(single_param, sympy.Expr):
-                self._params.append(single_param)
             elif isinstance(single_param, numpy.number):
-                self._params.append(sympy.Number(single_param.item()))
+                self._params.append(single_param.item())
+            elif 'sympy' in str(type(single_param)):
+                import sympy
+                if isinstance(single_param, sympy.Basic):
+                    warnings.warn('Parameters of sympy.Basic is deprecated '
+                                  'as of the 0.11.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert this to a '
+                                  'supported type prior to using it as a '
+                                  'a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    self._params.append(single_param)
+                elif isinstance(single_param, sympy.Matrix):
+                    warnings.warn('Parameters of sympy.Matrix is deprecated '
+                                  'as of the 0.11.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert the sympy Matrix '
+                                  'to a numpy matrix with sympy.matrix2numpy '
+                                  'prior to using it as a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    matrix = sympy.matrix2numpy(single_param, dtype=complex)
+                    self._params.append(matrix)
+                elif isinstance(single_param, sympy.Expr):
+                    warnings.warn('Parameters of sympy.Expr is deprecated '
+                                  'as of the 0.11.0, and will be removed no '
+                                  'earlier than 3 months after that release '
+                                  'date. You should convert the sympy Expr '
+                                  'to a supported type prior to using it as '
+                                  'a parameter.',
+                                  DeprecationWarning, stacklevel=3)
+                    self._params.append(single_param)
+                else:
+                    raise CircuitError("invalid param type {0} in instruction "
+                                       "{1}".format(type(single_param), self.name))
             else:
-                raise QiskitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), self.name))
+                raise CircuitError("invalid param type {0} in instruction "
+                                   "{1}".format(type(single_param), self.name))
+
+    def is_parameterized(self):
+        """Return True .IFF. instruction is parameterized else False"""
+        return any(isinstance(param, ParameterExpression) for param in self.params)
 
     @property
     def definition(self):
@@ -179,27 +222,22 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        instruction = QasmQobjInstruction(name=self.name, validate=False)
         # Evaluate parameters
         if self.params:
             params = [
-                x.evalf() if hasattr(x, 'evalf') else x for x in self.params
-            ]
-            params = [
-                sympy.matrix2numpy(x, dtype=complex) if isinstance(
-                    x, sympy.Matrix) else x for x in params
-            ]
+                x.evalf(x) if hasattr(x, 'evalf') else x for x in self.params]
             instruction.params = params
         # Add placeholder for qarg and carg params
         if self.num_qubits:
             instruction.qubits = list(range(self.num_qubits))
         if self.num_clbits:
             instruction.memory = list(range(self.num_clbits))
-        # Add control parameters for assembler. This is needed to convert
+        # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
-        if self.control:
-            instruction._control = self.control
+        if self.condition:
+            instruction._condition = self.condition
         return instruction
 
     def mirror(self):
@@ -233,11 +271,11 @@ class Instruction:
             Instruction: a fresh instruction for the inverse
 
         Raises:
-            QiskitError: if the instruction is not composite
+            CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
-        if not self.definition:
-            raise QiskitError("inverse() not implemented for %s." % self.name)
+        if self.definition is None:
+            raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
         inverse_gate._definition = []
         for inst, qargs, cargs in reversed(self._definition):
@@ -245,12 +283,12 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical control on register classical and value val."""
+        """Add classical condition on register classical and value val."""
         if not isinstance(classical, ClassicalRegister):
-            raise QiskitError("c_if must be used with a classical register")
+            raise CircuitError("c_if must be used with a classical register")
         if val < 0:
-            raise QiskitError("control value should be non-negative")
-        self.control = (classical, val)
+            raise CircuitError("condition value should be non-negative")
+        self.condition = (classical, val)
         return self
 
     def copy(self, name=None):
@@ -266,15 +304,16 @@ class Instruction:
             updated if it was provided
         """
         cpy = copy.copy(self)
+        cpy.params = copy.copy(self.params)
         if name:
             cpy.name = name
         return cpy
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
-        if self.control is None:
+        if self.condition is None:
             return string
-        return "if(%s==%d) " % (self.control[0].name, self.control[1]) + string
+        return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
@@ -301,11 +340,11 @@ class Instruction:
             Tuple(List, List): A tuple with single arguments.
 
         Raises:
-            QiskitError: If the input is not valid. For example, the number of
+            CircuitError: If the input is not valid. For example, the number of
                 arguments does not match the gate expectation.
         """
         if len(qargs) != self.num_qubits:
-            raise QiskitError(
+            raise CircuitError(
                 'The amount of qubit arguments does not match the instruction expectation.')
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
@@ -327,10 +366,10 @@ class Instruction:
             Instruction: Containing the definition.
 
         Raises:
-            QiskitError: If n < 1.
+            CircuitError: If n < 1.
         """
         if int(n) != n or n < 1:
-            raise QiskitError("Repeat can only be called with strictly positive integer.")
+            raise CircuitError("Repeat can only be called with strictly positive integer.")
 
         n = int(n)
 

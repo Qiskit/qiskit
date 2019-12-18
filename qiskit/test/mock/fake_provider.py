@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=wildcard-import
+
 """
 Fake provider class that provides access to fake backends.
 """
@@ -19,18 +21,10 @@ Fake provider class that provides access to fake backends.
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
+from .backends import *
 from .fake_qasm_simulator import FakeQasmSimulator
-from .fake_yorktown import FakeYorktown
-from .fake_tenerife import FakeTenerife
-from .fake_ourense import FakeOurense
-from .fake_valencia import FakeValencia
-from .fake_vigo import FakeVigo
-from .fake_melbourne import FakeMelbourne
-from .fake_rueschlikon import FakeRueschlikon
-from .fake_tokyo import FakeTokyo
-from .fake_poughkeepsie import FakePoughkeepsie
-from .fake_boeblingen import FakeBoeblingen
 from .fake_openpulse_2q import FakeOpenPulse2Q
+from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
 class FakeProvider(BaseProvider):
@@ -57,15 +51,20 @@ class FakeProvider(BaseProvider):
     def __init__(self):
         self._backends = [FakeQasmSimulator(),
                           FakeOpenPulse2Q(),
+                          FakeOpenPulse3Q(),
                           FakeYorktown(),
                           FakeTenerife(),
                           FakeOurense(),
-                          FakeValencia(),
                           FakeVigo(),
+                          FakeBurlington(),
                           FakeMelbourne(),
                           FakeRueschlikon(),
                           FakeTokyo(),
                           FakePoughkeepsie(),
-                          FakeBoeblingen()]
+                          FakeAlmaden(),
+                          FakeSingapore(),
+                          FakeJohannesburg(),
+                          FakeBoeblingen(),
+                          FakeRochester()]
 
         super().__init__()

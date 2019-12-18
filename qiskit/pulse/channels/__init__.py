@@ -15,9 +15,6 @@
 """Device-related classes for pulse."""
 
 from .pulse_channel_spec import PulseChannelSpec
-from .system_topology import SystemTopology
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channels import PulseChannel
-from .channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from .channels import Channel
 from .qubit import Qubit
+from .channels import (Channel, PulseChannel, DriveChannel, ControlChannel, MeasureChannel,
+                       AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel)

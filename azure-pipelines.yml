@@ -16,7 +16,75 @@ stages:
   - stage: 'Wheel_Builds'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
-    - job: 'Windows_Wheel_Builds'
+    - job: 'linux'
+      pool: {vmImage: 'Ubuntu-16.04'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+        - task: UsePythonVersion@0
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install cibuildwheel==1.0.0
+            pip install -U twine
+            cibuildwheel --output-dir wheelhouse .
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'sdist'
+      pool: {vmImage: 'Ubuntu-16.04'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        TWINE_USERNAME: qiskit
+        python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U twine
+            python setup.py sdist
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'dist'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload dist/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'macos'
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      pool: {vmImage: 'macOS-10.13'}
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+      - task: UsePythonVersion@0
+      - bash: |
+          set -e
+          python -m pip install --upgrade pip
+          pip install cibuildwheel==1.0.0
+          pip install -U twine
+          cibuildwheel --output-dir wheelhouse .
+      - task: PublishBuildArtifacts@1
+        inputs: {pathtoPublish: 'wheelhouse'}
+        condition: succeededOrFailed()
+      - bash: |
+          twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
@@ -34,14 +102,18 @@ stages:
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
+            set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==1.0.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
-        - bash: |
+          condition: succeededOrFailed()
+        - script: |
             twine upload wheelhouse\*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:
@@ -61,12 +133,15 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -98,8 +173,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -109,7 +184,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -119,6 +194,34 @@ stages:
             pylint -rn qiskit test
             reno lint
           displayName: 'Style and lint'
+    - job: 'Docs'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U tox
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+          displayName: 'Install dependencies'
+        - bash: |
+            tox -edocs -- -j auto
+          displayName: 'Run Docs build'
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: 'docs/_build/html'
+            artifactName: 'html_docs'
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
@@ -135,12 +238,14 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -181,6 +286,8 @@ stages:
             python.version: '3.6'
           Python37:
             python.version: '3.7'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -190,12 +297,14 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -231,6 +340,8 @@ stages:
             python.version: '3.6'
           Python37:
             python.version: '3.7'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -240,12 +351,15 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -281,6 +395,8 @@ stages:
             python.version: '3.6'
           Python37:
             python.version: '3.7'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -290,12 +406,14 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run --concurrency 2
           displayName: 'Run tests'
         - task: CopyFiles@2

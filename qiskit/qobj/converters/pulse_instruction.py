@@ -22,6 +22,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
+from qiskit.qobj.utils import MeasLevel
 
 
 class ConversionMethodBinder:
@@ -122,7 +123,7 @@ class InstructionToQobjConverter:
             'qubits': [q.index for q in instruction.acquires],
             'memory_slot': [m.index for m in instruction.mem_slots]
         }
-        if meas_level == 2:
+        if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
             if instruction.command.discriminator:
                 command_dict.update({
@@ -137,7 +138,7 @@ class InstructionToQobjConverter:
                 command_dict.update({
                     'register_slot': [regs.index for regs in instruction.reg_slots]
                 })
-        if meas_level >= 1:
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
             if instruction.command.kernel:
                 command_dict.update({
@@ -237,7 +238,8 @@ class QobjToInstructionConverter:
              buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        self.buffer = buffer
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._run_config = run_config
 
         # bind pulses to conversion methods
@@ -266,11 +268,11 @@ class QobjToInstructionConverter:
             prefix, index = match.group(1), int(match.group(2))
 
             if prefix == channels.DriveChannel.prefix:
-                return channels.DriveChannel(index, buffer=self.buffer)
+                return channels.DriveChannel(index)
             elif prefix == channels.MeasureChannel.prefix:
-                return channels.MeasureChannel(index, buffer=self.buffer)
+                return channels.MeasureChannel(index)
             elif prefix == channels.ControlChannel.prefix:
-                return channels.ControlChannel(index, buffer=self.buffer)
+                return channels.ControlChannel(index)
 
         raise PulseError('Channel %s is not valid' % channel)
 
@@ -286,7 +288,7 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
-        qubit_channels = [channels.AcquireChannel(qubit, buffer=self.buffer) for qubit in qubits]
+        qubit_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
 
         mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
 

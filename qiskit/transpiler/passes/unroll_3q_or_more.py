@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass for decomposing 3q (or more) gates into 2q or 1q gates."""
+"""Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -20,13 +20,10 @@ from qiskit.exceptions import QiskitError
 
 
 class Unroll3qOrMore(TransformationPass):
-    """
-    Recursively expands 3+ qubit gates until the circuit only contains
-    1 qubit and 2qubit gates.
-    """
+    """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
     def run(self, dag):
-        """Expand 3+ qubit gates using their decomposition rules.
+        """Run the Unroll3qOrMore pass on `dag`.
 
         Args:
             dag(DAGCircuit): input dag

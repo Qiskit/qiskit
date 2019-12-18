@@ -114,6 +114,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skip('Unreliable across python version')
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -132,7 +133,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         filename = self._get_resource_path('current_%s_long_name_matplotlib.png' % os.name)
         visualization.circuit_drawer(circuit, output='mpl', filename=filename)
-        # self.addCleanup(os.remove, filename)
+        self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
             'visualization/references/%s_long_name_matplotlib.png' % os.name)

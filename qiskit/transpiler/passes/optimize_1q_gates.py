@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into
-a single gate.
-"""
+"""Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
 from itertools import groupby
 
@@ -29,16 +25,25 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, ParameterExpression
 
 _CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
-    """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
+    """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the Optimize1qGates pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+
+        Raises:
+            TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
+        """
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
         for run in runs:
@@ -165,10 +170,6 @@ class Optimize1qGates(TransformationPass):
                 if right_name == "u1" and np.mod(right_parameters[2], (2 * np.pi)) == 0:
                     right_name = "nop"
 
-            # Replace the the first node in the run with a dummy DAG which contains a dummy
-            # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
-            # putting it in the right place.
-            run_qarg = QuantumRegister(1, 'q')[0]
             new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":
                 new_op = U1Gate(right_parameters[2])
@@ -178,10 +179,7 @@ class Optimize1qGates(TransformationPass):
                 new_op = U3Gate(*right_parameters)
 
             if right_name != 'nop':
-                new_dag = DAGCircuit()
-                new_dag.add_qreg(run_qarg.register)
-                new_dag.apply_operation_back(new_op, [run_qarg], [])
-                dag.substitute_node_with_dag(run[0], new_dag)
+                dag.substitute_node(run[0], new_op, inplace=True)
 
             # Delete the other nodes in the run
             for current_node in run[1:]:
@@ -241,12 +239,9 @@ def _split_runs_on_parameters(runs):
     runs excluding the parameterized gates.
     """
 
-    def _is_dagnode_parameterized(node):
-        return any(isinstance(param, ParameterExpression) for param in node.op.params)
-
     out = []
     for run in runs:
-        groups = groupby(run, _is_dagnode_parameterized)
+        groups = groupby(run, lambda x: x.op.is_parameterized())
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:

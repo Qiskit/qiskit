@@ -30,7 +30,7 @@ class Nested(_fields.Nested, ModelTypeValidator):
     def _expected_types(self):
         return self.schema.model_cls
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Validate if the value is of the type of the schema's model.
 
         Assumes the nested schema is a ``BaseSchema``.
@@ -45,7 +45,7 @@ class Nested(_fields.Nested, ModelTypeValidator):
         values = value if self.many else [value]
         for idx, v in enumerate(values):
             try:
-                _check_type(v, idx, values)
+                _check_type(v, idx, values, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 
@@ -62,18 +62,18 @@ class List(_fields.List, ModelTypeValidator):
 
     valid_types = (Iterable, )
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Validate if it's a list of valid item-field values.
 
         Check if each element in the list can be validated by the item-field
         passed during construction.
         """
-        super().check_type(value, attr, data)
+        super().check_type(value, attr, data, **kwargs)
 
         errors = []
         for idx, v in enumerate(value):
             try:
-                self.container.check_type(v, idx, value)
+                self.inner.check_type(v, idx, value, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 

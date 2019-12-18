@@ -16,7 +16,6 @@
 Base class for dummy backends.
 """
 
-
 import uuid
 import time
 
@@ -30,7 +29,8 @@ class FakeBackend(BaseBackend):
     """This is a dummy backend just for testing purposes."""
 
     def __init__(self, configuration, time_alive=10):
-        """
+        """FakeBackend initializer.
+
         Args:
             configuration (BackendConfiguration): backend configuration
             time_alive (int): time to wait before returning result
@@ -40,7 +40,6 @@ class FakeBackend(BaseBackend):
 
     def properties(self):
         """Return backend properties"""
-
         coupling_map = self.configuration().coupling_map
         unique_qubits = list(set().union(*coupling_map))
 

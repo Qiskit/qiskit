@@ -20,7 +20,7 @@ Base register reference object.
 import re
 import itertools
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Register:
@@ -40,11 +40,11 @@ class Register:
         try:
             size = int(size)
         except Exception:
-            raise QiskitError("Register size must be castable to an int (%s '%s' was provided)"
-                              % (type(size).__name__, size))
+            raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
+                               % (type(size).__name__, size))
         if size <= 0:
-            raise QiskitError("Register size must be positive (%s '%s' was provided)"
-                              % (type(size).__name__, size))
+            raise CircuitError("Register size must be positive (%s '%s' was provided)"
+                               % (type(size).__name__, size))
 
         # validate (or cast) name
         if name is None:
@@ -53,11 +53,11 @@ class Register:
             try:
                 name = str(name)
             except Exception:
-                raise QiskitError("The circuit name should be castable to a string "
-                                  "(or None for autogenerate a name).")
+                raise CircuitError("The circuit name should be castable to a string "
+                                   "(or None for autogenerate a name).")
             name_format = re.compile('[a-z][a-zA-Z0-9_]*')
             if name_format.match(name) is None:
-                raise QiskitError("%s is an invalid OPENQASM register name." % name)
+                raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
         self.name = name
         self.size = size
@@ -83,18 +83,18 @@ class Register:
                 If key is a slice, return a list of them.
 
         Raises:
-            QiskitError: if the `key` is not an integer.
+            CircuitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, slice, list)):
-            raise QiskitError("expected integer or slice index into register")
+            raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]
         elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
                 return [self._bits[idx] for idx in key]
             else:
-                raise QiskitError('register index out of range')
+                raise CircuitError('register index out of range')
         else:
             return self._bits[key]
 

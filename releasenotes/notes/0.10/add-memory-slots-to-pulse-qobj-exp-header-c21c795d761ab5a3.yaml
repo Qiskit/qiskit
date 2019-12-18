@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Add ``memory_slots`` to ``QobjExperimentHeader`` of pulse Qobj. This fixes
+    a bug in the data format of ``meas_level=2`` results of pulse experiments.
+    Measured quantum states are returned as a bit string with zero padding
+    based on the number set for ``memory_slots``.

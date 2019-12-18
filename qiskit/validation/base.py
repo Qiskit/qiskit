@@ -29,7 +29,6 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
-import warnings
 
 from functools import wraps
 from types import SimpleNamespace, MethodType
@@ -37,7 +36,7 @@ from types import SimpleNamespace, MethodType
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
-from marshmallow.utils import is_collection
+from marshmallow.utils import is_collection, INCLUDE
 
 from .exceptions import ModelValidationError
 
@@ -50,24 +49,24 @@ class ModelTypeValidator(_fields.Field):
     def _expected_types(self):
         return self.valid_types
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **_):
         """Validates a value against the correct type of the field.
 
         It calls ``_expected_types`` to get a list of valid types.
 
         Subclasses can do one of the following:
 
-            1. They can override the ``valid_types`` property with a tuple with
-            the expected types for this field.
+        1. Override the ``valid_types`` property with a tuple with the expected
+           types for this field.
 
-            2. They can override the ``_expected_types`` method to return a
-            tuple of expected types for the field.
+        2. Override the ``_expected_types`` method to return a tuple of
+           expected types for the field.
 
-            3. They can change ``check_type`` completely to customize
-            validation.
+        3. Change ``check_type`` completely to customize validation.
 
-        This method or the overrides must return the ``value`` parameter
-        untouched.
+        Note:
+            This method or the overrides must return the ``value`` parameter
+            untouched.
         """
         expected_types = self._expected_types()
         if not isinstance(value, expected_types):
@@ -88,6 +87,23 @@ class ModelTypeValidator(_fields.Field):
         message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
 
+    def make_error_serialize(self, key, **kwargs):
+        """Helper method to return a ValidationError from _serialize.
+
+        This method wraps the result of ``make_error()``, adding contextual
+        information in order to provide more informative information to users.
+
+        Args:
+            key (str): error key index.
+            **kwargs: additional arguments to ``make_error()``.
+
+        Returns:
+            ValidationError: an exception with the field name.
+        """
+        bare_error = self.make_error(key, **kwargs)
+        return ValidationError({self.name: bare_error.messages},
+                               field_name=self.name)
+
 
 class BaseSchema(Schema):
     """Base class for Schemas for validated Qiskit classes.
@@ -103,72 +119,46 @@ class BaseSchema(Schema):
     """
 
     class Meta:
-        """In marshmallow3, all schemas are strict."""
-        # TODO: remove when upgrading to marshmallow3
-        strict = True
+        """Add extra fields to the schema."""
+        unknown = INCLUDE
 
     model_cls = SimpleNamespace
 
     @post_dump(pass_original=True, pass_many=True)
-    def dump_additional_data(self, valid_data, many, original_data):
+    def dump_additional_data(self, valid_data, original_data, **kwargs):
         """Include unknown fields after dumping.
 
         Unknown fields are added with no processing at all.
 
         Args:
             valid_data (dict or list): data collected and returned by ``dump()``.
-            many (bool): if True, data and original_data are a list.
             original_data (object or list): object passed to ``dump()`` in the
                 first place.
+            **kwargs: extra arguments from the decorators.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        if many:
+        if kwargs.get('many'):
             for i, _ in enumerate(valid_data):
                 additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
                 for key in additional_keys:
+                    if key.startswith('_'):
+                        continue
                     valid_data[i][key] = getattr(original_data[i], key)
         else:
             additional_keys = set(original_data.__dict__) - set(valid_data)
             for key in additional_keys:
+                if key.startswith('_'):
+                    continue
                 valid_data[key] = getattr(original_data, key)
 
         return valid_data
 
-    @post_load(pass_original=True, pass_many=True)
-    def load_additional_data(self, valid_data, many, original_data):
-        """Include unknown fields after load.
-
-        Unknown fields are added with no processing at all.
-
-        Args:
-            valid_data (dict or list): validated data returned by ``load()``.
-            many (bool): if True, data and original_data are a list.
-            original_data (dict or list): data passed to ``load()`` in the
-                first place.
-
-        Returns:
-            dict: the same ``valid_data`` extended with the unknown attributes.
-
-        Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
-        """
-        if many:
-            for i, _ in enumerate(valid_data):
-                additional_keys = set(original_data[i]) - set(valid_data[i])
-                for key in additional_keys:
-                    valid_data[i][key] = original_data[i][key]
-        else:
-            additional_keys = set(original_data) - set(valid_data)
-            for key in additional_keys:
-                valid_data[key] = original_data[key]
-
-        return valid_data
-
     @post_load
-    def make_model(self, data):
+    def make_model(self, data, **_):
         """Make ``load`` return a ``model_cls`` instance instead of a dict."""
         return self.model_cls(**data)
 
@@ -197,7 +187,6 @@ class _SchemaBinder:
         model_cls.schema = self._schema_cls()
 
         # Append the methods to the Model class.
-        model_cls._validate = self._validate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
         # Add a Schema that performs minimal validation to the Model.
@@ -210,9 +199,8 @@ class _SchemaBinder:
         """Create a patched Schema for validating models.
 
         Model validation is not part of Marshmallow. Schemas have a ``validate``
-        method but this delegates execution on ``load`` and discards the result.
-        Similarly, ``load`` will call ``_deserialize`` on every field in the
-        schema.
+        method but this delegates execution on ``load``. Similarly, ``load``
+        will call ``_deserialize`` on every field in the schema.
 
         This function patches the ``_deserialize`` instance method of each
         field to make it call a custom defined method ``check_type``
@@ -232,27 +220,28 @@ class _SchemaBinder:
         return validation_schema
 
     @staticmethod
-    def _validate(instance):
-        """Validate the internal representation of the instance."""
-        try:
-            _ = instance.schema.validate(instance.to_dict())
-        except ValidationError as ex:
-            raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
-
-    @staticmethod
     def _validate_after_init(init_method):
-        """Add validation after instantiation."""
+        """Add validation during instantiation.
 
+        The validation is performed depending on the ``validate`` parameter
+        passed to the ``init_method``. If ``False``, the validation will not be
+        performed.
+        """
         @wraps(init_method)
         def _decorated(self, **kwargs):
-            try:
-                _ = self.shallow_schema.validate(kwargs)
-            except ValidationError as ex:
-                raise ModelValidationError(
-                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+            # Extract the 'validate' parameter.
+            do_validation = kwargs.pop('validate', True)
+            if do_validation:
+                try:
+                    _ = self.shallow_schema._do_load(kwargs,
+                                                     postprocess=False)
+                except ValidationError as ex:
+                    raise ModelValidationError(
+                        ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
-            init_method(self, **kwargs)
+            # Set the 'validate' parameter to False, assuming that if a
+            # subclass has been validated, it superclasses will also be valid.
+            return init_method(self, **kwargs, validate=False)
 
         return _decorated
 
@@ -260,17 +249,10 @@ class _SchemaBinder:
 def bind_schema(schema):
     """Class decorator for adding schema validation to its instances.
 
-    Instances of the decorated class are automatically validated after
-    instantiation and they are augmented to allow further validations with the
-    private method ``_validate()``.
-
-    The decorator also adds the class attribute ``schema`` with the schema used
-    for validation, along with a class attribute ``shallow_schema`` used for
-    validation during instantiation.
-
-    It also allows using the ``to_dict`` and ``from_dict`` in the model class,
-    with perform serialization/deserialization to/from simple Python objects
-    respectively.
+    The decorator acts on the model class by adding:
+    * a class attribute ``schema`` with the schema used for validation
+    * a class attribute ``shallow_schema`` used for validation during
+      instantiation.
 
     The same schema cannot be bound more than once. If you need to reuse a
     schema for a different class, create a new schema subclassing the one you
@@ -290,6 +272,11 @@ def bind_schema(schema):
         class AnotherModel(BaseModel):
             pass
 
+    Note:
+        By default, models decorated with this decorator are validated during
+        instantiation. If ``validate=False`` is passed to the constructor, this
+        validation will not be performed.
+
     Raises:
         ValueError: when trying to bind the same schema more than once.
 
@@ -306,6 +293,17 @@ def _base_model_from_kwargs(cls, kwargs):
 
 class BaseModel(SimpleNamespace):
     """Base class for Models for validated Qiskit classes."""
+
+    def __init__(self, validate=True, **kwargs):
+        """BaseModel initializer.
+
+        Note:
+            The ``validate`` argument is used for controlling the behavior of
+            the schema binding, and will not be present on the created object.
+        """
+        # pylint: disable=unused-argument
+        super().__init__(**kwargs)
+
     def __reduce__(self):
         """Custom __reduce__ for allowing pickling and unpickling.
 
@@ -332,10 +330,10 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = self.schema.dump(self)
+            data = self.schema.dump(self)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+                ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
 
@@ -347,18 +345,12 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = cls.schema.load(dict_)
+            data = cls.schema.load(dict_)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+                ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
-
-    def as_dict(self):
-        """Serialize the model into a Python dict of simple types."""
-        warnings.warn('The as_dict() method is deprecated, use to_dict().',
-                      DeprecationWarning, stacklevel=2)
-        return self.to_dict()
 
 
 class ObjSchema(BaseSchema):
