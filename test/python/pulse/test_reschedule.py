@@ -151,7 +151,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1})
 
     def test_add_across_meas_map_sublists(self):
@@ -160,7 +160,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
     def test_dont_add_all(self):
@@ -169,7 +169,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
 

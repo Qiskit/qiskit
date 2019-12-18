@@ -113,7 +113,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
                 new_schedule |= inst << align_time
-                acquired_channels.update({a.index for a in inst.acquires})
+                acquired_channels.add(inst.acquire.index)
             elif isinstance(inst.channels[0], MeasureChannel):
                 new_schedule |= inst << align_time
                 measured_channels.update({a.index for a in inst.channels})

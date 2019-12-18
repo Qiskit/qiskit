@@ -144,18 +144,3 @@ class AcquireInstruction(Instruction):
     def reg_slot(self):
         """RegisterSlots."""
         return self._reg_slot
-
-    @property
-    def acquires(self):
-        """Acquire channels to be acquired on."""
-        return [self._acquire]
-
-    @property
-    def mem_slots(self):
-        """MemorySlots."""
-        return [self._mem_slot]
-
-    @property
-    def reg_slots(self):
-        """RegisterSlots."""
-        return [self._reg_slot] if self._reg_slot is not None else []

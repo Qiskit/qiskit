@@ -325,9 +325,6 @@ class TestPulseAssembler(QiskitTestCase):
 
         self.schedule = pulse.Schedule(name='fake_experiment')
         self.schedule = self.schedule.insert(0, test_pulse(self.backend_config.drive(0)))
-        # self.schedule = self.schedule.insert(5, acquire(
-        #     [self.backend_config.acquire(i) for i in range(self.backend_config.n_qubits)],
-        #     [MemorySlot(i) for i in range(self.backend_config.n_qubits)]))
         for i in range(self.backend_config.n_qubits):
             self.schedule = self.schedule.insert(5, acquire(self.backend_config.acquire(i),
                                                             MemorySlot(i)))
