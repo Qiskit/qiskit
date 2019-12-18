@@ -25,6 +25,19 @@ from qiskit.test import QiskitTestCase
 class TestRandomUtils(QiskitTestCase):
     """Testing qiskit.quantum_info.random.utils"""
 
+    def test_determinisitc_random_unitary(self):
+        seed = 314159
+        unitary = random_unitary(4, seed=seed)
+        expected = np.array([[0.07749745 + 0.65152329j, 0.40784587 - 0.36593286j,
+                              0.03129288 + 0.2530866j, 0.36101855 - 0.27184549j],
+                             [0.53016612 - 0.01919937j, 0.48298729 + 0.19460984j,
+                              -0.40381565 - 0.53289147j, -0.00508656 + 0.01841975j],
+                             [-0.32716712 - 0.11010826j, -0.29569725 - 0.11013661j,
+                              -0.23722636 - 0.47383058j, 0.40993924 - 0.57656653j],
+                             [0.04033726 - 0.4089958j, 0.39452908 + 0.4163953j,
+                              0.37036483 + 0.26451022j, 0.08430501 - 0.53648299j]])
+        self.assertTrue(np.allclose(unitary.data, expected))
+
     def test_unitary(self):
         """ Test that a random unitary with set seed will not affect later
         results
