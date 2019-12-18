@@ -522,7 +522,6 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         U = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
 
-
 # FIXME: need to write tests for the approximate decompositions
 
 
