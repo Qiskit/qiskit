@@ -17,6 +17,7 @@
 import unittest
 
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit.quantum_info.random import random_unitary, random_density_matrix
 from qiskit.test import QiskitTestCase
@@ -25,8 +26,11 @@ from qiskit.test import QiskitTestCase
 class TestRandomUtils(QiskitTestCase):
     """Testing qiskit.quantum_info.random.utils"""
 
-    def test_determinisitc_random_unitary(self):
-        """TODO"""
+    def test_seeded_random_unitary(self):
+        """Given the same seed, the output should be expected.
+        Following the numpy approach we are going to try to keep the policy of platform-independent
+        with randomness.
+        https://stackoverflow.com/questions/40676205/cross-platform-numpy-random-seed"""
         seed = 314159
         unitary = random_unitary(4, seed=seed)
         expected = np.array([[0.07749745 + 0.65152329j, 0.40784587 - 0.36593286j,
@@ -37,7 +41,7 @@ class TestRandomUtils(QiskitTestCase):
                               -0.23722636 - 0.47383058j, 0.40993924 - 0.57656653j],
                              [0.04033726 - 0.4089958j, 0.39452908 + 0.4163953j,
                               0.37036483 + 0.26451022j, 0.08430501 - 0.53648299j]])
-        self.assertTrue(np.allclose(unitary.data, expected))
+        assert_allclose(unitary.data, expected)
 
     def test_unitary(self):
         """ Test that a random unitary with set seed will not affect later
