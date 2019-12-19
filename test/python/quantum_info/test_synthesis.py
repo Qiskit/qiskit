@@ -77,14 +77,19 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
           [(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.001, 0.97, 2.2), (3.14, 2.1, 0.9)]]]
 
 
-class CheckEulerAngles1Q(QiskitTestCase):
-    """Implements check_one_qubit_euler_angles()"""
+class CheckDecompositions(QiskitTestCase):
+    """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, tolerance=1e-14):
+    def check_one_qubit_euler_angles(self, operator, basis=None, tolerance=1e-12):
         """Check euler_angles_1q works for the given unitary"""
         target_unitary = operator.data
-        angles = euler_angles_1q(target_unitary)
-        decomp_unitary = U3Gate(*angles).to_matrix()
+        if basis is None:
+            angles = euler_angles_1q(target_unitary)
+            decomp_unitary = U3Gate(*angles).to_matrix()
+        else:
+            decomposer = OneQubitEulerDecomposer(basis)
+            decomp_unitary = Operator(decomposer(target_unitary)).data
+        # Add global phase to make special unitary
         target_unitary *= la.det(target_unitary)**(-0.5)
         decomp_unitary *= la.det(decomp_unitary)**(-0.5)
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
@@ -92,8 +97,43 @@ class CheckEulerAngles1Q(QiskitTestCase):
             maxdist = np.max(np.abs(target_unitary + decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
+    # FIXME: should be possible to set this tolerance tighter after improving the function
+    def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
+        """Check TwoQubitWeylDecomposition() works for a given operator"""
+        # pylint: disable=invalid-name
+        decomp = TwoQubitWeylDecomposition(target_unitary)
+        op = Operator(np.eye(4))
+        for u, qs in (
+                (decomp.K2r, [0]),
+                (decomp.K2l, [1]),
+                (Ud(decomp.a, decomp.b, decomp.c), [0, 1]),
+                (decomp.K1r, [0]),
+                (decomp.K1l, [1]),
+        ):
+            op = op.compose(u, qs)
+        decomp_unitary = op.data
+        target_unitary *= la.det(target_unitary)**(-0.25)
+        decomp_unitary *= la.det(decomp_unitary)**(-0.25)
+        maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
+                    for phase in [1, 1j, -1, -1j]]
+        maxdist = np.min(maxdists)
+        self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+
+    def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
+        """Check exact decomposition for a particular target"""
+        decomp_circuit = decomposer(target_unitary)
+        result = execute(decomp_circuit, UnitarySimulatorPy()).result()
+        decomp_unitary = result.get_unitary()
+        target_unitary *= la.det(target_unitary) ** (-0.25)
+        decomp_unitary *= la.det(decomp_unitary) ** (-0.25)
+        maxdists = [np.max(np.abs(target_unitary + phase * decomp_unitary))
+                    for phase in [1, 1j, -1, -1j]]
+        maxdist = np.min(maxdists)
+        self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+
+
 @ddt
-class TestEulerAngles1Q(CheckEulerAngles1Q):
+class TestEulerAngles1Q(CheckDecompositions):
     """Test euler_angles_1q()"""
 
     def test_euler_angles_1q_clifford(self):
@@ -115,24 +155,8 @@ class TestEulerAngles1Q(CheckEulerAngles1Q):
 
 
 @ddt
-class TestOneQubitEulerDecomposer(QiskitTestCase):
+class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
-
-    def check_one_qubit_euler_angles(self, operator, basis='U3',
-                                     tolerance=1e-12):
-        """Check euler_angles_1q works for the given unitary"""
-        decomposer = OneQubitEulerDecomposer(basis)
-        with self.subTest(operator=operator):
-            target_unitary = operator.data
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
-            maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
-                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Worst distance {}".format(maxdist))
 
     def test_one_qubit_clifford_u3_basis(self):
         """Verify for u3 basis and all Cliffords."""
@@ -219,32 +243,10 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
 
 
 # FIXME: streamline the set of test cases
-class TestTwoQubitWeylDecomposition(QiskitTestCase):
+class TestTwoQubitWeylDecomposition(CheckDecompositions):
     """Test TwoQubitWeylDecomposition()
     """
-
     # pylint: disable=invalid-name
-    # FIXME: should be possible to set this tolerance tighter after improving the function
-    def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
-        """Check TwoQubitWeylDecomposition() works for a given operator"""
-        with self.subTest(unitary=target_unitary):
-            decomp = TwoQubitWeylDecomposition(target_unitary)
-            op = Operator(np.eye(4))
-            for u, qs in (
-                    (decomp.K2r, [0]),
-                    (decomp.K2l, [1]),
-                    (Ud(decomp.a, decomp.b, decomp.c), [0, 1]),
-                    (decomp.K1r, [0]),
-                    (decomp.K1l, [1]),
-            ):
-                op = op.compose(u, qs)
-            decomp_unitary = op.data
-            target_unitary *= la.det(target_unitary)**(-0.25)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.25)
-            maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
-                        for phase in [1, 1j, -1, -1j]]
-            maxdist = np.min(maxdists)
-            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""
@@ -385,23 +387,10 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
 
 
 @ddt
-class TestTwoQubitDecomposeExact(QiskitTestCase):
+class TestTwoQubitDecomposeExact(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact decompositions
     """
-
     # pylint: disable=invalid-name
-    def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
-        """Check exact decomposition for a particular target"""
-        with self.subTest(unitary=target_unitary, decomposer=decomposer):
-            decomp_circuit = decomposer(target_unitary)
-            result = execute(decomp_circuit, UnitarySimulatorPy()).result()
-            decomp_unitary = result.get_unitary()
-            target_unitary *= la.det(target_unitary)**(-0.25)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.25)
-            maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
-                        for phase in [1, 1j, -1, -1j]]
-            maxdist = np.min(maxdists)
-            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
