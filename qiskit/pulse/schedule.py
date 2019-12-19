@@ -236,9 +236,13 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
+               channels: Optional[Channel] = None,
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+               instruction_types: Optional[Type['Instruction']] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
+               time_ranges: Optional[Tuple[int, int]] = None,
+               intervals: Optional[Iterable[Interval]] = None,
+               intervals: Optional[Interval] = None) -> 'Schedule':
         """
         Return a new Schedule with only the instructions from this Schedule which pass though the
         provided filters; i.e. an instruction will be retained iff every function in filter_funcs
@@ -261,6 +265,7 @@ class Schedule(ScheduleComponent):
                                                  instruction_types=instruction_types,
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
+        print("hi")
         return self._apply_filter(composed_filter,
                                   new_sched_name="{name}-filtered".format(name=self.name))
 
