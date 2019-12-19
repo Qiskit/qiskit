@@ -763,7 +763,7 @@ class TextDrawing():
         Args:
             layer (list): A list of elements.
         """
-        instructions = filter(lambda x: x is not None, layer)
+        instructions = list(filter(lambda x: x is not None, layer))
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
             instruction.layer_width = longest
