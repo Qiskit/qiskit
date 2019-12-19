@@ -62,7 +62,7 @@ class TestSynthesis(CheckDecompositions):
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
         self.check_exact_decomposition(random_unitary(4, seed=seeds[4]).data, decomposer)
 
-    rotation = strategies.floats(min_value=0, max_value=2 ** 32 - 1)
+    rotation = strategies.floats(min_value=-np.pi*10, max_value=np.pi*10)
 
     @given(strategies.tuples(*[rotation] * 6))
     def test_cx_equivalence_0cx_random(self, rnd):
