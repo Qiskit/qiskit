@@ -18,9 +18,9 @@ from .h import HGate, CHGate
 from .iden import IdGate
 from .ms import MSGate
 from .r import RGate
-from .rx import RXGate
+from .rx import RXGate, CrxGate
 from .rxx import RXXGate
-from .ry import RYGate
+from .ry import RYGate, CryGate
 from .rz import RZGate, CrzGate
 from .rzz import RZZGate
 from .s import SGate, SdgGate
