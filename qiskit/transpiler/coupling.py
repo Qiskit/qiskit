@@ -248,6 +248,64 @@ class CouplingMap:
 
         return CouplingMap(reduced_cmap)
 
+    @classmethod
+    def from_full(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls()
+        for i in range(num_qubits):
+            for j in range(i):
+                cmap.add_edge(j, i)
+                if bidirectional:
+                    cmap.add_edge(i, j)
+        return cmap
+
+    @classmethod
+    def from_line(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls()
+        for i in range(num_qubits-1):
+            cmap.add_edge(i, i+1)
+            if bidirectional:
+                cmap.add_edge(i+1, i)
+        return cmap
+
+    @classmethod
+    def from_ring(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls()
+        for i in range(num_qubits):
+            if i == num_qubits - 1:
+                k = 0
+            else:
+                k = i + 1
+            cmap.add_edge(i, k)
+            if bidirectional:
+                cmap.add_edge(k, i)
+        return cmap
+
+    @classmethod
+    def from_grid(cls, num_rows, num_columns, bidirectional=True):
+        """Return qubits connected on a grid of num_rows x num_columns."""
+        cmap = cls()
+        for i in range(num_rows):
+            for j in range(num_columns):
+                node = i * num_columns + j
+
+                up = (node-num_columns) if i > 0 else None  # pylint: disable=invalid-name
+                down = (node+num_columns) if i < num_rows-1 else None
+                left = (node-1) if j > 0 else None
+                right = (node+1) if j < num_columns-1 else None
+
+                if up is not None and bidirectional:
+                    cmap.add_edge(node, up)
+                if left is not None and bidirectional:
+                    cmap.add_edge(node, left)
+                if down is not None:
+                    cmap.add_edge(node, down)
+                if right is not None:
+                    cmap.add_edge(node, right)
+        return cmap
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
