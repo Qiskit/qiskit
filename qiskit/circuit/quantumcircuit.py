@@ -18,9 +18,9 @@ from copy import deepcopy
 import itertools
 import sys
 import warnings
-import numpy as np
 import multiprocessing as mp
 from collections import OrderedDict
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
