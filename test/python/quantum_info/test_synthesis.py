@@ -82,16 +82,15 @@ class CheckEulerAngles1Q(QiskitTestCase):
 
     def check_one_qubit_euler_angles(self, operator, tolerance=1e-14):
         """Check euler_angles_1q works for the given unitary"""
-        with self.subTest(operator=operator):
-            target_unitary = operator.data
-            angles = euler_angles_1q(target_unitary)
-            decomp_unitary = U3Gate(*angles).to_matrix()
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
-            maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
-                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+        target_unitary = operator.data
+        angles = euler_angles_1q(target_unitary)
+        decomp_unitary = U3Gate(*angles).to_matrix()
+        target_unitary *= la.det(target_unitary)**(-0.5)
+        decomp_unitary *= la.det(decomp_unitary)**(-0.5)
+        maxdist = np.max(np.abs(target_unitary - decomp_unitary))
+        if maxdist > 0.1:
+            maxdist = np.max(np.abs(target_unitary + decomp_unitary))
+        self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
 @ddt
 class TestEulerAngles1Q(CheckEulerAngles1Q):
