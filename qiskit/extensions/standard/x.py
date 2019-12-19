@@ -45,22 +45,6 @@ class XGate(Gate):
             definition.append(inst)
         self.definition = definition
 
-    def control(self, num_ctrl_qubits=1, label=None):
-        """Controlled version of this gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if num_ctrl_qubits == 1:
-            return CnotGate()
-        elif num_ctrl_qubits == 2:
-            return ToffoliGate()
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
-
     def inverse(self):
         """Invert this gate."""
         return XGate()  # self-inverse

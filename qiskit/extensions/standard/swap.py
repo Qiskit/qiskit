@@ -16,10 +16,11 @@
 SWAP gate.
 """
 import numpy
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.x import ToffoliGate
+from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.cx import CnotGate
 
 

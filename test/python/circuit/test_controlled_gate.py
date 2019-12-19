@@ -158,7 +158,7 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_control_u3(self):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
-        import qiskit.extensions.standard.u3 as cu3
+        import qiskit.extensions.standard.cu3 as cu3
 
         num_ctrl = 3
         # U3 gate params
@@ -220,7 +220,7 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_control_u1(self):
         """Test multi controlled u1 gate"""
         import qiskit.extensions.standard.u1 as u1
-        import qiskit.extensions.standard.u1 as cu1
+        import qiskit.extensions.standard.cu1 as cu1
 
         num_ctrl = 3
         # U1 gate params
@@ -289,7 +289,7 @@ class TestControlledGate(QiskitTestCase):
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
 
-        theta = pi
+        theta = pi/2
         gu1 = u1.U1Gate(theta)
         grx = rx.RXGate(theta)
         gry = ry.RYGate(theta)

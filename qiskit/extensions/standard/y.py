@@ -17,6 +17,7 @@ Pauli Y (bit-phase-flip) gate.
 """
 import numpy
 from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi

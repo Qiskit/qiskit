@@ -26,9 +26,13 @@ from .rzz import RZZGate
 from .s import SGate, SdgGate
 from .swap import SwapGate, FredkinGate
 from .t import TGate, TdgGate
-from .u1 import U1Gate, Cu1Gate
+from .u1 import U1Gate
+from .cu1 import Cu1Gate
 from .u2 import U2Gate
-from .u3 import U3Gate, Cu3Gate
-from .x import XGate, CnotGate, ToffoliGate
+from .u3 import U3Gate
+from .cu3 import Cu3Gate
+from .x import XGate
+from .cx import CnotGate
+from .ccx import ToffoliGate
 from .y import YGate, CyGate
 from .z import ZGate, CzGate

@@ -31,6 +31,23 @@ def add_control(operation, num_ctrl_qubits, label):
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
     """
+    import qiskit.extensions.standard as standard
+    known_control_map_c1 = {
+        standard.XGate: standard.CnotGate,
+        standard.U1Gate: standard.Cu1Gate,
+        standard.U3Gate: standard.Cu3Gate,
+        standard.CnotGate: standard.ToffoliGate
+    }
+    if num_ctrl_qubits == 1:
+        if type(operation) in known_control_map_c1:
+            return known_control_map_c1[type(operation)](*operation.params)
+    elif type(operation) is standard.RZGate or operation.name == 'rz':
+        # the condition matching 'name' above is to catch a test case,
+        # 'TestControlledGate.test_rotation_gates', where the rz gate
+        # gets converted to a circuit before becoming a generic Gate object.
+        # num_ctrl_qubits > 1
+        cgate = standard.CrzGate(*operation.params)
+        return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()

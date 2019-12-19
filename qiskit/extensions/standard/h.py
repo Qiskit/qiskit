@@ -16,10 +16,10 @@
 Hadamard gate.
 """
 import numpy
-
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.extensions.standard.s import SGate, SdgGate
 from qiskit.extensions.standard.t import TGate, TdgGate
 from qiskit.extensions.standard.u2 import U2Gate
@@ -121,10 +121,10 @@ class CHGate(ControlledGate):
 
     def to_matrix(self):
         """Return a Numpy.array for the Ch gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 1/np.sqrt(2), 0, 1/np.sqrt(2)],
-                         [0, 0, 1, 0],
-                         [0, 1/np.sqrt(2), 0, -1/np.sqrt(2)]], dtype=complex)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1/numpy.sqrt(2), 0, 1/numpy.sqrt(2)],
+                            [0, 0, 1, 0],
+                            [0, 1/numpy.sqrt(2), 0, -1/numpy.sqrt(2)]], dtype=complex)
 
 
 def ch(self, ctl, tgt):  # pylint: disable=invalid-name
