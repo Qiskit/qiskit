@@ -390,7 +390,6 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
 class TestTwoQubitDecomposeExact(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact decompositions
     """
-    # pylint: disable=invalid-name
 
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
@@ -420,6 +419,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     @combine(seed=range(10), name='test_exact_supercontrolled_decompose_random_{seed}')
     def test_exact_supercontrolled_decompose_random(self, seed):
         """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
+        # pylint: disable=invalid-name
         k1 = np.kron(random_unitary(2, seed=seed).data, random_unitary(2, seed=seed+1).data)
         k2 = np.kron(random_unitary(2, seed=seed+2).data, random_unitary(2, seed=seed+3).data)
         basis_unitary = k1 @ Ud(np.pi/4, 0, 0) @ k2
@@ -441,8 +441,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qc.u3(3.07225205, 2.47163021, 1.85387544, qr[1])  # generated w/ 2*np.pi*random(size=3)
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 0)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
 
     def test_cx_equivalence_1cx(self):
         """Check circuits with  1 cx gates locally equivalent to a cx
@@ -459,8 +459,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qc.u3(4.27362122, 1.32003729, 4.84325493, qr[1])  # generated w/ 2*np.pi*random(size=3)
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 1)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
 
     def test_cx_equivalence_2cx(self):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx.
@@ -482,8 +482,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qc.u3(5.95780296, 6.13512175, 5.66765116, qr[1])  # generated w/ 2*np.pi*random(size=3)
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 2)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
 
     def test_cx_equivalence_3cx(self):
         """Check circuits with 3 cx gates are outside the 0, 1, and 2 qubit regions.
@@ -510,8 +510,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qc.u3(4.92087635, 6.08781048, 4.85942885, qr[1])  # generated w/ 2*np.pi*random(size=3)
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
 
 # FIXME: need to write tests for the approximate decompositions
 

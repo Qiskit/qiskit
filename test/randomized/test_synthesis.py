@@ -13,11 +13,10 @@
 # that they have been altered from the originals.
 
 """Randomized tests of quantum synthesis."""
+import unittest
 import numpy as np
 from hypothesis import given, strategies
-import unittest
 
-from ..python.quantum_info.test_synthesis import CheckDecompositions
 
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -27,6 +26,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (two_qubit_cnot_decompose,
                                                                TwoQubitBasisDecomposer,
                                                                Ud)
+from ..python.quantum_info.test_synthesis import CheckDecompositions
 
 
 class TestSynthesis(CheckDecompositions):
@@ -56,6 +56,7 @@ class TestSynthesis(CheckDecompositions):
                              strategies.integers(min_value=0, max_value=2 ** 32 - 1)))
     def test_exact_supercontrolled_decompose_random(self, seeds):
         """Exact decomposition for random supercontrolled basis and random target"""
+        # pylint: disable=invalid-name
         k1 = np.kron(random_unitary(2, seed=seeds[0]).data, random_unitary(2, seed=seeds[1]).data)
         k2 = np.kron(random_unitary(2, seed=seeds[2]).data, random_unitary(2, seed=seeds[3]).data)
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
@@ -75,8 +76,8 @@ class TestSynthesis(CheckDecompositions):
         qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 0)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
 
     @given(strategies.tuples(*[rotation] * 12))
     def test_cx_equivalence_1cx_random(self, rnd):
@@ -94,8 +95,8 @@ class TestSynthesis(CheckDecompositions):
         qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 1)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
 
     @given(strategies.tuples(*[rotation] * 18))
     def test_cx_equivalence_2cx_random(self, rnd):
@@ -118,8 +119,8 @@ class TestSynthesis(CheckDecompositions):
         qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 2)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
 
     @given(strategies.tuples(*[rotation] * 24))
     def test_cx_equivalence_3cx_random(self, rnd):
@@ -147,8 +148,8 @@ class TestSynthesis(CheckDecompositions):
         qc.u3(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
-        U = execute(qc, sim).result().get_unitary()
-        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
+        unitary = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
 
 
 if __name__ == '__main__':
