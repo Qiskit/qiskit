@@ -1,7 +1,7 @@
 ---
 name: 💅 Enhancement request
 about: Suggest an improvement for this project 🆒!
-labels: type: enhancement
+labels: 'type: enhancement'
 ---
 
 <!-- ⚠️ If you do not respect this template, your issue will be closed -->
