@@ -30,7 +30,7 @@ as a level 1 user.
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
 
-# making another circuit: uniforms
+# making another circuit: uniform superpositions
 qc2 = QuantumCircuit(2, 2)
 qc2.h([0,1])
 

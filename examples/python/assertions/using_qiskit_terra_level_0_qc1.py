@@ -39,7 +39,6 @@ qc1.h(0)
 breakpoint = qc1.get_breakpoint_product(0, 0, 1, 1, 0.05)
 
 qc1.cx(0, 1)
-
 qc1.measure([0,1], [0,1])
 
 # setting up the backend
