@@ -31,11 +31,8 @@ To control the passes that transform the circuit, we have a pass manager
 for the level 2 user.
 """
 
-import pprint, time
-
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
-from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
@@ -55,7 +52,7 @@ breakpoints.append(qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: superpositions
-qc2 = QuantumCircuit(2, 2, name="uniform")
+qc2 = QuantumCircuit(2, 2, name="superposition")
 qc2.h([0,1])
 # Since the breakpoint below and qc2 are identical, we can transpile
 # and run just qc2 and use qc2's results for the statistical test.
@@ -90,9 +87,9 @@ print("Bell circuit before transpile:")
 print(qc1)
 print("Bell circuit after transpile:")
 print(qc1_new)
-print("Uniform circuit before transpile:")
+print("Superposition circuit before transpile:")
 print(qc2)
-print("Uniform circuit after transpile:")
+print("Superposition circuit after transpile:")
 print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj
@@ -110,7 +107,6 @@ for (breakpoint, qc) in zip(breakpoints, [qc1_new, qc2_new]):
     tup = sim_result.get_assertion_stats(breakpoint, qc)
     print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
     assert ( sim_result.get_assertion_passed(breakpoint, qc) )
-
 
 # Show the results
 print(sim_result.get_counts(qc1))

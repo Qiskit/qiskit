@@ -15,14 +15,14 @@
 """Example used in the README with added assertions. In this example a Bell state is made."""
 
 # Import Qiskit
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 
 # Create a Quantum Circuit
 qc = QuantumCircuit(2, 2)
 
-# Add a H gate on qubit 0, putting this qubit in uniform.
+# Add a H gate on qubit 0, putting this qubit in superposition.
 qc.h(0)
 # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
 # the qubits in a Bell state.
