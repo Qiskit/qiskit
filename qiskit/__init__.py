@@ -66,11 +66,11 @@ else:
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute import execute  # noqa: E402
-from qiskit.compiler import transpile, assemble, schedule  # noqa: E402
+from qiskit.execute import execute # pylint: disable=wrong-import-position  # noqa: E402, E501
+from qiskit.compiler import transpile, assemble, schedule  # pylint: disable=wrong-import-position, line-too-long  # noqa: E402, E501
 
-from .version import __version__  # noqa: E402
-from .version import _get_qiskit_versions  # noqa: E402
+from .version import __version__  # pylint: disable=wrong-import-position, line-too-long  # noqa: E402, E501
+from .version import _get_qiskit_versions  # pylint: disable=wrong-import-position, line-too-long  # noqa: E402, E501
 
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 5:
