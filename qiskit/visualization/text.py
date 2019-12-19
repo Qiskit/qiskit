@@ -574,7 +574,7 @@ class TextDrawing():
 
         lines = []
         for layer_group in layer_groups:
-            wires = [i for i in zip(*layer_group)]
+            wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
         return lines
@@ -763,7 +763,7 @@ class TextDrawing():
         Args:
             layer (list): A list of elements.
         """
-        instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
+        instructions = filter(lambda x: x is not None, layer)
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
             instruction.layer_width = longest

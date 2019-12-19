@@ -68,7 +68,7 @@ class CouplingMap:
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
-        return [edge for edge in self.graph.edges()]
+        return list(self.graph.edges())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -118,7 +118,7 @@ class CouplingMap:
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         if self._qubit_list is None:
-            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+            self._qubit_list = sorted(self.graph.nodes)
         return self._qubit_list
 
     def is_connected(self):

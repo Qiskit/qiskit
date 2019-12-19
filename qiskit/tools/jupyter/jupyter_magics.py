@@ -54,17 +54,16 @@ def _html_checker(job_var, interval, status, header,
         job_status_msg = job_status.value
         if job_status_name == 'ERROR':
             break
+        if job_status_name == 'QUEUED':
+            job_status_msg += ' (%s)' % job_var.queue_position()
+            if job_var.queue_position() is None:
+                interval = 2
+            elif not _interval_set:
+                interval = max(job_var.queue_position(), 2)
         else:
-            if job_status_name == 'QUEUED':
-                job_status_msg += ' (%s)' % job_var.queue_position()
-                if job_var.queue_position() is None:
-                    interval = 2
-                elif not _interval_set:
-                    interval = max(job_var.queue_position(), 2)
-            else:
-                if not _interval_set:
-                    interval = 2
-            status.value = header % (job_status_msg)
+            if not _interval_set:
+                interval = 2
+        status.value = header % (job_status_msg)
 
     status.value = header % (job_status_msg)
 

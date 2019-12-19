@@ -266,8 +266,7 @@ class PassManager:
         for pass_set in self._pass_sets:
             item = {'passes': pass_set['passes']}
             if pass_set['flow_controllers']:
-                item['flow_controllers'] = {controller_name for controller_name in
-                                            pass_set['flow_controllers'].keys()}
+                item['flow_controllers'] = set(pass_set['flow_controllers'].keys())
             else:
                 item['flow_controllers'] = {}
             ret.append(item)
