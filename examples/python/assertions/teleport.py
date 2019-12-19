@@ -44,8 +44,6 @@ breakpoints = []
 # Assert a classical state of all 0's
 breakpoints.append(qc.get_breakpoint_classical(q, [c0[0], c1[0], c2[0]], 0.05, 0))
 
-qc.measure(q, [c0[0], c1[0], c2[0]])
-
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
 
