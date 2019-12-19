@@ -36,9 +36,14 @@ qc1.h(0)
 
 # Insert a breakpoint, asserting that the 2 qubits are in a product state,
 # with a critical p-value of 0.05.
-breakpoint = qc1.get_breakpoint_product(0, 0, 1, 1, 0.05)
+breakpoint1 = qc1.get_breakpoint_product(0, 0, 1, 1, 0.05)
 
 qc1.cx(0, 1)
+
+# Insert a breakpoint, asserting that the 2 qubits are in an entangled state,
+# with a critical p-value of 0.05.
+breakpoint2 = qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.05)
+
 qc1.measure([0,1], [0,1])
 
 # setting up the backend
@@ -46,14 +51,16 @@ print("(BasicAER Backends)")
 print(BasicAer.backends())
 
 # running the breakpoint and the job
-job_sim = execute([breakpoint, qc1], BasicAer.get_backend('qasm_simulator'))
+job_sim = execute([breakpoint1, breakpoint2, qc1], BasicAer.get_backend('qasm_simulator'))
 result = job_sim.result()
 
-# Show the assertion
-print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
-tup = result.get_assertion_stats(breakpoint)
-print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
-assert ( result.get_assertion_passed(breakpoint) )
+# Show the assertions
+breakpoints = [breakpoint1, breakpoint2]
+for breakpoint in breakpoints:
+    print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = result.get_assertion_stats(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( result.get_assertion_passed(breakpoint) )
 
 # Show the results
 print("result.get_counts(qc1) = ")
