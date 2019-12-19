@@ -49,7 +49,7 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 from qiskit.providers.basicaer import BasicAer
 
 # Try to import the Aer provider if installed.
-if find_spec('qiskit.providers.aer'):  # pylint: disable=wrong-import-position
+if find_spec('qiskit.providers.aer'):  # noqa: E501 pylint: disable=wrong-import-position, no-name-in-module, import-error
     from qiskit.providers.aer import Aer
 else:
     warnings.warn('Could not import the Aer provider from the qiskit-aer '
