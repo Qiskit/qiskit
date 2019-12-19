@@ -77,9 +77,8 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
           [(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.001, 0.97, 2.2), (3.14, 2.1, 0.9)]]]
 
 
-@ddt
-class TestEulerAngles1Q(QiskitTestCase):
-    """Test euler_angles_1q()"""
+class CheckEulerAngles1Q(QiskitTestCase):
+    """Implements check_one_qubit_euler_angles()"""
 
     def check_one_qubit_euler_angles(self, operator, tolerance=1e-14):
         """Check euler_angles_1q works for the given unitary"""
@@ -93,6 +92,10 @@ class TestEulerAngles1Q(QiskitTestCase):
             if maxdist > 0.1:
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+
+@ddt
+class TestEulerAngles1Q(CheckEulerAngles1Q):
+    """Test euler_angles_1q()"""
 
     def test_euler_angles_1q_clifford(self):
         """Verify euler_angles_1q produces correct Euler angles for all Cliffords."""
