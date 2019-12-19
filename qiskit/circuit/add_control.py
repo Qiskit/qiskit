@@ -54,6 +54,7 @@ def add_control(operation, num_ctrl_qubits, label):
         operation._define()
     return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
 
+
 def control(operation, num_ctrl_qubits=1, label=None):
     """Return controlled version of gate using controlled rotations
 
