@@ -17,6 +17,7 @@ Rotation around the y-axis.
 """
 import math
 import numpy
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -45,6 +46,20 @@ class RYGate(Gate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if num_ctrl_qubits == 1:
+            return CryGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate.
