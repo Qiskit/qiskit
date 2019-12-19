@@ -17,6 +17,8 @@
 from copy import deepcopy
 import itertools
 import sys
+import warnings
+import numpy as np
 import multiprocessing as mp
 from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
@@ -846,6 +848,13 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
+        if isinstance(output, (int, float, np.number)):
+            warnings.warn("Setting 'scale' as the first argument is deprecated. "
+                          "Use scale=%s instead." % output,
+                          DeprecationWarning)
+            scale = output
+            output = None
+
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,
