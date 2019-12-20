@@ -65,26 +65,6 @@ class Optimizer(Pluggable):
         self._options = {}
         self._max_evals_grouped = 1
 
-    @classmethod
-    def init_params(cls, params):
-        """Initialize with a params dictionary.
-
-        A dictionary of config params as per the configuration object. Some of these params get
-        passed to scipy optimizers in an options dictionary. We can specify an options array of
-        names in config dictionary to have the options dictionary automatically populated. All
-        other config items, excluding name, will be passed to init_args
-
-        Args:
-            params (dict): configuration dict
-        Returns:
-            Optimizer: instance of this class
-        """
-        opt_params = params.get(Pluggable.SECTION_KEY_OPTIMIZER)
-        logger.debug('init_params: %s', opt_params)
-        args = {k: v for k, v in opt_params.items() if k != 'name'}
-        optimizer = cls(**args)
-        return optimizer
-
     def set_options(self, **kwargs):
         """
         Sets or updates values in the options dictionary.

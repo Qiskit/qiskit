@@ -20,8 +20,7 @@ from test.aqua.common import QiskitAquaTestCase
 from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
-
-from qiskit.aqua import PluggableType, get_pluggable_class
+from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
 
 class TestNLOptOptimizers(QiskitAquaTestCase):
@@ -43,15 +42,13 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
 
     # ESCH and ISRES do not do well with rosen
     @parameterized.expand([
-        ['CRS'],
-        ['DIRECT_L'],
-        ['DIRECT_L_RAND'],
-        # ['ESCH'],
-        # ['ISRES']
+        [CRS],
+        [DIRECT_L],
+        [DIRECT_L_RAND],
     ])
-    def test_nlopt(self, name):
+    def test_nlopt(self, optimizer_cls):
         """ NLopt test """
-        optimizer = get_pluggable_class(PluggableType.OPTIMIZER, name)()
+        optimizer = optimizer_cls()
         optimizer.set_options(**{'max_evals': 50000})
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 50000)
