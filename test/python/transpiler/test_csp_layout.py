@@ -16,7 +16,6 @@
 
 import unittest
 from time import process_time
-import constraint
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
