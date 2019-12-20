@@ -129,7 +129,8 @@ def level_3_pass_manager(transpile_config):
     pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
-        pm3.append(CSPLayout(coupling_map), condition=_choose_layout_condition)
+        pm3.append(CSPLayout(coupling_map, call_limit=10000, time_limit=60),
+                   condition=_choose_layout_condition)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
