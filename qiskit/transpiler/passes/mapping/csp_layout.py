@@ -139,9 +139,9 @@ class CSPLayout(AnalysisPass):
         if solution is None:
             stop_reason = 'nonexistent solution'
             if isinstance(solver, CustomSolver):
-                if solver.time_limit is not None and solver.time_current >= self.time_limit:
+                if solver.time_current is not None and solver.time_current >= self.time_limit:
                     stop_reason = 'time limit reached'
-                elif solver.call_limit is not None and solver.call_current >= self.call_limit:
+                elif solver.call_current is not None and solver.call_current >= self.call_limit:
                     stop_reason = 'call limit reached'
         else:
             stop_reason = 'solution found'
