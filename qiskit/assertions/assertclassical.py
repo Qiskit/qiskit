@@ -36,15 +36,16 @@ class AssertClassical(Asserts):
             cbit(ClassicalRegister or list): classical register
             pcrit(float): the critical p-value
             expval(int or string or None): the expected value
-                If no expected value specified, then this assertion just checks that the measurement outcomes are in any classical state.
+                If no expected value specified, then this assertion just checks
+                that the measurement outcomes are in any classical state.
             negate(bool): True if assertion passed is negation of statistical test passed
 
         Raises:
             QiskitError: AssertClassical expected value not in range
         """
         type_str = "Not Classical" if negate else "Classical"
-        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit), pcrit, negate,
-                         type_str)
+        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit),
+                         pcrit, negate, type_str)
         self._expval = expval if expval is None or isinstance(expval, int) else int(expval, 2)
         if expval is not None and self._expval not in range(0, 2 ** len(self._cbit)):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" %
@@ -71,7 +72,8 @@ class AssertClassical(Asserts):
 
         vals_list = list(counts.values())
 
-        # If no expected value specified, then this assertion just checks that the measurement outcomes are in any classical state.
+        # If no expected value specified, then this assertion just checks
+        # that the measurement outcomes are in any classical state.
         if self._expval is None:
             index = np.argmax(vals_list)
         else:

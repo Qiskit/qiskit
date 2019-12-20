@@ -36,8 +36,8 @@ class AssertUniform(Asserts):
             negate(bool): True if assertion passed is negation of statistical test passed
         """
         type_str = "Not Uniform" if negate else "Uniform"
-        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit), pcrit, negate,
-                         type_str)
+        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit),
+                         pcrit, negate, type_str)
 
     def stat_test(self, counts):
         """
