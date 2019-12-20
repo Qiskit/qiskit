@@ -36,7 +36,7 @@ class AssertUniform(Asserts):
             negate(bool): True if assertion passed is negation of statistical test passed
         """
         type_str = "Not Uniform" if negate else "Uniform"
-        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate,
+        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit), pcrit, negate,
                          type_str)
 
     def stat_test(self, counts):
@@ -59,8 +59,12 @@ class AssertUniform(Asserts):
         """
 
         vals_list = list(counts.values())
-        numzeros = 2 ** len(list(counts)[0]) - len(counts)
-        vals_list.extend([0]*numzeros)
+
+        # account for bitstring with zero counts
+        numqubits = len(list(counts)[0])
+        numzeros = 2 ** numqubits - len(counts)
+        vals_list.extend([0] * numzeros)
+
         chisq, pval = chisquare(vals_list)
         passed = bool(pval >= self._pcrit)
         return (chisq, pval, passed)
@@ -80,7 +84,7 @@ def get_breakpoint_uniform(self, qubit, cbit, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -103,7 +107,7 @@ def get_breakpoint_not_uniform(self, qubit, cbit, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone

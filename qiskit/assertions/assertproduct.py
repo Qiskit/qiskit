@@ -39,10 +39,10 @@ class AssertProduct(Asserts):
             pcrit(float): the critical p-value
             negate(bool): True if assertion passed is negation of statistical test passed
         """
-        self._qubit0 = self.syntax4measure(qubit0)
-        self._cbit0 = self.syntax4measure(cbit0)
-        self._qubit1 = self.syntax4measure(qubit1)
-        self._cbit1 = self.syntax4measure(cbit1)
+        self._qubit0 = self._syntax_for_measure(qubit0)
+        self._cbit0 = self._syntax_for_measure(cbit0)
+        self._qubit1 = self._syntax_for_measure(qubit1)
+        self._cbit1 = self._syntax_for_measure(cbit1)
         type_str = "Not Product" if negate else "Product"
         qubit0 = list(self._qubit0) if isinstance(self._qubit0, Register) else self._qubit0
         qubit1 = list(self._qubit1) if isinstance(self._qubit1, Register) else self._qubit1
@@ -70,8 +70,8 @@ class AssertProduct(Asserts):
         """
         q0len = len(self._qubit0)
         q1len = len(self._qubit1)
-        cont_table = np.empty((2 ** q0len, 2 ** q1len))
-        cont_table.fill(1)
+        cont_table = np.ones((2 ** q0len, 2 ** q1len))
+
         for (key, value) in counts.items():
             key_rev = key[::-1]
             q0index = int(key_rev[:q0len], 2)
@@ -100,7 +100,7 @@ def get_breakpoint_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -126,7 +126,7 @@ def get_breakpoint_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone

@@ -36,13 +36,14 @@ class AssertClassical(Asserts):
             cbit(ClassicalRegister or list): classical register
             pcrit(float): the critical p-value
             expval(int or string or None): the expected value
+                If no expected value specified, then this assertion just checks that the measurement outcomes are in any classical state.
             negate(bool): True if assertion passed is negation of statistical test passed
 
         Raises:
             QiskitError: AssertClassical expected value not in range
         """
         type_str = "Not Classical" if negate else "Classical"
-        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate,
+        super().__init__(self._syntax_for_measure(qubit), self._syntax_for_measure(cbit), pcrit, negate,
                          type_str)
         self._expval = expval if expval is None or isinstance(expval, int) else int(expval, 2)
         if expval is not None and self._expval not in range(0, 2 ** len(self._cbit)):
@@ -69,6 +70,8 @@ class AssertClassical(Asserts):
         """
 
         vals_list = list(counts.values())
+
+        # If no expected value specified, then this assertion just checks that the measurement outcomes are in any classical state.
         if self._expval is None:
             index = np.argmax(vals_list)
         else:
@@ -76,13 +79,19 @@ class AssertClassical(Asserts):
                 index = list(map(lambda x: int(x, 2), counts.keys())).index(self._expval)
             except ValueError:
                 index = -1
+
+        # account for bitstring with zero counts
         numqubits = len(list(counts)[0])
         numzeros = 2 ** numqubits - len(counts)
         vals_list.extend([0] * numzeros)
+
         exp_list = [1] * len(vals_list)
         exp_list[index] = 2 ** 16
+
+        # normalize
         vals_list = vals_list / np.sum(vals_list)
         exp_list = exp_list / np.sum(exp_list)
+
         chisq, pval = chisquare(vals_list, f_exp=exp_list, ddof=1)
         if len(list(counts.keys())[0]) == 1:
             pval = vals_list[index]
@@ -109,7 +118,7 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -135,7 +144,7 @@ def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.new_breakpoint_name())
+    clone = self.copy(Asserts._new_breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
