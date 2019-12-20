@@ -219,7 +219,7 @@ class Result(BaseModel):
         assertion = experiment.data[-1][0]
 
         cbits = assertion._cbit
-        cbits = Asserts.clbits2idxs(cbits, experiment)
+        cbits = Asserts.clbits_to_idxs(cbits, experiment)
 
         new_counts = {}
         for (key, value) in counts.items():
@@ -227,9 +227,8 @@ class Result(BaseModel):
             new_key = ''.join([new_key[-1*(cbit+1)] for cbit in cbits][::-1])
             new_counts.setdefault(new_key, 0)
             new_counts[new_key] += value
-        counts = new_counts
 
-        chisq, pval, passed = assertion.stat_test(counts)
+        chisq, pval, passed = assertion.stat_test(new_counts)
         return chisq, pval, passed if not assertion._negate else not passed
 
     def get_assertion_passed(self, experiment=None, result_experiment=None):
