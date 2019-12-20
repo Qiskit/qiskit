@@ -313,7 +313,7 @@ class TestFinalLayouts(QiskitTestCase):
                         8: ancilla[6], 9: ancilla[7], 12: ancilla[8], 13: ancilla[9],
                         14: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
                         19: ancilla[14], }
-        # noise_layout =
+
         # Trivial layout
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = trivial_layout
