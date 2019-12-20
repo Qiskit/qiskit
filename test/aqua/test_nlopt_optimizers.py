@@ -20,7 +20,8 @@ from test.aqua.common import QiskitAquaTestCase
 from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
-from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
+
+# pylint: disable=unused-import,import-outside-toplevel
 
 
 class TestNLOptOptimizers(QiskitAquaTestCase):
@@ -28,7 +29,10 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         try:
-            import nlopt  # pylint: disable=unused-import,import-outside-toplevel
+            from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
+            self.cls_dict = {CRS.__name__: CRS,
+                             DIRECT_L.__name__: DIRECT_L,
+                             DIRECT_L_RAND.__name__: DIRECT_L_RAND}
         except ImportError:
             self.skipTest('NLOpt dependency does not appear to be installed')
         pass
@@ -42,13 +46,13 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
 
     # ESCH and ISRES do not do well with rosen
     @parameterized.expand([
-        [CRS],
-        [DIRECT_L],
-        [DIRECT_L_RAND],
+        ['CRS'],
+        ['DIRECT_L'],
+        ['DIRECT_L_RAND'],
     ])
-    def test_nlopt(self, optimizer_cls):
+    def test_nlopt(self, optimizer_name):
         """ NLopt test """
-        optimizer = optimizer_cls()
+        optimizer = self.cls_dict[optimizer_name]()
         optimizer.set_options(**{'max_evals': 50000})
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 50000)
