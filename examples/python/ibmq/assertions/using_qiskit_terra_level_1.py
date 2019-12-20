@@ -105,7 +105,7 @@ sim_result=sim_job.result()
 for (breakpoint, qc) in zip(breakpoints, [qc1_new, qc2_new]):
     print("Simulated Results of our " + sim_result.get_assertion_type(breakpoint) + " Assertion:")
     tup = sim_result.get_assertion_stats(breakpoint, qc)
-    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    print('chisq = %f\npval = %f\npassed = %s\n' % tup)
     assert ( sim_result.get_assertion_passed(breakpoint, qc) )
 
 # Show the results
@@ -122,7 +122,7 @@ exp_result = exp_job.result()
 for (breakpoint, qc) in zip(breakpoints, [qc1_new, qc2_new]):
     print("Experimental Results of our " + exp_result.get_assertion_type(breakpoint) + " Assertion:")
     tup = exp_result.get_assertion_stats(breakpoint, qc)
-    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    print('chisq = %f\npval = %f\npassed = %s\n' % tup)
     assert ( exp_result.get_assertion_passed(breakpoint, qc) )
 
 # Show the results

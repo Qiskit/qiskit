@@ -45,7 +45,7 @@ result_sim = job_sim.result()
 # Show the assertion
 print("Simulated Results of our " + result_sim.get_assertion_type(breakpoint) + " Assertion:")
 tup = result_sim.get_assertion_stats(breakpoint, qc)
-print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
+print('chisq = %f\npval = %f\npassed = %s' % tup)
 assert ( result_sim.get_assertion_passed(breakpoint, qc) )
 
 # Show the results
@@ -79,7 +79,7 @@ result_exp = job_exp.result()
 # Show the assertion
 print("Experimental Results of our " + result_exp.get_assertion_type(breakpoint) + " Assertion:")
 tup = result_exp.get_assertion_stats(breakpoint, qc)
-print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
+print('chisq = %f\npval = %f\npassed = %s' % tup)
 assert ( result_exp.get_assertion_passed(breakpoint, qc) )
 
 # Show the results

@@ -85,7 +85,7 @@ print()
 for breakpoint in breakpoints:
     print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
     tup = result.get_assertion_stats(breakpoint)
-    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    print('chisq = %f\npval = %f\npassed = %s\n' % tup)
     assert ( result.get_assertion_passed(breakpoint) )
 
 # Show the results
