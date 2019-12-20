@@ -46,37 +46,7 @@ class Asserts(Measure):
         self._expval = None
 
     @staticmethod
-    def new_breakpoint_name():
-        """
-        Returns the name of a new breakpoint.  A breakpoint is a QuantumCircuit
-        whose last instruction is an assertion instruction.
-
-        Returns:
-            string: the new breakpoint name
-        """
-        return "breakpoint_" + datetime.now().isoformat()
-
-    @staticmethod
-    def syntax4measure(bit):
-        """
-        Returns the input qubit or cbit, suitable for the syntax of the measure
-        instruction, as a list.
-
-        Args:
-            bit(QuantumRegister or ClassicalRegister or list): register
-
-        Returns:
-            list or Register: bit as a list or Register
-        """
-        if isinstance(bit, (list, Register)):
-            return bit
-        elif isinstance(bit, range):
-            return list(bit)
-        else:
-            return [bit]
-
-    @staticmethod
-    def clbits2idxs(cbits, exp):
+    def clbits_to_idxs(cbits, exp):
         """
         Returns the indices of cbits with respect to exp, the QuantumCircuit.
 
@@ -123,3 +93,33 @@ class Asserts(Measure):
             NotImplementedError
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _new_breakpoint_name():
+        """
+        Returns the name of a new breakpoint.  A breakpoint is a QuantumCircuit
+        whose last instruction is an assertion instruction.
+
+        Returns:
+            string: the new breakpoint name
+        """
+        return "breakpoint_" + datetime.now().isoformat()
+
+    @staticmethod
+    def _syntax_for_measure(bit):
+        """
+        Returns the input qubit or cbit, suitable for the syntax of the measure
+        instruction, as a list.
+
+        Args:
+            bit(QuantumRegister or ClassicalRegister or list): register
+
+        Returns:
+            list or Register: bit as a list or Register
+        """
+        if isinstance(bit, (list, Register)):
+            return bit
+        elif isinstance(bit, range):
+            return list(bit)
+        else:
+            return [bit]
