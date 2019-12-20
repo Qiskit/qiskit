@@ -60,13 +60,13 @@ release = '0.12.0'
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
-    'sphinx_automodapi.automodapi',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
     'jupyter_sphinx.execute',
+    'sphinx_autodoc_typehints',
     'reno.sphinxext',
 ]
 html_static_path = ['_static']

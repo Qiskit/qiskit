@@ -47,7 +47,7 @@ class Decompose(TransformationPass):
             # TODO: allow choosing among multiple decomposition rules
             rule = node.op.definition
 
-            if len(rule) == 1:
+            if len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
                 dag.substitute_node(node, rule[0][0], inplace=True)
             else:
                 # hacky way to build a dag on the same register as the rule is defined

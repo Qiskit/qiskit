@@ -26,11 +26,13 @@ from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .cmd_def import CmdDef
 from .commands import Acquire, AcquireInstruction, Delay
 from .exceptions import PulseError
+from .instruction_schedule_map import InstructionScheduleMap
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],
+                   inst_map: Optional[InstructionScheduleMap] = None,
                    cmd_def: Optional[CmdDef] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
@@ -44,7 +46,8 @@ def align_measures(schedules: Iterable[ScheduleComponent],
 
     Args:
         schedules: Collection of schedules to be aligned together
-        cmd_def: Command definition list
+        inst_map: Mapping of circuit operations to pulse schedules
+        cmd_def: Deprecated
         cal_gate: The name of the gate to inspect for the calibration time
         max_calibration_duration: If provided, cmd_def and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
@@ -54,6 +57,9 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         PulseError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire, or if align_time is negative
     """
+    if inst_map is None:
+        inst_map = cmd_def
+
     def calculate_align_time():
         """Return the the max between the duration of the calibration time and the absolute time
         of the latest scheduled acquire."""
@@ -73,13 +79,13 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     def get_max_calibration_duration():
         """Return the time needed to allow for readout discrimination calibration pulses."""
         max_calibration_duration = 0
-        for qubits in cmd_def.cmd_qubits(cal_gate):
-            cmd = cmd_def.get(cal_gate, qubits, np.pi, 0, np.pi)
+        for qubits in inst_map.cmd_qubits(cal_gate):
+            cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)
             max_calibration_duration = max(cmd.duration, max_calibration_duration)
         return max_calibration_duration
 
-    if align_time is None and max_calibration_duration is None and cmd_def is None:
-        raise PulseError("Must provide a cmd_def, an alignment time, or a calibration duration.")
+    if align_time is None and max_calibration_duration is None and inst_map is None:
+        raise PulseError("Must provide a inst_map, an alignment time, or a calibration duration.")
     if align_time is not None and align_time < 0:
         raise PulseError("Align time cannot be negative.")
     if align_time is None:

@@ -19,6 +19,8 @@ A module for drawing circuits in ascii art or some other text representation
 from shutil import get_terminal_size
 import sys
 from numpy import ndarray
+
+from qiskit.circuit import ControlledGate
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
@@ -671,17 +673,16 @@ class TextDrawing():
     @staticmethod
     def params_for_label(instruction):
         """Get the params and format them to add them to a label. None if there
-         are no params of if the params are numpy.ndarrays."""
-
-        if not hasattr(instruction.op, 'params'):
+         are no params or if the params are numpy.ndarrays."""
+        op = instruction.op
+        if not hasattr(op, 'params'):
             return None
-        if all([isinstance(param, ndarray) for param in instruction.op.params]):
+        if all([isinstance(param, ndarray) for param in op.params]):
             return None
 
         ret = []
-        for param in instruction.op.params:
+        for param in op.params:
             try:
-                param = float(param)
                 str_param = pi_check(param, ndigits=5)
                 ret.append('%s' % str_param)
             except TypeError:
@@ -689,10 +690,14 @@ class TextDrawing():
         return ret
 
     @staticmethod
-    def label_for_box(instruction):
+    def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
-        label = instruction.name.capitalize()
+        if controlled:
+            label = instruction.op.base_gate_name
+        else:
+            label = instruction.name
         params = TextDrawing.params_for_label(instruction)
+        label = label.capitalize()
         if params:
             label += "(%s)" % ','.join(params)
         return label
@@ -863,6 +868,14 @@ class TextDrawing():
             layer.set_qubit(instruction.qargs[0],
                             BoxOnQuWire(TextDrawing.label_for_box(instruction),
                                         conditional=conditional))
+
+        elif isinstance(instruction.op, ControlledGate):
+            label = TextDrawing.label_for_box(instruction, controlled=True)
+            gates = []
+            for _ in instruction.qargs[:-1]:
+                gates.append(Bullet(conditional=conditional))
+            gates.append(BoxOnQuWire(label, conditional=conditional))
+            add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
