@@ -237,7 +237,7 @@ New Features
 - PulseBackendConfiguration (accessed normally as backend.configuration())
   has been extended with useful methods to explore its data and the
   functionality that exists in PulseChannelSpec. PulseChannelSpec will be
-  deprecated in the future. For Example::
+  deprecated in the future. For example::
 
       backend = provider.get_backend(backend_name)
       config = backend.configuration()
@@ -305,9 +305,9 @@ New Features
 - When ``passmanager.run(...)`` is invoked with more than one circuit, the
   transpilation of these circuits will run in parallel.
 
-- PassManagers can now be sliced to create a new Passmanager containing a
+- PassManagers can now be sliced to create a new PassManager containing a
   subset of passes using the square bracket operator. This allow running or
-  drawing a portion of the Passmanager for easier testing and visualization.
+  drawing a portion of the PassManager for easier testing and visualization.
   For example let's try to draw the first 3 passes of a PassManager pm, or
   run just the second pass on our circuit:
 
@@ -413,7 +413,7 @@ Upgrade Notes
   classical bits.
 
 - The previously deprecated representation of the basis set as single string
-  has been removed. A list of strings is the new prefered way.
+  has been removed. A list of strings is the new preferred way.
 
 - The method ``BaseModel.as_dict``, which was deprecated in the 0.9 release,
   has been removed in favor of the method ``BaseModel.to_dict``.
@@ -435,7 +435,7 @@ Upgrade Notes
   should be used instead.
 
 - The instruction ``snapshot`` used to implicitly convert the ``label``
-  parameter to string. That convertion has been removed and an error is raised
+  parameter to string. That conversion has been removed and an error is raised
   if a string is not provided.
 
 - The previously deprecated gate ``U0Gate``, which was deprecated
@@ -518,7 +518,7 @@ Deprecation Notes
 Bug Fixes
 ---------
 
-- The Collect2qBlocks and CommutationAnalyis passes in the transpiler had been
+- The Collect2qBlocks and CommutationAnalysis passes in the transpiler had been
   unable to process circuits containing Parameterized gates, preventing
   Parameterized circuits from being transpiled at optimization_level 2 or
   above. These passes have been corrected to treat Parameterized gates as
@@ -531,7 +531,7 @@ Bug Fixes
 - Uses of ``numpy.random.seed`` have been removed so that calls of qiskit
   functions do not affect results of future calls to ``numpy.random``
 
-- Fixed race condition occuring in the job monitor when
+- Fixed race condition occurring in the job monitor when
   ``job.queue_position()`` returns ``None``. ``None`` is a valid
   return from ``job.queue_position()``.
 
@@ -1259,7 +1259,7 @@ New Features
 
 - When creating a PassManager you can now specify a callback function that
   if specified will be run after each pass is executed. This function gets
-  passed a set of kwargs on each call with the state of the pass maanger after
+  passed a set of kwargs on each call with the state of the pass manager after
   each pass execution. Currently these kwargs are:
 
   * ``pass_`` (``Pass``): the pass being run
@@ -1306,9 +1306,9 @@ New Features
       sched.insert(60, Acquire(5))
       acquire_sched = sched.filter(instruction_types=[AcquireInstruction])
 
-- Additonal decomposition methods for several types of gates. These methods
+- Additional decomposition methods for several types of gates. These methods
   will use different decomposition techniques to break down a gate into
-  a squence of CNOTs and single qubit gates. The following methods are
+  a sequence of CNOTs and single qubit gates. The following methods are
   added:
 
   +--------------------------------+---------------------------------------+
@@ -1662,7 +1662,7 @@ Upgrade Notes
   However, for users that choose not to use either qiskit-aer or
   qiskit-ibmq-provider this might cause additional noise. For these users
   these warnings are easily suppressable using Python's standard library
-  ``warnings``. Users can suppress the warnings by putting thse two lines
+  ``warnings``. Users can suppress the warnings by putting these two lines
   before any imports from qiskit::
 
       import warnings
@@ -1777,13 +1777,13 @@ Other Notes
   ``qiskit.execute()`` has been changed to optimization level 1 pass manager
   defined at ``qiskit.transpile.preset_passmanagers.level1_pass_manager``.
 
-- All the circuit drawer backends now willl express gate parameters in a
+- All the circuit drawer backends now will express gate parameters in a
   circuit as common fractions of pi in the output visualization. If the value
   of a parameter can be expressed as a fraction of pi that will be used
   instead of the numeric equivalent.
 
 - When using ``qiskit.assembler.assemble_schedules()`` if you do not provide
-  the number of memory_slots to use the number will be infered based on the
+  the number of memory_slots to use the number will be inferred based on the
   number of acquisitions in the input schedules.
 
 - The deprecation warning on the ``qiskit.dagcircuit.DAGCircuit`` property
@@ -1837,7 +1837,7 @@ New Features
 - `Purity RB <https://github.com/Qiskit/qiskit-iqx-tutorials/blob/stable/0.12.x/qiskit/advanced/ignis/5c_purity_rb.ipynb>`_
 - `Interleaved RB <https://github.com/Qiskit/qiskit-iqx-tutorials/blob/stable/0.12.x/qiskit/advanced/ignis/5b_interleaved_rb.ipynb>`_
 - `Repetition Code for Verification <https://github.com/Qiskit/qiskit-iqx-tutorials/blob/stable/0.12.x/qiskit/advanced/ignis/8_repetition_code.ipynb>`_
-- Seed values can now be aribtrarily added to RB (not just in order)
+- Seed values can now be arbitrarily added to RB (not just in order)
 - Support for adding multiple results to measurement mitigation
 - RB Fitters now support providing guess values
 
@@ -1877,7 +1877,7 @@ Added
 - Chemistry: UHF open-shell support
 
   * Supported for all drivers: Gaussian16, PyQuante, PySCF and PSI4
-  * QMolecule extended to include integrals, coeffiecients etc for separate beta
+  * QMolecule extended to include integrals, coefficients etc for separate beta
 
 - Chemistry: QMolecule extended with integrals in atomic orbital basis to
   facilitate common access to these for experimentation
@@ -2339,7 +2339,7 @@ New Features
 - Added optimized ``mcx``, ``mcy``, ``mcz``, ``mcu1``, ``mcu2``, ``mcu3``,
   gates to ``QubitVector`` :pull_aer:`124`
 - Added optimized controlled-swap gate to ``QubitVector`` :pull_aer:`142`
-- Added gate-fusion optimization for ``QasmContoroller``, which is enabled by
+- Added gate-fusion optimization for ``QasmController``, which is enabled by
   setting ``fusion_enable=true`` :pull_aer:`136`
 - Added better management of failed simulations :pull_aer:`167`
 - Added qubits truncate optimization for unused qubits :pull_aer:`164`
@@ -2693,7 +2693,7 @@ requirements to the Qiskit Terra package to do this::
 
 Aside from this there have been changes made to several of the interfaces
 as part of the stabilization which may have an impact on existing code.
-The first is the the ``basis`` kwarg in the ``circuit_drawer()`` function
+The first is the ``basis`` kwarg in the ``circuit_drawer()`` function
 is no longer accepted. If you were relying on the ``circuit_drawer()`` to
 adjust the basis gates used in drawing a circuit diagram you will have to
 do this priort to calling ``circuit_drawer()``. For example::
@@ -2869,7 +2869,7 @@ New Features
 ------------
 
 - Programmatic APIs for algorithms and components -- each component can now be
-  instantiated and initialized via a single (non-emptY) constructot call
+  instantiated and initialized via a single (non-empty) constructor call
 - ``QuantumInstance`` API for algorithm/backend decoupling --
   ``QuantumInstance`` encapsulates a backend and its settings
 - Updated documentation and Jupyter Notebooks illustrating the new programmatic
