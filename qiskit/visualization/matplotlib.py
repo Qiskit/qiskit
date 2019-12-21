@@ -637,7 +637,6 @@ class MatplotlibDrawer:
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
-        print(self.fold)
         if feedline_r:
             self._linefeed_mark((self.x_offset + self.fold + 1 - 0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
