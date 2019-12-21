@@ -18,7 +18,7 @@ variational forms. Several types of commonly used ansatz.
 
 from abc import abstractmethod
 
-from qiskit.aqua import Pluggable, PluggableType, get_pluggable_class
+from qiskit.aqua import Pluggable
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 
 
@@ -39,20 +39,6 @@ class VariationalForm(Pluggable):
         self._bounds = list()
         self._support_parameterized_circuit = False
         pass
-
-    @classmethod
-    def init_params(cls, params):
-        """ init params """
-        var_form_params = params.get(Pluggable.SECTION_KEY_VAR_FORM)
-        args = {k: v for k, v in var_form_params.items() if k != 'name'}
-
-        # We pass on num_qubits to initial state since we know our dependent needs this
-        init_state_params = params.get(Pluggable.SECTION_KEY_INITIAL_STATE)
-        init_state_params['num_qubits'] = var_form_params['num_qubits']
-        args['initial_state'] = get_pluggable_class(PluggableType.INITIAL_STATE,
-                                                    init_state_params['name']).init_params(params)
-
-        return cls(**args)
 
     @abstractmethod
     def construct_circuit(self, parameters, q=None):

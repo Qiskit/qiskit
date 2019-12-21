@@ -21,7 +21,7 @@ from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
 
-from qiskit.aqua import PluggableType, get_pluggable_class
+# pylint: disable=unused-import,import-outside-toplevel
 
 
 class TestNLOptOptimizers(QiskitAquaTestCase):
@@ -29,7 +29,10 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         try:
-            import nlopt  # pylint: disable=unused-import,import-outside-toplevel
+            from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
+            self.cls_dict = {CRS.__name__: CRS,
+                             DIRECT_L.__name__: DIRECT_L,
+                             DIRECT_L_RAND.__name__: DIRECT_L_RAND}
         except ImportError:
             self.skipTest('NLOpt dependency does not appear to be installed')
         pass
@@ -46,12 +49,10 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
         ['CRS'],
         ['DIRECT_L'],
         ['DIRECT_L_RAND'],
-        # ['ESCH'],
-        # ['ISRES']
     ])
-    def test_nlopt(self, name):
+    def test_nlopt(self, optimizer_name):
         """ NLopt test """
-        optimizer = get_pluggable_class(PluggableType.OPTIMIZER, name)()
+        optimizer = self.cls_dict[optimizer_name]()
         optimizer.set_options(**{'max_evals': 50000})
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 50000)
