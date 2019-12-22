@@ -236,13 +236,9 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               channel: Optional[Channel] = None,
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
-               instruction_type: Optional[Type['Instruction']] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               time_range: Optional[Tuple[int, int]] = None,
-               intervals: Optional[Iterable[Interval]] = None,
-               interval: Optional[Interval] = None) -> 'Schedule':
+               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
         Return a new Schedule with only the instructions from this Schedule which pass though the
         provided filters; i.e. an instruction will be retained iff every function in filter_funcs
@@ -260,12 +256,18 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
+        if channels is not None:
+            try:
+                iter(channels)
+            except TypeError:
+                temp = [channels, channels]
+                channels = temp
         composed_filter = self._construct_filter(*filter_funcs,
                                                  channels=channels,
                                                  instruction_types=instruction_types,
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
-        print("hi")
+
         return self._apply_filter(composed_filter,
                                   new_sched_name="{name}-filtered".format(name=self.name))
 
@@ -329,34 +331,51 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
-        def only_channels(channels: Set[Channel]) -> Callable:
+        def only_channels(channels: Channel) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
-        def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
+        def only_instruction_types(types: Optional[Iterable[abc.ABCMeta]] = None) -> Callable:
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                return isinstance(time_inst[1], tuple(types))
+                try:
+                    iter(types)
+                    return isinstance(time_inst[1], tuple(types))
+                except TypeError:
+                    return isinstance(time_inst[1], types)
             return instruction_filter
 
-        def only_intervals(ranges: Iterable[Interval]) -> Callable:
+        def only_intervals(ranges: Interval) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                for i in ranges:
-                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
-                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
+                try:
+                    iter(ranges)
+                    for i in ranges:
+                        if all([(i.start <= ts.interval.shift(time_inst[0]).start
+                                 and ts.interval.shift(time_inst[0]).stop <= i.stop)
+                                for ts in time_inst[1].timeslots.timeslots]):
+                            return True
+                    return False
+                except TypeError:
+                    if all([(ranges.start <= ts.interval.shift(time_inst[0]).start
+                             and ts.interval.shift(time_inst[0]).stop <= ranges.stop)
                             for ts in time_inst[1].timeslots.timeslots]):
                         return True
-                return False
+                    return False
             return interval_filter
 
         filter_func_list = list(filter_funcs)
         if channels is not None:
-            filter_func_list.append(only_channels(set(channels)))
+            filter_func_list.append(only_channels(channels))
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
-            filter_func_list.append(
-                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
+            try:
+                iter(time_ranges)
+                filter_func_list.append(only_intervals([Interval(start, stop)
+                                                        for start, stop in time_ranges]))
+            except TypeError:
+                filter_func_list.append(only_intervals(Interval(time_ranges[0], time_ranges[1])))
+
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
