@@ -37,11 +37,12 @@ class OneQubitEulerDecomposer:
         U3: U -> phase * U3(theta, phi, lam)
         U1X: U -> phase * U1(lam).RX(pi/2).U1(theta+pi).RX(pi/2).U1(phi+pi)
         ZYZ: U -> phase * RZ(phi).RY(theta).RZ(lam)
+        ZXZ: U -> phase * RZ(phi).RX(theta).RZ(lam)
         XYX: U -> phase * RX(phi).RY(theta).RX(lam)
     """
 
     def __init__(self, basis='U3'):
-        if basis not in ['U3', 'U1X', 'ZYZ', 'XYX']:
+        if basis not in ['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX']:
             raise QiskitError("OneQubitEulerDecomposer: unsupported basis")
         self._basis = basis
 
@@ -87,7 +88,7 @@ class OneQubitEulerDecomposer:
 
     def _angles(self, unitary_mat, atol=DEFAULT_ATOL):
         """Return Euler angles for given basis."""
-        if self._basis in ['U3', 'U1X', 'ZYZ']:
+        if self._basis in ['U3', 'U1X', 'ZYZ', 'ZXZ']:
             return self._angles_zyz(unitary_mat)
         if self._basis == 'XYX':
             return self._angles_xyx(unitary_mat, atol=atol)
@@ -103,6 +104,8 @@ class OneQubitEulerDecomposer:
             return self._circuit_u1x(angles, simplify=simplify, atol=atol)
         if self._basis == 'ZYZ':
             return self._circuit_zyz(angles, simplify=simplify, atol=atol)
+        if self._basis == 'ZXZ':
+            return self._circuit_zxz(angles, simplify=simplify, atol=atol)
         if self._basis == 'XYX':
             return self._circuit_xyx(angles, simplify=simplify, atol=atol)
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
@@ -242,4 +245,20 @@ class OneQubitEulerDecomposer:
             circuit.ry(theta, 0)
         if not simplify or not np.isclose(phi, 0.0, atol=atol):
             circuit.rx(phi, 0)
+        return circuit
+
+    @staticmethod
+    def _circuit_zxz(angles, simplify=False, atol=DEFAULT_ATOL):
+        theta, phi, lam = angles
+        if simplify and np.isclose(theta, 0.0, atol=atol):
+            circuit = QuantumCircuit(1)
+            circuit.rz(phi + lam, 0)
+            return circuit
+        circuit = QuantumCircuit(1)
+        if not simplify or not np.isclose(lam, np.pi/2, atol=atol):
+            circuit.rz(lam-np.pi/2, 0)
+        if not simplify or not np.isclose(theta, 0.0, atol=atol):
+            circuit.rx(theta, 0)
+        if not simplify or not np.isclose(phi, -np.pi/2, atol=atol):
+            circuit.rz(phi+np.pi/2, 0)
         return circuit

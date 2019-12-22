@@ -73,7 +73,7 @@ for ext in CYTHON_EXTS:
 
 setup(
     name="qiskit-terra",
-    version="0.11.0",
+    version="0.12.0",
     description="Software for developing quantum computing programs",
     long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",
@@ -89,9 +89,11 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",

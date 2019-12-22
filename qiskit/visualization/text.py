@@ -683,7 +683,6 @@ class TextDrawing():
         ret = []
         for param in op.params:
             try:
-                param = float(param)
                 str_param = pi_check(param, ndigits=5)
                 ret.append('%s' % str_param)
             except TypeError:

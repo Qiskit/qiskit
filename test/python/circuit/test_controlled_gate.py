@@ -15,12 +15,14 @@
 
 """Test Qiskit's inverse gate operation."""
 
+import unittest
 from inspect import signature
 import numpy as np
 from numpy import pi
+import scipy
 from ddt import ddt, data
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
@@ -31,9 +33,12 @@ from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         CyGate, CzGate, Cu1Gate, SwapGate,
-                                        ToffoliGate, HGate, RZGate, FredkinGate,
-                                        U3Gate, CHGate, CrzGate, Cu3Gate)
+                                        ToffoliGate, HGate, RZGate, RXGate,
+                                        RYGate, CryGate, CrxGate, FredkinGate,
+                                        U3Gate, CHGate, CrzGate, Cu3Gate,
+                                        MSGate, Barrier)
 from qiskit.extensions.unitary import UnitaryGate
+import qiskit.extensions.standard as allGates
 
 
 @ddt
@@ -65,6 +70,16 @@ class TestControlledGate(QiskitTestCase):
         """Test creation of controlled rz gate"""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CrzGate(theta))
+
+    def test_controlled_ry(self):
+        """Test creation of controlled ry gate"""
+        theta = 0.5
+        self.assertEqual(RYGate(theta).control(), CryGate(theta))
+
+    def test_controlled_rx(self):
+        """Test creation of controlled rx gate"""
+        theta = 0.5
+        self.assertEqual(RXGate(theta).control(), CrxGate(theta))
 
     def test_controlled_u3(self):
         """Test creation of controlled u3 gate"""
@@ -285,33 +300,37 @@ class TestControlledGate(QiskitTestCase):
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
 
-        gu1 = u1.U1Gate(pi)
-        grx = rx.RXGate(pi)
-        gry = ry.RYGate(pi)
-        grz = rz.RZGate(pi)
+        theta = pi
+        gu1 = u1.U1Gate(theta)
+        grx = rx.RXGate(theta)
+        gry = ry.RYGate(theta)
+        grz = rz.RZGate(theta)
 
         ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
         ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
         ugry = ac._unroll_gate(gry, ['u1', 'u3', 'cx'])
         ugrz = ac._unroll_gate(grz, ['u1', 'u3', 'cx'])
+        ugrz.params = grz.params
 
         cgu1 = ugu1.control(num_ctrl)
         cgrx = ugrx.control(num_ctrl)
         cgry = ugry.control(num_ctrl)
         cgrz = ugrz.control(num_ctrl)
 
-        simulator = BasicAer.get_backend('unitary_simulator')
         for gate, cgate in zip([gu1, grx, gry, grz], [cgu1, cgrx, cgry, cgrz]):
             with self.subTest(i=gate.name):
-                qc = QuantumCircuit(num_target)
-                qc.append(gate, qc.qregs[0])
-                op_mat = execute(qc, simulator).result().get_unitary(0)
-                cqc = QuantumCircuit(num_ctrl + num_target)
-                cqc.append(cgate, cqc.qregs[0])
-                ref_mat = execute(cqc, simulator).result().get_unitary(0)
+                if gate.name == 'rz':
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    op_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
+                else:
+                    op_mat = Operator(gate).data
+                ref_mat = Operator(cgate).data
                 cop_mat = _compute_control_matrix(op_mat, num_ctrl)
                 self.assertTrue(matrix_equal(cop_mat, ref_mat,
                                              ignore_phase=True))
+                cqc = QuantumCircuit(num_ctrl + num_target)
+                cqc.append(cgate, cqc.qregs[0])
                 dag = circuit_to_dag(cqc)
                 unroller = Unroller(['u3', 'cx'])
                 uqc = dag_to_circuit(unroller.run(dag))
@@ -320,6 +339,8 @@ class TestControlledGate(QiskitTestCase):
                 # these limits could be changed
                 if gate.name == 'ry':
                     self.assertTrue(uqc.size() <= 32)
+                elif gate.name == 'rz':
+                    self.assertTrue(uqc.size() <= 40)
                 else:
                     self.assertTrue(uqc.size() <= 20)
         qc = QuantumCircuit(qreg, name='composite')
@@ -331,8 +352,9 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
+        print(uqc.size())
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
-        self.assertTrue(uqc.size() <= 73)  # this limit could be changed
+        self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
@@ -377,23 +399,16 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(is_unitary_matrix(base_mat))
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @data(1, 2, 3)
-    def test_global_phase(self, num_ctrl_qubits):
-        """test global phase"""
-        mat1 = np.array([[0, 1], [1, 0]], dtype=float)
-        mat2 = np.exp(1j) * mat1
-        gate1 = UnitaryGate(mat1)
-        gate2 = UnitaryGate(mat2)
-        cgate1 = gate1.control(num_ctrl_qubits)
-        cgate2 = gate2.control(num_ctrl_qubits)
-        cop_mat1 = _compute_control_matrix(mat1, num_ctrl_qubits)
-        cop_mat2 = _compute_control_matrix(mat2, num_ctrl_qubits, phase=1)
-        self.assertTrue(is_unitary_matrix(mat1))
-        self.assertTrue(is_unitary_matrix(mat2))
-        self.assertTrue(is_unitary_matrix(cop_mat1))
-        self.assertTrue(is_unitary_matrix(cop_mat2))
-        self.assertTrue(Operator(cgate1).equiv(Operator(cgate2)))
-        self.assertTrue(matrix_equal(cop_mat1, cop_mat2, ignore_phase=True))
+    @data(1, 2, 3, 4, 5)
+    def test_controlled_random_unitary(self, num_ctrl_qubits):
+        """test controlled unitary"""
+        num_target = 2
+        base_gate = UnitaryGate(scipy.stats.unitary_group.rvs(num_target))
+        base_mat = base_gate.to_matrix()
+        cgate = base_gate.control(num_ctrl_qubits)
+        test_op = Operator(cgate)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
     def test_base_gate_setting(self):
         """
@@ -408,16 +423,75 @@ class TestControlledGate(QiskitTestCase):
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
+    def test_all_inverses(self):
+        """
+        Test all gates in standard extensions except those that cannot be
+        controlled or are being deprecated.
+        """
+        gate_classes = [cls for name, cls in allGates.__dict__.items()
+                        if isinstance(cls, type)]
+        for cls in gate_classes:
+            # only verify basic gates right now, as already controlled ones
+            # will generate differing definitions
+            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+                continue
+            try:
+                sig = signature(cls)
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY
+                               or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                   and param.default is param.empty)])
+                args = [1]*numargs
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
+                gate = cls(*args)
+                self.assertEqual(gate.inverse().control(2),
+                                 gate.control(2).inverse())
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
+
+    @data(1, 2, 3)
+    def test_controlled_standard_gates(self, num_ctrl_qubits):
+        """
+        Test controlled versions of all standard gates.
+        """
+        gate_classes = [cls for name, cls in allGates.__dict__.items()
+                        if isinstance(cls, type)]
+        theta = pi/2
+        for cls in gate_classes:
+            with self.subTest(i=cls):
+                sig = signature(cls)
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY
+                               or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                   and param.default is param.empty)])
+                args = [theta] * numargs
+                if cls in [MSGate, Barrier]:
+                    args[0] = 2
+                gate = cls(*args)
+                try:
+                    cgate = gate.control(num_ctrl_qubits)
+                except (AttributeError, QiskitError):
+                    # 'object has no attribute "control"'
+                    # skipping Id and Barrier
+                    continue
+                if gate.name == 'rz':
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
+                else:
+                    base_mat = Operator(gate).data
+                target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+                self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
+
+def _compute_control_matrix(base_mat, num_ctrl_qubits):
     """
     Compute the controlled version of the input matrix with qiskit ordering.
 
     Args:
         base_mat (ndarray): unitary to be controlled
         num_ctrl_qubits (int): number of controls for new unitary
-        phase (float): The global phase of base_mat which is promoted to the
-            global phase of the controlled matrix
 
     Returns:
         ndarray: controlled version of base matrix.
@@ -427,10 +501,12 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, phase=0):
     ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
     full_mat_dim = ctrl_dim * base_mat.shape[0]
     full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-    for i in range(ctrl_dim-1):
-        full_mat += np.kron(np.eye(2**num_target),
-                            np.diag(np.roll(ctrl_grnd, i)))
-    if phase != 0:
-        full_mat = np.exp(1j * phase) * full_mat
-    full_mat += np.kron(base_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+    ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
+    full_mat = (np.kron(np.eye(2**num_target),
+                        np.eye(ctrl_dim) - ctrl_proj)
+                + np.kron(base_mat, ctrl_proj))
     return full_mat
+
+
+if __name__ == '__main__':
+    unittest.main()
