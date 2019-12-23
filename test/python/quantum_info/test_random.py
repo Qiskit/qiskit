@@ -28,7 +28,7 @@ class TestRandomUtils(QiskitTestCase):
 
     def test_seeded_random_unitary(self):
         """Given the same seed, the output should be expected.
-        Following the numpy approach we are going to try to keep the policy of platform-independent
+        Following the numpy approach we are going to keep the policy of platform-independence
         with randomness.
         https://stackoverflow.com/questions/40676205/cross-platform-numpy-random-seed"""
         seed = 314159
