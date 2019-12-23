@@ -176,7 +176,7 @@ def transpile(circuits,
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', None)
 
-    # Get transpiler argument(s) to configure the circuit transpilation job(s)
+    # Get transpile_args to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
@@ -202,12 +202,25 @@ def transpile(circuits,
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
     # Transpile circuits in parallel
-    circuits = parallel_map(transpile_circuit, transpile_args)
+    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
         return circuits[0]
     return circuits
 
+# FIXME: This is a helper function because of parallel tools.
+def _transpile_circuit(circuit_config_tuple):
+    """Select a PassManager and run a single circuit through it.
+    Args:
+        circuit_config_tuple (tuple):
+            circuit (QuantumCircuit): circuit to transpile
+            transpile_config (TranspileConfig): configuration dictating how to transpile
+    Returns:
+        QuantumCircuit: transpiled circuit
+    """
+    circuit, transpile_config = circuit_config_tuple
+
+    return transpile_circuit(circuit, transpile_config)
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
