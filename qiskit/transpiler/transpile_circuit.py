@@ -26,7 +26,7 @@ def transpile_circuit(circuit, transpile_config):
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit (QuantumCircuit): circuit to transpile
-        transpile_args (dict): configuration dictating how to transpile.
+        transpile_config (dict): configuration dictating how to transpile.
             The format of the dictionary has the following format:
             {'circuit': QuantumCircuit,
              'optimization_level': int,
@@ -36,6 +36,8 @@ def transpile_circuit(circuit, transpile_config):
              'pass_manager_config': PassManagerConfig}
     Returns:
         QuantumCircuit: transpiled circuit
+    Raises:
+        TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
     # either the pass manager is already selected...
     if transpile_config['pass_manager'] is not None:

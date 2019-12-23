@@ -208,6 +208,7 @@ def transpile(circuits,
         return circuits[0]
     return circuits
 
+
 # FIXME: This is a helper function because of parallel tools.
 def _transpile_circuit(circuit_config_tuple):
     """Select a PassManager and run a single circuit through it.
@@ -221,6 +222,7 @@ def _transpile_circuit(circuit_config_tuple):
     circuit, transpile_config = circuit_config_tuple
 
     return transpile_circuit(circuit, transpile_config)
+
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
