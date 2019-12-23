@@ -35,14 +35,15 @@ import operator
 from itertools import chain, combinations
 try:
     from z3 import Real, Bool, Sum, Implies, And, Or, Not, Optimize
-    Z3_AVAIL = True
+    HAS_Z3 = True
 except ImportError:
-    Z3_AVAIL = False
+    HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CnotGate
 from qiskit.circuit import Measure
 from qiskit.extensions.standard.barrier import Barrier
+from qiskit.transpiler.exceptions import TranspilerError
 
 NUM_PREC = 10
 TWOQ_XTALK_THRESH = 3
@@ -92,8 +93,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
         """
         super().__init__()
-        if not Z3_AVAIL:
-            raise ImportError('z3-solver is required to use CrosstalkAdaptiveSchedule')
         self.backend_prop = backend_prop
         self.crosstalk_prop = crosstalk_prop
         self.weight_factor = weight_factor
@@ -700,6 +699,9 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Main scheduling function
         """
+        if not HAS_Z3:
+            raise TranspilerError('z3-solver is required to use CrosstalkAdaptiveSchedule')
+
         self.dag = dag
 
         # process input program
