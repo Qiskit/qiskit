@@ -20,7 +20,7 @@ import unittest
 from datetime import datetime
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
-from qiskit.transpiler.passes import CrosstalkAdaptiveSchedule
+from qiskit.transpiler.passes.crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule, HAS_Z3
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
@@ -94,6 +94,7 @@ def create_fake_machine():
     return bprop
 
 
+@unittest.skipIf(not HAS_Z3, 'z3-solver not installed.')
 class TestCrosstalk(QiskitTestCase):
     """
     Tests for crosstalk adaptivity
