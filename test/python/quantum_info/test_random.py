@@ -44,8 +44,8 @@ class TestRandomUtils(QiskitTestCase):
         assert_allclose(unitary.data, expected, atol=1e-8)
 
     def test_unitary(self):
-        """ Test that a random unitary with set seed will not affect later
-        results
+        """ Test that a random unitary with set seed will not affect later results.
+        https://github.com/Qiskit/qiskit-terra/issues/2850
         """
         seed = 314159
         test_cases = 100
@@ -57,8 +57,8 @@ class TestRandomUtils(QiskitTestCase):
         self.assertFalse(array_equality)
 
     def test_density_matrix(self):
-        """ Test that a random state with set seed will not affect later
-        results.
+        """ Test that a random state with set seed will not affect later results.
+        https://github.com/Qiskit/qiskit-terra/issues/2850
         """
         seed = 314159
         test_cases = 100
