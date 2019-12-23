@@ -99,6 +99,7 @@ class TestCrosstalk(QiskitTestCase):
     """
     Tests for crosstalk adaptivity
     """
+
     def test_schedule_length1(self):
         """Testing with high crosstalk between CNOT 0,1 and CNOT 2,3"""
         bprop = create_fake_machine()
@@ -118,7 +119,7 @@ class TestCrosstalk(QiskitTestCase):
         dag = circuit_to_dag(new_circ)
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
-        assert scheduled_dag.depth() == 3
+        self.assertEqual(scheduled_dag.depth(), 3)
 
     def test_schedule_length2(self):
         """Testing with no crosstalk between CNOT 0,1 and CNOT 2,3"""
@@ -139,7 +140,7 @@ class TestCrosstalk(QiskitTestCase):
         dag = circuit_to_dag(new_circ)
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
-        assert scheduled_dag.depth() == 1
+        self.assertEqual(scheduled_dag.depth(), 1)
 
     def test_schedule_length3(self):
         """Testing with repeated calls to run"""
@@ -161,8 +162,8 @@ class TestCrosstalk(QiskitTestCase):
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag1 = pass_.run(dag)
         scheduled_dag2 = pass_.run(dag)
-        assert scheduled_dag1.depth() == 3
-        assert scheduled_dag2.depth() == 3
+        self.assertEqual(scheduled_dag1.depth(), 3)
+        self.assertEqual(scheduled_dag2.depth(), 3)
 
 
 if __name__ == '__main__':
