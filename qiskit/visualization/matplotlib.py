@@ -189,9 +189,9 @@ class MatplotlibDrawer:
             ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 7) or 1
             else:
-                boxes_length = math.ceil(len(text) / 6) or 1
+                boxes_length = math.ceil(len(text) / 7) or 1
             wid = WID * 2.5 * boxes_length
         else:
             wid = WID
@@ -682,6 +682,8 @@ class MatplotlibDrawer:
                             len_param = len(param)
                         if len_param > len(op.name):
                             box_width = math.floor(len(param) / 10)
+                            if op.name == 'unitary':
+                                box_width = 2
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
                                 box_width = 2
@@ -836,7 +838,7 @@ class MatplotlibDrawer:
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="U")
+                                                 text="Unitary")
                 #
                 # draw single qubit gates
                 #
