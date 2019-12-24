@@ -787,7 +787,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
 
 class TestTextDrawerMultiQGates(QiskitTestCase):
-    """ Gates impling multiple qubits."""
+    """ Gates implying multiple qubits."""
 
     def test_2Qgate(self):
         """ 2Q no params. """
