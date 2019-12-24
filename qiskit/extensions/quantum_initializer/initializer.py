@@ -18,7 +18,6 @@ Initialize qubit registers to desired arbitrary state.
 
 import math
 import numpy as np
-import scipy
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
@@ -211,8 +210,8 @@ class Initialize(Instruction):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = scipy.kron([[0.5, 0.5], [0.5, -0.5]],
-                                  np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]],
+                               np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()

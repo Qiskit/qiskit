@@ -17,8 +17,10 @@
 from copy import deepcopy
 import itertools
 import sys
+import warnings
 import multiprocessing as mp
 from collections import OrderedDict
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -132,7 +134,7 @@ class QuantumCircuit:
                 elif sys.version_info[0] == 3 \
                     and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
                         and mp.current_process().name != 'MainProcess':
-                    # It seems condition of if-statement doen't work in python 3.5 and 3.6
+                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
                     # because processes created by "ProcessPoolExecutor" are not
                     # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
                     # "name" of the process is checked instead.
@@ -650,7 +652,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output=None,
+    def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None):
@@ -665,6 +667,12 @@ class QuantumCircuit:
         **matplotlib**: images with color rendered purely in Python.
 
         Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``,
+                ``latex_source``, or ``mpl``. By default the `'text`' drawer is
+                used unless a user config file has an alternative backend set
+                as the default. If the output kwarg is set, that backend
+                will always be used over the default in a user config file.
             scale (float): scale of image to draw (shrink if < 1)
             filename (str): file path to save image to
             style (dict or str): dictionary of style or file name of style
@@ -673,13 +681,8 @@ class QuantumCircuit:
                 a dictionary of style, then that will be opened, parsed, and used
                 as the input dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
-            output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex``,
-                ``latex_source``, or ``mpl``. By default the `'text`' drawer is
-                used unless a user config file has an alternative backend set
-                as the default. If the output kwarg is set, that backend
-                will always be used over the default in a user config file.
-            interactive (bool): when set true, show the circuit in a new window
+
+            interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
                 `latex_source` output type this has no effect and will be
@@ -844,6 +847,13 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
+        if isinstance(output, (int, float, np.number)):
+            warnings.warn("Setting 'scale' as the first argument is deprecated. "
+                          "Use scale=%s instead." % output,
+                          DeprecationWarning)
+            scale = output
+            output = None
+
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,
