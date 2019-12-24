@@ -179,7 +179,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
                        None,
                        mode='noancilla')
             else:
-                raise QiskitError('gate contains non-controllable intructions')
+                raise QiskitError('gate contains non-controllable instructions')
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
