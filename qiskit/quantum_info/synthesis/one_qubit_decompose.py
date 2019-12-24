@@ -31,7 +31,7 @@ DEFAULT_ATOL = 1e-12
 
 
 class OneQubitEulerDecomposer:
-    """A class for decomposing 1-qubit unitaries into Eular angle rotations.
+    """A class for decomposing 1-qubit unitaries into Euler angle rotations.
 
     Allowed basis and their decompositions are:
         U3: U -> phase * U3(theta, phi, lam)
@@ -195,7 +195,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _circuit_u1x(angles, simplify=True, atol=DEFAULT_ATOL):
-        # Check for U1 and U2 decompositions into minimimal
+        # Check for U1 and U2 decompositions into minimal
         # required X90 pulses
         theta, phi, lam = angles
         if simplify and np.allclose([theta, phi], [0., 0.], atol=atol):
