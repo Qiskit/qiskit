@@ -85,7 +85,7 @@ class QuantumCircuit:
             qc.measure([0, 1], [0, 1])
             qc.draw()
 
-        Construct a 5 qubit GHZ circuit.
+        Construct a 5-qubit GHZ circuit.
 
         .. jupyter-execute::
 
@@ -96,7 +96,7 @@ class QuantumCircuit:
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-        Construct a 4 qubit Berstein-Vazirani circuit using registers.
+        Construct a 4-qubit Berstein-Vazirani circuit using registers.
 
         .. jupyter-execute::
 
@@ -136,7 +136,7 @@ class QuantumCircuit:
                 elif sys.version_info[0] == 3 \
                     and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
                         and mp.current_process().name != 'MainProcess':
-                    # It seems condition of if-statement doen't work in python 3.5 and 3.6
+                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
                     # because processes created by "ProcessPoolExecutor" are not
                     # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
                     # "name" of the process is checked instead.

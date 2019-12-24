@@ -29,10 +29,10 @@ _Bd = _B.T.conj()
 
 def weyl_coordinates(U):
     """Computes the Weyl coordinates for
-    a given two qubit unitary matrix.
+    a given two-qubit unitary matrix.
 
     Args:
-        U (ndarray): Input two qubit unitary.
+        U (ndarray): Input two-qubit unitary.
 
     Returns:
         ndarray: Array of Weyl coordinates.
