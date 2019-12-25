@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=too-many-return-statements
 
 """Check if number close to values of PI
 """
@@ -45,6 +46,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     """
     if isinstance(inpt, ParameterExpression):
         return str(inpt)
+    elif isinstance(inpt, str):
+        return inpt
     inpt = float(inpt)
     if abs(inpt) < 1e-14:
         return str(0)

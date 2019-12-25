@@ -17,9 +17,10 @@
 from copy import deepcopy
 import itertools
 import sys
+import warnings
 import multiprocessing as mp
-from warnings import warn
 from collections import OrderedDict
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -32,17 +33,6 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
-
-
-def _is_bit(obj):
-    """Determine if obj is a bit"""
-    # If there is a bit type this could be replaced by isinstance.
-    if isinstance(obj, tuple) and len(obj) == 2:
-        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
-            warn('Referring to a bit as a tuple is being deprecated. '
-                 'Instead go of (qr, 0), use qr[0].', DeprecationWarning)
-            return True
-    return False
 
 
 class QuantumCircuit:
@@ -95,7 +85,7 @@ class QuantumCircuit:
             qc.measure([0, 1], [0, 1])
             qc.draw()
 
-        Construct a 5 qubit GHZ circuit.
+        Construct a 5-qubit GHZ circuit.
 
         .. jupyter-execute::
 
@@ -106,7 +96,7 @@ class QuantumCircuit:
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-        Construct a 4 qubit Berstein-Vazirani circuit using registers.
+        Construct a 4-qubit Berstein-Vazirani circuit using registers.
 
         .. jupyter-execute::
 
@@ -139,8 +129,18 @@ class QuantumCircuit:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32" and isinstance(mp.current_process(), mp.context.ForkProcess):
-                name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32":
+                if isinstance(mp.current_process(),
+                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
+                    name += '-{}'.format(mp.current_process().pid)
+                elif sys.version_info[0] == 3 \
+                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
+                        and mp.current_process().name != 'MainProcess':
+                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
+                    # because processes created by "ProcessPoolExecutor" are not
+                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+                    # "name" of the process is checked instead.
+                    name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
@@ -395,12 +395,6 @@ class QuantumCircuit:
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 ret = in_array[bit_representation]
-            elif _is_bit(bit_representation):
-                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
-                ret = [bit_representation[0][bit_representation[1]]]
-            elif isinstance(bit_representation, list) and \
-                    all(_is_bit(bit) for bit in bit_representation):
-                ret = [bit[0][bit[1]] for bit in bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
@@ -660,7 +654,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output=None,
+    def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None):
@@ -675,6 +669,12 @@ class QuantumCircuit:
         **matplotlib**: images with color rendered purely in Python.
 
         Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``,
+                ``latex_source``, or ``mpl``. By default the `'text`' drawer is
+                used unless a user config file has an alternative backend set
+                as the default. If the output kwarg is set, that backend
+                will always be used over the default in a user config file.
             scale (float): scale of image to draw (shrink if < 1)
             filename (str): file path to save image to
             style (dict or str): dictionary of style or file name of style
@@ -683,12 +683,6 @@ class QuantumCircuit:
                 that will be open, parsed, and then used just as the input
                 dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
-            output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex``,
-                ``latex_source``, or ``mpl``. By default the `'text`' drawer is
-                used unless a user config file has an alternative backend set
-                as the default. If the output kwarg is set, that backend
-                will always be used over the default in a user config file.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
@@ -854,6 +848,13 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
+        if isinstance(output, (int, float, np.number)):
+            warnings.warn("Setting 'scale' as the first argument is deprecated. "
+                          "Use scale=%s instead." % output,
+                          DeprecationWarning)
+            scale = output
+            output = None
+
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,

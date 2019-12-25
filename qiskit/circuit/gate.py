@@ -155,7 +155,7 @@ class Gate(Instruction):
             for arg0 in qarg0:
                 yield [arg0, qarg1[0]], []
         else:
-            raise CircuitError('Not sure how to combine these two qubit arguments:\n %s\n %s' %
+            raise CircuitError('Not sure how to combine these two-qubit arguments:\n %s\n %s' %
                                (qarg0, qarg1))
 
     @staticmethod
