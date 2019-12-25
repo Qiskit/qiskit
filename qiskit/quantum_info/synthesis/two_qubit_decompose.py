@@ -170,6 +170,7 @@ class TwoQubitWeylDecomposition:
                 break
         else:
             raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
+
         d = -np.angle(D)/2
         d[3] = -d[0]-d[1]-d[2]
         cs = np.mod((d[:3]+d[3])/2, 2*np.pi)
