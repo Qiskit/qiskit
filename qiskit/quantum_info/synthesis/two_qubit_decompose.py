@@ -162,15 +162,14 @@ class TwoQubitWeylDecomposition:
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
         for i in range(100):
-            np.random.seed(i)
-            M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+            state = np.random.RandomState(1)
+            M2real = state.randn()*M2.real + state.randn()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
                 break
         else:
             raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
-        np.random.seed()
         d = -np.angle(D)/2
         d[3] = -d[0]-d[1]-d[2]
         cs = np.mod((d[:3]+d[3])/2, 2*np.pi)
