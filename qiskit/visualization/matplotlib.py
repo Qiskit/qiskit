@@ -192,7 +192,7 @@ class MatplotlibDrawer:
                 boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
             else:
                 boxes_length = math.ceil(len(text) / 6) or 1
-            wid = WID * 2.5 * boxes_length
+            wid = WID * boxes_length
         else:
             wid = WID
 
