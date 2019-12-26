@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Assemble function for converting a list of circuits into a qobj"""
+"""Assemble function for converting a list of circuits into a qobj."""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse)
@@ -24,7 +24,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
-    """Assembles a list of schedules into a qobj which can be run on the backend.
+    """Assembles a list of schedules into a qobj that can be run on the backend.
 
     Args:
         schedules (list[Schedule]): schedules to assemble
