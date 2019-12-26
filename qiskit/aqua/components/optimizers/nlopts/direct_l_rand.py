@@ -38,28 +38,17 @@ class DIRECT_L_RAND(Optimizer):
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#direct-and-direct-l
     """
 
-    CONFIGURATION = {
-        'name': 'DIRECT_L_RAND',
-        'description': 'GN_DIRECT_L_RAND Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'direct_l_rand_schema',
-            'type': 'object',
-            'properties': {
-                'max_evals': {
-                    'type': 'integer',
-                    'default': 1000
-                }
-            },
-            'additionalProperties': False
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'direct_l_rand_schema',
+        'type': 'object',
+        'properties': {
+            'max_evals': {
+                'type': 'integer',
+                'default': 1000
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['max_evals'],
-        'optimizer': ['global']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['max_evals']
@@ -71,7 +60,7 @@ class DIRECT_L_RAND(Optimizer):
         Args:
             max_evals (int): Maximum allowed number of function evaluations.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         check_nlopt_valid('DIRECT_L_RAND')
         super().__init__()
         for k, v in locals().items():

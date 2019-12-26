@@ -32,46 +32,35 @@ class AQGD(Optimizer):
     the objective function.
     """
 
-    CONFIGURATION = {
-        'name': 'AQGD',
-        'description': 'Analytic Quantum Gradient Descent Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'aqgd_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'eta': {
-                    'type': 'number',
-                    'default': 3.0
-                },
-                'tol': {
-                    'type': 'number',
-                    'default': 1e-6
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'momentum': {
-                    'type': 'number',
-                    'default': 0.25,
-                    'minimum': 0,
-                    'exclusiveMaximum': 1.0
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'aqgd_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'eta': {
+                'type': 'number',
+                'default': 3.0
+            },
+            'tol': {
+                'type': 'number',
+                'default': 1e-6
+            },
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'momentum': {
+                'type': 'number',
+                'default': 0.25,
+                'minimum': 0,
+                'exclusiveMaximum': 1.0
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'eta', 'tol', 'disp'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'eta', 'tol', 'disp']
@@ -93,7 +82,7 @@ class AQGD(Optimizer):
                               Must be within the bounds: [0,1)
 
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
 
         self._eta = eta

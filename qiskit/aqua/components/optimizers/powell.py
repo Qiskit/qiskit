@@ -30,44 +30,33 @@ class POWELL(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'POWELL',
-        'description': 'POWELL Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'powell_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': ['integer', 'null'],
-                    'default': None
-                },
-                'maxfev': {
-                    'type': ['integer', 'null'],
-                    'default': 1000
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'xtol': {
-                    'type': 'number',
-                    'default': 0.0001
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'powell_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': ['integer', 'null'],
+                'default': None
             },
-            'additionalProperties': False
+            'maxfev': {
+                'type': ['integer', 'null'],
+                'default': 1000
+            },
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'xtol': {
+                'type': 'number',
+                'default': 0.0001
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'maxfev', 'disp', 'xtol'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xtol']
@@ -89,7 +78,7 @@ class POWELL(Optimizer):
             xtol (float): Relative error in solution xopt acceptable for convergence.
             tol (float or None): Tolerance for termination.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

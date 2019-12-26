@@ -31,44 +31,33 @@ class CG(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'CG',
-        'description': 'CG Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'cg_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 20
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'gtol': {
-                    'type': 'number',
-                    'default': 1e-05
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                },
-                'eps': {
-                    'type': 'number',
-                    'default': 1.4901161193847656e-08
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'cg_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 20
             },
-            'additionalProperties': False
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'gtol': {
+                'type': 'number',
+                'default': 1e-05
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            },
+            'eps': {
+                'type': 'number',
+                'default': 1.4901161193847656e-08
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'disp', 'gtol', 'eps'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'disp', 'gtol', 'eps']
@@ -88,7 +77,7 @@ class CG(Optimizer):
             tol (float or None): Tolerance for termination.
             eps (float): If jac is approximated, use this value for the step size.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

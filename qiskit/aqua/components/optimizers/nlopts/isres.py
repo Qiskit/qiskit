@@ -34,28 +34,17 @@ class ISRES(Optimizer):
     NLopt global optimizer, derivative-free
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#isres-improved-stochastic-ranking-evolution-strategy
     """
-    CONFIGURATION = {
-        'name': 'ISRES',
-        'description': 'GN_ISRES Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'isres_schema',
-            'type': 'object',
-            'properties': {
-                'max_evals': {
-                    'type': 'integer',
-                    'default': 1000
-                }
-            },
-            'additionalProperties': False
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'isres_schema',
+        'type': 'object',
+        'properties': {
+            'max_evals': {
+                'type': 'integer',
+                'default': 1000
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['max_evals'],
-        'optimizer': ['global']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['max_evals']
@@ -67,7 +56,7 @@ class ISRES(Optimizer):
         Args:
             max_evals (int): Maximum allowed number of function evaluations.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         check_nlopt_valid('ISRES')
         super().__init__()
         for k, v in locals().items():

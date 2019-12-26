@@ -50,61 +50,50 @@ class ADAM(Optimizer):
     | *Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).*
     | On the Convergence of Adam and Beyond. International Conference on Learning Representations.
     """
-    CONFIGURATION = {
-        'name': 'ADAM',
-        'description': 'ADAM Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'adam_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 10000
-                },
-                'tol': {
-                    'type': 'number',
-                    'default': 1e-06
-                },
-                'lr': {
-                    'type': 'number',
-                    'default': 1e-03
-                },
-                'beta_1': {
-                    'type': 'number',
-                    'default': 0.9
-                },
-                'beta_2': {
-                    'type': 'number',
-                    'default': 0.99
-                },
-                'noise_factor': {
-                    'type': 'number',
-                    'default': 1e-08
-                },
-                'eps': {
-                    'type': 'number',
-                    'default': 1e-10
-                },
-                'amsgrad': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'snapshot_dir': {
-                    'type': ['string', 'null'],
-                    'default': None
-                }
+
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'adam_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 10000
             },
-            'additionalProperties': False
+            'tol': {
+                'type': 'number',
+                'default': 1e-06
+            },
+            'lr': {
+                'type': 'number',
+                'default': 1e-03
+            },
+            'beta_1': {
+                'type': 'number',
+                'default': 0.9
+            },
+            'beta_2': {
+                'type': 'number',
+                'default': 0.99
+            },
+            'noise_factor': {
+                'type': 'number',
+                'default': 1e-08
+            },
+            'eps': {
+                'type': 'number',
+                'default': 1e-10
+            },
+            'amsgrad': {
+                'type': 'boolean',
+                'default': False
+            },
+            'snapshot_dir': {
+                'type': ['string', 'null'],
+                'default': None
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.supported
-        },
-        'options': ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2', 'noise_factor', 'eps',
-                    'amsgrad', 'snapshot_dir'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2',
@@ -126,7 +115,7 @@ class ADAM(Optimizer):
             snapshot_dir (Optional(str)): If not None save the optimizer's parameter
                 after every step to the given directory
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

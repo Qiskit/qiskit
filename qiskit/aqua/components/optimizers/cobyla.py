@@ -30,40 +30,29 @@ class COBYLA(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'COBYLA',
-        'description': 'COBYLA Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'cobyla_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'rhobeg': {
-                    'type': 'number',
-                    'default': 1.0
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'cobyla_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'rhobeg': {
+                'type': 'number',
+                'default': 1.0
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'disp', 'rhobeg'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'disp', 'rhobeg']
@@ -83,7 +72,7 @@ class COBYLA(Optimizer):
             tol (float): Final accuracy in the optimization (not precisely guaranteed).
                          This is a lower bound on the size of the trust region.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

@@ -30,56 +30,45 @@ class TNC(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'TNC',
-        'description': 'TNC Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'tnc_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 100
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'accuracy': {
-                    'type': 'number',
-                    'default': 0
-                },
-                'ftol': {
-                    'type': 'number',
-                    'default': -1
-                },
-                'xtol': {
-                    'type': 'number',
-                    'default': -1
-                },
-                'gtol': {
-                    'type': 'number',
-                    'default': -1
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                },
-                'eps': {
-                    'type': 'number',
-                    'default': 1e-08
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'tnc_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 100
             },
-            'additionalProperties': False
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'accuracy': {
+                'type': 'number',
+                'default': 0
+            },
+            'ftol': {
+                'type': 'number',
+                'default': -1
+            },
+            'xtol': {
+                'type': 'number',
+                'default': -1
+            },
+            'gtol': {
+                'type': 'number',
+                'default': -1
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            },
+            'eps': {
+                'type': 'number',
+                'default': 1e-08
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'disp', 'accuracy', 'ftol', 'xtol', 'gtol', 'eps'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'disp', 'accuracy', 'ftol', 'xtol', 'gtol', 'eps']
@@ -112,7 +101,7 @@ class TNC(Optimizer):
             tol (float or None): Tolerance for termination.
             eps (float): Step size used for numerical approximation of the jacobian.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

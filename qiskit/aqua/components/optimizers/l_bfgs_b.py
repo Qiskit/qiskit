@@ -30,44 +30,33 @@ class L_BFGS_B(Optimizer):
     Limited-memory BFGS algorithm.
     """
 
-    CONFIGURATION = {
-        'name': 'L_BFGS_B',
-        'description': 'L_BFGS_B Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'l_bfgs_b_schema',
-            'type': 'object',
-            'properties': {
-                'maxfun': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 15000
-                },
-                'factr': {
-                    'type': 'integer',
-                    'default': 10
-                },
-                'iprint': {
-                    'type': 'integer',
-                    'default': -1
-                },
-                'epsilon': {
-                    'type': 'number',
-                    'default': 1e-08
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'l_bfgs_b_schema',
+        'type': 'object',
+        'properties': {
+            'maxfun': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'maxiter': {
+                'type': 'integer',
+                'default': 15000
+            },
+            'factr': {
+                'type': 'integer',
+                'default': 10
+            },
+            'iprint': {
+                'type': 'integer',
+                'default': -1
+            },
+            'epsilon': {
+                'type': 'number',
+                'default': 1e-08
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxfun', 'maxiter', 'factr', 'iprint', 'epsilon'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxfun', 'maxiter', 'factr', 'iprint', 'epsilon']
@@ -98,7 +87,7 @@ class L_BFGS_B(Optimizer):
             epsilon (float): Step size used when approx_grad is True, for numerically
                              calculating the gradient
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

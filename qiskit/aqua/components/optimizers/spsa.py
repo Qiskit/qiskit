@@ -30,62 +30,51 @@ class SPSA(Optimizer):
 
     _C0 = 2*np.pi*0.1
 
-    CONFIGURATION = {
-        'name': 'SPSA',
-        'description': 'SPSA Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'spsa_schema',
-            'type': 'object',
-            'properties': {
-                'max_trials': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'save_steps': {
-                    'type': 'integer',
-                    'default': 1,
-                    'minimum': 1
-                },
-                'last_avg': {
-                    'type': 'integer',
-                    'default': 1,
-                    'minimum': 1
-                },
-                'c0': {
-                    'type': 'number',
-                    'default': _C0
-                },
-                'c1': {
-                    'type': 'number',
-                    'default': 0.1
-                },
-                'c2': {
-                    'type': 'number',
-                    'default': 0.602
-                },
-                'c3': {
-                    'type': 'number',
-                    'default': 0.101
-                },
-                'c4': {
-                    'type': 'number',
-                    'default': 0
-                },
-                'skip_calibration': {
-                    'type': 'boolean',
-                    'default': False
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'spsa_schema',
+        'type': 'object',
+        'properties': {
+            'max_trials': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'save_steps': {
+                'type': 'integer',
+                'default': 1,
+                'minimum': 1
+            },
+            'last_avg': {
+                'type': 'integer',
+                'default': 1,
+                'minimum': 1
+            },
+            'c0': {
+                'type': 'number',
+                'default': _C0
+            },
+            'c1': {
+                'type': 'number',
+                'default': 0.1
+            },
+            'c2': {
+                'type': 'number',
+                'default': 0.602
+            },
+            'c3': {
+                'type': 'number',
+                'default': 0.101
+            },
+            'c4': {
+                'type': 'number',
+                'default': 0
+            },
+            'skip_calibration': {
+                'type': 'boolean',
+                'default': False
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['save_steps', 'last_avg'],
-        'optimizer': ['local', 'noise']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['save_steps', 'last_avg']
@@ -111,7 +100,7 @@ class SPSA(Optimizer):
             c4 (float): The parameter used to control a as well.
             skip_calibration (bool): skip calibration and use provided c(s) as is.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

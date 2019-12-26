@@ -38,28 +38,17 @@ class CRS(Optimizer):
     for more information.
     """
 
-    CONFIGURATION = {
-        'name': 'CRS',
-        'description': 'GN_CRS2_LM Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'crs_schema',
-            'type': 'object',
-            'properties': {
-                'max_evals': {
-                    'type': 'integer',
-                    'default': 1000
-                }
-            },
-            'additionalProperties': False
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'crs_schema',
+        'type': 'object',
+        'properties': {
+            'max_evals': {
+                'type': 'integer',
+                'default': 1000
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['max_evals'],
-        'optimizer': ['global']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['max_evals']
@@ -69,7 +58,7 @@ class CRS(Optimizer):
         Args:
             max_evals (int): Maximum allowed number of function evaluations.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         check_nlopt_valid('CRS')
         super().__init__()
         for k, v in locals().items():

@@ -32,48 +32,37 @@ class NELDER_MEAD(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'NELDER_MEAD',
-        'description': 'NELDER_MEAD Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'nelder_mead_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': ['integer', 'null'],
-                    'default': None
-                },
-                'maxfev': {
-                    'type': ['integer', 'null'],
-                    'default': 1000
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'xatol': {
-                    'type': 'number',
-                    'default': 0.0001
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                },
-                'adaptive': {
-                    'type': 'boolean',
-                    'default': False
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'nelder_mead_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': ['integer', 'null'],
+                'default': None
             },
-            'additionalProperties': False
+            'maxfev': {
+                'type': ['integer', 'null'],
+                'default': 1000
+            },
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'xatol': {
+                'type': 'number',
+                'default': 0.0001
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            },
+            'adaptive': {
+                'type': 'boolean',
+                'default': False
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'maxfev', 'disp', 'xatol', 'adaptive'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
 
     _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xatol', 'adaptive']
@@ -98,7 +87,7 @@ class NELDER_MEAD(Optimizer):
             tol (float or None): Tolerance for termination.
             adaptive (bool): Adapt algorithm parameters to dimensionality of problem.
         """
-        validate(locals(), self.CONFIGURATION.get('input_schema', None))
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:
