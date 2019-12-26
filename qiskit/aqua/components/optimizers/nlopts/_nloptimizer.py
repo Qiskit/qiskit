@@ -28,8 +28,8 @@ except ImportError:
     logger.info('nlopt is not installed. Please install it if you want to use them.')
 
 
-def check_pluggable_valid(name):
-    """ check pluggable valid """
+def check_nlopt_valid(name):
+    """ check nlopt valid """
     err_msg = "Unable to instantiate '{}', nlopt is not installed. " \
         "Please install it if you want to use them.".format(name)
     try:

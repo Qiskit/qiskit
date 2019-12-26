@@ -16,13 +16,12 @@ This module contains the definition of a base class for
 variational forms. Several types of commonly used ansatz.
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
-from qiskit.aqua import Pluggable
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 
 
-class VariationalForm(Pluggable):
+class VariationalForm(ABC):
 
     """Base class for VariationalForms.
 
@@ -100,10 +99,10 @@ class VariationalForm(Pluggable):
     @property
     def setting(self):
         """ setting """
-        ret = "Variational Form: {}\n".format(self._configuration['name'])
+        ret = "Variational Form: {}\n".format(self.__class__.__name__)
         params = ""
         for key, value in self.__dict__.items():
-            if key != "_configuration" and key[0] == "_":
+            if key[0] == "_":
                 params += "-- {}: {}\n".format(key[1:], value)
         ret += "{}".format(params)
         return ret

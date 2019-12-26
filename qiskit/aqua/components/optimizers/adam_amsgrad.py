@@ -28,7 +28,7 @@ import os
 
 import csv
 import numpy as np
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua import aqua_globals
 logger = logging.getLogger(__name__)
@@ -107,6 +107,9 @@ class ADAM(Optimizer):
         'optimizer': ['local']
     }
 
+    _OPTIONS = ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2',
+                'noise_factor', 'eps', 'amsgrad', 'snapshot_dir']
+
     def __init__(self, maxiter=10000, tol=1e-6, lr=1e-3, beta_1=0.9, beta_2=0.99, noise_factor=1e-8,
                  eps=1e-10, amsgrad=False, snapshot_dir=None):
         """
@@ -123,10 +126,10 @@ class ADAM(Optimizer):
             snapshot_dir (Optional(str)): If not None save the optimizer's parameter
                 after every step to the given directory
         """
-        self.validate(locals())
+        validate(locals(), self.CONFIGURATION.get('input_schema', None))
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._maxiter = maxiter
         self._snapshot_dir = snapshot_dir
@@ -152,6 +155,14 @@ class ADAM(Optimizer):
                     fieldnames = ['v', 'm', 't']
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                 writer.writeheader()
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.supported,
+            'bounds': Optimizer.SupportLevel.ignored,
+            'initial_point': Optimizer.SupportLevel.supported
+        }
 
     def save_params(self, snapshot_dir):
         """ save params """

@@ -16,50 +16,38 @@
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.variational_forms import VariationalForm
 
 
 class SwapRZ(VariationalForm):
     """Layers of Swap+Z rotations followed by entangling gates."""
 
-    CONFIGURATION = {
-        'name': 'SWAPRZ',
-        'description': 'SWAPRZ Variational Form',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'swaprz_schema',
-            'type': 'object',
-            'properties': {
-                'depth': {
-                    'type': 'integer',
-                    'default': 3,
-                    'minimum': 1
-                },
-                'entanglement': {
-                    'type': 'string',
-                    'default': 'full',
-                    'enum': ['full', 'linear']
-                },
-                'entangler_map': {
-                    'type': ['array', 'null'],
-                    'default': None
-                },
-                'skip_unentangled_qubits': {
-                    'type': 'boolean',
-                    'default': False
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'swaprz_schema',
+        'type': 'object',
+        'properties': {
+            'depth': {
+                'type': 'integer',
+                'default': 3,
+                'minimum': 1
             },
-            'additionalProperties': False
+            'entanglement': {
+                'type': 'string',
+                'default': 'full',
+                'enum': ['full', 'linear']
+            },
+            'entangler_map': {
+                'type': ['array', 'null'],
+                'default': None
+            },
+            'skip_unentangled_qubits': {
+                'type': 'boolean',
+                'default': False
+            }
         },
-        'depends': [
-            {
-                'pluggable_type': 'initial_state',
-                'default': {
-                    'name': 'ZERO',
-                }
-            },
-        ],
+        'additionalProperties': False
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
@@ -77,7 +65,7 @@ class SwapRZ(VariationalForm):
             initial_state (InitialState): an initial state object
             skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         self._num_qubits = num_qubits
         self._depth = depth

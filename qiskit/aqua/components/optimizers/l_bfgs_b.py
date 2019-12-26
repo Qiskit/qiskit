@@ -17,7 +17,7 @@
 import logging
 
 from scipy import optimize as sciopt
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -70,6 +70,8 @@ class L_BFGS_B(Optimizer):
         'optimizer': ['local']
     }
 
+    _OPTIONS = ['maxfun', 'maxiter', 'factr', 'iprint', 'epsilon']
+
     # pylint: disable=unused-argument
     def __init__(self, maxfun=1000, maxiter=15000, factr=10, iprint=-1, epsilon=1e-08):
         r"""
@@ -96,11 +98,19 @@ class L_BFGS_B(Optimizer):
             epsilon (float): Step size used when approx_grad is True, for numerically
                              calculating the gradient
         """
-        self.validate(locals())
+        validate(locals(), self.CONFIGURATION.get('input_schema', None))
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.supported,
+            'bounds': Optimizer.SupportLevel.supported,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

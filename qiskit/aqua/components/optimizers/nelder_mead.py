@@ -17,7 +17,7 @@
 import logging
 
 from scipy.optimize import minimize
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,8 @@ class NELDER_MEAD(Optimizer):
         'optimizer': ['local']
     }
 
+    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xatol', 'adaptive']
+
     # pylint: disable=unused-argument
     def __init__(self, maxiter=None, maxfev=1000, disp=False,
                  xatol=0.0001, tol=None, adaptive=False):
@@ -96,12 +98,20 @@ class NELDER_MEAD(Optimizer):
             tol (float or None): Tolerance for termination.
             adaptive (bool): Adapt algorithm parameters to dimensionality of problem.
         """
-        self.validate(locals())
+        validate(locals(), self.CONFIGURATION.get('input_schema', None))
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._tol = tol
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.ignored,
+            'bounds': Optimizer.SupportLevel.ignored,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

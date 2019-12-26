@@ -23,6 +23,7 @@ from scipy import optimize as sciopt
 
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.utils.validation import validate
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,8 @@ class P_BFGS(Optimizer):
         'optimizer': ['local', 'parallel']
     }
 
+    _OPTIONS = ['maxfun', 'factr', 'iprint']
+
     # pylint: disable=unused-argument
     def __init__(self, maxfun=1000, factr=10, iprint=-1, max_processes=None):
         r"""
@@ -94,12 +97,20 @@ class P_BFGS(Optimizer):
                           every iteration including x and g.
             max_processes (int): maximum number of processes allowed.
         """
-        self.validate(locals())
+        validate(locals(), self.CONFIGURATION.get('input_schema', None))
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._max_processes = max_processes
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.supported,
+            'bounds': Optimizer.SupportLevel.supported,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

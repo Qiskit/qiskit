@@ -17,7 +17,7 @@
 import logging
 from copy import deepcopy
 from numpy import pi, absolute, array, zeros
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,8 @@ class AQGD(Optimizer):
         'optimizer': ['local']
     }
 
+    _OPTIONS = ['maxiter', 'eta', 'tol', 'disp']
+
     def __init__(self, maxiter=1000, eta=3.0, tol=1e-6, disp=False, momentum=0.25):
         """
         Constructor.
@@ -91,7 +93,7 @@ class AQGD(Optimizer):
                               Must be within the bounds: [0,1)
 
         """
-        self.validate(locals())
+        validate(locals(), self.CONFIGURATION.get('input_schema', None))
         super().__init__()
 
         self._eta = eta
@@ -100,6 +102,14 @@ class AQGD(Optimizer):
         self._disp = disp
         self._momentum_coeff = momentum
         self._previous_loss = None
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.ignored,
+            'bounds': Optimizer.SupportLevel.ignored,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def deriv(self, j, params, obj):
         """
