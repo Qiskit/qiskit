@@ -436,7 +436,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_0cx_random(self):
         """Check random circuits with  0 cx
-        gates locally eqivilent to identity
+        gates locally equivalent to identity
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -452,7 +452,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_1cx_random(self):
         """Check random circuits with  1 cx
-        gates locally eqivilent to a cx
+        gates locally equivalent to a cx
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -475,7 +475,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_2cx_random(self):
         """Check random circuits with  2 cx
-        gates locally eqivilent to some
+        gates locally equivalent to some
         circuit with 2 cx.
         """
         qr = QuantumRegister(2, name='q')
