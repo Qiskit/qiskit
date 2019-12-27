@@ -28,7 +28,7 @@ class RGate(Gate):
     """Rotation θ around the cos(φ)x + sin(φ)y axis."""
 
     def __init__(self, theta, phi):
-        """Create new r single qubit gate."""
+        """Create new r single-qubit gate."""
         super().__init__("r", 1, [theta, phi])
 
     def _define(self):
