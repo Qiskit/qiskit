@@ -80,15 +80,17 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
 class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, basis=None, tolerance=1e-12):
+    def check_one_qubit_euler_angles(self, operator, basis=None):
         """Check euler_angles_1q works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
             angles = euler_angles_1q(target_unitary)
             decomp_unitary = U3Gate(*angles).to_matrix()
+            tolerance = 1e-14
         else:
             decomposer = OneQubitEulerDecomposer(basis)
             decomp_unitary = Operator(decomposer(target_unitary)).data
+            tolerance = 1e-12
         # Add global phase to make special unitary
         target_unitary *= la.det(target_unitary)**(-0.5)
         decomp_unitary *= la.det(decomp_unitary)**(-0.5)
