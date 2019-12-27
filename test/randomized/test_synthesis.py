@@ -26,7 +26,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (two_qubit_cnot_decompose,
                                                                TwoQubitBasisDecomposer,
                                                                Ud)
-from ..python.quantum_info.test_synthesis import CheckDecompositions
+from test.python.quantum_info.test_synthesis import CheckDecompositions
 
 
 class TestSynthesis(CheckDecompositions):
