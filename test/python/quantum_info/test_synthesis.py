@@ -95,7 +95,8 @@ class CheckDecompositions(QiskitTestCase):
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         if maxdist > 0.1:
             maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-        self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+        self.assertTrue(np.abs(maxdist) < tolerance,
+                        "Operator {}: Worst distance {}".format(operator, maxdist))
 
     # FIXME: should be possible to set this tolerance tighter after improving the function
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
