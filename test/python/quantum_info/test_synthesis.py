@@ -543,7 +543,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
 
     def test_seed_289(self):
-        """This specif case fails when the PR #3585 was applied
+        """This specific case failed when PR #3585 was applied
         See https://github.com/Qiskit/qiskit-terra/pull/3652"""
         unitary = random_unitary(4, seed=289)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
