@@ -17,7 +17,7 @@
 import logging
 from copy import deepcopy
 from numpy import pi, absolute, array, zeros
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -32,47 +32,38 @@ class AQGD(Optimizer):
     the objective function.
     """
 
-    CONFIGURATION = {
-        'name': 'AQGD',
-        'description': 'Analytic Quantum Gradient Descent Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'aqgd_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'eta': {
-                    'type': 'number',
-                    'default': 3.0
-                },
-                'tol': {
-                    'type': 'number',
-                    'default': 1e-6
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'momentum': {
-                    'type': 'number',
-                    'default': 0.25,
-                    'minimum': 0,
-                    'exclusiveMaximum': 1.0
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'aqgd_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'eta': {
+                'type': 'number',
+                'default': 3.0
+            },
+            'tol': {
+                'type': 'number',
+                'default': 1e-6
+            },
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'momentum': {
+                'type': 'number',
+                'default': 0.25,
+                'minimum': 0,
+                'exclusiveMaximum': 1.0
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'eta', 'tol', 'disp'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
+
+    _OPTIONS = ['maxiter', 'eta', 'tol', 'disp']
 
     def __init__(self, maxiter=1000, eta=3.0, tol=1e-6, disp=False, momentum=0.25):
         """
@@ -91,7 +82,7 @@ class AQGD(Optimizer):
                               Must be within the bounds: [0,1)
 
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
 
         self._eta = eta
@@ -100,6 +91,14 @@ class AQGD(Optimizer):
         self._disp = disp
         self._momentum_coeff = momentum
         self._previous_loss = None
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.ignored,
+            'bounds': Optimizer.SupportLevel.ignored,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def deriv(self, j, params, obj):
         """

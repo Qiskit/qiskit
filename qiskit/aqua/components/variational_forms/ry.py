@@ -16,59 +16,47 @@
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.variational_forms import VariationalForm
 
 
 class RY(VariationalForm):
     """Layers of Y rotations followed by entangling gates."""
 
-    CONFIGURATION = {
-        'name': 'RY',
-        'description': 'RY Variational Form',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'ry_schema',
-            'type': 'object',
-            'properties': {
-                'depth': {
-                    'type': 'integer',
-                    'default': 3,
-                    'minimum': 0
-                },
-                'entanglement': {
-                    'type': 'string',
-                    'default': 'full',
-                    'enum': ['full', 'linear', 'sca']
-                },
-                'entangler_map': {
-                    'type': ['array', 'null'],
-                    'default': None
-                },
-                'entanglement_gate': {
-                    'type': 'string',
-                    'default': 'cz',
-                    'enum': ['cz', 'cx', 'crx']
-                },
-                'skip_unentangled_qubits': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'skip_final_ry': {
-                    'type': 'boolean',
-                    'default': False
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'ry_schema',
+        'type': 'object',
+        'properties': {
+            'depth': {
+                'type': 'integer',
+                'default': 3,
+                'minimum': 0
             },
-            'additionalProperties': False
+            'entanglement': {
+                'type': 'string',
+                'default': 'full',
+                'enum': ['full', 'linear', 'sca']
+            },
+            'entangler_map': {
+                'type': ['array', 'null'],
+                'default': None
+            },
+            'entanglement_gate': {
+                'type': 'string',
+                'default': 'cz',
+                'enum': ['cz', 'cx', 'crx']
+            },
+            'skip_unentangled_qubits': {
+                'type': 'boolean',
+                'default': False
+            },
+            'skip_final_ry': {
+                'type': 'boolean',
+                'default': False
+            }
         },
-        'depends': [
-            {
-                'pluggable_type': 'initial_state',
-                'default': {
-                    'name': 'ZERO',
-                }
-            },
-        ],
+        'additionalProperties': False
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
@@ -90,7 +78,7 @@ class RY(VariationalForm):
             skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
             skip_final_ry (bool): skip the final layer of Y rotations
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         self._num_qubits = num_qubits
         self._depth = depth

@@ -27,6 +27,7 @@ Algorithms Base Class
    :nosignatures:
 
    QuantumAlgorithm
+   ClassicalAlgorithm
 
 Quantum Algorithms
 ==================
@@ -84,7 +85,8 @@ and its Python API to be installed. See the following for more information:
 
 from .quantum_algorithm import QuantumAlgorithm
 from .adaptive import VQE, QAOA, VQC, QGAN
-from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
+from .classical import ClassicalAlgorithm, ExactEigensolver, ExactLSsolver, \
+    SVM_Classical
 from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, \
     Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor, \
@@ -97,6 +99,7 @@ __all__ = [
     'QAOA',
     'VQC',
     'QGAN',
+    'ClassicalAlgorithm',
     'ExactEigensolver',
     'ExactLSsolver',
     'SVM_Classical',

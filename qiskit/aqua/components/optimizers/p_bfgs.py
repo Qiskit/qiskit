@@ -23,6 +23,7 @@ from scipy import optimize as sciopt
 
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.utils.validation import validate
 
 logger = logging.getLogger(__name__)
 
@@ -37,42 +38,33 @@ class P_BFGS(Optimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
     """
 
-    CONFIGURATION = {
-        'name': 'P_BFGS',
-        'description': 'Parallelized l_bfgs_b Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'p_bfgs_b_schema',
-            'type': 'object',
-            'properties': {
-                'maxfun': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'factr': {
-                    'type': 'integer',
-                    'default': 10
-                },
-                'iprint': {
-                    'type': 'integer',
-                    'default': -1
-                },
-                'max_processes': {
-                    'type': ['integer', 'null'],
-                    'minimum': 1,
-                    'default': None
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'p_bfgs_b_schema',
+        'type': 'object',
+        'properties': {
+            'maxfun': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'factr': {
+                'type': 'integer',
+                'default': 10
+            },
+            'iprint': {
+                'type': 'integer',
+                'default': -1
+            },
+            'max_processes': {
+                'type': ['integer', 'null'],
+                'minimum': 1,
+                'default': None
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxfun', 'factr', 'iprint'],
-        'optimizer': ['local', 'parallel']
+        'additionalProperties': False,
     }
+
+    _OPTIONS = ['maxfun', 'factr', 'iprint']
 
     # pylint: disable=unused-argument
     def __init__(self, maxfun=1000, factr=10, iprint=-1, max_processes=None):
@@ -94,12 +86,20 @@ class P_BFGS(Optimizer):
                           every iteration including x and g.
             max_processes (int): maximum number of processes allowed.
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._max_processes = max_processes
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.supported,
+            'bounds': Optimizer.SupportLevel.supported,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

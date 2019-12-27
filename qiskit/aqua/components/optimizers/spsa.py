@@ -19,6 +19,7 @@ import logging
 import numpy as np
 
 from qiskit.aqua import aqua_globals
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -29,63 +30,54 @@ class SPSA(Optimizer):
 
     _C0 = 2*np.pi*0.1
 
-    CONFIGURATION = {
-        'name': 'SPSA',
-        'description': 'SPSA Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'spsa_schema',
-            'type': 'object',
-            'properties': {
-                'max_trials': {
-                    'type': 'integer',
-                    'default': 1000
-                },
-                'save_steps': {
-                    'type': 'integer',
-                    'default': 1,
-                    'minimum': 1
-                },
-                'last_avg': {
-                    'type': 'integer',
-                    'default': 1,
-                    'minimum': 1
-                },
-                'c0': {
-                    'type': 'number',
-                    'default': _C0
-                },
-                'c1': {
-                    'type': 'number',
-                    'default': 0.1
-                },
-                'c2': {
-                    'type': 'number',
-                    'default': 0.602
-                },
-                'c3': {
-                    'type': 'number',
-                    'default': 0.101
-                },
-                'c4': {
-                    'type': 'number',
-                    'default': 0
-                },
-                'skip_calibration': {
-                    'type': 'boolean',
-                    'default': False
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'spsa_schema',
+        'type': 'object',
+        'properties': {
+            'max_trials': {
+                'type': 'integer',
+                'default': 1000
             },
-            'additionalProperties': False
+            'save_steps': {
+                'type': 'integer',
+                'default': 1,
+                'minimum': 1
+            },
+            'last_avg': {
+                'type': 'integer',
+                'default': 1,
+                'minimum': 1
+            },
+            'c0': {
+                'type': 'number',
+                'default': _C0
+            },
+            'c1': {
+                'type': 'number',
+                'default': 0.1
+            },
+            'c2': {
+                'type': 'number',
+                'default': 0.602
+            },
+            'c3': {
+                'type': 'number',
+                'default': 0.101
+            },
+            'c4': {
+                'type': 'number',
+                'default': 0
+            },
+            'skip_calibration': {
+                'type': 'boolean',
+                'default': False
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['save_steps', 'last_avg'],
-        'optimizer': ['local', 'noise']
+        'additionalProperties': False
     }
+
+    _OPTIONS = ['save_steps', 'last_avg']
 
     # pylint: disable=unused-argument
     def __init__(self, max_trials=1000, save_steps=1,
@@ -108,14 +100,22 @@ class SPSA(Optimizer):
             c4 (float): The parameter used to control a as well.
             skip_calibration (bool): skip calibration and use provided c(s) as is.
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._max_trials = max_trials
         self._parameters = np.array([c0, c1, c2, c3, c4])
         self._skip_calibration = skip_calibration
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.ignored,
+            'bounds': Optimizer.SupportLevel.ignored,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

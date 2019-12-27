@@ -16,8 +16,9 @@
 
 import logging
 from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.utils.validation import validate
 from ._nloptimizer import minimize
-from ._nloptimizer import check_pluggable_valid as check_nlopt_valid
+from ._nloptimizer import check_nlopt_valid
 
 logger = logging.getLogger(__name__)
 
@@ -37,29 +38,20 @@ class DIRECT_L(Optimizer):
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#direct-and-direct-l
     """
 
-    CONFIGURATION = {
-        'name': 'DIRECT_L',
-        'description': 'GN_DIRECT_L Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'direct_l_schema',
-            'type': 'object',
-            'properties': {
-                'max_evals': {
-                    'type': 'integer',
-                    'default': 1000
-                }
-            },
-            'additionalProperties': False
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'direct_l_schema',
+        'type': 'object',
+        'properties': {
+            'max_evals': {
+                'type': 'integer',
+                'default': 1000
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['max_evals'],
-        'optimizer': ['global']
+        'additionalProperties': False
     }
+
+    _OPTIONS = ['max_evals']
 
     def __init__(self, max_evals=1000):  # pylint: disable=unused-argument
         """
@@ -68,15 +60,20 @@ class DIRECT_L(Optimizer):
         Args:
             max_evals (int): Maximum allowed number of function evaluations.
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
+        check_nlopt_valid('DIRECT_L')
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
 
-    @staticmethod
-    def check_pluggable_valid():
-        check_nlopt_valid(DIRECT_L.CONFIGURATION['name'])
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.ignored,
+            'bounds': Optimizer.SupportLevel.supported,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

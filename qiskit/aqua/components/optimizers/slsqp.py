@@ -17,7 +17,7 @@
 import logging
 
 from scipy.optimize import minimize
-
+from qiskit.aqua.utils.validation import validate
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -30,45 +30,36 @@ class SLSQP(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    CONFIGURATION = {
-        'name': 'SLSQP',
-        'description': 'SLSQP Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/draft-07/schema#',
-            'id': 'cobyla_schema',
-            'type': 'object',
-            'properties': {
-                'maxiter': {
-                    'type': 'integer',
-                    'default': 100
-                },
-                'disp': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'ftol': {
-                    'type': 'number',
-                    'default': 1e-06
-                },
-                'tol': {
-                    'type': ['number', 'null'],
-                    'default': None
-                },
-                'eps': {
-                    'type': 'number',
-                    'default': 1.4901161193847656e-08
-                }
+    _INPUT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'id': 'cobyla_schema',
+        'type': 'object',
+        'properties': {
+            'maxiter': {
+                'type': 'integer',
+                'default': 100
             },
-            'additionalProperties': False
+            'disp': {
+                'type': 'boolean',
+                'default': False
+            },
+            'ftol': {
+                'type': 'number',
+                'default': 1e-06
+            },
+            'tol': {
+                'type': ['number', 'null'],
+                'default': None
+            },
+            'eps': {
+                'type': 'number',
+                'default': 1.4901161193847656e-08
+            }
         },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['maxiter', 'disp', 'ftol', 'eps'],
-        'optimizer': ['local']
+        'additionalProperties': False
     }
+
+    _OPTIONS = ['maxiter', 'disp', 'ftol', 'eps']
 
     # pylint: disable=unused-argument
     def __init__(self, maxiter=100, disp=False, ftol=1e-06, tol=None, eps=1.4901161193847656e-08):
@@ -85,12 +76,20 @@ class SLSQP(Optimizer):
             tol (float or None): Tolerance for termination.
             eps (float): Step size used for numerical approximation of the Jacobian.
         """
-        self.validate(locals())
+        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
-            if k in self._configuration['options']:
+            if k in self._OPTIONS:
                 self._options[k] = v
         self._tol = tol
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': Optimizer.SupportLevel.supported,
+            'bounds': Optimizer.SupportLevel.supported,
+            'initial_point': Optimizer.SupportLevel.required
+        }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):

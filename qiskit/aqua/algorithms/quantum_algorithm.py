@@ -20,23 +20,19 @@ class in this module.
 Doing so requires that the required algorithm interface is implemented.
 """
 
-from abc import abstractmethod
-import logging
-from qiskit.aqua import aqua_globals, Pluggable, QuantumInstance, AquaError
-
-logger = logging.getLogger(__name__)
+from abc import ABC, abstractmethod
+from qiskit.aqua import aqua_globals, QuantumInstance, AquaError
 
 
-class QuantumAlgorithm(Pluggable):
+class QuantumAlgorithm(ABC):
     """
     Base class for Algorithms.
 
-    This method should initialize the module and its configuration, and
+    This method should initialize the module and
     use an exception if a component of the module is available.
     """
     @abstractmethod
     def __init__(self):
-        super().__init__()
         self._quantum_instance = None
 
     @property
@@ -56,14 +52,14 @@ class QuantumAlgorithm(Pluggable):
         # pylint: disable=import-outside-toplevel
         from qiskit.providers import BaseBackend
 
-        if not self.configuration.get('classical', False):
-            if quantum_instance is None:
-                AquaError("Quantum device or backend "
-                          "is needed since you are running quantum algorithm.")
-            if isinstance(quantum_instance, BaseBackend):
-                quantum_instance = QuantumInstance(quantum_instance)
-                quantum_instance.set_config(**kwargs)
-            self._quantum_instance = quantum_instance
+        if quantum_instance is None:
+            AquaError("Quantum device or backend "
+                      "is needed since you are running quantum algorithm.")
+        if isinstance(quantum_instance, BaseBackend):
+            quantum_instance = QuantumInstance(quantum_instance)
+            quantum_instance.set_config(**kwargs)
+        self._quantum_instance = quantum_instance
+
         return self._run()
 
     @abstractmethod
