@@ -194,7 +194,7 @@ def _ccccx(qc, qrs):
 
 def _multicx(qc, qrs, qancilla=None):
     """
-    Construct a circuit for multi-qubit controlled not
+    Construct a circuit for multi-qubit controlled-not
 
     Args:
         qc (QuantumCircuit): quantum circuit
@@ -231,7 +231,7 @@ def _multicx_recursion(qc, qrs, qancilla=None):
 
 def _multicx_noancilla(qc, qrs):
     """
-    Construct a circuit for multi-qubit controlled not without ancillary qubits
+    Construct a circuit for multi-qubit controlled-not without ancillary qubits
 
     Args:
         qc (QuantumCircuit): quantum circuit
