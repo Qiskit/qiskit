@@ -36,17 +36,12 @@ class QuantumAlgorithm(ABC):
     """
     @abstractmethod
     def __init__(self):
-        super().__init__()
         self._quantum_instance = None
 
     @property
     def random(self):
         """Return a numpy random."""
         return aqua_globals.random
-
-    def is_classical(self):
-        """Returns true if algorithm is classical"""
-        return False
 
     def run(self, quantum_instance=None, **kwargs):
         """Execute the algorithm with selected backend.
@@ -60,14 +55,14 @@ class QuantumAlgorithm(ABC):
         # pylint: disable=import-outside-toplevel
         from qiskit.providers import BaseBackend
 
-        if not self.is_classical():
-            if quantum_instance is None:
-                AquaError("Quantum device or backend "
-                          "is needed since you are running quantum algorithm.")
-            if isinstance(quantum_instance, BaseBackend):
-                quantum_instance = QuantumInstance(quantum_instance)
-                quantum_instance.set_config(**kwargs)
-            self._quantum_instance = quantum_instance
+        if quantum_instance is None:
+            AquaError("Quantum device or backend "
+                      "is needed since you are running quantum algorithm.")
+        if isinstance(quantum_instance, BaseBackend):
+            quantum_instance = QuantumInstance(quantum_instance)
+            quantum_instance.set_config(**kwargs)
+        self._quantum_instance = quantum_instance
+
         return self._run()
 
     @abstractmethod
