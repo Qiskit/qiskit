@@ -21,10 +21,7 @@ Doing so requires that the required algorithm interface is implemented.
 """
 
 from abc import ABC, abstractmethod
-import logging
 from qiskit.aqua import aqua_globals, QuantumInstance, AquaError
-
-logger = logging.getLogger(__name__)
 
 
 class QuantumAlgorithm(ABC):
