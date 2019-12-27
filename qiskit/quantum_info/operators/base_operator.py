@@ -214,7 +214,7 @@ class BaseOperator(ABC):
             are not equal, or the power is not a positive integer.
         """
         # NOTE: if a subclass can have negative or non-integer powers
-        # this method should be overriden in that class.
+        # this method should be overridden in that class.
         if not isinstance(n, (int, np.integer)) or n < 1:
             raise QiskitError("Can only power with positive integer powers.")
         if self._input_dim != self._output_dim:

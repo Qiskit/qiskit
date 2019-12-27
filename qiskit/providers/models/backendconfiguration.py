@@ -327,29 +327,46 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in qubit_lo_range]
         self.meas_lo_range = [[range[0] * 1e9, range[1] * 1e9] for range in meas_lo_range]
-        self.dt = dt * 1e-9  # pylint: disable=invalid-name
-        self.dtm = dtm * 1e-9
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+
+        self._dt = dt * 1e-9
+        self._dtm = dtm * 1e-9
 
         channel_bandwidth = kwargs.pop('channel_bandwidth', None)
         if channel_bandwidth:
             self.channel_bandwidth = [[range[0] * 1e9, range[1] * 1e9] for
                                       range in channel_bandwidth]
 
-        # only raise dt/dtm warning once
-        if not PulseBackendConfiguration._dt_warning_done:
-            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
-                          'than nanoseconds(ns).')
-            PulseBackendConfiguration._dt_warning_done = True
-
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
+
+    @property
+    def dt(self) -> float:  # pylint: disable=invalid-name
+        """Drive channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dt
+
+    @property
+    def dtm(self) -> float:  # pylint: disable=invalid-name
+        """Measure channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dtm
 
     @property
     def sample_rate(self) -> float:

@@ -71,8 +71,8 @@ def execute(experiments, backend,
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. For a backend
-            that provides this information, it can be obtained with:
+            errors, readout errors, qubit coherence times, etc. Find a backend
+            that provides this information with:
             ``backend.properties()``
 
         initial_layout (Layout or dict or list):
@@ -143,10 +143,10 @@ def execute(experiments, backend,
             Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (list):
-            List of default qubit lo frequencies in Hz
+            List of default qubit LO frequencies in Hz
 
         default_meas_los (list):
-            List of default meas lo frequencies Hz
+            List of default meas LO frequencies in Hz
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -180,8 +180,8 @@ def execute(experiments, backend,
             experiments will be run (one for each experiment/bind pair).
 
         run_config (dict):
-            Extra arguments used to configure the run (e.g. for Aer configurable backends)
-            Refer to the backend documentation for details on these arguments
+            Extra arguments used to configure the run (e.g. for Aer configurable backends).
+            Refer to the backend documentation for details on these arguments.
             Note: for now, these keyword arguments will both be copied to the
             Qobj config, and passed to backend.run()
 
@@ -192,7 +192,7 @@ def execute(experiments, backend,
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
 
     Example:
-        Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
+        Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
         .. jupyter-execute::
 

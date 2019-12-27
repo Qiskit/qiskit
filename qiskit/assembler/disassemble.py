@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Disassemble function for a qobj into a list of circuits and it's config"""
+"""Disassemble function for a qobj into a list of circuits and its config"""
 
 import collections
 
@@ -23,7 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 def _experiments_to_circuits(qobj):
-    """Return a list of QuantumCircuit object(s) from a qobj
+    """Return a list of QuantumCircuit object(s) from a qobj.
 
     Args:
         qobj (Qobj): The Qobj object to convert to QuantumCircuits
@@ -125,7 +125,7 @@ def _experiments_to_circuits(qobj):
 
 
 def disassemble(qobj):
-    """Disassemble a qobj and return the circuits, run_config, and user header
+    """Disassemble a qobj and return the circuits, run_config, and user header.
 
     Args:
         qobj (Qobj): The input qobj object to disassemble
