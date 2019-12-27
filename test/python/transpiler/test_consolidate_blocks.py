@@ -210,7 +210,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         This example was raised in #2764, and checks that the final CX
         stays after the main block, even though one of the nodes in the
-        block was declared after it. This occured when the block was
+        block was declared after it. This occurred when the block was
         added when the last node in the block was seen.
 
         blocks = [['cx', 'id', 'id']]
