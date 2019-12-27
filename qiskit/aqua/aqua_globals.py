@@ -31,9 +31,6 @@ class QiskitAquaGlobals:
 
     CPU_COUNT = local_hardware_info()['cpus']
 
-    CONFIG_DEPRECATION_MSG = 'Declarative API will be removed next Aqua release. ' \
-        'Please construct classes and call appropriate methods.'
-
     def __init__(self):
         self._random_seed = None
         self._num_processes = QiskitAquaGlobals.CPU_COUNT
