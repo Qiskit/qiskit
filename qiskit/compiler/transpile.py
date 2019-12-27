@@ -32,7 +32,7 @@ def transpile(circuits,
               pass_manager=None, callback=None, output_name=None):
     """Transpile one or more circuits, according to some desired transpilation targets.
 
-    All arguments may be given as either singleton or list. In case of list,
+    All arguments may be given as either a singleton or list. In case of a list,
     the length must be equal to the number of circuits being transpiled.
 
     Transpilation is done in parallel using multiprocessing.
@@ -44,7 +44,7 @@ def transpile(circuits,
         backend (BaseBackend):
             If set, transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
-            If any other option is explicitly set (e.g. coupling_map), it
+            If any other option is explicitly set (e.g., coupling_map), it
             will override the backend's.
 
             Note: the backend arg is purely for convenience. The resulting
@@ -65,15 +65,15 @@ def transpile(circuits,
             1. CouplingMap instance
             2. list
                 Must be given as an adjacency matrix, where each entry
-                specifies all two-qubit interactions supported by backend
+                specifies all two-qubit interactions supported by backend,
                 e.g::
 
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
         backend_properties (BackendProperties):
             properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. For a backend
-            that provides this information, it can be obtained with:
+            errors, readout errors, qubit coherence times, etc. Find a backend
+            that provides this information with:
             ``backend.properties()``
 
         initial_layout (Layout or dict or list):
@@ -109,7 +109,7 @@ def transpile(circuits,
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         seed_transpiler (int):
-            sets random seed for the stochastic parts of the transpiler
+            Sets random seed for the stochastic parts of the transpiler
 
         optimization_level (int):
             How much optimization to perform on the circuits.
@@ -132,19 +132,19 @@ def transpile(circuits,
         callback (func):
             A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
-            arguments:
-                pass_ (Pass): the pass being run
-                dag (DAGCircuit): the dag output of the pass
-                time (float): the time to execute the pass
-                property_set (PropertySet): the property set
-                count (int): the index for the pass execution
+            arguments::
+                pass_ (Pass): the pass being run.
+                dag (DAGCircuit): the dag output of the pass.
+                time (float): the time to execute the pass.
+                property_set (PropertySet): the property set.
+                count (int): the index for the pass execution.
 
-            The exact arguments pass expose the internals of the pass manager
+            The exact arguments passed expose the internals of the pass manager,
             and are subject to change as the pass manager internals change. If
-            you intend to reuse a callback function over multiple releases be
+            you intend to reuse a callback function over multiple releases, be
             sure to check that the arguments being passed are the same.
 
-            To use the callback feature you define a function that will
+            To use the callback feature, define a function that will
             take in kwargs dict and access the variables. For example::
 
                 def callback_func(**kwargs):
@@ -159,7 +159,7 @@ def transpile(circuits,
 
         output_name (str or list[str]) :
             A list with strings to identify the output circuits. The length of
-            `list[str]` should be exactly the length of `circuits` parameter.
+            `list[str]` should be exactly the length of the `circuits` parameter.
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
@@ -235,7 +235,7 @@ def _parse_transpile_args(circuits, backend,
 
     Here the args are resolved by converting them to standard instances, and prioritizing
     them in case a transpile option is passed through multiple args (explicitly setting an
-    arg has more priority than the arg set by backend)
+    arg has more priority than the arg set by backend).
 
     Returns:
         list[TranspileConfig]: a transpile config for each circuit, which is a standardized

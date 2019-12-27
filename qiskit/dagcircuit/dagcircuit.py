@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Object to represent a quantum circuit as a directed acyclic graph.
+Object to represent a quantum circuit as a directed acyclic graph (DAG).
 
 The nodes in the graph are either input/output nodes or operation nodes.
 The edges correspond to qubits or bits in the circuit. A directed edge
@@ -97,7 +97,7 @@ class DAGCircuit:
     @property
     def node_counter(self):
         """
-        Returns the number of nodes in the dag
+        Returns the number of nodes in the dag.
         """
         return len(self._multi_graph)
 
@@ -1091,7 +1091,7 @@ class DAGCircuit:
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
-        A layer is a circuit whose gates act on disjoint qubits, i.e.
+        A layer is a circuit whose gates act on disjoint qubits, i.e.,
         a layer has depth 1. The total number of layers equals the
         circuit depth d. The layers are indexed from 0 to d-1 with the
         earliest layer at index 0. The layers are constructed using a
@@ -1099,8 +1099,8 @@ class DAGCircuit:
         {"graph": circuit graph, "partition": list of qubit lists}.
 
         New but semantically equivalent DAGNodes will be included in the returned layers,
-        NOT the DAGNodes from the original DAG. The original vs new nodes can be compared using
-        DAGNode.semantic_eq(node1, node2)
+        NOT the DAGNodes from the original DAG. The original vs. new nodes can be compared using
+        DAGNode.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
@@ -1247,12 +1247,12 @@ class DAGCircuit:
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
-        Iterator for nodes that affect a given wire
+        Iterator for nodes that affect a given wire.
 
         Args:
             wire (Bit): the wire to be looked at.
-            only_ops (bool): True if only the ops nodes are wanted
-                        otherwise all nodes are returned.
+            only_ops (bool): True if only the ops nodes are wanted;
+                        otherwise, all nodes are returned.
         Yield:
              DAGNode: the successive ops on the given wire
 
@@ -1324,18 +1324,19 @@ class DAGCircuit:
         """
         Draws the dag circuit.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
+        `Graphviz <https://www.graphviz.org/>`_ to be installed.
 
         Args:
             scale (float): scaling factor
             filename (str): file path to save image to (format inferred from name)
-            style (str): 'plain': B&W graph
-                         'color' (default): color input/output/op nodes
+            style (str):
+                'plain': B&W graph;
+                'color' (default): color input/output/op nodes
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
-                otherwise None.
+            otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
