@@ -96,7 +96,7 @@ class CheckDecompositions(QiskitTestCase):
         if maxdist > 0.1:
             maxdist = np.max(np.abs(target_unitary + decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Operator {}: Worst distance {}".format(operator, maxdist))
+                        "Operator {}: Worst distance {}".format(operator, maxdist))
 
     # FIXME: should be possible to set this tolerance tighter after improving the function
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
@@ -113,13 +113,13 @@ class CheckDecompositions(QiskitTestCase):
         ):
             op = op.compose(u, qs)
         decomp_unitary = op.data
-        target_unitary *= la.det(target_unitary)**(-0.25)
-        decomp_unitary *= la.det(decomp_unitary)**(-0.25)
-        maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
+        target_unitary *= la.det(target_unitary) ** (-0.25)
+        decomp_unitary *= la.det(decomp_unitary) ** (-0.25)
+        maxdists = [np.max(np.abs(target_unitary + phase * decomp_unitary))
                     for phase in [1, 1j, -1, -1j]]
         maxdist = np.min(maxdists)
         self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
+                        "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
 
     def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
         """Check exact decomposition for a particular target"""
@@ -132,7 +132,8 @@ class CheckDecompositions(QiskitTestCase):
                     for phase in [1, 1j, -1, -1j]]
         maxdist = np.min(maxdists)
         self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
+                        "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
+
 
 @ddt
 class TestEulerAngles1Q(CheckDecompositions):
@@ -248,6 +249,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
     """Test TwoQubitWeylDecomposition()
     """
+
     # pylint: disable=invalid-name
 
     def test_two_qubit_weyl_decomposition_cnot(self):
@@ -526,6 +528,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
+
 
 # FIXME: need to write tests for the approximate decompositions
 
