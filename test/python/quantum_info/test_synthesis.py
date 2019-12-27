@@ -80,17 +80,15 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
 class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, basis=None):
+    def check_one_qubit_euler_angles(self, operator, basis=None, tolerance=1e-12):
         """Check euler_angles_1q works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
             angles = euler_angles_1q(target_unitary)
             decomp_unitary = U3Gate(*angles).to_matrix()
-            tolerance = 1e-14
         else:
             decomposer = OneQubitEulerDecomposer(basis)
             decomp_unitary = Operator(decomposer(target_unitary)).data
-            tolerance = 1e-12
         # Add global phase to make special unitary
         target_unitary *= la.det(target_unitary)**(-0.5)
         decomp_unitary *= la.det(decomp_unitary)**(-0.5)
@@ -203,12 +201,12 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
     def test_one_qubit_hard_thetas_zyz_basis(self):
         """Verify for rz, ry, rz basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ')
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ', 1e-12)
 
     def test_one_qubit_hard_thetas_zxz_basis(self):
         """Verify for rz, rx, rz basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'ZXZ')
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZXZ', 1e-12)
 
     def test_one_qubit_hard_thetas_xyx_basis(self):
         """Verify for rx, ry, rx basis and close-to-degenerate theta."""
