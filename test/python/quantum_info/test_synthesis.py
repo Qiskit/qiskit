@@ -213,31 +213,31 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
 
-    @combine(seed=range(10), name='test_one_qubit_random_u3_basis_{seed}')
+    @combine(seed=range(50), name='test_one_qubit_random_u3_basis_{seed}')
     def test_one_qubit_random_u3_basis(self, seed):
         """Verify for u3 basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, 'U3')
 
-    @combine(seed=range(10), name='test_one_qubit_random_u1x_basis_{seed}')
+    @combine(seed=range(50), name='test_one_qubit_random_u1x_basis_{seed}')
     def test_one_qubit_random_u1x_basis(self, seed):
         """Verify for u1, x90 basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, 'U1X')
 
-    @combine(seed=range(10), name='test_one_qubit_random_zyz_basis_{seed}')
+    @combine(seed=range(50), name='test_one_qubit_random_zyz_basis_{seed}')
     def test_one_qubit_random_zyz_basis(self, seed):
         """Verify for rz, ry, rz basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, 'ZYZ')
 
-    @combine(seed=range(10), name='test_one_qubit_random_zxz_basis_{seed}')
+    @combine(seed=range(50), name='test_one_qubit_random_zxz_basis_{seed}')
     def test_one_qubit_random_zxz_basis(self, seed):
         """Verify for rz, rx, rz basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, 'ZXZ')
 
-    @combine(seed=range(10), name='test_one_qubit_random_xyx_basis_{seed}')
+    @combine(seed=range(50), name='test_one_qubit_random_xyx_basis_{seed}')
     def test_one_qubit_random_xyx_basis(self, seed):
         """Verify for rx, ry, rx basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
