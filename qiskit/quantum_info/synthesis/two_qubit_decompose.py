@@ -161,7 +161,7 @@ class TwoQubitWeylDecomposition:
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
-        for i in range(100):
+        for i in range(100):  # FIXME: this randomized algorithm is horrendous
             state = np.random.RandomState(i)
             M2real = state.randn()*M2.real + state.randn()*M2.imag
             _, P = la.eigh(M2real)
