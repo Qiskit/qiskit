@@ -26,8 +26,8 @@ class RunConfig(BaseModel):
     full description of the model, please check ``RunConfigSchema``.
 
     Attributes:
-        shots (int): the number of shots.
-        max_credits (int): the max_credits to use on the IBMQ public devices.
+        shots (int): the number of shots
+        max_credits (int): the max_credits to use on the IBM Q public devices
         seed_simulator (int): the seed to use in the simulator
         memory (bool): whether to request memory from backend (per-shot readouts)
         parameter_binds (list[dict]): List of parameter bindings
