@@ -350,6 +350,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "q_2: |0>─────────────────■──────",
                               "                                "])
         qr = QuantumRegister(3, 'q')
+        self.maxDiff=None
         circuit = QuantumCircuit(qr)
         circuit.cry(pi / 2, qr[0], qr[1])
         circuit.cry(pi / 2, qr[2], qr[0])
@@ -1680,15 +1681,15 @@ class TestTextWithLayout(QiskitTestCase):
 
     def test_mixed_layout(self):
         """ With a mixed layout. """
-        expected = '\n'.join(["                ┌───┐",
-                              "      (v0) q0|0>┤ H ├",
-                              "                ├───┤",
-                              "(ancilla1) q1|0>┤ H ├",
-                              "                ├───┤",
-                              "(ancilla0) q2|0>┤ H ├",
-                              "                ├───┤",
-                              "      (v1) q3|0>┤ H ├",
-                              "                └───┘"])
+        expected = '\n'.join(["                 ┌───┐",
+                              "      (v_0) 0 |0>┤ H ├",
+                              "                 ├───┤",
+                              "(ancilla_1) 1 |0>┤ H ├",
+                              "                 ├───┤",
+                              "(ancilla_0) 2 |0>┤ H ├",
+                              "                 ├───┤",
+                              "      (v_1) 3 |0>┤ H ├",
+                              "                 └───┘"])
         pqr = QuantumRegister(4, 'v')
         qr = QuantumRegister(2, 'v')
         ancilla = QuantumRegister(2, 'ancilla')
@@ -1699,19 +1700,19 @@ class TestTextWithLayout(QiskitTestCase):
 
     def test_with_classical_regs(self):
         """ Involving classical registers"""
-        expected = '\n'.join(["                  ",
-                              "(qr10) q0|0>──────",
-                              "                  ",
-                              "(qr11) q1|0>──────",
-                              "            ┌─┐   ",
-                              "(qr20) q2|0>┤M├───",
-                              "            └╥┘┌─┐",
-                              "(qr21) q3|0>─╫─┤M├",
-                              "             ║ └╥┘",
-                              "    cr_0: 0 ═╩══╬═",
-                              "                ║ ",
-                              "    cr_1: 0 ════╩═",
-                              "                  "])
+        expected = '\n'.join(["                   ",
+                              "(qr1_0) 0 |0>──────",
+                              "                   ",
+                              "(qr1_1) 1 |0>──────",
+                              "             ┌─┐   ",
+                              "(qr2_0) 2 |0>┤M├───",
+                              "             └╥┘┌─┐",
+                              "(qr2_1) 3 |0>─╫─┤M├",
+                              "              ║ └╥┘",
+                              "     cr_0: 0 ═╩══╬═",
+                              "                 ║ ",
+                              "     cr_1: 0 ════╩═",
+                              "                   "])
         pqr = QuantumRegister(4, 'q')
         qr1 = QuantumRegister(2, 'qr1')
         cr = ClassicalRegister(2, 'cr')
