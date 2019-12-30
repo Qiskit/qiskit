@@ -47,7 +47,6 @@ def add_control(operation: Union[Gate, ControlledGate],
 
     Returns:
         Controlled version of gate.
-
     """
     import qiskit.circuit.library.standard_gates as standard
     if ctrl_state is None:
