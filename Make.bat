@@ -20,10 +20,10 @@ ECHO.
 ECHO.Usage:
 ECHO.    .\make env     Switches to a Python virtual environment
 ECHO.    .\make run     Runs Jupyter tutorials
-ECHO.    .\make lint    Runs Python source code analisys tool
+ECHO.    .\make lint    Runs Python source code analysys tool
 ECHO.    .\make test    Runs tests
 ECHO.    .\make prfile  Runs profiling tests
-ECHO.    .\make clean   Cleans previoulsy generated documentation
+ECHO.    .\make clean   Cleans previously generated documentation
 ECHO.
 GOTO :end
 
@@ -56,7 +56,7 @@ GOTO :next
 
 :error
 ECHO.
-ECHO.Somehting is missing in your Python installation.
+ECHO.Something is missing in your Python installation.
 ECHO.Please make sure you have properly installed Anaconda3
 ECHO.(https://www.continuum.io/downloads), and that you are
 ECHO.running the "Anaconda Shell Command".
