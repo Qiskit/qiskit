@@ -38,7 +38,6 @@ class PassManager:
                 max_iteration is reached.
             callback (func): DEPRECATED - A callback function that will be called after each
                 pass execution.
-
         """
         self.callback = None
 
@@ -168,7 +167,7 @@ class PassManager:
                                input circuit
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 5 keyword
-                arguments:
+                arguments::
                     pass_ (Pass): the pass being run
                     dag (DAGCircuit): the dag output of the pass
                     time (float): the time to execute the pass
@@ -191,8 +190,6 @@ class PassManager:
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
-
-                    PassManager(callback=callback_func)
         Returns:
             QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
         """

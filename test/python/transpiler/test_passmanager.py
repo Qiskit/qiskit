@@ -30,7 +30,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestPassManager(QiskitTestCase):
-    """Test Pass maanger logic."""
+    """Test Pass manager logic."""
 
     def test_callback(self):
         """Test the callback parameter."""
