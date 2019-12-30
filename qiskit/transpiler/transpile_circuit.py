@@ -14,14 +14,11 @@
 
 """Circuit transpile function"""
 
-from qiskit.transpiler.passes.ms_basis_decomposer import MSBasisDecomposer
-
 
 def transpile_circuit(circuit,
                       pass_manager,
                       output_name,
-                      callback,
-                      pass_manager_config):
+                      callback):
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit (QuantumCircuit): circuit to transpile
@@ -29,27 +26,10 @@ def transpile_circuit(circuit,
             transpiler passes.
         output_name (string): To identify the output circuits
         callback (callable): Function that will be called after each pass execution.
-        pass_manager_config (PassManagerConfig): Configuration instance.
 
     Returns:
         QuantumCircuit: transpiled circuit
     """
-    # Workaround for ion trap support: If basis gates includes
-    # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
-    # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
-    basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
-    device_insts = set(pass_manager_config.basis_gates).union(basic_insts)
-
-    ms_basis_swap = None
-    if 'rxx' in pass_manager_config.basis_gates and \
-            not device_insts >= circuit.count_ops().keys():
-        ms_basis_swap = pass_manager_config.basis_gates
-        pass_manager_config.basis_gates = list(
-            set(['u3', 'cx']).union(pass_manager_config.basis_gates))
-
-    if ms_basis_swap is not None:
-        pass_manager.append(MSBasisDecomposer(ms_basis_swap))
-
     out_circuit = pass_manager.run(circuit, callback=callback, output_name=output_name)
 
     return out_circuit
