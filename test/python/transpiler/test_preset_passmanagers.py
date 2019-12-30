@@ -277,8 +277,8 @@ class TestFinalLayouts(QiskitTestCase):
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
-        expected_layout_level1 = trivial_layout
         # Dense layout
+        expected_layout_level1 = dense_layout
         expected_layout_level2 = dense_layout
         # Noise adaptive layout
         expected_layout_level3 = noise_adaptive_layout
