@@ -22,6 +22,10 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import isinstanceint, isinstancelist
+from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
+                                                   level_1_pass_manager,
+                                                   level_2_pass_manager,
+                                                   level_3_pass_manager)
 
 
 def transpile(circuits,
@@ -218,16 +222,37 @@ def _transpile_circuit(circuit_config_tuple):
             transpile_config (TranspileConfig): configuration dictating how to transpile
     Returns:
         QuantumCircuit: transpiled circuit
+    Raises:
+        TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
     circuit, transpile_config = circuit_config_tuple
 
+    pass_manager_config = transpile_config['pass_manager_config']
+
+    if transpile_config['pass_manager'] is not None:
+        pass_manager = transpile_config['pass_manager']
+    else:
+        if transpile_config['optimization_level'] is not None:
+            level = transpile_config['optimization_level']
+        else:
+            level = 1
+
+        if level == 0:
+            pass_manager = level_0_pass_manager(pass_manager_config)
+        elif level == 1:
+            pass_manager = level_1_pass_manager(pass_manager_config)
+        elif level == 2:
+            pass_manager = level_2_pass_manager(pass_manager_config)
+        elif level == 3:
+            pass_manager = level_3_pass_manager(pass_manager_config)
+        else:
+            raise TranspilerError("optimization_level can range from 0 to 3.")
+
     return transpile_circuit(circuit,
-                             transpile_config['optimization_level'],
-                             transpile_config['pass_manager'],
+                             pass_manager,
                              transpile_config['output_name'],
                              transpile_config['callback'],
-                             transpile_config['pass_manager_config']
-                             )
+                             pass_manager_config)
 
 
 def _parse_transpile_args(circuits, backend,
