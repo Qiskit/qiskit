@@ -219,7 +219,7 @@ def _transpile_circuit(circuit_config_tuple):
     Args:
         circuit_config_tuple (tuple):
             circuit (QuantumCircuit): circuit to transpile
-            transpile_config (dict): configuration dictating how to transpile. The format of the
+            transpile_config (dict): configuration dictating how to transpile. The
                 dictionary has the following format:
                 {'optimization_level': int,
                  'pass_manager': PassManager,
