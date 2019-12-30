@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import DenseLayout
 
+
 def level_1_pass_manager(transpile_config):
     """
     Level 1 pass manager: light optimization by simple adjacent gate collapsing
@@ -77,7 +78,6 @@ def level_1_pass_manager(transpile_config):
     def _not_perfect_yet(property_set):
         return property_set['trivial_layout_score'] is not None and \
                property_set['trivial_layout_score'] != 0
-
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
