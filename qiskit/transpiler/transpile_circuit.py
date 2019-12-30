@@ -17,8 +17,8 @@
 
 def transpile_circuit(circuit,
                       pass_manager,
-                      output_name,
-                      callback):
+                      output_name: None,
+                      callback: None):
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit (QuantumCircuit): circuit to transpile
