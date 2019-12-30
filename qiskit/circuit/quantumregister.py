@@ -23,7 +23,11 @@ from .bit import Bit
 
 
 class Qubit(Bit):
-    """Implement a quantum bit."""
+    """Implement a quantum bit.
+    Args:
+        register (QuantumRegister): a quantum register.
+        index (int): the index to insert the qubit
+    """
 
     def __init__(self, register, index):
         if isinstance(register, QuantumRegister):

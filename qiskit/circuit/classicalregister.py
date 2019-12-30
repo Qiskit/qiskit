@@ -23,7 +23,11 @@ from .bit import Bit
 
 
 class Clbit(Bit):
-    """Implement a classical bit."""
+    """Implement a classical bit.
+    Args:
+        register (ClassicalRegister): a classical register.
+        index (int): the index to insert the bit
+    """
 
     def __init__(self, register, index):
         if isinstance(register, ClassicalRegister):
