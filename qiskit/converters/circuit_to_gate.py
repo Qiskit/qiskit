@@ -39,8 +39,8 @@ def circuit_to_gate(circuit, parameter_map=None):
 
     Return:
         Gate: a Gate equivalent to the action of the
-            input circuit. Upon decomposition, this gate will
-            yield the components comprising the original circuit.
+        input circuit. Upon decomposition, this gate will
+        yield the components comprising the original circuit.
     """
     if len(circuit.clbits) != 0:
         raise QiskitError('Circuit with classical bits cannot be converted '

@@ -88,7 +88,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.frequency(0),
                          self.properties._qubits[0]['frequency'][0])
 
-    def test_reaout_error(self):
+    def test_readout_error(self):
         """Test for getting the readout error of given qubit."""
         self.assertEqual(self.properties.readout_error(0),
                          self.properties._qubits[0]['readout_error'][0])
