@@ -221,7 +221,13 @@ def _transpile_circuit(circuit_config_tuple):
     """
     circuit, transpile_config = circuit_config_tuple
 
-    return transpile_circuit(circuit, transpile_config)
+    return transpile_circuit(circuit,
+                             transpile_config['optimization_level'],
+                             transpile_config['pass_manager'],
+                             transpile_config['output_name'],
+                             transpile_config['callback'],
+                             transpile_config['pass_manager_config']
+                             )
 
 
 def _parse_transpile_args(circuits, backend,
