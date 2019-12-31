@@ -698,8 +698,7 @@ class MatplotlibDrawer:
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                     'noise', 'cswap', 'swap', 'measure'] and len(
-                    op.name) >= 4:
+                                     'noise', 'cswap', 'swap', 'measure'] and len(op.name) >= 4:
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
