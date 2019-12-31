@@ -31,7 +31,7 @@ DEFAULT_ATOL = 1e-12
 
 
 class OneQubitEulerDecomposer:
-    """A class for decomposing 1-qubit unitaries into Eular angle rotations.
+    """A class for decomposing 1-qubit unitaries into Euler angle rotations.
 
     Allowed basis and their decompositions are:
         U3: U -> exp(1j*phase) * U3(theta, phi, lam)

@@ -441,7 +441,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_0cx_random(self):
         """Check random circuits with  0 cx
-        gates locally eqivilent to identity
+        gates locally equivalent to identity
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -457,7 +457,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_1cx_random(self):
         """Check random circuits with  1 cx
-        gates locally eqivilent to a cx
+        gates locally equivalent to a cx
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -480,7 +480,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_2cx_random(self):
         """Check random circuits with  2 cx
-        gates locally eqivilent to some
+        gates locally equivalent to some
         circuit with 2 cx.
         """
         qr = QuantumRegister(2, name='q')
@@ -546,6 +546,12 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         sim = UnitarySimulatorPy()
         U = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
+
+    def test_seed_289(self):
+        """This specific case failed when PR #3585 was applied
+        See https://github.com/Qiskit/qiskit-terra/pull/3652"""
+        unitary = random_unitary(4, seed=289)
+        self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
 # FIXME: need to write tests for the approximate decompositions
 

@@ -257,7 +257,7 @@ class TestParameters(QiskitTestCase):
         self.assertRaises(CircuitError, qc.u1, theta2, 0)
 
     def test_bind_ryrz_vector(self):
-        """Test binding a list of floats to a ParamterVector"""
+        """Test binding a list of floats to a ParameterVector"""
         qc = QuantumCircuit(4)
         depth = 4
         theta = ParameterVector('θ', length=len(qc.qubits) * depth * 2)
@@ -277,7 +277,7 @@ class TestParameters(QiskitTestCase):
                 self.assertIn(float(gate_tuple[0].params[0]), theta_vals)
 
     def test_compile_vector(self):
-        """Test compiling a circuit with an unbound ParamterVector"""
+        """Test compiling a circuit with an unbound ParameterVector"""
         qc = QuantumCircuit(4)
         depth = 4
         theta = ParameterVector('θ', length=len(qc.qubits)*depth*2)
@@ -295,7 +295,7 @@ class TestParameters(QiskitTestCase):
             self.assertIn(param, qc_aer.parameters)
 
     def test_instruction_ryrz_vector(self):
-        """Test constructing a circuit from instructions with remapped ParamterVectors"""
+        """Test constructing a circuit from instructions with remapped ParameterVectors"""
         qubits = 5
         depth = 4
         ryrz = QuantumCircuit(qubits, name='ryrz')
@@ -488,7 +488,7 @@ class TestParameterExpressions(QiskitTestCase):
                     _ = op(x, const)
 
     def test_expressions_division_by_zero(self):
-        """Verify divding a Parameter by 0, or binding 0 as a denominator raises."""
+        """Verify dividing a Parameter by 0, or binding 0 as a denominator raises."""
 
         x = Parameter('x')
 
@@ -620,7 +620,7 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaises(CircuitError):
             _ = x / y
 
-    def test_to_instruction_with_expresion(self):
+    def test_to_instruction_with_expression(self):
         """Test preservation of expressions via parameterized instructions."""
 
         theta = Parameter('θ')
