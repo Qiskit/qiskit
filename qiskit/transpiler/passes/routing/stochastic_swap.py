@@ -414,7 +414,7 @@ def _layer_permutation(layer_partition, layout, qubit_subset,
     trivial_layout = Layout.generate_trivial_layout(canonical_register)
     for idx in range(best_edges.size//2):
         slice_circuit.apply_operation_back(
-            SwapGate(), [trivial_layout[edegs[2*idx]], trivial_layout[edgs[2*idx+1]]], [])
+            SwapGate(), [trivial_layout[edges[2*idx]], trivial_layout[edges[2*idx+1]]], [])
     trial_circuit.extend_back(slice_circuit)
     best_circuit = trial_circuit
 
