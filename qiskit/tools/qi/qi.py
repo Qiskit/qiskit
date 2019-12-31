@@ -20,6 +20,7 @@ Currently this file is very sparse. More functions will be added
 over time.
 """
 
+import warnings
 import math
 import numpy as np
 import scipy.linalg as la
@@ -69,7 +70,11 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
     Raises:
         Exception: if input is not a multi-qubit state.
     """
-    state = np.array(state)  # convert op to density matrix
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.partial_trace` method',
+        DeprecationWarning)
 
     if dimensions is None:  # compute dims if not specified
         num_qubits = int(np.log2(len(state)))

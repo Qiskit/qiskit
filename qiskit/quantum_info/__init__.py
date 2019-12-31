@@ -60,6 +60,14 @@ Measures
 
    state_fidelity
 
+Utility Functions
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   partial_trace
+
 Random
 ======
 
@@ -96,6 +104,7 @@ from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
 from .states import Statevector, DensityMatrix
+from .states.utils import partial_trace
 from .states.states import basis_state, projector, purity
 from .states.measures import state_fidelity
 from .random import random_unitary, random_state, random_density_matrix
