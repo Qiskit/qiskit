@@ -147,9 +147,9 @@ class Quaternion:
             Quaternion: Quaternion representation of Euler rotation.
         """
         angles = np.asarray(angles, dtype=float)
-        quat = cls.from_axis_rotation(angles[0], order[0]) \
-                * (cls.from_axis_rotation(angles[1], order[1]) \
-                * cls.from_axis_rotation(angles[2], order[2]))
+        quat = (cls.from_axis_rotation(angles[0], order[0]) *
+                cls.from_axis_rotation(angles[1], order[1]) *
+                cls.from_axis_rotation(angles[2], order[2]))
         quat.normalize(inplace=True)
         return quat
 
