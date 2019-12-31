@@ -52,18 +52,18 @@ class TestOperatorMeasures(QiskitTestCase):
         self.assertAlmostEqual(f_pro, 1.0, places=7)
 
         # Depolarizing channel
-        p = 0.3
-        chan = p * depol + (1 - p) * iden
+        prob = 0.3
+        chan = prob * depol + (1 - prob) * iden
         f_pro = process_fidelity(chan, require_cp=True, require_tp=True)
-        f_target = p * 0.25 + (1 - p)
+        f_target = prob * 0.25 + (1 - prob)
         self.assertAlmostEqual(f_pro, f_target, places=7)
 
         # Depolarizing channel
-        p = 0.5
+        prob = 0.5
         op = Operator.from_label('Y')
-        chan = (p * depol + (1 - p) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden) @ op
         f_pro = process_fidelity(chan, op, require_cp=True, require_tp=True)
-        target = p * 0.25 + (1 - p)
+        target = prob * 0.25 + (1 - prob)
         self.assertAlmostEqual(f_pro, target, places=7)
 
     def test_operator_average_gate_fidelity(self):
@@ -96,21 +96,21 @@ class TestOperatorMeasures(QiskitTestCase):
         self.assertAlmostEqual(f_ave, 1.0, places=7)
 
         # Depolarizing channel
-        p = 0.11
-        chan = p * depol + (1 - p) * iden
+        prob = 0.11
+        chan = prob * depol + (1 - prob) * iden
         f_ave = average_gate_fidelity(chan, require_cp=True, require_tp=True)
-        f_target = (2 * (p * 0.25 + (1 - p)) + 1) / 3
+        f_target = (2 * (prob * 0.25 + (1 - prob)) + 1) / 3
         self.assertAlmostEqual(f_ave, f_target, places=7)
 
         # Depolarizing channel
-        p = 0.5
+        prob = 0.5
         op = Operator.from_label('Y')
-        chan = (p * depol + (1 - p) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden) @ op
         f_ave = average_gate_fidelity(chan,
                                       op,
                                       require_cp=True,
                                       require_tp=True)
-        target = (2 * (p * 0.25 + (1 - p)) + 1) / 3
+        target = (2 * (prob * 0.25 + (1 - prob)) + 1) / 3
         self.assertAlmostEqual(f_ave, target, places=7)
 
     def test_operator_gate_error(self):
@@ -132,16 +132,16 @@ class TestOperatorMeasures(QiskitTestCase):
         iden = Choi(Operator.from_label('I'))
 
         # Depolarizing channel
-        p = 0.11
-        chan = p * depol + (1 - p) * iden
+        prob = 0.11
+        chan = prob * depol + (1 - prob) * iden
         err = gate_error(chan, require_cp=True, require_tp=True)
         target = 1 - average_gate_fidelity(chan)
         self.assertAlmostEqual(err, target, places=7)
 
         # Depolarizing channel
-        p = 0.5
+        prob = 0.5
         op = Operator.from_label('Y')
-        chan = (p * depol + (1 - p) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden) @ op
         err = gate_error(chan, op, require_cp=True, require_tp=True)
         target = 1 - average_gate_fidelity(chan, op)
         self.assertAlmostEqual(err, target, places=7)
