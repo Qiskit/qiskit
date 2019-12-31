@@ -1832,5 +1832,5 @@ class TestTextWithLayout(QiskitTestCase):
                               coupling_map=coupling_map, optimization_level=0)
         self.assertEqual(qc_result.draw(output='text', fold=86).single_string(), expected)
 
-        if __name__ == '__main__':
-            unittest.main()
+if __name__ == '__main__':
+    unittest.main()
