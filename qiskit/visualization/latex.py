@@ -212,10 +212,11 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {}_{{{}}} : \\ket{{0}} }}".format(
+                    self._latex[i][0] = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    self._latex[i][0] = "\\lstick{{ {}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
+                    self._latex[i][
+                        0] = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
@@ -558,7 +559,7 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
@@ -614,7 +615,7 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2

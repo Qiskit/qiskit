@@ -533,9 +533,9 @@ class MatplotlibDrawer:
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 if self.layout is None:
-                    label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
+                    label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
                 else:
-                    label = '${name}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
                         physical=reg.index)
