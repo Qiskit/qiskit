@@ -15,6 +15,7 @@
 """
 A module for using quaternions.
 """
+import warnings
 import math
 import numpy as np
 import scipy.linalg as la
@@ -107,9 +108,54 @@ class Quaternion:
             euler[0] = math.atan2(mat[1, 0], mat[1, 1])
         return euler
 
+    @classmethod
+    def from_axis_rotation(cls, angle, axis):
+        """Return quaternion for rotation about given axis.
+
+        Args:
+            angle (float): Angle in radians.
+            axis (str): Axis for rotation
+
+        Returns:
+            Quaternion: Quaternion for axis rotation.
+
+        Raises:
+            ValueError: Invalid input axis.
+        """
+        out = np.zeros(4, dtype=float)
+        if axis == 'x':
+            out[1] = 1
+        elif axis == 'y':
+            out[2] = 1
+        elif axis == 'z':
+            out[3] = 1
+        else:
+            raise ValueError('Invalid axis input.')
+        out *= math.sin(angle/2.0)
+        out[0] = math.cos(angle/2.0)
+        return cls(out)
+
+    @classmethod
+    def from_euler(cls, angles, order='yzy'):
+        """Generate a quaternion from a set of Euler angles.
+
+        Args:
+            angles (array_like): Array of Euler angles.
+            order (str): Order of Euler rotations.  'yzy' is default.
+
+        Returns:
+            Quaternion: Quaternion representation of Euler rotation.
+        """
+        angles = np.asarray(angles, dtype=float)
+        quat = cls.from_axis_rotation(angles[0], order[0]) \
+                * (cls.from_axis_rotation(angles[1], order[1]) \
+                * cls.from_axis_rotation(angles[2], order[2]))
+        quat.normalize(inplace=True)
+        return quat
+
 
 def quaternion_from_axis_rotation(angle, axis):
-    """Return quaternion for rotation about given axis.
+    """DEPRECATED - Return quaternion for rotation about given axis.
 
     Args:
         angle (float): Angle in radians.
@@ -121,22 +167,13 @@ def quaternion_from_axis_rotation(angle, axis):
     Raises:
         ValueError: Invalid input axis.
     """
-    out = np.zeros(4, dtype=float)
-    if axis == 'x':
-        out[1] = 1
-    elif axis == 'y':
-        out[2] = 1
-    elif axis == 'z':
-        out[3] = 1
-    else:
-        raise ValueError('Invalid axis input.')
-    out *= math.sin(angle/2.0)
-    out[0] = math.cos(angle/2.0)
-    return Quaternion(out)
+    warnings.warn("quaternion_from_axis_rotation is deprecated. "
+                  "Use Quaternion.from_axis_rotation() class method instead", DeprecationWarning)
+    return Quaternion.from_axis_rotation(angle, axis)
 
 
 def quaternion_from_euler(angles, order='yzy'):
-    """Generate a quaternion from a set of Euler angles.
+    """DEPRECATED - Generate a quaternion from a set of Euler angles.
 
     Args:
         angles (array_like): Array of Euler angles.
@@ -145,9 +182,6 @@ def quaternion_from_euler(angles, order='yzy'):
     Returns:
         Quaternion: Quaternion representation of Euler rotation.
     """
-    angles = np.asarray(angles, dtype=float)
-    quat = quaternion_from_axis_rotation(angles[0], order[0])\
-        * (quaternion_from_axis_rotation(angles[1], order[1])
-           * quaternion_from_axis_rotation(angles[2], order[2]))
-    quat.normalize(inplace=True)
-    return quat
+    warnings.warn("quaternion_from_euler is deprecated. "
+                  "Use Quaternion.from_euler() class method instead", DeprecationWarning)
+    return Quaternion.from_euler(angles, order)
