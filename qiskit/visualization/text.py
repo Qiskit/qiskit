@@ -605,7 +605,7 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '({name}_{index}) {physical} ' + initial_qubit_value
+                label = '{name}_{index} -> {physical} ' + initial_qubit_value
                 qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
                                                  index=self.layout[bit.index].index,
                                                  physical=bit.index))
