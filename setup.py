@@ -89,9 +89,11 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -104,7 +106,8 @@ setup(
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
                           "seaborn>=0.9.0"],
-        'full-featured-simulators': ['qiskit-aer>=0.1']
+        'full-featured-simulators': ['qiskit-aer>=0.1'],
+        'crosstalk-pass': ['z3-solver>=4.7'],
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

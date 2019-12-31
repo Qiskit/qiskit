@@ -611,7 +611,7 @@ class TestLogPasses(QiskitTestCase):
 
 
 class TestPassManagerReuse(SchedulerTestCase):
-    """The PassManager instance should be resusable."""
+    """The PassManager instance should be reusable."""
 
     def setUp(self):
         self.passmanager = PassManager()
@@ -771,7 +771,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
         expected_length = 0
         self.assertEqual(length, expected_length)
 
-    def test_passmanger_length(self):
+    def test_passmanager_length(self):
         """ test len(PassManager) when PassManager is not empty """
         self.passmanager.append(PassA_TP_NR_NP())
         self.passmanager.append(PassA_TP_NR_NP())
