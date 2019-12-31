@@ -36,13 +36,13 @@ def process_fidelity(channel,
     This process fidelity :math:`F_{\text{pro}}` is given by
 
     .. math::
-        F_{\text{pro}}(\cal{E}, U)
-            = Tr[S_U^\dagger S_{\cal{E}}])/d^2
+        F_{\text{pro}}(\mathcal{E}, U)
+            = \frac{Tr[S_U^\dagger S_{\mathcal{E}}]}{d^2}
 
-    where :math:`S_{\cal{E}}, S_{U}` are the ``SuperOp`` matrices for the
-    input quantum ``channel`` :math:`\cal{E}` and ``target`` unitary
-    :math:`U` respectively, and :math:`d` is the dimension of the
-    ``channel``.
+    where :math:`S_{\mathcal{E}}, S_{U}` are the
+    :class:`~qiskit.quantum_info.SuperOp` matrices for the input quantum
+    *channel* :math:`\cal{E}` and *target* unitary :math:`U` respectively,
+    and :math:`d` is the dimension of the *channel*.
 
     Args:
         channel (QuantumChannel): noisy quantum channel.
@@ -124,14 +124,15 @@ def average_gate_fidelity(channel,
     The average gate fidelity :math:`F_{\text{ave}}` is given by
 
     .. math::
-        F_{text{ave}}(\cal{E}, U)
-            &= \int d\psi \rangle\psi|U^\dagger
-                \cal{E}(|\psi\langle\!\!\rangle\psi|)U|\psi\langle \\
-            &= (d * F_{\text{pro}}(\cal{E}, U) + 1) / (d + 1)
+        F_{\text{ave}}(\mathcal{E}, U)
+            &= \int d\psi \langle\psi|U^\dagger
+                \mathcal{E}(|\psi\rangle\!\langle\psi|)U|\psi\rangle \\
+            &= \frac{d F_{\text{pro}}(\mathcal{E}, U) + 1}{d + 1}
 
-    where :math:`F_{\text{pro}}(\cal{E}, U)` is the ``process_fidelity``
-    of the input quantum ``channel`` :math:`\cal{E}` with a ``target``
-    unitary :math:`U`, and :math:`d` is the dimension of the ``channel``.
+    where :math:`F_{\text{pro}}(\mathcal{E}, U)` is the
+    :meth:`~qiskit.quantum_info.process_fidelity` of the input quantum
+    *channel* :math:`\mathcal{E}` with a *target* unitary :math:`U`, and
+    :math:`d` is the dimension of the *channel*.
 
     Args:
         channel (QuantumChannel): noisy quantum channel.
@@ -169,11 +170,12 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
     The gate error :math:`E` is given by the average gate infidelity
 
     .. math::
-        E(\cal{E}, U) = 1 - F_{\text{ave}}((\cal{E}, U)
+        E(\mathcal{E}, U) = 1 - F_{\text{ave}}(\mathcal{E}, U)
 
-    where :math:`F_{\text{ave}}(\cal{E}, U)` is the
-    ``average_gate_fidelity`` of the input quantum ``channel``
-    :math:`\cal{E}` with a ``target`` unitary :math:`U`.
+    where :math:`F_{\text{ave}}(\mathcal{E}, U)` is the
+    :meth:`~qiskit.quantum_info.average_gate_fidelity` of the input
+    quantum *channel* :math:`\mathcal{E}` with a *target* unitary
+    :math:`U`.
 
     Args:
         channel (QuantumChannel): noisy quantum channel.
