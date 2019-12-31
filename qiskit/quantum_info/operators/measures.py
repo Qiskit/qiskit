@@ -70,7 +70,7 @@ def process_fidelity(channel,
     else:
         channel = SuperOp(channel)
     input_dim, output_dim = channel.dim
-    if input_dim != input_dim:
+    if input_dim != output_dim:
         raise QiskitError(
             'Quantum channel must have equal input and output dimensions.')
 
