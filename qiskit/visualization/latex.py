@@ -212,14 +212,14 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    self._latex[i][
-                        0] = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
+                self._latex[i][0] = label
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
