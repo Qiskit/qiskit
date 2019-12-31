@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Quick program to test the quantum operators  modules."""
+"""Tests for operator measures."""
 
 import unittest
 import numpy as np
@@ -23,8 +23,8 @@ from qiskit.quantum_info import gate_error
 from qiskit.test import QiskitTestCase
 
 
-class TestOperators(QiskitTestCase):
-    """Tests for qi.py"""
+class TestOperatorMeasures(QiskitTestCase):
+    """Tests for Operator measures"""
     def test_operator_process_fidelity(self):
         """Test the process_fidelity function for operator inputs"""
         # Orthogonal operator
