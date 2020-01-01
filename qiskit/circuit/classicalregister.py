@@ -26,7 +26,7 @@ class Clbit(Bit):
     """Implement a classical bit."""
 
     def __init__(self, register, index):
-        """Create a new classical bit.
+        """Creates a classical bit.
 
         Args:
             register (ClassicalRegister): a classical register.

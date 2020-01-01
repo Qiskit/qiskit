@@ -26,7 +26,7 @@ class Qubit(Bit):
     """Implement a quantum bit."""
 
     def __init__(self, register, index):
-        """Create a new qubit.
+        """Creates a qubit.
 
         Args:
             register (QuantumRegister): a quantum register.
