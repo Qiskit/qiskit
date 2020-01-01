@@ -33,7 +33,7 @@ class Qubit(Bit):
             index (int): the index to insert the qubit
 
         Raises:
-            CircuitError: if the provided register is not a valid class:`QuantumRegister`
+            CircuitError: if the provided register is not a valid :class:`QuantumRegister`
         """
 
         if isinstance(register, QuantumRegister):

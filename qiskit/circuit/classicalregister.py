@@ -33,7 +33,7 @@ class Clbit(Bit):
             index (int): the index to insert the bit
 
         Raises:
-            CircuitError: if the provided register is not a valid class:`ClassicalRegister`
+            CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
         """
 
         if isinstance(register, ClassicalRegister):
