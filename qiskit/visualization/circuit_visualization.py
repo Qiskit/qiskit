@@ -203,8 +203,8 @@ def circuit_drawer(circuit,
 
             You must specify all the necessary values if using this. There is
             no provision for passing an incomplete dict in.
-        displaycolor (dict): The color codes to use for each circuit element.
-            The default values are::
+        displaycolor (dict):
+            The color codes to use for each circuit element. The default values are::
 
                 {
                     'id': '#F0E442',
@@ -246,6 +246,18 @@ def circuit_drawer(circuit,
         creglinestyle (str): The style of line to use for classical registers.
             Choices are `'solid'`, `'doublet'`, or any valid matplotlib
             `linestyle` kwarg value. Defaults to `doublet`
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.tools.visualization import circuit_drawer
+            q = QuantumRegister(1)
+            c = ClassicalRegister(1)
+            qc = QuantumCircuit(q, c)
+            qc.h(q)
+            qc.measure(q, c)
+            circuit_drawer(qc)
     """
     image = None
     config = user_config.get_config()
@@ -312,6 +324,9 @@ def circuit_drawer(circuit,
 # -----------------------------------------------------------------------------
 def qx_color_scheme():
     """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
+    warn('The qx_color_scheme function is deprecated as of 0.11, and '
+         'will be removed no earlier than 3 months after that release '
+         'date.', DeprecationWarning, stacklevel=2)
     return {
         "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
         "textcolor": "#000000",
@@ -386,8 +401,8 @@ def qx_color_scheme():
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
                          idle_wires=True, with_layout=True, fold=None,):
-    """
-    Draws a circuit using ascii art.
+    """Draws a circuit using ascii art.
+
     Args:
         circuit (QuantumCircuit): Input circuit
         filename (str): optional filename to write the result

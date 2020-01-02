@@ -125,7 +125,7 @@ other:
     instead of the numeric equivalent.
   - |
     When using ``qiskit.assembler.assemble_schedules()`` if you do not provide
-    the number of memory_slots to use the number will be infered based on the
+    the number of memory_slots to use the number will be inferred based on the
     number of acquisitions in the input schedules.
   - |
     The deprecation warning on the ``qiskit.dagcircuit.DAGCircuit`` property

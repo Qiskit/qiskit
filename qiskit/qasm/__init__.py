@@ -12,12 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tools for QASM.
+"""
+=========================
+Qasm (:mod:`qiskit.qasm`)
+=========================
 
-Use Unrollers in qiskit.unroll to convert a QASM specification to a qiskit circuit.
+.. currentmodule:: qiskit.qasm
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Qasm
+   QasmError
 """
 
-from sympy import pi
+from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError

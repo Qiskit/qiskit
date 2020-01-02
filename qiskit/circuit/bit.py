@@ -15,8 +15,7 @@
 """
 Quantum bit and Classical bit objects.
 """
-from warnings import warn
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
@@ -28,15 +27,15 @@ class Bit:
         try:
             index = int(index)
         except Exception:
-            raise QiskitError("index needs to be castable to an int: type %s was provided" %
-                              type(index))
+            raise CircuitError("index needs to be castable to an int: type %s was provided" %
+                               type(index))
 
         if index < 0:
             index += register.size
 
         if index >= register.size:
-            raise QiskitError("index must be under the size of the register: %s was provided" %
-                              index)
+            raise CircuitError("index must be under the size of the register: %s was provided" %
+                               index)
 
         self.register = register
         self.index = index
@@ -45,24 +44,10 @@ class Bit:
         """Return the official string representing the bit."""
         return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
-    def __getitem__(self, item):
-        warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
-             'Go for bit.register and bit.index.', DeprecationWarning, stacklevel=2)
-        if item == 0:
-            return self.register
-        elif item == 1:
-            return self.index
-        else:
-            raise IndexError
-
     def __hash__(self):
         return hash((self.register, self.index))
 
     def __eq__(self, other):
         if isinstance(other, Bit):
             return other.index == self.index and other.register == self.register
-        if isinstance(other, tuple):
-            warn('Equality check between a tuple and a Bit instances is deprecated. '
-                 'Convert your tuples to a Bit object.', DeprecationWarning, stacklevel=2)
-            return other[1] == self.index and other[0] == self.register
         return False

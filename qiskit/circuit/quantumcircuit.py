@@ -17,12 +17,13 @@
 from copy import deepcopy
 import itertools
 import sys
+import warnings
 import multiprocessing as mp
-from warnings import warn
 from collections import OrderedDict
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -34,19 +35,86 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 
 
-def _is_bit(obj):
-    """Determine if obj is a bit"""
-    # If there is a bit type this could be replaced by isinstance.
-    if isinstance(obj, tuple) and len(obj) == 2:
-        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
-            warn('Referring to a bit as a tuple is being deprecated. '
-                 'Instead go of (qr, 0), use qr[0].', DeprecationWarning)
-            return True
-    return False
-
-
 class QuantumCircuit:
-    """Quantum circuit."""
+    """Create a new circuit.
+
+    A circuit is a list of instructions bound to some registers.
+
+    Args:
+        regs: list(:class:`Register`) or list(``int``) The registers to be
+            included in the circuit.
+
+                * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
+                  and/or :class:`ClassicalRegister` objects to include in the circuit.
+
+                For example:
+
+                * ``QuantumCircuit(QuantumRegister(4))``
+                * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
+                * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
+
+                * If a list of ``int``, the amount of qubits and/or classical bits to include in
+                  the circuit. It can either be a single int for just the number of quantum bits,
+                  or 2 ints for the number of quantum bits and classical bits, respectively.
+
+                For example:
+
+                * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
+                * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
+
+
+        name (str): the name of the quantum circuit. If not set, an
+            automatically generated string will be assigned.
+
+    Raises:
+        CircuitError: if the circuit name, if given, is not valid.
+
+    Examples:
+
+        Construct a simple Bell state circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            qc.draw()
+
+        Construct a 5-qubit GHZ circuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(5)
+            qc.h(0)
+            qc.cx(0, range(1, 5))
+            qc.measure_all()
+
+        Construct a 4-qubit Berstein-Vazirani circuit using registers.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+            qr = QuantumRegister(3, 'q')
+            anc = QuantumRegister(1, 'ancilla')
+            cr = ClassicalRegister(3, 'c')
+            qc = QuantumCircuit(qr, anc, cr)
+
+            qc.x(anc[0])
+            qc.h(anc[0])
+            qc.h(qr[0:3])
+            qc.cx(qr[0:3], anc[0])
+            qc.h(qr[0:3])
+            qc.barrier(qr)
+            qc.measure(qr, cr)
+
+            qc.draw()
+    """
     instances = 0
     prefix = 'circuit'
 
@@ -55,36 +123,27 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None):
-        """Create a new circuit.
-        A circuit is a list of instructions bound to some registers.
-        Args:
-            *regs (list(Register) or list(Int)): To be included in the circuit.
-                  - If [Register], the QuantumRegister and/or ClassicalRegister
-                    to include in the circuit.
-                    E.g.: QuantumCircuit(QuantumRegister(4))
-                          QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))
-                          QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))
-                  - If [Int], the amount of qubits and/or classical bits to include
-                  in the circuit. It can be (Int, ) or (Int, Int).
-                    E.g.: QuantumCircuit(4) # A QuantumCircuit with 4 qubits
-                          QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits
-            name (str or None): the name of the quantum circuit. If
-                None, an automatically generated string will be assigned.
-
-        Raises:
-            QiskitError: if the circuit name, if given, is not valid.
-        """
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32" and isinstance(mp.current_process(), mp.context.ForkProcess):
-                name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32":
+                if isinstance(mp.current_process(),
+                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
+                    name += '-{}'.format(mp.current_process().pid)
+                elif sys.version_info[0] == 3 \
+                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
+                        and mp.current_process().name != 'MainProcess':
+                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
+                    # because processes created by "ProcessPoolExecutor" are not
+                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+                    # "name" of the process is checked instead.
+                    name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
-            raise QiskitError("The circuit name should be a string "
-                              "(or None to auto-generate a name).")
+            raise CircuitError("The circuit name should be a string "
+                               "(or None to auto-generate a name).")
 
         self.name = name
 
@@ -104,14 +163,14 @@ class QuantumCircuit:
 
     @property
     def data(self):
-        """Return the circuit data (instructions and context)
+        """Return the circuit data (instructions and context).
 
         Returns:
-            QuantumCircuitData: a list-like object containing the tuples for the
-               circuit's data. Each tuple is in the format (instruction, qargs,
-               cargs). Where instruction is an Instruction (or subclass) object,
-               qargs is a list of Qubit objects, and cargs is a list of Clbit
-               objects.
+            QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
+
+            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an
+            Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a
+            list of Clbit objects.
         """
         return QuantumCircuitData(self)
 
@@ -121,7 +180,7 @@ class QuantumCircuit:
 
         Args:
             data_input (list): A list of instructions with context
-                in the format (instruction, qargs, cargs). Where Instruction
+                in the format (instruction, qargs, cargs), where Instruction
                 is an Instruction (or subclass) object, qargs is a list of
                 Qubit objects, and cargs is a list of Clbit objects.
         """
@@ -200,7 +259,7 @@ class QuantumCircuit:
             QuantumCircuit: the inverted circuit
 
         Raises:
-            QiskitError: if the circuit cannot be inverted.
+            CircuitError: if the circuit cannot be inverted.
         """
         inverse_circ = self.copy(name=self.name + '_dg')
         inverse_circ._data = []
@@ -209,8 +268,7 @@ class QuantumCircuit:
         return inverse_circ
 
     def combine(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -218,6 +276,15 @@ class QuantumCircuit:
         circuits.
 
         Return self + rhs as a new object.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns a new QuantumCircuit object
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -238,8 +305,7 @@ class QuantumCircuit:
         return circuit
 
     def extend(self, rhs):
-        """
-        Append rhs to self if self contains compatible registers.
+        """Append QuantumCircuit to the right hand side if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -247,6 +313,15 @@ class QuantumCircuit:
         circuits.
 
         Modify and return self.
+
+        Args:
+            rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
+
+        Returns:
+            QuantumCircuit: Returns this QuantumCircuit object (which has been modified)
+
+        Raises:
+            QiskitError: if the rhs circuit is not compatible
         """
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
@@ -267,14 +342,14 @@ class QuantumCircuit:
     @property
     def qubits(self):
         """
-        Returns a list of quantum bits in the order that the registers had been added.
+        Returns a list of quantum bits in the order that the registers were added.
         """
         return [qbit for qreg in self.qregs for qbit in qreg]
 
     @property
     def clbits(self):
         """
-        Returns a list of classical bits in the order that the registers had been added.
+        Returns a list of classical bits in the order that the registers were added.
         """
         return [cbit for creg in self.cregs for cbit in creg]
 
@@ -318,12 +393,6 @@ class QuantumCircuit:
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 ret = in_array[bit_representation]
-            elif _is_bit(bit_representation):
-                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
-                ret = [bit_representation[0][bit_representation[1]]]
-            elif isinstance(bit_representation, list) and \
-                    all(_is_bit(bit) for bit in bit_representation):
-                ret = [bit[0][bit[1]] for bit in bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
@@ -331,20 +400,22 @@ class QuantumCircuit:
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
                 # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                ret = [in_array[index] for index in bit_representation]
+                # circuit.h([qr[0],1])  -> circuit.h([qr[0], qr[1]])
+                ret = [index if isinstance(index, Bit) else in_array[
+                    index] for index in bit_representation]
             else:
-                raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
-                                                                    type(bit_representation)))
+                raise CircuitError('Not able to expand a %s (%s)' % (bit_representation,
+                                                                     type(bit_representation)))
         except IndexError:
-            raise QiskitError('Index out of range.')
+            raise CircuitError('Index out of range.')
         except TypeError:
-            raise QiskitError('Type error handling %s (%s)' % (bit_representation,
-                                                               type(bit_representation)))
+            raise CircuitError('Type error handling %s (%s)' % (bit_representation,
+                                                                type(bit_representation)))
         return ret
 
     def qbit_argument_conversion(self, qubit_representation):
         """
-        Converts several qubit representations (such as indexes, range, etc)
+        Converts several qubit representations (such as indexes, range, etc.)
         into a list of qubits.
 
         Args:
@@ -357,7 +428,7 @@ class QuantumCircuit:
 
     def cbit_argument_conversion(self, clbit_representation):
         """
-        Converts several classical bit representations (such as indexes, range, etc)
+        Converts several classical bit representations (such as indexes, range, etc.)
         into a list of classical bits.
 
         Args:
@@ -405,11 +476,11 @@ class QuantumCircuit:
             Instruction: a handle to the instruction that was just added
 
         Raises:
-            QiskitError: if the gate is of a different shape than the wires
+            CircuitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
         if not isinstance(instruction, Instruction):
-            raise QiskitError('object is not an Instruction.')
+            raise CircuitError('object is not an Instruction.')
 
         # do some compatibility checks
         self._check_dups(qargs)
@@ -436,7 +507,7 @@ class QuantumCircuit:
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
                         if parameter.name in {p.name for p in current_parameters}:
-                            raise QiskitError(
+                            raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
@@ -462,40 +533,40 @@ class QuantumCircuit:
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
             else:
-                raise QiskitError("QuantumCircuit parameters can be Registers or Integers."
-                                  " If Integers, up to 2 arguments. QuantumCircuit was called"
-                                  " with %s." % (regs,))
+                raise CircuitError("QuantumCircuit parameters can be Registers or Integers."
+                                   " If Integers, up to 2 arguments. QuantumCircuit was called"
+                                   " with %s." % (regs,))
 
         for register in regs:
             if register.name in [reg.name for reg in self.qregs + self.cregs]:
-                raise QiskitError("register name \"%s\" already exists"
-                                  % register.name)
+                raise CircuitError("register name \"%s\" already exists"
+                                   % register.name)
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
             else:
-                raise QiskitError("expected a register")
+                raise CircuitError("expected a register")
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
         squbits = set(qubits)
         if len(squbits) != len(qubits):
-            raise QiskitError("duplicate qubit arguments")
+            raise CircuitError("duplicate qubit arguments")
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
-            raise QiskitError("qarg is not a Qubit")
+            raise CircuitError("qarg is not a Qubit")
         if not all(self.has_register(i.register) for i in qargs):
-            raise QiskitError("register not in this circuit")
+            raise CircuitError("register not in this circuit")
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
-            raise QiskitError("carg is not a Clbit")
+            raise CircuitError("carg is not a Clbit")
         if not all(self.has_register(i.register) for i in cargs):
-            raise QiskitError("register not in this circuit")
+            raise CircuitError("register not in this circuit")
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.
@@ -508,10 +579,26 @@ class QuantumCircuit:
 
         Returns:
             Instruction: a composite instruction encapsulating this circuit
-                (can be decomposed back)
+            (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
+
+    def to_gate(self, parameter_map=None):
+        """Create a Gate out of this circuit.
+
+        Args:
+            parameter_map(dict): For parameterized circuits, a mapping from
+               parameters in the circuit to parameters to be used in the
+               gate. If None, existing circuit parameters will also
+               parameterize the gate.
+
+        Returns:
+            Gate: a composite gate encapsulating this circuit
+            (can be decomposed back)
+        """
+        from qiskit.converters.circuit_to_gate import circuit_to_gate
+        return circuit_to_gate(self, parameter_map)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,
@@ -535,7 +622,7 @@ class QuantumCircuit:
             for element2 in list2:
                 if element2.name == element1.name:
                     if element1 != element2:
-                        raise QiskitError("circuits are not compatible")
+                        raise CircuitError("circuits are not compatible")
 
     def qasm(self):
         """Return OpenQASM string."""
@@ -545,6 +632,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
+        unitary_gates = []
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
@@ -556,55 +644,62 @@ class QuantumCircuit:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
+            if instruction.name == 'unitary':
+                unitary_gates.append(instruction)
+
+        # this resets them, so if another call to qasm() is made the gate def is added again
+        for gate in unitary_gates:
+            gate._qasm_def_written = False
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output=None,
+    def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None):
-        """Draw the quantum circuit
+        """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
 
-        **latex**: high-quality images compiled via latex.
+        **latex**: high-quality images compiled via LaTeX.
 
-        **latex_source**: raw uncompiled latex output.
+        **latex_source**: raw uncompiled LaTeX output.
 
         **matplotlib**: images with color rendered purely in Python.
 
         Args:
-            scale (float): scale of image to draw (shrink if < 1)
-            filename (str): file path to save image to
-            style (dict or str): dictionary of style or file name of style
-                file. This option is only used by the ``mpl`` output type. If a
-                str is passed in that is the path to a json file which contains
-                that will be open, parsed, and then used just as the input
-                dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
-                information on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``latex``,
                 ``latex_source``, or ``mpl``. By default the `'text`' drawer is
                 used unless a user config file has an alternative backend set
                 as the default. If the output kwarg is set, that backend
                 will always be used over the default in a user config file.
+            scale (float): scale of image to draw (shrink if < 1)
+            filename (str): file path to save image to
+            style (dict or str): dictionary of style or file name of style
+                file. This option is only used by the ``mpl`` output type. If a
+                str is passed in that is the path to a json file which contains
+                a dictionary of style, then that will be opened, parsed, and used
+                as the input dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
+                information on the contents.
+
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
                 `latex_source` output type this has no effect and will be
                 silently ignored.
-            line_length (int): Deprecated, see `fold` which supersedes this
+            line_length (int): Deprecated; see `fold` which supersedes this
                 option. Sets the length of the lines generated by `text` output
-                type. This useful when the drawing does not fit in the console.
+                type. This is useful when the drawing does not fit in the console.
                 If None (default), it will try to guess the console width using
                 ``shutil.get_terminal_size()``. However, if you're running in
-                jupyter the default line length is set to 80 characters. If you
+                jupyter, the default line length is set to 80 characters. If you
                 don't want pagination at all, set ``line_length=-1``.
-            reverse_bits (bool): When set to True reverse the bit order inside
+            reverse_bits (bool): When set to True, reverse the bit order inside
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                 circuit. Defaults to True.
             justify (string): Options are ``left``, ``right`` or
-                ``none``, if anything else is supplied it defaults to left
+                ``none``. If anything else is supplied it defaults to left
                 justified. It refers to where gates should be placed in the
                 output circuit if there is an option. ``none`` results in
                 each gate being placed in its own column.
@@ -618,15 +713,15 @@ class QuantumCircuit:
             with_layout (bool): Include layout information, with labels on the
                 physical layout. Default is True.
             fold (int): Sets pagination. It can be disabled using -1.
-                In `text`, sets the length of the lines. This useful when the
+                In `text`, sets the length of the lines. This is useful when the
                 drawing does not fit in the console. If None (default), it will
                 try to guess the console width using ``shutil.
                 get_terminal_size()``. However, if running in jupyter, the
                 default line length is set to 80 characters. In ``mpl`` is the
                 number of (visual) layers before folding. Default is 25.
             ax (matplotlib.axes.Axes): An optional Axes object to be used for
-                the visualization output. If none is specified a new matplotlib
-                Figure will be created and used. Additionally, if specified
+                the visualization output. If none is specified, a new matplotlib
+                Figure will be created and used. Additionally, if specified,
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
@@ -643,12 +738,12 @@ class QuantumCircuit:
             * `str` (output='latex_source')
                 The LaTeX source code for visualizing the circuit diagram.
             * `TextDrawing` (output='text')
-                A drawing that can be printed as ascii art
+                A drawing that can be printed as ASCII art.
 
         Raises:
             VisualizationError: when an invalid output method is selected
-            ImportError: when the output methods requires non-installed
-                libraries.
+            ImportError: when the output methods require non-installed
+                libraries
 
         .. _style-dict-circ-doc:
 
@@ -676,8 +771,8 @@ class QuantumCircuit:
                 Defaults to `'#bdbdbd'`
             backgroundcolor (str): The color code to use for the background.
                 Defaults to `'#ffffff'`
-            fontsize (int): The font size to use for text. Defaults to 13
-            subfontsize (int): The font size to use for subtext. Defaults to 8
+            fontsize (int): The font size to use for text. Defaults to 13.
+            subfontsize (int): The font size to use for subtext. Defaults to 8.
             displaytext (dict): A dictionary of the text to use for each
                 element type in the output visualization. The default values
                 are::
@@ -732,16 +827,16 @@ class QuantumCircuit:
                Also, just like  `displaytext` there is no provision for an
                incomplete dict passed in.
 
-            latexdrawerstyle (bool): When set to True enable latex mode which
+            latexdrawerstyle (bool): When set to True, enable LaTeX mode, which
                 will draw gates like the `latex` output modes.
-            usepiformat (bool): When set to True use radians for output
+            usepiformat (bool): When set to True, use radians for output.
             fold (int): The number of circuit elements to fold the circuit at.
-                Defaults to 20
-            cregbundle (bool): If set True bundle classical registers
-            showindex (bool): If set True draw an index.
-            compress (bool): If set True draw a compressed circuit
+                Defaults to 20.
+            cregbundle (bool): If set True, bundle classical registers
+            showindex (bool): If set True, draw an index.
+            compress (bool): If set True, draw a compressed circuit.
             figwidth (int): The maximum width (in inches) for the output figure.
-            dpi (int): The DPI to use for the output image. Defaults to 150
+            dpi (int): The DPI to use for the output image. Defaults to 150.
             margin (list): A list of margin values to adjust spacing around
                 output image. Takes a list of 4 ints:
                 [x left, x right, y bottom, y top].
@@ -752,6 +847,13 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
+        if isinstance(output, (int, float, np.number)):
+            warnings.warn("Setting 'scale' as the first argument is deprecated. "
+                          "Use scale=%s instead." % output,
+                          DeprecationWarning)
+            scale = output
+            output = None
+
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,
@@ -779,7 +881,7 @@ class QuantumCircuit:
         return gate_ops
 
     def depth(self):
-        """Return circuit depth (i.e. length of critical path).
+        """Return circuit depth (i.e., length of critical path).
         This does not include compiler or simulator directives
         such as 'barrier' or 'snapshot'.
 
@@ -787,7 +889,7 @@ class QuantumCircuit:
             int: Depth of circuit.
 
         Notes:
-            The circuit depth and the DAG depth need not bt the
+            The circuit depth and the DAG depth need not be the
             same.
         """
         # Labels the registers by ints
@@ -798,6 +900,10 @@ class QuantumCircuit:
         for reg in self.qregs + self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
+
+        # If no registers return 0
+        if reg_offset == 0:
+            return 0
 
         # A list that holds the height of each qubit
         # and classical bit.
@@ -969,18 +1075,19 @@ class QuantumCircuit:
 
         Notes:
             This is here for backwards compatibility, and will be
-            removed in a future release of qiskit. You should call
+            removed in a future release of Qiskit. You should call
             `num_unitary_factors` instead.
         """
         return self.num_unitary_factors()
 
     def copy(self, name=None):
-        """
+        """Copy the circuit.
+
         Args:
-          name (str): name to be given to the copied circuit, if None then the name stays the same
+          name (str): name to be given to the copied circuit. If None, then the name stays the same
+
         Returns:
-          QuantumCircuit: a deepcopy of the current circuit, with the name updated if
-                          it was provided
+          QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
         cpy = deepcopy(self)
         if name:
@@ -1076,7 +1183,7 @@ class QuantumCircuit:
 
     @property
     def parameters(self):
-        """convenience function to get the parameters defined in the parameter table"""
+        """Convenience function to get the parameters defined in the parameter table."""
         return set(self._parameter_table.keys())
 
     def bind_parameters(self, value_dict):
@@ -1086,7 +1193,7 @@ class QuantumCircuit:
             value_dict (dict): {parameter: value, ...}
 
         Raises:
-            QiskitError: If value_dict contains parameters not present in the circuit
+            CircuitError: If value_dict contains parameters not present in the circuit
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
@@ -1095,7 +1202,7 @@ class QuantumCircuit:
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         if unrolled_value_dict.keys() > self.parameters:
-            raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
         for parameter, value in unrolled_value_dict.items():
@@ -1112,9 +1219,9 @@ class QuantumCircuit:
                 unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
-                    raise QiskitError('ParameterVector {} has length {}, which '
-                                      'differs from value list {} of '
-                                      'len {}'.format(param, len(param), value, len(value)))
+                    raise CircuitError('ParameterVector {} has length {}, which '
+                                       'differs from value list {} of '
+                                       'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
         return unrolled_value_dict
 

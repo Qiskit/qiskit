@@ -17,7 +17,6 @@
 from collections.abc import Mapping
 
 import numpy
-import sympy
 
 from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError
@@ -45,7 +44,7 @@ class Complex(ModelTypeValidator):
         try:
             return [value.real, value.imag]
         except AttributeError:
-            raise self.make_error('format', input=value)
+            raise self.make_error_serialize('format', input=value)
 
     def _deserialize(self, value, attr, data, **_):
         if not is_collection(value) or len(value) != 2:
@@ -64,7 +63,6 @@ class InstructionParameter(ModelTypeValidator):
     qobj.experiments.instructions.parameters:
     * basic Python types: complex, int, float, str, list
     * ``numpy``: integer, float, ndarray
-    * ``sympy``: Symbol, Basic
 
     Note that by using this field, serialization-deserialization round-tripping
     becomes not possible, as certain types serialize to the same Python basic
@@ -73,7 +71,7 @@ class InstructionParameter(ModelTypeValidator):
     """
     valid_types = (complex, int, float, str,
                    ParameterExpression,
-                   numpy.integer, numpy.float, sympy.Basic, sympy.Symbol,
+                   numpy.integer, numpy.float,
                    list, numpy.ndarray)
 
     default_error_messages = {
@@ -96,25 +94,14 @@ class InstructionParameter(ModelTypeValidator):
             return value
         if isinstance(value, ParameterExpression):
             if value.parameters:
-                bare_error = self.make_error('invalid', input=value)
-                raise ValidationError({self.name: bare_error.messages},
-                                      field_name=self.name)
+                raise self.make_error_serialize('invalid', input=value)
             return float(value)
-        if isinstance(value, sympy.Symbol):
-            return str(value)
-        if isinstance(value, sympy.Basic):
-            if sympy.im(value) != 0:
-                return [float(sympy.re(value)), float(sympy.im(value))]
-            if value.is_Integer:
-                return int(value.evalf())
-            else:
-                return float(value.evalf())
 
         # Fallback for attempting serialization.
         if hasattr(value, 'to_dict'):
             return value.to_dict()
 
-        raise self.make_error('format', input=value)
+        raise self.make_error_serialize('format', input=value)
 
     def _deserialize(self, value, attr, data, **kwargs):
         if is_collection(value):
@@ -205,7 +192,7 @@ class DictParameters(ModelTypeValidator):
         if isinstance(value, Mapping):
             return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        raise self.make_error('invalid_mapping')
+        raise self.make_error_serialize('invalid_mapping')
 
     def _deserialize(self, value, attr, data, **_):
         if value is None:

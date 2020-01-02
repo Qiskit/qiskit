@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Assemble function for converting a list of circuits into a qobj"""
+"""Assemble function for converting a list of circuits into a qobj."""
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig)
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
-    """Assembles a list of circuits into a qobj which can be run on the backend.
+    """Assembles a list of circuits into a qobj that can be run on the backend.
 
     Args:
         circuits (list[QuantumCircuit]): circuit(s) to assemble
@@ -28,7 +28,7 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
         run_config (RunConfig): configuration of the runtime environment
 
     Returns:
-        QasmQobj: the Qobj to be run on the backends
+        QasmQobj: the qobj to be run on the backends
     """
     qobj_config = QasmQobjConfig()
     if run_config:
@@ -116,7 +116,8 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
                                                        mask="0x%X" % mask,
                                                        relation='==',
                                                        val="0x%X" % val,
-                                                       register=conditional_reg_idx)
+                                                       register=conditional_reg_idx,
+                                                       validate=False)
                 instructions.append(conversion_bfunc)
                 instruction.conditional = conditional_reg_idx
                 max_conditional_idx += 1

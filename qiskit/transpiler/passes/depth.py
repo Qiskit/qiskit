@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for calculating the depth of a DAG circuit.
-"""
+"""Calculate the depth of a DAG circuit."""
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class Depth(AnalysisPass):
-    """ An analysis pass for calculating the depth of a DAG circuit.
-    """
+    """Calculate the depth of a DAG circuit."""
 
     def run(self, dag):
+        """Run the Depth pass on `dag`."""
         self.property_set['depth'] = dag.depth()

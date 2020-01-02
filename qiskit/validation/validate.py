@@ -32,7 +32,8 @@ class Or(Validator):
     """
 
     def __init__(self, validators):
-        """
+        """Or initializer.
+
         Args:
             validators (list[Validator]): list of Validators.
         """
@@ -68,7 +69,8 @@ class PatternProperties(Validator):
     """
 
     def __init__(self, pattern_properties):
-        """
+        """PatternProperties initializer.
+
         Args:
             pattern_properties (dict[Validator: Field]): dictionary of the
                 valid mappings.

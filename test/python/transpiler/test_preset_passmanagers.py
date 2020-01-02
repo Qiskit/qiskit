@@ -152,7 +152,7 @@ class TestPassesInspection(QiskitTestCase):
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
-    """Test transpiing with different layouts"""
+    """Test transpiling with different layouts"""
 
     @data(0, 1, 2, 3)
     def test_layout_1711(self, level):

@@ -15,9 +15,9 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
-from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate
+from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase, Path
 
 

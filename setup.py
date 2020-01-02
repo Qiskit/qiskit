@@ -28,12 +28,15 @@ REQUIREMENTS = [
     "jsonschema>=2.6",
     "marshmallow>=3,<4",
     "marshmallow_polyfield>=5.7,<6",
-    "networkx>=2.2",
+    "networkx>=2.2;python_version>'3.5'",
+    # Networkx 2.4 is the final version with python 3.5 support.
+    "networkx>=2.2,<2.4;python_version=='3.5'",
     "numpy>=1.13",
     "ply>=3.10",
     "psutil>=5",
     "scipy>=1.0",
     "sympy>=1.3",
+    "dill>=0.3",
 ]
 
 # Add Cython extensions here
@@ -70,7 +73,7 @@ for ext in CYTHON_EXTS:
 
 setup(
     name="qiskit-terra",
-    version="0.10.0",
+    version="0.12.0",
     description="Software for developing quantum computing programs",
     long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",
@@ -86,9 +89,11 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -98,10 +103,11 @@ setup(
     include_package_data=True,
     python_requires=">=3.5",
     extras_require={
-        'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
+        'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
                           "seaborn>=0.9.0"],
-        'full-featured-simulators': ['qiskit-aer>=0.1']
+        'full-featured-simulators': ['qiskit-aer>=0.1'],
+        'crosstalk-pass': ['z3-solver>=4.7'],
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

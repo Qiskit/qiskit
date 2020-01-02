@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Assemble function for converting a list of circuits into a qobj"""
+"""Assemble function for converting a list of circuits into a qobj."""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse)
@@ -20,10 +20,12 @@ from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
-    """Assembles a list of schedules into a qobj which can be run on the backend.
+    """Assembles a list of schedules into a qobj that can be run on the backend.
+
     Args:
         schedules (list[Schedule]): schedules to assemble
         qobj_id (int): identifier for the generated qobj
@@ -52,6 +54,15 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
     meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
+
+    # convert enums to serialized values
+    meas_return = qobj_config.get('meas_return', 'avg')
+    if isinstance(meas_return, MeasReturnType):
+        qobj_config['meas_return'] = meas_return.value
+
+    meas_level = qobj_config.get('meas_return', 2)
+    if isinstance(meas_level, MeasLevel):
+        qobj_config['meas_level'] = meas_level.value
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 

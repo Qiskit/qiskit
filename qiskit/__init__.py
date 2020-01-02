@@ -18,20 +18,19 @@
 """Main Qiskit public functionality."""
 
 import pkgutil
+import sys
 import warnings
 
 # First, check for required Python and API version
 from . import util
 
 # qiskit errors operator
-from .exceptions import QiskitError
+from qiskit.exceptions import QiskitError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from qiskit.execute import execute
-from qiskit.compiler import transpile, assemble
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
@@ -63,5 +62,20 @@ except ImportError:
                   'or check your installation.',
                   RuntimeWarning)
 
+# Moved to after IBMQ and Aer imports due to import issues
+# with other modules that check for IBMQ (tools)
+from qiskit.execute import execute
+from qiskit.compiler import transpile, assemble, schedule
+
 from .version import __version__
-from .version import __qiskit_version__
+from .version import _get_qiskit_versions
+
+
+if sys.version_info[0] == 3 and sys.version_info[1] == 5:
+    warnings.warn(
+        "Using Qiskit with Python 3.5 is deprecated as of the 0.12.0 release. "
+        "Support for running Qiskit with Python 3.5 will be removed at the "
+        "Python 3.5 EoL on 09/13/2020.", DeprecationWarning)
+
+
+__qiskit_version__ = _get_qiskit_versions()

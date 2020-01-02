@@ -11,29 +11,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-A pass that merges any adjacent barriers into one
 
-Only barriers which can be merged without affecting the barrier structure of the
-DAG will be merged.
-
-Not all redundant barriers will necessarily be merged, only adjacent barriers are merged.
-
-For example, the circuit
-qr = QuantumRegister(3, 'q')
-circuit = QuantumCircuit(qr)
-circuit.barrier(qr[0])
-circuit.barrier(qr[1])
-circuit.barrier(qr)
-
-Will be transformed into a circuit corresponding to
-circuit.barrier(qr[0])
-circuit.barrier(qr)
-after one iteration of the pass. These two barriers were not merged by the first pass as they are
-not adjacent in the initial circuit.
-
-The pass then can be reapplied to merge the newly adjacent barriers.
-"""
+"""Return a circuit with any adjacent barriers merged together."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -41,9 +20,35 @@ from qiskit.extensions.standard.barrier import Barrier
 
 
 class MergeAdjacentBarriers(TransformationPass):
-    """Returns a circuit with any adjacent barriers merged together"""
+    """Return a circuit with any adjacent barriers merged together.
+
+    Only barriers which can be merged without affecting the barrier structure
+    of the DAG will be merged.
+
+    Not all redundant barriers will necessarily be merged, only adjacent
+    barriers are merged.
+
+    For example, the circuit::
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.barrier(qr[0])
+        circuit.barrier(qr[1])
+        circuit.barrier(qr)
+
+    Will be transformed into a circuit corresponding to::
+
+        circuit.barrier(qr[0])
+        circuit.barrier(qr)
+
+    after one iteration of the pass. These two barriers were not merged by the
+    first pass as they are not adjacent in the initial circuit.
+
+    The pass then can be reapplied to merge the newly adjacent barriers.
+    """
 
     def run(self, dag):
+        """Run the MergeAdjacentBarriers pass on `dag`."""
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
@@ -81,9 +86,10 @@ class MergeAdjacentBarriers(TransformationPass):
 
     @staticmethod
     def _collect_potential_merges(dag, barriers):
-        """
+        """Return the potential merges.
+
         Returns a dict of DAGNode : Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGNode appears in the main DAG
+        inserted where the corresponding DAGNode appears in the main DAG.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:
@@ -106,40 +112,50 @@ class MergeAdjacentBarriers(TransformationPass):
 
         for next_barrier in barriers[1:]:
 
-            # Remove all barriers that have already been included in this new barrier from the set
-            # of ancestors/descendants as they will be removed from the new DAG when it is created
-            next_ancestors = {nd for nd in dag.ancestors(next_barrier)
-                              if nd not in current_barrier_nodes}
-            next_descendants = {nd for nd in dag.descendants(next_barrier)
-                                if nd not in current_barrier_nodes}
-            next_qubits = set(next_barrier.qargs)
+            # Ensure barriers are adjacent before checking if they are mergeable.
+            if dag._multi_graph.has_edge(end_of_barrier, next_barrier):
 
-            if (
-                    not current_qubits.isdisjoint(next_qubits)
-                    and current_ancestors.isdisjoint(next_descendants)
-                    and current_descendants.isdisjoint(next_ancestors)
-            ):
+                # Remove all barriers that have already been included in this new barrier from the
+                # set of ancestors/descendants as they will be removed from the new DAG when it is
+                # created.
+                next_ancestors = {nd for nd in dag.ancestors(next_barrier)
+                                  if nd not in current_barrier_nodes}
+                next_descendants = {nd for nd in dag.descendants(next_barrier)
+                                    if nd not in current_barrier_nodes}
+                next_qubits = set(next_barrier.qargs)
 
-                # can be merged
-                current_ancestors = current_ancestors | next_ancestors
-                current_descendants = current_descendants | next_descendants
-                current_qubits = current_qubits | next_qubits
+                if (
+                        not current_qubits.isdisjoint(next_qubits)
+                        and current_ancestors.isdisjoint(next_descendants)
+                        and current_descendants.isdisjoint(next_ancestors)
+                ):
 
-                # update the barrier that will be added back to include this barrier
-                barrier_to_add = Barrier(len(current_qubits))
+                    # can be merged
+                    current_ancestors = current_ancestors | next_ancestors
+                    current_descendants = current_descendants | next_descendants
+                    current_qubits = current_qubits | next_qubits
 
-            else:
-                # store the previously made barrier
-                if barrier_to_add:
-                    node_to_barrier_qubits[end_of_barrier] = current_qubits
+                    # update the barrier that will be added back to include this barrier
+                    barrier_to_add = Barrier(len(current_qubits))
 
-                # reset the properties
-                current_qubits = set(next_barrier.qargs)
-                current_ancestors = dag.ancestors(next_barrier)
-                current_descendants = dag.descendants(next_barrier)
+                    end_of_barrier = next_barrier
+                    current_barrier_nodes.append(end_of_barrier)
 
-                barrier_to_add = Barrier(len(current_qubits))
-                current_barrier_nodes = []
+                    continue
+
+            # Fallback if barriers are not adjacent or not mergeable.
+
+            # store the previously made barrier
+            if barrier_to_add:
+                node_to_barrier_qubits[end_of_barrier] = current_qubits
+
+            # reset the properties
+            current_qubits = set(next_barrier.qargs)
+            current_ancestors = dag.ancestors(next_barrier)
+            current_descendants = dag.descendants(next_barrier)
+
+            barrier_to_add = Barrier(len(current_qubits))
+            current_barrier_nodes = []
 
             end_of_barrier = next_barrier
             current_barrier_nodes.append(end_of_barrier)
