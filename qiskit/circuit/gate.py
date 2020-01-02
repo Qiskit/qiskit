@@ -16,10 +16,8 @@
 
 import numpy as np
 from scipy.linalg import schur
-import warnings
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.qasm.node import node
 from .instruction import Instruction
 
 

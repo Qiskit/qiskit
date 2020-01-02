@@ -141,7 +141,7 @@ class Instruction:
             self._params.append(self._normalize_parameter(single_param))
 
     def _normalize_parameter(self, parameter):
-        if isinstance(parameter, (ParameterExpression)):
+        if isinstance(parameter, (int, float, ParameterExpression, numpy.ndarray)):
             return parameter
         # example: OpenQASM parsed instruction
         elif isinstance(parameter, node.Node):
@@ -154,12 +154,6 @@ class Instruction:
                           'before setting Instruction.parameters',
                           DeprecationWarning, stacklevel=3)
             return parameter.sym()
-        # example: u3(0.1, 0.2, 0.3)
-        elif isinstance(parameter, (int, float)):
-            return parameter
-        # example: numpy.array([[1, 0], [0, 1]])
-        elif isinstance(parameter, numpy.ndarray):
-            return parameter
         elif isinstance(parameter, numpy.number):
             return parameter.item()
         elif 'sympy' in str(type(parameter)):
@@ -172,7 +166,6 @@ class Instruction:
                               'supported type prior to using it as a '
                               'a parameter.',
                               DeprecationWarning, stacklevel=3)
-                return parameter
             elif isinstance(parameter, sympy.Matrix):
                 warnings.warn('Parameters of sympy.Matrix is deprecated '
                               'as of the 0.11.0, and will be removed no '
@@ -181,8 +174,7 @@ class Instruction:
                               'to a numpy matrix with sympy.matrix2numpy '
                               'prior to using it as a parameter.',
                               DeprecationWarning, stacklevel=3)
-                matrix = sympy.matrix2numpy(parameter, dtype=complex)
-                return matrix
+                parameter = sympy.matrix2numpy(parameter, dtype=complex)
             elif isinstance(parameter, sympy.Expr):
                 warnings.warn('Parameters of sympy.Expr is deprecated '
                               'as of the 0.11.0, and will be removed no '
@@ -191,10 +183,10 @@ class Instruction:
                               'to a supported type prior to using it as '
                               'a parameter.',
                               DeprecationWarning, stacklevel=3)
-                return parameter
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(parameter), self.name))
+            return parameter
         else:
             raise CircuitError("invalid param type {0} in instruction "
                                "{1}".format(type(parameter), self.name))
