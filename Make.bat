@@ -20,7 +20,7 @@ ECHO.
 ECHO.Usage:
 ECHO.    .\make env     Switches to a Python virtual environment
 ECHO.    .\make run     Runs Jupyter tutorials
-ECHO.    .\make lint    Runs Python source code analysys tool
+ECHO.    .\make lint    Runs Python source code analysis tool
 ECHO.    .\make test    Runs tests
 ECHO.    .\make prfile  Runs profiling tests
 ECHO.    .\make clean   Cleans previously generated documentation
