@@ -106,7 +106,7 @@ class TestStates(QiskitTestCase):
 
     def test_random_state(self):
         # this test that a random state converges to 1/d
-        number = 100000
+        number = 1000
         E_P0_last = 0
         for ii in range(number):
             state = basis_state(bin(3)[2:].zfill(3), 3)
@@ -141,9 +141,9 @@ class TestStates(QiskitTestCase):
         state_1 = basis_state('0', 1)
         state_2 = basis_state('11', 2)
         state_3 = basis_state('010', 3)
-        self.assertEqual(purity(state_1), 1.0)
-        self.assertEqual(purity(state_2), 1.0)
-        self.assertEqual(purity(state_3), 1.0)
+        self.assertAlmostEqual(purity(state_1), 1.0)
+        self.assertAlmostEqual(purity(state_2), 1.0)
+        self.assertAlmostEqual(purity(state_3), 1.0)
 
     def test_purity_pure_state(self):
         state_1 = (1/np.sqrt(2))*(basis_state('0', 1) + basis_state('1', 1))
@@ -151,9 +151,9 @@ class TestStates(QiskitTestCase):
                                   + basis_state('01', 2) + basis_state('11', 2))
         state_3 = 0.5*(basis_state('000', 3) + basis_state('001', 3)
                        + basis_state('010', 3) + basis_state('100', 3))
-        self.assertEqual(purity(state_1), 1.0)
-        self.assertEqual(purity(state_2), 1.0)
-        self.assertEqual(purity(state_3), 1.0)
+        self.assertAlmostEqual(purity(state_1), 1.0)
+        self.assertAlmostEqual(purity(state_2), 1.0)
+        self.assertAlmostEqual(purity(state_3), 1.0)
 
     def test_purity_pure_matrix_state(self):
         state_1 = (1/np.sqrt(2))*(basis_state('0', 1) + basis_state('1', 1))
@@ -166,7 +166,7 @@ class TestStates(QiskitTestCase):
         state_3 = projector(state_3)
         self.assertAlmostEqual(purity(state_1), 1.0, places=10)
         self.assertAlmostEqual(purity(state_2), 1.0, places=10)
-        self.assertEqual(purity(state_3), 1.0)
+        self.assertAlmostEqual(purity(state_3), 1.0)
 
     def test_purity_mixed_state(self):
         state_1 = 0.5*(projector(basis_state('0', 1))
