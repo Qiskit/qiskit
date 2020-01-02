@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A strength reduction pass to simplify single qubit U gates, if possible.
+"""A strength reduction pass to simplify single qubit U3 gates, if possible.
 """
 
 import numpy as np
@@ -31,7 +31,9 @@ DEFAULT_ATOL = 1e-12
 class SimplifyU3(TransformationPass):
     """A strength reduction pass to simplify single qubit U3 gates, if possible.
 
-    Can convert U3 -> U2 OR U1 OR None. Also makes all Euler angles modulo 2*pi.
+    The cost metric is the number of X90 pulses required to implement the gate.
+    Can convert U3 -> U2 OR U1 OR None. 
+    Also makes all Euler angles modulo 2*pi.
 
     Additional Information
     ----------------------
@@ -65,7 +67,7 @@ class SimplifyU3(TransformationPass):
                 num_ctrl_qubits = op.num_ctrl_qubits
                 op = node.op.base_gate
 
-            if (isinstance(op, U3Gate)):
+            if isinstance(op, U3Gate):
                 theta, phi, lam = op.params
 
                 theta = np.mod(theta, 2*np.pi)
@@ -88,11 +90,11 @@ class SimplifyU3(TransformationPass):
                     lam = np.mod(lam+np.pi, 2*np.pi)
                     new_op = U2Gate(phi, lam)
 
-            if new_op is None:
-                dag.remove_op_node(node)
-            else:
-                if num_ctrl_qubits is not None:
-                   new_op = add_control(new_op, num_ctrl_qubits)
-                dag.substitute_node(node, new_op)
+                if new_op is None:
+                    dag.remove_op_node(node)
+                else:
+                    if num_ctrl_qubits is not None:
+                       new_op = add_control(new_op, num_ctrl_qubits)
+                    dag.substitute_node(node, new_op)
 
         return dag
