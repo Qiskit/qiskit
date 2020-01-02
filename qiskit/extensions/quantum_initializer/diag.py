@@ -97,6 +97,7 @@ class DiagGate(Gate):
         else:
             return super()._normalize_parameter(parameter)
 
+
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
 # is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2)
 def _extract_rz(phi1, phi2):
