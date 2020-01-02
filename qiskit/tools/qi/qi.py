@@ -73,7 +73,7 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
     # DEPRECATED
     warnings.warn(
         'This function is deprecated and will be removed in the future.'
-        ' It is superseded by the `quantum_info.partial_trace` method',
+        ' It is superseded by the `quantum_info.partial_trace` function',
         DeprecationWarning)
 
     if dimensions is None:  # compute dims if not specified
@@ -304,6 +304,7 @@ def chop(array, epsilon=1e-10):
     Returns:
         np.array: A new operator with small values set to zero.
     """
+    
     ret = np.array(array)
 
     if np.isrealobj(ret):
@@ -351,6 +352,10 @@ def concurrence(state):
     Raises:
         Exception: if attempted on more than two qubits.
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.concurrence` function',
+        DeprecationWarning)
     rho = np.array(state)
     if rho.ndim == 1:
         rho = outer(state)
@@ -378,6 +383,10 @@ def shannon_entropy(pvec, base=2):
     Returns:
         float: The Shannon entropy H(pvec).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function has been moved to `quantum_info.utils.shannon_entropy`',
+        DeprecationWarning)
     if base == 2:
         def logfn(x):
             return - x * np.log2(x)
@@ -405,8 +414,12 @@ def entropy(state):
     Returns:
         float: The von-Neumann entropy S(rho).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.entropy` method',
+        DeprecationWarning)
     # pylint: disable=assignment-from-no-return
-
     rho = np.array(state)
     if rho.ndim == 1:
         return 0
@@ -426,6 +439,11 @@ def mutual_information(state, d0, d1=None):
     Returns:
         float: The mutual information S(rho_A) + S(rho_B) - S(rho_AB).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.mutual_information` function',
+        DeprecationWarning)
     if d1 is None:
         d1 = int(len(state) / d0)
     mi = entropy(partial_trace(state, [0], dimensions=[d0, d1]))
@@ -450,6 +468,11 @@ def entanglement_of_formation(state, d0, d1=None):
     Returns:
         float: The entanglement of formation.
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.entanglement_of_formation` function',
+        DeprecationWarning)
     state = np.array(state)
 
     if d1 is None:
