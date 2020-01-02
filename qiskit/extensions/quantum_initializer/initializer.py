@@ -246,6 +246,12 @@ class Initialize(Instruction):
                               (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
 
+    def _normalize_parameter(self, parameter):
+        if isinstance(parameter, (int, float, complex)):
+            return parameter
+        else:
+            return super()._normalize_parameter(parameter)
+
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""

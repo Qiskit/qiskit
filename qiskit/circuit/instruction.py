@@ -141,7 +141,63 @@ class Instruction:
             self._params.append(self._normalize_parameter(single_param))
 
     def _normalize_parameter(self, parameter):
-        raise NotImplementedError
+        if isinstance(parameter, (ParameterExpression)):
+            return parameter
+        # example: OpenQASM parsed instruction
+        elif isinstance(parameter, node.Node):
+            warnings.warn('Using qasm ast node as a circuit.Instruction '
+                          'parameter is deprecated as of the 0.11.0, and '
+                          'will be removed no earlier than 3 months after '
+                          'that release date. You should convert the qasm '
+                          'node to a supported type int, float, complex, '
+                          'str, circuit.ParameterExpression, or ndarray '
+                          'before setting Instruction.parameters',
+                          DeprecationWarning, stacklevel=3)
+            return parameter.sym()
+        # example: u3(0.1, 0.2, 0.3)
+        elif isinstance(parameter, (int, float)):
+            return parameter
+        # example: numpy.array([[1, 0], [0, 1]])
+        elif isinstance(parameter, numpy.ndarray):
+            return parameter
+        elif isinstance(parameter, numpy.number):
+            return parameter.item()
+        elif 'sympy' in str(type(parameter)):
+            import sympy
+            if isinstance(parameter, sympy.Basic):
+                warnings.warn('Parameters of sympy.Basic is deprecated '
+                              'as of the 0.11.0, and will be removed no '
+                              'earlier than 3 months after that release '
+                              'date. You should convert this to a '
+                              'supported type prior to using it as a '
+                              'a parameter.',
+                              DeprecationWarning, stacklevel=3)
+                return parameter
+            elif isinstance(parameter, sympy.Matrix):
+                warnings.warn('Parameters of sympy.Matrix is deprecated '
+                              'as of the 0.11.0, and will be removed no '
+                              'earlier than 3 months after that release '
+                              'date. You should convert the sympy Matrix '
+                              'to a numpy matrix with sympy.matrix2numpy '
+                              'prior to using it as a parameter.',
+                              DeprecationWarning, stacklevel=3)
+                matrix = sympy.matrix2numpy(parameter, dtype=complex)
+                return matrix
+            elif isinstance(parameter, sympy.Expr):
+                warnings.warn('Parameters of sympy.Expr is deprecated '
+                              'as of the 0.11.0, and will be removed no '
+                              'earlier than 3 months after that release '
+                              'date. You should convert the sympy Expr '
+                              'to a supported type prior to using it as '
+                              'a parameter.',
+                              DeprecationWarning, stacklevel=3)
+                return parameter
+            else:
+                raise CircuitError("invalid param type {0} in instruction "
+                                   "{1}".format(type(parameter), self.name))
+        else:
+            raise CircuitError("invalid param type {0} in instruction "
+                               "{1}".format(type(parameter), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
