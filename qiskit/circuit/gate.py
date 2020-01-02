@@ -218,3 +218,4 @@ class Gate(Instruction):
             return Gate._broadcast_3_or_more_args(qargs)
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
+

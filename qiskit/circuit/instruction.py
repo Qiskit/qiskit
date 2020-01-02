@@ -138,71 +138,10 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression)):
-                self._params.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, node.Node):
-                warnings.warn('Using qasm ast node as a circuit.Instruction '
-                              'parameter is deprecated as of the 0.11.0, and '
-                              'will be removed no earlier than 3 months after '
-                              'that release date. You should convert the qasm '
-                              'node to a supported type int, float, complex, '
-                              'str, circuit.ParameterExpression, or ndarray '
-                              'before setting Instruction.parameters',
-                              DeprecationWarning, stacklevel=3)
+            self._params.append(self._normalize_parameter(single_param))
 
-                self._params.append(single_param.sym())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self._params.append(single_param)
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self._params.append(single_param)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self._params.append(single_param)
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
-            elif 'sympy' in str(type(single_param)):
-                import sympy
-                if isinstance(single_param, sympy.Basic):
-                    warnings.warn('Parameters of sympy.Basic is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert this to a '
-                                  'supported type prior to using it as a '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                elif isinstance(single_param, sympy.Matrix):
-                    warnings.warn('Parameters of sympy.Matrix is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Matrix '
-                                  'to a numpy matrix with sympy.matrix2numpy '
-                                  'prior to using it as a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    matrix = sympy.matrix2numpy(single_param, dtype=complex)
-                    self._params.append(matrix)
-                elif isinstance(single_param, sympy.Expr):
-                    warnings.warn('Parameters of sympy.Expr is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Expr '
-                                  'to a supported type prior to using it as '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                else:
-                    raise CircuitError("invalid param type {0} in instruction "
-                                       "{1}".format(type(single_param), self.name))
-            else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+    def _normalize_parameter(self, parameter):
+        raise NotImplementedError
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
