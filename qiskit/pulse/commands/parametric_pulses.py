@@ -25,7 +25,7 @@ smaller than one which uses SamplePulses.
 This module can easily be extended to describe more pulse shapes. The new class should:
   - have a descriptive name
   - be a well known and/or well described formula (include the formula in the class docstring)
-  - take some parameters (at least `duration`)
+  - take some parameters (at least `duration`) and validate them, if necessary
   - implement a `get_sample_pulse` method which returns a corresponding SamplePulse in the
     case that it is assembled for a backend which does not support it.
 
@@ -71,6 +71,16 @@ class ParametricPulse(Command):
         """
         pass
 
+    @abstractmethod
+    def validate_params(self) -> None:
+        """
+        Validate parameters.
+
+        Raises:
+            PulseError: If the parameters passed are not valid.
+        """
+        pass
+
     def get_params(self) -> Dict[str, Any]:
         """Return a dictionary containing the parameters specific to this parametric pulse."""
         return {attr[1:]: getattr(self, attr)
@@ -108,10 +118,10 @@ class Gaussian(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
         """
-        validate_params(amp=amp, sigma=sigma)
         self._amp = complex(amp)
         self._sigma = sigma
         super().__init__(duration=duration)
+        self.validate_params()
 
     @property
     def amp(self):
@@ -124,6 +134,13 @@ class Gaussian(ParametricPulse):
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian(duration=self.duration, amp=self.amp,
                         sigma=self.sigma, zero_ends=False)
+
+    def validate_params(self) -> None:
+        if abs(self.amp) > 1.:
+            raise PulseError("The amplitude norm must be <= 1, "
+                             "found: {}".format(abs(self.amp)))
+        if self.sigma <= 0:
+            raise PulseError("Sigma must be greater than 0.")
 
 
 class GaussianSquare(ParametricPulse):
@@ -156,11 +173,11 @@ class GaussianSquare(ParametricPulse):
                    docstring for more details.
             width: The duration of the embedded square pulse.
         """
-        validate_params(amp=amp, sigma=sigma, width=width, duration=duration)
         self._amp = complex(amp)
         self._sigma = sigma
         self._width = width
         super().__init__(duration=duration)
+        self.validate_params()
 
     @property
     def amp(self):
@@ -178,6 +195,17 @@ class GaussianSquare(ParametricPulse):
         return gaussian_square(duration=self.duration, amp=self.amp,
                                width=self.width, sigma=self.sigma,
                                zero_ends=False)
+
+    def validate_params(self) -> None:
+        if abs(self.amp) > 1.:
+            raise PulseError("The amplitude norm must be <= 1, "
+                             "found: {}".format(abs(self.amp)))
+        if self.sigma <= 0:
+            raise PulseError("Sigma must be greater than 0.")
+        if self.width < 0:
+            raise PulseError("Width cannot be less than 0.")
+        if self.width >= self.duration:
+            raise PulseError("The width of the pulse must be less than its duration.")
 
 
 class Drag(ParametricPulse):
@@ -216,11 +244,11 @@ class Drag(ParametricPulse):
                    in the class docstring.
             beta: The correction amplitude.
         """
-        validate_params(amp=amp, sigma=sigma, beta=beta)
         self._amp = complex(amp)
         self._sigma = sigma
         self._beta = beta
         super().__init__(duration=duration)
+        self.validate_params()
 
     @property
     def amp(self):
@@ -237,6 +265,15 @@ class Drag(ParametricPulse):
     def get_sample_pulse(self) -> SamplePulse:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
                     beta=self.beta, zero_ends=False)
+
+    def validate_params(self) -> None:
+        if abs(self.amp) > 1.:
+            raise PulseError("The amplitude norm must be <= 1, "
+                             "found: {}".format(abs(self.amp)))
+        if self.sigma <= 0:
+            raise PulseError("Sigma must be greater than 0.")
+        if isinstance(self.beta, complex):
+            raise PulseError("Beta must be real.")
 
 
 class ConstantPulse(ParametricPulse):
@@ -257,9 +294,9 @@ class ConstantPulse(ParametricPulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
         """
-        validate_params(amp=amp)
         self._amp = complex(amp)
         super().__init__(duration=duration)
+        self.validate_params()
 
     @property
     def amp(self):
@@ -268,26 +305,10 @@ class ConstantPulse(ParametricPulse):
     def get_sample_pulse(self) -> SamplePulse:
         return constant(duration=self.duration, amp=self.amp)
 
-
-def validate_params(**kwargs):
-    """
-    Raise a PulseError if the parameters passed are not valid.
-    """
-    if 'amp' in kwargs:
-        if abs(kwargs['amp']) > 1.:
+    def validate_params(self) -> None:
+        if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
-                             "found: {}".format(abs(kwargs['amp'])))
-    if 'sigma' in kwargs:
-        if kwargs['sigma'] <= 0:
-            raise PulseError("Sigma must be greater than 0.")
-    if 'beta' in kwargs:
-        if isinstance(kwargs['beta'], complex):
-            raise PulseError("Beta must be real.")
-    if 'width' in kwargs:
-        if kwargs['width'] < 0:
-            raise PulseError("Width cannot be less than 0.")
-        if 'duration' in kwargs and kwargs['width'] >= kwargs['duration']:
-            raise PulseError("The width of the pulse must be less than its duration.")
+                             "found: {}".format(abs(self.amp)))
 
 
 class ParametricInstruction(Instruction):
