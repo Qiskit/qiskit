@@ -40,9 +40,13 @@ by following the existing pattern:
 from abc import abstractmethod
 from typing import Any, Dict, Optional
 
+import numpy as np
+import math
+
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
+from qiskit.pulse.pulse_lib import continuous
 
 from .command import Command
 from .sample_pulse import SamplePulse
@@ -234,7 +238,7 @@ class Drag(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 beta: int):
+                 beta: float):
         """Initialize the drag command.
 
         Args:
@@ -274,6 +278,25 @@ class Drag(ParametricPulse):
             raise PulseError("Sigma must be greater than 0.")
         if isinstance(self.beta, complex):
             raise PulseError("Beta must be real.")
+
+        # Find the first maxima
+        #    This eq is derived from taking the derivative of the norm of the drag function
+        #    and solving for the roots. One solution, of course, is x = duration/2.
+        #    The bound on that solution is handled already by self.amp <= 1. The other two
+        #    solutions mirror each other around the center of the pulse and have the same norm,
+        #    so taking the first x value is sufficient.
+        argmax_x = (self.duration / 2
+                    - (1 / self.beta) * math.sqrt(self.beta ** 2 * self.sigma ** 2
+                                                  + self.sigma ** 4))
+        if argmax_x < 0:
+            # If the max point is out of range, either end of the pulse will do
+            argmax_x = 0
+
+        # Find the value at that maximum
+        max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
+                                  beta=self.beta, amp=self.amp, center=self.duration / 2)
+        if abs(max_val) > 1.:
+            raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
 
 class ConstantPulse(ParametricPulse):

@@ -311,6 +311,21 @@ class TestParametricPulses(QiskitTestCase):
         samples = command.get_sample_pulse().samples
         np.testing.assert_almost_equal(samples, drag)
 
+    def test_drag_validation(self):
+        duration = 25
+        sigma = 4
+        amp = 0.5j
+        beta = 1
+        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        samples = command.get_sample_pulse().samples
+        self.assertTrue(max(np.abs(samples)) <= 1)
+        beta = sigma ** 2
+        with self.assertRaises(PulseError):
+            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        # If sigma is high enough, side peaks fall out of range and norm restriction is met
+        sigma = 100
+        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
