@@ -517,7 +517,7 @@ class TestScheduleFilter(BaseTestSchedule):
                                          [MemorySlot(i) for i in range(2)]))
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
-        # split schedule into instructions occuring in (0,13), and those outside
+        # split schedule into instructions occurring in (0,13), and those outside
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=((0, 13),))
         for start_time, inst in filtered.instructions:
             self.assertTrue((start_time >= 0) and (start_time + inst.stop_time <= 13))
@@ -526,7 +526,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 3)
 
-        # split into schedule occuring in and outside of interval (59,65)
+        # split into schedule occurring in and outside of interval (59,65)
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[(59, 65)])
         self.assertEqual(len(filtered.instructions), 1)
         self.assertEqual(filtered.instructions[0][0], 60)
@@ -568,7 +568,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split instructions with filters on channel 0, of type PulseInstruction,
-        # occuring in the time interval (25, 100)
+        # occurring in the time interval (25, 100)
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels={self.config.drive(0)},
                                                                instruction_types=[PulseInstruction],

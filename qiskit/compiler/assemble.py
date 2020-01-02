@@ -51,7 +51,7 @@ def assemble(experiments,
         backend (BaseBackend):
             If set, some runtime options are automatically grabbed from
             backend.configuration() and backend.defaults().
-            If any other option is explicitly set (e.g. rep_rate), it
+            If any other option is explicitly set (e.g., rep_rate), it
             will override the backend's.
             If any other options is set in the run_config, it will
             also override the backend's.
@@ -78,11 +78,11 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies. Will be overridden by
+            List of default qubit LO frequencies. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies. Will be overridden by
+            List of default meas LO frequencies. Will be overridden by
             `schedule_los` if set.
 
         qubit_lo_range (list):
@@ -99,7 +99,8 @@ def assemble(experiments,
             Set the appropriate level of the measurement output for pulse experiments.
 
         meas_return (str or MeasReturn):
-            Level of measurement data for the backend to return
+            Level of measurement data for the backend to return.
+
             For `meas_level` 0 and 1:
                 * "single" returns information from every shot.
                 * "avg" returns average measurement output (averaged over number of shots).
@@ -118,7 +119,7 @@ def assemble(experiments,
             List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
-            executed across all experiments, e.g. if parameter_binds is a
+            executed across all experiments; e.g., if parameter_binds is a
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
@@ -127,12 +128,12 @@ def assemble(experiments,
             Example: ['gaussian', 'constant']
 
         **run_config (dict):
-            extra arguments used to configure the run (e.g. for Aer configurable
+            extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
 
     Returns:
-        Qobj: a qobj which can be run on a backend. Depending on the type of input,
+            Qobj: a qobj that can be run on a backend. Depending on the type of input,
             this will be either a QasmQobj or a PulseQobj.
 
     Raises:
