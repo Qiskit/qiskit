@@ -17,12 +17,140 @@ For now this module validates parameters based on its schema.
 Once all json schema is eliminated from classes, this module will be removed
 """
 
+from typing import Dict, Set
 import numpy as np
 import jsonschema
 from qiskit.aqua import AquaError
 
 
-def validate(args_dict, schema_dict):
+def validate_in_set(name: str, value: object, values: Set[object]) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        values: set that should contain value.
+    Raises:
+        ValueError: invalid value
+    """
+    if value not in values:
+        raise ValueError("{} must be one of '{}', was '{}'.".format(name, values, value))
+
+
+def validate_min(name: str, value: float, minimum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value < minimum:
+        raise ValueError('{} must have value >= {}, was {}'.format(name, minimum, value))
+
+
+def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value <= minimum:
+        raise ValueError('{} must have value > {}, was {}'.format(name, minimum, value))
+
+
+def validate_max(name: str, value: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value > maximum:
+        raise ValueError('{} must have value <= {}, was {}'.format(name, maximum, value))
+
+
+def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value >= maximum:
+        raise ValueError('{} must have value < {}, was {}'.format(name, maximum, value))
+
+
+def validate_range(name: str, value: float, minimum: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value < minimum or value > maximum:
+        raise ValueError(
+            '{} must have value >= {} and <= {}, was {}'.format(name, minimum, maximum, value))
+
+
+def validate_range_exclusive(name: str, value: float, minimum: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value <= minimum or value >= maximum:
+        raise ValueError(
+            '{} must have value > {} and < {}, was {}'.format(name, minimum, maximum, value))
+
+
+def validate_range_exclusive_min(name: str, value: float,
+                                 minimum: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value <= minimum or value > maximum:
+        raise ValueError(
+            '{} must have value > {} and <= {}, was {}'.format(name, minimum, maximum, value))
+
+
+def validate_range_exclusive_max(name: str, value: float,
+                                 minimum: float, maximum: float) -> None:
+    """
+    Args:
+        name: value name.
+        value: value to check.
+        minimum: minimum value allowed.
+        maximum: maximum value allowed.
+    Raises:
+        ValueError: invalid value
+    """
+    if value < minimum or value >= maximum:
+        raise ValueError(
+            '{} must have value >= {} and < {}, was {}'.format(name, minimum, maximum, value))
+
+
+def validate(args_dict: Dict[str, object], schema_dict: Dict[str, object]) -> None:
     """ validate json data according to a schema"""
     if schema_dict is None:
         return
