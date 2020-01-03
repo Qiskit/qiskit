@@ -39,9 +39,9 @@ by following the existing pattern:
 """
 from abc import abstractmethod
 from typing import Any, Dict, Optional
+import math
 
 import numpy as np
-import math
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError

@@ -312,6 +312,7 @@ class TestParametricPulses(QiskitTestCase):
         np.testing.assert_almost_equal(samples, drag)
 
     def test_drag_validation(self):
+        """Test drag parameter validation, specifically the beta validation."""
         duration = 25
         sigma = 4
         amp = 0.5j
