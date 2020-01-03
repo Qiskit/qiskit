@@ -17,18 +17,18 @@ For now this module validates parameters based on its schema.
 Once all json schema is eliminated from classes, this module will be removed
 """
 
-from typing import Dict, List
+from typing import Dict, Set
 import numpy as np
 import jsonschema
 from qiskit.aqua import AquaError
 
 
-def validate_in_list(name: str, value: object, values: List[object]) -> None:
+def validate_in_set(name: str, value: object, values: Set[object]) -> None:
     """
     Args:
         name: value name.
         value: value to check.
-        values: list that should contain value.
+        values: set that should contain value.
     Raises:
         ValueError: invalid value
     """
