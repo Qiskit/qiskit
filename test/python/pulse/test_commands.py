@@ -327,6 +327,21 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 100
         command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
 
+    def test_drag_validation_random(self):
+        """Test drag beta parameter validation."""
+        def check_drag(duration, sigma, amp, beta):
+            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+            samples = command.get_sample_pulse().samples
+            self.assertTrue(max(np.abs(samples)) <= 1)
+        check_drag(duration=50, sigma=16, amp=1, beta=2)
+        check_drag(duration=50, sigma=16, amp=1, beta=4)
+        check_drag(duration=50, sigma=16, amp=0.5, beta=20)
+        check_drag(duration=50, sigma=16, amp=-1, beta=2)
+        check_drag(duration=50, sigma=16, amp=1, beta=-2)
+        check_drag(duration=50, sigma=16, amp=1, beta=6)
+        with self.assertRaises(PulseError):
+            check_drag(duration=50, sigma=16, amp=1, beta=20)
+
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
