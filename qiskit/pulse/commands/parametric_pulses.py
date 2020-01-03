@@ -287,7 +287,7 @@ class Drag(ParametricPulse):
         #    so taking the first x value is sufficient.
         argmax_x = (self.duration / 2
                     - (1 / self.beta) * math.sqrt(self.beta ** 2 * self.sigma ** 2
-                                                  + self.sigma ** 4))
+                                                  - self.sigma ** 4))
         if argmax_x < 0:
             # If the max point is out of range, either end of the pulse will do
             argmax_x = 0
