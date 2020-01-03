@@ -171,13 +171,15 @@ class Operator(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        return Operator(
-            np.conj(self.data), self.input_dims(), self.output_dims())
+        return Operator(np.conj(self.data),
+                        input_dims=self.input_dims(),
+                        output_dims=self.output_dims())
 
     def transpose(self):
         """Return the transpose of the operator."""
-        return Operator(
-            np.transpose(self.data), self.input_dims(), self.output_dims())
+        return Operator(np.transpose(self.data),
+                        input_dims=self.output_dims(),
+                        output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
