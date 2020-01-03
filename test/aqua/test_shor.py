@@ -19,7 +19,7 @@ import math
 from test.aqua.common import QiskitAquaTestCase
 from parameterized import parameterized
 from qiskit import BasicAer
-from qiskit.aqua import QuantumInstance, AquaError
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import Shor
 
 
@@ -70,7 +70,7 @@ class TestShor(QiskitAquaTestCase):
     ])
     def test_shor_bad_input(self, n_v):
         """ shor bad input test """
-        with self.assertRaises(AquaError):
+        with self.assertRaises(ValueError):
             Shor(n_v)
 
 
