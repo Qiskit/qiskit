@@ -13,12 +13,16 @@
 # that they have been altered from the originals.
 
 """
-Helper module for simplified Qiskit usage.
+=============================================
+Executing Experiments (:mod:`qiskit.execute`)
+=============================================
 
-In general we recommend using the SDK modules directly. However, to get something
-running quickly we have provided this wrapper module.
+.. currentmodule:: qiskit.execute
+
+.. autofunction:: execute
 """
 from qiskit.compiler import transpile, assemble
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def execute(experiments, backend,
@@ -28,10 +32,12 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=2, meas_return='avg',
+            schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
+            meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             **run_config):
-    """Execute a list of circuits or pulse schedules on a backend.
+    """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
+    :class:`qiskit.pulse.Schedule` on a backend.
 
     The execution is asynchronous, and a handle to a job instance is returned.
 
@@ -65,8 +71,8 @@ def execute(experiments, backend,
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. For a backend
-            that provides this information, it can be obtained with:
+            errors, readout errors, qubit coherence times, etc. Find a backend
+            that provides this information with:
             ``backend.properties()``
 
         initial_layout (Layout or dict or list):
@@ -104,10 +110,10 @@ def execute(experiments, backend,
             How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
-                0: no optimization
-                1: light optimization
-                2: heavy optimization
-                3: even heavier optimization
+                0: No optimization
+                1: Light optimization
+                2: Heavy optimization
+                3: Highest optimization
             If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
@@ -137,19 +143,19 @@ def execute(experiments, backend,
             Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (list):
-            List of default qubit lo frequencies
+            List of default qubit LO frequencies
 
         default_meas_los (list):
-            List of default meas lo frequencies
+            List of default meas LO frequencies
 
-        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str):
+        meas_return (str or MeasReturn):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
                 "single" returns information from every shot.
@@ -165,7 +171,7 @@ def execute(experiments, backend,
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
-        parameter_binds (list[dict{Parameter: Value}]):
+        parameter_binds (list[dict]):
             List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -174,8 +180,8 @@ def execute(experiments, backend,
             experiments will be run (one for each experiment/bind pair).
 
         run_config (dict):
-            Extra arguments used to configure the run (e.g. for Aer configurable backends)
-            Refer to the backend documentation for details on these arguments
+            Extra arguments used to configure the run (e.g. for Aer configurable backends).
+            Refer to the backend documentation for details on these arguments.
             Note: for now, these keyword arguments will both be copied to the
             Qobj config, and passed to backend.run()
 
@@ -184,7 +190,24 @@ def execute(experiments, backend,
 
     Raises:
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
+
+    Example:
+        Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, BasicAer
+
+            backend = BasicAer.get_backend('qasm_simulator')
+
+            qc = QuantumCircuit(5, 5)
+            qc.h(0)
+            qc.cx(0, range(1, 5))
+            qc.measure_all()
+
+            job = execute(qc, backend, shots=4321)
     """
+
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,

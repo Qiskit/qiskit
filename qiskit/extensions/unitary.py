@@ -80,15 +80,15 @@ class UnitaryGate(Gate):
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
     def to_matrix(self):
-        """Return matrix for unitary"""
+        """Return matrix for the unitary."""
         return self.params[0]
 
     def inverse(self):
-        """Return the adjoint of the Unitary."""
+        """Return the adjoint of the unitary."""
         return self.adjoint()
 
     def conjugate(self):
-        """Return the conjugate of the Unitary."""
+        """Return the conjugate of the unitary."""
         return UnitaryGate(numpy.conj(self.to_matrix()))
 
     def adjoint(self):
@@ -110,6 +110,44 @@ class UnitaryGate(Gate):
         else:
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
+
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate
+
+        Args:
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
+            label (str): optional gate label
+
+        Returns:
+            UnitaryGate: controlled version of gate.
+
+        Raises:
+            QiskitError: unrecognized mode
+        """
+        cmat = self._compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        return UnitaryGate(cmat, label=label)
+
+    def _compute_control_matrix(self, base_mat, num_ctrl_qubits):
+        """
+        Compute the controlled version of the input matrix with qiskit ordering.
+
+        Args:
+            base_mat (ndarray): unitary to be controlled
+            num_ctrl_qubits (int): number of controls for new unitary
+
+        Returns:
+            ndarray: controlled version of base matrix.
+        """
+        num_target = int(numpy.log2(base_mat.shape[0]))
+        ctrl_dim = 2**num_ctrl_qubits
+        ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
+        full_mat_dim = ctrl_dim * base_mat.shape[0]
+        full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
+        ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_dim - 1))
+        full_mat = (numpy.kron(numpy.eye(2**num_target),
+                               numpy.eye(ctrl_dim) - ctrl_proj)
+                    + numpy.kron(base_mat, ctrl_proj))
+        return full_mat
 
     def qasm(self):
         """ The qasm for a custom unitary gate

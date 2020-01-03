@@ -30,8 +30,6 @@ together by using ``bind_schema``::
         pass
 """
 
-import warnings
-
 from functools import wraps
 from types import SimpleNamespace, MethodType
 
@@ -147,10 +145,14 @@ class BaseSchema(Schema):
             for i, _ in enumerate(valid_data):
                 additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
                 for key in additional_keys:
+                    if key.startswith('_'):
+                        continue
                     valid_data[i][key] = getattr(original_data[i], key)
         else:
             additional_keys = set(original_data.__dict__) - set(valid_data)
             for key in additional_keys:
+                if key.startswith('_'):
+                    continue
                 valid_data[key] = getattr(original_data, key)
 
         return valid_data
@@ -349,12 +351,6 @@ class BaseModel(SimpleNamespace):
                 ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
-
-    def as_dict(self):
-        """Serialize the model into a Python dict of simple types."""
-        warnings.warn('The as_dict() method is deprecated, use to_dict().',
-                      DeprecationWarning, stacklevel=2)
-        return self.to_dict()
 
 
 class ObjSchema(BaseSchema):

@@ -12,8 +12,77 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Extensions to quantum circuits."""
+"""
+=====================================================
+Quantum Circuit Extensions (:mod:`qiskit.extensions`)
+=====================================================
+
+.. currentmodule:: qiskit.extensions
+
+Standard Extensions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Barrier
+   ToffoliGate
+   CHGate
+   CrxGate
+   CryGate
+   CrzGate
+   FredkinGate
+   Cu1Gate
+   Cu3Gate
+   CnotGate
+   CyGate
+   CzGate
+   HGate
+   IdGate
+   MSGate
+   RXGate
+   RXXGate
+   RYGate
+   RZGate
+   RZZGate
+   SGate
+   SdgGate
+   SwapGate
+   TdgGate
+   U0Gate
+   U1Gate
+   U2Gate
+   U3Gate
+   XGate
+   YGate
+   ZGate
+
+Unitary Extensions
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitaryGate
+
+Simulator Extensions
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Snapshot
+
+Initialization
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Initialize
+"""
 
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from .standard import *
 from .unitary import UnitaryGate
+from .simulator import Snapshot

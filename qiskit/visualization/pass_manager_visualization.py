@@ -54,7 +54,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
-                           no image was generated or PIL is not installed.
+        no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
@@ -62,6 +62,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     Example:
         .. code-block::
 
+             %matplotlib inline
             from qiskit import QuantumCircuit
             from qiskit.compiler import transpile
             from qiskit.transpiler import PassManager

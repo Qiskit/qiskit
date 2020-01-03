@@ -15,7 +15,7 @@
 """
 controlled-u3 gate.
 """
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
@@ -23,18 +23,23 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CnotGate
 
 
-class Cu3Gate(Gate):
+class Cu3Gate(ControlledGate):
     """controlled-u3 gate."""
 
     def __init__(self, theta, phi, lam):
         """Create new cu3 gate."""
-        super().__init__("cu3", 2, [theta, phi, lam])
+        super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
+        self.base_gate = U3Gate
+        self.base_gate_name = "u3"
 
     def _define(self):
         """
         gate cu3(theta,phi,lambda) c, t
-        { u1((lambda+phi)/2) c; u1((lambda-phi)/2) t; cx c,t;
-          u3(-theta/2,0,-(phi+lambda)/2) t; cx c,t;
+        { u1((lambda+phi)/2) c;
+          u1((lambda-phi)/2) t;
+          cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t;
+          cx c,t;
           u3(theta/2,phi,0) t;
         }
         """

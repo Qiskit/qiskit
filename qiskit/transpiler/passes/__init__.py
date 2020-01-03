@@ -12,7 +12,105 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing transpiler pass."""
+"""
+===================================================
+Transpiler Passes (:mod:`qiskit.transpiler.passes`)
+===================================================
+
+.. currentmodule:: qiskit.transpiler.passes
+
+Layout Selection
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TrivialLayout
+   DenseLayout
+   NoiseAdaptiveLayout
+   ApplyLayout
+   SetLayout
+   EnlargeWithAncilla
+   FullAncillaAllocation
+
+Unrolling
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Unroller
+   Unroll3qOrMore
+   Decompose
+
+Swap Mapping
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicSwap
+   LookaheadSwap
+   StochasticSwap
+
+Gate Optimizations
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Optimize1qGates
+   CXCancellation
+   CommutationAnalysis
+   CommutativeCancellation
+
+2Q Block Optimization
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Collect2qBlocks
+   ConsolidateBlocks
+
+Topology Validation
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CheckMap
+   CheckCXDirection
+   CXDirection
+
+DAG Properties
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Width
+   Depth
+   Size
+   CountOps
+   CountOpsLongestPath
+   NumTensorFactors
+   DAGFixedPoint
+   DAGLongestPath
+
+Additional Passes
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MergeAdjacentBarriers
+   BarrierBeforeFinalMeasurements
+   RemoveDiagonalGatesBeforeMeasure
+   RemoveFinalMeasurements
+   RemoveResetInZeroState
+   CrosstalkAdaptiveSchedule
+"""
 
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation
@@ -44,11 +142,14 @@ from .mapping.check_map import CheckMap
 from .mapping.check_cx_direction import CheckCXDirection
 from .mapping.cx_direction import CXDirection
 from .mapping.trivial_layout import TrivialLayout
+from .mapping.csp_layout import CSPLayout
 from .mapping.set_layout import SetLayout
 from .mapping.dense_layout import DenseLayout
 from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout
 from .mapping.basic_swap import BasicSwap
+from .mapping.layout_2q_distance import Layout2qDistance
 from .mapping.lookahead_swap import LookaheadSwap
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .mapping.stochastic_swap import StochasticSwap
 from .remove_final_measurements import RemoveFinalMeasurements
+from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule

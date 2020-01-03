@@ -60,7 +60,7 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            ParameterExpression: a new expession parameterized by any parameters
+            ParameterExpression: a new expression parameterized by any parameters
                 which were not bound by parameter_values.
         """
 
@@ -103,7 +103,7 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expession with the specified parameters
+            ParameterExpression: a new expression with the specified parameters
                                  replaced.
         """
 

@@ -14,7 +14,7 @@
 
 # pylint: disable=arguments-differ
 
-"""Contains a (slow) python simulator.
+"""Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
