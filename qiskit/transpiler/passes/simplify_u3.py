@@ -70,25 +70,21 @@ class SimplifyU3(TransformationPass):
             if isinstance(op, U3Gate):
                 theta, phi, lam = op.params
 
-                theta = np.mod(theta, 2*np.pi)
-                phi = np.mod(phi, 2*np.pi)
-                lam = np.mod(lam, 2*np.pi)
-
-                new_op = U3Gate(theta, phi, lam)
+                new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
 
                 if np.allclose([theta, phi, lam], [0., 0., 0.], atol=DEFAULT_ATOL):
                     new_op = None
 
-                elif np.allclose([theta, phi], [0., 0.], atol=DEFAULT_ATOL):
-                    new_op = U1Gate(lam)
+                elif np.allclose([theta], [0.], atol=DEFAULT_ATOL):
+                    print(phi)
+                    print(lam)
+                    new_op = U1Gate(_mod2pi(phi+lam))
 
                 elif np.isclose(theta, np.pi/2, atol=DEFAULT_ATOL):
-                    new_op = U2Gate(phi, lam)
+                    new_op = U2Gate(_mod2pi(phi), _mod2pi(lam))
 
                 elif np.isclose(theta, 3*np.pi/2, atol=DEFAULT_ATOL):
-                    phi = np.mod(phi+np.pi, 2*np.pi)
-                    lam = np.mod(lam+np.pi, 2*np.pi)
-                    new_op = U2Gate(phi, lam)
+                    new_op = U2Gate(_mod2pi(phi+np.pi), _mod2pi(lam+np.pi))
 
                 if new_op is None:
                     dag.remove_op_node(node)
@@ -98,3 +94,7 @@ class SimplifyU3(TransformationPass):
                     dag.substitute_node(node, new_op)
 
         return dag
+
+
+def _mod2pi(angle):
+    return np.mod(angle, 2*np.pi)
