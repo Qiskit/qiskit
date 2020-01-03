@@ -1504,6 +1504,20 @@ class TestTextNonRational(QiskitTestCase):
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
+    def test_text_picomplex(self):
+        """Complex numbers including pi show up in the text
+        See https://github.com/Qiskit/qiskit-terra/issues/3640 """
+        expected = '\n'.join(["        ┌────────────────────────────────┐",
+                              "q_0: |0>┤0                               ├",
+                              "        │  initialize(pi/10,0,0,0.94937) │",
+                              "q_1: |0>┤1                               ├",
+                              "        └────────────────────────────────┘"
+                              ])
+        ket = np.array([0.1*np.pi, 0, 0, 0.9493702944526474])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(ket, [0, 1])
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
     """Composite instructions with both kind of wires
