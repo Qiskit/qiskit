@@ -48,8 +48,11 @@ from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.extensions.standard.cu1 import Cu1Gate
 from qiskit.extensions.standard.ch import CHGate
+from qiskit.extensions.standard.crx import CrxGate
+from qiskit.extensions.standard.cry import CryGate
 from qiskit.extensions.standard.crz import CrzGate
 from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
 
 
@@ -106,6 +109,7 @@ class AstInterpreter:
                           "sdg": SdgGate,
                           "swap": SwapGate,
                           "rx": RXGate,
+                          "rxx": RXXGate,
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
@@ -115,6 +119,8 @@ class AstInterpreter:
                           "cy": CyGate,
                           "cz": CzGate,
                           "ch": CHGate,
+                          "crx": CrxGate,
+                          "cry": CryGate,
                           "crz": CrzGate,
                           "cu1": Cu1Gate,
                           "cu3": Cu3Gate,
