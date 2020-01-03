@@ -76,8 +76,6 @@ class SimplifyU3(TransformationPass):
                     new_op = None
 
                 elif np.allclose([theta], [0.], atol=DEFAULT_ATOL):
-                    print(phi)
-                    print(lam)
                     new_op = U1Gate(_mod2pi(phi+lam))
 
                 elif np.isclose(theta, np.pi/2, atol=DEFAULT_ATOL):

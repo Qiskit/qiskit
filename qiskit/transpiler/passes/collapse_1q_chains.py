@@ -69,18 +69,21 @@ class Collapse1qChains(TransformationPass):
                 successor = list(dag.successors(node))[0]  # has only one successor
                 while successor.type == "op" and \
                         isinstance(successor.op, Gate) and \
-                        len(node.qargs) == 1 and \
+                        len(successor.qargs) == 1 and \
                         successor.condition is None:
                     chain.append(successor)
                     nodes_seen[successor] = True
                     successor = list(dag.successors(successor))[0]
                 chains.append(chain)
 
+        # cannot collapse parameterized gates yet
+        chains = _split_chains_on_parameters(chains)
+
         # collapse chains into a single U3
         decomposer = OneQubitEulerDecomposer(basis='U3')
         for chain in chains:
             left_parameters = (0, 0, 0)  # theta, phi, lambda
-            for gate in chain:
+            for gate in reversed(chain):
                 right_parameters = decomposer(Operator(gate.op)).data[0][0].params
                 left_parameters = _compose_u3(left_parameters[0],
                                                left_parameters[1],
@@ -111,7 +114,6 @@ def _compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
     # Careful with the factor of two in yzy_to_zyz
     thetap, phip, lambdap = _yzy_to_zyz((lambda1 + phi2), theta1, theta2)
     (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
-
     return (theta, phi, lamb)
 
 
@@ -141,17 +143,15 @@ def _yzy_to_zyz(xi, theta1, theta2, eps=1e-9):  # pylint: disable=invalid-name
     return out_angles
 
 
-def _split_runs_on_parameters(runs):
-    """Finds runs containing parameterized gates, and splits them into sequential
-    runs excluding the parameterized gates.
+def _split_chains_on_parameters(chains):
+    """Finds chains containing parameterized gates, and splits them into
+    sequential chains excluding the parameterized gates.
     """
-
     out = []
-    for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized())
+    for chain in chains:
+        groups = groupby(chain, lambda x: x.op.is_parameterized())
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:
                 out.append(list(gates))
-
     return out
