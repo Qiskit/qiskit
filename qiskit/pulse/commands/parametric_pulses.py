@@ -285,9 +285,14 @@ class Drag(ParametricPulse):
         #    The bound on that solution is handled already by self.amp <= 1. The other two
         #    solutions mirror each other around the center of the pulse and have the same norm,
         #    so taking the first x value is sufficient.
-        argmax_x = (self.duration / 2
-                    - (1 / self.beta) * math.sqrt(self.beta ** 2 * self.sigma ** 2
-                                                  - self.sigma ** 4))
+        try:
+            argmax_x = (self.duration / 2
+                        - (1 / self.beta) * math.sqrt(self.beta ** 2 * self.sigma ** 2
+                                                      - self.sigma ** 4))
+        except ValueError:
+            # If beta < sigma, then the sqrt is negative, and the root is complex, meaning
+            # there's no inflection in the norm at that point.
+            return
         if argmax_x < 0:
             # If the max point is out of range, either end of the pulse will do
             argmax_x = 0

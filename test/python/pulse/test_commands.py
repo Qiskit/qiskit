@@ -339,6 +339,7 @@ class TestParametricPulses(QiskitTestCase):
         check_drag(duration=50, sigma=16, amp=-1, beta=2)
         check_drag(duration=50, sigma=16, amp=1, beta=-2)
         check_drag(duration=50, sigma=16, amp=1, beta=6)
+        check_drag(duration=50, sigma=16, amp=-0.5j, beta=25)
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=16, amp=1, beta=20)
 
