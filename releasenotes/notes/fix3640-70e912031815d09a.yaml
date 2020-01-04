@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the circuit to handle complex numbers. Refer to
+    `#3640 <https://github.com/Qiskit/qiskit-terra/issues/3640>` for more
+    details.
