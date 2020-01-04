@@ -509,14 +509,14 @@ class ScheduleDrawer:
                 ax.axvline(tf*dt, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, scale_dict,
                        label=False, framechange=True):
         y0 = 0
         prev_labels = []
         for channel, events in output_channels.items():
             if events.enable:
                 # scaling value of this channel
-                _v_max = 0.5 * v_max.get(channel, 0.5)
+                scale = 0.5 * scale_dict.get(channel, 0.5)
                 # plot waveform
                 waveform = events.waveform
                 time = np.arange(t0, tf + 1, dtype=float) * dt
@@ -529,10 +529,10 @@ class ScheduleDrawer:
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
                 # Minimum amplitude scaled
-                amp_min = _v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
+                amp_min = scale * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
-                re = _v_max * re + y0
-                im = _v_max * im + y0
+                re = scale * re + y0
+                im = scale * im + y0
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
@@ -563,7 +563,7 @@ class ScheduleDrawer:
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
             # show scaling factor
-            ax.text(x=0, y=y0 - 0.1, s='x%.2f' % (2 * _v_max),
+            ax.text(x=0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
                     fontsize=0.7*self.style.axis_font_size,
                     ha='right', va='top')
 
@@ -644,10 +644,10 @@ class ScheduleDrawer:
 
         # count numbers of valid waveform
 
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels,
-                                                              scale=scale_dict,
-                                                              channels=channels,
-                                                              plot_all=plot_all)
+        n_valid_waveform, scale_dict = self._count_valid_waveforms(output_channels,
+                                                                   scale=scale_dict,
+                                                                   channels=channels,
+                                                                   plot_all=plot_all)
 
         if table:
             ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
@@ -659,7 +659,7 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
-                                 t0, tf, dt, v_max, label=label,
+                                 t0, tf, dt, scale_dict, label=label,
                                  framechange=framechange)
 
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
