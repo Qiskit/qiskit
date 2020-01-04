@@ -225,7 +225,7 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scaling=1):
+    def draw(self, pulse, dt, interp_method, scale=1, scaling=None):
         """Draw figure.
 
         Args:
@@ -233,11 +233,16 @@ class SamplePulseDrawer:
             dt (float): time interval
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
-            scaling (float): Relative visual scaling of waveform amplitudes
+            scale (float): Relative visual scaling of waveform amplitudes
+            scaling (float): Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
         figure = plt.figure()
 
         interp_method = interp_method or interpolation.step_wise
@@ -262,8 +267,8 @@ class SamplePulseDrawer:
                         label='imaginary part')
 
         ax.set_xlim(0, pulse.duration * dt)
-        if scaling:
-            ax.set_ylim(-scaling, scaling)
+        if scale:
+            ax.set_ylim(-1/scale, 1/scale)
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
@@ -343,11 +348,15 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, output_channels, scaling=None, channels=None,
-                               plot_all=False):
+    def _count_valid_waveforms(self, output_channels, scale, channels=None,
+                               plot_all=False, scaling=None):
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
         # count numbers of valid waveform
         n_valid_waveform = 0
-        scaling_channels = {chan: 0 for chan in output_channels.keys()}
+        scale_channels = {chan: 0 for chan in output_channels.keys()}
         for channel, events in output_channels.items():
             v_max = 0
             if channels:
@@ -367,18 +376,17 @@ class ScheduleDrawer:
                     n_valid_waveform += 1
                     events.enable = True
 
-            scaling_val = scaling.get(channel, None)
-            if not scaling_val:
+            scale_val = scale.get(channel, None)
+            if not scale_val:
                 # when input schedule is empty or comprises only frame changes,
                 # we need to overwrite maximum amplitude by a value greater than zero,
                 # otherwise auto axis scaling will fail with zero division.
                 v_max = v_max or 1
-
-                scaling_channels[channel] = 1 / v_max
+                scale_channels[channels] = 1 / v_max
             else:
-                scaling_channels[channel] = scaling_val
+                scale_channels[channels] = scale_val
 
-        return n_valid_waveform, scaling_channels
+        return n_valid_waveform, scale_channels
 
     # pylint: disable=unused-argument
     def _draw_table(self, figure, channels, dt, n_valid_waveform):
@@ -395,7 +403,11 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-
+            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
+            nrows = int(min(nrows, max_rows))
+            # don't overflow plot with table data
+            table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
             h_waves = (self.style.figsize[1] - h_table)
@@ -563,9 +575,10 @@ class ScheduleDrawer:
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=None, channels_to_plot=None, plot_all=True,
+             scale=None, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True,
-             channels=None, show_framechange_channels=True):
+             scaling=None, channels=None,
+             show_framechange_channels=True):
         """Draw figure.
 
         Args:
@@ -574,12 +587,13 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scaling (float or dict[Channel, float]): Relative visual scaling of waveform amplitudes
+            scale (float): Relative visual scaling of waveform amplitudes
             channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
+            scaling (float): Deprecated, see `scale`
             channels (list[OutputChannel]): channels to draw
             show_framechange_channels (bool): Plot channels with only framechanges
 
@@ -588,12 +602,16 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: when schedule cannot be drawn
         """
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
         figure = plt.figure()
 
-        if not isinstance(scaling, dict):
-            scale_dict = {chan: scaling for chan in schedule.channels}
+        if not isinstance(scale, dict):
+            scale_dict = {chan: scale for chan in schedule.channels}
         else:
-            scale_dict = scaling
+            scale_dict = scale
 
         if channels_to_plot is not None:
             warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
@@ -625,7 +643,9 @@ class ScheduleDrawer:
                                                    show_framechange_channels)
 
         # count numbers of valid waveform
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scale_dict,
+
+        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels,
+                                                              scale=scale_dict,
                                                               channels=channels,
                                                               plot_all=plot_all)
 
