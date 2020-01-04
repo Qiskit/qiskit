@@ -42,7 +42,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         filename (str): Name required to save pulse image
         interp_method (Callable): interpolation function
             See `qiskit.visualization.interpolation` for more information
-        scale (float): scaling of waveform amplitude
+        scale (float or dict): scaling of waveform amplitude
         channels_to_plot (list): Deprecated, see `channels`
         plot_all (bool): Plot empty channels
         plot_range (tuple): A tuple of time range to plot

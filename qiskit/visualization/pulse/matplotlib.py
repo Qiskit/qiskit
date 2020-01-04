@@ -382,9 +382,9 @@ class ScheduleDrawer:
                 # we need to overwrite maximum amplitude by a value greater than zero,
                 # otherwise auto axis scaling will fail with zero division.
                 v_max = v_max or 1
-                scale_channels[channels] = 1 / v_max
+                scale_channels[channel] = 1 / v_max
             else:
-                scale_channels[channels] = scale_val
+                scale_channels[channel] = scale_val
 
         return n_valid_waveform, scale_channels
 
@@ -587,7 +587,7 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scale (float): Relative visual scaling of waveform amplitudes
+            scale (float or dict): Relative visual scaling of waveform amplitudes
             channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table

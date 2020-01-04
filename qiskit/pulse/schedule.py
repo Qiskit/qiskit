@@ -360,7 +360,8 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scale: Optional[Union[float, Dict[Channel, float]]] = None,
+             channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None,
@@ -373,7 +374,7 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes, see Example.
             channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -385,6 +386,17 @@ class Schedule(ScheduleComponent):
             scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
             show_framechange_channels: Plot channels with only framechanges
+
+        Example:
+            ``scale`` parameter can be individually applied to channels when input is
+            dictionary format, otherwise single value is set to all channels.
+            If nothing specified, auto-scaling is applied.
+
+            Individual scaling::
+                scale = {pulse.DriveChannels(0): 2.0, pulse.MeasureChannels(0): 5.0}
+
+            Uniform scaling::
+                scale = 3.0
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
