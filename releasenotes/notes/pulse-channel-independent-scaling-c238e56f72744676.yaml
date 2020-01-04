@@ -21,9 +21,9 @@ upgrade:
       sched = sched | pulse_lib.drag(30, 0.05, 5, 1)(drive1)
 
       # custom scaling factor
-      scalings = {drive0: 1, drive1: 10}
+      scales = {drive0: 1, drive1: 10}
 
-      sched.draw(scaling=scalings)
+      sched.draw(scale=scales)
 
     If you apply single scaling factor, the visualizer use that value to all channels.
 
