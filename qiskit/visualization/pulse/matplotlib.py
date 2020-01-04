@@ -665,7 +665,7 @@ class ScheduleDrawer:
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
         ax.set_xlim(t0 * dt, tf * dt)
-        ax.set_ylim(y0, 1)
+        ax.set_ylim(y0 + 0.5 - self.style.white_space, 0.5 + self.style.white_space)
         ax.set_yticklabels([])
 
         return figure
