@@ -59,7 +59,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         matplotlib.figure: A matplotlib figure object for the pulse envelope
 
     Raises:
-        VisualizationError: when invalid data is given or lack of information
+        VisualizationError: when invalid data is given, lack of information or wrong scaling factor
         ImportError: when matplotlib is not installed
     """
     if scaling is not None:
@@ -74,6 +74,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     if not _matplotlib.HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
+        if isinstance(scale, dict):
+            raise VisualizationError('Individual scaling cannot be applied to SamplePulse drawer.')
         drawer = _matplotlib.SamplePulseDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
