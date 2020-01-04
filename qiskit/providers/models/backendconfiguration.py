@@ -331,12 +331,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
-
-        # only raise dt/dtm warning once
-        if not PulseBackendConfiguration._dt_warning_done:
-            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
-                          'than nanoseconds(ns).')
-            PulseBackendConfiguration._dt_warning_done = True
+        self._dt = dt*1e-9
+        self._dtm = dtm*1e-9
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -345,9 +341,30 @@ class PulseBackendConfiguration(BackendConfiguration):
                          n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
                          meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
                          meas_lo_range=meas_lo_range,
-                         dt=dt * 1e-9, dtm=dtm * 1e-9,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
+
+    @property
+    def dt(self) -> float:  # pylint: disable=invalid-name
+        """Drive channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dt
+
+    @property
+    def dtm(self) -> float:  # pylint: disable=invalid-name
+        """Measure channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dtm
 
     @property
     def sample_rate(self) -> float:

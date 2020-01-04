@@ -112,6 +112,8 @@ class PulseDefaults(BaseModel):
     scheduling.
     """
 
+    _freq_warning_done = False
+
     def __init__(self,
                  qubit_freq_est: List[float],
                  meas_freq_est: List[float],
@@ -133,8 +135,8 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
-        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        self._qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        self._meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
         self.circuit_instruction_map = InstructionScheduleMap()
@@ -144,6 +146,28 @@ class PulseDefaults(BaseModel):
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
             self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
+
+    @property
+    def qubit_freq_est(self) -> float:  # pylint: disable=invalid-name
+        """Qubit frequencies in Hertz(Hz)."""
+        # only raise qubit_freq_est warning once
+        if not PulseDefaults._freq_warning_done:
+            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
+                          'Hertz(Hz) rather than gigahertz(GHz).')
+            PulseDefaults._freq_warning_done = True
+
+        return self._qubit_freq_est
+
+    @property
+    def meas_freq_est(self) -> float:  # pylint: disable=invalid-name
+        """Measurement frequencies in Hertz(Hz)."""
+        # only raise qubit_freq_est warning once
+        if not PulseDefaults._freq_warning_done:
+            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
+                          'Hertz(Hz) rather than gigahertz(GHz).')
+            PulseDefaults._freq_warning_done = True
+
+        return self._meas_freq_est
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
