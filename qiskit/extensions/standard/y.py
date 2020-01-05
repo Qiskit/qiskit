@@ -51,7 +51,19 @@ class YGate(Gate):
 
 
 def y(self, q):
-    """Apply Y to q."""
+        """Apply Y gate to a specified qubit (q).
+    The Y gate corresponds to a pi rotation about the y-axis on the Bloch sphere. It is also equivalent to the combined effect of X gate and Z gate.
+
+    Example:
+    circuit = QuantumCircuit(1)
+    circuit.y(0)
+    circuit.draw()
+            ┌───┐
+    q_0: |0>┤ Y ├
+            └───┘
+    Resulting Statevector:
+    [ 0+0j, 0+1j ]
+    """
     return self.append(YGate(), [q], [])
 
 

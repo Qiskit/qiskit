@@ -86,7 +86,24 @@ class ToffoliGate(ControlledGate):
 
 
 def ccx(self, ctl1, ctl2, tgt):
-    """Apply Toffoli to ctl1 and ctl2 to tgt."""
+    """Apply Toffoli (ccX) gate from two specified controls (ctl1 and ctl2) to target (tgt) qubit.
+    The ccX gate flips the target qubit (|0⟩ state to |1⟩, and vice versa) when both the control qubits are in state |1>.
+
+    Example:
+    circuit = QuantumCircuit(3)
+    circuit.x([0,1]) # This brings the quantum state from |0> to |1> for both the control qubits
+    circuit.ccx(0,1,2)
+    circuit.draw()
+            ┌───┐     
+    q_0: |0>┤ X ├──■──
+            ├───┤  │  
+    q_1: |0>┤ X ├──■──
+            └───┘┌─┴─┐
+    q_2: |0>─────┤ X ├
+                 └───┘
+    Resulting Statevector:
+    [ 0+0j, 0+0j, 0+0j, 0+0j, 0+0j, 0+0j, 0+0j, 1+0j ]
+    """
     return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
 
 

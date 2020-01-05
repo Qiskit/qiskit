@@ -62,7 +62,23 @@ class CzGate(ControlledGate):
 
 
 def cz(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CZ to circuit."""
+        """Apply cZ gate from a specified control (ctl) to target (tgt) qubit.
+    The cZ gate applies a Z gate (flips |+> to |-> and vice versa) on the target qubit when the control qubit is in state |1>.
+
+    Example:
+    circuit = QuantumCircuit(2)
+    circuit.x(0) # This brings the quantum state from |0> to |1>
+    circuit.ry(numpy.pi/2,1) # This brings the quantum state from |0> to |+>
+    circuit.cz(0,1) 
+    circuit.draw()
+               ┌───┐       
+    q_0: |0>───┤ X ├─────■─
+            ┌──┴───┴───┐ │ 
+    q_1: |0>┤ Ry(pi/2) ├─■─
+            └──────────┘   
+    Resulting Statevector:
+    [ 0+0j, 0.707+0j, 0+0j, -0.707+0j ]
+    """
     return self.append(CzGate(), [ctl, tgt], [])
 
 
