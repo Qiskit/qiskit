@@ -51,17 +51,7 @@ class ZGate(Gate):
 
 
 def z(self, q):
-        """Apply Z gate to a specified qubit (q).
-    The Z gate has the property of flipping the |+⟩ to |−⟩, and vice versa. It corresponds to a pi rotation about the z-axis on the Bloch sphere. 
-
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
-    circuit.z(0)
-    circuit.draw()
-    Resulting Statevector:
-    [ 0.707+0j, -0.707+0j ]
-    """
+    """Apply Z to q."""
     return self.append(ZGate(), [q], [])
 
 

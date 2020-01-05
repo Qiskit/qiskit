@@ -59,22 +59,7 @@ class U2Gate(Gate):
 
 
 def u2(self, phi, lam, q):  # pylint: disable=invalid-name
-        """Apply U2 gate with angle phi and lam to a specified qubit (q).
-    The U2 gate corresponds to a rotation of phi radians about the x-axis and lam radians about the z-axis on the Bloch sphere.
-
-    Example:
-    circuit = QuantumCircuit(1)
-    phi = 0
-    lam = numpy.pi
-    circuit.u2(phi,lam,0)
-    circuit.draw()
-            ┌──────────┐
-    q_0: |0>┤ U2(0,pi) ├
-            └──────────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.707+0j ]
-    """
-
+    """Apply u2 to q."""
     return self.append(U2Gate(phi, lam), [q], [])
 
 

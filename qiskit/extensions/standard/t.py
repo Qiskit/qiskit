@@ -84,38 +84,12 @@ class TdgGate(Gate):
 
 
 def t(self, q):  # pylint: disable=invalid-name
-        """Apply T gate to a specified qubit (q).
-    The T gate corresponds to a rotation of pi/4 radians from |+> about the z-axis on the Bloch sphere.
-
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
-    circuit.t(0)
-    circuit.draw()
-            ┌──────────┐┌───┐
-    q_0: |0>┤ Ry(pi/2) ├┤ T ├
-            └──────────┘└───┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.5+0.5j ]
-    """
+    """Apply T to q."""
     return self.append(TGate(), [q], [])
 
 
 def tdg(self, q):
-    """Apply Tdg gate to a specified qubit (q).
-    The Tdg gate is inverse of T gate and corresponds to a rotation of -pi/4 radians from |+> about the z-axis on the Bloch sphere.
-
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
-    circuit.tdg(0)
-    circuit.draw()
-            ┌──────────┐┌─────┐
-    q_0: |0>┤ Ry(pi/2) ├┤ Tdg ├
-            └──────────┘└─────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.5-0.5j ]
-    """
+    """Apply Tdg to q."""
     return self.append(TdgGate(), [q], [])
 
 
