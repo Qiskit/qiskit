@@ -54,7 +54,22 @@ class CyGate(ControlledGate):
 
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CY to circuit."""
+    """Apply cY gate from a specified control (ctl) to target (tgt) qubit.
+    The cY gate applies a Y gate on the target qubit when the control qubit is in state |1>.
+
+    Example:
+    circuit = QuantumCircuit(2)
+    circuit.x(0) # This brings the quantum state from |0> to |1>
+    circuit.cy(0,1)
+    circuit.draw()
+            ┌───┐
+    q_0: |0>┤ X ├──■──
+            └───┘┌─┴─┐
+    q_1: |0>─────┤ Y ├
+                 └───┘
+    Resulting Statevector:
+    [ 0+0j, 0+0j, 0+0j, 0+1j ]
+    """
     return self.append(CyGate(), [ctl, tgt], [])
 
 

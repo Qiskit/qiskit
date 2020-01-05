@@ -57,7 +57,31 @@ class FredkinGate(ControlledGate):
 
 
 def cswap(self, ctl, tgt1, tgt2):
-    """Apply Fredkin to circuit."""
+    """Apply Fredkin (CSWAP) gate from a specified control (ctl) to target1 (tgt1)
+    and target2 (tgt2) qubits.
+    The CSWAP gate swaps the states of target1 and target2 when the control qubit is in state |1>.
+
+    Example:
+    circuit = QuantumCircuit(3)
+    circuit.x([0,1]) # This brings the quantum state from |0> to |1> on control and target1 qubits
+    circuit.cswap(0,1,2)
+    circuit.draw()
+            ┌───┐
+    q_0: |0>┤ X ├─■─
+            ├───┤ │
+    q_1: |0>┤ X ├─X─
+            └───┘ │
+    q_2: |0>──────X─
+    Resulting Statevector:
+    | 000 | 0 |
+    | 001 | 0 |
+    | 010 | 0 |
+    | 011 | 0 |
+    | 100 | 0 |
+    | 101 | 1 | -> Here q_2 (original state = 0) got swapped with q_1 (original state = 1)
+    | 110 | 0 |
+    | 111 | 0 |
+    """
     return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
 
 

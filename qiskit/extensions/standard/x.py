@@ -57,7 +57,20 @@ class XGate(Gate):
 
 
 def x(self, q):
-    """Apply X to q."""
+    """Apply X gate to a specified qubit (q).
+    The X gate has the property of flipping the |0⟩ state to |1⟩, and vice versa.
+    It corresponds to a pi rotation about the x-axis on the Bloch sphere.
+
+    Example:
+    circuit = QuantumCircuit(1)
+    circuit.x(0)
+    circuit.draw()
+            ┌───┐
+    q_0: |0>┤ X ├
+            └───┘
+    Resulting Statevector:
+    [ 0+0j, 1+0j ]
+    """
     return self.append(XGate(), [q], [])
 
 

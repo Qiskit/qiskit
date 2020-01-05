@@ -42,10 +42,11 @@ class IdGate(Gate):
 
 
 def iden(self, q):
-    """Apply Identity to q.
+    """Apply Identity gate to a specified qubit (q).
 
-    Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized or unrolled (it is an opaque gate).
+    The Identity gate ensures that nothing is applied to a qubit for one unit
+    of gate time. It leaves the quantum states |0> and |1> unchanged.
+    The Identity gate should not be optimized or unrolled (it is an opaque gate).
     """
     return self.append(IdGate(), [q], [])
 

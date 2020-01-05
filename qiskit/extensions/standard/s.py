@@ -84,12 +84,40 @@ class SdgGate(Gate):
 
 
 def s(self, q):  # pylint: disable=invalid-name
-    """Apply S to q."""
+    """Apply S gate to a specified qubit (q).
+    The S gate corresponds to a rotation of pi/2 radians from |+> about
+    the z-axis on the Bloch sphere.
+
+    Example:
+    circuit = QuantumCircuit(1)
+    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
+    circuit.s(0)
+    circuit.draw()
+            ┌──────────┐┌───┐
+    q_0: |0>┤ Ry(pi/2) ├┤ S ├
+            └──────────┘└───┘
+    Resulting Statevector:
+    [ 0.707+0j, 0+0.707j ]
+    """
     return self.append(SGate(), [q], [])
 
 
 def sdg(self, q):
-    """Apply Sdg to q."""
+    """Apply Sdg gate to a specified qubit (q).
+    The Sdg gate is inverse of S gate and corresponds to a rotation of
+    -pi/2 radians from |+> about the z-axis on the Bloch sphere.
+
+    Example:
+    circuit = QuantumCircuit(1)
+    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
+    circuit.sdg(0)
+    circuit.draw()
+            ┌──────────┐┌─────┐
+    q_0: |0>┤ Ry(pi/2) ├┤ Sdg ├
+            └──────────┘└─────┘
+    Resulting Statevector:
+    [ 0.707+0j, 0-0.707j ]
+    """
     return self.append(SdgGate(), [q], [])
 
 

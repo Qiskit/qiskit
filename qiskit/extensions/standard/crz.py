@@ -57,7 +57,24 @@ class CrzGate(ControlledGate):
 
 
 def crz(self, theta, ctl, tgt):
-    """Apply crz from ctl to tgt with angle theta."""
+    """Apply cRz gate from a specified control (ctl) to target (tgt) qubit with angle theta.
+    The cRz gate applies Rz gate on the target qubit when the control qubit is in state |1>.
+
+    Example:
+    circuit = QuantumCircuit(2)
+    circuit.x(0) # This brings the quantum state from |0> to |1>
+    circuit.ry(numpy.pi/2,1) # This brings the quantum state from |0> to |+>
+    theta = numpy.pi/2
+    circuit.crz(theta,0,1)
+    circuit.draw()
+               ┌───┐
+    q_0: |0>───┤ X ├─────────■──────
+            ┌──┴───┴───┐┌────┴─────┐
+    q_1: |0>┤ Ry(pi/2) ├┤ Rz(pi/2) ├
+            └──────────┘└──────────┘
+    Resulting Statevector:
+    [ 0+0j, 0.5-0.5j, 0+0j, 0.5+0.5j ]
+    """
     return self.append(CrzGate(theta), [ctl, tgt], [])
 
 
