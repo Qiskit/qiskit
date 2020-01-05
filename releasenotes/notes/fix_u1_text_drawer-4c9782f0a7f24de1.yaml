@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Text Drawer now correctly displays cU1 gate.  
+    Fixes `issue #3684 <https://github.com/Qiskit/qiskit-terra/issues/3684>`
