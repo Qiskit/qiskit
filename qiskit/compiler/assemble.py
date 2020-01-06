@@ -86,7 +86,7 @@ def assemble(experiments,
 
         qubit_lo_range (list):
             List of drive lo ranges each of form `[range_min, range_max]` in Hz.
-            Used to validate that the supplied qubit los are valid.
+            Used to validate the supplied qubit frequencies.
 
         meas_lo_range (list):
             List of measurement lo ranges each of form `[range_min, range_max]` in Hz.
