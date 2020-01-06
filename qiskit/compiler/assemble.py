@@ -77,19 +77,19 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies in Hz. Will be overridden by
+            List of default qubit LO frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default measurement lo frequencies in Hz. Will be overridden
+            List of default measurement LO frequencies in Hz. Will be overridden
             by `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges each of form `[range_min, range_max]` in Hz.
+            List of drive LO ranges each of form `[range_min, range_max]` in Hz.
             Used to validate the supplied qubit frequencies.
 
         meas_lo_range (list):
-            List of measurement lo ranges each of form `[range_min, range_max]` in Hz.
+            List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
             Used to validate the supplied qubit frequencies.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
@@ -254,7 +254,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if isinstance(schedule_los, (LoConfig, dict)):
         schedule_los = [schedule_los]
 
-    # Convert to LoConfig if lo configuration supplied as dictionary
+    # Convert to LoConfig if LO configuration supplied as dictionary
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
