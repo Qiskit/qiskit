@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into
-a single gate.
-"""
+"""Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
 from itertools import groupby
 
@@ -28,15 +24,26 @@ from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
+from qiskit.quantum_info.operators import Quaternion
 
 _CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
-    """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
+    """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the Optimize1qGates pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+
+        Raises:
+            TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
+        """
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
         for run in runs:
@@ -214,9 +221,9 @@ class Optimize1qGates(TransformationPass):
 
         Return a solution theta, phi, and lambda.
         """
-        quaternion_yzy = quaternion_from_euler([theta1, xi, theta2], 'yzy')
+        quaternion_yzy = Quaternion.from_euler([theta1, xi, theta2], 'yzy')
         euler = quaternion_yzy.to_zyz()
-        quaternion_zyz = quaternion_from_euler(euler, 'zyz')
+        quaternion_zyz = Quaternion.from_euler(euler, 'zyz')
         # output order different than rotation order
         out_angles = (euler[1], euler[0], euler[2])
         abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))

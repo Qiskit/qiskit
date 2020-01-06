@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The instruction ``snapshot`` used to implicitly convert the ``label`` parameter to string. That conversion has been removed and an error is raised if a string is not provided.

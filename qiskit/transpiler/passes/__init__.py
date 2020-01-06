@@ -109,7 +109,7 @@ Additional Passes
    RemoveDiagonalGatesBeforeMeasure
    RemoveFinalMeasurements
    RemoveResetInZeroState
-
+   CrosstalkAdaptiveSchedule
 """
 
 from .unroller import Unroller
@@ -142,6 +142,7 @@ from .mapping.check_map import CheckMap
 from .mapping.check_cx_direction import CheckCXDirection
 from .mapping.cx_direction import CXDirection
 from .mapping.trivial_layout import TrivialLayout
+from .mapping.csp_layout import CSPLayout
 from .mapping.set_layout import SetLayout
 from .mapping.dense_layout import DenseLayout
 from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout
@@ -151,3 +152,4 @@ from .mapping.lookahead_swap import LookaheadSwap
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .mapping.stochastic_swap import StochasticSwap
 from .remove_final_measurements import RemoveFinalMeasurements
+from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule

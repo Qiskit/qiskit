@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
-a measurement. Including diagonal 2Q gates.
-"""
+"""Remove diagonal gates (including diagonal 2Q gates) before a measurement."""
 
 from qiskit.circuit import Measure
 from qiskit.extensions.standard import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate,\
@@ -25,11 +21,21 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
-    """Remove diagonal gates (like RZ, T, Z, etc) before a measurement.
-    Including diagonal 2Q gates."""
+    """Remove diagonal gates (including diagonal 2Q gates) before a measurement.
+
+    Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
+    a measurement. Including diagonal 2Q gates.
+    """
 
     def run(self, dag):
-        """Return a new circuit that has been optimized."""
+        """Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
         diagonal_1q_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
         diagonal_2q_gates = (CzGate, CrzGate, Cu1Gate, RZZGate)
 

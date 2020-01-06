@@ -21,7 +21,7 @@ from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters"""
+    """Parameter Class for variable parameters."""
 
     def __new__(cls, _, uuid=None):
         # Parameter relies on self._uuid being set prior to other attributes
