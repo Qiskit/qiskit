@@ -264,6 +264,12 @@ class TestScheduleBuilding(BaseTestSchedule):
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
+    def test_auto_naming(self):
+        """Test that a schedule gets a default name with the expected format."""
+        sched = Schedule()
+        self.assertTrue(sched.name.startswith('sched'))
+        self.assertTrue(int(sched.name[5:]))
+
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
         acquire = Acquire(10)
