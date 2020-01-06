@@ -287,8 +287,7 @@ class Drag(ParametricPulse):
         #    so taking the first x value is sufficient.
         try:
             argmax_x = (self.duration / 2
-                        - (1 / self.beta) * math.sqrt(self.beta ** 2 * self.sigma ** 2
-                                                      - self.sigma ** 4))
+                        - (self.sigma / self.beta) * math.sqrt(self.beta ** 2 - self.sigma ** 2))
         except ValueError:
             # If beta < sigma, then the sqrt is negative, and the root is complex, meaning
             # there's no inflection in the norm at that point.
