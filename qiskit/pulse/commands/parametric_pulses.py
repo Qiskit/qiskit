@@ -277,7 +277,8 @@ class Drag(ParametricPulse):
         if isinstance(self.beta, complex):
             raise PulseError("Beta must be real.")
 
-        # Find the first maxima
+        # Check if beta is too large: the amplitude norm must be <=1 for all points
+        # 1. Find the first maxima
         #    This eq is derived from taking the derivative of the norm of the drag function
         #    and solving for the roots. One solution, of course, is x = duration/2.
         #    The bound on that solution is handled already by self.amp <= 1. The other two
@@ -294,7 +295,7 @@ class Drag(ParametricPulse):
             # If the max point is out of range, either end of the pulse will do
             argmax_x = 0
 
-        # Find the value at that maximum
+        # 2. Find the value at that maximum
         max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
                                   beta=self.beta, amp=self.amp, center=self.duration / 2)
         if abs(max_val) > 1.:
