@@ -300,9 +300,9 @@ class TestLoConverter(QiskitTestCase):
 
     def test_qubit_los(self):
         """Test qubit channel configuration."""
-        user_lo_config = LoConfig({DriveChannel(0): 1.3})
+        user_lo_config = LoConfig({DriveChannel(0): 1.3e9})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
-                                      [1.2], [3.4], [(0., 5.)], [(0., 5.)])
+                                      [1.2e9], [3.4e9], [(0., 5e9)], [(0., 5e9)])
 
         valid_qobj = PulseQobjExperimentConfig(qubit_lo_freq=[1.3])
 
@@ -310,9 +310,9 @@ class TestLoConverter(QiskitTestCase):
 
     def test_meas_los(self):
         """Test measurement channel configuration."""
-        user_lo_config = LoConfig({MeasureChannel(0): 3.5})
+        user_lo_config = LoConfig({MeasureChannel(0): 3.5e9})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
-                                      [1.2], [3.4], [(0., 5.)], [(0., 5.)])
+                                      [1.2e9], [3.4e9], [(0., 5e9)], [(0., 5e9)])
 
         valid_qobj = PulseQobjExperimentConfig(meas_lo_freq=[3.5])
 
