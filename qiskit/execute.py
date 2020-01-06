@@ -149,9 +149,17 @@ def execute(experiments, backend,
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
+<<<<<<< HEAD
         default_qubit_los (list): List of default qubit LO frequencies in Hz
 
         default_meas_los (list): List of default meas LO frequencies in Hz
+=======
+        default_qubit_los (list):
+            List of default qubit LO frequencies in Hz
+
+        default_meas_los (list):
+            List of default meas LO frequencies in Hz
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
 
         schedule_los (None or list or dict or LoConfig): Experiment LO
             configurations, if specified the list is in the format::

@@ -83,6 +83,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             or ``max_shots`` from the backend configuration, whichever is smaller
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
+<<<<<<< HEAD
             measurement level 2 supports this option.
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
@@ -111,6 +112,58 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             by the backend (``backend.configuration().rep_delay_range``). Default is given by
             ``backend.configuration().default_rep_delay``.
         parameter_binds: List of Parameter bindings over which the set of experiments will be
+=======
+            measurement level 2 supports this option. Default: False
+
+        max_credits (int):
+            Maximum credits to spend on job. Default: 10
+
+        seed_simulator (int):
+            Random seed to control sampling, for when backend is a simulator
+
+        qubit_lo_freq (list):
+            List of default qubit LO frequencies in Hz. Will be overridden by
+            `schedule_los` if set.
+
+        meas_lo_freq (list):
+            List of default measurement LO frequencies in Hz. Will be overridden
+            by `schedule_los` if set.
+
+        qubit_lo_range (list):
+            List of drive LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
+
+        meas_lo_range (list):
+            List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
+
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
+                      Union[Dict[PulseChannel, float], LoConfig]):
+            Experiment LO configurations, frequencies are given in Hz.
+
+        meas_level (int or MeasLevel):
+            Set the appropriate level of the measurement output for pulse experiments.
+
+        meas_return (str or MeasReturn):
+            Level of measurement data for the backend to return.
+
+            For `meas_level` 0 and 1:
+                * "single" returns information from every shot.
+                * "avg" returns average measurement output (averaged over number of shots).
+
+        meas_map (list):
+            List of lists, containing qubits that must be measured together.
+
+        memory_slot_size (int):
+            Size of each memory slot if the output is Level 0.
+
+        rep_time (int): repetition time of the experiment in μs.
+            The delay between experiments will be rep_time.
+            Must be from the list provided by the device.
+
+        parameter_binds (list[dict{Parameter: Value}]):
+            List of Parameter bindings over which the set of experiments will be
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
             executed across all experiments; e.g., if parameter_binds is a

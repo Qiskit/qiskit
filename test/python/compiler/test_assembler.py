@@ -1119,8 +1119,13 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
+<<<<<<< HEAD
         self.qubit_lo_freq = list(self.defaults.qubit_freq_est)
         self.meas_lo_freq = list(self.defaults.meas_freq_est)
+=======
+        self.qubit_lo_freq = [freq for freq in self.defaults.qubit_freq_est]
+        self.meas_lo_freq = [freq for freq in self.defaults.meas_freq_est]
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
         self.qubit_lo_range = self.config.qubit_lo_range
         self.meas_lo_range = self.config.meas_lo_range
         self.schedule_los = {pulse.DriveChannel(0): self.qubit_lo_freq[0],

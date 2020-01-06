@@ -535,6 +535,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                                (min_range, max_range) in qubit_lo_range]
         self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
                               (min_range, max_range) in meas_lo_range]
+<<<<<<< HEAD
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
@@ -566,16 +567,35 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             self.conditional_latency = conditional_latency
         if meas_map is not None:
             self.meas_map = meas_map
+=======
+        self.rep_times = rep_times
+        self.meas_kernels = meas_kernels
+        self.discriminators = discriminators
+        self.hamiltonian = hamiltonian
+
+        self._dt = dt * 1e-9
+        self._dtm = dtm * 1e-9
+
+        channel_bandwidth = kwargs.pop('channel_bandwidth', None)
+        if channel_bandwidth:
+            self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
+                                      (min_range, max_range) in channel_bandwidth]
+
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
+<<<<<<< HEAD
                          coupling_map=coupling_map, max_experiments=max_experiments,
                          sample_name=sample_name, n_registers=n_registers,
                          register_map=register_map, configurable=configurable,
                          credits_required=credits_required, online_date=online_date,
                          display_name=display_name, description=description,
                          tags=tags, **kwargs)
+=======
+                         **kwargs)
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
 
     @classmethod
     def from_dict(cls, data):

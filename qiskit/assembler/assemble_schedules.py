@@ -59,6 +59,7 @@ def assemble_schedules(schedules: List[pulse.Schedule],
                           config=qobj_config)
 
 
+<<<<<<< HEAD
 def _assemble_experiments(
         schedules: List[pulse.Schedule],
         lo_converter: converters.LoConfigConverter,
@@ -66,6 +67,9 @@ def _assemble_experiments(
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
     """Assembles a list of schedules into PulseQobjExperiments, and returns related metadata that
     will be assembled into the Qobj configuration.
+=======
+    meas_map = qobj_config.pop('meas_map', None)
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
 
     Args:
         schedules: Schedules to assemble.
@@ -86,11 +90,20 @@ def _assemble_experiments(
                           'schedule, or a list of frequencies should be provided for a single '
                           'frequency sweep schedule.')
 
+<<<<<<< HEAD
     instruction_converter = getattr(run_config,
                                     'instruction_converter',
                                     converters.InstructionToQobjConverter)
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
+=======
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
+                                     qubit_lo_range=qubit_lo_range,
+                                     meas_lo_range=meas_lo_range,
+                                     **qobj_config)
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
 
     schedules = [
         sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
@@ -237,6 +250,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         for inst in instrs:
             measured_qubits.add(inst.channel.index)
 
+<<<<<<< HEAD
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
             if intersection and intersection != meas_set:
@@ -273,6 +287,15 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
     meas_level = qobj_config.get('meas_level', 2)
     if isinstance(meas_level, qobj_utils.MeasLevel):
         qobj_config['meas_level'] = meas_level.value
+=======
+    # convert lo frequencies to GHz
+    qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in qubit_lo_freq]
+    qobj_config['meas_lo_freq'] = [freq/1e9 for freq in meas_lo_freq]
+
+    # create qobj experiment field
+    experiments = []
+    schedule_los = qobj_config.pop('schedule_los', [])
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
 
     # convert lo frequencies to Hz
     qobj_config['qubit_lo_freq'] = [freq / 1e9 for freq in qobj_config['qubit_lo_freq']]
@@ -285,9 +308,72 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
         q_los = lo_converter.get_qubit_los(lo_dict)
         # Hz -> GHz
         if q_los:
+<<<<<<< HEAD
             qobj_config['qubit_lo_freq'] = [freq / 1e9 for freq in q_los]
         m_los = lo_converter.get_meas_los(lo_dict)
         if m_los:
             qobj_config['meas_lo_freq'] = [freq / 1e9 for freq in m_los]
 
     return qobj.PulseQobjConfig(**qobj_config)
+=======
+            qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
+        m_los = lo_converter.get_meas_los(lo_dict)
+        if m_los:
+            qobj_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
+
+    if schedule_los:
+        # multiple frequency setups
+        if len(qobj_schedules) == 1:
+            # frequency sweep
+            for lo_dict in schedule_los:
+                experiments.append(PulseQobjExperiment(
+                    instructions=qobj_schedules[0]['instructions'],
+                    header=qobj_schedules[0]['header'],
+                    config=lo_converter(lo_dict)
+                ))
+        elif len(qobj_schedules) == len(schedule_los):
+            # n:n setup
+            for lo_dict, schedule in zip(schedule_los, qobj_schedules):
+                experiments.append(PulseQobjExperiment(
+                    instructions=schedule['instructions'],
+                    header=schedule['header'],
+                    config=lo_converter(lo_dict)
+                ))
+        else:
+            raise QiskitError('Invalid LO setting is specified. '
+                              'The LO should be configured for each schedule, or '
+                              'single setup for all schedules (unique), or '
+                              'multiple setups for a single schedule (frequency sweep),'
+                              'or no LO configured at all.')
+    else:
+        # unique frequency setup
+        for schedule in qobj_schedules:
+            experiments.append(PulseQobjExperiment(
+                instructions=schedule['instructions'],
+                header=schedule['header'],
+            ))
+
+    qobj_config = PulseQobjConfig(**qobj_config)
+
+    return PulseQobj(qobj_id=qobj_id,
+                     config=qobj_config,
+                     experiments=experiments,
+                     header=qobj_header)
+
+
+def _validate_meas_map(acquire, meas_map):
+    """Validate all qubits tied in meas_map are to be acquired."""
+    meas_map_set = [set(m) for m in meas_map]
+    # Verify that each qubit is listed once in measurement map
+    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
+    tied_qubits = set()
+    for meas_qubit in measured_qubits:
+        for map_inst in meas_map_set:
+            if meas_qubit in map_inst:
+                tied_qubits |= map_inst
+
+    if measured_qubits != tied_qubits:
+        raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
+                          'in measurement map: {1}'.format(measured_qubits, tied_qubits))
+    return True
+>>>>>>> a187d838e... Fix bug where lo units were not being properly converted (#3597)
