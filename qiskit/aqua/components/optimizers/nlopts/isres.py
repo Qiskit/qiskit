@@ -16,7 +16,6 @@
 
 import logging
 from qiskit.aqua.components.optimizers import Optimizer
-from qiskit.aqua.utils.validation import validate
 from ._nloptimizer import minimize
 from ._nloptimizer import check_nlopt_valid
 
@@ -34,29 +33,16 @@ class ISRES(Optimizer):
     NLopt global optimizer, derivative-free
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#isres-improved-stochastic-ranking-evolution-strategy
     """
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'isres_schema',
-        'type': 'object',
-        'properties': {
-            'max_evals': {
-                'type': 'integer',
-                'default': 1000
-            }
-        },
-        'additionalProperties': False
-    }
 
     _OPTIONS = ['max_evals']
 
-    def __init__(self, max_evals=1000):  # pylint: disable=unused-argument
+    def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
         """
         Constructor.
 
         Args:
-            max_evals (int): Maximum allowed number of function evaluations.
+            max_evals: Maximum allowed number of function evaluations.
         """
-        validate(locals(), self._INPUT_SCHEMA)
         check_nlopt_valid('ISRES')
         super().__init__()
         for k, v in locals().items():

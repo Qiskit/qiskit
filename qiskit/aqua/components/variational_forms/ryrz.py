@@ -14,55 +14,30 @@
 
 """Layers of Y+Z rotations followed by entangling gates."""
 
+from typing import Optional, List
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.aqua.utils.validation import validate
+from qiskit.aqua.utils.validation import validate_min, validate_in_set
 from qiskit.aqua.components.variational_forms import VariationalForm
+from qiskit.aqua.components.initial_states import InitialState
 
 
 class RYRZ(VariationalForm):
     """Layers of Y+Z rotations followed by entangling gates."""
 
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'ryrz_schema',
-        'type': 'object',
-        'properties': {
-            'depth': {
-                'type': 'integer',
-                'default': 3,
-                'minimum': 1
-            },
-            'entanglement': {
-                'type': 'string',
-                'default': 'full',
-                'enum': ['full', 'linear']
-            },
-            'entangler_map': {
-                'type': ['array', 'null'],
-                'default': None
-            },
-            'entanglement_gate': {
-                'type': 'string',
-                'default': 'cz',
-                'enum': ['cz', 'cx']
-            },
-            'skip_unentangled_qubits': {
-                'type': 'boolean',
-                'default': False
-            }
-        },
-        'additionalProperties': False
-    }
-
-    def __init__(self, num_qubits, depth=3, entangler_map=None,
-                 entanglement='full', initial_state=None,
-                 entanglement_gate='cz', skip_unentangled_qubits=False):
+    def __init__(self,
+                 num_qubits: int,
+                 depth: int = 3,
+                 entangler_map: Optional[List[List[int]]] = None,
+                 entanglement: str = 'full',
+                 initial_state: Optional[InitialState] = None,
+                 entanglement_gate: str = 'cz',
+                 skip_unentangled_qubits: bool = False) -> None:
         """Constructor.
 
         Args:
-            num_qubits (int) : number of qubits
-            depth (int) : number of rotation layers
+            num_qubits: number of qubits
+            depth: number of rotation layers, has a min. value of 1.
             entangler_map (list[list]): describe the connectivity of qubits, each list describes
                                         [source, target], or None for full entanglement.
                                         Note that the order is the list is the order of
@@ -72,7 +47,9 @@ class RYRZ(VariationalForm):
             entanglement_gate (str): cz or cx
             skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
-        validate(locals(), self._INPUT_SCHEMA)
+        validate_min('depth', depth, 1)
+        validate_in_set('entanglement', entanglement, {'full', 'linear'})
+        validate_in_set('entanglement_gate', entanglement_gate, {'cz', 'cx'})
         super().__init__()
         self._num_qubits = num_qubits
         self._depth = depth
