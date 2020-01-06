@@ -294,6 +294,20 @@ class TestParametricPulses(QiskitTestCase):
         np.testing.assert_almost_equal(samples[100], amp)
         np.testing.assert_almost_equal(samples[:10], gauss[:10])
 
+    def test_gauss_square_extremes(self):
+        """Test that the gaussian square pulse can build a gaussian."""
+        duration = 125
+        sigma = 4
+        amp = 0.5j
+        gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=0)
+        gaus = Gaussian(duration=duration, sigma=sigma, amp=amp)
+        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples,
+                                       gaus.get_sample_pulse().samples)
+        gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=121)
+        const = ConstantPulse(duration=duration, amp=amp)
+        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples[2:-2],
+                                       const.get_sample_pulse().samples[2:-2])
+
     def test_drag_samples(self):
         """Test that the drag samples match the formula."""
         duration = 25

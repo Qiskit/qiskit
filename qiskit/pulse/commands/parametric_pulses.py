@@ -206,10 +206,8 @@ class GaussianSquare(ParametricPulse):
                              "found: {}".format(abs(self.amp)))
         if self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if self.width < 0:
-            raise PulseError("Width cannot be less than 0.")
-        if self.width >= self.duration:
-            raise PulseError("The width of the pulse must be less than its duration.")
+        if self.width < 0 or self.width >= self.duration:
+            raise PulseError("The pulse width must be at least 0 and less than its duration.")
 
 
 class Drag(ParametricPulse):
