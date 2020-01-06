@@ -406,7 +406,7 @@ class Kraus(QuantumChannel):
         if reverse:
             input_dims = self.input_dims() + other.input_dims()
             output_dims = self.output_dims() + other.output_dims()
-            kab_l = [np.kron(a, b) for b in ka_l for a in kb_l]
+            kab_l = [np.kron(b_in, a_in) for a_in in ka_l for b_in in kb_l]
         else:
             input_dims = other.input_dims() + self.input_dims()
             output_dims = other.output_dims() + self.output_dims()
@@ -419,7 +419,7 @@ class Kraus(QuantumChannel):
             if kb_r is None:
                 kb_r = kb_l
             if reverse:
-                kab_r = [np.kron(a, b) for b in ka_r for a in kb_r]
+                kab_r = [np.kron(b_in, a_in) for a_in in ka_r for b_in in kb_r]
             else:
                 kab_r = [np.kron(a, b) for a in ka_r for b in kb_r]
         data = (kab_l, kab_r)
