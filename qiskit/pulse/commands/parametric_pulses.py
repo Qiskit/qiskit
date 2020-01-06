@@ -276,30 +276,26 @@ class Drag(ParametricPulse):
             raise PulseError("Sigma must be greater than 0.")
         if isinstance(self.beta, complex):
             raise PulseError("Beta must be real.")
-
         # Check if beta is too large: the amplitude norm must be <=1 for all points
-        # 1. Find the first maxima
-        #    This eq is derived from taking the derivative of the norm of the drag function
-        #    and solving for the roots. One solution, of course, is x = duration/2.
-        #    The bound on that solution is handled already by self.amp <= 1. The other two
-        #    solutions mirror each other around the center of the pulse and have the same norm,
-        #    so taking the first x value is sufficient.
-        try:
+        if self.beta > self.sigma:
+            # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
+            # already constrainted by self.amp <= 1
+
+            # 1. Find the first maxima associated with the beta * d/dx gaussian term
+            #    This eq is derived from solving for the roots of the norm of the drag function.
+            #    There is a second maxima mirrored around the center of the pulse with the same
+            #    norm as the first, so checking the value at the first x maxima is sufficient.
             argmax_x = (self.duration / 2
                         - (self.sigma / self.beta) * math.sqrt(self.beta ** 2 - self.sigma ** 2))
-        except ValueError:
-            # If beta < sigma, then the sqrt is negative, and the root is complex, meaning
-            # there's no inflection in the norm at that point.
-            return
-        if argmax_x < 0:
-            # If the max point is out of range, either end of the pulse will do
-            argmax_x = 0
+            if argmax_x < 0:
+                # If the max point is out of range, either end of the pulse will do
+                argmax_x = 0
 
-        # 2. Find the value at that maximum
-        max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
-                                  beta=self.beta, amp=self.amp, center=self.duration / 2)
-        if abs(max_val) > 1.:
-            raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
+            # 2. Find the value at that maximum
+            max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
+                                      beta=self.beta, amp=self.amp, center=self.duration / 2)
+            if abs(max_val) > 1.:
+                raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
 
 class ConstantPulse(ParametricPulse):
