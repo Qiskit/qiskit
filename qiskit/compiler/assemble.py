@@ -50,7 +50,7 @@ def assemble(experiments,
         backend (BaseBackend):
             If set, some runtime options are automatically grabbed from
             backend.configuration() and backend.defaults().
-            If any other option is explicitly set (e.g. rep_rate), it
+            If any other option is explicitly set (e.g., rep_rate), it
             will override the backend's.
             If any other options is set in the run_config, it will
             also override the backend's.
@@ -77,30 +77,31 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies. Will be overridden by
+            List of default qubit LO frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies. Will be overridden by
-            `schedule_los` if set.
+            List of default measurement LO frequencies in Hz. Will be overridden
+            by `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges used to validate that the supplied qubit los
-            are valid.
+            List of drive LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
 
         meas_lo_range (list):
-            List of meas lo ranges used to validate that the supplied measurement los
-            are valid.
+            List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
-            Experiment LO configurations
+            Experiment LO configurations, frequencies are given in Hz.
 
         meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
         meas_return (str or MeasReturn):
-            Level of measurement data for the backend to return
+            Level of measurement data for the backend to return.
+
             For `meas_level` 0 and 1:
                 * "single" returns information from every shot.
                 * "avg" returns average measurement output (averaged over number of shots).
@@ -119,17 +120,17 @@ def assemble(experiments,
             List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
-            executed across all experiments, e.g. if parameter_binds is a
+            executed across all experiments; e.g., if parameter_binds is a
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
         **run_config (dict):
-            extra arguments used to configure the run (e.g. for Aer configurable
+            extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
 
     Returns:
-        Qobj: a qobj which can be run on a backend. Depending on the type of input,
+            Qobj: a qobj that can be run on a backend. Depending on the type of input,
             this will be either a QasmQobj or a PulseQobj.
 
     Raises:
@@ -253,14 +254,14 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if isinstance(schedule_los, (LoConfig, dict)):
         schedule_los = [schedule_los]
 
-    # Convert to LoConfig if lo configuration supplied as dictionary
+    # Convert to LoConfig if LO configuration supplied as dictionary
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
     if not qubit_lo_freq and hasattr(backend_default, 'qubit_freq_est'):
-        qubit_lo_freq = [freq / 1e9 for freq in backend_default.qubit_freq_est]
+        qubit_lo_freq = backend_default.qubit_freq_est
     if not meas_lo_freq and hasattr(backend_default, 'meas_freq_est'):
-        meas_lo_freq = [freq / 1e9 for freq in backend_default.meas_freq_est]
+        meas_lo_freq = backend_default.meas_freq_est
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)

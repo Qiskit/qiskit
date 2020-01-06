@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Assemble function for converting a list of circuits into a qobj"""
+"""Assemble function for converting a list of circuits into a qobj."""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse)
@@ -24,7 +24,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
-    """Assembles a list of schedules into a qobj which can be run on the backend.
+    """Assembles a list of schedules into a qobj that can be run on the backend.
 
     Args:
         schedules (list[Schedule]): schedules to assemble
@@ -51,8 +51,6 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     if meas_lo_freq is None:
         raise QiskitError('meas_lo_freq must be supplied.')
 
-    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
-    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
 
     # convert enums to serialized values
@@ -66,6 +64,8 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
                                      qubit_lo_range=qubit_lo_range,
                                      meas_lo_range=meas_lo_range,
@@ -132,6 +132,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib.values()]
 
+    # convert lo frequencies to GHz
+    qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in qubit_lo_freq]
+    qobj_config['meas_lo_freq'] = [freq/1e9 for freq in meas_lo_freq]
+
     # create qobj experiment field
     experiments = []
     schedule_los = qobj_config.pop('schedule_los', [])
@@ -141,10 +145,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # update global config
         q_los = lo_converter.get_qubit_los(lo_dict)
         if q_los:
-            qobj_config['qubit_lo_freq'] = q_los
+            qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
         m_los = lo_converter.get_meas_los(lo_dict)
         if m_los:
-            qobj_config['meas_lo_freq'] = m_los
+            qobj_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
 
     if schedule_los:
         # multiple frequency setups
