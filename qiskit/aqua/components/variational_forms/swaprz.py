@@ -35,7 +35,7 @@ class SwapRZ(VariationalForm):
         """Constructor.
 
         Args:
-            num_qubits: number of qubits
+            num_qubits: number of qubits, has a min. value of 1.
             depth: number of rotation layers, has a min. value of 1.
             entangler_map: describe the connectivity of qubits, each list describes
                                         [source, target], or None for full entanglement.
@@ -45,6 +45,7 @@ class SwapRZ(VariationalForm):
             initial_state: an initial state object
             skip_unentangled_qubits: skip the qubits not in the entangler_map
         """
+        validate_min('num_qubits', num_qubits, 1)
         validate_min('depth', depth, 1)
         validate_in_set('entanglement', entanglement, {'full', 'linear'})
         super().__init__()
