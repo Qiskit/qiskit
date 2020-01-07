@@ -19,5 +19,5 @@ from .ucz import UCZ
 from .ucy import UCY
 from .ucx import UCX
 from .diag import DiagGate
-from .ucg import UCG
+from .uc import UCGate
 from .isometry import Isometry
