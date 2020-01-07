@@ -153,7 +153,7 @@ class TestPulseQobj(QiskitTestCase):
                                    ],
                                    qubit_lo_freq=[4.9],
                                    meas_lo_freq=[6.9],
-                                   rep_time=0.001),
+                                   rep_time=1000),
             experiments=[
                 PulseQobjExperiment(instructions=[
                     PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
@@ -188,7 +188,7 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 0.001},
+                       'rep_time': 1000},
             'experiments': [
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
@@ -230,14 +230,14 @@ class TestPulseQobj(QiskitTestCase):
                                     PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
-                                rep_time=0.001),
+                                rep_time=1000),
                 {'meas_level': 1,
                  'memory_slot_size': 8192,
                  'meas_return': 'avg',
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 0.001},
+                 'rep_time': 1000},
             ),
             PulseLibraryItem: (
                 PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
@@ -273,14 +273,14 @@ class TestPulseQobj(QiskitTestCase):
                                     PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
-                                rep_time=0.001),
+                                rep_time=1000),
                 {'meas_level': 1,
                  'memory_slot_size': 8192,
                  'meas_return': 'avg',
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 0.001},
+                 'rep_time': 1000},
             ),
             PulseLibraryItem: (
                 PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),

@@ -116,7 +116,7 @@ class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
                                             validate=Length(equal=2)), required=True)
     dt = fields.Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
     dtm = fields.Float(required=True, validate=Range(min=0))
-    rep_times = fields.List(fields.Number(validate=Range(min=0)), required=True)
+    rep_times = fields.List(fields.Integer(validate=Range(min=0)), required=True)
     meas_kernels = fields.List(fields.String(), required=True)
     discriminators = fields.List(fields.String(), required=True)
 

@@ -339,6 +339,7 @@ class TestPulseAssembler(QiskitTestCase):
             'memory_slot_size': 100,
             'meas_return': 'avg',
             'rep_time': 0.0001,
+            # 'rep_time': 100,
         }
 
         self.header = {
