@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Toffoli gate. Controlled-Controlled-X.
+Controlled-Controlled-X (or Toffoli) Gate.
 """
 
 import numpy
@@ -23,19 +23,19 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
 
 
-class ToffoliGate(ControlledGate):
-    """Toffoli gate."""
+class CCXGate(ControlledGate):
+    """The double-controlled-not gate, also called Toffoli gate."""
 
     def __init__(self):
-        """Create new Toffoli gate."""
-        super().__init__("ccx", 3, [], num_ctrl_qubits=2)
+        """Create new CCX gate."""
+        super().__init__('ccx', 3, [], num_ctrl_qubits=2)
         self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate_name = 'x'
 
     def _define(self):
         """
@@ -47,23 +47,23 @@ class ToffoliGate(ControlledGate):
         t a; tdg b; cx a,b;}
         """
         definition = []
-        q = QuantumRegister(3, "q")
+        q = QuantumRegister(3, 'q')
         rule = [
             (HGate(), [q[2]], []),
-            (CnotGate(), [q[1], q[2]], []),
+            (CXGate(), [q[1], q[2]], []),
             (TdgGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[2]], []),
+            (CXGate(), [q[0], q[2]], []),
             (TGate(), [q[2]], []),
-            (CnotGate(), [q[1], q[2]], []),
+            (CXGate(), [q[1], q[2]], []),
             (TdgGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[2]], []),
+            (CXGate(), [q[0], q[2]], []),
             (TGate(), [q[1]], []),
             (TGate(), [q[2]], []),
             (HGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (TGate(), [q[0]], []),
             (TdgGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -71,10 +71,10 @@ class ToffoliGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return ToffoliGate()  # self-inverse
+        return CCXGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Toffoli gate."""
+        """Return a numpy.array for the CCX gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0],
@@ -87,8 +87,9 @@ class ToffoliGate(ControlledGate):
 
 def ccx(self, ctl1, ctl2, tgt):
     """Apply Toffoli to ctl1 and ctl2 to tgt."""
-    return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
+    return self.append(CCXGate(), [ctl1, ctl2, tgt], [])
 
 
+# support both ccx and toffoli as methods of QuantumCircuit
 QuantumCircuit.ccx = ccx
 QuantumCircuit.toffoli = ccx

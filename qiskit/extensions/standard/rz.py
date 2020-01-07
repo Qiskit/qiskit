@@ -22,18 +22,18 @@ from qiskit.extensions.standard.u1 import U1Gate
 
 
 class RZGate(Gate):
-    """rotation around the z-axis."""
+    """The rotation around the z-axis."""
 
     def __init__(self, phi):
-        """Create new rz single qubit gate."""
-        super().__init__("rz", 1, [phi])
+        """Create new RZ single qubit gate."""
+        super().__init__('rz', 1, [phi])
 
     def _define(self):
         """
         gate rz(phi) a { u1(phi) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(self.params[0]), [q[0]], [])
         ]
@@ -50,7 +50,7 @@ class RZGate(Gate):
 
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
-    """Apply Rz to q."""
+    """Apply RZ to q."""
     return self.append(RZGate(phi), [q], [])
 
 

@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-H gate.
+Controlled-H gate.
 """
 import numpy as np
 
@@ -21,19 +21,19 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.t import TGate, TdgGate
 from qiskit.extensions.standard.s import SGate, SdgGate
 
 
 class CHGate(ControlledGate):
-    """controlled-H gate."""
+    """The controlled-H gate."""
 
     def __init__(self):
         """Create new CH gate."""
-        super().__init__("ch", 2, [], num_ctrl_qubits=1)
+        super().__init__('ch', 2, [], num_ctrl_qubits=1)
         self.base_gate = HGate
-        self.base_gate_name = "h"
+        self.base_gate_name = 'h'
 
     def _define(self):
         """
@@ -48,12 +48,12 @@ class CHGate(ControlledGate):
         }
         """
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (SGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (TdgGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
@@ -69,9 +69,9 @@ class CHGate(ControlledGate):
     def to_matrix(self):
         """Return a Numpy.array for the Ch gate."""
         return np.array([[1, 0, 0, 0],
-                         [0, 1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, 1 / np.sqrt(2), 0, 1 / np.sqrt(2)],
                          [0, 0, 1, 0],
-                         [0, 1/np.sqrt(2), 0, -1/np.sqrt(2)]], dtype=complex)
+                         [0, 1 / np.sqrt(2), 0, -1 / np.sqrt(2)]], dtype=complex)
 
 
 def ch(self, ctl, tgt):  # pylint: disable=invalid-name

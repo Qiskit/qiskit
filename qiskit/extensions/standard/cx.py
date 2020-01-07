@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-NOT gate.
+Controlled-not gate.
 """
 import numpy
 
@@ -22,21 +22,21 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.extensions.standard.x import XGate
 
 
-class CnotGate(ControlledGate):
-    """controlled-NOT gate."""
+class CXGate(ControlledGate):
+    """The controlled-X gate."""
 
     def __init__(self):
-        """Create new CNOT gate."""
-        super().__init__("cx", 2, [], num_ctrl_qubits=1)
+        """Create new cx gate."""
+        super().__init__('cx', 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate_name = 'x'
 
     def inverse(self):
         """Invert this gate."""
-        return CnotGate()  # self-inverse
+        return CXGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Cx gate."""
+        """Return a numpy.array for the CX gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 0, 1],
                             [0, 0, 1, 0],
@@ -45,8 +45,9 @@ class CnotGate(ControlledGate):
 
 def cx(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CX from ctl to tgt."""
-    return self.append(CnotGate(), [ctl, tgt], [])
+    return self.append(CXGate(), [ctl, tgt], [])
 
 
+# support both cx and cnot in QuantumCircuits
 QuantumCircuit.cx = cx
 QuantumCircuit.cnot = cx

@@ -20,7 +20,7 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 
 
 class SwapGate(Gate):
@@ -37,9 +37,9 @@ class SwapGate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (CnotGate(), [q[0], q[1]], []),
-            (CnotGate(), [q[1], q[0]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

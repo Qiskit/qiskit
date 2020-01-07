@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-rx gate.
+Controlled-rx gate.
 """
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -21,12 +21,12 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.qasm import pi
 
 
-class CrxGate(ControlledGate):
-    """controlled-rx gate."""
+class CRXGate(ControlledGate):
+    """The controlled-rx gate."""
 
     def __init__(self, theta):
         """Create new crx gate."""
@@ -48,9 +48,9 @@ class CrxGate(ControlledGate):
         q = QuantumRegister(2, 'q')
         rule = [
             (U1Gate(pi / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
         for inst in rule:
@@ -59,12 +59,12 @@ class CrxGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CrxGate(-self.params[0])
+        return CRXGate(-self.params[0])
 
 
 def crx(self, theta, ctl, tgt):
     """Apply crx from ctl to tgt with angle theta."""
-    return self.append(CrxGate(theta), [ctl, tgt], [])
+    return self.append(CRXGate(theta), [ctl, tgt], [])
 
 
 QuantumCircuit.crx = crx

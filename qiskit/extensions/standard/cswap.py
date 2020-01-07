@@ -13,24 +13,25 @@
 # that they have been altered from the originals.
 
 """
-Fredkin gate. Controlled-SWAP.
+Controlled-Swap gate or Fredkin gate.
 """
+
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.ccx import ToffoliGate
+from qiskit.extensions.standard.cx import CXGate
+from qiskit.extensions.standard.ccx import CCXGate
 from qiskit.extensions.standard.swap import SwapGate
 
 
-class FredkinGate(ControlledGate):
-    """Fredkin gate."""
+class CSwapGate(ControlledGate):
+    """The controlled-swap gate, also called Fredkin gate."""
 
     def __init__(self):
-        """Create new Fredkin gate."""
-        super().__init__("cswap", 3, [], num_ctrl_qubits=1)
+        """Create new CSwap gate."""
+        super().__init__('cswap', 3, [], num_ctrl_qubits=1)
         self.base_gate = SwapGate
-        self.base_gate_name = "swap"
+        self.base_gate_name = 'swap'
 
     def _define(self):
         """
@@ -41,11 +42,11 @@ class FredkinGate(ControlledGate):
         }
         """
         definition = []
-        q = QuantumRegister(3, "q")
+        q = QuantumRegister(3, 'q')
         rule = [
-            (CnotGate(), [q[2], q[1]], []),
-            (ToffoliGate(), [q[0], q[1], q[2]], []),
-            (CnotGate(), [q[2], q[1]], [])
+            (CXGate(), [q[2], q[1]], []),
+            (CCXGate(), [q[0], q[1], q[2]], []),
+            (CXGate(), [q[2], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -53,13 +54,14 @@ class FredkinGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return FredkinGate()  # self-inverse
+        return CSwapGate()  # self-inverse
 
 
 def cswap(self, ctl, tgt1, tgt2):
-    """Apply Fredkin to circuit."""
-    return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
+    """Apply CSwap to circuit."""
+    return self.append(CSwapGate(), [ctl, tgt1, tgt2], [])
 
 
+# support both cswap and fredkin as methods of QuantumCircuit
 QuantumCircuit.cswap = cswap
 QuantumCircuit.fredkin = cswap

@@ -13,24 +13,24 @@
 # that they have been altered from the originals.
 
 """
-controlled-rz gate.
+Controlled-rz gate.
 """
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.rz import RZGate
 
 
-class CrzGate(ControlledGate):
-    """controlled-rz gate."""
+class CRZGate(ControlledGate):
+    """The controlled-rz gate."""
 
     def __init__(self, theta):
         """Create new crz gate."""
-        super().__init__("crz", 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RZGate
-        self.base_gate_name = "rz"
+        self.base_gate_name = 'rz'
 
     def _define(self):
         """
@@ -40,12 +40,12 @@ class CrzGate(ControlledGate):
         }
         """
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (U1Gate(self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -53,12 +53,12 @@ class CrzGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CrzGate(-self.params[0])
+        return CRZGate(-self.params[0])
 
 
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    return self.append(CrzGate(theta), [ctl, tgt], [])
+    return self.append(CRZGate(theta), [ctl, tgt], [])
 
 
 QuantumCircuit.crz = crz

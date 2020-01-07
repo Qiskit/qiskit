@@ -25,20 +25,20 @@ from qiskit.extensions.standard.r import RGate
 
 
 class RYGate(Gate):
-    """rotation around the y-axis."""
+    """The rotation around the y-axis."""
 
     def __init__(self, theta):
-        """Create new ry single qubit gate."""
-        super().__init__("ry", 1, [theta])
+        """Create new RY single qubit gate."""
+        super().__init__('ry', 1, [theta])
 
     def _define(self):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (RGate(self.params[0], pi/2), [q[0]], [])
+            (RGate(self.params[0], pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -52,7 +52,7 @@ class RYGate(Gate):
         return RYGate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the RY gate."""
+        """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin],
@@ -60,7 +60,7 @@ class RYGate(Gate):
 
 
 def ry(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Ry to q."""
+    """Apply RY to q."""
     return self.append(RYGate(theta), [q], [])
 
 
