@@ -29,6 +29,7 @@ try:
     from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -37,7 +38,6 @@ from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
 from .tools.pi_check import pi_check
-
 
 logger = logging.getLogger(__name__)
 
@@ -189,9 +189,9 @@ class MatplotlibDrawer:
             ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 7) or 1
             else:
-                boxes_length = math.ceil(len(text) / 6) or 1
+                boxes_length = math.ceil(len(text) / 7) or 1
             wid = WID * 2.5 * boxes_length
         else:
             wid = WID
@@ -327,7 +327,7 @@ class MatplotlibDrawer:
         # 0.15 = the initial gap, each char means it needs to move
         # another 0.0375 over
         xp = xpos + 0.15 + (0.0375 * len(text))
-        self.ax.text(xp, ypos+HIG, text, ha='center', va='top',
+        self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
@@ -453,21 +453,21 @@ class MatplotlibDrawer:
         # add '+' symbol
         self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
                                     ypos + add_width * HIG],
-                     color=ac, linewidth=linewidth, zorder=PORDER_GATE+1)
+                     color=ac, linewidth=linewidth, zorder=PORDER_GATE + 1)
 
         self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG],
                      [ypos, ypos], color=ac, linewidth=linewidth,
-                     zorder=PORDER_GATE+1)
+                     zorder=PORDER_GATE + 1)
 
     def _swap(self, xy):
         xpos, ypos = xy
         color = self._style.dispcol['swap']
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
-                     color=color, linewidth=2, zorder=PORDER_LINE+1)
+                     color=color, linewidth=2, zorder=PORDER_LINE + 1)
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
-                     color=color, linewidth=2, zorder=PORDER_LINE+1)
+                     color=color, linewidth=2, zorder=PORDER_LINE + 1)
 
     def _barrier(self, config, anc):
         xys = config['coord']
@@ -533,9 +533,10 @@ class MatplotlibDrawer:
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 if self.layout is None:
-                    label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
+                    label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
+                                                              index=reg.index)
                 else:
-                    label = '$({name}_{{{index}}})\\ q_{{{physical}}}$'.format(
+                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
                         physical=reg.index)
@@ -587,7 +588,7 @@ class MatplotlibDrawer:
                 idx += 1
 
         # 7 is the length of the smallest possible label
-        self.x_offset = -.5 + 0.18*(len_longest_label-7)
+        self.x_offset = -.5 + 0.18 * (len_longest_label - 7)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -598,7 +599,7 @@ class MatplotlibDrawer:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset, y, label, ha='right', va='center',
-                         fontsize=1.25*self._style.fs,
+                         fontsize=1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -619,17 +620,17 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # bundle
             if this_creg['val'] > 1:
-                self.ax.plot([self.x_offset+1.1, self.x_offset+1.2], [y - .1, y + .1],
+                self.ax.plot([self.x_offset + 1.1, self.x_offset + 1.2], [y - .1, y + .1],
                              color=self._style.cc,
                              zorder=PORDER_LINE)
-                self.ax.text(self.x_offset+1.0, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset + 1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
                              fontsize=0.8 * self._style.fs,
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
-                         fontsize=1.5*self._style.fs,
+                         fontsize=1.5 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -682,6 +683,8 @@ class MatplotlibDrawer:
                             len_param = len(param)
                         if len_param > len(op.name):
                             box_width = math.floor(len(param) / 10)
+                            if op.name == 'unitary':
+                                box_width = 2
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
                                 box_width = 2
@@ -695,8 +698,7 @@ class MatplotlibDrawer:
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                     'noise', 'cswap', 'swap', 'measure'] and len(
-                                         op.name) >= 4:
+                                     'noise', 'cswap', 'swap', 'measure'] and len(op.name) >= 4:
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
@@ -836,7 +838,7 @@ class MatplotlibDrawer:
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="U")
+                                                 text="Unitary")
                 #
                 # draw single qubit gates
                 #
@@ -887,7 +889,7 @@ class MatplotlibDrawer:
                             self._line(qreg_b, qreg_t,
                                        lc=self._style.dispcol['multi'])
                         else:
-                            self._line(qreg_b, qreg_t, zorder=PORDER_LINE+1)
+                            self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
                     elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
                         disp = op.name.replace('c', '')
