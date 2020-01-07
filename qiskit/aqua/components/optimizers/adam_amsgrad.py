@@ -23,14 +23,15 @@ Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).
 On the Convergence of Adam and Beyond. International Conference on Learning Representations.
 """
 
+from typing import Optional
 import logging
 import os
 
 import csv
 import numpy as np
-from qiskit.aqua.utils.validation import validate
-from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua import aqua_globals
+from .optimizer import Optimizer
+
 logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
@@ -51,71 +52,33 @@ class ADAM(Optimizer):
     | On the Convergence of Adam and Beyond. International Conference on Learning Representations.
     """
 
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'adam_schema',
-        'type': 'object',
-        'properties': {
-            'maxiter': {
-                'type': 'integer',
-                'default': 10000
-            },
-            'tol': {
-                'type': 'number',
-                'default': 1e-06
-            },
-            'lr': {
-                'type': 'number',
-                'default': 1e-03
-            },
-            'beta_1': {
-                'type': 'number',
-                'default': 0.9
-            },
-            'beta_2': {
-                'type': 'number',
-                'default': 0.99
-            },
-            'noise_factor': {
-                'type': 'number',
-                'default': 1e-08
-            },
-            'eps': {
-                'type': 'number',
-                'default': 1e-10
-            },
-            'amsgrad': {
-                'type': 'boolean',
-                'default': False
-            },
-            'snapshot_dir': {
-                'type': ['string', 'null'],
-                'default': None
-            }
-        },
-        'additionalProperties': False
-    }
-
     _OPTIONS = ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2',
                 'noise_factor', 'eps', 'amsgrad', 'snapshot_dir']
 
-    def __init__(self, maxiter=10000, tol=1e-6, lr=1e-3, beta_1=0.9, beta_2=0.99, noise_factor=1e-8,
-                 eps=1e-10, amsgrad=False, snapshot_dir=None):
+    def __init__(self,
+                 maxiter: int = 10000,
+                 tol: float = 1e-6,
+                 lr: float = 1e-3,
+                 beta_1: float = 0.9,
+                 beta_2: float = 0.99,
+                 noise_factor: float = 1e-8,
+                 eps: float = 1e-10,
+                 amsgrad: bool = False,
+                 snapshot_dir: Optional[str] = None) -> None:
         """
         Args:
-            maxiter (int): Maximum number of iterations
-            tol (float): Tolerance for termination
-            lr (float): Value >= 0, Learning rate.
-            beta_1 (float): Value in range 0 to 1, Generally close to 1.
-            beta_2 (float): Value in range 0 to 1, Generally close to 1.
-            noise_factor (float): Value >= 0, Noise factor
-            eps (float): Value >=0, Epsilon to be used for finite differences if no analytic
+            maxiter: Maximum number of iterations
+            tol: Tolerance for termination
+            lr: Value >= 0, Learning rate.
+            beta_1: Value in range 0 to 1, Generally close to 1.
+            beta_2: Value in range 0 to 1, Generally close to 1.
+            noise_factor: Value >= 0, Noise factor
+            eps : Value >=0, Epsilon to be used for finite differences if no analytic
                 gradient method is given.
-            amsgrad (bool): True to use AMSGRAD, False if not
-            snapshot_dir (Optional(str)): If not None save the optimizer's parameter
+            amsgrad: True to use AMSGRAD, False if not
+            snapshot_dir: If not None save the optimizer's parameter
                 after every step to the given directory
         """
-        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

@@ -17,8 +17,8 @@
 import logging
 from copy import deepcopy
 from numpy import pi, absolute, array, zeros
-from qiskit.aqua.utils.validation import validate
-from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.utils.validation import validate_range_exclusive_max
+from .optimizer import Optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -32,57 +32,31 @@ class AQGD(Optimizer):
     the objective function.
     """
 
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'aqgd_schema',
-        'type': 'object',
-        'properties': {
-            'maxiter': {
-                'type': 'integer',
-                'default': 1000
-            },
-            'eta': {
-                'type': 'number',
-                'default': 3.0
-            },
-            'tol': {
-                'type': 'number',
-                'default': 1e-6
-            },
-            'disp': {
-                'type': 'boolean',
-                'default': False
-            },
-            'momentum': {
-                'type': 'number',
-                'default': 0.25,
-                'minimum': 0,
-                'exclusiveMaximum': 1.0
-            }
-        },
-        'additionalProperties': False
-    }
-
     _OPTIONS = ['maxiter', 'eta', 'tol', 'disp']
 
-    def __init__(self, maxiter=1000, eta=3.0, tol=1e-6, disp=False, momentum=0.25):
+    def __init__(self,
+                 maxiter: int = 1000,
+                 eta: float = 3.0,
+                 tol: float = 1e-6,
+                 disp: bool = False,
+                 momentum: float = 0.25) -> None:
         """
         Constructor.
 
         Performs Analytical Quantum Gradient Descent (AQGD).
 
         Args:
-            maxiter (int): Maximum number of iterations, each iteration evaluation gradient.
-            eta (float): The coefficient of the gradient update. Increasing this value
+            maxiter: Maximum number of iterations, each iteration evaluation gradient.
+            eta: The coefficient of the gradient update. Increasing this value
                          results in larger step sizes: param = previous_param - eta * deriv
-            tol (float): The convergence criteria that must be reached before stopping.
+            tol: The convergence criteria that must be reached before stopping.
                          Optimization stops when: absolute(loss - previous_loss) < tol
-            disp (bool): Set to true to display convergence messages.
-            momentum (float): Bias towards the previous gradient momentum in current update.
+            disp: Set to true to display convergence messages.
+            momentum: Bias towards the previous gradient momentum in current update.
                               Must be within the bounds: [0,1)
 
         """
-        validate(locals(), self._INPUT_SCHEMA)
+        validate_range_exclusive_max('momentum', momentum, 0, 1)
         super().__init__()
 
         self._eta = eta
