@@ -241,7 +241,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
         except (ModelValidationError, AttributeError):
             from collections import namedtuple
             backend_config_defaults = getattr(backend_config, 'defaults', {})
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
+            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est', 'rep_time'))
             backend_default = BackendDefault(
                 qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
                 meas_freq_est=backend_config_defaults.get('meas_freq_est'),
