@@ -308,4 +308,11 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
+def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
+    import warnings
+    warnings.warn('qc.ucg is deprecated, use qc.uc instead!', DeprecationWarning, 2)
+    uc(self, angle_list, q_controls, q_target, up_to_diagonal)
+
+
 QuantumCircuit.uc = uc
+QuantumCircuit.ucg = ucg  # deprecated, but still supported

@@ -27,7 +27,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.quantum_initializer.ucrot import UCRot
 
 
-class UCY(UCRot):
+class UCRYGate(UCRot):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -42,7 +42,7 @@ class UCY(UCRot):
         super().__init__(angle_list, "Y")
 
 
-def ucy(self, angle_list, q_controls, q_target):
+def ucry(self, angle_list, q_controls, q_target):
     """Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
@@ -86,7 +86,14 @@ def ucy(self, angle_list, q_controls, q_target):
     if num_contr != len(q_controls):
         raise QiskitError("Number of controlled rotations does not correspond to"
                           " the number of control-qubits.")
-    return self.append(UCY(angle_list), [q_target] + q_controls, [])
+    return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 
 
-QuantumCircuit.ucy = ucy
+def ucy(self, angle_list, q_controls, q_target):
+    import warnings
+    warnings.warn('qc.ucy is deprecated, use qc.ucry instead!', DeprecationWarning, 2)
+    ucry(self, angle_list, q_controls, q_target)
+
+
+QuantumCircuit.ucry = ucry
+QuantumCircuit.ucy = ucy  # deprecated, but still supported
