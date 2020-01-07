@@ -79,7 +79,7 @@ class UCRot(Gate):
             # ToDo: if we would not add the identity here, this would lead to troubles
             # ToDo: simulating the circuit afterwards.
             #  this should probably be fixed in the bahaviour of QuantumCircuit.
-            ucr_circuit.iden(q[0])
+            ucr_circuit.i(q[0])
         else:
             ucr_circuit.append(gate, q[:])
         self.definition = ucr_circuit.data

@@ -52,7 +52,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.sdg(qr[0])
         circuit.t(qr[0])
         circuit.tdg(qr[0])
-        circuit.iden(qr[0])
+        circuit.i(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])

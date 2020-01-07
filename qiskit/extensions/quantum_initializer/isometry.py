@@ -108,7 +108,7 @@ class Isometry(Instruction):
         if num_gates == 0:
             # ToDo: improve handling of empty circuit, such that the following line
             # ToDo: is not required.
-            iso_circuit.iden(q[0])
+            iso_circuit.i(q[0])
         else:
             iso_circuit.append(gate, q[:])
         self.definition = iso_circuit.data

@@ -53,7 +53,7 @@ def i(self, q):
 
 def iden(self, q):
     """ Deprecated identity gate. """
-    warnings.warn('The method qc.iden() is deprecated, use qc.i() instead', DeprecationWarning, 2)
+    warnings.warn('The method qc.i() is deprecated, use qc.i() instead', DeprecationWarning, 2)
     return self.append(IGate(), [q], [])
 
 
