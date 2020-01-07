@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    When a circuit is draw using ``with_layout``, the output will print the physical qubits
+    as integers to avoid the clearly distinguish them from the virtual qubits.

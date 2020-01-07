@@ -109,7 +109,7 @@ Additional Passes
    RemoveDiagonalGatesBeforeMeasure
    RemoveFinalMeasurements
    RemoveResetInZeroState
-
+   CrosstalkAdaptiveSchedule
 """
 
 from .unroller import Unroller
@@ -152,3 +152,4 @@ from .mapping.lookahead_swap import LookaheadSwap
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .mapping.stochastic_swap import StochasticSwap
 from .remove_final_measurements import RemoveFinalMeasurements
+from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
