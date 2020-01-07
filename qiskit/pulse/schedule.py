@@ -104,8 +104,6 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Supplied channels
         """
-        warnings.warn("ch_duration is deprecated, use ch_stop_time instead.",
-                      DeprecationWarning)
         return self.ch_stop_time(channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
