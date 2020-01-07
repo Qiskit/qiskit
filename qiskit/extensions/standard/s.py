@@ -28,14 +28,14 @@ class SGate(Gate):
 
     def __init__(self, label=None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__('s', 1, [], label=label)
 
     def _define(self):
         """
         gate s a { u1(pi/2) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
@@ -48,7 +48,7 @@ class SGate(Gate):
         return SdgGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 

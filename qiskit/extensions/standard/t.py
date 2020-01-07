@@ -28,16 +28,16 @@ class TGate(Gate):
 
     def __init__(self, label=None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label)
+        super().__init__('t', 1, [], label=label)
 
     def _define(self):
         """
         gate t a { u1(pi/4) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (U1Gate(pi/4), [q[0]], [])
+            (U1Gate(pi / 4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -48,9 +48,9 @@ class TGate(Gate):
         return TdgGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0],
-                            [0, (1+1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
 class TdgGate(Gate):
@@ -67,7 +67,7 @@ class TdgGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(-pi/4), [q[0]], [])
+            (U1Gate(-pi / 4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -80,7 +80,7 @@ class TdgGate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the S gate."""
         return numpy.array([[1, 0],
-                            [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
 def t(self, q):  # pylint: disable=invalid-name

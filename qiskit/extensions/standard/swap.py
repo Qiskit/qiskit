@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-SWAP gate.
+Swap gate.
 """
 import numpy
 
@@ -24,18 +24,18 @@ from qiskit.extensions.standard.cx import CXGate
 
 
 class SwapGate(Gate):
-    """SWAP gate."""
+    """Swap gate."""
 
     def __init__(self):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [])
+        super().__init__('swap', 2, [])
 
     def _define(self):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
@@ -50,7 +50,7 @@ class SwapGate(Gate):
         return SwapGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Swap gate."""
+        """Return a numpy.array for the Swap gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0],
@@ -58,7 +58,7 @@ class SwapGate(Gate):
 
 
 def swap(self, qubit1, qubit2):
-    """Apply SWAP from qubit1 to qubit2."""
+    """Apply Swap from qubit1 to qubit2."""
     return self.append(SwapGate(), [qubit1, qubit2], [])
 
 

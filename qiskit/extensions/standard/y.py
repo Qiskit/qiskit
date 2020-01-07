@@ -28,13 +28,13 @@ class YGate(Gate):
 
     def __init__(self, label=None):
         """Create new Y gate."""
-        super().__init__("y", 1, [], label=label)
+        super().__init__('y', 1, [], label=label)
 
     def _define(self):
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (U3Gate(pi, pi/2, pi/2), [q[0]], [])
+            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -45,7 +45,7 @@ class YGate(Gate):
         return YGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Y gate."""
+        """Return a numpy.array for the Y gate."""
         return numpy.array([[0, -1j],
                             [1j, 0]], dtype=complex)
 

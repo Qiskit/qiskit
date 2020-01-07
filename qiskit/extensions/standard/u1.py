@@ -27,11 +27,11 @@ class U1Gate(Gate):
 
     def __init__(self, theta, label=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", 1, [theta], label=label)
+        super().__init__('u1', 1, [theta], label=label)
 
     def _define(self):
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U3Gate(0, 0, self.params[0]), [q[0]], [])
         ]
@@ -44,7 +44,7 @@ class U1Gate(Gate):
         return U1Gate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a numpy.array for the U1 gate."""
         lam = self.params[0]
         lam = float(lam)
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)

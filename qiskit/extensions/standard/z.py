@@ -28,11 +28,11 @@ class ZGate(Gate):
 
     def __init__(self, label=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__('z', 1, [], label=label)
 
     def _define(self):
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(pi), [q[0]], [])
         ]
@@ -45,7 +45,7 @@ class ZGate(Gate):
         return ZGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the X gate."""
+        """Return a numpy.array for the Z gate."""
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
 

@@ -29,7 +29,7 @@ class XGate(Gate):
 
     def __init__(self, label=None):
         """Create new X gate."""
-        super().__init__("x", 1, [], label=label)
+        super().__init__('x', 1, [], label=label)
 
     def _define(self):
         """
@@ -38,7 +38,7 @@ class XGate(Gate):
         }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U3Gate(pi, 0, pi), [q[0]], [])
         ]
@@ -51,7 +51,7 @@ class XGate(Gate):
         return XGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the X gate."""
+        """Return a numpy.array for the X gate."""
         return numpy.array([[0, 1],
                             [1, 0]], dtype=complex)
 

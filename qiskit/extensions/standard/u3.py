@@ -26,7 +26,7 @@ class U3Gate(Gate):
 
     def __init__(self, theta, phi, lam, label=None):
         """Create new two-pulse single qubit gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__('u3', 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         """Invert this gate.
@@ -44,10 +44,10 @@ class U3Gate(Gate):
                 numpy.cos(theta / 2),
                 -numpy.exp(1j * lam) * numpy.sin(theta / 2)
             ],
-             [
-                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-             ]],
+                [
+                numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
+            ]],
             dtype=complex)
 
 
