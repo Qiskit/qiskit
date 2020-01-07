@@ -619,7 +619,7 @@ class TestDagOperations(QiskitTestCase):
             HGate(), [self.qubit0], condition=self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         collected_runs = self.dag.collect_runs(['h'])
-        # Should return 2 single h gate runs (1 before condtion, 1 after)
+        # Should return 2 single h gate runs (1 before condition, 1 after)
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
             self.assertEqual(len(run), 1)
