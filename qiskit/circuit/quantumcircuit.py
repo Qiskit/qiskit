@@ -125,8 +125,6 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None):
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
-            # pylint: disable=not-callable
-            # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
             if sys.platform != "win32":
                 if isinstance(mp.current_process(),
                               (mp.context.ForkProcess, mp.context.SpawnProcess)):
