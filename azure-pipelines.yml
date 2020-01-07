@@ -122,8 +122,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -227,8 +227,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -338,8 +338,8 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python35:
+            python.version: '3.5'
           Python38:
             python.version: '3.8'
       steps:
@@ -393,8 +393,8 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python35:
+            python.version: '3.5'
           Python38:
             python.version: '3.8'
       steps:
