@@ -38,7 +38,7 @@ class RY(VariationalForm):
 
         Args:
             num_qubits: number of qubits, has a min. value of 1.
-            depth: number of rotation layers, has a min. value of 0.
+            depth: number of rotation layers, has a min. value of 1.
             entangler_map: describe the connectivity of qubits, each list describes
                                         [source, target], or None for full entanglement.
                                         Note that the order is the list is the order of
@@ -50,7 +50,7 @@ class RY(VariationalForm):
             skip_final_ry: skip the final layer of Y rotations
         """
         validate_min('num_qubits', num_qubits, 1)
-        validate_min('depth', depth, 0)
+        validate_min('depth', depth, 1)
         validate_in_set('entanglement', entanglement, {'full', 'linear', 'sca'})
         validate_in_set('entanglement_gate', entanglement_gate, {'cz', 'cx', 'crx'})
         super().__init__()
