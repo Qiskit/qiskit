@@ -13,6 +13,8 @@
 """Module containing transpiler optimization passes."""
 
 from .optimize_1q_gates import Optimize1qGates
+from .simplify_u3 import SimplifyU3
+from .collapse_1q_chains import Collapse1qChains
 from .collect_2q_blocks import Collect2qBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis

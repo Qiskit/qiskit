@@ -39,6 +39,9 @@ class Collapse1qChains(TransformationPass):
     This pass can make some gates temporarily less optimized, for example
     by converting a U1 gate into a U3. A follow-up invocation of SimplifyU3
     can correct for this.
+
+    If the chain evaluates to identity (e.g. U3(0,0,0)), this pass simply
+    collapses the chain to none.
     """
 
     def run(self, dag):
@@ -82,6 +85,12 @@ class Collapse1qChains(TransformationPass):
         # collapse chains into a single U3
         decomposer = OneQubitEulerDecomposer(basis='U3')
         for chain in chains:
+            if len(chain) == 1:
+                gate = chain[0].op
+                if isinstance(gate, U1Gate):
+                    _u1_to_u3(gate)
+                if isinstance(gate, U2Gate):
+                    _u2_to_u3(gate)
             left_parameters = (0, 0, 0)  # theta, phi, lambda
             for gate in reversed(chain):
                 right_parameters = decomposer(Operator(gate.op)).data[0][0].params
@@ -91,13 +100,23 @@ class Collapse1qChains(TransformationPass):
                                                right_parameters[0],
                                                right_parameters[1],
                                                right_parameters[2])
-
-            new_op = U3Gate(*left_parameters)
-            dag.substitute_node(chain[0], new_op, inplace=True)
             for node in chain[1:]:
                 dag.remove_op_node(node)
+            new_op = U3Gate(*left_parameters)
+            if np.allclose(new_op.params, [0., 0., 0.], atol=DEFAULT_ATOL):
+                dag.remove_op_node(chain[0])
+            else:
+                dag.substitute_node(chain[0], new_op, inplace=True)
 
         return dag
+
+
+def _u1_to_u3(g_u1):
+    return None
+
+
+def _u2_to_u3(g_u2):
+    return None
 
 
 def _compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):

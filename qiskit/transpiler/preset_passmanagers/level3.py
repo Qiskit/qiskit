@@ -195,7 +195,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # TODO: temporary hack to make sure user basis are respected. eventually, all optimizations
     # should be done in terms of u3 and the result re-written in the requested basis.
-    if 'u1' in basis_gates and 'u2' in basis_gates:
+    if 'u1' in basis_gates and 'u2' in basis_gates and 'u3' in basis_gates:
         _opt += [Collapse1qChains(), SimplifyU3()]
     elif 'u3' in basis_gates:
         _opt += [Collapse1qChains()]

@@ -63,6 +63,9 @@ class SimplifyU3(TransformationPass):
             op = node.op
             num_ctrl_qubits = None
 
+            if op.is_parameterized():
+                continue
+
             if isinstance(node.op, ControlledGate):
                 num_ctrl_qubits = op.num_ctrl_qubits
                 op = node.op.base_gate

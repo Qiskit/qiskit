@@ -40,6 +40,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Collapse1qChains
 from qiskit.transpiler.passes import SimplifyU3
 from qiskit.transpiler.passes import ApplyLayout
@@ -177,10 +178,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # TODO: temporary hack to make sure user basis are respected. eventually, all optimizations
     # should be done in terms of u3 and the result re-written in the requested basis.
-    if 'u1' in basis_gates and 'u2' in basis_gates:
-        _opt = [CXCancellation(), Collapse1qChains(), SimplifyU3()]
+    if 'u1' in basis_gates and 'u2' in basis_gates and 'u3' in basis_gates:
+        _opt = [Collapse1qChains(), SimplifyU3(), CXCancellation()]
     elif 'u3' in basis_gates:
-        _opt = [CXCancellation(), Collapse1qChains()]
+        _opt = [Collapse1qChains(), CXCancellation()]
     else:
         _opt = [CXCancellation()]
 

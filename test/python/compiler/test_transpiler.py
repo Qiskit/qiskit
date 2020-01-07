@@ -516,7 +516,7 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u3', 'cx'])
+                          basis_gates=['u1', 'u2', 'u3', 'cx'])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         self.assertEqual(after, expected)
@@ -551,7 +551,7 @@ class TestTranspile(QiskitTestCase):
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap, basis_gates=['u1','u2','u3','cx'])
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
