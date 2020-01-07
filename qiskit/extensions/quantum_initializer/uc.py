@@ -136,7 +136,8 @@ class UCGate(Gate):
             elif i == len(single_qubit_gates) - 1:
                 squ = gate.dot(UCGate._rz(np.pi / 2)).dot(HGate().to_matrix())
             else:
-                squ = HGate().to_matrix().dot(gate.dot(UCGate._rz(np.pi / 2))).dot(HGate().to_matrix())
+                squ = HGate().to_matrix().dot(gate.dot(UCGate._rz(np.pi / 2))).dot(
+                    HGate().to_matrix())
             # Add single-qubit gate
             circuit.squ(squ, q_target)
             # The number of the control qubit is given by the number of zeros at the end
@@ -195,7 +196,8 @@ class UCGate(Gate):
                         # which hasn't been decomposed yet.
                         k = shift + len_ucg + i
                         single_qubit_gates[k] = \
-                            single_qubit_gates[k].dot(UCGate._ct(r)) * UCGate._rz(np.pi / 2).item((0, 0))
+                            single_qubit_gates[k].dot(UCGate._ct(r)) * \
+                            UCGate._rz(np.pi / 2).item((0, 0))
                         k = k + len_ucg // 2
                         single_qubit_gates[k] = \
                             single_qubit_gates[k].dot(r) * UCGate._rz(np.pi / 2).item((1, 1))
@@ -205,8 +207,8 @@ class UCGate(Gate):
                         for ucg_index_2 in range(num_ucgs):
                             shift_2 = ucg_index_2 * len_ucg
                             k = 2 * (i + shift_2)
-                            diag[k] = diag[k] * UCGate._ct(r).item((0, 0)) * UCGate._rz(np.pi / 2).item(
-                                (0, 0))
+                            diag[k] = diag[k] * UCGate._ct(r).item((0, 0)) * \
+                                UCGate._rz(np.pi / 2).item((0, 0))
                             diag[k + 1] = diag[k + 1] * UCGate._ct(r).item((1, 1)) * UCGate._rz(
                                 np.pi / 2).item((0, 0))
                             k = len_ucg + k
