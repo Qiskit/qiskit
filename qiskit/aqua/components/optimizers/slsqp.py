@@ -14,11 +14,11 @@
 
 """Sequential Least SQuares Programming algorithm"""
 
+from typing import Optional
 import logging
 
 from scipy.optimize import minimize
-from qiskit.aqua.utils.validation import validate
-from qiskit.aqua.components.optimizers import Optimizer
+from .optimizer import Optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -30,39 +30,15 @@ class SLSQP(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'cobyla_schema',
-        'type': 'object',
-        'properties': {
-            'maxiter': {
-                'type': 'integer',
-                'default': 100
-            },
-            'disp': {
-                'type': 'boolean',
-                'default': False
-            },
-            'ftol': {
-                'type': 'number',
-                'default': 1e-06
-            },
-            'tol': {
-                'type': ['number', 'null'],
-                'default': None
-            },
-            'eps': {
-                'type': 'number',
-                'default': 1.4901161193847656e-08
-            }
-        },
-        'additionalProperties': False
-    }
-
     _OPTIONS = ['maxiter', 'disp', 'ftol', 'eps']
 
     # pylint: disable=unused-argument
-    def __init__(self, maxiter=100, disp=False, ftol=1e-06, tol=None, eps=1.4901161193847656e-08):
+    def __init__(self,
+                 maxiter: int = 100,
+                 disp: bool = False,
+                 ftol: float = 1e-06,
+                 tol: Optional[float] = None,
+                 eps: float = 1.4901161193847656e-08) -> None:
         """
         Constructor.
 
@@ -70,13 +46,12 @@ class SLSQP(Optimizer):
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html.
 
         Args:
-            maxiter (int): Maximum number of iterations.
-            disp (bool): Set to True to print convergence messages.
-            ftol (float): Precision goal for the value of f in the stopping criterion.
-            tol (float or None): Tolerance for termination.
-            eps (float): Step size used for numerical approximation of the Jacobian.
+            maxiter: Maximum number of iterations.
+            disp: Set to True to print convergence messages.
+            ftol: Precision goal for the value of f in the stopping criterion.
+            tol: Tolerance for termination.
+            eps: Step size used for numerical approximation of the Jacobian.
         """
-        validate(locals(), self._INPUT_SCHEMA)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

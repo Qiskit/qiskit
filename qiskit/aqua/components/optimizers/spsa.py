@@ -19,8 +19,8 @@ import logging
 import numpy as np
 
 from qiskit.aqua import aqua_globals
-from qiskit.aqua.utils.validation import validate
-from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.utils.validation import validate_min
+from .optimizer import Optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -29,59 +29,19 @@ class SPSA(Optimizer):
     """Simultaneous Perturbation Stochastic Approximation algorithm."""
 
     _C0 = 2*np.pi*0.1
-
-    _INPUT_SCHEMA = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'id': 'spsa_schema',
-        'type': 'object',
-        'properties': {
-            'max_trials': {
-                'type': 'integer',
-                'default': 1000
-            },
-            'save_steps': {
-                'type': 'integer',
-                'default': 1,
-                'minimum': 1
-            },
-            'last_avg': {
-                'type': 'integer',
-                'default': 1,
-                'minimum': 1
-            },
-            'c0': {
-                'type': 'number',
-                'default': _C0
-            },
-            'c1': {
-                'type': 'number',
-                'default': 0.1
-            },
-            'c2': {
-                'type': 'number',
-                'default': 0.602
-            },
-            'c3': {
-                'type': 'number',
-                'default': 0.101
-            },
-            'c4': {
-                'type': 'number',
-                'default': 0
-            },
-            'skip_calibration': {
-                'type': 'boolean',
-                'default': False
-            }
-        },
-        'additionalProperties': False
-    }
-
     _OPTIONS = ['save_steps', 'last_avg']
 
     # pylint: disable=unused-argument
-    def __init__(self, max_trials=1000, save_steps=1,
-                 last_avg=1, c0=_C0, c1=0.1, c2=0.602, c3=0.101, c4=0, skip_calibration=False):
+    def __init__(self,
+                 max_trials: int = 1000,
+                 save_steps: int = 1,
+                 last_avg: int = 1,
+                 c0: float = _C0,
+                 c1: float = 0.1,
+                 c2: float = 0.602,
+                 c3: float = 0.101,
+                 c4: float = 0,
+                 skip_calibration: float = False) -> None:
         """
         Constructor.
 
@@ -89,18 +49,19 @@ class SPSA(Optimizer):
         Supplementary information Section IV.
 
         Args:
-            max_trials (int): Maximum number of iterations to perform.
-            save_steps (int): Save intermediate info every save_steps step.
-            last_avg (int): Averaged parameters over the last_avg iterations.
+            max_trials: Maximum number of iterations to perform.
+            save_steps: Save intermediate info every save_steps step.
+            last_avg: Averaged parameters over the last_avg iterations.
                             If last_avg = 1, only the last iteration is considered.
-            c0 (float): The initial a. Step size to update parameters.
-            c1 (float): The initial c. The step size used to approximate gradient.
-            c2 (float): The alpha in the paper, and it is used to adjust a (c0) at each iteration.
-            c3 (float): The gamma in the paper, and it is used to adjust c (c1) at each iteration.
-            c4 (float): The parameter used to control a as well.
-            skip_calibration (bool): skip calibration and use provided c(s) as is.
+                            It has a min. value of 1.
+            c0: The initial a. Step size to update parameters.
+            c1: The initial c. The step size used to approximate gradient.
+            c2: The alpha in the paper, and it is used to adjust a (c0) at each iteration.
+            c3: The gamma in the paper, and it is used to adjust c (c1) at each iteration.
+            c4: The parameter used to control a as well.
+            skip_calibration: skip calibration and use provided c(s) as is.
         """
-        validate(locals(), self._INPUT_SCHEMA)
+        validate_min('last_avg', last_avg, 1)
         super().__init__()
         for k, v in locals().items():
             if k in self._OPTIONS:

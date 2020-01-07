@@ -43,7 +43,7 @@ class VariationalForm(ABC):
 
     @abstractmethod
     def construct_circuit(self,
-                          parameters: [Union[List[float], np.ndarray]],
+                          parameters: Union[List[float], np.ndarray],
                           q: Optional[QuantumRegister] = None) -> NoReturn:
         """Construct the variational form, given its parameters.
 
