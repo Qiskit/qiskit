@@ -473,7 +473,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         # single acquisition
         schedule = acquire(self.backend_config.acquire(0),
-                           mem_slots=pulse.MemorySlot(n_memoryslots - 1))
+                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -706,7 +706,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                             memory_slots=self.memory_slots,
                             rep_time=self.rep_time,
                             )
-            # validate_qobj_against_schema()
 
 
 if __name__ == '__main__':
