@@ -96,7 +96,8 @@ class OneQubitEulerDecomposer:
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
 
     def _circuit(self, unitary_mat, simplify=True, atol=DEFAULT_ATOL):
-        theta, phi, lam, phase = self._angles(unitary_mat)
+        # NOTE: The 4th variable is phase to be used later
+        theta, phi, lam, _ = self._angles(unitary_mat)
         if self._basis == 'U3':
             return self._circuit_u3(theta, phi, lam)
         if self._basis == 'U1X':
