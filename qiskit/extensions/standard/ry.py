@@ -64,16 +64,21 @@ def ry(self, theta, q):  # pylint: disable=invalid-name
     The Ry gate corresponds to a rotation of theta radians from |0> about
     the y-axis on the Bloch sphere.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    theta = numpy.pi/2
-    circuit.ry(theta,0)
-    circuit.draw()
-            ┌──────────┐
-    q_0: |0>┤ Ry(pi/2) ├
-            └──────────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.707+0j ]
+    Examples:
+
+        Construct a circuit with Ry gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            theta = numpy.pi/2
+            circuit.ry(theta,0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0.707+0j ]
     """
     return self.append(RYGate(theta), [q], [])
 

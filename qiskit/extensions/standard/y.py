@@ -55,15 +55,20 @@ def y(self, q):
     The Y gate corresponds to a pi rotation about the y-axis on the Bloch sphere.
     It is also equivalent to the combined effect of X gate and Z gate.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.y(0)
-    circuit.draw()
-            ┌───┐
-    q_0: |0>┤ Y ├
-            └───┘
-    Resulting Statevector:
-    [ 0+0j, 0+1j ]
+    Examples:
+
+        Construct a circuit with Y gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.y(0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0+0j, 0+1j ]
     """
     return self.append(YGate(), [q], [])
 

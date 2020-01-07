@@ -67,21 +67,24 @@ def cu3(self, theta, phi, lam, ctl, tgt):
     with angle theta, phi, and lam.
     The cU3 gate applies a U3 gate on the target qubit when the control qubit is in state |1>.
 
-    Example:
-    circuit = QuantumCircuit(2)
-    circuit.x(0) # This brings the quantum state from |0> to |1>
-    theta = numpy.pi/2
-    phi = numpy.pi/2
-    lam = numpy.pi/2
-    circuit.cu3(theta,phi,lam,0,1)
-    circuit.draw()
-            ┌───┐
-    q_0: |0>┤ X ├──────────■───────────
-            └───┘┌─────────┴──────────┐
-    q_1: |0>─────┤ U3(pi/2,pi/2,pi/2) ├
-                 └────────────────────┘
-    Resulting Statevector:
-    [ 0+0j, 0.707+0j, 0+0j, 0+0.707j ]
+    Examples:
+
+        Construct a circuit with cU3 gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.x(0) # This brings the quantum state from |0> to |1>
+            theta = numpy.pi/2
+            phi = numpy.pi/2
+            lam = numpy.pi/2
+            circuit.cu3(theta,phi,lam,0,1)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0+0j, 0.707+0j, 0+0j, 0+0.707j ]
     """
     return self.append(Cu3Gate(theta, phi, lam), [ctl, tgt], [])
 

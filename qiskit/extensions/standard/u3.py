@@ -56,18 +56,23 @@ def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
     The U3 gate corresponds to a rotation of theta, phi, and lam radians about
     the x, y, and z-axis, respectively on the Bloch sphere.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    theta = numpy.pi/2
-    phi = numpy.pi/2
-    lam = numpy.pi/2
-    circuit.u3(theta,phi,lam,0)
-    circuit.draw()
-            ┌────────────────────┐
-    q_0: |0>┤ U3(pi/2,pi/2,pi/2) ├
-            └────────────────────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0+0.707j ]
+    Examples:
+
+        Construct a circuit with U3 gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            theta = numpy.pi/2
+            phi = numpy.pi/2
+            lam = numpy.pi/2
+            circuit.u3(theta,phi,lam,0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0+0.707j ]
     """
     return self.append(U3Gate(theta, phi, lam), [q], [])
 

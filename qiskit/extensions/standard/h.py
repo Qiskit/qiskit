@@ -55,18 +55,23 @@ class HGate(Gate):
 
 
 def h(self, q):  # pylint: disable=invalid-name
-    """Apply H gate to a specified qubit (q).
+    """Apply Hadamard (H) gate to a specified qubit (q).
     The H gate rotates the states |0⟩ and |1⟩ to |+⟩ and |−⟩, respectively.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.h(0)
-    circuit.draw()
-            ┌───┐
-    q_0: |0>┤ H ├
-            └───┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.707+0j ]
+    Examples:
+
+        Construct a circuit with Hadamard (H) gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.h(0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0.707+0j ]
     """
     return self.append(HGate(), [q], [])
 

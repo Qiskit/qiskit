@@ -61,17 +61,21 @@ def swap(self, qubit1, qubit2):
     """Apply SWAP gate to a pair specified qubits (qubit1, qubit2).
     The SWAP gate simply swaps the states of two qubits.
 
-    Example:
-    circuit = QuantumCircuit(2)
-    circuit.x(0) # This brings the quantum state from |0> to |1>
-    circuit.swap(0,1)
-    circuit.draw()
-            ┌───┐
-    q_0: |0>┤ X ├─X─
-            └───┘ │
-    q_1: |0>──────X─
-    Resulting Statevector:
-    [ 0+0j, 0+0j, 1+0j, 0+0j ]
+    Examples:
+
+        Construct a circuit with SWAP gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.x(0) # This brings the quantum state from |0> to |1>
+            circuit.swap(0,1)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0+0j, 0+0j, 1+0j, 0+0j ]
     """
     return self.append(SwapGate(), [qubit1, qubit2], [])
 

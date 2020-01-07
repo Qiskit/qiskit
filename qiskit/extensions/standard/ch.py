@@ -78,18 +78,21 @@ def ch(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply cH gate from a specified control (ctl) to target (tgt) qubit.
     The cH gate applies H gate on the target qubit when the control qubit is in state |1>.
 
-    Example:
-    circuit = QuantumCircuit(2)
-    circuit.x(0) # This brings the quantum state from |0> to |1>
-    circuit.ch(0,1)
-    circuit.draw()
-            ┌───┐
-    q_0: |0>┤ X ├──■──
-            └───┘┌─┴─┐
-    q_1: |0>─────┤ H ├
-                 └───┘
-    Resulting Statevector:
-    [ 0+0j, 0.5+0.5j, 0+0j, 0.5+0.5j ]
+    Examples:
+
+        Construct a circuit with cH gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.x(0) # This brings the quantum state from |0> to |1>
+            circuit.ch(0,1)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0+0j, 0.5+0.5j, 0+0j, 0.5+0.5j ]
     """
     return self.append(CHGate(), [ctl, tgt], [])
 

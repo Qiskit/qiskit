@@ -63,17 +63,22 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
     The U2 gate corresponds to a rotation of phi radians about the x-axis and
     lam radians about the z-axis on the Bloch sphere.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    phi = 0
-    lam = numpy.pi
-    circuit.u2(phi,lam,0)
-    circuit.draw()
-            ┌──────────┐
-    q_0: |0>┤ U2(0,pi) ├
-            └──────────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.707+0j ]
+    Examples:
+
+        Construct a circuit with U2 gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            phi = 0
+            lam = numpy.pi
+            circuit.u2(phi,lam,0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0.707+0j ]
     """
     return self.append(U2Gate(phi, lam), [q], [])
 

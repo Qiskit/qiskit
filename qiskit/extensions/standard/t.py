@@ -88,16 +88,21 @@ def t(self, q):  # pylint: disable=invalid-name
     The T gate corresponds to a rotation of pi/4 radians from |+> about
     the z-axis on the Bloch sphere.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
-    circuit.t(0)
-    circuit.draw()
-            ┌──────────┐┌───┐
-    q_0: |0>┤ Ry(pi/2) ├┤ T ├
-            └──────────┘└───┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.5+0.5j ]
+    Examples:
+
+        Construct a circuit with T gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
+            circuit.t(0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0.5+0.5j ]
     """
     return self.append(TGate(), [q], [])
 
@@ -107,16 +112,21 @@ def tdg(self, q):
     The Tdg gate is inverse of T gate and corresponds to a rotation of
     -pi/4 radians from |+> about the z-axis on the Bloch sphere.
 
-    Example:
-    circuit = QuantumCircuit(1)
-    circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
-    circuit.tdg(0)
-    circuit.draw()
-            ┌──────────┐┌─────┐
-    q_0: |0>┤ Ry(pi/2) ├┤ Tdg ├
-            └──────────┘└─────┘
-    Resulting Statevector:
-    [ 0.707+0j, 0.5-0.5j ]
+    Examples:
+
+        Construct a circuit with Tdg gate.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
+            circuit.tdg(0)
+            circuit.draw()
+
+        Resulting Statevector:
+        [ 0.707+0j, 0.5-0.5j ]
     """
     return self.append(TdgGate(), [q], [])
 
