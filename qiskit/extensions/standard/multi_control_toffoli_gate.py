@@ -274,7 +274,7 @@ def mct(self, q_controls, q_target, q_ancilla, mode='basic'):
     else:
         # check controls
         if isinstance(q_controls, QuantumRegister):
-            control_qubits = [qb for qb in q_controls]
+            control_qubits = list(q_controls)
         elif isinstance(q_controls, list):
             control_qubits = q_controls
         else:
@@ -290,7 +290,7 @@ def mct(self, q_controls, q_target, q_ancilla, mode='basic'):
         if q_ancilla is None:
             ancillary_qubits = []
         elif isinstance(q_ancilla, QuantumRegister):
-            ancillary_qubits = [qb for qb in q_ancilla]
+            ancillary_qubits = list(q_ancilla)
         elif isinstance(q_ancilla, list):
             ancillary_qubits = q_ancilla
         else:
