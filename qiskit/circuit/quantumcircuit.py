@@ -21,6 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -125,18 +126,8 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None):
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
-            if sys.platform != "win32":
-                if isinstance(mp.current_process(),
-                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
-                    name += '-{}'.format(mp.current_process().pid)
-                elif sys.version_info[0] == 3 \
-                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
-                        and mp.current_process().name != 'MainProcess':
-                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
-                    # because processes created by "ProcessPoolExecutor" are not
-                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
-                    # "name" of the process is checked instead.
-                    name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32" and not is_main_process():
+                name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):

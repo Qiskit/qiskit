@@ -16,9 +16,12 @@
 
 import abc
 import itertools
+import multiprocessing as mp
+import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
+from qiskit.util import is_main_process
 from .timeslots import Interval
 from .channels import Channel
 from .interfaces import ScheduleComponent
@@ -51,6 +54,8 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
+            if sys.platform != "win32" and not is_main_process():
+                name += '-{}'.format(mp.current_process().pid)
 
         self._name = name
 

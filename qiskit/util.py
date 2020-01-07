@@ -13,6 +13,7 @@
 
 """Common utilities for Qiskit."""
 
+import multiprocessing as mp
 import platform
 import re
 import socket
@@ -95,3 +96,19 @@ def _has_connection(hostname, port):
         return True
     except Exception:  # pylint: disable=broad-except
         return False
+
+
+def is_main_process():
+    """Checks whether the current process is the main one"""
+
+    return not (
+        isinstance(mp.current_process(),
+                   (mp.context.ForkProcess, mp.context.SpawnProcess))
+
+        # In python 3.5 and 3.6, processes created by "ProcessPoolExecutor" are not
+        # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+        # "name" of the process is checked instead.
+        or (sys.version_info[0] == 3
+            and (sys.version_info[1] == 5 or sys.version_info[1] == 6)
+            and mp.current_process().name != 'MainProcess')
+    )
