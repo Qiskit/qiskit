@@ -88,8 +88,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     if item.name == 'gate_error':
                         g_reliab = 1.0 - item.value
                         break
-                    else:
-                        g_reliab = 1.0
+                    g_reliab = 1.0
                 swap_reliab = pow(g_reliab, 3)
                 # convert swap reliability to edge weight
                 # for the Floyd-Warshall shortest weighted paths algorithm
