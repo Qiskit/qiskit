@@ -51,6 +51,7 @@ class SPSA(Optimizer):
         Args:
             max_trials: Maximum number of iterations to perform.
             save_steps: Save intermediate info every save_steps step.
+                        It has a min. value of 1.
             last_avg: Averaged parameters over the last_avg iterations.
                             If last_avg = 1, only the last iteration is considered.
                             It has a min. value of 1.
@@ -61,6 +62,7 @@ class SPSA(Optimizer):
             c4: The parameter used to control a as well.
             skip_calibration: skip calibration and use provided c(s) as is.
         """
+        validate_min('save_steps', save_steps, 1)
         validate_min('last_avg', last_avg, 1)
         super().__init__()
         for k, v in locals().items():
