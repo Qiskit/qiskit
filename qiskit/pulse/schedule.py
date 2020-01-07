@@ -17,7 +17,6 @@ import warnings
 
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
-import warnings
 
 from .channels import Channel
 from .interfaces import ScheduleComponent
@@ -55,18 +54,7 @@ class Schedule(ScheduleComponent):
                 sched_pair = (0, sched_pair)
             _children.append(sched_pair)
             insert_time, sched = sched_pair
-            try:
-                self._add_timeslots(insert_time, sched)
-        except PulseError as ts_err:
-            formatted_schedules = []
-            for sched_pair in schedules:
-                sched = sched_pair[1] if isinstance(sched_pair, (List, tuple)) else sched_pair
-                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(sched.name,
-                                                                              sched.duration)
-                formatted_schedules.append(formatted_sched)
-            formatted_schedules = ", ".join(formatted_schedules)
-            raise PulseError('Schedules overlap: {0} for {1}'
-                             ''.format(ts_err.message, formatted_schedules)) from ts_err
+            self._add_timeslots(insert_time, sched)
 
         self.__children = tuple(_children)
 
@@ -185,7 +173,6 @@ class Schedule(ScheduleComponent):
         """
         shift_time, sched = other
         self._add_timeslots(shift_time, sched)
-        self._buffer = max(self.buffer, sched.buffer)
 
         if isinstance(sched, Schedule):
             shifted_children = sched._children
@@ -426,13 +413,14 @@ class Schedule(ScheduleComponent):
         Args:
             time: The time to insert the schedule into this.
             schedule: The schedule to insert into this.
+        Raises:
+            PulseError: If timeslots overlap.
         """
         self._duration = max(self._duration, time + schedule.duration)
 
         for channel in schedule.channels:
-            channel_intervals = schedule._timeslots[channel]
             channel_intervals = [Interval(start=i.start + time, stop=i.stop + time)
-                                 for i in channel_intervals]
+                                 for i in schedule._timeslots[channel]]
 
             if channel not in self._timeslots:
                 self._timeslots[channel] = channel_intervals
@@ -443,9 +431,18 @@ class Schedule(ScheduleComponent):
                     # Can append the remaining intervals
                     self._timeslots[channel].extend(channel_intervals[idx:])
                     break
-                else:
+
+                try:
                     index = insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
+                except PulseError:
+                    raise PulseError("Schedule(name='{new}') cannot be inserted into "
+                                     "Schedule(name='{old}') at time {time} because its "
+                                     "instruction on channel {ch} scheduled from time "
+                                     "{t0} to {tf} overlaps with an existing instruction."
+                                     "".format(new=schedule.name or '', old=self.name or '',
+                                               time=time, ch=channel,
+                                               t0=interval.start, tf=interval.stop))
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.

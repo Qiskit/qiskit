@@ -24,7 +24,8 @@ from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapsh
                                    PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, Interval
+from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
+from qiskit.pulse.utils import Interval
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -167,12 +168,12 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_empty_schedule(self):
         """Test empty schedule."""
         sched = Schedule()
-        self.assertEqual(sched.start_time, 0)
-        self.assertEqual(sched.stop_time, 0)
-        self.assertEqual(sched.duration, 0)
-        self.assertEqual(sched._children, ())
-        self.assertEqual(sched.timeslots, {})
-        self.assertEqual(list(sched.instructions), [])
+        self.assertEqual(0, sched.start_time)
+        self.assertEqual(0, sched.stop_time)
+        self.assertEqual(0, sched.duration)
+        self.assertEqual((), sched._children)
+        self.assertEqual({}, sched.timeslots)
+        self.assertEqual([], list(sched.instructions))
 
     def test_overlapping_schedules(self):
         """Test overlapping schedules."""
@@ -186,10 +187,10 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertIsInstance(my_test_make_schedule(4, 0, 4), Schedule)
         self.assertRaisesRegex(PulseError,
-                               r".* MemorySlot\(0\) over time range \[2, 4\] .*",
+                               r".*MemorySlot\(0\).*overlaps .*",
                                my_test_make_schedule, 4, 0, 2)
         self.assertRaisesRegex(PulseError,
-                               r".* MemorySlot\(1\) over time range \[0, 4\] .*",
+                               r".*MemorySlot\(1\).*overlaps .*",
                                my_test_make_schedule, 4, 1, 0)
 
     def test_flat_instruction_sequence_returns_instructions(self):

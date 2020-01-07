@@ -62,7 +62,7 @@ def insertion_index(intervals: List[Interval], new_interval: Interval, index: in
     """
     if len(intervals) == 1:
         if overlaps(intervals[0], new_interval):
-            raise PulseError("Pulse instructions overlap.")
+            raise PulseError("New interval overlaps with existing.")
         return index if new_interval.start < intervals[0].start else index + 1
 
     mid_idx = len(intervals) // 2
