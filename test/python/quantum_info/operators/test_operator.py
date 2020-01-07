@@ -24,7 +24,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate, CHGate, CnotGate
+from qiskit.extensions.standard import HGate, CHGate, CXGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -173,7 +173,7 @@ class TestOperator(OperatorTestCase):
 
     def test_instruction_init(self):
         """Test initialization from a circuit."""
-        gate = CnotGate()
+        gate = CXGate()
         op = Operator(gate).data
         target = gate.to_matrix()
         global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)

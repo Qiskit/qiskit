@@ -25,14 +25,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.cswap import FredkinGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.ccx import CCXGate
+from qiskit.extensions.standard.cswap import CSwapGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.cy import CyGate
 from qiskit.extensions.standard.cz import CzGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.iden import IdGate
+from qiskit.extensions.standard.iden import IGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
@@ -46,10 +46,10 @@ from qiskit.extensions.standard.z import ZGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.cu1 import Cu1Gate
+from qiskit.extensions.standard.cu1 import CU1Gate
 from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crz import CrzGate
-from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.crz import CRZGate
+from qiskit.extensions.standard.cu3 import CU3Gate
 from qiskit.extensions.standard.rzz import RZZGate
 
 
@@ -109,17 +109,17 @@ class AstInterpreter:
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
-                          "id": IdGate,
+                          "id": IGate,
                           "h": HGate,
-                          "cx": CnotGate,
+                          "cx": CXGate,
                           "cy": CyGate,
                           "cz": CzGate,
                           "ch": CHGate,
-                          "crz": CrzGate,
-                          "cu1": Cu1Gate,
-                          "cu3": Cu3Gate,
-                          "ccx": ToffoliGate,
-                          "cswap": FredkinGate}
+                          "crz": CRZGate,
+                          "cu1": CU1Gate,
+                          "cu3": CU3Gate,
+                          "ccx": CCXGate,
+                          "cswap": CSwapGate}
 
     def __init__(self, dag):
         """Initialize interpreter's data."""
@@ -233,11 +233,11 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[idx]], [], self.condition)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[0]], [], self.condition)
             else:
-                self.dag.apply_operation_back(CnotGate(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[0], id1[idx]], [], self.condition)
 
     def _process_measure(self, node):
         """Process a measurement node."""

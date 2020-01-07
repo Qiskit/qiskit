@@ -23,7 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.circuit.reset import Reset
@@ -221,7 +221,7 @@ class Initialize(Instruction):
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
@@ -233,7 +233,7 @@ class Initialize(Instruction):
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         return circuit
 

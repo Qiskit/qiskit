@@ -40,7 +40,7 @@ except ImportError:
     HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CnotGate
+from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.transpiler.exceptions import TranspilerError
@@ -327,7 +327,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 dur = self.bp_u2_dur[q_0]
             elif isinstance(gate.op, U3Gate):
                 dur = self.bp_u3_dur[q_0]
-            elif isinstance(gate.op, CnotGate):
+            elif isinstance(gate.op, CXGate):
                 dur = self.bp_cx_dur[self.cx_tuple(gate)]
             self.opt.add(self.gate_duration[gate] == dur)
 
@@ -383,7 +383,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     fid = math.log(1.0 - self.bp_u2_err[q_0])
                 elif isinstance(gate.op, U3Gate):
                     fid = math.log(1.0 - self.bp_u3_err[q_0])
-                elif isinstance(gate.op, CnotGate):
+                elif isinstance(gate.op, CXGate):
                     fid = math.log(1.0 - self.bp_cx_err[self.cx_tuple(gate)])
                 self.opt.add(self.gate_fidelity[gate] == round(fid, NUM_PREC))
             else:

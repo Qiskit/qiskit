@@ -56,10 +56,10 @@ def _control_predefined(operation, num_ctrl_qubits):
     if operation.name == 'x' and num_ctrl_qubits in [1, 2]:
         if num_ctrl_qubits == 1:
             import qiskit.extensions.standard.cx
-            cgate = qiskit.extensions.standard.cx.CnotGate()
+            cgate = qiskit.extensions.standard.cx.CXGate()
         else:
             import qiskit.extensions.standard.ccx
-            cgate = qiskit.extensions.standard.ccx.ToffoliGate()
+            cgate = qiskit.extensions.standard.ccx.CCXGate()
     elif operation.name == 'y':
         import qiskit.extensions.standard.cy
         cgate = qiskit.extensions.standard.cy.CyGate()
@@ -72,13 +72,13 @@ def _control_predefined(operation, num_ctrl_qubits):
     elif operation.name in {'rx', 'ry', 'rz'}:
         if operation.name == 'rx':
             import qiskit.extensions.standard.crx
-            cgate = qiskit.extensions.standard.crx.CrxGate(*operation.params)
+            cgate = qiskit.extensions.standard.crx.CRXGate(*operation.params)
         elif operation.name == 'ry':
             import qiskit.extensions.standard.cry
-            cgate = qiskit.extensions.standard.cry.CryGate(*operation.params)
+            cgate = qiskit.extensions.standard.cry.CRYGate(*operation.params)
         else:  # operation.name == 'rz'
             import qiskit.extensions.standard.crz
-            cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
+            cgate = qiskit.extensions.standard.crz.CRZGate(*operation.params)
         if num_ctrl_qubits == 1:
             return cgate
         else:
@@ -86,16 +86,16 @@ def _control_predefined(operation, num_ctrl_qubits):
             return cgate.control(num_ctrl_qubits - 1)
     elif operation.name == 'swap':
         import qiskit.extensions.standard.cswap
-        cgate = qiskit.extensions.standard.cswap.FredkinGate()
+        cgate = qiskit.extensions.standard.cswap.CSwapGate()
     elif operation.name == 'u1':
         import qiskit.extensions.standard.cu1
-        cgate = qiskit.extensions.standard.cu1.Cu1Gate(*operation.params)
+        cgate = qiskit.extensions.standard.cu1.CU1Gate(*operation.params)
     elif operation.name == 'u3':
         import qiskit.extensions.standard.cu3
-        cgate = qiskit.extensions.standard.cu3.Cu3Gate(*operation.params)
+        cgate = qiskit.extensions.standard.cu3.CU3Gate(*operation.params)
     elif operation.name == 'cx':
         import qiskit.extensions.standard.ccx
-        cgate = qiskit.extensions.standard.ccx.ToffoliGate()
+        cgate = qiskit.extensions.standard.ccx.CCXGate()
     else:
         raise QiskitError('No standard controlled gate for "{}"'.format(
             operation.name))

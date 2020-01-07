@@ -24,7 +24,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.test import QiskitTestCase
@@ -53,7 +53,7 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(uop1 == uop3)
 
         self.assertTrue(HGate() == HGate())
-        self.assertFalse(HGate() == CnotGate())
+        self.assertFalse(HGate() == CXGate())
         self.assertFalse(hop1 == HGate())
 
         eop1 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])

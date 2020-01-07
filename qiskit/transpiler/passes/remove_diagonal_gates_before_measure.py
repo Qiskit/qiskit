@@ -16,7 +16,7 @@
 
 from qiskit.circuit import Measure
 from qiskit.extensions.standard import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate,\
-    CzGate, CrzGate, Cu1Gate, RZZGate
+    CzGate, CRZGate, CU1Gate, RZZGate
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -37,7 +37,7 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         diagonal_1q_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
-        diagonal_2q_gates = (CzGate, CrzGate, Cu1Gate, RZZGate)
+        diagonal_2q_gates = (CzGate, CRZGate, CU1Gate, RZZGate)
 
         nodes_to_remove = set()
         for measure in dag.op_nodes(Measure):

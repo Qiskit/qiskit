@@ -26,19 +26,19 @@ Standard Extensions
    :toctree: ../stubs/
 
    Barrier
-   ToffoliGate
+   CCXGate
    CHGate
-   CrxGate
-   CryGate
-   CrzGate
-   FredkinGate
-   Cu1Gate
-   Cu3Gate
-   CnotGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CU1Gate
+   CU3Gate
+   CXGate
    CyGate
    CzGate
    HGate
-   IdGate
+   IGate
    MSGate
    RXGate
    RXXGate

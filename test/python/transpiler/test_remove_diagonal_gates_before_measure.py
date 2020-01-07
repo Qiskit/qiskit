@@ -244,7 +244,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1crz_2measure(self):
-        """ Remove a single CrzGate
+        """ Remove a single CRZGate
             qr0:-RZ--m---       qr0:--m---
                   |  |                |
             qr1:--.--|-m-  ==>  qr1:--|-m-
@@ -269,7 +269,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1cu1_2measure(self):
-        """ Remove a single Cu1Gate
+        """ Remove a single CU1Gate
             qr0:-CU1-m---       qr0:--m---
                   |  |                |
             qr1:--.--|-m-  ==>  qr1:--|-m-
