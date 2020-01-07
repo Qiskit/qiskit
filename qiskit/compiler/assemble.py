@@ -231,6 +231,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
+    Raises: 
+        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -251,8 +253,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
         if meas_level not in backend_config.meas_levels:
             raise SchemaValidationError(
-                f'meas_level = {meas_level} not supported for backend {backend_config.backend_name}, ' +
-                f'only {backend_config.meas_levels} is supported'
+                ('meas_level = {} not supported for backend {}, only {} is supported'
+                 ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
