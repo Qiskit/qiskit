@@ -24,6 +24,7 @@ from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -245,6 +246,12 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             backend_default = BackendDefault(
                 qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
+            )
+
+        if meas_level not in backend_config.meas_levels:
+            raise SchemaValidationError(
+                f'meas_level = {meas_level} not supported for backend {backend_config.backend_name}, ' +
+                f'only {backend_config.meas_levels} is supported'
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)

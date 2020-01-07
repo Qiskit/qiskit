@@ -28,6 +28,7 @@ from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 class TestCircuitAssembler(QiskitTestCase):
@@ -472,7 +473,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         # single acquisition
         schedule = acquire(self.backend_config.acquire(0),
-                           mem_slots=pulse.MemorySlot(n_memoryslots-1))
+                           mem_slots=pulse.MemorySlot(n_memoryslots - 1))
 
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -687,6 +688,25 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         memory_slots=self.memory_slots,
                         rep_time=self.rep_time)
         validate_qobj_against_schema(qobj)
+
+    def test_unsupported_meas_level(self):
+        """Test that assembly raises an error if meas_level is not supported"""
+        backend = FakeOpenPulse2Q()
+        backend.configuration().meas_levels = [1, 2]
+        with self.assertRaises(SchemaValidationError):
+            qobj = assemble(self.schedule,
+                            backend,
+                            qubit_lo_freq=self.qubit_lo_freq,
+                            meas_lo_freq=self.meas_lo_freq,
+                            qubit_lo_range=self.qubit_lo_range,
+                            meas_lo_range=self.meas_lo_range,
+                            schedule_los=self.schedule_los,
+                            meas_level=0,
+                            meas_map=self.meas_map,
+                            memory_slots=self.memory_slots,
+                            rep_time=self.rep_time,
+                            )
+            # validate_qobj_against_schema()
 
 
 if __name__ == '__main__':
