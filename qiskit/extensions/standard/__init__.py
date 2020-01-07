@@ -21,7 +21,7 @@ from .cy import CYGate
 from .cz import CZGate
 from .swap import SwapGate
 from .h import HGate
-from .iden import IGate
+from .i import IGate
 from .s import SGate
 from .s import SdgGate
 from .t import TGate

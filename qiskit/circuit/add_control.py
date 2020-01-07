@@ -62,10 +62,10 @@ def _control_predefined(operation, num_ctrl_qubits):
             cgate = qiskit.extensions.standard.ccx.CCXGate()
     elif operation.name == 'y':
         import qiskit.extensions.standard.cy
-        cgate = qiskit.extensions.standard.cy.CyGate()
+        cgate = qiskit.extensions.standard.cy.CYGate()
     elif operation.name == 'z':
         import qiskit.extensions.standard.cz
-        cgate = qiskit.extensions.standard.cz.CzGate()
+        cgate = qiskit.extensions.standard.cz.CZGate()
     elif operation.name == 'h':
         import qiskit.extensions.standard.ch
         cgate = qiskit.extensions.standard.ch.CHGate()
@@ -155,7 +155,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
         for rule in bgate.definition:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params
-                if phi == -pi/2 and lamb == pi/2:
+                if phi == -pi / 2 and lamb == pi / 2:
                     qc.mcrx(theta, q_control, q_target[rule[1][0].index],
                             use_basis_gates=True)
                 elif phi == 0 and lamb == 0:

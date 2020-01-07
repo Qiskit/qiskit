@@ -32,7 +32,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                        CyGate, CzGate, CU1Gate, SwapGate,
+                                        CYGate, CZGate, CU1Gate, SwapGate,
                                         CCXGate, HGate, RZGate, RXGate,
                                         RYGate, CRYGate, CRXGate, CSwapGate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
@@ -51,11 +51,11 @@ class TestControlledGate(QiskitTestCase):
 
     def test_controlled_y(self):
         """Test creation of controlled y gate"""
-        self.assertEqual(YGate().control(), CyGate())
+        self.assertEqual(YGate().control(), CYGate())
 
     def test_controlled_z(self):
         """Test creation of controlled z gate"""
-        self.assertEqual(ZGate().control(), CzGate())
+        self.assertEqual(ZGate().control(), CZGate())
 
     def test_controlled_h(self):
         """Test creation of controlled h gate"""

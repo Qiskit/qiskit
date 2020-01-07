@@ -37,7 +37,7 @@ from qiskit.test.base import dicts_almost_equal
 from qiskit.extensions.standard import *
 
 oneQ_gates = [HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
-twoQ_gates = [CXGate, CyGate, CzGate, SwapGate, CHGate]
+twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
 threeQ_gates = [CCXGate, CSwapGate]
 
 oneQ_oneP_gates = [U1Gate, RXGate, RYGate, RZGate]

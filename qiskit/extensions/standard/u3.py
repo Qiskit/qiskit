@@ -39,16 +39,16 @@ class U3Gate(Gate):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
-        return numpy.array(
-            [[
+        return numpy.array([
+            [
                 numpy.cos(theta / 2),
                 -numpy.exp(1j * lam) * numpy.sin(theta / 2)
             ],
-                [
+            [
                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-            ]],
-            dtype=complex)
+            ]
+        ], dtype=complex)
 
 
 def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name

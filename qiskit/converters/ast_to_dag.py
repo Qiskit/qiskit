@@ -28,11 +28,11 @@ from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.ccx import CCXGate
 from qiskit.extensions.standard.cswap import CSwapGate
 from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.cy import CyGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.cy import CYGate
+from qiskit.extensions.standard.cz import CZGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.iden import IGate
+from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
@@ -112,8 +112,8 @@ class AstInterpreter:
                           "id": IGate,
                           "h": HGate,
                           "cx": CXGate,
-                          "cy": CyGate,
-                          "cz": CzGate,
+                          "cy": CYGate,
+                          "cz": CZGate,
                           "ch": CHGate,
                           "crz": CRZGate,
                           "cu1": CU1Gate,

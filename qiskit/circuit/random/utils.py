@@ -21,7 +21,7 @@ from qiskit.circuit import Reset
 from qiskit.extensions import (IGate, U1Gate, U2Gate, U3Gate, XGate,
                                YGate, ZGate, HGate, SGate, SdgGate, TGate,
                                TdgGate, RXGate, RYGate, RZGate, CXGate,
-                               CyGate, CzGate, CHGate, CRZGate, CU1Gate,
+                               CYGate, CZGate, CHGate, CRZGate, CU1Gate,
                                CU3Gate, SwapGate, RZZGate,
                                CCXGate, CSwapGate)
 from qiskit.circuit.exceptions import CircuitError
@@ -54,7 +54,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
     one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, CU1Gate, CRZGate]
     two_param = [U2Gate]
     three_param = [U3Gate, CU3Gate]
-    two_q_ops = [CXGate, CyGate, CzGate, CHGate, CRZGate,
+    two_q_ops = [CXGate, CYGate, CZGate, CHGate, CRZGate,
                  CU1Gate, CU3Gate, SwapGate, RZZGate]
     three_q_ops = [CCXGate, CSwapGate]
 
@@ -96,7 +96,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                 num_angles = 3
             else:
                 num_angles = 0
-            angles = [rng.uniform(0, 2*np.pi) for x in range(num_angles)]
+            angles = [rng.uniform(0, 2 * np.pi) for x in range(num_angles)]
             register_operands = [qr[i] for i in operands]
             op = operation(*angles)
 

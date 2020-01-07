@@ -27,10 +27,10 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
-from qiskit.extensions.standard.iden import IGate
+from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.cz import CZGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
@@ -928,7 +928,7 @@ class TestDagSubstituteNode(QiskitTestCase):
 
         dag.apply_operation_back(HGate(), [qr[1]])
 
-        replacement_node = dag.substitute_node(node_to_be_replaced, CzGate(),
+        replacement_node = dag.substitute_node(node_to_be_replaced, CZGate(),
                                                inplace=inplace)
 
         raise_if_dagcircuit_invalid(dag)

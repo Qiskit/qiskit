@@ -35,8 +35,8 @@ Standard Extensions
    CU1Gate
    CU3Gate
    CXGate
-   CyGate
-   CzGate
+   CYGate
+   CZGate
    HGate
    IGate
    MSGate
