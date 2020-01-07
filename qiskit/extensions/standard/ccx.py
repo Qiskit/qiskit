@@ -99,7 +99,7 @@ def ccx(self, ctl1, ctl2, tgt):
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(3)
-            circuit.x([0,1]) # This brings the quantum state from |0> to |1> for both the control qubits
+            circuit.x([0,1]) # This brings the quantum state from |0> to |1> for ctl1 & ctl2
             circuit.ccx(0,1,2)
             circuit.draw()
 

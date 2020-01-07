@@ -67,7 +67,7 @@ def z(self, q):
             circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.z(0)
             circuit.draw()
-            
+
         Resulting Statevector:
         [ 0.707+0j, -0.707+0j ]
     """

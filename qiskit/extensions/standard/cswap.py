@@ -70,7 +70,7 @@ def cswap(self, ctl, tgt1, tgt2):
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(3)
-            circuit.x([0,1]) # This brings the quantum state from |0> to |1> on control and target1 qubits
+            circuit.x([0,1]) # This brings the quantum state from |0> to |1> on ctl & tgt1
             circuit.cswap(0,1,2)
             circuit.draw()
 

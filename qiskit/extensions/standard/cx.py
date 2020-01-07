@@ -59,7 +59,7 @@ def cx(self, ctl, tgt):  # pylint: disable=invalid-name
             circuit.x(0) # This brings the quantum state from |0> to |1>
             circuit.cx(0,1)
             circuit.draw()
-    
+
         Resulting Statevector:
         [ 0+0j, 0+0j, 0+0j, 1+0j ]
     """
