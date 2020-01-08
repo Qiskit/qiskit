@@ -15,7 +15,6 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
 import copy
-import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
