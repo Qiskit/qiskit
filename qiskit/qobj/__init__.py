@@ -70,6 +70,8 @@ Validation
    validate_qobj_against_schema
 """
 
+import warnings
+
 from qiskit.qobj.pulse_qobj import PulseQobj
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
 from qiskit.qobj.pulse_qobj import PulseQobjExperimentConfig
@@ -87,3 +89,13 @@ from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
 from qiskit.qobj.qasm_qobj import QobjHeader
 
 from .utils import validate_qobj_against_schema
+
+
+class Qobj(QasmQobj):
+
+    def __init__(self, qobj_id=None, config=None, experiments=None,
+                 header=None):
+        warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
+                      'PulseQobj depending on your application instead.',
+                      DeprecationWarning, stacklevel=2)
+        super(Qobj, self).__init__()
