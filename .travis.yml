@@ -62,10 +62,6 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    - name: Python 3.8 Tests
-      <<: *stage_linux
-      python: 3.8
-
     # Randomized testing
     - name: Randomized tests
       <<: *stage_linux
