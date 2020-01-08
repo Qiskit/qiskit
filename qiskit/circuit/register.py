@@ -69,7 +69,7 @@ class Register:
         return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
 
     def __len__(self):
-        """Return register size"""
+        """Return register size."""
         return self.size
 
     def __getitem__(self, key):
@@ -79,8 +79,8 @@ class Register:
             key (int or slice or list): index of the clbit to be retrieved.
 
         Returns:
-            Qubit or Clbit or list(Qubit) or list(Clbit): a instances Qubit or Clbit if key is int.
-                If key is a slice, return a list of them.
+            Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
+            key is int. If key is a slice, returns a list of these instances.
 
         Raises:
             CircuitError: if the `key` is not an integer.
@@ -110,7 +110,7 @@ class Register:
             other (Register): other Register
 
         Returns:
-            bool: are self and other equal.
+            bool: `self` and `other` are equal.
         """
         res = False
         if type(self) is type(other) and \

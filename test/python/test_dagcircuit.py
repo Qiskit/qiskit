@@ -551,7 +551,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
 
-        op_nodes = [node for node in self.dag.topological_op_nodes()]
+        op_nodes = list(self.dag.topological_op_nodes())
         self.dag.remove_op_node(op_nodes[0])
 
         expected = [('h', [self.qubit0]),
@@ -619,7 +619,7 @@ class TestDagOperations(QiskitTestCase):
             HGate(), [self.qubit0], condition=self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         collected_runs = self.dag.collect_runs(['h'])
-        # Should return 2 single h gate runs (1 before condtion, 1 after)
+        # Should return 2 single h gate runs (1 before condition, 1 after)
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
             self.assertEqual(len(run), 1)

@@ -68,6 +68,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.cu1(pi, qr[0], qr[1])
         circuit.cu3(pi, pi, pi, qr[0], qr[1])
         circuit.crz(pi, qr[0], qr[1])
+        circuit.cry(pi, qr[0], qr[1])
+        circuit.crx(pi, qr[0], qr[1])
         circuit.ccx(qr[0], qr[1], qr[2])
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.measure(qr, cr)
