@@ -39,8 +39,8 @@ def circuit_to_gate(circuit, parameter_map=None):
 
     Return:
         Gate: a Gate equivalent to the action of the
-            input circuit. Upon decomposition, this gate will
-            yield the components comprising the original circuit.
+        input circuit. Upon decomposition, this gate will
+        yield the components comprising the original circuit.
     """
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
@@ -81,9 +81,14 @@ def circuit_to_gate(circuit, parameter_map=None):
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
 
-    definition = list(map(lambda x:
-                          (x[0], list(map(lambda y: q[find_bit_position(y)], x[1]))),
-                          definition))
+    # The 3rd parameter in the output tuple) is hard coded to [] because
+    # Gate objects do not have cregs set and we've verified that all
+    # instructions are gates
+    definition = list(map(
+        lambda x: (x[0],
+                   list(map(lambda y: q[find_bit_position(y)], x[1])),
+                   []),
+        definition))
     gate.definition = definition
 
     return gate

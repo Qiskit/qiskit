@@ -21,7 +21,6 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
-    import seaborn as sns
     import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
@@ -132,14 +131,16 @@ def plot_gate_map(backend, figsize=None,
 
     mpl_data = {}
 
+    mpl_data[1] = [[0, 0]]
+
     mpl_data[20] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
                     [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
                     [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
                     [3, 0], [3, 1], [3, 2], [3, 3], [3, 4]]
 
-    mpl_data[14] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+    mpl_data[15] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
                     [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
-                    [1, 4], [1, 3], [1, 2], [1, 1]]
+                    [1, 4], [1, 3], [1, 2], [1, 1], [1, 0]]
 
     mpl_data[16] = [[1, 0], [0, 0], [0, 1], [0, 2], [0, 3],
                     [0, 4], [0, 5], [0, 6], [0, 7], [1, 7],
@@ -187,7 +188,7 @@ def plot_gate_map(backend, figsize=None,
     max_dim = max(x_max, y_max)
 
     if figsize is None:
-        if x_max / max_dim > 0.33 and y_max / max_dim > 0.33:
+        if n_qubits == 1 or (x_max / max_dim > 0.33 and y_max / max_dim > 0.33):
             figsize = (5, 5)
         else:
             figsize = (9, 3)
@@ -200,56 +201,57 @@ def plot_gate_map(backend, figsize=None,
     if qubit_color is None:
         qubit_color = ['#648fff'] * config.n_qubits
     if line_color is None:
-        line_color = ['#648fff'] * len(cmap)
+        line_color = ['#648fff'] * len(cmap) if cmap else []
 
     # Add lines for couplings
-    for ind, edge in enumerate(cmap):
-        is_symmetric = False
-        if edge[::-1] in cmap:
-            is_symmetric = True
-        y_start = grid_data[edge[0]][0]
-        x_start = grid_data[edge[0]][1]
-        y_end = grid_data[edge[1]][0]
-        x_end = grid_data[edge[1]][1]
+    if n_qubits != 1:
+        for ind, edge in enumerate(cmap):
+            is_symmetric = False
+            if edge[::-1] in cmap:
+                is_symmetric = True
+            y_start = grid_data[edge[0]][0]
+            x_start = grid_data[edge[0]][1]
+            y_end = grid_data[edge[1]][0]
+            x_end = grid_data[edge[1]][1]
 
-        if is_symmetric:
-            if y_start == y_end:
-                x_end = (x_end - x_start) / 2 + x_start
-
-            elif x_start == x_end:
-                y_end = (y_end - y_start) / 2 + y_start
-
-            else:
-                x_end = (x_end - x_start) / 2 + x_start
-                y_end = (y_end - y_start) / 2 + y_start
-        ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
-                                 color=line_color[ind], linewidth=line_width,
-                                 zorder=0))
-        if plot_directed:
-            dx = x_end - x_start  # pylint: disable=invalid-name
-            dy = y_end - y_start  # pylint: disable=invalid-name
             if is_symmetric:
-                x_arrow = x_start + dx * 0.95
-                y_arrow = -y_start - dy * 0.95
-                dx_arrow = dx * 0.01
-                dy_arrow = -dy * 0.01
-                head_width = 0.15
-            else:
-                x_arrow = x_start + dx * 0.5
-                y_arrow = -y_start - dy * 0.5
-                dx_arrow = dx * 0.2
-                dy_arrow = -dy * 0.2
-                head_width = 0.2
-            ax.add_patch(mpatches.FancyArrow(x_arrow,
-                                             y_arrow,
-                                             dx_arrow,
-                                             dy_arrow,
-                                             head_width=head_width,
-                                             length_includes_head=True,
-                                             edgecolor=None,
-                                             linewidth=0,
-                                             facecolor=line_color[ind],
-                                             zorder=1))
+                if y_start == y_end:
+                    x_end = (x_end - x_start) / 2 + x_start
+
+                elif x_start == x_end:
+                    y_end = (y_end - y_start) / 2 + y_start
+
+                else:
+                    x_end = (x_end - x_start) / 2 + x_start
+                    y_end = (y_end - y_start) / 2 + y_start
+            ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
+                                     color=line_color[ind], linewidth=line_width,
+                                     zorder=0))
+            if plot_directed:
+                dx = x_end - x_start  # pylint: disable=invalid-name
+                dy = y_end - y_start  # pylint: disable=invalid-name
+                if is_symmetric:
+                    x_arrow = x_start + dx * 0.95
+                    y_arrow = -y_start - dy * 0.95
+                    dx_arrow = dx * 0.01
+                    dy_arrow = -dy * 0.01
+                    head_width = 0.15
+                else:
+                    x_arrow = x_start + dx * 0.5
+                    y_arrow = -y_start - dy * 0.5
+                    dx_arrow = dx * 0.2
+                    dy_arrow = -dy * 0.2
+                    head_width = 0.2
+                ax.add_patch(mpatches.FancyArrow(x_arrow,
+                                                 y_arrow,
+                                                 dx_arrow,
+                                                 dy_arrow,
+                                                 head_width=head_width,
+                                                 length_includes_head=True,
+                                                 edgecolor=None,
+                                                 linewidth=0,
+                                                 facecolor=line_color[ind],
+                                                 zorder=1))
 
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
@@ -375,6 +377,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+        ImportError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -395,6 +398,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError('Must have seaborn installed to use plot_error_map')
+
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     props = backend.properties().to_dict()
@@ -420,28 +428,31 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     cmap = config['coupling_map']
 
     directed = False
-    if n_qubits < 20:
-        for edge in cmap:
-            if not [edge[1], edge[0]] in cmap:
-                directed = True
-                break
+    line_colors = []
+    if cmap:
+        directed = False
+        if n_qubits < 20:
+            for edge in cmap:
+                if not [edge[1], edge[0]] in cmap:
+                    directed = True
+                    break
 
-    cx_errors = []
-    for line in cmap:
-        for item in props['gates']:
-            if item['qubits'] == line:
-                cx_errors.append(item['parameters'][0]['value'])
-                break
-        else:
-            continue
+        cx_errors = []
+        for line in cmap:
+            for item in props['gates']:
+                if item['qubits'] == line:
+                    cx_errors.append(item['parameters'][0]['value'])
+                    break
+            else:
+                continue
 
-    # Convert to percent
-    cx_errors = 100 * np.asarray(cx_errors)
-    avg_cx_err = np.mean(cx_errors)
+        # Convert to percent
+        cx_errors = 100 * np.asarray(cx_errors)
+        avg_cx_err = np.mean(cx_errors)
 
-    cx_norm = matplotlib.colors.Normalize(
-        vmin=min(cx_errors), vmax=max(cx_errors))
-    line_colors = [color_map(cx_norm(err)) for err in cx_errors]
+        cx_norm = matplotlib.colors.Normalize(
+            vmin=min(cx_errors), vmax=max(cx_errors))
+        line_colors = [color_map(cx_norm(err)) for err in cx_errors]
 
     # Measurement errors
 
@@ -466,7 +477,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     main_ax = plt.subplot(grid_spec[:11, 1:11])
     right_ax = plt.subplot(grid_spec[2:10, 11:])
     bleft_ax = plt.subplot(grid_spec[-1, :5])
-    bright_ax = plt.subplot(grid_spec[-1, 7:])
+    if cmap:
+        bright_ax = plt.subplot(grid_spec[-1, 7:])
 
     plot_gate_map(backend, qubit_color=q_colors,
                   line_color=line_colors,
@@ -476,23 +488,28 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
                   ax=main_ax)
     main_ax.axis('off')
     main_ax.set_aspect(1)
+    if cmap:
+        single_cb = matplotlib.colorbar.ColorbarBase(bleft_ax, cmap=color_map,
+                                                     norm=single_norm,
+                                                     orientation='horizontal')
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        single_cb.locator = tick_locator
+        single_cb.update_ticks()
+        single_cb.update_ticks()
+        bleft_ax.set_title('H error rate (%) [Avg. = {}]'.format(round(avg_1q_err, 3)))
 
-    single_cb = matplotlib.colorbar.ColorbarBase(bleft_ax, cmap=color_map,
-                                                 norm=single_norm,
+    if cmap is None:
+        bleft_ax.axis('off')
+        bleft_ax.set_title('H error rate (%) = {}'.format(round(avg_1q_err, 3)))
+
+    if cmap:
+        cx_cb = matplotlib.colorbar.ColorbarBase(bright_ax, cmap=color_map,
+                                                 norm=cx_norm,
                                                  orientation='horizontal')
-    tick_locator = ticker.MaxNLocator(nbins=5)
-    single_cb.locator = tick_locator
-    single_cb.update_ticks()
-    single_cb.update_ticks()
-    bleft_ax.set_title('H error rate (%) [Avg. = {}]'.format(round(avg_1q_err, 3)))
-
-    cx_cb = matplotlib.colorbar.ColorbarBase(bright_ax, cmap=color_map,
-                                             norm=cx_norm,
-                                             orientation='horizontal')
-    tick_locator = ticker.MaxNLocator(nbins=5)
-    cx_cb.locator = tick_locator
-    cx_cb.update_ticks()
-    bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        cx_cb.locator = tick_locator
+        cx_cb.update_ticks()
+        bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
 
     if n_qubits < 10:
         num_left = n_qubits

@@ -13,8 +13,8 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
-import warnings
 from typing import Dict, List
+import warnings
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -267,6 +267,8 @@ class PulseBackendConfiguration(BackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    _dt_warning_done = False
+
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
@@ -323,23 +325,50 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
-        self.qubit_lo_range = qubit_lo_range
-        self.meas_lo_range = meas_lo_range
+        self.qubit_lo_range = [[min_range * 1e9, max_range * 1e9] for
+                               (min_range, max_range) in qubit_lo_range]
+        self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
+                              (min_range, max_range) in meas_lo_range]
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
+        self._dt = dt * 1e-9
+        self._dtm = dtm * 1e-9
+
+        channel_bandwidth = kwargs.pop('channel_bandwidth', None)
+        if channel_bandwidth:
+            self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
+                                      (min_range, max_range) in channel_bandwidth]
+
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
-                         n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
-                         meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
-                         meas_lo_range=meas_lo_range,
-                         dt=dt * 1e-9, dtm=dtm * 1e-9,
-                         rep_times=rep_times, meas_kernels=meas_kernels,
-                         discriminators=discriminators, **kwargs)
+                         **kwargs)
+
+    @property
+    def dt(self) -> float:  # pylint: disable=invalid-name
+        """Drive channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dt
+
+    @property
+    def dtm(self) -> float:  # pylint: disable=invalid-name
+        """Measure channel sampling time in seconds(s)."""
+        # only raise dt warning once
+        if not PulseBackendConfiguration._dt_warning_done:
+            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
+                          'than nanoseconds(ns).')
+            PulseBackendConfiguration._dt_warning_done = True
+
+        return self._dtm
 
     @property
     def sample_rate(self) -> float:
@@ -355,8 +384,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit drive channel.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -368,8 +397,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement stimulus line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -381,8 +410,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement acquisition line.
         """
-        if qubit > self.n_qubits:
-            raise BackendConfigurationError("This system does not have {} qubits.".format(qubit))
+        if not 0 <= qubit < self.n_qubits:
+            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
     def control(self, channel: int) -> ControlChannel:
@@ -394,8 +423,6 @@ class PulseBackendConfiguration(BackendConfiguration):
             Qubit control channel.
         """
         # TODO: Determine this from the hamiltonian.
-        warnings.warn("The control channel appropriate for an interaction should be determined "
-                      "from the hamiltonian. This will be determined for you in the future.")
         return ControlChannel(channel)
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:

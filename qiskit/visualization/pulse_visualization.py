@@ -18,7 +18,6 @@
 matplotlib pulse visualization.
 """
 import warnings
-
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
@@ -28,10 +27,11 @@ if _matplotlib.HAS_MATPLOTLIB:
 
 
 def pulse_drawer(data, dt=1, style=None, filename=None,
-                 interp_method=None, scaling=None, channels_to_plot=None,
+                 interp_method=None, scale=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False,
                  table=True, label=False, framechange=True,
-                 channels=None):
+                 channels=None, scaling=None,
+                 show_framechange_channels=True):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -42,7 +42,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         filename (str): Name required to save pulse image
         interp_method (Callable): interpolation function
             See `qiskit.visualization.interpolation` for more information
-        scaling (float): scaling of waveform amplitude
+        scale (float): scaling of waveform amplitude
         channels_to_plot (list): Deprecated, see `channels`
         plot_all (bool): Plot empty channels
         plot_range (tuple): A tuple of time range to plot
@@ -51,7 +51,9 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         table (bool): Draw event table for supported commands
         label (bool): Label individual instructions
         framechange (bool): Add framechange indicators
+        scaling (float): Deprecated, see `scale`
         channels (list): A list of channel names to plot
+        show_framechange_channels (bool): Plot channels with only framechanges
 
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
@@ -60,6 +62,10 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         VisualizationError: when invalid data is given or lack of information
         ImportError: when matplotlib is not installed
     """
+    if scaling is not None:
+        warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                      DeprecationWarning, 3)
+        scale = scaling
     if channels_to_plot:
         warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
                       DeprecationWarning, 3)
@@ -69,12 +75,13 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
-        image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling)
+        image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
-        image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
+        image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
                             plot_range=plot_range, plot_all=plot_all, table=table,
-                            label=label, framechange=framechange, channels=channels)
+                            label=label, framechange=framechange, channels=channels,
+                            show_framechange_channels=show_framechange_channels)
     else:
         raise VisualizationError('This data cannot be visualized.')
 
