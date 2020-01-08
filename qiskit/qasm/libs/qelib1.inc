@@ -77,14 +77,6 @@ gate cswap a,b,c
   ccx a,b,c;
   cx c,b;
 }
-// controlled rz rotation
-gate crz(lambda) a,b
-{
-  u1(lambda/2) b;
-  cx a,b;
-  u1(-lambda/2) b;
-  cx a,b;
-}
 // controlled rx rotation
 gate crx(lambda) a,b
 {
@@ -100,6 +92,14 @@ gate cry(lambda) a,b
   u3(lambda/2,0,0) b;
   cx a,b;
   u3(-lambda/2,0,0) b;
+  cx a,b;
+}
+// controlled rz rotation
+gate crz(lambda) a,b
+{
+  u1(lambda/2) b;
+  cx a,b;
+  u1(-lambda/2) b;
   cx a,b;
 }
 // controlled phase rotation
@@ -122,13 +122,6 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
-// two-qubit ZZ rotation
-gate rzz(theta) a,b
-{
-  cx a,b;
-  u1(theta) b;
-  cx a,b;
-}
 // two-qubit XX rotation
 gate rxx(theta) a,b
 {
@@ -139,4 +132,11 @@ gate rxx(theta) a,b
   cx a,b;
   h b;
   u2(-pi, pi-theta) a;
+}
+// two-qubit ZZ rotation
+gate rzz(theta) a,b
+{
+  cx a,b;
+  u1(theta) b;
+  cx a,b;
 }
