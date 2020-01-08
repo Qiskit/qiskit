@@ -232,7 +232,7 @@ class InstructionToQobjConverter:
             'pulse_shape': ParametricPulseShapes(type(instruction.command)).name,
             't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
-            'params': instruction.command.get_params()
+            'params': instruction.command.get_parameters()
         }
         return self._qobj_model(**command_dict)
 
