@@ -231,7 +231,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
-    Raises: 
+    Raises:
         SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
