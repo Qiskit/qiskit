@@ -367,7 +367,7 @@ class PulseBackendConfiguration(BackendConfiguration):
 
     @property
     def rep_times(self) -> List[float]:  # pylint: disable=invalid-name
-        """Supported repetition times for device in microseconds."""
+        """Supported repetition times for device in seconds."""
         # only raise rep_time warning once
         if not PulseBackendConfiguration._rep_time_warning_done:
             warnings.warn('`rep_time` now has units of seconds(s) rather '
