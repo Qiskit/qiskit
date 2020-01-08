@@ -61,7 +61,7 @@ class TestBackendConfiguration(QiskitTestCase):
         _rep_times_us = [100, 250, 500, 1000]
         _rep_times_s = [_rt * 1.e-6 for _rt in _rep_times_us]
 
-        for i, rt in enumerate(_rep_times_s):
-            self.assertAlmostEqual(self.config.rep_times[i], rt)
-        for i, rt in enumerate(_rep_times_us):
-            self.assertEqual(round(self.config.rep_times[i]*1e6), rt)
+        for i, time in enumerate(_rep_times_s):
+            self.assertAlmostEqual(self.config.rep_times[i], time)
+        for i, time in enumerate(_rep_times_us):
+            self.assertEqual(round(self.config.rep_times[i]*1e6), time)
