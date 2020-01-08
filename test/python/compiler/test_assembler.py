@@ -691,6 +691,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_unsupported_meas_level(self):
         """Test that assembly raises an error if meas_level is not supported"""
+        # pylint: disable=unused-variable
         backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
         with self.assertRaises(SchemaValidationError):
