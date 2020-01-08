@@ -433,7 +433,7 @@ class TestControlledGate(QiskitTestCase):
         for cls in gate_classes:
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
-            if issubclass(cls, ControlledGate) or cls == allGates.IGate:
+            if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                 continue
             try:
                 sig = signature(cls)

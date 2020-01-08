@@ -14,14 +14,14 @@
 
 """Standard gates."""
 from .barrier import Barrier
-from .ccx import CCXGate, ToffoliGate
-from .cswap import CSwapGate, FredkinGate
-from .cx import CXGate, CnotGate
-from .cy import CYGate, CyGate
-from .cz import CZGate, CzGate
+from .ccx import CCXGate
+from .cswap import CSwapGate
+from .cx import CXGate
+from .cy import CYGate
+from .cz import CZGate
 from .swap import SwapGate
 from .h import HGate
-from .i import IGate, IdGate
+from .i import IGate
 from .s import SGate
 from .s import SdgGate
 from .t import TGate
@@ -36,13 +36,25 @@ from .r import RGate
 from .rx import RXGate
 from .ry import RYGate
 from .rz import RZGate
-from .cu1 import CU1Gate, Cu1Gate
-from .cu3 import CU3Gate, Cu3Gate
+from .cu1 import CU1Gate
+from .cu3 import CU3Gate
 from .ch import CHGate
-from .crx import CRXGate, CrxGate
-from .cry import CRYGate, CryGate
-from .crz import CRZGate, CrzGate
+from .crx import CRXGate
+from .cry import CRYGate
+from .crz import CRZGate
 from .rzz import RZZGate
 from .rxx import RXXGate
 from .ms import MSGate
-from . import multi_control_toffoli_gate
+
+# deprecated gates, to be removed
+from .i import IdGate
+from .ccx import ToffoliGate
+from .cswap import FredkinGate
+from .cx import CnotGate
+from .cy import CyGate
+from .cz import CzGate
+from .cu1 import Cu1Gate
+from .cu3 import Cu3Gate
+from .crx import CrxGate
+from .cry import CryGate
+from .crz import CrzGate
