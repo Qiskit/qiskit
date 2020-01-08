@@ -328,7 +328,6 @@ class PulseBackendConfiguration(BackendConfiguration):
                                (min_range, max_range) in qubit_lo_range]
         self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
                               (min_range, max_range) in meas_lo_range]
-        self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
