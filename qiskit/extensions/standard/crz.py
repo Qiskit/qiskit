@@ -66,7 +66,6 @@ def crz(self, theta, ctl, tgt):
 
         .. jupyter-execute::
 
-import numpy
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(2)
