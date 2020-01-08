@@ -588,7 +588,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Find the appropriate layer for a gate
         """
-        candidates = [i for i in range(len(layers))]
+        candidates = list(range(len(layers)))
         for i, layer in enumerate(layers):
             candidates = self.filter_candidates(candidates, layer, i, triplet)
         if not candidates:
