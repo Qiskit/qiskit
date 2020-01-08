@@ -287,7 +287,7 @@ class TestBasicSchedule(QiskitTestCase):
 
 
 class TestCmdDefBasicSchedule(QiskitTestCase):
-    """Scheduling tests for CmdDef which will soon be deprecated."""
+    """Scheduling tests for CmdDef which is deprecated."""
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
