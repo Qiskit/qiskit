@@ -38,12 +38,14 @@ from qiskit.extensions.standard.x import CXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 _CUTOFF_PRECISION = 1e-12
+_DECOMP1Q = OneQubitEulerDecomposer('U3')
 
 
 def euler_angles_1q(unitary_matrix):
-    """Compute Euler angles for a single-qubit gate.
+    """DEPRECATED: Compute Euler angles for a single-qubit gate.
 
     Find angles (theta, phi, lambda) such that
     unitary_matrix = phase * Rz(phi) * Ry(theta) * Rz(lambda)
@@ -57,6 +59,9 @@ def euler_angles_1q(unitary_matrix):
     Raises:
         QiskitError: if unitary_matrix not 2x2, or failure
     """
+    warnings.warn("euler_angles_q1` is deprecated. "
+                  "Use `synthesis.OneQubitEulerDecomposer().angles instead.",
+                  DeprecationWarning)
     if unitary_matrix.shape != (2, 2):
         raise QiskitError("euler_angles_1q: expected 2x2 matrix")
     phase = la.det(unitary_matrix)**(-1.0/2.0)
@@ -446,7 +451,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [euler_angles_1q(x) for x in decomposition]
+        decomposition_angles = [_DECOMP1Q.angles(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
