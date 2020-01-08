@@ -24,7 +24,7 @@ from .base import QobjInstructionSchema
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
-    """Schema for QobjMeasOptiton."""
+    """Schema for QobjMeasOption."""
 
     # Required properties.
     name = String(required=True)

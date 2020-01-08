@@ -452,7 +452,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
-        """Verify that a circuit including epxressions of parameters can be
+        """Verify that a circuit including expressions of parameters can be
         transpiled for a device backend."""
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)

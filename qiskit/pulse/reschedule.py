@@ -79,7 +79,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     def get_max_calibration_duration():
         """Return the time needed to allow for readout discrimination calibration pulses."""
         max_calibration_duration = 0
-        for qubits in inst_map.cmd_qubits(cal_gate):
+        for qubits in inst_map.qubits_with_instruction(cal_gate):
             cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)
             max_calibration_duration = max(cmd.duration, max_calibration_duration)
         return max_calibration_duration
