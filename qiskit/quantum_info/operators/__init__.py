@@ -17,3 +17,4 @@
 from .operator import Operator
 from .pauli import Pauli, pauli_group
 from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
+from .quaternion import Quaternion

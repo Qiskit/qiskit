@@ -125,10 +125,38 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[0], self.qr[1]])
 
+    def test_cry(self):
+        self.circuit.cry(1, self.qr[0], self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cry')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_crx(self):
+        self.circuit.crx(1, self.qr[0], self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'crx')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
     def test_crz_wires(self):
         self.circuit.crz(1, 0, 1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'crz')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_cry_wires(self):
+        self.circuit.cry(1, 0, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cry')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_crx_wires(self):
+        self.circuit.crx(1, 0, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'crx')
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[0], self.qr[1]])
 
@@ -142,6 +170,28 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.crz, 0, (self.qr, 3), self.qr[1])
         self.assertRaises(CircuitError, qc.crz, 0, self.cr, self.qr)
         # TODO self.assertRaises(CircuitError, qc.crz, 'a', self.qr[1], self.qr[2])
+
+    def test_cry_invalid(self):
+        qc = self.circuit
+        self.assertRaises(CircuitError, qc.cry, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.cry, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cry, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.cry, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.cry, 'a', self.qr[1], self.qr[2])
+
+    def test_crx_invalid(self):
+        qc = self.circuit
+        self.assertRaises(CircuitError, qc.crx, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.crx, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.crx, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.crx, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.crx, 'a', self.qr[1], self.qr[2])
 
     def test_cswap(self):
         self.circuit.cswap(self.qr[0], self.qr[1], self.qr[2])
@@ -980,6 +1030,78 @@ class TestStandard2Q(QiskitTestCase):
     def test_crz_bit_reg_inv(self):
         instruction_set = self.circuit.crz(1, self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'crz')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_cry_reg_reg(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_reg_reg_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_cry_reg_bit(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1])
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_reg_bit_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1]).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_cry_bit_reg(self):
+        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_bit_reg_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_reg_reg(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_reg_reg_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_reg_bit(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1])
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_reg_bit_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1]).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_bit_reg(self):
+        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_bit_reg_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 

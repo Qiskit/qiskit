@@ -173,7 +173,7 @@ class TestRepeatErrors(QiskitTestCase):
             _ = UnitaryGate([[0, 1j], [-1j, 0]]).repeat(2 / 3)
         self.assertIn('strictly positive integer', str(context.exception))
 
-    def test_starndard_no_int(self):
+    def test_standard_no_int(self):
         """Test standard Gate.repeat(2/3) method. Raises, since n is not int.
         """
         with self.assertRaises(CircuitError) as context:
