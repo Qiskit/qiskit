@@ -275,7 +275,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if rep_time:
         rep_time = int(rep_time * 1e6)
 
-
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
