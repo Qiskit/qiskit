@@ -48,16 +48,15 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.pulse_lib import continuous
 
-from .command import Command
+from .pulse_command import PulseCommand
 from .sample_pulse import SamplePulse
 from .instruction import Instruction
 
 # pylint: disable=missing-docstring
 
 
-class ParametricPulse(Command):
+class ParametricPulse(PulseCommand):
     """The abstract superclass for parametric pulses."""
-    prefix = 'p'
 
     @abstractmethod
     def __init__(self, duration: int):
