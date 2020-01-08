@@ -76,11 +76,11 @@ class CrxGate(CRXGate, metaclass=CRXMeta):
     """
     Deprecated CRXGate class.
     """
-    def __init__(self):
+    def __init__(self, theta):
         import warnings
         warnings.warn('CrxGate is deprecated, use CRXGate (uppercase) instead!', DeprecationWarning,
                       2)
-        super().__init__()
+        super().__init__(theta)
 
 
 def crx(self, theta, ctl, tgt):

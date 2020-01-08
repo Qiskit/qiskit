@@ -70,11 +70,11 @@ class CrzGate(CRZGate, metaclass=CRZMeta):
     """
     Deprecated CRZGate class.
     """
-    def __init__(self):
+    def __init__(self, theta):
         import warnings
         warnings.warn('CrzGate is deprecated, use CRZGate (uppercase) instead!', DeprecationWarning,
                       2)
-        super().__init__()
+        super().__init__(theta)
 
 
 def crz(self, theta, ctl, tgt):
