@@ -23,6 +23,16 @@ from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.ry import RYGate
 
 
+class CRYMeta(type):
+    """
+    Metaclass to ensure that Cry and CRY are of the same type.
+    Can be removed when CryGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CryGate, CRYGate))
+
+
 class CRYGate(ControlledGate):
     """The controlled-ry gate."""
 
@@ -55,6 +65,17 @@ class CRYGate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CRYGate(-self.params[0])
+
+
+class CryGate(CRYGate, metaclass=CRYMeta):
+    """
+    Deprecated CRYGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CryGate is deprecated, use CRYGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def cry(self, theta, ctl, tgt):

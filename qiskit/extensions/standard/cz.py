@@ -25,6 +25,16 @@ from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.z import ZGate
 
 
+class CZMeta(type):
+    """
+    Metaclass to ensure that Cz and CZ are of the same type.
+    Can be removed when CzGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CzGate, CZGate))
+
+
 class CZGate(ControlledGate):
     """The controlled-Z gate."""
 
@@ -59,6 +69,17 @@ class CZGate(ControlledGate):
                             [0, 1, 0, 0],
                             [0, 0, 1, 0],
                             [0, 0, 0, -1]], dtype=complex)
+
+
+class CzGate(CZGate, metaclass=CZMeta):
+    """
+    Deprecated CZGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CzGate is deprecated, use CZGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def cz(self, ctl, tgt):  # pylint: disable=invalid-name

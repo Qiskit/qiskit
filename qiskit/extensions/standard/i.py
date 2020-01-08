@@ -21,6 +21,16 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 
 
+class IMeta(type):
+    """
+    Metaclass to ensure that Id and I are of the same type.
+    Can be removed when IdGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (IdGate, IGate))
+
+
 class IGate(Gate):
     """Identity gate.
 
@@ -40,6 +50,16 @@ class IGate(Gate):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0],
                             [0, 1]], dtype=complex)
+
+
+class IdGate(IGate, metaclass=IMeta):
+    """
+    Deprecated IGate class.
+    """
+    def __init__(self):
+        warnings.warn('IdGate is deprecated, use IGate instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def i(self, q):

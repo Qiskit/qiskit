@@ -23,6 +23,16 @@ from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.rz import RZGate
 
 
+class CRZMeta(type):
+    """
+    Metaclass to ensure that Crz and CRZ are of the same type.
+    Can be removed when CrzGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CrzGate, CRZGate))
+
+
 class CRZGate(ControlledGate):
     """The controlled-rz gate."""
 
@@ -54,6 +64,17 @@ class CRZGate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CRZGate(-self.params[0])
+
+
+class CrzGate(CRZGate, metaclass=CRZMeta):
+    """
+    Deprecated CRZGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CrzGate is deprecated, use CRZGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def crz(self, theta, ctl, tgt):

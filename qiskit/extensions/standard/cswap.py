@@ -24,6 +24,16 @@ from qiskit.extensions.standard.ccx import CCXGate
 from qiskit.extensions.standard.swap import SwapGate
 
 
+class CSwapMeta(type):
+    """
+    Metaclass to ensure that CSwap and Fredkin are of the same type.
+    Can be removed when FredkinGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CSwapGate, FredkinGate))
+
+
 class CSwapGate(ControlledGate):
     """The controlled-swap gate, also called Fredkin gate."""
 
@@ -55,6 +65,16 @@ class CSwapGate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CSwapGate()  # self-inverse
+
+
+class FredkinGate(CSwapGate, metaclass=CSwapMeta):
+    """
+    Deprecated CSwapGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('FredkinGate is deprecated, use CSwapGate instead!', DeprecationWarning, 2)
+        super().__init__()
 
 
 def cswap(self, ctl, tgt1, tgt2):

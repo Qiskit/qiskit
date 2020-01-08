@@ -14,14 +14,14 @@
 
 """Standard gates."""
 from .barrier import Barrier
-from .ccx import CCXGate
-from .cswap import CSwapGate
-from .cx import CXGate
-from .cy import CYGate
-from .cz import CZGate
+from .ccx import CCXGate, ToffoliGate
+from .cswap import CSwapGate, FredkinGate
+from .cx import CXGate, CnotGate
+from .cy import CYGate, CyGate
+from .cz import CZGate, CzGate
 from .swap import SwapGate
 from .h import HGate
-from .i import IGate
+from .i import IGate, IdGate
 from .s import SGate
 from .s import SdgGate
 from .t import TGate
@@ -36,12 +36,13 @@ from .r import RGate
 from .rx import RXGate
 from .ry import RYGate
 from .rz import RZGate
-from .cu1 import CU1Gate
+from .cu1 import CU1Gate, Cu1Gate
+from .cu3 import CU3Gate, Cu3Gate
 from .ch import CHGate
-from .crx import CRXGate
-from .cry import CRYGate
-from .crz import CRZGate
-from .cu3 import CU3Gate
+from .crx import CRXGate, CrxGate
+from .cry import CRYGate, CryGate
+from .crz import CRZGate, CrzGate
 from .rzz import RZZGate
 from .rxx import RXXGate
 from .ms import MSGate
+from . import multi_control_toffoli_gate

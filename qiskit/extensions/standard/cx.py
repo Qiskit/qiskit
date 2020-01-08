@@ -22,6 +22,16 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.extensions.standard.x import XGate
 
 
+class CXMeta(type):
+    """
+    Metaclass to ensure that Cnot and CX are of the same type.
+    Can be removed when CnotGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CnotGate, CXGate))
+
+
 class CXGate(ControlledGate):
     """The controlled-X gate."""
 
@@ -41,6 +51,17 @@ class CXGate(ControlledGate):
                             [0, 0, 0, 1],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0]], dtype=complex)
+
+
+class CnotGate(CXGate, metaclass=CXMeta):
+    """
+    Deprecated CXGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CnotGate is deprecated, use CXGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def cx(self, ctl, tgt):  # pylint: disable=invalid-name

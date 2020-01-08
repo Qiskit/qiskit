@@ -22,6 +22,16 @@ from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.cx import CXGate
 
 
+class CU1Meta(type):
+    """
+    Metaclass to ensure that Cu1 and CU1 are of the same type.
+    Can be removed when Cu1Gate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (Cu1Gate, CU1Gate))
+
+
 class CU1Gate(ControlledGate):
     """The controlled-u1 gate."""
 
@@ -55,6 +65,17 @@ class CU1Gate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CU1Gate(-self.params[0])
+
+
+class Cu1Gate(CU1Gate, metaclass=CU1Meta):
+    """
+    Deprecated CU1Gate class.
+    """
+    def __init__(self, theta):
+        import warnings
+        warnings.warn('Cu1Gate is deprecated, use CU1Gate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__(theta)
 
 
 def cu1(self, theta, ctl, tgt):

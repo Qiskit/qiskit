@@ -25,6 +25,16 @@ from qiskit.extensions.standard.cx import CXGate
 from qiskit.qasm import pi
 
 
+class CRXMeta(type):
+    """
+    Metaclass to ensure that Crx and CRX are of the same type.
+    Can be removed when CrxGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CrxGate, CRXGate))
+
+
 class CRXGate(ControlledGate):
     """The controlled-rx gate."""
 
@@ -60,6 +70,17 @@ class CRXGate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CRXGate(-self.params[0])
+
+
+class CrxGate(CRXGate, metaclass=CRXMeta):
+    """
+    Deprecated CRXGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CrxGate is deprecated, use CRXGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def crx(self, theta, ctl, tgt):

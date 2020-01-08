@@ -23,6 +23,16 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CXGate
 
 
+class CU3Meta(type):
+    """
+    Metaclass to ensure that Cu3 and CU3 are of the same type.
+    Can be removed when Cu3Gate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (Cu3Gate, CU3Gate))
+
+
 class CU3Gate(ControlledGate):
     """The controlled-u3 gate."""
 
@@ -60,6 +70,17 @@ class CU3Gate(ControlledGate):
     def inverse(self):
         """Invert this gate."""
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+
+class Cu3Gate(CU3Gate, metaclass=CU3Meta):
+    """
+    Deprecated CU3Gate class.
+    """
+    def __init__(self, theta, phi, lam):
+        import warnings
+        warnings.warn('Cu3Gate is deprecated, use CU3Gate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__(theta, phi, lam)
 
 
 def cu3(self, theta, phi, lam, ctl, tgt):

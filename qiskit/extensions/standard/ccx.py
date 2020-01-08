@@ -28,7 +28,17 @@ from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
 
 
-class CCXGate(ControlledGate):
+class CCXMeta(type):
+    """
+    Metaclass to ensure that CCX and Toffoli are of the same type.
+    Can be removed when ToffoliGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CCXGate, ToffoliGate))
+
+
+class CCXGate(ControlledGate, metaclass=CCXMeta):
     """The double-controlled-not gate, also called Toffoli gate."""
 
     def __init__(self):
@@ -83,6 +93,16 @@ class CCXGate(ControlledGate):
                             [0, 0, 0, 0, 0, 1, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
                             [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
+
+
+class ToffoliGate(CCXGate, metaclass=CCXMeta):
+    """
+    Deprecated CCXGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('ToffoliGate is deprecated, use CCXGate instead!', DeprecationWarning, 2)
+        super().__init__()
 
 
 def ccx(self, ctl1, ctl2, tgt):

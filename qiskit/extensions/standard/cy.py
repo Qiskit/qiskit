@@ -25,6 +25,16 @@ from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.cx import CXGate
 
 
+class CYMeta(type):
+    """
+    Metaclass to ensure that Cy and CY are of the same type.
+    Can be removed when CyGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return isinstance(inst, (CyGate, CYGate))
+
+
 class CYGate(ControlledGate):
     """The controlled-Y gate."""
 
@@ -59,6 +69,17 @@ class CYGate(ControlledGate):
                             [0, 0, 0, -1j],
                             [0, 0, 1, 0],
                             [0, 1j, 0, 0]], dtype=complex)
+
+
+class CyGate(CYGate, metaclass=CYMeta):
+    """
+    Deprecated CYGate class.
+    """
+    def __init__(self):
+        import warnings
+        warnings.warn('CyGate is deprecated, use CYGate (uppercase) instead!', DeprecationWarning,
+                      2)
+        super().__init__()
 
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name
