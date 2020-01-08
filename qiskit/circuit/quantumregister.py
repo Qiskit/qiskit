@@ -26,6 +26,16 @@ class Qubit(Bit):
     """Implement a quantum bit."""
 
     def __init__(self, register, index):
+        """Creates a qubit.
+
+        Args:
+            register (QuantumRegister): a quantum register.
+            index (int): the index to insert the qubit
+
+        Raises:
+            CircuitError: if the provided register is not a valid :class:`QuantumRegister`
+        """
+
         if isinstance(register, QuantumRegister):
             super().__init__(register, index)
         else:

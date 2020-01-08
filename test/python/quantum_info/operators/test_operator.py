@@ -279,24 +279,24 @@ class TestOperator(OperatorTestCase):
 
     def test_conjugate(self):
         """Test conjugate method."""
-        matr = self.rand_matrix(2, 2, real=True)
-        mati = self.rand_matrix(2, 2, real=True)
+        matr = self.rand_matrix(2, 4, real=True)
+        mati = self.rand_matrix(2, 4, real=True)
         op = Operator(matr + 1j * mati)
         uni_conj = op.conjugate()
         self.assertEqual(uni_conj, Operator(matr - 1j * mati))
 
     def test_transpose(self):
         """Test transpose method."""
-        matr = self.rand_matrix(2, 2, real=True)
-        mati = self.rand_matrix(2, 2, real=True)
+        matr = self.rand_matrix(2, 4, real=True)
+        mati = self.rand_matrix(2, 4, real=True)
         op = Operator(matr + 1j * mati)
         uni_t = op.transpose()
         self.assertEqual(uni_t, Operator(matr.T + 1j * mati.T))
 
     def test_adjoint(self):
         """Test adjoint method."""
-        matr = self.rand_matrix(2, 2, real=True)
-        mati = self.rand_matrix(2, 2, real=True)
+        matr = self.rand_matrix(2, 4, real=True)
+        mati = self.rand_matrix(2, 4, real=True)
         op = Operator(matr + 1j * mati)
         uni_adj = op.adjoint()
         self.assertEqual(uni_adj, Operator(matr.T - 1j * mati.T))

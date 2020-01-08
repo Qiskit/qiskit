@@ -37,7 +37,7 @@ class PassManager:
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 5 keyword
-                arguments:
+                arguments::
                     pass_ (Pass): the pass being run
                     dag (DAGCircuit): the dag output of the pass
                     time (float): the time to execute the pass
@@ -266,8 +266,7 @@ class PassManager:
         for pass_set in self._pass_sets:
             item = {'passes': pass_set['passes']}
             if pass_set['flow_controllers']:
-                item['flow_controllers'] = {controller_name for controller_name in
-                                            pass_set['flow_controllers'].keys()}
+                item['flow_controllers'] = set(pass_set['flow_controllers'].keys())
             else:
                 item['flow_controllers'] = {}
             ret.append(item)

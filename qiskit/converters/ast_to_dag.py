@@ -159,7 +159,7 @@ class AstInterpreter:
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                return [bit for bit in reg]
+                return list(reg)
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
@@ -360,7 +360,7 @@ class AstInterpreter:
         Create a DAG node out of a parsed AST op node.
 
         Args:
-            name (str): operation name to apply to the dag.
+            name (str): operation name to apply to the DAG
             params (list): op parameters
             qargs (list(Qubit)): qubits to attach to
 
@@ -376,7 +376,7 @@ class AstInterpreter:
                 op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
             else:
                 # call a custom gate
-                raise QiskitError('Custom non-opaque gates are not supported by as_to_dag module')
+                raise QiskitError('Custom non-opaque gates are not supported by ast_to_dag module')
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 

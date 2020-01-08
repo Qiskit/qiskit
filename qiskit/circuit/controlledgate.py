@@ -68,6 +68,6 @@ class ControlledGate(Gate):
             return super().inverse()
         # importing MSGate causes circular import error
         if self.base_gate.__name__ == 'MSGate':
-            # MSGate contructor additionally requires number of qubits
+            # MSGate constructor additionally requires number of qubits
             params = [self.num_qubits - self.num_ctrl_qubits] + params
         return self.base_gate(*params).inverse().control(self.num_ctrl_qubits)
