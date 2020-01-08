@@ -440,7 +440,7 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
-    - job: 'MacOS_Catalina_Tests'
+    - job: 'MacOS_Mojave_Tests'
       pool: {vmImage: 'macOS-10.14'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
