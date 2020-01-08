@@ -363,12 +363,12 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_sample_pulse().samples), 150)
 
-    def test_get_params(self):
-        """Test that the parameters can be extracted as a dict through `get_params`."""
+    def test_get_parameters(self):
+        """Test that the parameters can be extracted as a dict through `get_parameters`."""
         drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
-        self.assertEqual(set(drag.get_params().keys()), {'duration', 'amp', 'sigma', 'beta'})
+        self.assertEqual(set(drag.get_parameters().keys()), {'duration', 'amp', 'sigma', 'beta'})
         const = ConstantPulse(duration=150, amp=1)
-        self.assertEqual(set(const.get_params().keys()), {'duration', 'amp'})
+        self.assertEqual(set(const.get_parameters().keys()), {'duration', 'amp'})
 
     def test_complex_param_is_complex(self):
         """Check that complex param 'amp' is cast to complex."""

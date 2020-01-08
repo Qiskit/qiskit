@@ -13,8 +13,8 @@
 # that they have been altered from the originals.
 
 """
-Parametric pulse commands. These are pulse commands which are described by a known formula and some
-parameters.
+Parametric pulse commands module. These are pulse commands which are described by a specified
+parameterization.
 
 If a backend supports parametric pulses, it will have the attribute
 `backend.configuration().parametric_pulses`, which is a list of supported pulse shapes, such as
@@ -61,12 +61,13 @@ class ParametricPulse(Command):
 
     @abstractmethod
     def __init__(self, duration: int):
-        """Create a parametric pulse command.
+        """Create a parametric pulse and validate the input parameters.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
         """
         super().__init__(duration=duration)
+        self.validate_parameters()
 
     @abstractmethod
     def get_sample_pulse(self) -> SamplePulse:
@@ -76,7 +77,7 @@ class ParametricPulse(Command):
         pass
 
     @abstractmethod
-    def validate_params(self) -> None:
+    def validate_parameters(self) -> None:
         """
         Validate parameters.
 
@@ -85,8 +86,8 @@ class ParametricPulse(Command):
         """
         pass
 
-    def get_params(self) -> Dict[str, Any]:
-        """Return a dictionary containing the parameters specific to this parametric pulse."""
+    def get_parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
         return {attr[1:]: getattr(self, attr)
                 for attr in self.__dict__
                 if attr.startswith('_') and attr != '_name'}
@@ -97,9 +98,9 @@ class ParametricPulse(Command):
         return ParametricInstruction(self, channel, name=name)
 
     def __repr__(self):
-        return '{}(name={}, params={})'.format(self.__class__.__name__,
-                                               self.name,
-                                               self.get_params())
+        return '{}(name={}, parameters={})'.format(self.__class__.__name__,
+                                                   self.name,
+                                                   self.get_parameters())
 
 
 class Gaussian(ParametricPulse):
@@ -114,7 +115,7 @@ class Gaussian(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float):
-        """Initialize the gaussian command.
+        """Initialize the gaussian pulse.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
@@ -125,7 +126,6 @@ class Gaussian(ParametricPulse):
         self._amp = complex(amp)
         self._sigma = sigma
         super().__init__(duration=duration)
-        self.validate_params()
 
     @property
     def amp(self):
@@ -139,7 +139,7 @@ class Gaussian(ParametricPulse):
         return gaussian(duration=self.duration, amp=self.amp,
                         sigma=self.sigma, zero_ends=False)
 
-    def validate_params(self) -> None:
+    def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
@@ -168,7 +168,7 @@ class GaussianSquare(ParametricPulse):
                  amp: complex,
                  sigma: float,
                  width: float):
-        """Initialize the gaussian square pulse command.
+        """Initialize the gaussian square pulse.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
@@ -181,7 +181,6 @@ class GaussianSquare(ParametricPulse):
         self._sigma = sigma
         self._width = width
         super().__init__(duration=duration)
-        self.validate_params()
 
     @property
     def amp(self):
@@ -200,7 +199,7 @@ class GaussianSquare(ParametricPulse):
                                width=self.width, sigma=self.sigma,
                                zero_ends=False)
 
-    def validate_params(self) -> None:
+    def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
@@ -212,11 +211,10 @@ class GaussianSquare(ParametricPulse):
 
 class Drag(ParametricPulse):
     """
-    A pulse whose envelope is shaped by a drag pulse. This is so named by the technique
-    Derivative Removal by Adiabatic Gate (DRAG). It is a Gaussian pulse with a Gaussian
-    derivative component. The construction is designed to reduce the frequency spectrum
-    a normal gaussian curve near the |1>-|2> transition, reducing the chance of leakage
-    to the |2> state.
+    The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    with an additional Gaussian derivative component. It is designed to reduce the frequency
+    spectrum of a normal gaussian pulse near the |1>-|2> transition, reducing the chance of
+    leakage to the |2> state.
 
         f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
              = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
@@ -237,7 +235,7 @@ class Drag(ParametricPulse):
                  amp: complex,
                  sigma: float,
                  beta: float):
-        """Initialize the drag command.
+        """Initialize the drag pulse.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
@@ -250,7 +248,6 @@ class Drag(ParametricPulse):
         self._sigma = sigma
         self._beta = beta
         super().__init__(duration=duration)
-        self.validate_params()
 
     @property
     def amp(self):
@@ -268,7 +265,7 @@ class Drag(ParametricPulse):
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
                     beta=self.beta, zero_ends=False)
 
-    def validate_params(self) -> None:
+    def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
@@ -310,7 +307,7 @@ class ConstantPulse(ParametricPulse):
                  duration: int,
                  amp: complex):
         """
-        Initialize the constant valued pulse command.
+        Initialize the constant-valued pulse.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
@@ -318,7 +315,6 @@ class ConstantPulse(ParametricPulse):
         """
         self._amp = complex(amp)
         super().__init__(duration=duration)
-        self.validate_params()
 
     @property
     def amp(self):
@@ -327,7 +323,7 @@ class ConstantPulse(ParametricPulse):
     def get_sample_pulse(self) -> SamplePulse:
         return constant(duration=self.duration, amp=self.amp)
 
-    def validate_params(self) -> None:
+    def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
