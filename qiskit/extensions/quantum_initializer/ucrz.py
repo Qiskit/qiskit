@@ -91,6 +91,9 @@ def ucrz(self, angle_list, q_controls, q_target):
 
 
 def ucz(self, angle_list, q_controls, q_target):
+    """
+    Deprecated version of ucrz.
+    """
     import warnings
     warnings.warn('qc.ucz is deprecated, use qc.ucrz instead!', DeprecationWarning, 2)
     ucrz(self, angle_list, q_controls, q_target)

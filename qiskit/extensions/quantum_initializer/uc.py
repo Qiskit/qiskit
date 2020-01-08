@@ -311,6 +311,9 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
 
 
 def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
+    """
+    Deprecated version of uc.
+    """
     import warnings
     warnings.warn('qc.ucg is deprecated, use qc.uc instead!', DeprecationWarning, 2)
     uc(self, angle_list, q_controls, q_target, up_to_diagonal)

@@ -55,10 +55,10 @@ class CYGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
-        return numpy.array([[1, 0,  0,   0],
-                            [0, 0,  0, -1j],
-                            [0, 0,  1,   0],
-                            [0, 1j, 0,   0]], dtype=complex)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, -1j],
+                            [0, 0, 1, 0],
+                            [0, 1j, 0, 0]], dtype=complex)
 
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name

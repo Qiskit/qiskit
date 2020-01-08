@@ -93,6 +93,9 @@ def ucrx(self, angle_list, q_controls, q_target):
 
 
 def ucx(self, angle_list, q_controls, q_target):
+    """
+    Deprecated version of ucrx.
+    """
     import warnings
     warnings.warn('qc.ucx is deprecated, use qc.ucrx instead!', DeprecationWarning, 2)
     ucrx(self, angle_list, q_controls, q_target)
