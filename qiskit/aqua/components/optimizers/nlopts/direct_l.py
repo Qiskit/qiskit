@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,22 +14,10 @@
 
 """ DIRECT is the DIviding RECTangles algorithm for global optimization. """
 
-import logging
-from qiskit.aqua.components.optimizers import Optimizer
-from ._nloptimizer import minimize
-from ._nloptimizer import check_nlopt_valid
-
-logger = logging.getLogger(__name__)
-
-try:
-    import nlopt
-except ImportError:
-    logger.info('nlopt is not installed. Please install it if you want to use them.')
-
-# pylint: disable=invalid-name
+from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
 
-class DIRECT_L(Optimizer):
+class DIRECT_L(NLoptOptimizer):  # pylint: disable=invalid-name
     """DIRECT is the DIviding RECTangles algorithm for global optimization.
 
     DIRECT-L is the "locally biased" variant
@@ -37,33 +25,6 @@ class DIRECT_L(Optimizer):
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#direct-and-direct-l
     """
 
-    _OPTIONS = ['max_evals']
-
-    def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
-        """
-        Constructor.
-
-        Args:
-            max_evals: Maximum allowed number of function evaluations.
-        """
-        check_nlopt_valid('DIRECT_L')
-        super().__init__()
-        for k, v in locals().items():
-            if k in self._OPTIONS:
-                self._options[k] = v
-
-    def get_support_level(self):
-        """ return support level dictionary """
-        return {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        }
-
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
-
-        return minimize(nlopt.GN_DIRECT_L, objective_function, variable_bounds,
-                        initial_point, **self._options)
+    def get_nlopt_optimizer(self) -> NLoptOptimizerType:
+        """ return NLopt optimizer type """
+        return NLoptOptimizerType.GN_DIRECT_L
