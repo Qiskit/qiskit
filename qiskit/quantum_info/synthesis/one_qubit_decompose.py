@@ -192,7 +192,7 @@ class OneQubitEulerDecomposer:
             circuit (QuantumCircuit or Instruction): decomposition circuit.
             phase_equal (bool): require the decomposition to be global phase
                                 equal [Default: False]
-        
+
         Raises:
             QiskitError: if the input unitary and circuit are not equivalent.
         """

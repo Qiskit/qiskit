@@ -31,8 +31,6 @@ from qiskit.quantum_info.synthesis import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
 
-
-
 class UnitaryGate(Gate):
     """Class for representing unitary gates"""
 
