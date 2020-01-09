@@ -25,7 +25,7 @@ upgrade:
 
       sched.draw(scale=scales)
 
-    If you apply single scaling factor, the visualizer use that value to all channels.
+    If you apply a single scaling factor, the visualizer uses that value for all channels.
 
     example::
       scalings = 10
