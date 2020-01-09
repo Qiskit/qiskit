@@ -251,7 +251,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
             )
 
-        if meas_level not in backend_config.meas_levels:
+        if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
                  ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
