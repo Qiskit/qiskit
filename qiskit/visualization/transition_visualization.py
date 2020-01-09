@@ -17,6 +17,7 @@ from math import sin, cos, acos, sqrt
 import numpy as np
 
 try:
+    import matplotlib
     from matplotlib import pyplot as plt
     from matplotlib import animation
     from mpl_toolkits.mplot3d import Axes3D
@@ -133,18 +134,19 @@ class _Quaternion:
         return np.linalg.norm(v)
 
 
-def visualize_transition(sequence_of_gates,
+def visualize_transition(circuit,
                          jupyter=False,
                          trace=False,
-                         saveas=None):
+                         saveas=None,
+                         fpg=100,
+                         spg=2):
     """
     Creates animation showing transitions between states of a single
     qubit by applying quantum gates.
 
     Args:
-        sequence_of_gates (list): List of characters that describe sequence
-            of gates applied to a single quibit starting from position |0>. Currently
-            supports X, Y, Z, S, SDG, H and T gates. e.g. ['X','Y']
+        circuit (QuantumCircuit): Qiskit single-qubit QuantumCircuit. Gates supported are
+            h,x, y, z, rx, ry, rz, s, sdg, t, tdg and u1.
         jupyter (bool): Controls whether to display tkinter GUI (when set to False) of the
             animation or return IPython HTML video element of animation to be shown in
             jupyter notebook.
@@ -153,6 +155,11 @@ def visualize_transition(sequence_of_gates,
         saveas (str): User can choose to save the animation as a video to their filesystem.
             This argument is a string of path with filename and extension (e.g. "movie.mp4" to
             save the video in current working directory).
+        fpg (int): Frames per gate. Finer control over animation smoothness and computiational
+            needs to render the animation. Works well for tkinter GUI as it is, for jupyter GUI
+            it might be preferable to choose fpg between 5-30.
+        spg (int): Seconds per gate. How many seconds should animation of individual gate
+            transitions take.
 
     Returns:
         IPython.core.display.HTML:
@@ -168,25 +175,52 @@ def visualize_transition(sequence_of_gates,
         raise ImportError("Must have Matplotlib installed.")
     if not HAS_IPYTHON and jupyter is True:
         raise ImportError("Must have IPython installed.")
+    if len(circuit.qubits) != 1:
+        raise VisualizationError("Only one quibit circuits are supported")
 
-    frames_per_gate = 100
+    frames_per_gate = fpg
+    time_between_frames = (spg*1000)/fpg
+
+    # quaternions of gates which don't take parameters
     gates = dict()
-    gates['X'] = (_Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]), '#000066')
-    gates['Y'] = (_Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]), '#3333ff')
-    gates['Z'] = (_Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]), '#6699ff')
-    gates['S'] = (_Quaternion.from_axisangle(np.pi / 2 / frames_per_gate, [0, 0, 1]), '#ff3300')
-    gates['SDG'] = (_Quaternion.from_axisangle(-np.pi / 2 / frames_per_gate, [0, 0, 1]),
-                    '#ff6666')
-    gates['H'] = (_Quaternion.from_axisangle(np.pi / frames_per_gate, _normalize([1, 0, 1])),
-                  '#9999ff')
-    gates['T'] = (_Quaternion.from_axisangle(np.pi / 4 / frames_per_gate, [0, 0, 1]), '#ff33cc')
+    gates['x'] = ('x', _Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]), '#1abc9c')
+    gates['y'] = ('y', _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]), '#2ecc71')
+    gates['z'] = ('z', _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]), '#3498db')
+    gates['s'] = ('s', _Quaternion.from_axisangle(np.pi / 2 / frames_per_gate,
+                                                  [0, 0, 1]), '#9b59b6')
+    gates['sdg'] = ('sdg', _Quaternion.from_axisangle(-np.pi / 2 / frames_per_gate, [0, 0, 1]),
+                    '#8e44ad')
+    gates['h'] = ('h', _Quaternion.from_axisangle(np.pi / frames_per_gate, _normalize([1, 0, 1])),
+                  '#34495e')
+    gates['t'] = ('t', _Quaternion.from_axisangle(np.pi / 4 / frames_per_gate, [0, 0, 1]),
+                  '#e74c3c')
+    gates['tdg'] = ('tdg', _Quaternion.from_axisangle(-np.pi / 4 / frames_per_gate, [0, 0, 1]),
+                    '#c0392b')
 
-    if not isinstance(sequence_of_gates, list):
-        raise VisualizationError("Input must be a list of gates, e.g. ['X', 'Y']")
+    implemented_gates = ['h', 'x', 'y', 'z', 'rx', 'ry', 'rz', 's', 'sdg', 't', 'tdg', 'u1']
+    simple_gates = ['h', 'x', 'y', 'z', 's', 'sdg', 't', 'tdg']
+    list_of_circuit_gates = []
 
-    for gate in sequence_of_gates:
-        if gate not in gates:
-            raise VisualizationError("Given gate(s) are not supported")
+    for gate in circuit._data:
+        if gate[0].name not in implemented_gates:
+            raise VisualizationError("Gate {0} is not supported".format(gate[0].name))
+        if gate[0].name in simple_gates:
+            list_of_circuit_gates.append(gates[gate[0].name])
+        else:
+            theta = gate[0].params[0]
+            rad = np.deg2rad(theta)
+            if gate[0].name == 'rx':
+                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [1, 0, 0])
+                list_of_circuit_gates.append(('rx:'+str(theta), quaternion, '#16a085'))
+            elif gate[0].name == 'ry':
+                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 1, 0])
+                list_of_circuit_gates.append(('ry:'+str(theta), quaternion, '#27ae60'))
+            elif gate[0].name == 'rz':
+                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                list_of_circuit_gates.append(('rz:'+str(theta), quaternion, '#2980b9'))
+            elif gate[0].name == 'u1':
+                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                list_of_circuit_gates.append(('u1:'+str(theta), quaternion, '#f1c40f'))
 
     starting_pos = _normalize(np.array([0, 0, 1]))
 
@@ -205,13 +239,20 @@ def visualize_transition(sequence_of_gates,
     namespace = Namespace()
     namespace.new_vec = starting_pos
     namespace.points = []
+    namespace.points.append(starting_pos)
 
     def animate(i):
         sphere.clear()
 
-        gate_counter = i // 100
-        namespace.new_vec = gates[sequence_of_gates[gate_counter]][0] * namespace.new_vec
-        if i % 10 == 0:
+        # starts with default vector [0,0,1]
+        if i == 0:
+            sphere.add_vectors(namespace.new_vec)
+            sphere.make_sphere()
+            return _ax
+
+        gate_counter = (i-1) // frames_per_gate
+        namespace.new_vec = list_of_circuit_gates[gate_counter][1] * namespace.new_vec
+        if (i-1) % 10 == 0:
             namespace.points.append(namespace.new_vec)
 
         sphere.add_vectors(namespace.new_vec)
@@ -222,13 +263,15 @@ def visualize_transition(sequence_of_gates,
             else:
                 sphere.add_vectors(namespace.points[-10:])
 
-        sphere.vector_color = [gates[sequence_of_gates[gate_counter]][1]]
+        sphere.vector_color = [list_of_circuit_gates[2][2]]
 
-        annotationvector = [1.4, -0.3, 1.4]
+        annotation_text = list_of_circuit_gates[gate_counter][0]
+        annotationvector = [1.4, -0.45, 1.7]
         sphere.add_annotation(annotationvector,
-                              sequence_of_gates[gate_counter],
-                              color=gates[sequence_of_gates[gate_counter]][1],
-                              fontsize=30)
+                              annotation_text,
+                              color=list_of_circuit_gates[gate_counter][2],
+                              fontsize=30,
+                              horizontalalignment='left')
 
         sphere.make_sphere()
         return _ax
@@ -237,14 +280,20 @@ def visualize_transition(sequence_of_gates,
         sphere.vector_color = ['r']
         return _ax
 
-    ani = animation.FuncAnimation(fig, animate, range(frames_per_gate * len(sequence_of_gates)),
-                                  init_func=init, blit=False, repeat=False, interval=20)
+    ani = animation.FuncAnimation(fig,
+                                  animate,
+                                  range(frames_per_gate * len(list_of_circuit_gates)+1),
+                                  init_func=init,
+                                  blit=False,
+                                  repeat=False,
+                                  interval=time_between_frames)
 
     if saveas:
         ani.save(saveas, fps=30)
     if jupyter:
-        return HTML(ani.to_html5_video())
-
+        # This is necessary to overcome matplotlib memory limit
+        matplotlib.rcParams['animation.embed_limit'] = 50
+        return HTML(ani.to_jshtml())
     plt.show()
     plt.close(fig)
     return None
