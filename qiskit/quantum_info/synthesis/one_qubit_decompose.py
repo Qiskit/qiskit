@@ -198,7 +198,7 @@ class OneQubitEulerDecomposer:
         """
         # NOTE: this function isn't specific to this class so could be
         # moved to another location for more general use.
-        if phase_equal and not Operator(circuit) == Operator(unitary):
+        if phase_equal and Operator(circuit) != Operator(unitary):
             raise QiskitError(
                 "Phase equal circuit synthesis failed within required accuracy."
             )
