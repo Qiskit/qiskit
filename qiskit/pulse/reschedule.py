@@ -41,7 +41,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     wait time (to allow for calibration pulses) is enforced.
 
     This is only defined for schedules that are acquire-less or acquire-final per channel: a
-    schedule with pulses or acquires occuring on a channel which has already had a measurement will
+    schedule with pulses or acquires occurring on a channel which has already had a measurement will
     throw an error.
 
     Args:
@@ -102,7 +102,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
             for chan in inst.channels:
                 if isinstance(chan, MeasureChannel):
                     if chan.index in measured_channels:
-                        raise PulseError("Muliple measurements are not supported by this "
+                        raise PulseError("Multiple measurements are not supported by this "
                                          "rescheduling pass.")
                 elif chan.index in acquired_channels:
                     raise PulseError("Pulse encountered on channel {0} after acquire on "
