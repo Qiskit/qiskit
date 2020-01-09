@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    Pulse visualizer can apply scaling factor independently to each channel.
+    Pulse visualizer can apply scaling factors independently for each channel.
     This option is available only for visualizing pulse schedules.
     Without specifying, visualizer checks maximum amplitude of pulses in
     each channel and apply best scaling factor to it. The scaling factor is
