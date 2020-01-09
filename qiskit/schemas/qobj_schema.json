@@ -96,7 +96,8 @@
                                 "enum": [
                                     "pv",
                                     "fc",
-                                    "acquire"
+                                    "acquire",
+                                    "parametric_pulse"
                                 ]
                             }
                         }
@@ -147,6 +148,24 @@
                     },
                     "required": [
                         "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "parametric_pulse"
+                            ]
+                        },
+                        "pulse_shape": {"type": "string"},
+                        "params": {"type": "array"}
+                    },
+                    "required": [
+                        "pulse_shape",
+                        "params",
                         "t0",
                         "ch"
                     ],
