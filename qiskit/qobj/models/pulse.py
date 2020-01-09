@@ -16,9 +16,8 @@
 
 from marshmallow.validate import Range, Regexp, Length
 
-from qiskit.qobj.utils import MeasReturnType, MeasLevel
-from qiskit.validation import BaseSchema, bind_schema, BaseModel
-from qiskit.validation.fields import (Integer, String, Number, Float, Complex, List,
+from qiskit.validation import BaseSchema
+from qiskit.validation.fields import (Integer, String, Float, Complex, List,
                                       Nested, DictParameters, ByType)
 from .base import QobjInstructionSchema
 
