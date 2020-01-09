@@ -33,6 +33,12 @@ stage_generic: &stage_generic
     - stestr run
   after_failure:
     - python tools/report_ci_failure.py
+  before_script:
+    - |
+      if [ ! "$(ls -A .stestr)" ]; then
+          rm -rf .stestr
+      fi
+
 
 stage_linux: &stage_linux
   <<: *stage_generic
