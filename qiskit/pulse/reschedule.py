@@ -94,7 +94,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for schedule in schedules:
-        new_schedule = Schedule()
+        new_schedule = Schedule(name=schedule.name)
         acquired_channels = set()
         measured_channels = set()
 

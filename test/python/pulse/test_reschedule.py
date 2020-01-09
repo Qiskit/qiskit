@@ -47,6 +47,7 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(10, self.short_pulse(self.config.measure(0)))
         sched = sched.insert(10, self.short_pulse(self.config.measure(1)))
         sched = align_measures([sched], self.cmd_def)[0]
+        self.assertEqual(sched.name, 'fake_experiment')
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
