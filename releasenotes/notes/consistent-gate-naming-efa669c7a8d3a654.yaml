@@ -1,0 +1,29 @@
+---
+deprecations:
+  - |
+    The gates are named mor consistently.
+    * the pauli gates all have one uppercase letter only (I, X, Y, Z)
+    * the parameterized pauli gates (i.e. rotations) prepend the uppercase letter R (RX, RY, RZ)
+    * a controlled version prepends the uppercase letter C (CX, CRX, CCX)
+    * gates are named according to their action, not their alternative names (CCX, not Toffoli)
+
+    This is a list of the changed names in the format `new_name <- old_name`:
+
+    class                    | name        | qc._
+    -------------------------+-------------+---------------
+    CCXGate <- ToffoliGate   | ccx         | ccx, toffoli
+    CRXGate <- CrxGate       | crx         | crz
+    CRYGate <- CryGate       | cry         | crz
+    CRZGate <- CrzGate       | crz         | crz
+    CSwapGate <- FredkinGate | cswap       | cswap, fredkin
+    CU1Gate <- Cu1Gate       | cu1         | cu1
+    CU3Gate <- Cu3Gate       | cu3         | cu3
+    CXGate <- CnotGate       | cx          | cx, cnot
+    CYGate <- CyGate         | cy          | cy
+    CZGate <- CzGate         | cz          | cz
+    HGate                    | h           | h
+    IGate <- IdGate          | i <- id     | i <- iden
+    UCGate <- UCG            | multiplexer | uc <- ucg
+    UCRXGate <- UCX          | ucrotX      | ucrx <- ucx
+    UCRYGate <- UCY          | ucrotY      | ucry <- ucy
+    UCRZGate <- UCZ          | ucrotZ      | ucrz <- ucz
