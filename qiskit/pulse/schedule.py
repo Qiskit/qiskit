@@ -389,7 +389,7 @@ class Schedule(ScheduleComponent):
 
         Example:
             ``scale`` parameter can be individually applied to channels when the input is in a
-            dictionary format, otherwise single value is set to all channels.
+            dictionary format, otherwise a single value is set for all channels.
             If nothing specified, auto-scaling is applied.
 
             Individual scaling::
