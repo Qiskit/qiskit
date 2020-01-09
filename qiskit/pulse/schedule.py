@@ -388,7 +388,7 @@ class Schedule(ScheduleComponent):
             show_framechange_channels: Plot channels with only framechanges
 
         Example:
-            ``scale`` parameter can be individually applied to channels when input is
+            ``scale`` parameter can be individually applied to channels when the input is in a
             dictionary format, otherwise single value is set to all channels.
             If nothing specified, auto-scaling is applied.
 
