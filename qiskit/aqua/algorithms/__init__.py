@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -85,12 +85,13 @@ and its Python API to be installed. See the following for more information:
 
 from .quantum_algorithm import QuantumAlgorithm
 from .adaptive import VQE, QAOA, VQC, QGAN
-from .classical import ClassicalAlgorithm, ExactEigensolver, ExactLSsolver, \
-    SVM_Classical
+from .classical import (ClassicalAlgorithm, ExactEigensolver, ExactLSsolver,
+                        SVM_Classical, CPLEX_Ising)
 from .many_sample import EOH, QSVM
-from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, \
-    Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor, \
-    IterativeAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimation
+from .single_sample import (Grover, IQPE, QPE, AmplitudeEstimation,
+                            Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor,
+                            IterativeAmplitudeEstimation,
+                            MaximumLikelihoodAmplitudeEstimation)
 
 
 __all__ = [
@@ -103,6 +104,7 @@ __all__ = [
     'ExactEigensolver',
     'ExactLSsolver',
     'SVM_Classical',
+    'CPLEX_Ising',
     'EOH',
     'QSVM',
     'Grover',
@@ -117,9 +119,3 @@ __all__ = [
     'HHL',
     'Shor',
 ]
-
-try:
-    from .classical import CPLEX_Ising
-    __all__ += ['CPLEX_Ising']
-except ImportError:
-    pass
