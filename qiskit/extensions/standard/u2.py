@@ -70,6 +70,7 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(1)
             phi = 0

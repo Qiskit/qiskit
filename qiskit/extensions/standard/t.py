@@ -95,6 +95,7 @@ def t(self, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
@@ -119,6 +120,7 @@ def tdg(self, q):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>

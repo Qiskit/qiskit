@@ -62,6 +62,7 @@ def y(self, q):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.y(0)

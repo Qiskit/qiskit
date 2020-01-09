@@ -62,6 +62,7 @@ def z(self, q):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>

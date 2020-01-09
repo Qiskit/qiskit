@@ -68,6 +68,7 @@ def cu1(self, theta, ctl, tgt):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
+            import numpy
 
             circuit = QuantumCircuit(2)
             circuit.x(0) # This brings the quantum state from |0> to |1>
