@@ -51,8 +51,8 @@ class RZGate(Gate):
 
     def to_matrix(self):
         """Return a Numpy.array for the RX gate."""
-        return np.array([[np.exp(1j * self.params[0] / 2), 0],
-                         [0, np.exp(-1j * self.params[0] / 2)]], dtype=complex)
+        return np.array([[np.exp(-1j * self.params[0] / 2), 0],
+                         [0, np.exp(1j * self.params[0] / 2)]], dtype=complex)
 
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
