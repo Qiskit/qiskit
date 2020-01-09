@@ -5,7 +5,7 @@ upgrade:
     This option is available only for visualizing pulse schedules.
     Without specifying, visualizer checks maximum amplitude of pulses in
     each channel and applies its best-guess scaling factor to it. The scaling factor is
-    displayed just below the channel aliases. If you want to apply cunstom
+    displayed below the channel aliases. If you want to apply custom
     scaling factors, you can use python dictionary as following example.
 
     example::
