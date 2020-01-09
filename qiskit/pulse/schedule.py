@@ -390,7 +390,8 @@ class Schedule(ScheduleComponent):
         Example:
             ``scale`` parameter can be individually applied to channels when the input is in a
             dictionary format, otherwise a single value is set for all channels.
-            If nothing is specified, the plot is auto-scaled by the maximum pulse amplitude in the schedule.
+            If nothing is specified, the plot is auto-scaled by the maximum pulse amplitude
+            in the schedule.
 
             Individual scaling::
                 scale = {pulse.DriveChannels(0): 2.0, pulse.MeasureChannels(0): 5.0}
