@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
+from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.rx import RXGate
