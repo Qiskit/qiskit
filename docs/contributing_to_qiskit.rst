@@ -637,7 +637,7 @@ require using the ``development`` version of the rest of the items as well.
 .. note::
 
   The Terra and Aer packages both require a compiler to build from source before
-  you can install. Ignis, Aqua, and the IBM Q Provider backend
+  you can install. Ignis, Aqua, and the IBM Quantum Provider backend
   do not require a compiler.
 
 Installing elements from source requires the following order of installation to
@@ -649,7 +649,7 @@ prevent installing versions of elements that may be lower than those desired if 
 #. :ref:`qiskit-ignis <install-qiskit-ignis>`
 #. :ref:`qiskit-aqua <install-qiskit-aqua>`
 #. :ref:`qiskit-ibmq-provider <install-qiskit-ibmq-provider>`
-   (if you want to connect to the IBM Q devices or online
+   (if you want to connect to the IBM Quantum devices or online
    simulator)
 
 To work with several components and elements simultaneously, use the following
@@ -764,7 +764,7 @@ run the example with the following command.
     qiskit-ibmq-provider are not installed. This is done because
     users commonly intend to use the additional elements,
     but do not realize they are not installed, or that the installation
-    of either Aer or the IBM Q Provider failed for some reason. If you wish
+    of either Aer or the IBM Quantum Provider failed for some reason. If you wish
     to suppress these warnings, add::
 
         import warnings
@@ -1057,8 +1057,8 @@ project don't require a reinstall to be applied:
 
 .. _install-qiskit-ibmq-provider:
 
-Installing IBM Q Provider from Source
-=====================================
+Installing IBM Quantum Provider from Source
+===========================================
 
 1. Clone the qiskit-ibmq-provider repository.
 
