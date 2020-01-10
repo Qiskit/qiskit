@@ -23,6 +23,7 @@ deprecations:
     CZGate <- CzGate         | cz          | cz
     HGate                    | h           | h
     IGate <- IdGate          | i <- id     | i <- iden
+    UCPauliRotGate <- UCRot  | -           | -
     UCGate <- UCG            | multiplexer | uc <- ucg
     UCRXGate <- UCX          | ucrotX      | ucrx <- ucx
     UCRYGate <- UCY          | ucrotY      | ucry <- ucy

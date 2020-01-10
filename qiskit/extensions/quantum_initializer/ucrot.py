@@ -34,7 +34,7 @@ from qiskit.exceptions import QiskitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class UCRot(Gate):
+class UCPauliRotGate(Gate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on 'Synthesis of Quantum Logic Circuits'
@@ -107,7 +107,7 @@ class UCRot(Gate):
             # First, we find the rotation angles of the single-qubit rotations acting
             #  on the target qubit
             angles = self.params.copy()
-            UCRot._dec_uc_rotations(angles, 0, len(angles), False)
+            UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
             # Now, it is easy to place the C-NOT gates to get back the full decomposition.s
             for (i, angle) in enumerate(angles):
                 if self.rot_axes == "X":
@@ -151,16 +151,16 @@ class UCRot(Gate):
         interval_len_half = (end_index - start_index) // 2
         for i in range(start_index, start_index + interval_len_half):
             if not reversedDec:
-                angles[i], angles[i + interval_len_half] = UCRot._update_angles(angles[i], angles[
+                angles[i], angles[i + interval_len_half] = UCPauliRotGate._update_angles(angles[i], angles[
                     i + interval_len_half])
             else:
-                angles[i + interval_len_half], angles[i] = UCRot._update_angles(angles[i], angles[
+                angles[i + interval_len_half], angles[i] = UCPauliRotGate._update_angles(angles[i], angles[
                     i + interval_len_half])
         if interval_len_half <= 1:
             return
         else:
-            UCRot._dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
-            UCRot._dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
+            UCPauliRotGate._dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
+            UCPauliRotGate._dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
 
     @staticmethod
     def _update_angles(angle1, angle2):

@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Implementation of the abstract class UCRot for uniformly controlled
+Implementation of the abstract class UCPauliRotGate for uniformly controlled
 (also called multiplexed) single-qubit rotations
 around the Y-axes (i.e., uniformly controlled R_y rotations).
 These gates can have several control qubits and a single target qubit.
@@ -24,10 +24,10 @@ import math
 
 from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.quantum_initializer.ucrot import UCRot
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRYGate(UCRot):
+class UCRYGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
