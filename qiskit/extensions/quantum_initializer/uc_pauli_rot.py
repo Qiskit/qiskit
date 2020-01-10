@@ -151,16 +151,18 @@ class UCPauliRotGate(Gate):
         interval_len_half = (end_index - start_index) // 2
         for i in range(start_index, start_index + interval_len_half):
             if not reversedDec:
-                angles[i], angles[i + interval_len_half] = UCPauliRotGate._update_angles(angles[i], angles[
-                    i + interval_len_half])
+                angles[i], angles[i + interval_len_half] = \
+                    UCPauliRotGate._update_angles(angles[i], angles[i + interval_len_half])
             else:
-                angles[i + interval_len_half], angles[i] = UCPauliRotGate._update_angles(angles[i], angles[
-                    i + interval_len_half])
+                angles[i + interval_len_half], angles[i] = \
+                    UCPauliRotGate._update_angles(angles[i], angles[i + interval_len_half])
         if interval_len_half <= 1:
             return
         else:
-            UCPauliRotGate._dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
-            UCPauliRotGate._dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
+            UCPauliRotGate._dec_uc_rotations(angles, start_index, start_index + interval_len_half,
+                                             False)
+            UCPauliRotGate._dec_uc_rotations(angles, start_index + interval_len_half, end_index,
+                                             True)
 
     @staticmethod
     def _update_angles(angle1, angle2):
