@@ -149,7 +149,7 @@ def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
                     # Compute the objective function
                     new_cost = compute_cost(scale, new_layout.logic_to_phys,
                                    gates, num_gates)
-                    # Record progress if we succceed
+                    # Record progress if we succeed
                     if new_cost < min_cost:
                         cost_reduced = True
                         min_cost = new_cost

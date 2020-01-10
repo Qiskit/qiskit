@@ -46,11 +46,14 @@ from qiskit.extensions.standard.z import ZGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.cu1 import CU1Gate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crz import CRZGate
-from qiskit.extensions.standard.cu3 import CU3Gate
+from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
+from qiskit.extensions.standard.cu1 import CU1Gate
+from qiskit.extensions.standard.cu3 import CU3Gate
+from qiskit.extensions.standard.ch import CHGate
+from qiskit.extensions.standard.crx import CRXGate
+from qiskit.extensions.standard.cry import CRYGate
+from qiskit.extensions.standard.crz import CRZGate
 
 
 def ast_to_dag(ast):
@@ -106,6 +109,7 @@ class AstInterpreter:
                           "sdg": SdgGate,
                           "swap": SwapGate,
                           "rx": RXGate,
+                          "rxx": RXXGate,
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
@@ -115,6 +119,8 @@ class AstInterpreter:
                           "cy": CYGate,
                           "cz": CZGate,
                           "ch": CHGate,
+                          "crx": CRXGate,
+                          "cry": CRYGate,
                           "crz": CRZGate,
                           "cu1": CU1Gate,
                           "cu3": CU3Gate,

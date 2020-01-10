@@ -51,10 +51,10 @@ class Isometry(Instruction):
             significant than the input qubits).
 
         num_ancillas_zero (int): number of additional ancillas that start in the state ket(0)
-            (the n-m ancillas required for providing the ouput of the isometry are
+            (the n-m ancillas required for providing the output of the isometry are
             not accounted for here).
 
-        num_ancillas_dirty (int): number of additional ancillas that start in an arbitaray state
+        num_ancillas_dirty (int): number of additional ancillas that start in an arbitrary state
     """
 
     # Notation: In the following decomposition we label the qubit by

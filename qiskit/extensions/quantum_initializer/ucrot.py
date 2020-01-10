@@ -121,7 +121,7 @@ class UCRot(Gate):
                         circuit.rz(angle, q_target)
                 # Determine the index of the qubit we want to control the C-NOT gate.
                 # Note that it corresponds
-                # to the number of trailing zeros in the binary representaiton of i+1
+                # to the number of trailing zeros in the binary representation of i+1
                 if not i == len(angles) - 1:
                     binary_rep = np.binary_repr(i + 1)
                     q_contr_index = len(binary_rep) - len(binary_rep.rstrip('0'))
