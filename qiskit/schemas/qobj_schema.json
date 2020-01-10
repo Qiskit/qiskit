@@ -161,7 +161,7 @@
                             ]
                         },
                         "pulse_shape": {"type": "string"},
-                        "params": {"type": "array"}
+                        "params": {"type": "object"}
                     },
                     "required": [
                         "pulse_shape",
