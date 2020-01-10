@@ -385,7 +385,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(sgn, 1j)
 
         self.log.info("sign product reverse:")
-        p3, sgn = Pauli.sgn_prod(p2, p1)
+        p3, sgn = Pauli.sgn_prod(p2, p1)  # pylint: disable=arguments-out-of-order
         self.log.info("p2: %s", p2.to_label())
         self.log.info("p1: %s", p1.to_label())
         self.log.info("p3: %s", p3.to_label())

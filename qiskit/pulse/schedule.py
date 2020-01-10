@@ -429,7 +429,7 @@ class Schedule(ScheduleComponent):
         Equality is checked by verifying there is an equal instruction at every time
         in `other` for every instruction in this Schedule.
 
-        Warning: This does not check for logical equivalencly. Ie.,
+        Warning: This does not check for logical equivalency. Ie.,
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))

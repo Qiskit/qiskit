@@ -1475,6 +1475,10 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit()
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+
+class TestTextNonRational(QiskitTestCase):
+    """ non-rational numbers are correctly represented """
+
     def test_text_pifrac(self):
         """ u2 drawing with -5pi/8 fraction"""
         expected = '\n'.join(["        ┌───────────────┐",
@@ -1485,6 +1489,48 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.u2(pi, -5 * pi / 8, qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_complex(self):
+        """Complex numbers show up in the text
+        See https://github.com/Qiskit/qiskit-terra/issues/3640 """
+        expected = '\n'.join(["        ┌────────────────────────────────────┐",
+                              "q_0: |0>┤0                                   ├",
+                              "        │  initialize(0.5+0.1j,0,0,0.86023j) │",
+                              "q_1: |0>┤1                                   ├",
+                              "        └────────────────────────────────────┘"
+                              ])
+        ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(ket, [0, 1])
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_text_complex_pireal(self):
+        """Complex numbers including pi show up in the text
+        See https://github.com/Qiskit/qiskit-terra/issues/3640 """
+        expected = '\n'.join(["        ┌─────────────────────────────────┐",
+                              "q_0: |0>┤0                                ├",
+                              "        │  initialize(pi/10,0,0,0.94937j) │",
+                              "q_1: |0>┤1                                ├",
+                              "        └─────────────────────────────────┘"
+                              ])
+        ket = numpy.array([0.1*numpy.pi, 0, 0, 0.9493702944526474*1j])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(ket, [0, 1])
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_text_complex_piimaginary(self):
+        """Complex numbers including pi show up in the text
+        See https://github.com/Qiskit/qiskit-terra/issues/3640 """
+        expected = '\n'.join(["        ┌─────────────────────────────────┐",
+                              "q_0: |0>┤0                                ├",
+                              "        │  initialize(0.94937,0,0,pi/10j) │",
+                              "q_1: |0>┤1                                ├",
+                              "        └─────────────────────────────────┘"
+                              ])
+        ket = numpy.array([0.9493702944526474, 0, 0, 0.1*numpy.pi*1j])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(ket, [0, 1])
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
