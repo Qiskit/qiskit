@@ -76,23 +76,27 @@ class CHGate(ControlledGate):
 
 def ch(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply cH gate from a specified control (ctl) to target (tgt) qubit.
-    The cH gate applies H gate on the target qubit when the control qubit is in state |1>.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ and and |1⟩ to |−⟩
+    when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with cH gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
             circuit.ch(0,1)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0+0j, 0.5+0.5j, 0+0j, 0.5+0.5j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.ch import CHGate
+            CHGate().to_matrix()
     """
     return self.append(CHGate(), [ctl, tgt], [])
 

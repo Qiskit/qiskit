@@ -52,24 +52,29 @@ class YGate(Gate):
 
 def y(self, q):
     """Apply Y gate to a specified qubit (q).
-    The Y gate corresponds to a pi rotation about the y-axis on the Bloch sphere.
+    A Y-gate implements a pi rotation of the qubit state vector about the
+    y-axis of the Bloch sphere.
     It is also equivalent to the combined effect of X gate and Z gate.
+    This gate is canonically used to rotate the qubit state from |0⟩ to i|1⟩, or vise versa.
 
     Examples:
 
-        Construct a circuit with Y gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
-            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.y(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0+0j, 0+1j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.y import YGate
+            YGate().to_matrix()
     """
     return self.append(YGate(), [q], [])
 

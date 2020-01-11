@@ -59,11 +59,12 @@ class Cu1Gate(ControlledGate):
 
 def cu1(self, theta, ctl, tgt):
     """Apply cU1 gate from a specified control (ctl) to target (tgt) qubit with angle theta.
-    The cU1 gate applies a U1 gate on the target qubit when the control qubit is in state |1>.
+    A cU1-gate implements a theta radian rotation of the qubit state vector about the z-axis
+    of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with cU1 gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -71,14 +72,9 @@ def cu1(self, theta, ctl, tgt):
             import numpy
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
-            circuit.ry(numpy.pi/2,1) # This brings the quantum state from |0> to |+>
             theta = numpy.pi/2
             circuit.cu1(theta,0,1)
             circuit.draw()
-
-        Resulting Statevector:
-        [ 0+0j, 0.707+0j, 0+0j, 0+0.707j ]
     """
     return self.append(Cu1Gate(theta), [ctl, tgt], [])
 

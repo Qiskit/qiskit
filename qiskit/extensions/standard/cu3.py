@@ -65,11 +65,12 @@ class Cu3Gate(ControlledGate):
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cU3 gate from a specified control (ctl) to target (tgt) qubit
     with angle theta, phi, and lam.
-    The cU3 gate applies a U3 gate on the target qubit when the control qubit is in state |1>.
+    A cU3-gate implements a theta, phi, and lam radian rotation of the qubit state vector about the
+    x, y, and z-axis, respectively of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with cU3 gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -77,15 +78,11 @@ def cu3(self, theta, phi, lam, ctl, tgt):
             import numpy
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
             theta = numpy.pi/2
             phi = numpy.pi/2
             lam = numpy.pi/2
             circuit.cu3(theta,phi,lam,0,1)
             circuit.draw()
-
-        Resulting Statevector:
-        [ 0+0j, 0.707+0j, 0+0j, 0+0.707j ]
     """
     return self.append(Cu3Gate(theta, phi, lam), [ctl, tgt], [])
 

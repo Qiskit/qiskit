@@ -85,12 +85,12 @@ class TdgGate(Gate):
 
 def t(self, q):  # pylint: disable=invalid-name
     """Apply T gate to a specified qubit (q).
-    The T gate corresponds to a rotation of pi/4 radians from |+> about
-    the z-axis on the Bloch sphere.
+    A T-gate implements a pi/4 rotation of a qubit state vector about the
+    z-axis of the Bloch sphere.
 
     Examples:
 
-        Construct a circuit with T gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -98,24 +98,27 @@ def t(self, q):  # pylint: disable=invalid-name
             import numpy
 
             circuit = QuantumCircuit(1)
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.t(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0.5+0.5j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TGate
+            TGate().to_matrix()
     """
     return self.append(TGate(), [q], [])
 
 
 def tdg(self, q):
     """Apply Tdg gate to a specified qubit (q).
-    The Tdg gate is inverse of T gate and corresponds to a rotation of
-    -pi/4 radians from |+> about the z-axis on the Bloch sphere.
+    A Tdg-gate implements a -pi/4 rotation of a qubit state vector about the
+    z-axis of the Bloch sphere. It is the inverse of T-gate.
 
     Examples:
 
-        Construct a circuit with Tdg gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -123,12 +126,15 @@ def tdg(self, q):
             import numpy
 
             circuit = QuantumCircuit(1)
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.tdg(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0.5-0.5j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TdgGate
+            TdgGate().to_matrix()
     """
     return self.append(TdgGate(), [q], [])
 

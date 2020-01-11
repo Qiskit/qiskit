@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
@@ -45,23 +46,27 @@ class CnotGate(ControlledGate):
 
 def cx(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CX gate from a specified control (ctl) to target (tgt) qubit.
-    The CX gate applies an X gate on the target qubit when the control qubit is in state |1>.
+    A CX-gate implements a pi rotation of the qubit state vector about the x-axis
+    of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with CX gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
             circuit.cx(0,1)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0+0j, 0+0j, 0+0j, 1+0j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.cx import CnotGate
+            CnotGate().to_matrix()
     """
     return self.append(CnotGate(), [ctl, tgt], [])
 

@@ -52,12 +52,12 @@ class U1Gate(Gate):
 
 def u1(self, theta, q):  # pylint: disable=invalid-name
     """Apply U1 gate with angle theta to a specified qubit (q).
-    The U1 gate corresponds to a rotation of theta radians from |+> about
-    the z-axis on the Bloch sphere.
+    A U1-gate implements a theta radian rotation of the qubit state vector about the
+    z-axis of the Bloch sphere.
 
     Examples:
 
-        Construct a circuit with U1 gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -66,12 +66,15 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
 
             circuit = QuantumCircuit(1)
             theta = numpy.pi/2
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.u1(theta,0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0+0.707j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.u1 import U1Gate
+            U1Gate().to_matrix()
     """
     return self.append(U1Gate(theta), [q], [])
 

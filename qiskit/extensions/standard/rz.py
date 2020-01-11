@@ -51,12 +51,12 @@ class RZGate(Gate):
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
     """Apply Rz gate with angle phi to a specified qubit (q).
-    The Rz gate corresponds to a rotation of phi radians from |+> about
-    the z-axis on the Bloch sphere.
+    An Rz-gate implemements a phi radian rotation of the qubit state vector about the
+    z-axis of the Bloch sphere.
 
     Examples:
 
-        Construct a circuit with Rz gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -65,12 +65,15 @@ def rz(self, phi, q):  # pylint: disable=invalid-name
 
             circuit = QuantumCircuit(1)
             phi = numpy.pi/2
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.rz(phi,0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0+0.707j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.rz import RZGate
+            RZGate().to_matrix()
     """
     return self.append(RZGate(phi), [q], [])
 

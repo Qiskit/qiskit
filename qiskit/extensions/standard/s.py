@@ -85,12 +85,12 @@ class SdgGate(Gate):
 
 def s(self, q):  # pylint: disable=invalid-name
     """Apply S gate to a specified qubit (q).
-    The S gate corresponds to a rotation of pi/2 radians from |+> about
-    the z-axis on the Bloch sphere.
+    An S-gate implements a pi/2 rotation of the qubit state vector about the
+    z-axis of the Bloch sphere.
 
     Examples:
 
-        Construct a circuit with S gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -98,24 +98,27 @@ def s(self, q):  # pylint: disable=invalid-name
             import numpy
 
             circuit = QuantumCircuit(1)
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.s(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0+0.707j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.s import SGate
+            SGate().to_matrix()
     """
     return self.append(SGate(), [q], [])
 
 
 def sdg(self, q):
     """Apply Sdg gate to a specified qubit (q).
-    The Sdg gate is inverse of S gate and corresponds to a rotation of
-    -pi/2 radians from |+> about the z-axis on the Bloch sphere.
+    An Sdg-gate implements a -pi/2 rotation of the qubit state vector about the
+    z-axis of the Bloch sphere. It is the inverse of S gate.
 
     Examples:
 
-        Construct a circuit with Sdg gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -123,12 +126,15 @@ def sdg(self, q):
             import numpy
 
             circuit = QuantumCircuit(1)
-            circuit.ry(numpy.pi/2,0) # This brings the quantum state from |0> to |+>
             circuit.sdg(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0-0.707j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.s import SdgGate
+            SdgGate().to_matrix()
     """
     return self.append(SdgGate(), [q], [])
 

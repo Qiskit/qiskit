@@ -55,23 +55,20 @@ class CyGate(ControlledGate):
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply cY gate from a specified control (ctl) to target (tgt) qubit.
-    The cY gate applies a Y gate on the target qubit when the control qubit is in state |1>.
+    A cY-gate implements a pi rotation of the qubit state vector about the y-axis
+    of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with cY gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
             circuit.cy(0,1)
             circuit.draw()
-
-        Resulting Statevector:
-        [ 0+0j, 0+0j, 0+0j, 0+1j ]
     """
     return self.append(CyGate(), [ctl, tgt], [])
 

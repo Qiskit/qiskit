@@ -58,12 +58,13 @@ class XGate(Gate):
 
 def x(self, q):
     """Apply X gate to a specified qubit (q).
-    The X gate has the property of flipping the |0⟩ state to |1⟩, and vice versa.
-    It corresponds to a pi rotation about the x-axis on the Bloch sphere.
+    An X-gate implements a pi rotation of the qubit state vector about the
+    x-axis of the Bloch sphere.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |1⟩, or vise versa.
 
     Examples:
 
-        Construct a circuit with X gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -73,8 +74,12 @@ def x(self, q):
             circuit.x(0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0+0j, 1+0j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.x import XGate
+            XGate().to_matrix()
     """
     return self.append(XGate(), [q], [])
 

@@ -63,12 +63,12 @@ class CzGate(ControlledGate):
 
 def cz(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply cZ gate from a specified control (ctl) to target (tgt) qubit.
-    The cZ gate applies a Z gate (flips |+> to |-> and vice versa) on the target qubit
-    when the control qubit is in state |1>.
+    A cZ-gate implements a pi rotation of the qubit state vector about the z-axis
+    of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 
-        Construct a circuit with cZ gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -76,13 +76,15 @@ def cz(self, ctl, tgt):  # pylint: disable=invalid-name
             import numpy
 
             circuit = QuantumCircuit(2)
-            circuit.x(0) # This brings the quantum state from |0> to |1>
-            circuit.ry(numpy.pi/2,1) # This brings the quantum state from |0> to |+>
             circuit.cz(0,1)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0+0j, 0.707+0j, 0+0j, -0.707+0j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.cz import CzGate
+            CzGate().to_matrix()
     """
     return self.append(CzGate(), [ctl, tgt], [])
 

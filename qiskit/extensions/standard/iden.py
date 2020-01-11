@@ -47,6 +47,13 @@ def iden(self, q):
     The Identity gate ensures that nothing is applied to a qubit for one unit
     of gate time. It leaves the quantum states |0> and |1> unchanged.
     The Identity gate should not be optimized or unrolled (it is an opaque gate).
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.iden import IdGate
+            IdGate().to_matrix()
     """
     return self.append(IdGate(), [q], [])
 

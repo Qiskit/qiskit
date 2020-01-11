@@ -61,12 +61,12 @@ class RYGate(Gate):
 
 def ry(self, theta, q):  # pylint: disable=invalid-name
     """Apply Ry gate with angle theta to a specified qubit (q).
-    The Ry gate corresponds to a rotation of theta radians from |0> about
-    the y-axis on the Bloch sphere.
+    An Ry-gate implements a theta radian rotation of the qubit state vector about the
+    y-axis of the Bloch sphere.
 
     Examples:
 
-        Construct a circuit with Ry gate.
+        Circuit Representation:
 
         .. jupyter-execute::
 
@@ -78,8 +78,12 @@ def ry(self, theta, q):  # pylint: disable=invalid-name
             circuit.ry(theta,0)
             circuit.draw()
 
-        Resulting Statevector:
-        [ 0.707+0j, 0.707+0j ]
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.ry import RYGate
+            RYGate().to_matrix()
     """
     return self.append(RYGate(theta), [q], [])
 
