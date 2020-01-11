@@ -60,7 +60,7 @@ def x(self, q):
     """Apply X gate to a specified qubit (q).
     An X-gate implements a pi rotation of the qubit state vector about the
     x-axis of the Bloch sphere.
-    This gate is canonically used to rotate the qubit state from |0⟩ to |1⟩, or vise versa.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |1⟩, or vice versa.
 
     Examples:
 

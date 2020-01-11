@@ -48,6 +48,18 @@ def iden(self, q):
     of gate time. It leaves the quantum states |0> and |1> unchanged.
     The Identity gate should not be optimized or unrolled (it is an opaque gate).
 
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.iden(0)
+            circuit.draw()
+
         Matrix Representation:
 
         .. jupyter-execute::
