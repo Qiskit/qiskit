@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes cases in add_control(). Non-standard gates that were unfortunately named
+    identically to some standard ones (in particular, X, RX, RY, RZ) would be
+    identified as those gates, and the control would be applied erroneously.

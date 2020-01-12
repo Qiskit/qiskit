@@ -377,6 +377,13 @@ class TestControlledGate(QiskitTestCase):
         np.testing.assert_array_almost_equal(result.data,
                                              np.identity(result.dim[0]))
 
+    def test_named_circuit(self):
+        """Tests control is applied to operation type, not name"""
+        qc = QuantumCircuit(1, name='x')
+        gate = qc.to_gate()
+
+        self.assertIsNone(gate.control().definition)  # Not a CnotGate
+
     @data(1, 2, 3, 4, 5)
     def test_controlled_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""

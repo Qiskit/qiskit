@@ -16,6 +16,7 @@ Add control to operation if supported.
 """
 from qiskit import QiskitError
 from qiskit.extensions import UnitaryGate
+from qiskit.extensions.standard import XGate, RXGate, RYGate, RZGate
 
 
 def add_control(operation, num_ctrl_qubits, label):
@@ -76,20 +77,20 @@ def control(operation, num_ctrl_qubits=1, label=None):
 
     qc = QuantumCircuit(q_control, q_target)
 
-    if operation.name == 'x' or (
+    if isinstance(operation, XGate) or (
             isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate.name == 'x'):
+            isinstance(operation.base_gate, XGate)):
         qc.mct(q_control[:] + q_target[:-1],
                q_target[-1],
                None,
                mode='noancilla')
-    elif operation.name == 'rx':
+    elif isinstance(operation, RXGate):
         qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
-    elif operation.name == 'ry':
+    elif isinstance(operation, RYGate):
         qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
                 q_ancillae, use_basis_gates=True)
-    elif operation.name == 'rz':
+    elif isinstance(operation, RZGate):
         qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
