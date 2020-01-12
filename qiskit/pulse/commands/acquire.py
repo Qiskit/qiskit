@@ -117,17 +117,7 @@ class Acquire(Command):
 
 
 class AcquireInstruction(Instruction):
-    """Pulse to acquire measurement result.
-
-    Args:
-        command (Acquire): acquire command
-        acquire (AcquireChannel|list[AcquireChannel]): acquire channels to be acquired on
-        mem_slot (MemorySlot): memory slot
-        reg_slot (RegisterSlot): register slot
-        mem_slots (MemorySlot|list[MemorySlot]): Deprecated, see `mem_slot`
-        reg_slots (RegisterSlot|list[RegisterSlot]): Deprecated, see `reg_slot`
-        name (str): name of instruction
-    """
+    """ Pulse to acquire measurement result. """
 
     def __init__(self,
                  command: Acquire,
