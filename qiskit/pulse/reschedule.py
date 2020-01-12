@@ -113,7 +113,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
                 new_schedule |= inst << align_time
-                acquired_channels.add(inst.acquire.index)
+                acquired_channels.update({a.index for a in inst.acquires})
             elif isinstance(inst.channels[0], MeasureChannel):
                 new_schedule |= inst << align_time
                 measured_channels.update({a.index for a in inst.channels})
@@ -145,9 +145,10 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
             for sublist in meas_map:
-                if inst.acquire.index in set(sublist):
-                    for i in sublist:
-                        acquire_instructions[i] = (time, inst)
+                for acq in inst.acquires:
+                    if acq.index in set(sublist):
+                        for i in sublist:
+                            acquire_instructions[i] = (time, inst)
         else:
             new_schedule |= inst << time
 

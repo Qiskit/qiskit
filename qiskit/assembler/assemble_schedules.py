@@ -101,7 +101,8 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
             elif isinstance(instruction, AcquireInstruction):
-                max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
+                max_memory_slot = max(max_memory_slot,
+                                      *[slot.index for slot in instruction.mem_slots])
 
                 acquire_instuctions.append(instruction)
 
@@ -189,11 +190,16 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                      header=qobj_header)
 
 
-def _validate_meas_map(acquires, meas_map):
+def _validate_meas_map(instructions, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = {acq_ch.acquire.index for acq_ch in acquires}
+
+    acquires = []
+    for inst in instructions:
+        acquires += inst.acquires
+    measured_qubits = {acq_ch.index for acq_ch in acquires}
+
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:

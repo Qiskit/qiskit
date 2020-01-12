@@ -347,6 +347,31 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
 
+    def test_schedule_with_acquire_on_single_and_multiple_qubits(self):
+        acquire = Acquire(10)
+
+        sched_single = Schedule()
+        for i in range(self.config.n_qubits):
+            sched_single = sched_single.insert(10, acquire(self.config.acquire(i),
+                                               MemorySlot(i),
+                                               RegisterSlot(i)))
+
+        self.assertEqual(len(sched_single.instructions), 2)
+        self.assertEqual(len(sched_single.channels), 6)
+
+        sched_multiple = Schedule()
+        qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
+        mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
+        reg_slots = [RegisterSlot(i) for i in range(self.config.n_qubits)]
+        sched_multiple = sched_multiple.insert(10, acquire(qubits,
+                                                           mem_slots=mem_slots,
+                                                           reg_slots=reg_slots))
+
+        self.assertEqual(len(sched_multiple.instructions), 1)
+        self.assertEqual(len(sched_multiple.channels), 6)
+
+        self.assertEqual(len(sched_single.channels), len(sched_multiple.channels))
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""

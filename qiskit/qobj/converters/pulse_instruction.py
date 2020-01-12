@@ -120,8 +120,8 @@ class InstructionToQobjConverter:
             'name': 'acquire',
             't0': shift+instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [instruction.acquire.index],
-            'memory_slot': [instruction.mem_slot.index]
+            'qubits': [q.index for q in instruction.acquires],
+            'memory_slot': [m.index for m in instruction.mem_slots]
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -134,9 +134,9 @@ class InstructionToQobjConverter:
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slot:
+            if instruction.reg_slots:
                 command_dict.update({
-                    'register_slot': [instruction.reg_slot.index]
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
