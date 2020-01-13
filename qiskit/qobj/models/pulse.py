@@ -30,8 +30,8 @@ class QobjMeasurementOptionSchema(BaseSchema):
 
     # Required properties.
     name = String(required=True)
-    params = DictParameters(valid_value_types=(int, float, str, bool, type(None)),
-                            required=True)
+    parameters = DictParameters(valid_value_types=(int, float, str, bool, type(None)),
+                                required=True)
 
 
 class PulseLibraryItemSchema(BaseSchema):
