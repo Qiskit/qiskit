@@ -24,7 +24,7 @@ def transpile_circuit(circuit,
         circuit (QuantumCircuit): circuit to transpile
         pass_manager (PassManager): The pass manager to use for a custom pipeline of
             transpiler passes.
-        output_name (string): To identify the output circuits
+        output_name (string): name of output circuit
         callback (callable): Function that will be called after each pass execution.
 
     Returns:
