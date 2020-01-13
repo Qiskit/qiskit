@@ -98,7 +98,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 # delay instructions are ignored as timing is explicit within qobj
                 continue
 
-            elif isinstance(instruction, PulseInstruction):
+            if isinstance(instruction, PulseInstruction):
                 name = instruction.command.name
                 if name in user_pulselib and instruction.command != user_pulselib[name]:
                     name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
