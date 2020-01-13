@@ -31,10 +31,10 @@ class CSwapMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CSwapGate, FredkinGate))
+        return type(inst) in {CSwapGate, FredkinGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CSwapGate(ControlledGate):
+class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     """The controlled-swap gate, also called Fredkin gate."""
 
     def __init__(self):

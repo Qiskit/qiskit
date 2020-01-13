@@ -35,7 +35,7 @@ class CCXMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CCXGate, ToffoliGate))
+        return type(inst) in {CCXGate, ToffoliGate}  # pylint: disable=unidiomatic-typecheck
 
 
 class CCXGate(ControlledGate, metaclass=CCXMeta):

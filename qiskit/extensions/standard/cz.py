@@ -32,10 +32,10 @@ class CZMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CzGate, CZGate))
+        return type(inst) in {CZGate, CzGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CZGate(ControlledGate):
+class CZGate(ControlledGate, metaclass=CZMeta):
     """The controlled-Z gate."""
 
     def __init__(self, label=None):

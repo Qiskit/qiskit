@@ -30,10 +30,10 @@ class CRYMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CryGate, CRYGate))
+        return type(inst) in {CRYGate, CryGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CRYGate(ControlledGate):
+class CRYGate(ControlledGate, metaclass=CRYMeta):
     """The controlled-ry gate."""
 
     def __init__(self, theta):

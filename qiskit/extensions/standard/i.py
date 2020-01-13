@@ -28,10 +28,10 @@ class IMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (IdGate, IGate))
+        return type(inst) in {IGate, IdGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class IGate(Gate):
+class IGate(Gate, metaclass=IMeta):
     """Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
@@ -57,8 +57,7 @@ class IdGate(IGate, metaclass=IMeta):
     Deprecated IGate class.
     """
     def __init__(self):
-        warnings.warn('IdGate is deprecated, use IGate instead!', DeprecationWarning,
-                      2)
+        warnings.warn('IdGate is deprecated, use IGate instead!', DeprecationWarning, 2)
         super().__init__()
 
 

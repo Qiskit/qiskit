@@ -29,10 +29,10 @@ class CXMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CnotGate, CXGate))
+        return type(inst) in {CnotGate, CXGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CXGate(ControlledGate):
+class CXGate(ControlledGate, metaclass=CXMeta):
     """The controlled-X gate."""
 
     def __init__(self):

@@ -94,12 +94,12 @@ class SinvGate(Gate, metaclass=SinvMeta):
                             [0, -1j]], dtype=complex)
 
 
-class SinvGate(SinvGate, metaclass=SinvMeta):
+class SdgGate(SinvGate, metaclass=SinvMeta):
     """
     The deprecated SinvGate class.
     """
     def __init__(self):
-        warnings.warn('SinvGate is deprecated, use SinvGate instead!', DeprecationWarning, 2)
+        warnings.warn('SdgGate is deprecated, use SinvGate instead!', DeprecationWarning, 2)
         super().__init__()
 
 
@@ -113,12 +113,12 @@ def sinv(self, q):
     return self.append(SinvGate(), [q], [])
 
 
-def sinv(self, q):
+def sdg(self, q):
     """Apply Sdg (deprecated!) to q."""
-    warnings.warn('sinv() is deprecated, use sinv() instead!', DeprecationWarning, 2)
-    return self.append(SinvGate(), [q], [])
+    warnings.warn('sdg() is deprecated, use sinv() instead!', DeprecationWarning, 2)
+    return self.append(SdgGate(), [q], [])
 
 
 QuantumCircuit.s = s
 QuantumCircuit.sinv = sinv
-QuantumCircuit.sinv = sinv  # deprecated, remove once SinvGate is removed
+QuantumCircuit.sdg = sdg  # deprecated, remove once SinvGate is removed

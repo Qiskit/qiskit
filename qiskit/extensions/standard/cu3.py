@@ -30,10 +30,10 @@ class CU3Meta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (Cu3Gate, CU3Gate))
+        return type(inst) in {CU3Gate, Cu3Gate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CU3Gate(ControlledGate):
+class CU3Gate(ControlledGate, metaclass=CU3Meta):
     """The controlled-u3 gate."""
 
     def __init__(self, theta, phi, lam):

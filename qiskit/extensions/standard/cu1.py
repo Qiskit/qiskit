@@ -29,10 +29,10 @@ class CU1Meta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (Cu1Gate, CU1Gate))
+        return type(inst) in {CU1Gate, Cu1Gate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CU1Gate(ControlledGate):
+class CU1Gate(ControlledGate, metaclass=CU1Meta):
     """The controlled-u1 gate."""
 
     def __init__(self, theta):

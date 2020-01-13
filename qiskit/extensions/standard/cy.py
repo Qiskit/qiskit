@@ -32,10 +32,10 @@ class CYMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return isinstance(inst, (CyGate, CYGate))
+        return type(inst) in {CYGate, CyGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CYGate(ControlledGate):
+class CYGate(ControlledGate, metaclass=CYMeta):
     """The controlled-Y gate."""
 
     def __init__(self):
