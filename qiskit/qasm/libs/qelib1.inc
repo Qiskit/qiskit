@@ -29,7 +29,7 @@ gate h a { u2(0,pi) a; }
 // Clifford gate: sqrt(Z) phase gate
 gate s a { u1(pi/2) a; }
 // Clifford gate: conjugate of sqrt(Z)
-gate sdg a { u1(-pi/2) a; }
+gate sinv a { u1(-pi/2) a; }
 // C3 gate: sqrt(S) phase gate
 gate t a { u1(pi/4) a; }
 // C3 gate: conjugate of sqrt(S)
@@ -48,12 +48,12 @@ gate rz(phi) a { u1(phi) a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
-gate cy a,b { sdg b; cx a,b; s b; }
+gate cy a,b { sinv b; cx a,b; s b; }
 // swap
 gate swap a,b { cx a,b; cx b,a; cx a,b; }
 // controlled-H
 gate ch a,b {
-h b; sdg b;
+h b; sinv b;
 cx a,b;
 h b; t b;
 cx a,b;

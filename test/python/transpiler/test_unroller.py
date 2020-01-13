@@ -131,7 +131,7 @@ class TestUnroller(QiskitTestCase):
         circuit.rz(0.3, qr[2])
         circuit.rzz(0.6, qr[1], qr[0])
         circuit.s(qr[0])
-        circuit.sdg(qr[1])
+        circuit.sinv(qr[1])
         circuit.swap(qr[1], qr[2])
         circuit.t(qr[2])
         circuit.tdg(qr[0])

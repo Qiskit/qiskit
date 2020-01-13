@@ -49,7 +49,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.barrier(qr[2])
         circuit.h(qr[0])
         circuit.s(qr[0])
-        circuit.sdg(qr[0])
+        circuit.sinv(qr[0])
         circuit.t(qr[0])
         circuit.tdg(qr[0])
         circuit.i(qr[0])

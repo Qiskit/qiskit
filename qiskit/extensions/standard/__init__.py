@@ -23,7 +23,7 @@ from .swap import SwapGate
 from .h import HGate
 from .i import IGate
 from .s import SGate
-from .s import SdgGate
+from .s import SinvGate
 from .t import TGate
 from .t import TdgGate
 from .u1 import U1Gate

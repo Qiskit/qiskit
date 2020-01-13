@@ -219,7 +219,7 @@ class TestInstructions(QiskitTestCase):
         circ.tdg(q)
         circ.t(q)
         circ.s(q)
-        circ.sdg(q)
+        circ.sinv(q)
         gate_inverse = circ.to_instruction()
         self.assertEqual(gate.inverse().definition, gate_inverse.definition)
 

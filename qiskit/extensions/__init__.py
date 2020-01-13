@@ -46,7 +46,7 @@ Standard Extensions
    RZGate
    RZZGate
    SGate
-   SdgGate
+   SinvGate
    SwapGate
    TdgGate
    U0Gate

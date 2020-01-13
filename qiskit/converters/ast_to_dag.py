@@ -34,7 +34,7 @@ from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.s import SinvGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
 from qiskit.extensions.standard.u1 import U1Gate
@@ -106,7 +106,7 @@ class AstInterpreter:
                           "t": TGate,
                           "tdg": TdgGate,
                           "s": SGate,
-                          "sdg": SdgGate,
+                          "sinv": SinvGate,
                           "swap": SwapGate,
                           "rx": RXGate,
                           "rxx": RXXGate,

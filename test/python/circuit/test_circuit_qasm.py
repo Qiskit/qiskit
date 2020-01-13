@@ -43,7 +43,7 @@ class TestCircuitQasm(QiskitTestCase):
         qc.u2(0.2, 0.1, qr2[0])
         qc.u3(0.3, 0.2, 0.1, qr2[1])
         qc.s(qr2[1])
-        qc.sdg(qr2[1])
+        qc.sinv(qr2[1])
         qc.cx(qr1[0], qr2[1])
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
@@ -64,7 +64,7 @@ u1(0.3) qr1[0];
 u2(0.2,0.1) qr2[0];
 u3(0.3,0.2,0.1) qr2[1];
 s qr2[1];
-sdg qr2[1];
+sinv qr2[1];
 cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];

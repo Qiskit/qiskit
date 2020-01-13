@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
 from qiskit.extensions import (IGate, U1Gate, U2Gate, U3Gate, XGate,
-                               YGate, ZGate, HGate, SGate, SdgGate, TGate,
+                               YGate, ZGate, HGate, SGate, SinvGate, TGate,
                                TdgGate, RXGate, RYGate, RZGate, CXGate,
                                CYGate, CZGate, CHGate, CRZGate, CU1Gate,
                                CU3Gate, SwapGate, RZZGate,
@@ -50,7 +50,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
         raise CircuitError("max_operands must be between 1 and 3")
 
     one_q_ops = [IGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
-                 HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
+                 HGate, SGate, SinvGate, TGate, TdgGate, RXGate, RYGate, RZGate]
     one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, CU1Gate, CRZGate]
     two_param = [U2Gate]
     three_param = [U3Gate, CU3Gate]

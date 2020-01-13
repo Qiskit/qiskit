@@ -13,8 +13,9 @@
 # that they have been altered from the originals.
 
 """
-S=diag(1,i) Clifford phase gate or its inverse.
+The S gate (Clifford phase gate) and its inverse.
 """
+import warnings
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -24,10 +25,10 @@ from qiskit.extensions.standard.u1 import U1Gate
 
 
 class SGate(Gate):
-    """S=diag(1,i) Clifford phase gate."""
+    """The S gate, also called Clifford phase gate."""
 
     def __init__(self, label=None):
-        """Create new S gate."""
+        """Create a new S gate."""
         super().__init__('s', 1, [], label=label)
 
     def _define(self):
@@ -45,7 +46,7 @@ class SGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return SdgGate()
+        return SinvGate()
 
     def to_matrix(self):
         """Return a numpy.array for the S gate."""
@@ -53,19 +54,29 @@ class SGate(Gate):
                             [0, 1j]], dtype=complex)
 
 
-class SdgGate(Gate):
-    """Sdg=diag(1,-i) Clifford adjoint phase gate."""
+class SinvMeta(type):
+    """
+    A metaclass to ensure that Sinv and Sdg are of the same type.
+    Can be removed when SinvGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {SinvGate, SinvGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class SinvGate(Gate, metaclass=SinvMeta):
+    """Sinv=diag(1,-i) Clifford adjoint phase gate."""
 
     def __init__(self, label=None):
-        """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        """Create a new Sinv gate."""
+        super().__init__('sinv', 1, [], label=label)
 
     def _define(self):
         """
-        gate sdg a { u1(-pi/2) a; }
+        gate sinv a { u1(-pi/2) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
@@ -78,9 +89,18 @@ class SdgGate(Gate):
         return SGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the Sdg gate."""
+        """Return a numpy.array for the Sinv gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)
+
+
+class SinvGate(SinvGate, metaclass=SinvMeta):
+    """
+    The deprecated SinvGate class.
+    """
+    def __init__(self):
+        warnings.warn('SinvGate is deprecated, use SinvGate instead!', DeprecationWarning, 2)
+        super().__init__()
 
 
 def s(self, q):  # pylint: disable=invalid-name
@@ -88,10 +108,17 @@ def s(self, q):  # pylint: disable=invalid-name
     return self.append(SGate(), [q], [])
 
 
-def sdg(self, q):
-    """Apply Sdg to q."""
-    return self.append(SdgGate(), [q], [])
+def sinv(self, q):
+    """Apply Sinv to q."""
+    return self.append(SinvGate(), [q], [])
+
+
+def sinv(self, q):
+    """Apply Sdg (deprecated!) to q."""
+    warnings.warn('sinv() is deprecated, use sinv() instead!', DeprecationWarning, 2)
+    return self.append(SinvGate(), [q], [])
 
 
 QuantumCircuit.s = s
-QuantumCircuit.sdg = sdg
+QuantumCircuit.sinv = sinv
+QuantumCircuit.sinv = sinv  # deprecated, remove once SinvGate is removed

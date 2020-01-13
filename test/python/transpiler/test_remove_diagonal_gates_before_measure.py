@@ -75,7 +75,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1t_1measure(self):
-        """ Remove a single TGate, SGate, TdgGate, SdgGate, U1Gate
+        """ Remove a single TGate, SGate, TdgGate, SinvGate, U1Gate
             qr0:--T--m--       qr0:--m-
                      |               |
             qr1:-----|--  ==>  qr1:--|-
@@ -143,8 +143,8 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    def test_optimize_1sdg_1measure(self):
-        """ Remove a single SdgGate
+    def test_optimize_1sinv_1measure(self):
+        """ Remove a single SinvGate
             qr0:-Sdg--m--       qr0:--m-
                       |               |
             qr1:------|--  ==>  qr1:--|-
@@ -154,7 +154,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.sdg(qr[0])
+        circuit.sinv(qr[0])
         circuit.measure(qr[0], cr[0])
         dag = circuit_to_dag(circuit)
 

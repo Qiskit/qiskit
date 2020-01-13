@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.y import YGate
 from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.s import SinvGate
 from qiskit.extensions.standard.cx import CXGate
 
 
@@ -46,12 +46,12 @@ class CYGate(ControlledGate):
 
     def _define(self):
         """
-        gate cy a,b { sdg b; cx a,b; s b; }
+        gate cy a,b { sinv b; cx a,b; s b; }
         """
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (SdgGate(), [q[1]], []),
+            (SinvGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
