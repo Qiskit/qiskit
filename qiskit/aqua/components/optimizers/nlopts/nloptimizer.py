@@ -14,7 +14,13 @@
 
 """ Minimize using objective function """
 
-from typing import List, Optional, Tuple, Callable, NoReturn
+from typing import List, Optional, Tuple, Callable
+# below to allow it for python 3.6.1
+try:
+    from typing import NoReturn
+except ImportError:
+    from typing import Any as NoReturn
+
 from enum import Enum
 from abc import abstractmethod
 import logging
