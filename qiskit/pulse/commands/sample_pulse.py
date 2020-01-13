@@ -151,7 +151,9 @@ class SamplePulse(Command):
         return hash((super().__hash__(), self.samples.tostring()))
 
     def __repr__(self):
-        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+        return '%s(samples=%s, name="%s")' % (self.__class__.__name__,
+                                              repr(self.samples),
+                                              self.name)
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel,

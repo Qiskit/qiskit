@@ -30,17 +30,18 @@ class Acquire(Command):
     ALIAS = 'acquire'
     prefix = 'acq'
 
-    def __init__(self, duration: int, discriminator: Optional[Discriminator] = None,
-                 kernel: Optional[Kernel] = None, name: Optional[str] = None):
+    def __init__(self, duration: int, kernel: Optional[Kernel] = None,
+                 discriminator: Optional[Discriminator] = None,
+                 name: Optional[str] = None):
         """Create new acquire command.
 
         Args:
             duration: Duration of acquisition
-            discriminator: Discriminators to be used (from the list of available discriminator)
-                if the measurement level is 2
             kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
                 (if applicable) if the measurement level is 1 or 2.
+            discriminator: Discriminators to be used (from the list of available discriminator)
+                if the measurement level is 2
             name: Name of this command.
 
         Raises:
@@ -50,14 +51,6 @@ class Acquire(Command):
 
         self._name = Acquire.create_name(name)
 
-        if discriminator:
-            if isinstance(discriminator, Discriminator):
-                self._discriminator = discriminator
-            else:
-                raise PulseError('Invalid discriminator object is specified.')
-        else:
-            self._discriminator = None
-
         if kernel:
             if isinstance(kernel, Kernel):
                 self._kernel = kernel
@@ -65,6 +58,14 @@ class Acquire(Command):
                 raise PulseError('Invalid kernel object is specified.')
         else:
             self._kernel = None
+
+        if discriminator:
+            if isinstance(discriminator, Discriminator):
+                self._discriminator = discriminator
+            else:
+                raise PulseError('Invalid discriminator object is specified.')
+        else:
+            self._discriminator = None
 
     @property
     def kernel(self):
@@ -94,8 +95,8 @@ class Acquire(Command):
         return hash((super().__hash__(), self.kernel, self.discriminator))
 
     def __repr__(self):
-        return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \
-               (self.__class__.__name__, self.name, self.duration,
+        return '%s(duration=%d, kernel=%s, discriminator=%s, name="%s")' % \
+               (self.__class__.__name__, self.duration, self.name,
                 self.kernel, self.discriminator)
 
     # pylint: disable=arguments-differ
