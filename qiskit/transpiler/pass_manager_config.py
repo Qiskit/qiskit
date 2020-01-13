@@ -26,9 +26,12 @@ class PassManagerConfig(BaseModel):
     full description of the model, please check ``PassManagerConfigSchema``.
 
     Attributes:
-        optimization_level (int): a non-negative integer indicating the
-            optimization level. 0 means no transformation on the circuit. Higher
-            levels may produce more optimized circuits, but may take longer.
+        initial_layout (Layout): Initial position of virtual qubits on physical qubits.
+        basis_gates (list): List of basis gate names to unroll to.
+        coupling_map (CouplingMap): Directed graph represented a coupling map.
+        backend_properties (BackendProperties): Properties returned by a backend, including
+            information on gate errors, readout errors, qubit coherence times, etc.
+        seed_transpiler (int): Sets random seed for the stochastic parts of the transpiler.
     """
 
     def __init__(self,
