@@ -6,7 +6,8 @@ matplotlib>=2.1
 pillow>=4.2.1
 pycodestyle
 pydot
-pylint>=2.3,<2.4
+astroid==2.3.3
+pylint==2.4.4
 pylintfileheader>=0.0.2
 stestr>=2.0.0
 PyGithub
