@@ -387,11 +387,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_iden_invalid(self):
         qc = self.circuit
-        self.assertRaises(CircuitError, qc.iden, self.cr[0])
-        self.assertRaises(CircuitError, qc.iden, self.cr)
-        self.assertRaises(CircuitError, qc.iden, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.iden, (self.qr, 'a'))
-        self.assertRaises(CircuitError, qc.iden, .0)
+        self.assertRaises(CircuitError, qc.i, self.cr[0])
+        self.assertRaises(CircuitError, qc.i, self.cr)
+        self.assertRaises(CircuitError, qc.i, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.i, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.i, .0)
 
     def test_iden_reg(self):
         instruction_set = self.circuit.i(self.qr)
