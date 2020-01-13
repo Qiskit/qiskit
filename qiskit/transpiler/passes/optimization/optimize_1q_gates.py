@@ -24,7 +24,7 @@ from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
+from qiskit.quantum_info.operators import Quaternion
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -221,9 +221,9 @@ class Optimize1qGates(TransformationPass):
 
         Return a solution theta, phi, and lambda.
         """
-        quaternion_yzy = quaternion_from_euler([theta1, xi, theta2], 'yzy')
+        quaternion_yzy = Quaternion.from_euler([theta1, xi, theta2], 'yzy')
         euler = quaternion_yzy.to_zyz()
-        quaternion_zyz = quaternion_from_euler(euler, 'zyz')
+        quaternion_zyz = Quaternion.from_euler(euler, 'zyz')
         # output order different than rotation order
         out_angles = (euler[1], euler[0], euler[2])
         abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))

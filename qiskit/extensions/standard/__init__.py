@@ -38,6 +38,8 @@ from .ry import RYGate
 from .rz import RZGate
 from .cu1 import Cu1Gate
 from .ch import CHGate
+from .crx import CrxGate
+from .cry import CryGate
 from .crz import CrzGate
 from .cu3 import Cu3Gate
 from .rzz import RZZGate
