@@ -21,10 +21,13 @@ import numpy as np
 from numpy import pi
 import scipy
 from ddt import ddt, data
+import itertools
+from parameterized import parameterized
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
+from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
@@ -128,7 +131,7 @@ class TestControlledGate(QiskitTestCase):
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
         cgate.h(sub_q[0])
-        cgate.crz(pi/2, sub_q[0], sub_q[1])
+        cgate.crz(pi / 2, sub_q[0], sub_q[1])
         cgate.swap(sub_q[0], sub_q[1])
         cgate.u3(0.1, 0.2, 0.3, sub_q[1])
         cgate.t(sub_q[0])
@@ -138,7 +141,7 @@ class TestControlledGate(QiskitTestCase):
         control = QuantumRegister(num_ctrl)
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
-        qc.append(cont_gate, control[:]+target[:])
+        qc.append(cont_gate, control[:] + target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
@@ -159,7 +162,7 @@ class TestControlledGate(QiskitTestCase):
         control = QuantumRegister(num_ctrl)
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
-        qc.append(cont_gate, control[:]+target[:])
+        qc.append(cont_gate, control[:] + target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
@@ -290,6 +293,90 @@ class TestControlledGate(QiskitTestCase):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
+    @parameterized.expand(
+        itertools.product([1, 2, 3], ['basic'])
+    )
+    def test_multi_control_toffoli_clean_ancillas(self, num_controls, mode):
+        """Test multi-control Toffoli gate with clean ancillas."""
+
+        # set up circuit
+        c = QuantumRegister(num_controls, name='c')
+        q_o = QuantumRegister(1, name='o')
+        qc = QuantumCircuit(q_o, c)
+
+        # add ancillas if necessary
+        num_ancillas = 0 if num_controls <= 2 else num_controls - 2
+        q_a = None
+        if num_ancillas > 0:
+            q_a = QuantumRegister(num_ancillas, name='a')
+            qc.add_register(q_a)
+
+        # apply hadamard on control qubits and toffoli gate
+        qc.h(c)
+        qc.mct([c[i] for i in range(num_controls)],
+               q_o[0],
+               [q_a[i] for i in range(num_ancillas)],
+               mode=mode)
+
+        # execute the circuit and obtain statevector result
+        backend = BasicAer.get_backend('statevector_simulator')
+        vec_mct = execute(qc, backend).result().get_statevector(qc)
+
+        # compare to expectation
+        mat = np.eye(2 ** (num_controls + 1))
+        mat[-2:, -2:] = [[0, 1], [1, 0]]
+        if num_ancillas > 0:
+            mat = np.kron(np.eye(2 ** num_ancillas), mat)
+
+        vec_groundtruth = mat @ np.kron(np.kron(
+            np.array([1] + [0] * (2 ** num_ancillas - 1)),
+            [1 / 2 ** (num_controls / 2)] * 2 ** num_controls), [1, 0])
+
+        s_f = state_fidelity(vec_mct, vec_groundtruth)
+        self.assertAlmostEqual(s_f, 1)
+
+    @parameterized.expand(
+        itertools.product([1, 2, 3, 4, 5],
+                          ['basic-dirty-ancilla', 'advanced', 'noancilla'])
+    )
+    def test_multi_control_toffoli_dirty_ancillas(self, num_controls, mode):
+        """Test multi-control Toffoli gate with dirty ancillas."""
+        c = QuantumRegister(num_controls, name='c')
+        q_o = QuantumRegister(1, name='o')
+        qc = QuantumCircuit(q_o, c)
+
+        if mode == 'basic-dirty-ancilla':
+            if num_controls <= 2:
+                num_ancillas = 0
+            else:
+                num_ancillas = num_controls - 2
+        elif mode == 'noancilla':
+            num_ancillas = 0
+        else:
+            if num_controls <= 4:
+                num_ancillas = 0
+            else:
+                num_ancillas = 1
+
+        q_a = None
+        if num_ancillas > 0:
+            q_a = QuantumRegister(num_ancillas, name='a')
+            qc.add_register(q_a)
+
+        qc.mct([c[i] for i in range(num_controls)],
+               q_o[0],
+               [q_a[i] for i in range(num_ancillas)],
+               mode=mode)
+
+        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+
+        mat_groundtruth = np.eye(2 ** (num_controls + 1))
+        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
+        if num_ancillas > 0:
+            mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
+
+        self.assertTrue(np.allclose(mat_mct, mat_groundtruth))
+
     def test_rotation_gates(self):
         """Test controlled rotation gates"""
         import qiskit.extensions.standard.u1 as u1
@@ -352,7 +439,6 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
-        print(uqc.size())
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
@@ -372,7 +458,7 @@ class TestControlledGate(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(1, 2)
-        qc.rx(np.pi/4, [0, 1, 2])
+        qc.rx(np.pi / 4, [0, 1, 2])
         gate = qc.to_gate()
         cgate = gate.control(num_ctrl_qubits)
         inv_cgate = cgate.inverse()
@@ -438,10 +524,10 @@ class TestControlledGate(QiskitTestCase):
             try:
                 sig = signature(cls)
                 numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY
-                               or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                   and param.default is param.empty)])
-                args = [1]*numargs
+                               if param.kind == param.POSITIONAL_ONLY or
+                               (param.kind == param.POSITIONAL_OR_KEYWORD and
+                                   param.default is param.empty)])
+                args = [1] * numargs
 
                 gate = cls(*args)
                 self.assertEqual(gate.inverse().control(2),
@@ -457,14 +543,14 @@ class TestControlledGate(QiskitTestCase):
         """
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
-        theta = pi/2
+        theta = pi / 2
         for cls in gate_classes:
             with self.subTest(i=cls):
                 sig = signature(cls)
                 numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY
-                               or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                   and param.default is param.empty)])
+                               if param.kind == param.POSITIONAL_ONLY or
+                               (param.kind == param.POSITIONAL_OR_KEYWORD and
+                                   param.default is param.empty)])
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
@@ -498,13 +584,13 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits):
     """
     num_target = int(np.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
-    ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
+    ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim - 1])
     full_mat_dim = ctrl_dim * base_mat.shape[0]
     full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
     full_mat = (np.kron(np.eye(2**num_target),
-                        np.eye(ctrl_dim) - ctrl_proj)
-                + np.kron(base_mat, ctrl_proj))
+                        np.eye(ctrl_dim) - ctrl_proj) +
+                np.kron(base_mat, ctrl_proj))
     return full_mat
 
 
