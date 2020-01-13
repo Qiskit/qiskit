@@ -29,7 +29,7 @@ class FakeQasmSimulator(FakeBackend):
             backend_version='0.0.0',
             n_qubits=5,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                         'h', 's', 'sinv', 't', 'tdg', 'ccx', 'swap',
+                         'h', 's', 'sinv', 't', 'tinv', 'ccx', 'swap',
                          'snapshot', 'unitary'],
             coupling_map=None,
             simulator=True,

@@ -235,7 +235,7 @@ class QCircuitImage:
             for op in layer:
                 # useful information for determining row spacing
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
-                               'sinv', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
+                               'sinv', 't', 'tinv', 'rx', 'ry', 'rz', 'ch', 'cy',
                                'crz', 'cu3', 'id']
                 target_gates = ['cx', 'ccx']
                 if op.name in boxed_gates:
@@ -398,7 +398,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{S^\\dag}"
                             elif nm == "t":
                                 self._latex[pos_1][column] = "\\gate{T}"
-                            elif nm == "tdg":
+                            elif nm == "tinv":
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
@@ -454,7 +454,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{S^\\dag}"
                             elif nm == "t":
                                 self._latex[pos_1][column] = "\\gate{T}"
-                            elif nm == "tdg":
+                            elif nm == "tinv":
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (

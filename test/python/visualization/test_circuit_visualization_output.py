@@ -51,7 +51,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.s(qr[0])
         circuit.sinv(qr[0])
         circuit.t(qr[0])
-        circuit.tdg(qr[0])
+        circuit.tinv(qr[0])
         circuit.i(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
@@ -101,6 +101,14 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         filename = self._get_resource_path('current_textplot.txt')
         qc = self.sample_circuit()
         output = circuit_drawer(qc, filename=filename, output="text", line_length=-1)
+        print(filename)
+        print(output)
+        print()
+        print(self.text_reference)
+        with open(self.text_reference, 'r') as f:
+            print(f.read())
+
+        self.maxDiff = None    
         self.assertFilesAreEqual(filename, self.text_reference)
         os.remove(filename)
         try:

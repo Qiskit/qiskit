@@ -36,7 +36,7 @@ from qiskit.test.base import dicts_almost_equal
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.extensions.standard import *
 
-oneQ_gates = [HGate, IGate, SGate, SinvGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
+oneQ_gates = [HGate, IGate, SGate, SinvGate, TGate, TinvGate, XGate, YGate, ZGate, Reset]
 twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
 threeQ_gates = [CCXGate, CSwapGate]
 

@@ -263,7 +263,7 @@ class TestStochasticSwap(QiskitTestCase):
         circ.z(qr)
         circ.s(qr)
         circ.t(qr)
-        circ.tdg(qr)
+        circ.tinv(qr)
         circ.measure(qr[0], cr[0])  # intentional duplicate
         circ.measure(qr[0], cr[0])
         circ.measure(qr[1], cr[1])

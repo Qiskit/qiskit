@@ -61,7 +61,7 @@ class SinvMeta(type):
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return type(inst) in {SinvGate, SinvGate}  # pylint: disable=unidiomatic-typecheck
+        return type(inst) in {SinvGate, SdgGate}  # pylint: disable=unidiomatic-typecheck
 
 
 class SinvGate(Gate, metaclass=SinvMeta):
@@ -121,4 +121,4 @@ def sdg(self, q):
 
 QuantumCircuit.s = s
 QuantumCircuit.sinv = sinv
-QuantumCircuit.sdg = sdg  # deprecated, remove once SinvGate is removed
+QuantumCircuit.sdg = sdg  # deprecated, remove once SdgGate is removed

@@ -33,7 +33,7 @@ gate sinv a { u1(-pi/2) a; }
 // C3 gate: sqrt(S) phase gate
 gate t a { u1(pi/4) a; }
 // C3 gate: conjugate of sqrt(S)
-gate tdg a { u1(-pi/4) a; }
+gate tinv a { u1(-pi/4) a; }
 
 // --- Standard rotations ---
 // Rotation around X-axis
@@ -63,11 +63,11 @@ t b; h b; s b; x b; s a;
 gate ccx a,b,c
 {
   h c;
-  cx b,c; tdg c;
+  cx b,c; tinv c;
   cx a,c; t c;
-  cx b,c; tdg c;
+  cx b,c; tinv c;
   cx a,c; t b; t c; h c;
-  cx a,b; t a; tdg b;
+  cx a,b; t a; tinv b;
   cx a,b;
 }
 // cswap (Fredkin)

@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.t import TGate, TdgGate
+from qiskit.extensions.standard.t import TGate, TinvGate
 from qiskit.extensions.standard.s import SGate, SinvGate
 
 
@@ -42,7 +42,7 @@ class CHGate(ControlledGate):
             h b;
             t b;
             cx a, b;
-            tdg b;
+            tinv b;
             h b;
             sinv b;
         }
@@ -54,7 +54,7 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (TdgGate(), [q[1]], []),
+            (TinvGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (SinvGate(), [q[1]], [])
         ]

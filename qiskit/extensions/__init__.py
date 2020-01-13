@@ -48,7 +48,7 @@ Standard Extensions
    SGate
    SinvGate
    SwapGate
-   TdgGate
+   TinvGate
    U0Gate
    U1Gate
    U2Gate

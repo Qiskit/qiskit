@@ -36,7 +36,7 @@ from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SinvGate
 from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TdgGate
+from qiskit.extensions.standard.t import TinvGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -104,7 +104,7 @@ class AstInterpreter:
                           "y": YGate,
                           "z": ZGate,
                           "t": TGate,
-                          "tdg": TdgGate,
+                          "tinv": TinvGate,
                           "s": SGate,
                           "sinv": SinvGate,
                           "swap": SwapGate,

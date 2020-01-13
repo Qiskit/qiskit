@@ -68,7 +68,7 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ['h', 't', 'tinv', 'cx'])
 
     def test_decompose_conditional(self):
         """Test decompose a 1-qubit gates with a conditional.

@@ -65,7 +65,7 @@ def graysynth(cnots, angles, section_size=2):
         angles (list): a list containing all the phase-shift gates which are
             to be applied, in the same order as in "cnots". A number is
             interpreted as the angle of u1(angle), otherwise the elements
-            have to be 't', 'tdg', 's', 'sinv' or 'z'.
+            have to be 't', 'tinv', 's', 'sinv' or 'z'.
 
         section_size (int): the size of every section, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. section_size must be a factor of n_qubits.
@@ -97,8 +97,8 @@ def graysynth(cnots, angles, section_size=2):
             if np.array_equal(icnots, state[qubit]):
                 if angles[index] == 't':
                     qcir.t(qubit)
-                elif angles[index] == 'tdg':
-                    qcir.tdg(qubit)
+                elif angles[index] == 'tinv':
+                    qcir.tinv(qubit)
                 elif angles[index] == 's':
                     qcir.s(qubit)
                 elif angles[index] == 'sinv':
@@ -134,8 +134,8 @@ def graysynth(cnots, angles, section_size=2):
                             if np.array_equal(icnots, state[qubit]):
                                 if angles[index] == 't':
                                     qcir.t(qubit)
-                                elif angles[index] == 'tdg':
-                                    qcir.tdg(qubit)
+                                elif angles[index] == 'tinv':
+                                    qcir.tinv(qubit)
                                 elif angles[index] == 's':
                                     qcir.s(qubit)
                                 elif angles[index] == 'sinv':

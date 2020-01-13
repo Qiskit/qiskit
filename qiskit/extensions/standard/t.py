@@ -15,6 +15,7 @@
 """
 T=sqrt(S) phase gate or its inverse.
 """
+import warnings
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -45,7 +46,7 @@ class TGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return TdgGate()
+        return TinvGate()
 
     def to_matrix(self):
         """Return a numpy.array for the T gate."""
@@ -53,19 +54,29 @@ class TGate(Gate):
                             [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-class TdgGate(Gate):
+class TinvMeta(type):
+    """
+    A metaclass to ensure that Tinv and Tdg are of the same type.
+    Can be removed when TinvGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {TinvGate, TdgGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class TinvGate(Gate, metaclass=TinvMeta):
     """T Gate: -pi/4 rotation around Z axis."""
 
     def __init__(self, label=None):
-        """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label)
+        """Create a new Tinv gate."""
+        super().__init__('tinv', 1, [], label=label)
 
     def _define(self):
         """
         gate t a { u1(pi/4) a; }
         """
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(-pi / 4), [q[0]], [])
         ]
@@ -78,9 +89,17 @@ class TdgGate(Gate):
         return TGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0],
                             [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
+
+
+class TdgGate(TinvGate, metaclass=TinvMeta):
+    """The deprecated Tinv gate."""
+
+    def __init__(self):
+        warnings.warn('TdgGate is deprecated, use TinvGate instead!', DeprecationWarning, 2)
+        super().__init__()
 
 
 def t(self, q):  # pylint: disable=invalid-name
@@ -88,10 +107,17 @@ def t(self, q):  # pylint: disable=invalid-name
     return self.append(TGate(), [q], [])
 
 
-def tdg(self, q):
+def tinv(self, q):
     """Apply Tdg to q."""
+    return self.append(TinvGate(), [q], [])
+
+
+def tdg(self, q):
+    """Apply Tdg (deprecated!) to q."""
+    warnings.warn('tdg() is deprecated, use tinv() instead!', DeprecationWarning, 2)
     return self.append(TdgGate(), [q], [])
 
 
 QuantumCircuit.t = t
-QuantumCircuit.tdg = tdg
+QuantumCircuit.tinv = tinv
+QuantumCircuit.tdg = tdg  # deprecated, remove once TdgGate is removed

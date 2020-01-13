@@ -25,7 +25,7 @@ from .i import IGate
 from .s import SGate
 from .s import SinvGate
 from .t import TGate
-from .t import TdgGate
+from .t import TinvGate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate
