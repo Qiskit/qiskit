@@ -38,7 +38,7 @@ by following the existing pattern:
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
 from abc import abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 import math
 
 import numpy as np

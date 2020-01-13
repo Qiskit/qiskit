@@ -13,7 +13,12 @@
 # that they have been altered from the originals.
 
 """Any command which implements a transmit signal on a channel."""
+from typing import Callable, List, Optional
 
+from abc import abstractmethod
+
+from qiskit.pulse.channels import Channel
+from .instruction import Instruction
 from .command import Command
 
 
@@ -22,8 +27,8 @@ class PulseCommand(Command):
     prefix = 'p'
 
     @abstractmethod
-    def __init__(self, duration: Union[int, np.integer] = None):
-        pass
+    def __init__(self, duration: int = None):
+        super().__init__(duration=duration)
 
     @abstractmethod
     def to_instruction(self, command, *channels: List[Channel],
