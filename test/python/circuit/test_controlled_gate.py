@@ -377,8 +377,8 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertTrue(np.allclose(mat_mct, mat_groundtruth))
 
-    def test_rotation_gates(self):
-        """Test controlled rotation gates"""
+    def test_single_controlled_rotation_gates(self):
+        """Test controlled rotation gates controlled on one qubit"""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.rx as rx
         import qiskit.extensions.standard.ry as ry
@@ -441,6 +441,106 @@ class TestControlledGate(QiskitTestCase):
         uqc = dag_to_circuit(unroller.run(dag))
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
+
+    @parameterized.expand(
+        itertools.product([1, 2, 4], ['x', 'y', 'z'], [True, False])
+    )
+    def test_multi_controlled_rotation_gates(self, num_controls, base_gate_name, use_basis_gates):
+        """Test the multi controlled rotation gates without ancillas."""
+        c = QuantumRegister(num_controls, name='c')
+        q_o = QuantumRegister(1, name='o')
+        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
+                                            ni in range(num_controls + 1)]))
+        for subset in allsubsets:
+            control_int = 0
+            theta = 0.871236 * pi
+            qc = QuantumCircuit(q_o, c)
+            for idx in subset:
+                control_int += 2**idx
+                qc.x(c[idx])
+
+            # call mcrx/mcry/mcrz
+            if base_gate_name == 'y':
+                qc.mcry(theta, [c[i] for i in range(num_controls)], q_o[0], None, mode='noancilla',
+                        use_basis_gates=use_basis_gates)
+            else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
+                getattr(qc, 'mcr' + base_gate_name)(theta, [c[i] for i in range(num_controls)],
+                                                    q_o[0], use_basis_gates=use_basis_gates)
+
+            for idx in subset:
+                qc.x(c[idx])
+
+            mat_mcu = execute(qc, BasicAer.get_backend(
+                'unitary_simulator')).result().get_unitary(qc)
+
+            dim = 2**(num_controls + 1)
+            pos = dim - 2 * (control_int + 1)
+            mat_groundtruth = np.eye(dim, dtype=complex)
+
+            if base_gate_name == 'x':
+                rot_mat = np.array([[np.cos(theta / 2), -1j * np.sin(theta / 2)],
+                                    [-1j * np.sin(theta / 2), np.cos(theta / 2)]],
+                                   dtype=complex)
+            elif base_gate_name == 'y':
+                rot_mat = np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
+                                    [np.sin(theta / 2), np.cos(theta / 2)]],
+                                   dtype=complex)
+            else:  # case 'z'
+                rot_mat = np.array([[1, 0],
+                                    [0, np.exp(1j * theta)]],
+                                   dtype=complex)
+
+            mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
+            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
+
+    @parameterized.expand(
+        itertools.product([1, 2, 4], [True, False])
+    )
+    def test_multi_controlled_y_rotation_basic_mode(self, num_controls, use_basis_gates):
+        """Test multi controlled Y rotation using the mode 'basic'."""
+        if num_controls <= 2:
+            num_ancillas = 0
+        else:
+            num_ancillas = num_controls - 2
+        c = QuantumRegister(num_controls, name='c')
+        q_o = QuantumRegister(1, name='o')
+        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
+                                            ni in range(num_controls + 1)]))
+        for subset in allsubsets:
+            control_int = 0
+            theta = 0.871236 * pi
+            qc = QuantumCircuit(q_o, c)
+            if num_ancillas > 0:
+                q_a = QuantumRegister(num_ancillas, name='a')
+                qc.add_register(q_a)
+            else:
+                q_a = None
+
+            for idx in subset:
+                control_int += 2**idx
+                qc.x(c[idx])
+
+            qc.mcry(theta, [c[i] for i in range(num_controls)], q_o[0],
+                    [q_a[i] for i in range(num_ancillas)], mode='basic',
+                    use_basis_gates=use_basis_gates)
+
+            for idx in subset:
+                qc.x(c[idx])
+
+            mat_mcu = execute(qc, BasicAer.get_backend(
+                'unitary_simulator')).result().get_unitary(qc)
+
+            dim = 2**(num_controls + 1)
+            mat_mcu = mat_mcu[:dim, :dim]
+            pos = dim - 2 * (control_int + 1)
+            mat_groundtruth = np.eye(dim, dtype=complex)
+
+            rot_mat = np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
+                                [np.sin(theta / 2), np.cos(theta / 2)]],
+                               dtype=complex)
+
+            mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
+            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
