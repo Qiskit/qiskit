@@ -22,7 +22,7 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import isinstanceint, isinstancelist
-from qiskit.transpiler.passes.ms_basis_decomposer import MSBasisDecomposer
+from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
