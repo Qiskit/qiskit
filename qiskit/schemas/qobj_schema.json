@@ -161,11 +161,11 @@
                             ]
                         },
                         "pulse_shape": {"type": "string"},
-                        "params": {"type": "object"}
+                        "parameters": {"type": "object"}
                     },
                     "required": [
                         "pulse_shape",
-                        "params",
+                        "parameters",
                         "t0",
                         "ch"
                     ],
