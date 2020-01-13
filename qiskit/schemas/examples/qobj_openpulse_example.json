@@ -34,10 +34,9 @@
             {"name": "copy", "register_orig": 1, "register_copy": [3,4]},
             {"name": "bfunc", "mask": "0xE", "relation": "==", "val": "0xA", "register": 3, "memory": 3},
             {"name": "pulse1", "ch": "d0", "t0": 120, "conditional": 3},
-            {"name": "parametric_pulse", "t0": 0, "params": {"amp": [0.0, 0.5], "sigma": 4, "duration": 25}, "ch": "d0", "pulse_shape": "gaussian"},
+            {"name": "parametric_pulse", "t0": 0, "params": {"amp": [0.0, 0.5], "sigma": 4, "duration": 25}, "ch": "d0", "pulse_shape": "gaussian"}
             ]
         }
         ]    
 }
-
 
