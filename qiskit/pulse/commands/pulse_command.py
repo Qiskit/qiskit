@@ -20,3 +20,36 @@ from .command import Command
 class PulseCommand(Command):
     """The abstract superclass for pulses."""
     prefix = 'p'
+
+    @abstractmethod
+    def __init__(self, duration: Union[int, np.integer] = None):
+        pass
+
+    @abstractmethod
+    def to_instruction(self, command, *channels: List[Channel],
+                       name: Optional[str] = None) -> Instruction:
+        pass
+
+    @abstractmethod
+    def draw(self, dt: float = 1,
+             style: Optional['PulseStyle'] = None,
+             filename: Optional[str] = None,
+             interp_method: Optional[Callable] = None,
+             scale: float = 1, interactive: bool = False,
+             scaling: float = None):
+        """Plot the interpolated envelope of pulse.
+
+        Args:
+            dt: Time interval of samples.
+            style: A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scale: Relative visual scaling of waveform amplitudes
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this)
+            scaling: Deprecated, see `scale`
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse envelope
+        """
+        pass

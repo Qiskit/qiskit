@@ -96,6 +96,31 @@ class ParametricPulse(PulseCommand):
         # pylint: disable=arguments-differ
         return ParametricInstruction(self, channel, name=name)
 
+    def draw(self, dt: float = 1,
+             style: Optional['PulseStyle'] = None,
+             filename: Optional[str] = None,
+             interp_method: Optional[Callable] = None,
+             scale: float = 1, interactive: bool = False,
+             scaling: float = None):
+        """Plot the interpolated envelope of pulse.
+
+        Args:
+            dt: Time interval of samples.
+            style: A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scale: Relative visual scaling of waveform amplitudes
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this)
+            scaling: Deprecated, see `scale`
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse envelope
+        """
+        return self.get_sample_pulse().draw(dt=dt, style=style, filename=filename,
+                                            interp_method=interp_method, scale=scale,
+                                            interactive=interactive)
+
     def __repr__(self):
         return '{}(name={}, parameters={})'.format(self.__class__.__name__,
                                                    self.name,
