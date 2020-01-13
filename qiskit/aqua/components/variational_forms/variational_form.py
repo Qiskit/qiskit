@@ -16,7 +16,13 @@ This module contains the definition of a base class for
 variational forms. Several types of commonly used ansatz.
 """
 
-from typing import Optional, Union, List, NoReturn
+from typing import Optional, Union, List
+# below to allow it for python 3.6.1
+try:
+    from typing import NoReturn
+except ImportError:
+    from typing import Any as NoReturn
+
 from abc import ABC, abstractmethod
 import numpy as np
 from qiskit import QuantumRegister
