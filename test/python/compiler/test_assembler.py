@@ -28,6 +28,7 @@ from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 class TestCircuitAssembler(QiskitTestCase):
@@ -328,11 +329,11 @@ class TestPulseAssembler(QiskitTestCase):
             [self.backend_config.acquire(i) for i in range(self.backend_config.n_qubits)],
             [MemorySlot(i) for i in range(self.backend_config.n_qubits)]))
 
-        self.user_lo_config_dict = {self.backend_config.drive(0): 4.91}
+        self.user_lo_config_dict = {self.backend_config.drive(0): 4.91e9}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
-        self.default_qubit_lo_freq = [4.9, 5.0]
-        self.default_meas_lo_freq = [6.5, 6.6]
+        self.default_qubit_lo_freq = [4.9e9, 5.0e9]
+        self.default_meas_lo_freq = [6.5e9, 6.6e9]
 
         self.config = {
             'meas_level': 1,
@@ -582,8 +583,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.qubit_lo_freq = [freq / 1e9 for freq in self.defaults.qubit_freq_est]
-        self.meas_lo_freq = [freq / 1e9 for freq in self.defaults.meas_freq_est]
+        self.qubit_lo_freq = list(self.defaults.qubit_freq_est)
+        self.meas_lo_freq = list(self.defaults.meas_freq_est)
         self.qubit_lo_range = self.config.qubit_lo_range
         self.meas_lo_range = self.config.meas_lo_range
         self.schedule_los = {pulse.DriveChannel(0): self.qubit_lo_freq[0],
@@ -687,6 +688,25 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         memory_slots=self.memory_slots,
                         rep_time=self.rep_time)
         validate_qobj_against_schema(qobj)
+
+    def test_unsupported_meas_level(self):
+        """Test that assembly raises an error if meas_level is not supported"""
+        # pylint: disable=unused-variable
+        backend = FakeOpenPulse2Q()
+        backend.configuration().meas_levels = [1, 2]
+        with self.assertRaises(SchemaValidationError):
+            qobj = assemble(self.schedule,
+                            backend,
+                            qubit_lo_freq=self.qubit_lo_freq,
+                            meas_lo_freq=self.meas_lo_freq,
+                            qubit_lo_range=self.qubit_lo_range,
+                            meas_lo_range=self.meas_lo_range,
+                            schedule_los=self.schedule_los,
+                            meas_level=0,
+                            meas_map=self.meas_map,
+                            memory_slots=self.memory_slots,
+                            rep_time=self.rep_time,
+                            )
 
 
 if __name__ == '__main__':
