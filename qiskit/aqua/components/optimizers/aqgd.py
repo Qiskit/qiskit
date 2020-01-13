@@ -129,7 +129,7 @@ class AQGD(Optimizer):
         Returns:
             bool: Whether or not the optimization has converged.
         """
-        if not hasattr(self, '_previous_loss'):
+        if self._previous_loss is None:
             self._previous_loss = [objval + 2 * self._tol] * n
 
         if all([absolute(objval - prev) < self._tol for prev in self._previous_loss]):
