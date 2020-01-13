@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements,len-as-condition
+# pylint: disable=too-many-return-statements,len-as-condition,unpacking-non-sequence
 
 
 """

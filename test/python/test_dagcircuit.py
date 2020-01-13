@@ -551,7 +551,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
 
-        op_nodes = [node for node in self.dag.topological_op_nodes()]
+        op_nodes = list(self.dag.topological_op_nodes())
         self.dag.remove_op_node(op_nodes[0])
 
         expected = [('h', [self.qubit0]),
