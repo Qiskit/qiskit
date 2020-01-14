@@ -587,7 +587,9 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scale (float or dict): Relative visual scaling of waveform amplitudes
+            scale (float or dict[Channel, float]): Relative visual scaling of waveform amplitudes.
+                Channel independent scaling is applied if this is given as
+                a dictionary of Channel object.
             channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
@@ -609,9 +611,9 @@ class ScheduleDrawer:
         figure = plt.figure()
 
         if not isinstance(scale, dict):
-            scale_dict = {chan: scale for chan in schedule.channels}
+            scale_dict_tmp = {chan: scale for chan in schedule.channels}
         else:
-            scale_dict = scale
+            scale_dict_tmp = scale
 
         if channels_to_plot is not None:
             warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
@@ -645,7 +647,7 @@ class ScheduleDrawer:
         # count numbers of valid waveform
 
         n_valid_waveform, scale_dict = self._count_valid_waveforms(output_channels,
-                                                                   scale=scale_dict,
+                                                                   scale=scale_dict_tmp,
                                                                    channels=channels,
                                                                    plot_all=plot_all)
 
@@ -665,7 +667,7 @@ class ScheduleDrawer:
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
         ax.set_xlim(t0 * dt, tf * dt)
-        ax.set_ylim(y0 + 0.5 - self.style.white_space, 0.5 + self.style.white_space)
+        ax.set_ylim(y0 + 0.5 - self.style.vertical_span, 0.5 + self.style.vertical_span)
         ax.set_yticklabels([])
 
         return figure
