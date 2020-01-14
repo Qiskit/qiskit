@@ -122,15 +122,13 @@ def parallel_map(  # pylint: disable=dangerous-default-value
             with MPIPoolExecutor() as executor:
                 param = map(lambda value: (task, value, task_args, task_kwargs), values)
                 future = executor.map(_task_wrapper, param)
-                results = list(future)
-                for result in results:
-                    nfinished[0] += 1
-                    Publisher().publish("terra.parallel.done", nfinished[0])
+            results = list(future)
+            for result in results:
+                nfinished[0] += 1
+                Publisher().publish("terra.parallel.done", nfinished[0])
         except (KeyboardInterrupt, Exception) as error:
             if isinstance(error, KeyboardInterrupt):
                 # TODO (imaihal): Error handling required?
-                # pool.terminate()
-                # pool.join()
                 Publisher().publish("terra.parallel.finish")
                 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
                 raise QiskitError('Keyboard interrupt in parallel_map.')
