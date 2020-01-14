@@ -24,6 +24,7 @@ from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -230,6 +231,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
+    Raises:
+        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -247,6 +250,12 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             backend_default = BackendDefault(
                 qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
+            )
+
+        if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
+            raise SchemaValidationError(
+                ('meas_level = {} not supported for backend {}, only {} is supported'
+                 ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
