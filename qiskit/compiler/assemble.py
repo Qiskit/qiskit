@@ -24,6 +24,7 @@ from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -77,24 +78,24 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit LO frequencies. Will be overridden by
+            List of default qubit LO frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas LO frequencies. Will be overridden by
-            `schedule_los` if set.
+            List of default measurement LO frequencies in Hz. Will be overridden
+            by `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive LO ranges used to validate that the supplied qubit LOs
-            are valid.
+            List of drive LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
 
         meas_lo_range (list):
-            List of meas LO ranges used to validate that the supplied measurement LOs
-            are valid.
+            List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
+            Used to validate the supplied qubit frequencies.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
-            Experiment LO configurations
+            Experiment LO configurations, frequencies are given in Hz.
 
         meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
@@ -230,6 +231,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
+    Raises:
+        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -248,20 +251,26 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
             )
 
+        if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
+            raise SchemaValidationError(
+                ('meas_level = {} not supported for backend {}, only {} is supported'
+                 ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
+            )
+
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
 
     schedule_los = schedule_los or []
     if isinstance(schedule_los, (LoConfig, dict)):
         schedule_los = [schedule_los]
 
-    # Convert to LoConfig if lo configuration supplied as dictionary
+    # Convert to LoConfig if LO configuration supplied as dictionary
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
     if not qubit_lo_freq and hasattr(backend_default, 'qubit_freq_est'):
-        qubit_lo_freq = [freq / 1e9 for freq in backend_default.qubit_freq_est]
+        qubit_lo_freq = backend_default.qubit_freq_est
     if not meas_lo_freq and hasattr(backend_default, 'meas_freq_est'):
-        meas_lo_freq = [freq / 1e9 for freq in backend_default.meas_freq_est]
+        meas_lo_freq = backend_default.meas_freq_est
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
