@@ -29,7 +29,7 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CnotGate
 from qiskit.extensions.standard.z import CzGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate

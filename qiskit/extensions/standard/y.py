@@ -21,10 +21,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
-from qiskit.extensions.standard.cx import CnotGate
 
 
 class YGate(Gate):
@@ -35,6 +31,7 @@ class YGate(Gate):
         super().__init__("y", 1, [], label=label)
 
     def _define(self):
+        from qiskit.extensions.standard.u3 import U3Gate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -89,6 +86,9 @@ class CyGate(ControlledGate):
         """
         gate cy a,b { sdg b; cx a,b; s b; }
         """
+        from qiskit.extensions.standard.s import SGate
+        from qiskit.extensions.standard.s import SdgGate
+        from qiskit.extensions.standard.x import CnotGate
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
