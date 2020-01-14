@@ -169,8 +169,9 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
-        cmd = Acquire(10, Discriminator(name='test_disc', params={'test_params': 1.0}),
-                      Kernel(name='test_kern', params={'test_params': 'test'}))
+        cmd = Acquire(10,
+                      kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
+                      discriminator=Discriminator(name='test_disc', params={'test_params': 1.0}))
         instruction = cmd([AcquireChannel(i) for i in range(self.n_qubits)],
                           [MemorySlot(i) for i in range(self.n_qubits)],
                           [RegisterSlot(i) for i in range(self.n_qubits)])
