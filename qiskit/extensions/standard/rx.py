@@ -82,7 +82,7 @@ def rx(self, theta, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit.extensions.standard.rx import RXGate
-            RXGate().to_matrix()
+            RXGate(numpy.pi/2).to_matrix()
     """
     return self.append(RXGate(theta), [q], [])
 
