@@ -38,7 +38,7 @@ class Cu1Gate(ControlledGate):
           u1(lambda/2) b;
         }
         """
-        from qiskit.extensions.standard.u1 import U1Gate        
+        from qiskit.extensions.standard.u1 import U1Gate
         from qiskit.extensions.standard.x import CnotGate
         definition = []
         q = QuantumRegister(2, "q")
