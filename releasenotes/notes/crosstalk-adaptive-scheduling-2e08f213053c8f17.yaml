@@ -7,7 +7,7 @@ features:
     When a pair of gates has high crosstalk, they get serialized using a barrier.
     Naive serialization is harmful because it incurs decoherence errors.
     Hence, this pass uses a SMT optimization approach to compute a schedule which
-    minimizes the impact of crosstalk as well as decoherehce errors.
+    minimizes the impact of crosstalk as well as decoherence errors.
 
     The pass takes as input a circuit which is already transpiled onto
     the backend i.e., the circuit is expressed in terms of physical qubits and

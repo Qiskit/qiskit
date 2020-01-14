@@ -236,7 +236,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
     def is_significant_xtalk(self, gate1, gate2):
         """
-        Given two conditational gate error rates
+        Given two conditional gate error rates
         check if there is high crosstalk by comparing with independent error rates.
         """
         gate1_tup = self.gate_tuple(gate1)
@@ -512,7 +512,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         result = self.extract_solution()
         return result
 
-    def check_dag_dependancy(self, gate1, gate2):
+    def check_dag_dependency(self, gate1, gate2):
         """
         gate2 is a DAG dependent of gate1 if it is a descendant of gate1
         """
@@ -572,7 +572,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         curr_gate = triplet[0]
         for prev_triplet in layer:
             prev_gate = prev_triplet[0]
-            is_dag_dep = self.check_dag_dependancy(prev_gate, curr_gate)
+            is_dag_dep = self.check_dag_dependency(prev_gate, curr_gate)
             is_xtalk_dep, _ = self.check_xtalk_dependency(prev_triplet, triplet)
             if is_dag_dep or is_xtalk_dep:
                 # If there is a DAG dependency, we can't insert in any previous layer
@@ -588,7 +588,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Find the appropriate layer for a gate
         """
-        candidates = [i for i in range(len(layers))]
+        candidates = list(range(len(layers)))
         for i, layer in enumerate(layers):
             candidates = self.filter_candidates(candidates, layer, i, triplet)
         if not candidates:
@@ -612,7 +612,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 for j in range(i):
                     prev_layer = layers[j]
                     for t_1 in prev_layer:
-                        is_dag_dep = self.check_dag_dependancy(t_1[0], t_2[0])
+                        is_dag_dep = self.check_dag_dependency(t_1[0], t_2[0])
                         is_xtalk_dep, curr_barrier = self.check_xtalk_dependency(t_1, t_2)
                         if is_dag_dep:
                             # Don't insert a barrier since there is a DAG dependency
@@ -669,7 +669,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 layers.append([triplet])
             else:
                 layers[layer_idx].append(triplet)
-        # Insert barries if necessray to enforce the above layers
+        # Insert barries if necessary to enforce the above layers
         barriers = self.generate_barriers(layers)
         new_dag = self.create_updated_dag(layers, barriers)
         return new_dag

@@ -28,6 +28,7 @@ Operators
    Operator
    Pauli
    pauli_group
+   Quaternion
 
 States
 ======
@@ -91,6 +92,7 @@ Synthesis
 
 from .operators.operator import Operator
 from .operators.pauli import Pauli, pauli_group
+from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
 from .states import Statevector, DensityMatrix
