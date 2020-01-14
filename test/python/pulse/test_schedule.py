@@ -577,8 +577,6 @@ class TestScheduleFilter(BaseTestSchedule):
         for i in range(2):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
 
-        # sched = sched.insert(60, acquire([self.config.acquire(i) for i in range(2)],
-        #                                  [MemorySlot(i) for i in range(2)]))
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split instructions with filters on channel 0, of type PulseInstruction,

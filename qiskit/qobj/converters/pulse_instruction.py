@@ -288,7 +288,7 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
-        qubit_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
+        acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
 
         mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
 
@@ -324,8 +324,8 @@ class QobjToInstructionConverter:
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
 
-        for qubit_channel, mem_slot, reg_slot in zip(qubit_channels, mem_slots, register_slots):
-            schedule |= commands.AcquireInstruction(cmd, qubit_channel, mem_slot, reg_slot) << t0
+        for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
+            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
 
         return schedule
 

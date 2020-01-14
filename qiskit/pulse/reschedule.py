@@ -144,6 +144,9 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     acquire_instructions = {}
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
+            if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
+                warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
+                              " the qubit index. I'm relabeling them to match.")
             for sublist in meas_map:
                 for acq in inst.acquires:
                     if acq.index in set(sublist):
