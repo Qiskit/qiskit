@@ -159,7 +159,6 @@ class SamplePulse(Command):
         np.set_printoptions(**opt)
         return repr_str
 
-
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel,
                        name: Optional[str] = None) -> 'PulseInstruction':
