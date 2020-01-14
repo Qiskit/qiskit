@@ -298,8 +298,8 @@ class TestControlledGate(QiskitTestCase):
         """Test the matrix representation of the multi-controlled CU1 gate."""
 
         # registers for the circuit
-        c = QuantumRegister(num_controls, name='c')
-        q_o = QuantumRegister(1, name='o')
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
         allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni)
@@ -307,17 +307,17 @@ class TestControlledGate(QiskitTestCase):
         for subset in allsubsets:
             control_int = 0
             lam = 0.3165354 * pi
-            qc = QuantumCircuit(q_o, c)
+            qc = QuantumCircuit(q_target, q_controls)
             for idx in subset:
                 control_int += 2**idx
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
-            qc.h(q_o[0])
-            qc.mcu1(lam, [c[i] for i in range(num_controls)], q_o[0])
-            qc.h(q_o[0])
+            qc.h(q_target[0])
+            qc.mcu1(lam, q_controls, q_target[0])
+            qc.h(q_target[0])
 
             for idx in subset:
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
             backend = BasicAer.get_backend('unitary_simulator')
             mat_mcu = execute(qc, backend).result().get_unitary(qc)
@@ -337,23 +337,20 @@ class TestControlledGate(QiskitTestCase):
         """Test multi-control Toffoli gate with clean ancillas."""
 
         # set up circuit
-        c = QuantumRegister(num_controls, name='c')
-        q_o = QuantumRegister(1, name='o')
-        qc = QuantumCircuit(q_o, c)
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_target, q_controls)
 
         # add ancillas if necessary
         num_ancillas = 0 if num_controls <= 2 else num_controls - 2
-        q_a = None
+        q_ancillas = None
         if num_ancillas > 0:
-            q_a = QuantumRegister(num_ancillas, name='a')
-            qc.add_register(q_a)
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
 
         # apply hadamard on control qubits and toffoli gate
-        qc.h(c)
-        qc.mct([c[i] for i in range(num_controls)],
-               q_o[0],
-               [q_a[i] for i in range(num_ancillas)],
-               mode=mode)
+        qc.h(q_controls)
+        qc.mct(q_controls, q_target[0], q_ancillas, mode=mode)
 
         # execute the circuit and obtain statevector result
         backend = BasicAer.get_backend('statevector_simulator')
@@ -378,9 +375,9 @@ class TestControlledGate(QiskitTestCase):
     )
     def test_multi_control_toffoli_matrix_dirty_ancillas(self, num_controls, mode):
         """Test multi-control Toffoli gate with dirty ancillas."""
-        c = QuantumRegister(num_controls, name='c')
-        q_o = QuantumRegister(1, name='o')
-        qc = QuantumCircuit(q_o, c)
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_target, q_controls)
 
         if mode == 'basic-dirty-ancilla':
             if num_controls <= 2:
@@ -395,15 +392,12 @@ class TestControlledGate(QiskitTestCase):
             else:
                 num_ancillas = 1
 
-        q_a = None
+        q_ancillas = None
         if num_ancillas > 0:
-            q_a = QuantumRegister(num_ancillas, name='a')
-            qc.add_register(q_a)
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
 
-        qc.mct([c[i] for i in range(num_controls)],
-               q_o[0],
-               [q_a[i] for i in range(num_ancillas)],
-               mode=mode)
+        qc.mct(q_controls, q_target[0], q_ancillas, mode=mode)
 
         mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
 
@@ -485,31 +479,31 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_controlled_rotation_gate_matrices(self, num_controls, base_gate_name,
                                                      use_basis_gates):
         """Test the multi controlled rotation gates without ancillas."""
-        c = QuantumRegister(num_controls, name='c')
-        q_o = QuantumRegister(1, name='o')
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
         allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
                                             ni in range(num_controls + 1)]))
         for subset in allsubsets:
             control_int = 0
             theta = 0.871236 * pi
-            qc = QuantumCircuit(q_o, c)
+            qc = QuantumCircuit(q_target, q_controls)
             for idx in subset:
                 control_int += 2**idx
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
             # call mcrx/mcry/mcrz
             if base_gate_name == 'y':
-                qc.mcry(theta, [c[i] for i in range(num_controls)], q_o[0], None, mode='noancilla',
+                qc.mcry(theta, q_controls, q_target[0], None, mode='noancilla',
                         use_basis_gates=use_basis_gates)
             else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
-                getattr(qc, 'mcr' + base_gate_name)(theta, [c[i] for i in range(num_controls)],
-                                                    q_o[0], use_basis_gates=use_basis_gates)
+                getattr(qc, 'mcr' + base_gate_name)(theta, q_controls, q_target[0],
+                                                    use_basis_gates=use_basis_gates)
 
             for idx in subset:
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
-            mat_mcu = execute(qc, BasicAer.get_backend(
-                'unitary_simulator')).result().get_unitary(qc)
+            backend = BasicAer.get_backend('unitary_simulator')
+            mat_mcu = execute(qc, backend).result().get_unitary(qc)
 
             dim = 2**(num_controls + 1)
             pos = dim - 2 * (control_int + 1)
@@ -536,37 +530,39 @@ class TestControlledGate(QiskitTestCase):
     )
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test multi controlled Y rotation using the mode 'basic'."""
+
+        # get the number of required ancilla qubits
         if num_controls <= 2:
             num_ancillas = 0
         else:
             num_ancillas = num_controls - 2
-        c = QuantumRegister(num_controls, name='c')
-        q_o = QuantumRegister(1, name='o')
+
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
         allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
                                             ni in range(num_controls + 1)]))
         for subset in allsubsets:
             control_int = 0
             theta = 0.871236 * pi
-            qc = QuantumCircuit(q_o, c)
+            qc = QuantumCircuit(q_target, q_controls)
             if num_ancillas > 0:
-                q_a = QuantumRegister(num_ancillas, name='a')
-                qc.add_register(q_a)
+                q_ancillas = QuantumRegister(num_ancillas)
+                qc.add_register(q_ancillas)
             else:
-                q_a = None
+                q_ancillas = None
 
             for idx in subset:
                 control_int += 2**idx
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
-            qc.mcry(theta, [c[i] for i in range(num_controls)], q_o[0],
-                    [q_a[i] for i in range(num_ancillas)], mode='basic',
+            qc.mcry(theta, q_controls, q_target[0], q_ancillas, mode='basic',
                     use_basis_gates=use_basis_gates)
 
             for idx in subset:
-                qc.x(c[idx])
+                qc.x(q_controls[idx])
 
-            mat_mcu = execute(qc, BasicAer.get_backend(
-                'unitary_simulator')).result().get_unitary(qc)
+            backend = BasicAer.get_backend('unitary_simulator')
+            mat_mcu = execute(qc, backend).result().get_unitary(qc)
 
             dim = 2**(num_controls + 1)
             mat_mcu = mat_mcu[:dim, :dim]
@@ -664,7 +660,7 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len([param for param in sig.parameters.values()
                                if param.kind == param.POSITIONAL_ONLY or
                                (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                param.default is param.empty)])
+                                   param.default is param.empty)])
                 args = [1] * numargs
 
                 gate = cls(*args)
@@ -688,7 +684,7 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len([param for param in sig.parameters.values()
                                if param.kind == param.POSITIONAL_ONLY or
                                (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                param.default is param.empty)])
+                                   param.default is param.empty)])
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
