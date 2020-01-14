@@ -574,7 +574,7 @@ class TextDrawing():
 
         lines = []
         for layer_group in layer_groups:
-            wires = [i for i in zip(*layer_group)]
+            wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
         return lines
@@ -605,7 +605,7 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '({name}{index}) q{physical}' + initial_qubit_value
+                label = '{name}_{index} -> {physical} ' + initial_qubit_value
                 qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
                                                  index=self.layout[bit.index].index,
                                                  physical=bit.index))
@@ -683,7 +683,6 @@ class TextDrawing():
         ret = []
         for param in op.params:
             try:
-                param = float(param)
                 str_param = pi_check(param, ndigits=5)
                 ret.append('%s' % str_param)
             except TypeError:
@@ -764,7 +763,7 @@ class TextDrawing():
         Args:
             layer (list): A list of elements.
         """
-        instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
+        instructions = list(filter(lambda x: x is not None, layer))
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
             instruction.layer_width = longest
