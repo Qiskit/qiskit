@@ -371,15 +371,15 @@ class TestScheduleBuilding(BaseTestSchedule):
         in QuantumCircuit representation. Note that parameters of u2 and u3 gate are respectively
         P0 and P1, and P0, P1 and P2, but this is conventionally provided in different ordering."""
 
-        pseud_u2_qobj = [PulseQobjInstruction(name='fc', ch='d0', t0=0, phase='-(P1)'),
-                         PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='-(P0)')]
+        pseudo_u2_qobj = [PulseQobjInstruction(name='fc', ch='d0', t0=0, phase='-(P1)'),
+                          PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='-(P0)')]
 
-        pseud_u3_qobj = [PulseQobjInstruction(name='fc', ch='d0', t0=0, phase='-(P2)'),
-                         PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='-(P0)'),
-                         PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P1)')]
+        pseudo_u3_qobj = [PulseQobjInstruction(name='fc', ch='d0', t0=0, phase='-(P2)'),
+                          PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='-(P0)'),
+                          PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P1)')]
 
-        cmd_def = [Command(name='u2', qubits=[0], sequence=pseud_u2_qobj),
-                   Command(name='u3', qubits=[0], sequence=pseud_u3_qobj)]
+        cmd_def = [Command(name='u2', qubits=[0], sequence=pseudo_u2_qobj),
+                   Command(name='u3', qubits=[0], sequence=pseudo_u3_qobj)]
 
         fake_default = PulseDefaults(qubit_freq_est=[1.0],
                                      meas_freq_est=[1.0],
