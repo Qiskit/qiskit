@@ -46,60 +46,60 @@ import qiskit.extensions.standard as allGates
 
 @ddt
 class TestControlledGate(QiskitTestCase):
-    """ControlledGate tests."""
+    """Tests for controlled gates and the ControlledGate class."""
 
     def test_controlled_x(self):
-        """Test creation of controlled x gate"""
+        """Test the creation of a controlled X gate."""
         self.assertEqual(XGate().control(), CnotGate())
 
     def test_controlled_y(self):
-        """Test creation of controlled y gate"""
+        """Test the creation of a controlled Y gate."""
         self.assertEqual(YGate().control(), CyGate())
 
     def test_controlled_z(self):
-        """Test creation of controlled z gate"""
+        """Test the creation of a controlled Z gate."""
         self.assertEqual(ZGate().control(), CzGate())
 
     def test_controlled_h(self):
-        """Test creation of controlled h gate"""
+        """Test the creation of a controlled H gate."""
         self.assertEqual(HGate().control(), CHGate())
 
     def test_controlled_u1(self):
-        """Test creation of controlled u1 gate"""
+        """Test the creation of a controlled U1 gate."""
         theta = 0.5
         self.assertEqual(U1Gate(theta).control(), Cu1Gate(theta))
 
     def test_controlled_rz(self):
-        """Test creation of controlled rz gate"""
+        """Test the creation of a controlled RZ gate."""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CrzGate(theta))
 
     def test_controlled_ry(self):
-        """Test creation of controlled ry gate"""
+        """Test the creation of a controlled RY gate."""
         theta = 0.5
         self.assertEqual(RYGate(theta).control(), CryGate(theta))
 
     def test_controlled_rx(self):
-        """Test creation of controlled rx gate"""
+        """Test the creation of a controlled RX gate."""
         theta = 0.5
         self.assertEqual(RXGate(theta).control(), CrxGate(theta))
 
     def test_controlled_u3(self):
-        """Test creation of controlled u3 gate"""
+        """Test the creation of a controlled U3 gate."""
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(U3Gate(theta, phi, lamb).control(),
                          Cu3Gate(theta, phi, lamb))
 
     def test_controlled_cx(self):
-        """Test creation of controlled cx gate"""
+        """Test the creation of a controlled CX gate."""
         self.assertEqual(CnotGate().control(), ToffoliGate())
 
     def test_controlled_swap(self):
-        """Test creation of controlled swap gate"""
+        """Test the creation of a controlled Swap gate."""
         self.assertEqual(SwapGate().control(), FredkinGate())
 
     def test_circuit_append(self):
-        """Test appending controlled gate to quantum circuit"""
+        """Test appending a controlled gate to a quantum circuit."""
         circ = QuantumCircuit(5)
         inst = CnotGate()
         circ.append(inst.control(), qargs=[0, 2, 1])
@@ -117,15 +117,15 @@ class TestControlledGate(QiskitTestCase):
             gate = instr[0]
             self.assertTrue(isinstance(gate, ControlledGate))
 
-    def test_definition_specification(self):
-        """Test instantiation with explicit definition"""
+    def test_swap_definition_specification(self):
+        """Test the instantiation of a controlled swap gate with explicit definition."""
         swap = SwapGate()
         cswap = ControlledGate('cswap', 3, [], num_ctrl_qubits=1,
                                definition=swap.definition)
         self.assertEqual(swap.definition, cswap.definition)
 
     def test_multi_controlled_composite_gate(self):
-        """Test multi controlled composite gate"""
+        """Test a multi controlled composite gate. """
         num_ctrl = 3
         # create composite gate
         sub_q = QuantumRegister(2)
@@ -149,7 +149,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
-        """Test singly controlled composite gate"""
+        """Test a singly controlled composite gate."""
         num_ctrl = 1
         # create composite gate
         sub_q = QuantumRegister(2)
@@ -170,7 +170,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_controlled_u3_matrix(self):
-        """test multi controlled u3 gate"""
+        """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
         import qiskit.extensions.standard.u3 as u3
         import qiskit.extensions.standard.cu3 as cu3
 
@@ -232,7 +232,7 @@ class TestControlledGate(QiskitTestCase):
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
     def test_controlled_u1_matrix(self):
-        """Test multi controlled u1 gate"""
+        """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.cu1 as cu1
 
@@ -293,7 +293,7 @@ class TestControlledGate(QiskitTestCase):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
-    @parameterized.expand([[1], [2], [3], [4]])
+    @data(1, 2, 3, 4)
     def test_multi_controlled_u1_matrix(self, num_controls):
         """Test the matrix representation of the multi-controlled CU1 gate."""
 
@@ -334,7 +334,7 @@ class TestControlledGate(QiskitTestCase):
         itertools.product([1, 2, 3], ['basic'])
     )
     def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls, mode):
-        """Test multi-control Toffoli gate with clean ancillas."""
+        """Test the multi-control Toffoli gate with clean ancillas."""
 
         # set up circuit
         q_controls = QuantumRegister(num_controls)
@@ -374,7 +374,7 @@ class TestControlledGate(QiskitTestCase):
                           ['basic-dirty-ancilla', 'advanced', 'noancilla'])
     )
     def test_multi_control_toffoli_matrix_dirty_ancillas(self, num_controls, mode):
-        """Test multi-control Toffoli gate with dirty ancillas."""
+        """Test the multi-control Toffoli gate with dirty ancillas."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_target, q_controls)
@@ -409,7 +409,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(np.allclose(mat_mct, mat_groundtruth))
 
     def test_single_controlled_rotation_gates(self):
-        """Test controlled rotation gates controlled on one qubit"""
+        """Test the controlled rotation gates controlled on one qubit."""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.rx as rx
         import qiskit.extensions.standard.ry as ry
@@ -529,7 +529,7 @@ class TestControlledGate(QiskitTestCase):
         itertools.product([1, 2, 4], [True, False])
     )
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
-        """Test multi controlled Y rotation using the mode 'basic'."""
+        """Test the multi controlled Y rotation using the mode 'basic'."""
 
         # get the number of required ancilla qubits
         if num_controls <= 2:
@@ -578,7 +578,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
-        """test inverting ControlledGate"""
+        """Test inverting the controlled X gate."""
         cnx = XGate().control(num_ctrl_qubits)
         inv_cnx = cnx.inverse()
         result = Operator(cnx).compose(Operator(inv_cnx))
@@ -587,7 +587,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_inverse_circuit(self, num_ctrl_qubits):
-        """test inverting ControlledGate"""
+        """Test inverting a controlled gate based on a circuit definition."""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
@@ -602,7 +602,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_controlled_unitary(self, num_ctrl_qubits):
-        """test controlled unitary"""
+        """Test the matrix data of an Operator, which is based on a controlled gate."""
         num_target = 1
         q_target = QuantumRegister(num_target)
         qc1 = QuantumCircuit(q_target)
@@ -621,7 +621,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_controlled_random_unitary(self, num_ctrl_qubits):
-        """test controlled unitary"""
+        """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2
         base_gate = UnitaryGate(scipy.stats.unitary_group.rvs(num_target))
         base_mat = base_gate.to_matrix()
@@ -632,8 +632,8 @@ class TestControlledGate(QiskitTestCase):
 
     def test_base_gate_setting(self):
         """
-        Test all gates in standard extensions which are of type ControlledGate
-        have a base gate setting.
+        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        setting.
         """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
@@ -645,8 +645,8 @@ class TestControlledGate(QiskitTestCase):
 
     def test_all_inverses(self):
         """
-        Test all gates in standard extensions except those that cannot be
-        controlled or are being deprecated.
+        Test all gates in standard extensions except those that cannot be controlled or are being
+        deprecated.
         """
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
@@ -672,9 +672,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
-        """
-        Test controlled versions of all standard gates.
-        """
+        """Test the controlled versions of all standard gates."""
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
         theta = pi / 2
