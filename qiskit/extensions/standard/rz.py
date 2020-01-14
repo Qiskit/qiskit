@@ -67,13 +67,6 @@ def rz(self, phi, q):  # pylint: disable=invalid-name
             phi = numpy.pi/2
             circuit.rz(phi,0)
             circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.rz import RZGate
-            RZGate(numpy.pi/2).to_matrix()
     """
     return self.append(RZGate(phi), [q], [])
 
