@@ -471,7 +471,7 @@ class ParameterizedSchedule:
     """
 
     def __init__(self, *schedules, parameters: Optional[List[str]] = None,
-                 name: Optional[str] = None, sort=False):
+                 name: Optional[str] = None, sort: bool = False):
         """ Create new parametrized schedule.
 
         Args:
@@ -482,16 +482,23 @@ class ParameterizedSchedule:
             sort: Sort parameter by names if `True`. This feature is recommended to be disabled to
                 keep original argument order. See additional information for details.
 
+        Raises:
+            PulseError: when invalid schedule data format is inserted.
+
         Additional information:
             When you add a schedule as generator function `gen(phi, lamb)`, you need to
             create a `ParametrizedSchedule` instance as::
+
                 my_sched = ParameterizedSchedule(gen, parameters=['phi', 'lamb'], name='my_sched')
+
             In this case, you need to keep `sort` option `False` as in the default.
 
             When you bind parameters without keys::
+
                 phi_1=0
                 lamb_1=1.57
                 my_sched.bind_parameters(phi_1, lamb_1)
+
             The `bind_parameters` method internally maps given arguments to `parameters` you set.
             If `sort` option is `True`, the function maps `phi_1` to `lamb` and `lamb_1` to `phi`
             due to alphabetically reordered parameters, resulting in the unexpected return value.
