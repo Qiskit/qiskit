@@ -358,40 +358,6 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def measure_qubits(self, qubits_to_measure : Dict = None):
-        """
-        """
-        import ipdb; ipdb.set_trace()
-        # inst_map = schedule_config.inst_map
-
-        if qubits_to_measure == None:
-            return self
-
-        measure = set()
-        all_qubits = set()
-        sched = Schedule()
-        for qubits in qubits_to_measure:
-            all_qubits.update(qubits)
-            unused_mem_slots = set(qubits) - set(qubits_to_measure.values())
-            default_sched = self
-            for time, inst in default_sched.instructions:
-                if isinstance(inst, AcquireInstruction):
-                    mem_slots = []
-                    for channel in inst.acquires:
-                        if channel.index in qubits_to_measure.keys():
-                            mem_slots.append(MemorySlot(qubits_to_measure[channel.index]))
-                        else:
-                            mem_slots.append(MemorySlot(unused_mem_slots.pop()))
-                    new_acquire = AcquireInstruction(command=inst.command,
-                                                    acquires=inst.acquires,
-                                                    mem_slots=mem_slots)
-                    sched._union((time, new_acquire))
-                # Measurement pulses should only be added if its qubit was measured by the user
-                elif inst.channels[0].index in qubits_to_measure.keys():
-                    sched._union((time, inst))
-        # qubits_to_measure.clear()
-        return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
-
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: float = None, channels_to_plot: Optional[List[Channel]] = None,

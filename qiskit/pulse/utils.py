@@ -16,6 +16,13 @@
 Pulse utilities.
 """
 import warnings
+from qiskit.pulse import InstructionScheduleMap
+from qiskit.providers import BaseBackend
+from typing import List, Dict, Optional
+from qiskit.scheduler.config import ScheduleConfig
+from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.channels import MemorySlot
+from qiskit.pulse.commands import AcquireInstruction
 # pylint: disable=unused-argument
 
 
@@ -41,3 +48,39 @@ def pad(schedule, channels=None, until=None):
     """
     warnings.warn("The function `pad` has been moved to qiskit.pulse.reschedule. It cannot be "
                   "invoked from `utils` anymore (this call returns None).")
+
+def measure(qubits: List[int],
+            schedule: Schedule,
+            backend: Optional[BaseBackend],
+            inst_map: Optional[InstructionScheduleMap],
+            meas_map: List[List[int]],
+            qubit_mem_slots: Optional[Dict[int, int]] = None):
+    """
+    """
+    # import ipdb; ipdb.set_trace()
+    inst_map = inst_map or backend.defaults().circuit_instruction_map
+    measure_groups = set()
+    all_qubits = set()
+    for qubit in qubits:
+        measure_groups.add(tuple(meas_map[qubit]))
+    for measure_group_qubits in measure_groups:
+        all_qubits.update(measure_group_qubits)
+        if qubit_mem_slots is not None:
+            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+        default_sched = inst_map.get('measure', measure_group_qubits)
+        for time, inst in default_sched.instructions:
+            if qubit_mem_slots is not None and isinstance(inst, AcquireInstruction):
+                mem_slots = []
+                for channel in inst.acquires:
+                    if channel.index in qubit_mem_slots.keys():
+                        mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
+                    else:
+                        mem_slots.append(MemorySlot(unused_mem_slots.pop()))
+                new_acquire = AcquireInstruction(command=inst.command,
+                                                 acquires=inst.acquires,
+                                                 mem_slots=mem_slots)
+                schedule = schedule.insert(time, new_acquire)
+            # Measurement pulses should only be added if its qubit was measured by the user
+            elif inst.channels[0].index in qubits:
+                schedule = schedule.insert(time, inst)
+    return schedule
