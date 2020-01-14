@@ -16,19 +16,17 @@
 import unittest
 
 import numpy as np
-
+from qiskit.providers.models.pulsedefaults import PulseDefaults, Command
+from qiskit.pulse import pulse_lib, SamplePulse
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
-from qiskit.pulse import pulse_lib, SamplePulse
-from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
-from qiskit.providers.models.pulsedefaults import PulseDefaults, Command
+from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.qobj import PulseQobjInstruction
-
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
