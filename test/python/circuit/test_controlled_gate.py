@@ -16,12 +16,12 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
+import itertools
 from inspect import signature
 import numpy as np
 from numpy import pi
 import scipy
 from ddt import ddt, data
-import itertools
 from parameterized import parameterized
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
@@ -169,7 +169,7 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = execute(qc, simulator).result().get_unitary(0)
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
-    def test_multi_control_u3(self):
+    def test_controlled_u3_matrix(self):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
         import qiskit.extensions.standard.cu3 as cu3
@@ -231,7 +231,7 @@ class TestControlledGate(QiskitTestCase):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
-    def test_multi_control_u1(self):
+    def test_controlled_u1_matrix(self):
         """Test multi controlled u1 gate"""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.cu1 as cu1
@@ -293,10 +293,47 @@ class TestControlledGate(QiskitTestCase):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
+    @parameterized.expand([[1], [2], [3], [4]])
+    def test_multi_controlled_u1_matrix(self, num_controls):
+        """Test the matrix representation of the multi-controlled CU1 gate."""
+
+        # registers for the circuit
+        c = QuantumRegister(num_controls, name='c')
+        q_o = QuantumRegister(1, name='o')
+
+        # iterate over all possible combinations of control qubits
+        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni)
+                                            for ni in range(num_controls + 1)]))
+        for subset in allsubsets:
+            control_int = 0
+            lam = 0.3165354 * pi
+            qc = QuantumCircuit(q_o, c)
+            for idx in subset:
+                control_int += 2**idx
+                qc.x(c[idx])
+
+            qc.h(q_o[0])
+            qc.mcu1(lam, [c[i] for i in range(num_controls)], q_o[0])
+            qc.h(q_o[0])
+
+            for idx in subset:
+                qc.x(c[idx])
+
+            backend = BasicAer.get_backend('unitary_simulator')
+            mat_mcu = execute(qc, backend).result().get_unitary(qc)
+
+            dim = 2**(num_controls + 1)
+            pos = dim - 2 * (control_int + 1)
+            mat_groundtruth = np.eye(dim, dtype=complex)
+            fac = np.exp(1j * lam)
+            mat_groundtruth[pos:pos + 2, pos:pos + 2] = [[(1 + fac) / 2, (1 - fac) / 2],
+                                                         [(1 - fac) / 2, (1 + fac) / 2]]
+            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
+
     @parameterized.expand(
         itertools.product([1, 2, 3], ['basic'])
     )
-    def test_multi_control_toffoli_clean_ancillas(self, num_controls, mode):
+    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls, mode):
         """Test multi-control Toffoli gate with clean ancillas."""
 
         # set up circuit
@@ -339,7 +376,7 @@ class TestControlledGate(QiskitTestCase):
         itertools.product([1, 2, 3, 4, 5],
                           ['basic-dirty-ancilla', 'advanced', 'noancilla'])
     )
-    def test_multi_control_toffoli_dirty_ancillas(self, num_controls, mode):
+    def test_multi_control_toffoli_matrix_dirty_ancillas(self, num_controls, mode):
         """Test multi-control Toffoli gate with dirty ancillas."""
         c = QuantumRegister(num_controls, name='c')
         q_o = QuantumRegister(1, name='o')
@@ -445,7 +482,8 @@ class TestControlledGate(QiskitTestCase):
     @parameterized.expand(
         itertools.product([1, 2, 4], ['x', 'y', 'z'], [True, False])
     )
-    def test_multi_controlled_rotation_gates(self, num_controls, base_gate_name, use_basis_gates):
+    def test_multi_controlled_rotation_gate_matrices(self, num_controls, base_gate_name,
+                                                     use_basis_gates):
         """Test the multi controlled rotation gates without ancillas."""
         c = QuantumRegister(num_controls, name='c')
         q_o = QuantumRegister(1, name='o')
@@ -496,7 +534,7 @@ class TestControlledGate(QiskitTestCase):
     @parameterized.expand(
         itertools.product([1, 2, 4], [True, False])
     )
-    def test_multi_controlled_y_rotation_basic_mode(self, num_controls, use_basis_gates):
+    def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test multi controlled Y rotation using the mode 'basic'."""
         if num_controls <= 2:
             num_ancillas = 0
@@ -626,7 +664,7 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len([param for param in sig.parameters.values()
                                if param.kind == param.POSITIONAL_ONLY or
                                (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                   param.default is param.empty)])
+                                param.default is param.empty)])
                 args = [1] * numargs
 
                 gate = cls(*args)
@@ -650,7 +688,7 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len([param for param in sig.parameters.values()
                                if param.kind == param.POSITIONAL_ONLY or
                                (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                   param.default is param.empty)])
+                                param.default is param.empty)])
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
