@@ -243,11 +243,10 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             from collections import namedtuple
             backend_config_defaults = getattr(backend_config, 'defaults', {})
             BackendDefault = namedtuple('BackendDefault',
-                                        ('qubit_freq_est', 'meas_freq_est', 'rep_time'))
+                                        ('qubit_freq_est', 'meas_freq_est'))
             backend_default = BackendDefault(
                 qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
-                meas_freq_est=backend_config_defaults.get('meas_freq_est'),
-                rep_time=backend_config_defaults.get('rep_time'),
+                meas_freq_est=backend_config_defaults.get('meas_freq_est')
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
@@ -267,9 +266,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
-
-    if not rep_time and hasattr(backend_default, 'rep_times'):
-        rep_time = backend_default.rep_time
+    rep_time = rep_time or getattr(backend_config, 'rep_times', None)
 
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
