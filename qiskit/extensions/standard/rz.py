@@ -73,7 +73,7 @@ def rz(self, phi, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit.extensions.standard.rz import RZGate
-            RZGate().to_matrix()
+            RZGate(numpy.pi/2).to_matrix()
     """
     return self.append(RZGate(phi), [q], [])
 

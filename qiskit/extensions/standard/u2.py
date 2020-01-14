@@ -83,7 +83,7 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit.extensions.standard.u2 import U2Gate
-            U2Gate().to_matrix()
+            U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
     """
     return self.append(U2Gate(phi, lam), [q], [])
 

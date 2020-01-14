@@ -74,7 +74,7 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit.extensions.standard.u1 import U1Gate
-            U1Gate().to_matrix()
+            U1Gate(numpy.pi/2).to_matrix()
     """
     return self.append(U1Gate(theta), [q], [])
 

@@ -77,7 +77,7 @@ def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit.extensions.standard.u3 import U3Gate
-            U3Gate().to_matrix()
+            U3Gate(numpy.pi/2,numpy.pi/2,numpy.pi/2).to_matrix()
     """
     return self.append(U3Gate(theta, phi, lam), [q], [])
 
