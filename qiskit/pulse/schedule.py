@@ -471,7 +471,7 @@ class ParameterizedSchedule:
     """
 
     def __init__(self, *schedules, parameters: Optional[List[str]] = None,
-                 name: Optional[str] = None, sort: bool = False):
+                 name: Optional[str] = None, sort: Optional[bool] = False):
         """ Create new parametrized schedule.
 
         Args:
