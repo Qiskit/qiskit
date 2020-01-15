@@ -21,7 +21,8 @@ from inspect import signature
 import numpy as np
 from numpy import pi
 import scipy
-from ddt import ddt, data, unpack
+from test import combine
+from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
@@ -329,10 +330,7 @@ class TestControlledGate(QiskitTestCase):
                                                          [(1 - fac) / 2, (1 + fac) / 2]]
             self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
 
-    @unpack
-    @data(*itertools.product(
-        [1, 2, 3], ['basic']
-    ))
+    @combine(num_controls=[1, 2, 3], mode=['basic'])
     def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls, mode):
         """Test the multi-control Toffoli gate with clean ancillas."""
 
@@ -369,10 +367,7 @@ class TestControlledGate(QiskitTestCase):
         s_f = state_fidelity(vec_mct, vec_groundtruth)
         self.assertAlmostEqual(s_f, 1)
 
-    @unpack
-    @data(*itertools.product(
-        [1, 2, 3, 4, 5], ['basic-dirty-ancilla', 'advanced', 'noancilla']
-    ))
+    @combine(num_controls=[1, 2, 3, 4, 5], mode=['basic-dirty-ancilla', 'advanced', 'noancilla'])
     def test_multi_control_toffoli_matrix_dirty_ancillas(self, num_controls, mode):
         """Test the multi-control Toffoli gate with dirty ancillas."""
         q_controls = QuantumRegister(num_controls)
@@ -473,10 +468,9 @@ class TestControlledGate(QiskitTestCase):
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
-    @unpack
-    @data(*itertools.product(
-        [1, 2, 4], ['x', 'y', 'z'], [True, False]
-    ))
+    @combine(num_controls=[1, 2, 4],
+             base_gate_name=['x', 'y', 'z'],
+             use_basis_gates=[True, False])
     def test_multi_controlled_rotation_gate_matrices(self, num_controls, base_gate_name,
                                                      use_basis_gates):
         """Test the multi controlled rotation gates without ancillas."""
@@ -526,10 +520,7 @@ class TestControlledGate(QiskitTestCase):
             mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
             self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
 
-    @unpack
-    @data(*itertools.product(
-        [1, 2, 4], [True, False]
-    ))
+    @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test the multi controlled Y rotation using the mode 'basic'."""
 
