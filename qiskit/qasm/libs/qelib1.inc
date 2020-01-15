@@ -29,11 +29,13 @@ gate h a { u2(0,pi) a; }
 // Clifford gate: sqrt(Z) phase gate
 gate s a { u1(pi/2) a; }
 // Clifford gate: conjugate of sqrt(Z)
-gate sinv a { u1(-pi/2) a; }
+gate sdg a { u1(-pi/2) a; }
+gate sinv a { sdg a; }
 // C3 gate: sqrt(S) phase gate
 gate t a { u1(pi/4) a; }
 // C3 gate: conjugate of sqrt(S)
-gate tinv a { u1(-pi/4) a; }
+gate tdg a { u1(-pi/4) a; }
+gate tinv a { tdg a; }
 
 // --- Standard rotations ---
 // Rotation around X-axis
