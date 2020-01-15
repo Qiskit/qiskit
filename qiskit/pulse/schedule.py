@@ -471,7 +471,7 @@ class ParameterizedSchedule:
     """
 
     def __init__(self, *schedules, parameters: Optional[List[str]] = None,
-                 name: Optional[str] = None, sort: Optional[bool] = False):
+                 name: Optional[str] = None):
         """ Create new parametrized schedule.
 
         Args:
@@ -479,35 +479,9 @@ class ParameterizedSchedule:
                 or python callback function to generate schedules.
             parameters: List of name of parameters.
             name: Name of the schedule.
-            sort: Sort parameter by names if `True`. This feature is recommended to be disabled to
-                keep original argument order. See additional information for details.
 
         Raises:
             PulseError: when invalid schedule data format is inserted.
-
-        Additional information:
-            When you add a schedule as generator function `gen(phi, lamb)`, you need to
-            create a `ParametrizedSchedule` instance as::
-
-                my_sched = ParameterizedSchedule(gen, parameters=['phi', 'lamb'], name='my_sched')
-
-            In this case, you need to keep `sort` option `False` as in the default.
-
-            When you bind parameters without keys::
-
-                phi_1=0
-                lamb_1=1.57
-                my_sched.bind_parameters(phi_1, lamb_1)
-
-            The `bind_parameters` method internally maps given arguments to `parameters` you set.
-            If `sort` option is `True`, the function maps `phi_1` to `lamb` and `lamb_1` to `phi`
-            due to alphabetically reordered parameters, resulting in the unexpected return value.
-
-            This option is valid only when the `ParametrizedSchedule` consists of multiple
-            `ParametrizedSchedule`s and need to reorder the parameters by name. For example,
-            the pulse command definition of IBMQ provider conventionally uses instruction sequence
-            FC(P2)-X90p-FC(P0)-X90m-FC(P1) for U3 gate definition, and `sort` option is used to
-            alphabetically reorder the parameters, i.e. `('P0', 'P1', 'P2')`.
         """
         full_schedules = []
         parameterized = []
@@ -517,7 +491,9 @@ class ParameterizedSchedule:
         for schedule in schedules:
             if isinstance(schedule, ParameterizedSchedule):
                 parameterized.append(schedule)
-                parameters += schedule.parameters
+                for parameter in schedule.parameters:
+                    if parameter not in parameters:
+                        parameters.append(parameter)
             elif callable(schedule):
                 parameterized.append(schedule)
             elif isinstance(schedule, Schedule):
@@ -527,15 +503,7 @@ class ParameterizedSchedule:
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
-
-        params_set = []
-        # do not use built-in function set because this is not order sensitive
-        # pylint: disable=expression-not-assigned
-        [params_set.append(pname) for pname in parameters if pname not in params_set]
-
-        params_set = tuple(sorted(params_set)) if sort else tuple(params_set)
-
-        self._parameters = params_set
+        self._parameters = tuple(parameters)
 
     @property
     def parameters(self) -> Tuple[str]:

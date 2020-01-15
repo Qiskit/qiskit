@@ -144,7 +144,15 @@ class PulseDefaults(BaseModel):
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name, sort=True)
+            # there is mismatch among instruction sequence and parameter ordering
+            # in u2 and u3 gates.
+            parameters = []
+            if inst.name in ['u2', 'u3']:
+                for pulse_inst in pulse_insts:
+                    if isinstance(pulse_inst, ParameterizedSchedule):
+                        parameters.extend(pulse_inst.parameters)
+                parameters = list(sorted(set(parameters)))
+            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name, parameters=parameters)
             self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
 
     @property
