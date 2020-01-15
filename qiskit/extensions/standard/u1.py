@@ -22,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
 
+# pylint: disable=cyclic-import
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
@@ -78,7 +79,6 @@ class Cu1Gate(ControlledGate):
 
     def __init__(self, theta):
         """Create new cu1 gate."""
-        from qiskit.extensions.standard.u1 import U1Gate
         super().__init__("cu1", 2, [theta], num_ctrl_qubits=1)
         self.base_gate = U1Gate
         self.base_gate_name = "u1"

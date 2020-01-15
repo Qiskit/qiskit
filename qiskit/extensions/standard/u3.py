@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
 
+# pylint: disable=cyclic-import
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
@@ -80,7 +81,6 @@ class Cu3Gate(ControlledGate):
 
     def __init__(self, theta, phi, lam):
         """Create new cu3 gate."""
-        from qiskit.extensions.standard.u3 import U3Gate
         super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate
         self.base_gate_name = "u3"
@@ -97,7 +97,6 @@ class Cu3Gate(ControlledGate):
         }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.u3 import U3Gate
         from qiskit.extensions.standard.x import CnotGate
         definition = []
         q = QuantumRegister(2, "q")

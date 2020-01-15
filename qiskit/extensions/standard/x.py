@@ -37,7 +37,6 @@ class XGate(Gate):
         }
         """
         from qiskit.extensions.standard.u3 import U3Gate
-        from qiskit.extensions.standard.h import HGate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -58,7 +57,7 @@ class XGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CHGate()
+            return CnotGate()
         elif num_ctrl_qubits == 2:
             return ToffoliGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)

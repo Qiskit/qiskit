@@ -23,6 +23,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.qasm import pi
 
 
+# pylint: disable=cyclic-import
 class HGate(Gate):
     """Hadamard gate."""
 
