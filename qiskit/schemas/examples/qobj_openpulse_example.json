@@ -4,8 +4,7 @@
     "type": "PULSE",
     "header": {
         "description": "Set of Experiments 1",
-        "backend_name": "pulse_simulator2",
-        "description": "Sample pulse experiment"
+        "backend_name": "pulse_simulator2"
         },
     "config": {
         "shots": 1024,
