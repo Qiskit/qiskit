@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CnotGate
 from qiskit.qasm import pi
 
 

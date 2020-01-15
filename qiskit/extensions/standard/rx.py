@@ -21,10 +21,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.r import RGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
@@ -39,6 +35,7 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
+        from qiskit.extensions.standard.r import RGate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -104,6 +101,9 @@ class CrxGate(ControlledGate):
           u3(theta/2,-pi/2,0) t;
         }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.x import CnotGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

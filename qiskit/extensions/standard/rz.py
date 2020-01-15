@@ -19,8 +19,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CnotGate
 
 
 class RZGate(Gate):
@@ -34,6 +32,7 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -89,6 +88,8 @@ class CrzGate(ControlledGate):
           u1(-lambda/2) b; cx a,b;
         }
         """
+        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
         q = QuantumRegister(2, "q")
         rule = [

@@ -20,8 +20,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.cx import CnotGate
 
 
 class SwapGate(Gate):
@@ -35,6 +33,7 @@ class SwapGate(Gate):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
+        from qiskit.extensions.standard.x import CnotGate
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
@@ -97,6 +96,8 @@ class FredkinGate(ControlledGate):
           cx c,b;
         }
         """
+        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.ccx import ToffoliGate
         definition = []
         q = QuantumRegister(3, "q")
         rule = [
