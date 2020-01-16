@@ -95,6 +95,8 @@ class P_BFGS(Optimizer):
         queue = multiprocessing.Queue()
         # bounds for additional initial points in case bounds has any None values
         threshold = 2*np.pi
+        if variable_bounds is None:
+            variable_bounds = [(-threshold, threshold)] * num_vars
         low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
         high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
 
