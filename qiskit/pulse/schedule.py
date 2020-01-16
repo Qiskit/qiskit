@@ -397,10 +397,9 @@ class Schedule(ScheduleComponent):
                 channel_scales = {pulse.DriveChannels(0): 10.0,
                                   pulse.MeasureChannels(0): 5.0}
 
-            When you set `None` for a dictionary value or the channel is not included
-            in the dictionary, scaling factor of that channel is overwritten by
-            the value of `scale` argument. In default, waveform amplitude is
-            normalized by the maximum amplitude of the channel.
+            When the channel to plot is not included in the `channel_scales` dictionary,
+            scaling factor of that channel is overwritten by the value of `scale` argument.
+            In default, waveform amplitude is normalized by the maximum amplitude of the channel.
             The scaling factor is displayed under the channel name alias.
 
         Returns:
