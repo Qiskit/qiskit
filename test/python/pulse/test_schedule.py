@@ -360,7 +360,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched += Acquire(duration=1500)(AcquireChannel(0),
                                         mem_slots=[MemorySlot(0)]) << sched_duration
         self.assertEqual(sched.duration, 1525)
-        self.assertTrue('sigma' in sched.instructions[0][1].command.get_parameters())
+        self.assertTrue('sigma' in sched.instructions[0][1].command.parameters)
 
 
 class TestDelay(BaseTestSchedule):

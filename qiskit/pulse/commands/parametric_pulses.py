@@ -85,11 +85,11 @@ class ParametricPulse(PulseCommand):
         """
         pass
 
-    def get_parameters(self) -> Dict[str, Any]:
+    @property
+    @abstractmethod
+    def parameters(self) -> Dict[str, Any]:
         """Return a dictionary containing the pulse's parameters."""
-        return {attr[1:]: getattr(self, attr)
-                for attr in self.__dict__
-                if attr.startswith('_') and attr != '_name'}
+        pass
 
     def to_instruction(self, channel: PulseChannel,
                        name: Optional[str] = None) -> 'ParametricInstruction':
@@ -124,7 +124,7 @@ class ParametricPulse(PulseCommand):
     def __repr__(self):
         return '{}(name={}, parameters={})'.format(self.__class__.__name__,
                                                    self.name,
-                                                   self.get_parameters())
+                                                   self.parameters)
 
 
 class Gaussian(ParametricPulse):
@@ -169,6 +169,10 @@ class Gaussian(ParametricPulse):
                              "found: {}".format(abs(self.amp)))
         if self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
 
 class GaussianSquare(ParametricPulse):
@@ -231,6 +235,11 @@ class GaussianSquare(ParametricPulse):
             raise PulseError("Sigma must be greater than 0.")
         if self.width < 0 or self.width >= self.duration:
             raise PulseError("The pulse width must be at least 0 and less than its duration.")
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
+                "width": self.width}
 
 
 class Drag(ParametricPulse):
@@ -318,6 +327,11 @@ class Drag(ParametricPulse):
             if abs(max_val) > 1.:
                 raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
+                "beta": self.beta}
+
 
 class ConstantPulse(ParametricPulse):
     """
@@ -351,6 +365,10 @@ class ConstantPulse(ParametricPulse):
         if abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {"duration": self.duration, "amp": self.amp}
 
 
 class ParametricInstruction(Instruction):
