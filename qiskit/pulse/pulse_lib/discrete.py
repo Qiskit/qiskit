@@ -58,7 +58,7 @@ def zero(duration: int, name: Optional[str] = None) -> SamplePulse:
 _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
-def square(duration: int, amp: complex, period: float = None,
+def square(duration: int, amp: complex, freq: float = None,
            phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates square wave `SamplePulse`.
 
@@ -67,40 +67,40 @@ def square(duration: int, amp: complex, period: float = None,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if period is None:
-        period = duration
+    if freq is None:
+        freq = 1./duration
 
-    return _sampled_square_pulse(duration, amp, period, phase=phase, name=name)
+    return _sampled_square_pulse(duration, amp, freq, phase=phase, name=name)
 
 
 _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
-def sawtooth(duration: int, amp: complex, period: float = None,
+def sawtooth(duration: int, amp: complex, freq: float = None,
              phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates sawtooth wave `SamplePulse`.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if period is None:
-        period = duration
+    if freq is None:
+        freq = 1./duration
 
-    return _sampled_sawtooth_pulse(duration, amp, period, phase=phase, name=name)
+    return _sampled_sawtooth_pulse(duration, amp, freq, phase=phase, name=name)
 
 
 _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
-def triangle(duration: int, amp: complex, period: float = None,
+def triangle(duration: int, amp: complex, freq: float = None,
              phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates triangle wave `SamplePulse`.
 
@@ -109,14 +109,14 @@ def triangle(duration: int, amp: complex, period: float = None,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if period is None:
-        period = duration
+    if freq is None:
+        freq = 1./duration
 
-    return _sampled_triangle_pulse(duration, amp, period, phase=phase, name=name)
+    return _sampled_triangle_pulse(duration, amp, freq, phase=phase, name=name)
 
 
 _sampled_cos_pulse = samplers.midpoint(continuous.cos)

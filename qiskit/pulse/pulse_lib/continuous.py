@@ -42,42 +42,42 @@ def zero(times: np.ndarray) -> np.ndarray:
     return constant(times, 0)
 
 
-def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def square(times: np.ndarray, amp: complex, freq:float, phase: float = 0) -> np.ndarray:
     """Continuous square wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    x = times/period+phase/np.pi
+    x = times*freq+phase/np.pi
     return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
 
 
-def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous sawtooth wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    x = times/period+phase/np.pi
+    x = times*freq+phase/np.pi
     return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
 
 
-def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous triangle wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    return amp*(-2*np.abs(sawtooth(times, 1, period, (phase-np.pi/2)/2)) + 1).astype(np.complex_)
+    return amp*(-2*np.abs(sawtooth(times, 1, freq, (phase-np.pi/2)/2)) + 1).astype(np.complex_)
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
