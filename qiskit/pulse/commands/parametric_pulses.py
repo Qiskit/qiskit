@@ -102,7 +102,7 @@ class ParametricPulse(PulseCommand):
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
              scaling: float = None):
-        """Plot the interpolated envelope of pulse.
+        """Plot the pulse.
 
         Args:
             dt: Time interval of samples.
