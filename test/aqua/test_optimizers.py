@@ -15,7 +15,7 @@
 """ Test Optimizers """
 
 import unittest
-from test.aqua.common import QiskitAquaTestCase
+from test.aqua import QiskitAquaTestCase
 
 from scipy.optimize import rosen
 import numpy as np
