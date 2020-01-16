@@ -121,11 +121,6 @@ class ParametricPulse(PulseCommand):
                                             interp_method=interp_method, scale=scale,
                                             interactive=interactive)
 
-    def __repr__(self):
-        return '{}(name={}, parameters={})'.format(self.__class__.__name__,
-                                                   self.name,
-                                                   self.parameters)
-
 
 class Gaussian(ParametricPulse):
     """
@@ -173,6 +168,10 @@ class Gaussian(ParametricPulse):
     @property
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
+
+    def __repr__(self):
+        return '{}(duration={}, amp={}, sigma={})' \
+               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma)
 
 
 class GaussianSquare(ParametricPulse):
@@ -240,6 +239,10 @@ class GaussianSquare(ParametricPulse):
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
                 "width": self.width}
+
+    def __repr__(self):
+        return '{}(duration={}, amp={}, sigma={}, width={})' \
+               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width)
 
 
 class Drag(ParametricPulse):
@@ -332,6 +335,10 @@ class Drag(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
                 "beta": self.beta}
 
+    def __repr__(self):
+        return '{}(duration={}, amp={}, sigma={}, beta={})' \
+               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta)
+
 
 class ConstantPulse(ParametricPulse):
     """
@@ -369,6 +376,9 @@ class ConstantPulse(ParametricPulse):
     @property
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp}
+
+    def __repr__(self):
+        return '{}(duration={}, amp={})'.format(self.__class__.__name__, self.duration, self.amp)
 
 
 class ParametricInstruction(Instruction):

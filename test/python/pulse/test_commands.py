@@ -371,6 +371,18 @@ class TestParametricPulses(QiskitTestCase):
         const = ConstantPulse(duration=150, amp=1)
         self.assertEqual(set(const.parameters.keys()), {'duration', 'amp'})
 
+    def test_repr(self):
+        """Test the repr methods for parametric pulses."""
+        gaussian = Gaussian(duration=25, amp=0.7, sigma=4)
+        self.assertEqual(repr(gaussian), 'Gaussian(duration=25, amp=(0.7+0j), sigma=4)')
+        gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
+        self.assertEqual(repr(gaus_square),
+                         'GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=3)')
+        drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
+        self.assertEqual(repr(drag), 'Drag(duration=5, amp=(0.5+0j), sigma=7, beta=1)')
+        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
+        self.assertEqual(repr(const), 'ConstantPulse(duration=150, amp=(0.1+0.4j))')
+
     def test_complex_param_is_complex(self):
         """Check that complex param 'amp' is cast to complex."""
         const = ConstantPulse(duration=150, amp=1)
