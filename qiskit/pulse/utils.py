@@ -54,10 +54,11 @@ def measure(qubits: List[int],
             backend: Optional[BaseBackend],
             inst_map: Optional[InstructionScheduleMap],
             meas_map: List[List[int]],
-            qubit_mem_slots: Optional[Dict[int, int]] = None):
+            qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
+    This is a utility function to measure only a subset of qubits using OpenPulse.
     """
-    # import ipdb; ipdb.set_trace()
+
     inst_map = inst_map or backend.defaults().circuit_instruction_map
     measure_groups = set()
     all_qubits = set()

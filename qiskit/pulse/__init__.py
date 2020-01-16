@@ -90,3 +90,4 @@ from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
+from .utils import measure
