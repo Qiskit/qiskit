@@ -139,7 +139,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
-        np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].parameters,
+        np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
 
     def test_assemble_opaque_inst(self):
