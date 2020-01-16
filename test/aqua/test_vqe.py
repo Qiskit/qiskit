@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@
 
 import unittest
 import os
-from test.aqua.common import QiskitAquaTestCase
+from test.aqua import QiskitAquaTestCase
 import numpy as np
 from parameterized import parameterized
 from qiskit import BasicAer
@@ -153,12 +153,12 @@ class TestVQE(QiskitAquaTestCase):
     def test_vqe_callback(self):
         """ VQE Callback test """
         tmp_filename = 'vqe_callback_test.csv'
-        is_file_exist = os.path.exists(self._get_resource_path(tmp_filename))
+        is_file_exist = os.path.exists(self.get_resource_path(tmp_filename))
         if is_file_exist:
-            os.remove(self._get_resource_path(tmp_filename))
+            os.remove(self.get_resource_path(tmp_filename))
 
         def store_intermediate_result(eval_count, parameters, mean, std):
-            with open(self._get_resource_path(tmp_filename), 'a') as file:
+            with open(self.get_resource_path(tmp_filename), 'a') as file:
                 content = "{},{},{:.5f},{:.5f}".format(eval_count, parameters, mean, std)
                 print(content, file=file, flush=True)
 
@@ -176,7 +176,7 @@ class TestVQE(QiskitAquaTestCase):
                                            seed_simulator=50)
         algo.run(quantum_instance)
 
-        is_file_exist = os.path.exists(self._get_resource_path(tmp_filename))
+        is_file_exist = os.path.exists(self.get_resource_path(tmp_filename))
         self.assertTrue(is_file_exist, "Does not store content successfully.")
 
         # check the content
@@ -191,7 +191,7 @@ class TestVQE(QiskitAquaTestCase):
                         '-0.82829', '0.01529']
                        ]
         try:
-            with open(self._get_resource_path(tmp_filename)) as file:
+            with open(self.get_resource_path(tmp_filename)) as file:
                 idx = 0
                 for record in file.readlines():
                     eval_count, parameters, mean, std = record.split(",")
@@ -202,7 +202,7 @@ class TestVQE(QiskitAquaTestCase):
                     idx += 1
         finally:
             if is_file_exist:
-                os.remove(self._get_resource_path(tmp_filename))
+                os.remove(self.get_resource_path(tmp_filename))
 
 
 if __name__ == '__main__':
