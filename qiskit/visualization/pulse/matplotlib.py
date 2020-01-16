@@ -348,15 +348,11 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, output_channels, scale, channels=None,
-                               plot_all=False, scaling=None):
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
+    def _count_valid_waveforms(self, output_channels, scale, channel_scales=None,
+                               channels=None, plot_all=False):
         # count numbers of valid waveform
         n_valid_waveform = 0
-        scale_channels = {chan: 0 for chan in output_channels.keys()}
+        scale_dict = {chan: 0 for chan in output_channels.keys()}
         for channel, events in output_channels.items():
             v_max = 0
             if channels:
@@ -376,17 +372,17 @@ class ScheduleDrawer:
                     n_valid_waveform += 1
                     events.enable = True
 
-            scale_val = scale.get(channel, None)
+            scale_val = channel_scales.get(channel, scale)
             if not scale_val:
                 # when input schedule is empty or comprises only frame changes,
                 # we need to overwrite maximum amplitude by a value greater than zero,
                 # otherwise auto axis scaling will fail with zero division.
                 v_max = v_max or 1
-                scale_channels[channel] = 1 / v_max
+                scale_dict[channel] = 1 / v_max
             else:
-                scale_channels[channel] = scale_val
+                scale_dict[channel] = scale_val
 
-        return n_valid_waveform, scale_channels
+        return n_valid_waveform, scale_dict
 
     # pylint: disable=unused-argument
     def _draw_table(self, figure, channels, dt, n_valid_waveform):
@@ -575,8 +571,8 @@ class ScheduleDrawer:
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scale=None, channels_to_plot=None, plot_all=True,
-             table=True, label=False, framechange=True,
+             scale=None, channel_scales=None, channels_to_plot=None,
+             plot_all=True, table=True, label=False, framechange=True,
              scaling=None, channels=None,
              show_framechange_channels=True):
         """Draw figure.
@@ -587,9 +583,9 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scale (float or dict[Channel, float]): Relative visual scaling of waveform amplitudes.
-                Channel independent scaling is applied if this is given as
-                a dictionary of Channel object.
+            scale (float): Relative visual scaling of waveform amplitudes.
+            channel_scales (dict[Channel, float]): Channel independent scaling as a
+                dictionary of `Channel` object.
             channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
@@ -610,11 +606,6 @@ class ScheduleDrawer:
             scale = scaling
         figure = plt.figure()
 
-        if not isinstance(scale, dict):
-            scale_dict_tmp = {chan: scale for chan in schedule.channels}
-        else:
-            scale_dict_tmp = scale
-
         if channels_to_plot is not None:
             warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
                           DeprecationWarning, 3)
@@ -623,6 +614,9 @@ class ScheduleDrawer:
         if channels is None:
             channels = []
         interp_method = interp_method or interpolation.step_wise
+
+        if channel_scales is None:
+            channel_scales = {}
 
         # setup plot range
         if plot_range:
@@ -647,7 +641,8 @@ class ScheduleDrawer:
         # count numbers of valid waveform
 
         n_valid_waveform, scale_dict = self._count_valid_waveforms(output_channels,
-                                                                   scale=scale_dict_tmp,
+                                                                   scale=scale,
+                                                                   channel_scales=channel_scales,
                                                                    channels=channels,
                                                                    plot_all=plot_all)
 
