@@ -15,8 +15,9 @@
 """Test cases for the pulse scheduler passes."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
+from qiskit.circuit import Gate
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot)
+                          MeasureChannel, MemorySlot, Gaussian)
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -284,6 +285,17 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1].command, expected[1].command)
             self.assertEqual(actual[1].channels, expected[1].channels)
+
+    def test_parametric_input(self):
+        """Test that scheduling works with parametric pulses as input."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.append(Gate('gauss', 1, []), qargs=[qr[0]])
+        custom_gauss = Schedule(Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0)))
+        self.inst_map.add('gauss', [0], custom_gauss)
+        sched = schedule(qc, self.backend, inst_map=self.inst_map)
+        self.assertEqual(sched.instructions[0],
+                         custom_gauss.instructions[0])
 
 
 class TestCmdDefBasicSchedule(QiskitTestCase):
