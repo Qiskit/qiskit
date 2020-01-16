@@ -43,6 +43,30 @@ class BaseJob(ABC):
         """Return the backend where this job was executed."""
         return self._backend
 
+    def done(self):
+        """Return whether the job has successfully run.
+
+        Returns:
+             True if job status is done, else false.
+         """
+        return self.status() == JobStatus.DONE
+
+    def running(self):
+        """Return whether the job is actively running.
+
+        Returns:
+             True if job status is running, else false.
+         """
+        return self.status() == JobStatus.RUNNING
+
+    def cancelled(self):
+        """Return whether the job has been cancelled.
+
+        Returns:
+            True if job status is cancelled, else false.
+        """
+        return self.status() == JobStatus.CANCELLED
+
     @abstractmethod
     def submit(self):
         """Submit the job to the backend for execution."""
