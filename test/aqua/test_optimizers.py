@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,7 +21,7 @@ from scipy.optimize import rosen
 import numpy as np
 
 from qiskit.aqua import aqua_globals
-from qiskit.aqua.components.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, NELDER_MEAD,
+from qiskit.aqua.components.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
                                                POWELL, SLSQP, SPSA, TNC)
 
 
@@ -59,6 +59,12 @@ class TestOptimizers(QiskitAquaTestCase):
     def test_l_bfgs_b(self):
         """ l_bfgs_b test """
         optimizer = L_BFGS_B(maxfun=1000)
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
+
+    def test_p_bfgs(self):
+        """ parallel l_bfgs_b test """
+        optimizer = P_BFGS(maxfun=1000)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
