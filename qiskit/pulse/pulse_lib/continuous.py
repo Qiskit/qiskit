@@ -42,7 +42,7 @@ def zero(times: np.ndarray) -> np.ndarray:
     return constant(times, 0)
 
 
-def square(times: np.ndarray, amp: complex, freq:float, phase: float = 0) -> np.ndarray:
+def square(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous square wave.
 
     Args:
