@@ -22,7 +22,6 @@ from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
-from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 
@@ -257,18 +256,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     backend_config = None
     backend_default = None
     if backend:
+        backend_default = backend.defaults()
         backend_config = backend.configuration()
-        try:
-            backend_default = backend.defaults()
-        except (ModelValidationError, AttributeError):
-            from collections import namedtuple
-            backend_config_defaults = getattr(backend_config, 'defaults', {})
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
-            backend_default = BackendDefault(
-                qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
-                meas_freq_est=backend_config_defaults.get('meas_freq_est')
-            )
-
         if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
