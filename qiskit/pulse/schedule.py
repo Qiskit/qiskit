@@ -409,8 +409,8 @@ class Schedule(ScheduleComponent):
         will be raised when looking for an insertion index if timeslots overlap.
 
         Args:
-            time: The time to insert the schedule into this.
-            schedule: The schedule to insert into this.
+            time: The time to insert the schedule into self.
+            schedule: The schedule to insert into self.
         Raises:
             PulseError: If timeslots overlap.
         """
