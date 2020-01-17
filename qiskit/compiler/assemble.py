@@ -22,7 +22,6 @@ from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
-from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 
@@ -31,7 +30,7 @@ from qiskit.validation.jsonschema import SchemaValidationError
 def assemble(experiments,
              backend=None,
              qobj_id=None, qobj_header=None,
-             shots=1024, memory=False, max_credits=None, seed_simulator=None,
+             shots=None, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
@@ -65,6 +64,7 @@ def assemble(experiments,
 
         shots (int):
             Number of repetitions of each circuit, for sampling. Default: 1024
+            or max_shots from the backend configuration, whichever is smaller
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
@@ -185,7 +185,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-        memory.
+        memory. Also if shots exceeds max_shots for the configured backend.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -209,6 +209,17 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     qobj_header = {**dict(backend_name=backend_name, backend_version=backend_version),
                    **qobj_header}
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
+
+    max_shots = getattr(backend_config, 'max_shots', None)
+    if shots is None:
+        if max_shots:
+            shots = min(1024, max_shots)
+        else:
+            shots = 1024
+    elif max_shots and max_shots < shots:
+        raise QiskitError(
+            'Number of shots specified: %s exceeds max_shots property of the '
+            'backend: %s. Reducing shots to max_shots' % (shots, max_shots))
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
@@ -238,19 +249,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     backend_config = None
     backend_default = None
     if backend:
+        backend_default = backend.defaults()
         backend_config = backend.configuration()
-        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
-        try:
-            backend_default = backend.defaults()
-        except (ModelValidationError, AttributeError):
-            from collections import namedtuple
-            backend_config_defaults = getattr(backend_config, 'defaults', {})
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
-            backend_default = BackendDefault(
-                qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
-                meas_freq_est=backend_config_defaults.get('meas_freq_est')
-            )
-
         if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
