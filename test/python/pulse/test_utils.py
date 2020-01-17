@@ -25,6 +25,7 @@ class TestPulseUtils(QiskitTestCase):
 
     def test_overlaps(self):
         """Test the `overlaps` function."""
+        # pylint: disable=invalid-name
         a = Interval(0, 1)
         b = Interval(1, 4)
         c = Interval(2, 3)
