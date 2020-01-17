@@ -18,10 +18,10 @@
 import unittest
 import itertools
 from inspect import signature
+from test import combine
 import numpy as np
 from numpy import pi
 import scipy
-from test import combine
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
