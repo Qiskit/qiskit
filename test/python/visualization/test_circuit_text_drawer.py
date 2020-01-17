@@ -587,6 +587,19 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(qr, cr)
         self.assertEqual(_text_circuit_drawer(circuit)._repr_html_(), expected)
 
+    def test_text_repr(self):
+        """ The measure operator. repr. """
+        expected = '\n'.join(["        ┌─┐",
+                              "q_0: |0>┤M├",
+                              "        └╥┘",
+                              " c_0: 0 ═╩═",
+                              "           "])
+        qr = QuantumRegister(1, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        self.assertEqual(_text_circuit_drawer(circuit).__repr__(), expected)
+
     def test_text_justify_left(self):
         """ Drawing with left justify """
         expected = '\n'.join(['         ┌───┐   ',
@@ -1513,7 +1526,7 @@ class TestTextNonRational(QiskitTestCase):
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
-        ket = numpy.array([0.1*numpy.pi, 0, 0, 0.9493702944526474*1j])
+        ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
@@ -1527,7 +1540,7 @@ class TestTextNonRational(QiskitTestCase):
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
-        ket = numpy.array([0.9493702944526474, 0, 0, 0.1*numpy.pi*1j])
+        ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output='text').single_string(), expected)

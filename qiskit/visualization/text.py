@@ -496,6 +496,9 @@ class TextDrawing():
                'font-family: &quot;Courier New&quot;,Courier,monospace">' \
                '%s</pre>' % self.single_string()
 
+    def __repr__(self):
+        return self.single_string()
+
     def single_string(self):
         """Creates a long string with the ascii art.
 
