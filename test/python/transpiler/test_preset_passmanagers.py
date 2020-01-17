@@ -290,3 +290,56 @@ class TestFinalLayouts(QiskitTestCase):
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_trivial_layout(self, level):
+        """Test that, when possible, trivial layout should be preferred in level 0 and 1
+        See: https://github.com/Qiskit/qiskit-terra/pull/3657#pullrequestreview-342012465
+        """
+        qr = QuantumRegister(10, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[9])
+        qc.cx(qr[4], qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[7], qr[6])
+        qc.cx(qr[6], qr[5])
+        qc.cx(qr[5], qr[0])
+
+        ancilla = QuantumRegister(10, 'ancilla')
+        trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
+                          5: qr[5], 6: qr[6], 7: qr[7], 8: qr[8], 9: qr[9],
+                          10: ancilla[0], 11: ancilla[1], 12: ancilla[2], 13: ancilla[3],
+                          14: ancilla[4], 15: ancilla[5], 16: ancilla[6], 17: ancilla[7],
+                          18: ancilla[8], 19: ancilla[9]}
+
+        dense_layout = {0: qr[9], 1: qr[8], 2: qr[6], 3: qr[1], 4: ancilla[0], 5: qr[7], 6: qr[4],
+                        7: qr[5], 8: qr[0], 9: ancilla[1], 10: qr[3], 11: qr[2], 12: ancilla[2],
+                        13: ancilla[3], 14: ancilla[4], 15: ancilla[5], 16: ancilla[6],
+                        17: ancilla[7], 18: ancilla[8], 19: ancilla[9]}
+
+        noise_adaptive_layout = {0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
+                                 4: ancilla[4], 5: qr[5], 6: qr[0], 7: ancilla[5], 8: qr[7],
+                                 9: ancilla[6], 10: ancilla[7], 11: qr[1], 12: qr[6], 13: qr[8],
+                                 14: qr[9], 15: ancilla[8], 16: ancilla[9], 17: qr[2], 18: qr[3],
+                                 19: qr[4]}
+
+        # Trivial layout
+        expected_layout_level0 = trivial_layout
+        expected_layout_level1 = trivial_layout
+        # Dense layout
+        expected_layout_level2 = dense_layout
+        # Noise adaptive layout
+        expected_layout_level3 = noise_adaptive_layout
+
+        expected_layouts = [expected_layout_level0,
+                            expected_layout_level1,
+                            expected_layout_level2,
+                            expected_layout_level3]
+        self.maxDiff = None
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layouts[level])
