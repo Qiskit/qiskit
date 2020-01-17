@@ -589,6 +589,7 @@ class TestPulseAssembler(QiskitTestCase):
         # TODO: self.assertRaises(QiskitError, _validate_meas_map, instructions, [[0]])
         self.assertTrue(_validate_meas_map(instructions, meas_map=[[0]]))
 
+
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
 
