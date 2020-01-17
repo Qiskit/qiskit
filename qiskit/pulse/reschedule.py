@@ -189,8 +189,11 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
 
         curr_time = 0
         for interval in schedule.timeslots[channel]:
+            if curr_time >= until:
+                break
             if interval.start != curr_time:
-                schedule |= Delay(interval.start - curr_time)(channel).shift(curr_time)
+                end_time = min(interval.start, until)
+                schedule |= Delay(end_time - curr_time)(channel).shift(curr_time)
             curr_time = interval.stop
         if curr_time < until:
             schedule |= Delay(until - curr_time)(channel).shift(curr_time)

@@ -260,6 +260,14 @@ class TestPad(QiskitTestCase):
 
         self.assertEqual(pad(sched, channels=channels), ref_sched)
 
+    def test_padding_less_than_sched_duration(self):
+        """Test that the until arg is respected even for less than the input schedule duration."""
+        delay = pulse.Delay(10)
+        sched = (delay(DriveChannel(0)) +
+                 delay(DriveChannel(0)).shift(20))
+        ref_sched = (sched | pulse.Delay(5)(DriveChannel(0)).shift(10))
+        self.assertEqual(pad(sched, until=15), ref_sched)
+
 
 if __name__ == '__main__':
     unittest.main()
