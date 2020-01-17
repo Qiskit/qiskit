@@ -139,13 +139,13 @@ class PulseDefaults(BaseModel):
         self._meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.circuit_instruction_map = InstructionScheduleMap()
+        self.instruction_schedule_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
-            self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
+            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
     @property
     def qubit_freq_est(self) -> float:
@@ -169,13 +169,20 @@ class PulseDefaults(BaseModel):
 
         return self._meas_freq_est
 
+    @property
+    def circuit_instruction_map(self):
+        """Deprecated property, use ``instruction_schedule_map`` instead."""
+        warnings.warn("The `circuit_instruction_map` attribute has been renamed to "
+                      "`instruction_schedule_map`.", DeprecationWarning)
+        return self.instruction_schedule_map
+
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
         qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
         mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
         return ("<{name}({insts}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, insts=str(self.circuit_instruction_map),
+                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedule_map),
                           qfreq=qfreq, mfreq=mfreq))
 
     def build_cmd_def(self) -> InstructionScheduleMap:
@@ -186,6 +193,6 @@ class PulseDefaults(BaseModel):
             InstructionScheduleMap: Generated from defaults.
         """
         warnings.warn("This method is deprecated. Returning a InstructionScheduleMap instead. "
-                      "This can be accessed simply through the `circuit_instruction_map` attribute "
-                      "of this PulseDefaults instance.", DeprecationWarning)
-        return self.circuit_instruction_map
+                      "This can be accessed simply through the `instruction_schedule_map` "
+                      "attribute of this PulseDefaults instance.", DeprecationWarning)
+        return self.instruction_schedule_map

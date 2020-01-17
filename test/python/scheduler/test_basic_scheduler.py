@@ -28,7 +28,7 @@ class TestBasicSchedule(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.inst_map = self.backend.defaults().circuit_instruction_map
+        self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
@@ -182,7 +182,7 @@ class TestBasicSchedule(QiskitTestCase):
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
         backend = FakeOpenPulse3Q()
-        inst_map = backend.defaults().circuit_instruction_map
+        inst_map = backend.defaults().instruction_schedule_map
         q = QuantumRegister(3)
         c = ClassicalRegister(3)
         qc = QuantumCircuit(q, c)
