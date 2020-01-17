@@ -19,12 +19,14 @@ import unittest
 import numpy as np
 
 import qiskit.pulse as pulse
+from qiskit.assembler.assemble_schedules import _validate_meas_map
 from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
 from qiskit.pulse.channels import MemorySlot, AcquireChannel
+from qiskit.pulse.commands import AcquireInstruction
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
@@ -574,6 +576,18 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(test_dict['config']['meas_return'], 'avg')
         self.assertEqual(test_dict['config']['meas_level'], 2)
 
+    def test_instruction_validation(self):
+        """Test instruction validation according to meas map"""
+        acquire = pulse.Acquire(2)
+
+        instructions = [AcquireInstruction(acquire, AcquireChannel(i), MemorySlot(i))
+                        for i in range(2)]
+        self.assertTrue(_validate_meas_map(instructions, meas_map=[[0, 1]]))
+
+        instructions = [AcquireInstruction(acquire, AcquireChannel(0), MemorySlot(i))
+                        for i in range(2)]
+        # TODO: self.assertRaises(QiskitError, _validate_meas_map, instructions, [[0]])
+        self.assertTrue(_validate_meas_map(instructions, meas_map=[[0]]))
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""

@@ -141,23 +141,34 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     """
     new_schedule = Schedule(name=schedule.name)
 
-    acquire_instructions = {}
+    # Dict[qubit, Dict[time, AcquireInstruction]]
+    acquires_map = dict()
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
-            for sublist in meas_map:
-                for acq in inst.acquires:
-                    if acq.index in set(sublist):
-                        for i in sublist:
-                            acquire_instructions[i] = (time, inst)
+
+            for acq in inst.acquires:
+                if acq.index not in acquires_map:
+                    acquires_map[acq.index] = {time: inst}
+                else:
+                    acquires_map[acq.index][time] = inst
         else:
             new_schedule |= inst << time
 
-    for i, (time, inst) in acquire_instructions.items():
-        cmd = Acquire(inst.duration, inst.command.discriminator, inst.command.kernel)
-        new_schedule |= AcquireInstruction(cmd, AcquireChannel(i), MemorySlot(i)) << time
+    for sublist in meas_map:
+        if set(sublist).intersection(acquires_map.keys()):
+            for i in sublist:
+                if i in acquires_map.keys():
+                    for time, inst in acquires_map[i].items():
+                        cmd = Acquire(inst.duration, inst.command.discriminator,
+                                      inst.command.kernel)
+                        new_schedule |= AcquireInstruction(cmd, AcquireChannel(i),
+                                                           MemorySlot(i)) << time
+                else:
+                    new_schedule |= AcquireInstruction(Acquire(0), AcquireChannel(i),
+                                                       MemorySlot(i))
 
     return new_schedule
 

@@ -80,7 +80,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # instructions
         max_memory_slot = 0
         qobj_instructions = []
-        acquire_instuctions = []
+        acquire_instructions = []
 
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
@@ -104,14 +104,14 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
 
-                acquire_instuctions.append(instruction)
+                acquire_instructions.append(instruction)
 
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
 
         if meas_map:
             # verify all acquires satisfy meas_map
-            _validate_meas_map(acquire_instuctions, meas_map)
+            _validate_meas_map(acquire_instructions, meas_map)
 
         # memory slot size is memory slot index + 1 because index starts from zero
         exp_memory_slot_size = max_memory_slot + 1

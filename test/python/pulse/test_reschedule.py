@@ -172,6 +172,18 @@ class TestAddImplicitAcquires(QiskitTestCase):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
+    def test_explicitly_non_acquired_qubit(self):
+        """Test for time and duration of qubit that was not acquired, but in meas map."""
+        sched = add_implicit_acquires(self.sched, [[0, 5]])
+        times = set()
+        durations = set()
+        for time, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                times.add(time)
+                durations.add(inst.duration)
+        self.assertEqual(times, {0, 5})
+        self.assertEqual(durations, {0, 5})
+
 
 class TestPad(QiskitTestCase):
     """Test padding of schedule with delays."""
