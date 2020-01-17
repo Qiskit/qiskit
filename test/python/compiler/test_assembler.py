@@ -620,7 +620,15 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertTrue(all(inst.name == 'parametric_pulse'
                             for inst in qobj_insts))
         self.assertEqual(qobj_insts[0].pulse_shape, 'gaussian')
+        self.assertEqual(qobj_insts[1].pulse_shape, 'drag')
+        self.assertEqual(qobj_insts[2].pulse_shape, 'constant')
+        self.assertEqual(qobj_insts[3].pulse_shape, 'gaussian_square')
         self.assertDictEqual(qobj_insts[0].parameters, {'duration': 25, 'sigma': 4, 'amp': 0.5j})
+        self.assertDictEqual(qobj_insts[1].parameters,
+                             {'duration': 25, 'sigma': 7.8, 'amp': 0.2+0.3j, 'beta': 4})
+        self.assertDictEqual(qobj_insts[2].parameters, {'duration': 25, 'amp': 1})
+        self.assertDictEqual(qobj_insts[3].parameters,
+                             {'duration': 150, 'sigma': 8, 'amp': 0.2, 'width': 140})
         self.assertListEqual(
             qobj.to_dict()['experiments'][0]['instructions'][0]['parameters']['amp'],
             [0.0, 0.5])
