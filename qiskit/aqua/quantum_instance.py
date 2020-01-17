@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,8 +17,6 @@
 import copy
 import logging
 import time
-import os
-import warnings
 
 from qiskit.assembler.run_config import RunConfig
 from qiskit import compiler
@@ -63,7 +61,6 @@ class QuantumInstance:
                  # job
                  timeout=None, wait=5,
                  # others
-                 circuit_caching=False, cache_file=None, skip_qobj_deepcopy=False,
                  skip_qobj_validation=True,
                  measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
                  measurement_error_mitigation_shots=None,
@@ -91,10 +88,6 @@ class QuantumInstance:
                                                                                       for simulator
             timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
             wait (float, optional): seconds between queries to result
-            circuit_caching (bool, optional): Use CircuitCache when calling compile_and_run_circuits
-            cache_file(str, optional): filename into which to store the cache as a pickle file
-            skip_qobj_deepcopy (bool, optional): Reuses the same Qobj object
-                                                 over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to
                                                     decrease submission time
             measurement_error_mitigation_cls (Callable, optional): the approach to mitigate
@@ -201,25 +194,6 @@ class QuantumInstance:
                         "and re-build it after that.", self._cals_matrix_refresh_period)
 
         # setup others
-        if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False) or circuit_caching:
-            warnings.warn("circuit_caching will be removed at Qiskit Aqua 0.7+, "
-                          "this setting will be ignored. "
-                          "On the other hand, Qiskit Aqua does support "
-                          "parameterized circuits for adaptive algorithms (e.g. VQE and VQC) "
-                          "to avoid for compiling the circuit with the same topology "
-                          "multiple times",
-                          UserWarning)
-        if skip_qobj_deepcopy:
-            warnings.warn("skip_qobj_deepcopy was used along with circuit_caching, and since "
-                          "circuit_cache will be removed at Qiskit Aqua 0.7+, "
-                          "this setting will be ignored, too.",
-                          UserWarning)
-        if cache_file:
-            warnings.warn("cache_file was used along with circuit_caching, and since "
-                          "circuit_cache will be removed at Qiskit Aqua 0.7+, "
-                          "this setting will be ignored, too.",
-                          UserWarning)
-
         if is_ibmq_provider(self._backend):
             if skip_qobj_validation:
                 logger.warning("The skip Qobj validation does not work "
