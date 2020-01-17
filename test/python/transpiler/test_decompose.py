@@ -66,7 +66,6 @@ class TestDecompose(QiskitTestCase):
         pass_ = Decompose(ToffoliGate)
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
-        len(op_nodes)  # avoid stestr environment race condition
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])

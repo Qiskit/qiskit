@@ -96,8 +96,7 @@ class FredkinGate(ControlledGate):
           cx c,b;
         }
         """
-        from qiskit.extensions.standard.x import CnotGate
-        from qiskit.extensions.standard.ccx import ToffoliGate
+        from qiskit.extensions.standard.x import CnotGate, ToffoliGate
         definition = []
         q = QuantumRegister(3, "q")
         rule = [
