@@ -20,6 +20,8 @@ job interface.
 
 from abc import ABC, abstractmethod
 
+from .jobstatus import JobStatus
+
 
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
