@@ -339,7 +339,39 @@ class TestFinalLayouts(QiskitTestCase):
                             expected_layout_level1,
                             expected_layout_level2,
                             expected_layout_level3]
-        self.maxDiff = None
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout(self, level):
+        """When a user provides a layout (initial_layout), it should be used.
+        """
+        qr = QuantumRegister(10, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[9])
+        qc.cx(qr[4], qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[7], qr[6])
+        qc.cx(qr[6], qr[5])
+        qc.cx(qr[5], qr[0])
+
+        ancilla = QuantumRegister(10, 'ancilla')
+
+        initial_layout = {0: qr[0], 2: qr[1], 4: qr[2], 6: qr[3], 8: qr[4],
+                          10: qr[5], 12: qr[6], 14: qr[7], 16: qr[8], 18: qr[9]}
+
+        expected_layout = {0: qr[0], 2: qr[1], 4: qr[2], 6: qr[3], 8: qr[4],
+                           10: qr[5], 12: qr[6], 14: qr[7], 16: qr[8], 18: qr[9],
+                           1: ancilla[0], 3: ancilla[1], 5: ancilla[2], 7: ancilla[3],
+                           9: ancilla[4], 11: ancilla[5], 13: ancilla[6], 15: ancilla[7],
+                           17: ancilla[8], 19: ancilla[9]}
+
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, initial_layout=initial_layout,
+                           seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layout)
