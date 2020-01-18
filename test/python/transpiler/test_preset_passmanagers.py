@@ -374,5 +374,5 @@ class TestFinalLayouts(QiskitTestCase):
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, initial_layout=initial_layout,
                            seed_transpiler=42)
-        print(result._layout._p2v)
+        self.maxDiff = None  # pylint: disable=invalid-name
         self.assertEqual(result._layout._p2v, expected_layout)
