@@ -290,3 +290,30 @@ class TestFinalLayouts(QiskitTestCase):
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout(self, level):
+        """When a user provides a layout (initial_layout), it should be used.
+        """
+        qr = QuantumRegister(10, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[9])
+        qc.cx(qr[4], qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[7], qr[6])
+        qc.cx(qr[6], qr[5])
+        qc.cx(qr[5], qr[0])
+
+        initial_layout = {0: qr[0], 2: qr[1], 4: qr[2], 6: qr[3], 8: qr[4],
+                          10: qr[5], 12: qr[6], 14: qr[7], 16: qr[8], 18: qr[9]}
+
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, initial_layout=initial_layout,
+                           seed_transpiler=42)
+
+        for physical, virtual in initial_layout.items():
+            self.assertEqual(result._layout._p2v[physical], virtual)
