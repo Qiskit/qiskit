@@ -21,7 +21,6 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-
 class NoiseAdaptiveLayout(AnalysisPass):
     """Choose a noise-adaptive Layout based on current calibration data for the backend.
 
@@ -211,6 +210,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
         for end1, end2, _ in sorted(self.prog_graph.edges(data=True),
                                     key=lambda x: x[2]['weight'], reverse=True):
             self.pending_program_edges.append((end1, end2))
+
+        # In python 3.5, networkx returns edges in different order than in 3.6.
+        # This line can be removed after dropping support for python 3.5
+        self.pending_program_edges.sort()
+
         while self.pending_program_edges:
             edge = self._select_next_edge()
             q1_mapped = edge[0] in self.prog2hw

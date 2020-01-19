@@ -321,11 +321,10 @@ class TestFinalLayouts(QiskitTestCase):
                         13: ancilla[3], 14: ancilla[4], 15: ancilla[5], 16: ancilla[6],
                         17: ancilla[7], 18: ancilla[8], 19: ancilla[9]}
 
-        noise_adaptive_layout = {0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
-                                 4: ancilla[4], 5: qr[5], 6: qr[0], 7: ancilla[5], 8: qr[7],
-                                 9: ancilla[6], 10: ancilla[7], 11: qr[1], 12: qr[6], 13: qr[8],
-                                 14: qr[9], 15: ancilla[8], 16: ancilla[9], 17: qr[2], 18: qr[3],
-                                 19: qr[4]}
+        noise_adaptive_layout = {0: qr[6], 1: qr[7], 2: ancilla[0], 3: ancilla[1], 4: ancilla[2],
+                                 5: qr[5], 6: qr[0], 7: ancilla[3], 8: ancilla[4], 9: ancilla[5],
+                                 10: ancilla[6], 11: qr[1], 12: ancilla[7], 13: qr[8], 14: qr[9],
+                                 15: ancilla[8], 16: ancilla[9], 17: qr[2], 18: qr[3], 19: qr[4]}
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
