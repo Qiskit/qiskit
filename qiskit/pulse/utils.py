@@ -72,7 +72,7 @@ def measure(qubits: List[int],
     """
 
     inst_map = inst_map or backend.defaults().circuit_instruction_map
-    meas_map = meas_map or backend.defaults().meas_map
+    meas_map = meas_map or backend.configuration().meas_map
     measure_groups = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))

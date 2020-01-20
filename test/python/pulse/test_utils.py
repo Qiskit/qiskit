@@ -40,5 +40,20 @@ class TestUtils(QiskitTestCase):
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
                                  [MemorySlot(0), MemorySlot(1)]))
-
         self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_fail_measure(self):
+        """Test failing `measure`"""
+        sched = Schedule()
+        with self.assertRaises(AttributeError):
+            sched1 = measure(qubits=[0],
+                             schedule=sched,
+                             backend=None,
+                             inst_map=None,
+                             meas_map=self.backend.configuration().meas_map)
+        with self.assertRaises(AttributeError):
+            sched2 = measure(qubits=[0],
+                             schedule=sched,
+                             backend=None,
+                             inst_map=self.backend.defaults().inst_map,
+                             meas_map=None)
