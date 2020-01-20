@@ -23,9 +23,9 @@ from .swap import SwapGate
 from .h import HGate
 from .i import IGate
 from .s import SGate
-from .s import SinvGate
+from .s import SInvGate
 from .t import TGate
-from .t import TinvGate
+from .t import TInvGate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate

@@ -22,8 +22,8 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.t import TGate, TinvGate
-from qiskit.extensions.standard.s import SGate, SinvGate
+from qiskit.extensions.standard.t import TGate, TInvGate
+from qiskit.extensions.standard.s import SGate, SInvGate
 
 
 class CHGate(ControlledGate):
@@ -54,9 +54,9 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (TinvGate(), [q[1]], []),
+            (TInvGate(), [q[1]], []),
             (HGate(), [q[1]], []),
-            (SinvGate(), [q[1]], [])
+            (SInvGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

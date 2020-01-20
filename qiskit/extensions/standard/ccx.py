@@ -25,7 +25,7 @@ from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CXGate
 from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TinvGate
+from qiskit.extensions.standard.t import TInvGate
 
 
 class CCXMeta(type):
@@ -61,18 +61,18 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         rule = [
             (HGate(), [q[2]], []),
             (CXGate(), [q[1], q[2]], []),
-            (TinvGate(), [q[2]], []),
+            (TInvGate(), [q[2]], []),
             (CXGate(), [q[0], q[2]], []),
             (TGate(), [q[2]], []),
             (CXGate(), [q[1], q[2]], []),
-            (TinvGate(), [q[2]], []),
+            (TInvGate(), [q[2]], []),
             (CXGate(), [q[0], q[2]], []),
             (TGate(), [q[1]], []),
             (TGate(), [q[2]], []),
             (HGate(), [q[2]], []),
             (CXGate(), [q[0], q[1]], []),
             (TGate(), [q[0]], []),
-            (TinvGate(), [q[1]], []),
+            (TInvGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:

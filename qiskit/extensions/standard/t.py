@@ -46,7 +46,7 @@ class TGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return TinvGate()
+        return TInvGate()
 
     def to_matrix(self):
         """Return a numpy.array for the T gate."""
@@ -57,14 +57,14 @@ class TGate(Gate):
 class TinvMeta(type):
     """
     A metaclass to ensure that Tinv and Tdg are of the same type.
-    Can be removed when TinvGate gets removed.
+    Can be removed when TInvGate gets removed.
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return type(inst) in {TinvGate, TdgGate}  # pylint: disable=unidiomatic-typecheck
+        return type(inst) in {TInvGate, TdgGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class TinvGate(Gate, metaclass=TinvMeta):
+class TInvGate(Gate, metaclass=TinvMeta):
     """T Gate: -pi/4 rotation around Z axis."""
 
     def __init__(self, label=None):
@@ -94,11 +94,11 @@ class TinvGate(Gate, metaclass=TinvMeta):
                             [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-class TdgGate(TinvGate, metaclass=TinvMeta):
+class TdgGate(TInvGate, metaclass=TinvMeta):
     """The deprecated Tinv gate."""
 
     def __init__(self):
-        warnings.warn('TdgGate is deprecated, use TinvGate instead!', DeprecationWarning, 2)
+        warnings.warn('TdgGate is deprecated, use TInvGate instead!', DeprecationWarning, 2)
         super().__init__()
 
 
@@ -109,7 +109,7 @@ def t(self, q):  # pylint: disable=invalid-name
 
 def tinv(self, q):
     """Apply Tdg to q."""
-    return self.append(TinvGate(), [q], [])
+    return self.append(TInvGate(), [q], [])
 
 
 def tdg(self, q):

@@ -46,7 +46,7 @@ class SGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return SinvGate()
+        return SInvGate()
 
     def to_matrix(self):
         """Return a numpy.array for the S gate."""
@@ -57,14 +57,14 @@ class SGate(Gate):
 class SinvMeta(type):
     """
     A metaclass to ensure that Sinv and Sdg are of the same type.
-    Can be removed when SinvGate gets removed.
+    Can be removed when SInvGate gets removed.
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return type(inst) in {SinvGate, SdgGate}  # pylint: disable=unidiomatic-typecheck
+        return type(inst) in {SInvGate, SdgGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class SinvGate(Gate, metaclass=SinvMeta):
+class SInvGate(Gate, metaclass=SinvMeta):
     """Sinv=diag(1,-i) Clifford adjoint phase gate."""
 
     def __init__(self, label=None):
@@ -94,12 +94,12 @@ class SinvGate(Gate, metaclass=SinvMeta):
                             [0, -1j]], dtype=complex)
 
 
-class SdgGate(SinvGate, metaclass=SinvMeta):
+class SdgGate(SInvGate, metaclass=SinvMeta):
     """
-    The deprecated SinvGate class.
+    The deprecated SInvGate class.
     """
     def __init__(self):
-        warnings.warn('SdgGate is deprecated, use SinvGate instead!', DeprecationWarning, 2)
+        warnings.warn('SdgGate is deprecated, use SInvGate instead!', DeprecationWarning, 2)
         super().__init__()
 
 
@@ -110,7 +110,7 @@ def s(self, q):  # pylint: disable=invalid-name
 
 def sinv(self, q):
     """Apply Sinv to q."""
-    return self.append(SinvGate(), [q], [])
+    return self.append(SInvGate(), [q], [])
 
 
 def sdg(self, q):
