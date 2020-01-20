@@ -51,9 +51,9 @@ def pad(schedule, channels=None, until=None):
 
 def measure(qubits: List[int],
             schedule: Schedule,
-            backend: Optional[BaseBackend],
             inst_map: Optional[InstructionScheduleMap],
             meas_map: List[List[int]],
+            backend: Optional[BaseBackend] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
     This is a utility function to measure only a subset of qubits using OpenPulse.
@@ -61,11 +61,9 @@ def measure(qubits: List[int],
 
     inst_map = inst_map or backend.defaults().circuit_instruction_map
     measure_groups = set()
-    all_qubits = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
     for measure_group_qubits in measure_groups:
-        all_qubits.update(measure_group_qubits)
         if qubit_mem_slots is not None:
             unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
         default_sched = inst_map.get('measure', measure_group_qubits)
@@ -83,5 +81,6 @@ def measure(qubits: List[int],
                 schedule = schedule.insert(time, new_acquire)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:
+                import ipdb; ipdb.set_trace()
                 schedule = schedule.insert(time, inst)
     return schedule

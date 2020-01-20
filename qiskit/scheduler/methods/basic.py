@@ -148,8 +148,11 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         all_qubits = list(qubit_mem_slots.keys())
+        import ipdb; ipdb.set_trace()
         sched = Schedule()
-        sched = measure(all_qubits, sched, backend=None, inst_map=inst_map, meas_map=schedule_config.meas_map, qubit_mem_slots=qubit_mem_slots)
+        sched = measure(qubits=all_qubits, schedule=sched,
+                        inst_map=inst_map, meas_map=schedule_config.meas_map,
+                        qubit_mem_slots=qubit_mem_slots)
         qubit_mem_slots.clear()
         return CircuitPulseDef(schedule=sched, qubits=all_qubits)
 
