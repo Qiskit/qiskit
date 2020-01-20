@@ -15,11 +15,12 @@
 """Assemble function for converting a list of circuits into a qobj."""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
-                                   DelayInstruction, SamplePulse)
+                                   DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
+from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
@@ -84,6 +85,14 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
+
+            if isinstance(instruction, ParametricInstruction):
+                pulse_shape = ParametricPulseShapes(type(instruction.command)).name
+                if pulse_shape not in run_config.parametric_pulses:
+                    # Convert to SamplePulse if the backend does not support it
+                    instruction = PulseInstruction(instruction.command.get_sample_pulse(),
+                                                   instruction.channels[0],
+                                                   name=instruction.name)
 
             if isinstance(instruction, DelayInstruction):
                 # delay instructions are ignored as timing is explicit within qobj
