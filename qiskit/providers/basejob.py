@@ -19,29 +19,66 @@ job interface.
 """
 
 from abc import ABC, abstractmethod
+from typing import Callable, Optional
+import time
+
+from .jobstatus import JOB_FINAL_STATES
+from .exceptions import JobTimeoutError
+from .basebackend import BaseBackend
 
 
 class BaseJob(ABC):
     """Class to handle asynchronous jobs"""
 
-    def __init__(self, backend, job_id):
+    def __init__(self, backend: BaseBackend, job_id: str) -> None:
         """Initializes the asynchronous job.
 
         Args:
-            backend (BaseBackend): the backend used to run the job.
-            job_id (str): a unique id in the context of the backend used to run
+            backend: the backend used to run the job.
+            job_id: a unique id in the context of the backend used to run
                 the job.
         """
         self._job_id = job_id
         self._backend = backend
 
-    def job_id(self):
+    def job_id(self) -> str:
         """Return a unique id identifying the job."""
         return self._job_id
 
-    def backend(self):
+    def backend(self) -> BaseBackend:
         """Return the backend where this job was executed."""
         return self._backend
+
+    def wait_for_final_state(
+            self,
+            timeout: Optional[float] = None,
+            wait: float = 5,
+            callback: Callable = None
+    ) -> None:
+        """Wait until the job progress to a final state such as DONE or ERROR.
+
+        Args:
+            timeout: seconds to wait for job. If None, wait indefinitely. Default: None.
+            wait: seconds between queries. Default: 5.
+            callback: callback function invoked after each query. Default: None.
+                The following positional arguments are provided to the callback function:
+                    job_id, job_status, job
+
+        Raises:
+            JobTimeoutError: if the job does not reach a final state before the
+                specified timeout.
+        """
+        start_time = time.time()
+        status = self.status()
+        while status not in JOB_FINAL_STATES:
+            elapsed_time = time.time() - start_time
+            if timeout is not None and elapsed_time >= timeout:
+                raise JobTimeoutError(
+                    'Timeout while waiting for job {}.'.format(self.job_id()))
+            if callback:
+                callback(self.job_id(), status, self)
+            time.sleep(wait)
+            status = self.status()
 
     @abstractmethod
     def submit(self):
