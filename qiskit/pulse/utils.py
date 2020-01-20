@@ -81,6 +81,5 @@ def measure(qubits: List[int],
                 schedule = schedule.insert(time, new_acquire)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:
-                import ipdb; ipdb.set_trace()
                 schedule = schedule.insert(time, inst)
     return schedule
