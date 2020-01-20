@@ -14,11 +14,10 @@
 
 """Test cases for Pulse Utility functions."""
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
-from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
+from qiskit.pulse import (Schedule, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, measure)
 
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
+from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
 
 
