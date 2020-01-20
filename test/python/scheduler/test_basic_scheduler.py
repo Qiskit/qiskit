@@ -593,17 +593,3 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
                                       [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
         self.assertEqual(sched.instructions, expected.instructions)
 
-    def test_measure(self):
-        """Test utility function - measure"""
-        sched = Schedule()
-        sched = measure(qubits=[0],
-                        schedule=sched,
-                        backend=self.backend,
-                        inst_map=None,
-                        meas_map=self.backend.configuration().meas_map)
-        expected = Schedule(
-            self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
-                                 [MemorySlot(0), MemorySlot(1)]))
-
-        self.assertEqual(sched.instructions, expected.instructions)
