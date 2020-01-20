@@ -58,7 +58,7 @@ class Gate(Instruction):
         Raises:
             CircuitError: If Gate is not unitary
         """
-        from qiskit.quantum_info.operators import Operator
+        from qiskit.quantum_info.operators import Operator. # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output='complex')
