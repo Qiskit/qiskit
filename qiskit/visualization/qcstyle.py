@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -151,7 +151,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',

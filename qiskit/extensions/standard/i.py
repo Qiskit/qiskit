@@ -40,7 +40,7 @@ class IGate(Gate, metaclass=IMeta):
 
     def __init__(self, label=None):
         """Create new Identity gate."""
-        super().__init__('id', 1, [], label=label)
+        super().__init__('i', 1, [], label=label)
 
     def inverse(self):
         """Invert this gate."""
@@ -56,6 +56,7 @@ class IdGate(IGate, metaclass=IMeta):
     """
     Deprecated IGate class.
     """
+
     def __init__(self):
         warnings.warn('IdGate is deprecated, use IGate instead!', DeprecationWarning, 2)
         super().__init__()
