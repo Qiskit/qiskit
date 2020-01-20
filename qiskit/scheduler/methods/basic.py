@@ -27,8 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.channels import MemorySlot
-from qiskit.pulse.commands import AcquireInstruction
+from qiskit.pulse.channels import AcquireChannel
 from qiskit.pulse.utils import measure
 
 from qiskit.scheduler.config import ScheduleConfig
@@ -152,7 +151,9 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
                         inst_map=inst_map, meas_map=schedule_config.meas_map,
                         qubit_mem_slots=qubit_mem_slots)
         qubit_mem_slots.clear()
-        return CircuitPulseDef(schedule=sched, qubits=[chan.index for chan in sched.channels])
+        return CircuitPulseDef(schedule=sched,
+                               qubits=[chan.index for chan in sched.channels
+                                       if isinstance(chan, AcquireChannel)])
 
     for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits

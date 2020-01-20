@@ -16,10 +16,9 @@
 Pulse utilities.
 """
 import warnings
+from typing import List, Dict, Optional
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.providers import BaseBackend
-from typing import List, Dict, Optional
-from qiskit.scheduler.config import ScheduleConfig
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import MemorySlot
 from qiskit.pulse.commands import AcquireInstruction
@@ -49,6 +48,7 @@ def pad(schedule, channels=None, until=None):
     warnings.warn("The function `pad` has been moved to qiskit.pulse.reschedule. It cannot be "
                   "invoked from `utils` anymore (this call returns None).")
 
+
 def measure(qubits: List[int],
             schedule: Schedule,
             inst_map: Optional[InstructionScheduleMap],
@@ -56,10 +56,23 @@ def measure(qubits: List[int],
             backend: Optional[BaseBackend] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
-    This is a utility function to measure only a subset of qubits using OpenPulse.
+    This is a utility function to measure qubits using OpenPulse.
+
+    Args:
+        qubits: List of qubits to be measured
+        schedule: Schedule of the circuit
+        inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
+                  `circuit_instruction_map` of `backend`
+        meas_map: List of sets of qubits that must be measured together. If `None`, defaults to
+                  the `meas_map` of `backend`
+        backend: A backend instance, which contains hardware-specific data required for scheduling
+        qubit_mem_slots: Mapping of measured qubit index to classical bit index
+    Returns:
+        A schedule corresponding to the inputs provided.
     """
 
     inst_map = inst_map or backend.defaults().circuit_instruction_map
+    meas_map = meas_map or backend.defaults().meas_map
     measure_groups = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
