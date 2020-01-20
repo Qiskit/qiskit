@@ -54,9 +54,9 @@ class TGate(Gate):
                             [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-class TinvMeta(type):
+class TInvMeta(type):
     """
-    A metaclass to ensure that Tinv and Tdg are of the same type.
+    A metaclass to ensure that TInv and Tdg are of the same type.
     Can be removed when TInvGate gets removed.
     """
     @classmethod
@@ -64,11 +64,11 @@ class TinvMeta(type):
         return type(inst) in {TInvGate, TdgGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class TInvGate(Gate, metaclass=TinvMeta):
+class TInvGate(Gate, metaclass=TInvMeta):
     """T Gate: -pi/4 rotation around Z axis."""
 
     def __init__(self, label=None):
-        """Create a new Tinv gate."""
+        """Create a new TInv gate."""
         super().__init__('tinv', 1, [], label=label)
 
     def _define(self):
@@ -94,8 +94,8 @@ class TInvGate(Gate, metaclass=TinvMeta):
                             [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-class TdgGate(TInvGate, metaclass=TinvMeta):
-    """The deprecated Tinv gate."""
+class TdgGate(TInvGate, metaclass=TInvMeta):
+    """The deprecated TInv gate."""
 
     def __init__(self):
         warnings.warn('TdgGate is deprecated, use TInvGate instead!', DeprecationWarning, 2)
@@ -108,7 +108,7 @@ def t(self, q):  # pylint: disable=invalid-name
 
 
 def tinv(self, q):
-    """Apply Tdg to q."""
+    """Apply TInv to q."""
     return self.append(TInvGate(), [q], [])
 
 

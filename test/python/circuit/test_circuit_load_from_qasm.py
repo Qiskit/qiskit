@@ -50,51 +50,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_loading_all_qelib1_gates(self):
         """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
-        qasm_str = '\n'.join(["OPENQASM 2.0;",
-                              "include \"qelib1.inc\";",
-                              "qreg q[3];",
-                              "creg c[3];",
-                              # the hardware primitives
-                              "u3(0.2,0.1,0.6) q[0];",
-                              "u2(0.1,0.6) q[0];",
-                              "u1(0.6) q[0];",
-                              "id q[0];",
-                              "cx q[0], q[1];",
-                              # the standard single qubit gates
-                              "x q[0];",
-                              "y q[0];",
-                              "z q[0];",
-                              "h q[0];",
-                              "s q[0];",
-                              "t q[0];",
-                              "sdg q[0];",
-                              "sinv q[0];",
-                              "tdg q[0];",
-                              "tinv q[0];",
-                              # the standard rotations
-                              "rx(0.1) q[0];",
-                              "ry(0.1) q[0];",
-                              "rz(0.1) q[0];",
-                              # the barrier
-                              "barrier q;",
-                              # the standard user-defined gates
-                              "swap q[0], q[1];",
-                              "cswap q[0], q[1], q[2];",
-                              "cy q[0], q[1];",
-                              "cz q[0], q[1];",
-                              "ch q[0], q[1];",
-                              "cu1(0.6) q[0], q[1];",
-                              "cu3(0.2,0.1,0.6) q[0], q[1];",
-                              "ccx q[0], q[1], q[2];",
-                              "crx(0.6) q[0], q[1];",
-                              "cry(0.6) q[0], q[1];",
-                              "crz(0.6) q[0], q[1];",
-                              "rxx(0.2) q[0], q[1];",
-                              "rzz(0.2) q[0], q[1];",
-                              # measure
-                              "measure q->c;"])
-
-        qasm_circuit = QuantumCircuit.from_qasm_str(qasm_str)
+        all_gates_qasm = self._get_resource_path('all_gates.qasm', Path.QASMS)
+        qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         # the hardware primitives
         ref_circuit = QuantumCircuit(3, 3)
