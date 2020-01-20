@@ -16,7 +16,7 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, measure)
+                          MeasureChannel, MemorySlot)
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -592,4 +592,3 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
             (10, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
                                       [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
         self.assertEqual(sched.instructions, expected.instructions)
-
