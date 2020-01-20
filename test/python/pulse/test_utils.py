@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the pulse scheduler passes."""
+"""Test cases for Pulse Utility functions."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
