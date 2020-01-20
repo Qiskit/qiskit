@@ -697,7 +697,15 @@ class TextDrawing():
         else:
             label = instruction.name
         params = TextDrawing.params_for_label(instruction)
-        label = label.capitalize()
+
+        # generate the correct label for the box
+        if label.lower() == 'sinv':
+            label = 'SInv'
+        elif label.lower() == 'tinv':
+            label = 'TInv'
+        else:  # capitalize by default
+            label = label.capitalize()
+
         if params:
             label += "(%s)" % ','.join(params)
         return label
