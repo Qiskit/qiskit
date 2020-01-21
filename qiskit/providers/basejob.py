@@ -20,7 +20,7 @@ job interface.
 
 from abc import ABC, abstractmethod
 
-from .jobstatus import JobStatus
+from .jobstatus import JobStatus, JOB_FINAL_STATES
 
 
 class BaseJob(ABC):
@@ -49,13 +49,17 @@ class BaseJob(ABC):
         """Return whether the job has successfully run."""
         return self.status() == JobStatus.DONE
 
-    def running(self):
+    def running(self) -> bool:
         """Return whether the job is actively running."""
         return self.status() == JobStatus.RUNNING
 
-    def cancelled(self):
+    def cancelled(self) -> bool:
         """Return whether the job has been cancelled."""
         return self.status() == JobStatus.CANCELLED
+
+    def in_final_state(self) -> bool:
+        """Return whether the job is in a final job state."""
+        return self.status() == JOB_FINAL_STATES
 
     @abstractmethod
     def submit(self):
