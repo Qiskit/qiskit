@@ -214,7 +214,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.pending_program_edges = sorted(self.prog_graph.edges(data=True),
                                             key=lambda x: [x[2]['weight'], -x[0], -x[1]],
                                             reverse=True)
-        # self.pending_program_edges = [(end1, end2) for end1, end2, _ in sorted_edges]
 
         while self.pending_program_edges:
             edge = self._select_next_edge()
