@@ -22,8 +22,8 @@ from qiskit.circuit import QuantumCircuit
 
 
 class IMeta(type):
-    """
-    Metaclass to ensure that Id and I are of the same type.
+    """Metaclass to ensure that Id and I are of the same type.
+
     Can be removed when IdGate gets removed.
     """
     @classmethod
@@ -58,7 +58,10 @@ class IdGate(IGate, metaclass=IMeta):
     """
 
     def __init__(self):
-        warnings.warn('IdGate is deprecated, use IGate instead!', DeprecationWarning, 2)
+        warnings.warn('The class IdGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class IGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 
@@ -72,8 +75,11 @@ def i(self, q):
 
 
 def iden(self, q):
-    """ Deprecated identity gate. """
-    warnings.warn('The method qc.i() is deprecated, use qc.i() instead', DeprecationWarning, 2)
+    """Deprecated identity gate."""
+    warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.11.2, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit.i() method instead.',
+                  DeprecationWarning, stacklevel=2)
     return self.append(IGate(), [q], [])
 
 

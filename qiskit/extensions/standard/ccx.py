@@ -29,8 +29,8 @@ from qiskit.extensions.standard.t import TInvGate
 
 
 class CCXMeta(type):
-    """
-    Metaclass to ensure that CCX and Toffoli are of the same type.
+    """A metaclass to ensure that CCXGate and ToffoliGate are of the same type.
+
     Can be removed when ToffoliGate gets removed.
     """
     @classmethod
@@ -96,12 +96,14 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
 
 
 class ToffoliGate(CCXGate, metaclass=CCXMeta):
-    """
-    Deprecated CCXGate class.
-    """
+    """The deprecated CCXGate class."""
+
     def __init__(self):
         import warnings
-        warnings.warn('ToffoliGate is deprecated, use CCXGate instead!', DeprecationWarning, 2)
+        warnings.warn('The class ToffoliGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CCXGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 

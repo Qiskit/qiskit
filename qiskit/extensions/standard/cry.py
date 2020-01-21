@@ -24,8 +24,8 @@ from qiskit.extensions.standard.ry import RYGate
 
 
 class CRYMeta(type):
-    """
-    Metaclass to ensure that Cry and CRY are of the same type.
+    """A metaclass to ensure that CryGate and CRYGate are of the same type.
+
     Can be removed when CryGate gets removed.
     """
     @classmethod
@@ -68,13 +68,14 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
 
 class CryGate(CRYGate, metaclass=CRYMeta):
-    """
-    Deprecated CRYGate class.
-    """
+    """The deprecated CRYGate class."""
+
     def __init__(self, theta):
         import warnings
-        warnings.warn('CryGate is deprecated, use CRYGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CryGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRYGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__(theta)
 
 

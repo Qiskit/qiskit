@@ -24,8 +24,8 @@ from qiskit.extensions.standard.rz import RZGate
 
 
 class CRZMeta(type):
-    """
-    Metaclass to ensure that Crz and CRZ are of the same type.
+    """A metaclass to ensure that CrzGate and CRZGate are of the same type.
+
     Can be removed when CrzGate gets removed.
     """
     @classmethod
@@ -67,13 +67,14 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
 
 
 class CrzGate(CRZGate, metaclass=CRZMeta):
-    """
-    Deprecated CRZGate class.
-    """
+    """The deprecated CRZGate class."""
+
     def __init__(self, theta):
         import warnings
-        warnings.warn('CrzGate is deprecated, use CRZGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CrzGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRZGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__(theta)
 
 

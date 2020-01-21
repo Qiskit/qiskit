@@ -25,8 +25,8 @@ from qiskit.extensions.standard.swap import SwapGate
 
 
 class CSwapMeta(type):
-    """
-    Metaclass to ensure that CSwap and Fredkin are of the same type.
+    """A Metaclass to ensure that CSwapGate and FredkinGate are of the same type.
+
     Can be removed when FredkinGate gets removed.
     """
     @classmethod
@@ -68,12 +68,14 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):
-    """
-    Deprecated CSwapGate class.
-    """
+    """The deprecated CSwapGate class."""
+
     def __init__(self):
         import warnings
-        warnings.warn('FredkinGate is deprecated, use CSwapGate instead!', DeprecationWarning, 2)
+        warnings.warn('The class FredkinGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CSwapGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 

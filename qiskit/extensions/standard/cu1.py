@@ -23,8 +23,8 @@ from qiskit.extensions.standard.cx import CXGate
 
 
 class CU1Meta(type):
-    """
-    Metaclass to ensure that Cu1 and CU1 are of the same type.
+    """A metaclass to ensure that Cu1Gate and CU1Gate are of the same type.
+
     Can be removed when Cu1Gate gets removed.
     """
     @classmethod
@@ -68,13 +68,14 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
 
 
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):
-    """
-    Deprecated CU1Gate class.
-    """
+    """The deprecated CU1Gate class."""
+
     def __init__(self, theta):
         import warnings
-        warnings.warn('Cu1Gate is deprecated, use CU1Gate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class Cu1Gate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CU1Gate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__(theta)
 
 

@@ -55,8 +55,8 @@ class SGate(Gate):
 
 
 class SInvMeta(type):
-    """
-    A metaclass to ensure that SInv and Sdg are of the same type.
+    """A metaclass to ensure that SInvGate and SdgGate are of the same type.
+
     Can be removed when SInvGate gets removed.
     """
     @classmethod
@@ -95,12 +95,13 @@ class SInvGate(Gate, metaclass=SInvMeta):
 
 
 class SdgGate(SInvGate, metaclass=SInvMeta):
-    """
-    The deprecated SInvGate class.
-    """
+    """The deprecated SInvGate class."""
 
     def __init__(self):
-        warnings.warn('SdgGate is deprecated, use SInvGate instead!', DeprecationWarning, 2)
+        warnings.warn('The class SdgGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class SInvGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 
@@ -116,7 +117,10 @@ def sinv(self, q):
 
 def sdg(self, q):
     """Apply Sdg (deprecated!) to q."""
-    warnings.warn('sdg() is deprecated, use sinv() instead!', DeprecationWarning, 2)
+    warnings.warn('The QuantumCircuit.sdg() method is deprecated as of 0.11.2, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit.sinv() method instead.',
+                  DeprecationWarning, stacklevel=2)
     return self.append(SdgGate(), [q], [])
 
 

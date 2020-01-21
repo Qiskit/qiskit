@@ -55,8 +55,8 @@ class TGate(Gate):
 
 
 class TInvMeta(type):
-    """
-    A metaclass to ensure that TInv and Tdg are of the same type.
+    """A metaclass to ensure that TInvGate and TdgGate are of the same type.
+
     Can be removed when TInvGate gets removed.
     """
     @classmethod
@@ -98,7 +98,10 @@ class TdgGate(TInvGate, metaclass=TInvMeta):
     """The deprecated TInv gate."""
 
     def __init__(self):
-        warnings.warn('TdgGate is deprecated, use TInvGate instead!', DeprecationWarning, 2)
+        warnings.warn('The class TdgGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class TInvGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 
@@ -114,7 +117,10 @@ def tinv(self, q):
 
 def tdg(self, q):
     """Apply Tdg (deprecated!) to q."""
-    warnings.warn('tdg() is deprecated, use tinv() instead!', DeprecationWarning, 2)
+    warnings.warn('The QuantumCircuit.tdg() method is deprecated as of 0.11.2, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit.tinv() method instead.',
+                  DeprecationWarning, stacklevel=2)
     return self.append(TdgGate(), [q], [])
 
 

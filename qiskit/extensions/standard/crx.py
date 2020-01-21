@@ -26,8 +26,8 @@ from qiskit.qasm import pi
 
 
 class CRXMeta(type):
-    """
-    Metaclass to ensure that Crx and CRX are of the same type.
+    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
+
     Can be removed when CrxGate gets removed.
     """
     @classmethod
@@ -73,13 +73,14 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
 
 class CrxGate(CRXGate, metaclass=CRXMeta):
-    """
-    Deprecated CRXGate class.
-    """
+    """The deprecated CRXGate class."""
+
     def __init__(self, theta):
         import warnings
-        warnings.warn('CrxGate is deprecated, use CRXGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CrxGate is deprecated as of 0.11.2, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRXGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__(theta)
 
 
