@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Added ``average_gate_fidelity`` and ``gate_error`` functions for
+    ``qiskit.quantum_info`` operator and quantum channel objects.
+issues:
+  - |
+    List known issues here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+upgrade:
+  - |
+    Changed second argument of ``process_fidelity`` function to be optional.
+    If a target unitary is not specified, the process fidelity of the input
+    channel with the identity operator will be returned.
+deprecations:
+  - |
+    The ``require_cptp`` kwarg of the ``process_fidelity`` function has been
+    deprecated. It is superseded by two separate kwargs ``require_cp`` and
+    ``require_tp``.
