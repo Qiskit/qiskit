@@ -1,7 +1,6 @@
 ---
-fixes:
+features:
   - |
-    In the transpiler optimization level 1, the trivial layout
-    has higher priority than dense layout.  In other words, if a
-    trivial layout fits perfectly for a particular circuit, then
-    it is used. Otherwise, dense layout is used.
+    In the transpiler optimization level 1, if trivial layout is
+    not a perfect match for a particular circuit, then dense
+    layout is used.
