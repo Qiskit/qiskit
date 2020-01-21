@@ -116,6 +116,7 @@ class AstInterpreter:
                           "rz": RZGate,
                           "rzz": RZZGate,
                           "i": IGate,
+                          "id": IGate,
                           "h": HGate,
                           "cx": CXGate,
                           "cy": CYGate,
@@ -285,7 +286,7 @@ class AstInterpreter:
             self.dag.add_creg(creg)
 
         elif node.type == "i":
-            raise QiskitError("internal error: _process_node on id")
+            raise QiskitError("internal error: _process_node on i")
 
         elif node.type == "int":
             raise QiskitError("internal error: _process_node on int")

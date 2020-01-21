@@ -59,6 +59,7 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.u2(0.1, 0.6, 0)
         ref_circuit.u1(0.6, 0)
         ref_circuit.i(0)
+        ref_circuit.i(0)
         ref_circuit.cx(0, 1)
         # the standard single qubit gates
         ref_circuit.x(0)
