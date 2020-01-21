@@ -209,12 +209,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
         if num_qubits > len(self.swap_graph):
             raise TranspilerError('Number of qubits greater than device.')
         for end1, end2, _ in sorted(self.prog_graph.edges(data=True),
-                                    key=lambda x: x[2]['weight'], reverse=True):
+                                    key=lambda x: [x[2]['weight'], -x[0], -x[1]], reverse=True):
             self.pending_program_edges.append((end1, end2))
-
-        # In python 3.5, networkx returns edges in different order than in 3.6.
-        # This line can be removed after dropping support for python 3.5
-        self.pending_program_edges.sort()
 
         while self.pending_program_edges:
             edge = self._select_next_edge()
