@@ -586,7 +586,9 @@ class TestPulseAssembler(QiskitTestCase):
 
         instructions = [AcquireInstruction(acquire, AcquireChannel(0), MemorySlot(i))
                         for i in range(2)]
-        # TODO: self.assertRaises(QiskitError, _validate_meas_map, instructions, [[0]])
+        # TODO:
+        # with self.assertRaises(QiskitError):
+        #     _validate_meas_map(instructions, meas_map=[[0]])
         self.assertTrue(_validate_meas_map(instructions, meas_map=[[0]]))
 
 

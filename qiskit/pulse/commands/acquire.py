@@ -115,7 +115,7 @@ class Acquire(Command):
 
 
 class AcquireInstruction(Instruction):
-    """ Pulse to acquire measurement result. """
+    """Pulse to acquire measurement result."""
 
     def __init__(self,
                  command: Acquire,
@@ -128,8 +128,9 @@ class AcquireInstruction(Instruction):
 
         if isinstance(acquire, list) or mem_slots or reg_slots:
             warnings.warn('AcquireInstruction on multiple qubits, multiple memory slots '
-                          'and multiple reg slots has been deprecated.',
-                          DeprecationWarning, 3)
+                          'and multiple reg slots has been deprecated. Parameter "mem_slots" '
+                          'has been replaced by "mem_slot" and "reg_slots" has been '
+                          'replaced by "reg_slot"', DeprecationWarning, 3)
 
         if not isinstance(acquire, list):
             acquire = [acquire]
@@ -147,8 +148,9 @@ class AcquireInstruction(Instruction):
         if not (mem_slots or reg_slots):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slots and len(acquire) != len(mem_slots):
-            raise PulseError("#mem_slots must be equals to #acquires")
+        if mem_slots:
+            if len(acquire) != len(mem_slots):
+                raise PulseError("#mem_slots must be equals to #acquires")
 
         if reg_slots:
             if len(acquire) != len(reg_slots):
@@ -180,14 +182,20 @@ class AcquireInstruction(Instruction):
     @property
     def acquires(self):
         """Acquire channels to be acquired on."""
+        warnings.warn('"acquires" is deprecated and being replaced by "acquire"',
+                      DeprecationWarning, 3)
         return self._acquires
 
     @property
     def mem_slots(self):
         """MemorySlots."""
+        warnings.warn('"mem_slots" is deprecated and being replaced by "mem_slot"',
+                      DeprecationWarning, 3)
         return self._mem_slots
 
     @property
     def reg_slots(self):
         """RegisterSlots."""
+        warnings.warn('"reg_slots" is deprecated and being replaced by "reg_slot"',
+                      DeprecationWarning, 3)
         return self._reg_slots
