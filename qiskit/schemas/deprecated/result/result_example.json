@@ -1,7 +1,7 @@
 {
     "backend": "qasm_simulator",
     "cpp_simulator_kernel": "qasm_simulator_cpp",
-    "i": "test",
+    "id": "test",
     "result": [{
         "data": {
             "counts": {

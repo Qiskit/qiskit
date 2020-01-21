@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://www.qiskit.org/schemas/qobj_schema.json",
+    "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
     "version": "1.0.0",
     "definitions": {

@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://www.qiskit.org/schemas/backend_props_schema.json",
+    "id": "http://www.qiskit.org/schemas/backend_props_schema.json",
     "description": "OpenQuantum backend properties schema",
     "version": "1.0.0",
     "definitions": {

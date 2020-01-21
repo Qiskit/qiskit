@@ -1,16 +1,16 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://qiskit.org/qobj/results-01/schema#",
+    "id": "http://qiskit.org/qobj/results-01/schema#",
     "title": "qobj results",
     "description": "The results of executing a qobj",
     "type": "object",
-    "required": ["backend", "i", "status"],
+    "required": ["backend", "id", "status"],
     "properties": {
         "backend": {
             "type": "string",
             "description": "Backend who produced this result"
         },
-        "i": {
+        "id": {
             "type": "string",
             "description": "Job id passed back from the input qobj"
         },

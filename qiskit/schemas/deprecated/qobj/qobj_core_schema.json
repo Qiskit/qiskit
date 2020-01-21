@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://qiskit.org/qobj/core-01/schema#",
+    "id": "http://qiskit.org/qobj/core-01/schema#",
     "type": "object",
     "required": ["i", "experiments"],
     "properties": {

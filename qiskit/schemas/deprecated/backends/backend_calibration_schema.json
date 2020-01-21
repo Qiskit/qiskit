@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://qiskit.org/device-file/calibration-01/schema#",
+    "id": "http://qiskit.org/device-file/calibration-01/schema#",
     "description": "Qiskit device backend calibration",
     "definitions": {
         "errorParameter": {

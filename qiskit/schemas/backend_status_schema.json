@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "i": "http://www.qiskit.org/schemas/backendstatus_schema.json",
+    "id": "http://www.qiskit.org/schemas/backendstatus_schema.json",
     "description": "OpenQuantum backend status schema",
     "version": "1.0.0",
     "type": "object",
