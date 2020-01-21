@@ -1,9 +1,9 @@
 ---
 deprecations:
   - |
-    The gates are named mor consistently.
-    * the pauli gates all have one uppercase letter only (I, X, Y, Z)
-    * the parameterized pauli gates (i.e. rotations) prepend the uppercase letter R (RX, RY, RZ)
+    The gates are named more consistently.
+    * the Pauli gates all have one uppercase letter only (I, X, Y, Z)
+    * the parameterized Pauli gates (i.e. rotations) prepend the uppercase letter R (RX, RY, RZ)
     * a controlled version prepends the uppercase letter C (CX, CRX, CCX)
     * gates are named according to their action, not their alternative names (CCX, not Toffoli)
 
@@ -11,20 +11,21 @@ deprecations:
 
     class                    | name        | qc._
     -------------------------+-------------+---------------
-    CCXGate <- ToffoliGate   | ccx         | ccx, toffoli
-    CRXGate <- CrxGate       | crx         | crz
-    CRYGate <- CryGate       | cry         | crz
-    CRZGate <- CrzGate       | crz         | crz
-    CSwapGate <- FredkinGate | cswap       | cswap, fredkin
-    CU1Gate <- Cu1Gate       | cu1         | cu1
-    CU3Gate <- Cu3Gate       | cu3         | cu3
-    CXGate <- CnotGate       | cx          | cx, cnot
-    CYGate <- CyGate         | cy          | cy
-    CZGate <- CzGate         | cz          | cz
-    HGate                    | h           | h
-    IGate <- IdGate          | i <- id     | i <- iden
-    UCPauliRotGate <- UCRot  | -           | -
-    UCGate <- UCG            | multiplexer | uc <- ucg
-    UCRXGate <- UCX          | ucrotX      | ucrx <- ucx
-    UCRYGate <- UCY          | ucrotY      | ucry <- ucy
-    UCRZGate <- UCZ          | ucrotZ      | ucrz <- ucz
+    CCXGate <- ToffoliGate   | ccx            | ccx, toffoli   |
+    CRXGate <- CrxGate       | crx            | crx            |
+    CRYGate <- CryGate       | cry            | cry            |
+    CRZGate <- CrzGate       | crz            | crz            |
+    CSwapGate <- FredkinGate | cswap          | cswap, fredkin |
+    CU1Gate <- Cu1Gate       | cu1            | cu1            |
+    CU3Gate <- Cu3Gate       | cu3            | cu3            |
+    CXGate <- CnotGate       | cx             | cx, cnot       |
+    CYGate <- CyGate         | cy             | cy             |
+    CZGate <- CzGate         | cz             | cz             |
+    IGate <- IdGate          | id             | i <- iden      |
+    SInvGate <- SdgGate      | sinv <- sdg    | sinv <- sdg    |
+    TInvGate <- TdgGate      | tinv <- tdg    | tinv <- tdg    |
+    UCGate <- UCG            | multiplexer    | uc <- ucg      |
+    UCPauliRotGate <- UCRot  |                |                |
+    UCRXGate <- UCX          | ucrx <- ucrotX | ucrx <- ucx    |
+    UCRYGate <- UCY          | ucry <- ucrotY | ucry <- ucy    |
+    UCRZGate <- UCZ          | ucrz <- ucrotZ | ucrz <- ucz    |
