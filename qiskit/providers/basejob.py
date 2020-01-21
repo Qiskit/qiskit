@@ -59,7 +59,7 @@ class BaseJob(ABC):
 
     def in_final_state(self) -> bool:
         """Return whether the job is in a final job state."""
-        return self.status() == JOB_FINAL_STATES
+        return self.status() in JOB_FINAL_STATES
 
     @abstractmethod
     def submit(self):
