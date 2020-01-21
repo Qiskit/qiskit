@@ -148,7 +148,7 @@ class PulseDefaults(BaseModel):
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
     @property
-    def qubit_freq_est(self) -> float:  # pylint: disable=invalid-name
+    def qubit_freq_est(self) -> float:
         """Qubit frequencies in Hertz(Hz)."""
         # only raise qubit_freq_est warning once
         if not PulseDefaults._freq_warning_done:
