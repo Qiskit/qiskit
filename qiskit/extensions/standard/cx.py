@@ -23,8 +23,8 @@ from qiskit.extensions.standard.x import XGate
 
 
 class CXMeta(type):
-    """
-    Metaclass to ensure that Cnot and CX are of the same type.
+    """A metaclass to ensure that CnotGate and CXGate are of the same type.
+
     Can be removed when CnotGate gets removed.
     """
     @classmethod
@@ -54,13 +54,14 @@ class CXGate(ControlledGate, metaclass=CXMeta):
 
 
 class CnotGate(CXGate, metaclass=CXMeta):
-    """
-    Deprecated CXGate class.
-    """
+    """The deprecated CXGate class."""
+
     def __init__(self):
         import warnings
-        warnings.warn('CnotGate is deprecated, use CXGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CnotGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CXGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 

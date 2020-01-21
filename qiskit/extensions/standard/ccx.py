@@ -100,7 +100,7 @@ class ToffoliGate(CCXGate, metaclass=CCXMeta):
 
     def __init__(self):
         import warnings
-        warnings.warn('The class ToffoliGate is deprecated as of 0.11.2, and '
+        warnings.warn('The class ToffoliGate is deprecated as of 0.12.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CCXGate instead.',
                       DeprecationWarning, stacklevel=2)

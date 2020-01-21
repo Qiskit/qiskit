@@ -98,7 +98,7 @@ class SdgGate(SInvGate, metaclass=SInvMeta):
     """The deprecated SInvGate class."""
 
     def __init__(self):
-        warnings.warn('The class SdgGate is deprecated as of 0.11.2, and '
+        warnings.warn('The class SdgGate is deprecated as of 0.12.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class SInvGate instead.',
                       DeprecationWarning, stacklevel=2)
@@ -117,7 +117,7 @@ def sinv(self, q):
 
 def sdg(self, q):
     """Apply Sdg (deprecated!) to q."""
-    warnings.warn('The QuantumCircuit.sdg() method is deprecated as of 0.11.2, and '
+    warnings.warn('The QuantumCircuit.sdg() method is deprecated as of 0.12.0, and '
                   'will be removed no earlier than 3 months after that release date. '
                   'You should use the QuantumCircuit.sinv() method instead.',
                   DeprecationWarning, stacklevel=2)

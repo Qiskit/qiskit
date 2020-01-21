@@ -26,8 +26,8 @@ from qiskit.extensions.standard.cx import CXGate
 
 
 class CYMeta(type):
-    """
-    Metaclass to ensure that Cy and CY are of the same type.
+    """A metaclass to ensure that CyGate and CYGate are of the same type.
+
     Can be removed when CyGate gets removed.
     """
     @classmethod
@@ -72,13 +72,14 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
 
 class CyGate(CYGate, metaclass=CYMeta):
-    """
-    Deprecated CYGate class.
-    """
+    """A deprecated CYGate class."""
+
     def __init__(self):
         import warnings
-        warnings.warn('CyGate is deprecated, use CYGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CyGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CYGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 

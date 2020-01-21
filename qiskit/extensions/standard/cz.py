@@ -26,8 +26,8 @@ from qiskit.extensions.standard.z import ZGate
 
 
 class CZMeta(type):
-    """
-    Metaclass to ensure that Cz and CZ are of the same type.
+    """A metaclass to ensure that CzGate and CZGate are of the same type.
+
     Can be removed when CzGate gets removed.
     """
     @classmethod
@@ -72,13 +72,13 @@ class CZGate(ControlledGate, metaclass=CZMeta):
 
 
 class CzGate(CZGate, metaclass=CZMeta):
-    """
-    Deprecated CZGate class.
-    """
+    """The deprecated CZGate class."""
     def __init__(self):
         import warnings
-        warnings.warn('CzGate is deprecated, use CZGate (uppercase) instead!', DeprecationWarning,
-                      2)
+        warnings.warn('The class CzGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CZGate instead.',
+                      DeprecationWarning, stacklevel=2)
         super().__init__()
 
 
