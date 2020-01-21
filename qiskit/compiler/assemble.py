@@ -225,7 +225,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     elif max_shots and max_shots < shots:
         raise QiskitError(
             'Number of shots specified: %s exceeds max_shots property of the '
-            'backend: %s. Reducing shots to max_shots' % (shots, max_shots))
+            'backend: %s.' % (shots, max_shots))
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
