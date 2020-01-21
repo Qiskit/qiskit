@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    `BaseJob` has three new methods: `done()`, `running()`, and `cancelled()`.
-     The methods are used to indicate the job status.
+    `BaseJob` has four new methods: `done()`, `running()`, `cancelled()`,
+     and `in_final_state()`. The methods are used to indicate the job status.
