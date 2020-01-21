@@ -18,6 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
+from qiskit.pulse import AcquireChannel
 from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
@@ -172,17 +173,14 @@ class TestAddImplicitAcquires(QiskitTestCase):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
-    def test_explicitly_non_acquired_qubit(self):
-        """Test for time and duration of qubit that was not acquired, but in meas map."""
-        sched = add_implicit_acquires(self.sched, [[0, 5]])
-        times = set()
-        durations = set()
-        for time, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
-                times.add(time)
-                durations.add(inst.duration)
-        self.assertEqual(times, {0, 5})
-        self.assertEqual(durations, {0, 5})
+    def test_multiple_acquires(self):
+        """Test for multiple acquires."""
+        sched = pulse.Schedule()
+        acq_q0 = pulse.Acquire(1200)(AcquireChannel(0), MemorySlot(0))
+        sched += acq_q0
+        sched += acq_q0 << sched.duration
+        sched = add_implicit_acquires(sched, meas_map=[[0]])
+        self.assertEqual(sched.instructions, ((0, acq_q0), (2400, acq_q0)))
 
 
 class TestPad(QiskitTestCase):
