@@ -50,8 +50,6 @@ def _experiments_to_circuits(qobj):
             conditional = {}
             for i in x.instructions:
                 name = i.name
-                if i.name == 'i':
-                    name = 'iden'
                 qubits = []
                 params = getattr(i, 'params', [])
                 try:
