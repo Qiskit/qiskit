@@ -180,7 +180,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         to be after the 2nd ID gate, as the block was added when the
         first node in the block was seen.
 
-        blocks = [['id', 'cx', 'id']]
+        blocks = [['i', 'cx', 'i']]
 
                 ┌────┐┌───┐
         q_0: |0>┤ Id ├┤ X ├──────
@@ -213,7 +213,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         block was declared after it. This occurred when the block was
         added when the last node in the block was seen.
 
-        blocks = [['cx', 'id', 'id']]
+        blocks = [['cx', 'i', 'i']]
 
         q_0: |0>─────────────■──
                      ┌────┐┌─┴─┐
@@ -241,7 +241,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         This is a larger test to ensure multiple blocks can all be collected
         and added back in the correct order.
 
-        blocks = [['cx', 'id'], ['cx', 'id'], ['id', 'cx'], ['id', 'cx']]
+        blocks = [['cx', 'i'], ['cx', 'i'], ['i', 'cx'], ['i', 'cx']]
 
         q_0: |0>──■───────────────────■──
                 ┌─┴─┐┌────┐   ┌────┐┌─┴─┐

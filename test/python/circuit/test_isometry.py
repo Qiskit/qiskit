@@ -54,7 +54,7 @@ class TestIsometry(QiskitTestCase):
                 self.assertIsInstance(qc.decompose(), QuantumCircuit)
 
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
+                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'i'])
 
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')

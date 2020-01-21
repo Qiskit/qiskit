@@ -33,7 +33,7 @@ class TestKAKOverOptim(QiskitTestCase):
         qc.cz(qr[0], qr[1])
 
         cz_circ = transpile(qc, None, coupling_map=[[0, 1], [1, 0]],
-                            basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                            basis_gates=['u1', 'u2', 'u3', 'i', 'cx'],
                             optimization_level=3)
         ops = cz_circ.count_ops()
         self.assertEqual(ops['u2'], 2)
@@ -50,7 +50,7 @@ class TestKAKOverOptim(QiskitTestCase):
         qc.cu1(np.pi, qr[0], qr[1])
 
         cu1_circ = transpile(qc, None, coupling_map=[[0, 1], [1, 0]],
-                             basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                             basis_gates=['u1', 'u2', 'u3', 'i', 'cx'],
                              optimization_level=3)
         ops = cu1_circ.count_ops()
         self.assertEqual(ops['cx'], 1)

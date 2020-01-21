@@ -42,7 +42,7 @@ class TestDiagGate(QiskitTestCase):
                 qc = QuantumCircuit(q)
                 qc.diag_gate(diag, q[0:num_qubits])
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
+                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'i'])
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()

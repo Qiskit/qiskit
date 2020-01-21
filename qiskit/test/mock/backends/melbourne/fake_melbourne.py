@@ -41,7 +41,7 @@ class FakeMelbourne(FakeBackend):
             backend_name='fake_melbourne',
             backend_version='0.0.0',
             n_qubits=14,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
             simulator=False,
             local=True,
             conditional=False,

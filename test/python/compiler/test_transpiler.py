@@ -56,7 +56,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
 
         coupling_map = [[1, 0]]
-        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'i']
 
         backend = BasicAer.get_backend('qasm_simulator')
         circuit2 = transpile(circuit, backend=backend, coupling_map=coupling_map,
@@ -77,7 +77,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
 
-        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'i']
         circuit2 = transpile(circuit, basis_gates=basis_gates, optimization_level=0)
         resources_after = circuit2.count_ops()
         self.assertEqual({'u2': 2, 'cx': 4}, resources_after)
@@ -175,7 +175,7 @@ class TestTranspile(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/2036
         """
-        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'i']
         coupling_map = [[0, 1], [0, 5], [1, 0], [1, 2], [2, 1], [2, 3],
                         [3, 2], [3, 4], [4, 3], [4, 9], [5, 0], [5, 6],
                         [5, 10], [6, 5], [6, 7], [7, 6], [7, 8], [7, 12],

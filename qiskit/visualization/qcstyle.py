@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'id': 'I',
+            'i': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -71,7 +71,7 @@ class DefaultStyle:
             'u1': basis_color,
             'u2': basis_color,
             'u3': basis_color,
-            'id': iden_color,
+            'i': iden_color,
             'x': pauli_color,
             'y': pauli_color,
             'z': pauli_color,
@@ -151,7 +151,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'id': 'I',
+            'i': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -171,7 +171,7 @@ class BWStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#ffffff',
+            'i': '#ffffff',
             'u0': '#ffffff',
             'u1': '#ffffff',
             'u2': '#ffffff',

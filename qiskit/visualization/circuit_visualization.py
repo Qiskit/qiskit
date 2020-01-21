@@ -182,7 +182,7 @@ def circuit_drawer(circuit,
             type in the output visualization. The default values are::
 
                 {
-                    'id': 'id',
+                    'i': 'i',
                     'u0': 'U_0',
                     'u1': 'U_1',
                     'u2': 'U_2',
@@ -207,7 +207,7 @@ def circuit_drawer(circuit,
             The color codes to use for each circuit element. The default values are::
 
                 {
-                    'id': '#F0E442',
+                    'i': '#F0E442',
                     'u0': '#E7AB3B',
                     'u1': '#E7AB3B',
                     'u2': '#E7AB3B',
@@ -343,7 +343,7 @@ def qx_color_scheme():
         "figwidth": -1,
         "dpi": 150,
         "displaytext": {
-            "id": "id",
+            "i": "i",
             "u0": "U_0",
             "u1": "U_1",
             "u2": "U_2",
@@ -362,7 +362,7 @@ def qx_color_scheme():
             "reset": "\\left|0\\right\\rangle"
         },
         "displaycolor": {
-            "id": "#ffca64",
+            "i": "#ffca64",
             "u0": "#f69458",
             "u1": "#f69458",
             "u2": "#f69458",

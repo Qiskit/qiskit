@@ -50,7 +50,7 @@ class Collect2qBlocks(AnalysisPass):
         # Initiate the commutation set
         self.property_set['commutation_set'] = defaultdict(list)
 
-        good_names = ["cx", "u1", "u2", "u3", "id"]
+        good_names = ["cx", "u1", "u2", "u3", "i"]
         block_list = []
         nodes = list(dag.topological_nodes())
         nodes_seen = dict(zip(nodes, [False] * len(nodes)))

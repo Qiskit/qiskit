@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://qiskit.org/qobj/generic-01/schema#",
+    "i": "http://qiskit.org/qobj/generic-01/schema#",
     "properties": {
         "experiments": {
             "properties": {
@@ -26,7 +26,7 @@
             "title": "fixed 1Q op",
             "required": ["qubits"],
             "properties": {
-                "name": {"enum": ["reset", "id", "h", "s", "sinv", "t", "tinv", "x", "y", "z"]},
+                "name": {"enum": ["reset", "i", "h", "s", "sinv", "t", "tinv", "x", "y", "z"]},
                 "qubits": {"maxItems": 1},
                 "clbits": {"maxItems": 0},
                 "params": {"maxItems": 0},

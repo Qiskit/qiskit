@@ -1,6 +1,6 @@
 {
   "type": "QASM",
-  "id": "S4cmORrEe5OtQXwecLQSCLmDpw13NC",
+  "i": "S4cmORrEe5OtQXwecLQSCLmDpw13NC",
   "config": {
       "backend": "ibmqx4",
       "max_credits": 3,

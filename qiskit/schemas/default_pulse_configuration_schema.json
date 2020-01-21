@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://www.qiskit.org/schemas/default_pulse_config_schema.json",
+    "i": "http://www.qiskit.org/schemas/default_pulse_config_schema.json",
     "description": "Default OpenPulse backend configuration",
     "version": "1.0.0",
     "definitions": {

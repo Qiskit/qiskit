@@ -1,14 +1,14 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://qiskit.org/qobj/core-01/schema#",
+    "i": "http://qiskit.org/qobj/core-01/schema#",
     "type": "object",
-    "required": ["id", "experiments"],
+    "required": ["i", "experiments"],
     "properties": {
         "type": {
             "type": "string",
             "enum": ["QASM", "PULSE"]
         },
-        "id": {"type": "string"},
+        "i": {"type": "string"},
         "config": {
             "title": "Qobj-level configuration",
             "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",

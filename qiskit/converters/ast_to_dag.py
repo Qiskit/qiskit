@@ -115,7 +115,7 @@ class AstInterpreter:
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
-                          "id": IGate,
+                          "i": IGate,
                           "h": HGate,
                           "cx": CXGate,
                           "cy": CYGate,
@@ -163,7 +163,7 @@ class AstInterpreter:
         if node.type == "indexed_id":
             # An indexed bit or qubit
             return [reg[node.index]]
-        elif node.type == "id":
+        elif node.type == "i":
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
@@ -284,7 +284,7 @@ class AstInterpreter:
             creg = ClassicalRegister(node.index, node.name)
             self.dag.add_creg(creg)
 
-        elif node.type == "id":
+        elif node.type == "i":
             raise QiskitError("internal error: _process_node on id")
 
         elif node.type == "int":

@@ -101,6 +101,9 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         filename = self._get_resource_path('current_textplot.txt')
         qc = self.sample_circuit()
         output = circuit_drawer(qc, filename=filename, output="text", fold=-1)
+        print('--')
+        print(output)
+        print('--')
         self.assertFilesAreEqual(filename, self.text_reference)
         os.remove(filename)
         try:

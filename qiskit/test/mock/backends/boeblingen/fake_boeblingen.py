@@ -50,7 +50,7 @@ class FakeBoeblingen(FakeBackend):
             backend_name='fake_boeblingen',
             backend_version='0.0.0',
             n_qubits=20,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
             simulator=False,
             local=True,
             conditional=False,

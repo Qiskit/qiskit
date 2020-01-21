@@ -39,7 +39,7 @@ class FakeOurense(FakeBackend):
             backend_name='fake_ourense',
             backend_version='0.0.0',
             n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
             simulator=False,
             local=True,
             conditional=False,

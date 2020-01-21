@@ -53,7 +53,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'i', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -76,7 +76,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
-                'name': 'id',
+                'name': 'i',
                 'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },

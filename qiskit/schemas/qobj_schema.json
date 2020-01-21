@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://www.qiskit.org/schemas/qobj_schema.json",
+    "i": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
     "version": "1.0.0",
     "definitions": {
@@ -258,7 +258,7 @@
                 {
                     "properties": {
                         "name": {"not": {
-                            "enum": ["u3", "U", "id", "h", "s", "sinv", "t", "tinv", "x", "y", "z",
+                            "enum": ["u3", "U", "i", "h", "s", "sinv", "t", "tinv", "x", "y", "z",
                             "u1", "u0", "rx", "ry", "rz", "u2", "cx", "CX", "cy", "cz", "ch",
                             "swap", "cu1", "crz", "rzz", "cu3", "ccx", "cswap", "snapshot",
                             "reset", "barrier", "bfunc", "copy", "measure"]
@@ -310,7 +310,7 @@
                         "name": {
                             "enum": [
                                 "reset",
-                                "id",
+                                "i",
                                 "h",
                                 "s",
                                 "sinv",

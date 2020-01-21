@@ -236,7 +236,7 @@ class QCircuitImage:
                 # useful information for determining row spacing
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                                'sinv', 't', 'tinv', 'rx', 'ry', 'rz', 'ch', 'cy',
-                               'crz', 'cu3', 'id']
+                               'crz', 'cu3', 'i']
                 target_gates = ['cx', 'ccx']
                 if op.name in boxed_gates:
                     self.has_box = True

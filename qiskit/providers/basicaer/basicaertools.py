@@ -38,7 +38,7 @@ def single_gate_params(gate, params=None):
         return np.pi / 2, params[0], params[1]
     elif gate == 'u1':
         return 0, 0, params[0]
-    elif gate == 'id':
+    elif gate == 'i':
         return 0, 0, 0
     raise QiskitError('Gate is not among the valid types: %s' % gate)
 

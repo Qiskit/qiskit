@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://qiskit.org/backend/configuration-01/schema#",
+    "i": "http://qiskit.org/backend/configuration-01/schema#",
     "description": "Qiskit device backend configuration",
     "type": "object",
     "required": [

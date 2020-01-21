@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://www.qiskit.org/schemas/job_status_schema.json",
+    "i": "http://www.qiskit.org/schemas/job_status_schema.json",
     "description": "OpenQuantum job status schema",
     "version": "1.0.0",
     "type": "object",

@@ -778,7 +778,7 @@ class QuantumCircuit:
                 are::
 
                     {
-                        'id': 'id',
+                        'i': 'i',
                         'u0': 'U_0',
                         'u1': 'U_1',
                         'u2': 'U_2',
@@ -803,7 +803,7 @@ class QuantumCircuit:
                 element. The default values are::
 
                     {
-                        'id': '#F0E442',
+                        'i': '#F0E442',
                         'u0': '#E7AB3B',
                         'u1': '#E7AB3B',
                         'u2': '#E7AB3B',
