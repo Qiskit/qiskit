@@ -53,7 +53,7 @@ class BaseJob(ABC):
             self,
             timeout: Optional[float] = None,
             wait: float = 5,
-            callback: Callable = None
+            callback: Optional[Callable] = None
     ) -> None:
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 
@@ -65,6 +65,8 @@ class BaseJob(ABC):
                     * job_id: job ID
                     * job_status: status of the job from the last query
                     * job: this BaseJob instance
+                Note: different subclass might provider different arguments to
+                    the callback function.
 
         Raises:
             JobTimeoutError: if the job does not reach a final state before the
