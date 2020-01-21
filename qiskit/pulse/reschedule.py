@@ -41,7 +41,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     wait time (to allow for calibration pulses) is enforced.
 
     This is only defined for schedules that are acquire-less or acquire-final per channel: a
-    schedule with pulses or acquires occuring on a channel which has already had a measurement will
+    schedule with pulses or acquires occurring on a channel which has already had a measurement will
     throw an error.
 
     Args:
@@ -79,7 +79,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     def get_max_calibration_duration():
         """Return the time needed to allow for readout discrimination calibration pulses."""
         max_calibration_duration = 0
-        for qubits in inst_map.cmd_qubits(cal_gate):
+        for qubits in inst_map.qubits_with_instruction(cal_gate):
             cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)
             max_calibration_duration = max(cmd.duration, max_calibration_duration)
         return max_calibration_duration
@@ -94,7 +94,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for schedule in schedules:
-        new_schedule = Schedule()
+        new_schedule = Schedule(name=schedule.name)
         acquired_channels = set()
         measured_channels = set()
 
@@ -102,7 +102,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
             for chan in inst.channels:
                 if isinstance(chan, MeasureChannel):
                     if chan.index in measured_channels:
-                        raise PulseError("Muliple measurements are not supported by this "
+                        raise PulseError("Multiple measurements are not supported by this "
                                          "rescheduling pass.")
                 elif chan.index in acquired_channels:
                     raise PulseError("Pulse encountered on channel {0} after acquire on "

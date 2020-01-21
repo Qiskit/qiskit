@@ -18,10 +18,11 @@ import unittest
 import numpy as np
 
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
-                                   SnapshotChannel)
+                                   SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction)
+                                   PulseInstruction, FrameChangeInstruction, Gaussian, Drag,
+                                   GaussianSquare, ConstantPulse)
 from qiskit.pulse import pulse_lib, SamplePulse
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -373,6 +374,20 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertEqual(len(sched_single.channels), len(sched_multiple.channels))
 
+    def test_parametric_commands_in_sched(self):
+        """Test that schedules can be built with parametric commands."""
+        sched = Schedule(name='test_parametric')
+        sched += Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
+        sched += Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4)(DriveChannel(1))
+        sched += ConstantPulse(duration=25, amp=1)(DriveChannel(2))
+        sched_duration = sched.duration
+        sched += GaussianSquare(duration=1500, amp=0.2,
+                                sigma=8, width=140)(MeasureChannel(0)) << sched_duration
+        sched += Acquire(duration=1500)(AcquireChannel(0),
+                                        mem_slots=[MemorySlot(0)]) << sched_duration
+        self.assertEqual(sched.duration, 1525)
+        self.assertTrue('sigma' in sched.instructions[0][1].command.parameters)
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
@@ -528,7 +543,7 @@ class TestScheduleFilter(BaseTestSchedule):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
-        # split schedule into instructions occuring in (0,13), and those outside
+        # split schedule into instructions occurring in (0,13), and those outside
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=((0, 13),))
         for start_time, inst in filtered.instructions:
             self.assertTrue((start_time >= 0) and (start_time + inst.stop_time <= 13))
@@ -537,7 +552,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 4)
 
-        # split into schedule occuring in and outside of interval (59,65)
+        # split into schedule occurring in and outside of interval (59,65)
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[(59, 65)])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(filtered.instructions[0][0], 60)
@@ -580,7 +595,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(90, lp0(self.config.drive(0)))
 
         # split instructions with filters on channel 0, of type PulseInstruction,
-        # occuring in the time interval (25, 100)
+        # occurring in the time interval (25, 100)
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels={self.config.drive(0)},
                                                                instruction_types=[PulseInstruction],
