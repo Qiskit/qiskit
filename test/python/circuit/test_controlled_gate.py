@@ -37,7 +37,7 @@ from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         RYGate, CryGate, CrxGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate,
                                         MSGate, Barrier)
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.extensions.unitary import UnitaryGate, _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
 
@@ -484,28 +484,46 @@ class TestControlledGate(QiskitTestCase):
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
+    def test_open_controlled_gate(self):
+        """
+        Test controlled gates with control on '0'
+        """
+        base_gate = XGate()
+        base_mat = base_gate.to_matrix()
+        num_ctrl_qubits = 3
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits):
-    """
-    Compute the controlled version of the input matrix with qiskit ordering.
+        ctrl_state = 5
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
-    Args:
-        base_mat (ndarray): unitary to be controlled
-        num_ctrl_qubits (int): number of controls for new unitary
+        ctrl_state = None
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
-    Returns:
-        ndarray: controlled version of base matrix.
-    """
-    num_target = int(np.log2(base_mat.shape[0]))
-    ctrl_dim = 2**num_ctrl_qubits
-    ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-    ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
-    full_mat = (np.kron(np.eye(2**num_target),
-                        np.eye(ctrl_dim) - ctrl_proj)
-                + np.kron(base_mat, ctrl_proj))
-    return full_mat
+        ctrl_state = 0
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
+        ctrl_state = 7
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
+    def test_open_controlled_gate_raises(self):
+        """
+        Test controlled gates with open controls raises if ctrl_state isn't allowed.
+        """
+        base_gate = XGate()
+        num_ctrl_qubits = 3
+        with self.assertRaises(QiskitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state=-1)
+        with self.assertRaises(QiskitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
+        with self.assertRaises(QiskitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state='101')
 
 
 if __name__ == '__main__':

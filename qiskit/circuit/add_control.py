@@ -14,29 +14,35 @@
 """
 Add control to operation if supported.
 """
+from typing import Union, Optional
+
 from qiskit import QiskitError
 from qiskit.extensions import UnitaryGate
+from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
-def add_control(operation, num_ctrl_qubits, label):
-    """Add num_ctrl_qubits controls to operation
+def add_control(operation: Union[Gate, ControlledGate],
+                num_ctrl_qubits: int,
+                label: Union[str, None],
+                ctrl_state: Union[int, None]) -> ControlledGate:
+    """Adds num_ctrl_qubits controls to operation.
 
     Args:
-        operation (Gate or ControlledGate): operation to add control to.
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
+        operation: Operation for which control will be added.
+        num_ctrl_qubits: The number of controls to add to gate (default=1).
+        label: Optional gate label.
+        ctrl_state: The control state in decimal. If None, use 2**num_ctrl_qubits-1.
 
     Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+        Controlled version of gate.
+
     """
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    if _control_definition_known(operation, num_ctrl_qubits):
+    if _control_definition_known(operation, num_ctrl_qubits) and ctrl_state is None:
         return _control_predefined(operation, num_ctrl_qubits)
-    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
+    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
 
 def _control_definition_known(operation, num_ctrl_qubits):
@@ -102,26 +108,27 @@ def _control_predefined(operation, num_ctrl_qubits):
     return cgate
 
 
-def control(operation, num_ctrl_qubits=1, label=None):
+def control(operation: Union[Gate, ControlledGate],
+            num_ctrl_qubits: Optional[int] = 1,
+            label: Optional[Union[None, str]] = None,
+            ctrl_state: Optional[Union[None, int]] = None) -> ControlledGate:
     """Return controlled version of gate using controlled rotations
 
     Args:
-        operation (Gate or Controlledgate): gate to create ControlledGate from
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
+        operation: gate to create ControlledGate from
+        num_ctrl_qubits: number of controls to add to gate (default=1)
+        label: optional gate label
+        ctrl_state: The control state in decimal. If None, use 2**num_ctrl_qubits-1.
+
     Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+        Controlled version of gate.
 
     Raises:
-        QiskitError: gate contains non-gate in definitionl
+        QiskitError: gate contains non-gate in definition
     """
     from math import pi
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
     # pylint: disable=unused-import
     import qiskit.extensions.standard.multi_control_rotation_gates
     import qiskit.extensions.standard.multi_control_toffoli_gate
@@ -130,9 +137,10 @@ def control(operation, num_ctrl_qubits=1, label=None):
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
-
     qc = QuantumCircuit(q_control, q_target)
 
+    if ctrl_state is not None:
+        _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
             operation.base_gate_name == 'x'):
@@ -180,6 +188,8 @@ def control(operation, num_ctrl_qubits=1, label=None):
                        mode='noancilla')
             else:
                 raise QiskitError('gate contains non-controllable instructions')
+    if ctrl_state is not None:
+        _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
@@ -211,9 +221,16 @@ def control(operation, num_ctrl_qubits=1, label=None):
     return cgate
 
 
+def _toggle_ctrl_state(qc: QuantumCircuit, num_qubits: int, ctrl_state: int) -> Gate:
+    if not (isinstance(ctrl_state, int) and 0 <= ctrl_state < 2**num_qubits):
+        raise QiskitError('invalid control state specified')
+    bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_qubits)
+    for ind, val in enumerate(bit_ctrl_state):
+        if val == '0':
+            qc.x(num_qubits - ind - 1)
+
+
 def _gate_to_circuit(operation):
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-    from qiskit.circuit.quantumregister import QuantumRegister
     qr = QuantumRegister(operation.num_qubits)
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:

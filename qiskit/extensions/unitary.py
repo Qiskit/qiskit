@@ -22,6 +22,7 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -111,43 +112,24 @@ class UnitaryGate(Gate):
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return controlled version of gate
 
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
             label (str): optional gate label
+            ctrl_state (int or None): The control state in decimal. If None,
+                use 2**num_ctrl_qubits-1.
+
 
         Returns:
             UnitaryGate: controlled version of gate.
 
         Raises:
-            QiskitError: unrecognized mode
+            QiskitError: invalid ctrl_state
         """
-        cmat = self._compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
         return UnitaryGate(cmat, label=label)
-
-    def _compute_control_matrix(self, base_mat, num_ctrl_qubits):
-        """
-        Compute the controlled version of the input matrix with qiskit ordering.
-
-        Args:
-            base_mat (ndarray): unitary to be controlled
-            num_ctrl_qubits (int): number of controls for new unitary
-
-        Returns:
-            ndarray: controlled version of base matrix.
-        """
-        num_target = int(numpy.log2(base_mat.shape[0]))
-        ctrl_dim = 2**num_ctrl_qubits
-        ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
-        full_mat_dim = ctrl_dim * base_mat.shape[0]
-        full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-        ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_dim - 1))
-        full_mat = (numpy.kron(numpy.eye(2**num_target),
-                               numpy.eye(ctrl_dim) - ctrl_proj)
-                    + numpy.kron(base_mat, ctrl_proj))
-        return full_mat
 
     def qasm(self):
         """ The qasm for a custom unitary gate
@@ -198,6 +180,36 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
+
+def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
+    """
+    Compute the controlled version of the input matrix with qiskit ordering.
+
+    Args:
+        base_mat (ndarray): unitary to be controlled
+        num_ctrl_qubits (int): number of controls for new unitary
+        ctrl_state (int or None): The control state in decimal. If None, use 2**num_ctrl_qubits-1.
+
+    Returns:
+        ndarray: controlled version of base matrix.
+
+    Raises:
+        QiskitError: unrecognized mode or invalid ctrl_state
+    """
+    num_target = int(numpy.log2(base_mat.shape[0]))
+    ctrl_dim = 2**num_ctrl_qubits
+    ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
+    if ctrl_state is None:
+        ctrl_state = ctrl_dim - 1
+    elif not (isinstance(ctrl_state, int) and 0 <= ctrl_state < ctrl_dim):
+        raise QiskitError('Invalid control state for number of control qubits.')
+    full_mat_dim = ctrl_dim * base_mat.shape[0]
+    full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
+    ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))
+    full_mat = (numpy.kron(numpy.eye(2**num_target),
+                           numpy.eye(ctrl_dim) - ctrl_proj)
+                + numpy.kron(base_mat, ctrl_proj))
+    return full_mat
 
 def unitary(self, obj, qubits, label=None):
     """Apply u2 to q."""
