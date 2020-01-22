@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a utility function - ``measure`` in pulse module to measure qubits using OpenPulse.
+    For example::
+
+      from qiskit.pulse import measure, Schedule
+      from qiskit.test.mock import FakeOpenPulse2Q
+      sched = Schedule(name="my_pulse")
+      sched = measure(qubits=[0], schedule=sched, backend=backend, inst_map=None, meas_map=None)

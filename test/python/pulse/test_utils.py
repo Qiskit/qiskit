@@ -46,14 +46,14 @@ class TestUtils(QiskitTestCase):
         """Test failing `measure`"""
         sched = Schedule()
         with self.assertRaises(AttributeError):
-            sched1 = measure(qubits=[0],
-                             schedule=sched,
-                             backend=None,
-                             inst_map=None,
-                             meas_map=self.backend.configuration().meas_map)
+            sched = measure(qubits=[0],
+                            schedule=sched,
+                            backend=None,
+                            inst_map=None,
+                            meas_map=self.backend.configuration().meas_map)
         with self.assertRaises(AttributeError):
-            sched2 = measure(qubits=[0],
-                             schedule=sched,
-                             backend=None,
-                             inst_map=self.backend.defaults().inst_map,
-                             meas_map=None)
+            sched = measure(qubits=[0],
+                            schedule=sched,
+                            backend=None,
+                            inst_map=self.backend.defaults().inst_map,
+                            meas_map=None)
