@@ -19,13 +19,11 @@ import unittest
 import numpy as np
 
 import qiskit.pulse as pulse
-from qiskit.assembler.assemble_schedules import _validate_meas_map
 from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
-from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
