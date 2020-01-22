@@ -607,21 +607,6 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(test_dict['config']['meas_return'], 'avg')
         self.assertEqual(test_dict['config']['meas_level'], 2)
 
-    def test_instruction_validation(self):
-        """Test instruction validation according to meas map"""
-        acquire = pulse.Acquire(2)
-
-        instructions = [AcquireInstruction(acquire, AcquireChannel(i), MemorySlot(i))
-                        for i in range(2)]
-        self.assertTrue(_validate_meas_map(instructions, meas_map=[[0, 1]]))
-
-        instructions = [AcquireInstruction(acquire, AcquireChannel(0), MemorySlot(i))
-                        for i in range(2)]
-        # TODO:
-        # with self.assertRaises(QiskitError):
-        #     _validate_meas_map(instructions, meas_map=[[0]])
-        self.assertTrue(_validate_meas_map(instructions, meas_map=[[0]]))
-
     def test_assemble_parametric(self):
         """Test that parametric pulses can be assembled properly into a PulseQobj."""
         sched = pulse.Schedule(name='test_parametric')
