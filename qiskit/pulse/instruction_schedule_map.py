@@ -192,7 +192,7 @@ class InstructionScheduleMap():
         if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
         if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
-            raise PulseError("Attemping to add an invalid schedule type.")
+            raise PulseError("Attempting to add an invalid schedule type.")
         self._map[instruction][qubits] = schedule
         self._qubit_instructions[qubits].add(instruction)
 
