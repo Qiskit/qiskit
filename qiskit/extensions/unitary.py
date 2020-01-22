@@ -211,6 +211,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
                 + numpy.kron(base_mat, ctrl_proj))
     return full_mat
 
+
 def unitary(self, obj, qubits, label=None):
     """Apply u2 to q."""
     if isinstance(qubits, QuantumRegister):
