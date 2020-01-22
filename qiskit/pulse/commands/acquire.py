@@ -167,17 +167,17 @@ class AcquireInstruction(Instruction):
     @property
     def acquire(self):
         """Acquire channel to be acquired on."""
-        return self._acquires[0]
+        return self._acquires[0] if self._acquires else None
 
     @property
     def mem_slot(self):
         """MemorySlot."""
-        return self._mem_slots[0]
+        return self._mem_slots[0] if self._mem_slots else None
 
     @property
     def reg_slot(self):
         """RegisterSlot."""
-        return self._reg_slots[0]
+        return self._reg_slots[0] if self._reg_slots else None
 
     @property
     def acquires(self):
