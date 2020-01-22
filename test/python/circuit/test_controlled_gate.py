@@ -21,6 +21,7 @@ from inspect import signature
 from test import combine
 import numpy as np
 from numpy import pi
+from numpy.testing import assert_allclose
 import scipy
 from ddt import ddt, data
 
@@ -328,7 +329,7 @@ class TestControlledGate(QiskitTestCase):
             fac = np.exp(1j * lam)
             mat_groundtruth[pos:pos + 2, pos:pos + 2] = [[(1 + fac) / 2, (1 - fac) / 2],
                                                          [(1 - fac) / 2, (1 + fac) / 2]]
-            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
+            assert_allclose(mat_mcu, mat_groundtruth)
 
     @combine(num_controls=[1, 2, 3], mode=['basic'])
     def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls, mode):
@@ -401,7 +402,7 @@ class TestControlledGate(QiskitTestCase):
         if num_ancillas > 0:
             mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
 
-        self.assertTrue(np.allclose(mat_mct, mat_groundtruth))
+        assert_allclose(mat_mct, mat_groundtruth)
 
     def test_single_controlled_rotation_gates(self):
         """Test the controlled rotation gates controlled on one qubit."""
@@ -518,7 +519,7 @@ class TestControlledGate(QiskitTestCase):
                                    dtype=complex)
 
             mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
-            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
+            assert_allclose(mat_mcu, mat_groundtruth)
 
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
@@ -567,7 +568,7 @@ class TestControlledGate(QiskitTestCase):
                                dtype=complex)
 
             mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
-            self.assertTrue(np.allclose(mat_mcu, mat_groundtruth))
+            assert_allclose(mat_mcu, mat_groundtruth)
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
