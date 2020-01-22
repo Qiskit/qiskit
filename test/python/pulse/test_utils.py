@@ -29,7 +29,7 @@ class TestUtils(QiskitTestCase):
         self.cmd_def = self.backend.defaults().build_cmd_def()
 
     def test_measure(self):
-        """Test utility function - measure"""
+        """Test utility function - measure."""
         sched = Schedule()
         sched = measure(qubits=[0],
                         schedule=sched,
@@ -43,7 +43,7 @@ class TestUtils(QiskitTestCase):
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_fail_measure(self):
-        """Test failing `measure`"""
+        """Test failing measure."""
         sched = Schedule()
         with self.assertRaises(AttributeError):
             sched = measure(qubits=[0],

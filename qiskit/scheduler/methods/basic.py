@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The most straightforward scheduling methods: scheduling as early or as late as possible.
-
-Warning: Currently for both of these methods, the MemorySlots in circuit Measures are ignored.
-Qubits will be measured into the MemorySlot which matches the measured qubit's index. (Issue #2704)
-"""
+"""The most straightforward scheduling methods: scheduling as early or as late as possible."""
 
 from collections import defaultdict, namedtuple
 from typing import List
