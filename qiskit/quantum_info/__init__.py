@@ -59,6 +59,9 @@ Measures
    :toctree: ../stubs/
 
    state_fidelity
+   average_gate_fidelity
+   process_fidelity
+   gate_error
 
 Utility Functions
 =================
@@ -103,6 +106,8 @@ from .operators.pauli import Pauli, pauli_group
 from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
+from .operators import average_gate_fidelity
+from .operators import gate_error
 from .states import Statevector, DensityMatrix
 from .states.utils import partial_trace
 from .states.states import basis_state, projector, purity

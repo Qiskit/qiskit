@@ -38,6 +38,8 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Layout2qDistance
+from qiskit.transpiler.passes import DenseLayout
 
 
 def level_1_pass_manager(transpile_config):
@@ -64,17 +66,18 @@ def level_1_pass_manager(transpile_config):
     coupling_map = transpile_config.coupling_map
     initial_layout = transpile_config.initial_layout
     seed_transpiler = transpile_config.seed_transpiler
+    backend_properties = getattr(transpile_config, 'backend_properties', None)
 
     # 1. Use trivial layout if no layout given
-    _given_layout = SetLayout(initial_layout)
+    _set_initial_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout = TrivialLayout(coupling_map)
-
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    _layout_check = CheckMap(coupling_map)
+    def _not_perfect_yet(property_set):
+        return property_set['trivial_layout_score'] is not None and \
+               property_set['trivial_layout_score'] != 0
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -114,9 +117,11 @@ def level_1_pass_manager(transpile_config):
 
     pm1 = PassManager()
     if coupling_map:
-        pm1.append(_given_layout)
-        pm1.append(_choose_layout, condition=_choose_layout_condition)
-        pm1.append(_layout_check)
+        pm1.append(_set_initial_layout)
+        pm1.append([TrivialLayout(coupling_map),
+                    Layout2qDistance(coupling_map, property_name='trivial_layout_score')],
+                   condition=_choose_layout_condition)
+        pm1.append(DenseLayout(coupling_map, backend_properties), condition=_not_perfect_yet)
         pm1.append(_embed)
     pm1.append(_unroll)
     if coupling_map:
