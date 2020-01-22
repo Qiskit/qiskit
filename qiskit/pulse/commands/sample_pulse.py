@@ -17,19 +17,18 @@ Sample pulse.
 """
 from typing import Callable, Union, List, Optional
 
+import warnings
 import numpy as np
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
-from .command import Command
+from .pulse_command import PulseCommand
 
 
-class SamplePulse(Command):
+class SamplePulse(PulseCommand):
     """Container for functional pulse."""
-
-    prefix = 'p'
 
     def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
                  epsilon: float = 1e-7):
@@ -104,7 +103,8 @@ class SamplePulse(Command):
              style: Optional['PulseStyle'] = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scaling: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             scaling: float = None):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -112,19 +112,25 @@ class SamplePulse(Command):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
+            scaling: Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         # pylint: disable=invalid-name, cyclic-import
+        if scaling is not None:
+            warnings.warn(
+                'The parameter "scaling" is being replaced by "scale"',
+                DeprecationWarning, 3)
+            scale = scaling
 
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scaling=scaling,
+                                          interp_method=interp_method, scale=scale,
                                           interactive=interactive)
 
     def __eq__(self, other: 'SamplePulse'):
