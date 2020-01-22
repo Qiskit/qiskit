@@ -18,7 +18,6 @@ Pulse utilities.
 import warnings
 from typing import List, Dict, Optional
 from qiskit.pulse import InstructionScheduleMap
-from qiskit.providers import BaseBackend
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import MemorySlot
 from qiskit.pulse.commands import AcquireInstruction
@@ -53,7 +52,7 @@ def measure(qubits: List[int],
             schedule: Schedule,
             inst_map: Optional[InstructionScheduleMap],
             meas_map: List[List[int]],
-            backend: Optional[BaseBackend] = None,
+            backend: Optional['BaseBackend'] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
     This is a utility function to measure qubits using OpenPulse.
