@@ -170,23 +170,47 @@ class Result(BaseModel):
                 according to the registers in circuit (e.g. ``0100 1110``).
                 The string is little-endian (cr[0] on the right hand side).
 
+            List[dict[str:int]]: a list of dictionaries for each experiment
+                executed. Every dictionary has the counts for each qubit, with
+                the keys containing a string in binary format and separated
+                according to the registers in circuit (e.g. ``0100 1110``).
+                The string is little-endian (cr[0] on the right hand side).
+
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
-        exp = self._get_experiment(experiment)
-        try:
-            header = exp.header.to_dict()
-        except (AttributeError, QiskitError):  # header is not available
-            header = None
+        if len(self.results) > 1:
+            dict_list = []
+            for i in range(len(self.results)):
+                exp = self._get_experiment(i)
+                try:
+                    header = exp.header.to_dict()
+                except (AttributeError, QiskitError):  # header is not available
+                    header = None
 
-        if 'counts' in self.data(experiment).keys():
-            return postprocess.format_counts(self.data(experiment)['counts'],
-                                             header)
-        elif 'statevector' in self.data(experiment).keys():
-            vec = postprocess.format_statevector(self.data(experiment)['statevector'])
-            return state_to_counts(vec)
+                if 'counts' in self.data(i).keys():
+                    dict_list.append(postprocess.format_counts(self.data(i)['counts'], header))
+                elif 'statevector' in self.data(i).keys():
+                    vec = postprocess.format_statevector(self.data(i)['statevector'])
+                    dict_list.append(state_to_counts(vec))
+                else:
+                    raise QiskitError(('No counts for experiment '+'"{'+str(i)+'}"').format(i))
+            return dict_list
         else:
-            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+            exp = self._get_experiment(experiment)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
+
+            if 'counts' in self.data(experiment).keys():
+                return postprocess.format_counts(self.data(experiment)['counts'],
+                                                 header)
+            elif 'statevector' in self.data(experiment).keys():
+                vec = postprocess.format_statevector(self.data(experiment)['statevector'])
+                return state_to_counts(vec)
+            else:
+                raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
