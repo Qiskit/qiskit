@@ -31,8 +31,10 @@ def add_control(operation: Union[Gate, ControlledGate],
         operation: Operation for which control will be added.
         num_ctrl_qubits: The number of controls to add to gate (default=1).
         label: Optional gate label.
-            ctrl_state (int or str or None): The control state in decimal or as
-                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+        ctrl_state (int or str or None): The control state in decimal or as
+            a bitstring (e.g. '111'). If specified as a bitstring the length
+            must equal num_ctrl_qubits, MSB on left. If None, use
+            2**num_ctrl_qubits-1.
 
     Returns:
         Controlled version of gate.
@@ -43,14 +45,16 @@ def add_control(operation: Union[Gate, ControlledGate],
         operation._define()
     if _control_definition_known(operation, num_ctrl_qubits) and ctrl_state is None:
         return _control_predefined(operation, num_ctrl_qubits)
-    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label,
+                   ctrl_state=ctrl_state)
 
 
 def _control_definition_known(operation, num_ctrl_qubits):
     if num_ctrl_qubits == 2 and operation.name == 'x':
         return True
     elif num_ctrl_qubits == 1:
-        return operation.name in {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'u1', 'u3', 'cx'}
+        return operation.name in {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap',
+                                  'u1', 'u3', 'cx'}
     elif operation.name == 'rz' and num_ctrl_qubits > 1:
         return True
     else:
@@ -119,8 +123,10 @@ def control(operation: Union[Gate, ControlledGate],
         operation: gate to create ControlledGate from
         num_ctrl_qubits: number of controls to add to gate (default=1)
         label: optional gate label
-            ctrl_state (int or str or None): The control state in decimal or as
-                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+        ctrl_state (int or str or None): The control state in decimal or as
+            a bitstring (e.g. '111'). If specified as a bitstring the length
+            must equal num_ctrl_qubits, MSB on left. If None, use
+            2**num_ctrl_qubits-1.
 
     Returns:
         Controlled version of gate.
@@ -144,7 +150,7 @@ def control(operation: Union[Gate, ControlledGate],
     if ctrl_state is not None:
         if isinstance(ctrl_state, str):
             try:
-                assert(len(ctrl_state) == num_ctrl_qubits)
+                assert len(ctrl_state) == num_ctrl_qubits
                 ctrl_state = int(ctrl_state, 2)
             except ValueError:
                 raise CircuitError(f'invalid control bit string: '
