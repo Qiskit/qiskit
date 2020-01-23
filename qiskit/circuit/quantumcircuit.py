@@ -626,7 +626,8 @@ class QuantumCircuit:
 
     @staticmethod
     def _get_composite_circuit_qasm_from_instruction(instruction):
-        """Returns OpenQASM string of a decomposed composite circuit"""
+        """Returns OpenQASM string composite circuit given an instruction.
+        The given instruction should be the result of composite_circuit.to_instruction()."""
 
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
