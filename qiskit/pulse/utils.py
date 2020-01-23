@@ -16,7 +16,6 @@
 Pulse utilities.
 """
 
-import warnings
 from typing import List, Dict, Optional
 from qiskit.providers import BaseBackend
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -25,31 +24,6 @@ from qiskit.pulse.channels import MemorySlot
 from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.scheduler.utils import format_meas_map
-# pylint: disable=unused-argument
-
-
-def align_measures(schedules, cmd_def, cal_gate, max_calibration_duration=None, align_time=None):
-    """
-    This function has been moved!
-    """
-    warnings.warn("The function `align_measures` has been moved to qiskit.pulse.reschedule. "
-                  "It cannot be invoked from `utils` anymore (this call returns None).")
-
-
-def add_implicit_acquires(schedule, meas_map):
-    """
-    This function has been moved!
-    """
-    warnings.warn("The function `add_implicit_acquires` has been moved to qiskit.pulse.reschedule."
-                  " It cannot be invoked from `utils` anymore (this call returns None).")
-
-
-def pad(schedule, channels=None, until=None):
-    """
-    This function has been moved!
-    """
-    warnings.warn("The function `pad` has been moved to qiskit.pulse.reschedule. It cannot be "
-                  "invoked from `utils` anymore (this call returns None).")
 
 
 def measure(qubits: List[int],
@@ -58,7 +32,7 @@ def measure(qubits: List[int],
             meas_map: Optional[List[List[int]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
-    This function to measures given qubits using OpenPulse and returns a Schedule.
+    This function measure given qubits using OpenPulse and returns a Schedule.
 
     Args:
         qubits: List of qubits to be measured.
@@ -85,11 +59,8 @@ def measure(qubits: List[int],
     if isinstance(meas_map, List):
         meas_map = format_meas_map(meas_map)
     measure_groups = set()
-    temp_qubit_mem_slots = {}
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
-    qubit_mem_slots = temp_qubit_mem_slots
-    temp_qubit_mem_slots.clear()
     for measure_group_qubits in measure_groups:
         if qubit_mem_slots is not None:
             unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
