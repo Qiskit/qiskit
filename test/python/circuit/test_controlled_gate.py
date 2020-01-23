@@ -661,32 +661,41 @@ class TestControlledGate(QiskitTestCase):
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
-    def test_all_inverses(self):
+    @data(allGates.SwapGate,
+          allGates.HGate,
+          allGates.SGate,
+          allGates.SdgGate,
+          allGates.TGate,
+          allGates.TdgGate,
+          allGates.U1Gate,
+          allGates.U2Gate,
+          allGates.U3Gate,
+          allGates.XGate,
+          allGates.YGate,
+          allGates.ZGate,
+          allGates.RGate,
+          allGates.RXGate,
+          allGates.RYGate,
+          allGates.RZGate,
+          allGates.RZZGate,
+          allGates.RXXGate,
+          allGates.MSGate)
+    def test_gate_inverses(self, gate_classes):
         """
         Test all gates in standard extensions except those that cannot be controlled or are being
         deprecated.
         """
-        gate_classes = [cls for name, cls in allGates.__dict__.items()
-                        if isinstance(cls, type)]
-        for cls in gate_classes:
-            # only verify basic gates right now, as already controlled ones
-            # will generate differing definitions
-            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
-                continue
-            try:
-                sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY or
-                               (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                param.default is param.empty)])
-                args = [1] * numargs
+        sig = signature(gate_classes)
+        numargs = len([param for param in sig.parameters.values()
+        if param.kind == param.POSITIONAL_ONLY or
+        (param.kind == param.POSITIONAL_OR_KEYWORD and
+        param.default is param.empty)])
+        args =[1] * numargs
 
-                gate = cls(*args)
-                self.assertEqual(gate.inverse().control(2),
-                                 gate.control(2).inverse())
-            except AttributeError:
-                # skip gates that do not have a control attribute (e.g. barrier)
-                pass
+        gate = gate_classes( * args)
+        self.assertEqual(gate.inverse().control(2),
+
+        gate.control(2).inverse())
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
