@@ -81,6 +81,7 @@ def iden(self, q):
     return self.append(IGate(), [q], [])
 
 
-# support both i and iden as methods of QuantumCircuit, however iden contains a deprecation warning
+# support both i and id as methods of QuantumCircuit
 QuantumCircuit.i = i
-QuantumCircuit.iden = iden
+QuantumCircuit.id = i
+QuantumCircuit.iden = iden  # deprecated, remove once IdGate is removed

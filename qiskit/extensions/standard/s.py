@@ -125,5 +125,7 @@ def sdg(self, q):
 
 
 QuantumCircuit.s = s
+
+# support both sinv and sdg as methods
 QuantumCircuit.sinv = sinv
-QuantumCircuit.sdg = sdg  # deprecated, remove once SdgGate is removed
+QuantumCircuit.sdg = sinv

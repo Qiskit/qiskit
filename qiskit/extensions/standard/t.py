@@ -125,5 +125,7 @@ def tdg(self, q):
 
 
 QuantumCircuit.t = t
+
+# support both tinv and tdg as methods
 QuantumCircuit.tinv = tinv
-QuantumCircuit.tdg = tdg  # deprecated, remove once TdgGate is removed
+QuantumCircuit.tdg = tinv
