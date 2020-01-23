@@ -102,15 +102,11 @@ class Acquire(Command):
     # pylint: disable=arguments-differ
     def to_instruction(self,
                        qubit: Union[AcquireChannel, List[AcquireChannel]],
-                       mem_slot: Optional[MemorySlot] = None,
-                       reg_slot: Optional[RegisterSlot] = None,
-                       mem_slots: Optional[List[MemorySlot]] = None,
-                       reg_slots: Optional[List[RegisterSlot]] = None,
+                       mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                       reg_slot: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
                        name: Optional[str] = None) -> 'AcquireInstruction':
 
-        return AcquireInstruction(self, qubit, mem_slot, reg_slot,
-                                  mem_slots=mem_slots, reg_slots=reg_slots,
-                                  name=name)
+        return AcquireInstruction(self, qubit, mem_slot, reg_slot, name=name)
     # pylint: enable=arguments-differ
 
 
@@ -120,13 +116,12 @@ class AcquireInstruction(Instruction):
     def __init__(self,
                  command: Acquire,
                  acquire: Union[AcquireChannel, List[AcquireChannel]],
-                 mem_slot: Optional[MemorySlot] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 mem_slots: Optional[List[MemorySlot]] = None,
-                 reg_slots: Optional[List[RegisterSlot]] = None,
+                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                 reg_slot: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
                  name: Optional[str] = None):
 
-        if isinstance(acquire, list) or mem_slots or reg_slots:
+        if isinstance(acquire, list) or isinstance(mem_slot, list)\
+                or isinstance(reg_slot, list):
             warnings.warn('AcquireInstruction on multiple qubits, multiple memory slots '
                           'and multiple reg slots has been deprecated. Parameter "mem_slots" '
                           'has been replaced by "mem_slot" and "reg_slots" has been '
@@ -139,29 +134,29 @@ class AcquireInstruction(Instruction):
             raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
                              "which are deprecated.")
 
-        if mem_slot:
-            mem_slots = [mem_slot]
+        if mem_slot and not isinstance(mem_slot, list):
+            mem_slot = [mem_slot]
 
-        if reg_slot:
-            reg_slots = [reg_slot]
+        if reg_slot and not isinstance(reg_slot, list):
+            reg_slot = [reg_slot]
 
-        if not (mem_slots or reg_slots):
+        if not (mem_slot or reg_slot):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slots and len(acquire) != len(mem_slots):
+        if mem_slot and len(acquire) != len(mem_slot):
             raise PulseError("#mem_slots must be equals to #acquires")
 
-        if reg_slots:
-            if len(acquire) != len(reg_slots):
+        if reg_slot:
+            if len(acquire) != len(reg_slot):
                 raise PulseError("#reg_slots must be equals to #acquires")
         else:
-            reg_slots = []
+            reg_slot = []
 
-        super().__init__(command, *acquire, *mem_slots, *reg_slots, name=name)
+        super().__init__(command, *acquire, *mem_slot, *reg_slot, name=name)
 
         self._acquires = acquire
-        self._mem_slots = mem_slots
-        self._reg_slots = reg_slots
+        self._mem_slots = mem_slot
+        self._reg_slots = reg_slot
 
     @property
     def acquire(self):

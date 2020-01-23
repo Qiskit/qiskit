@@ -349,7 +349,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
 
     def test_schedule_with_acquire_on_single_and_multiple_qubits(self):
-        """ Test schedule with acquire on single and multiple qubits """
+        """Test schedule with acquire on single and multiple qubits."""
         acquire = Acquire(10)
 
         sched_single = Schedule()
@@ -365,9 +365,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
         mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
         reg_slots = [RegisterSlot(i) for i in range(self.config.n_qubits)]
-        sched_multiple = sched_multiple.insert(10, acquire(qubits,
-                                                           mem_slots=mem_slots,
-                                                           reg_slots=reg_slots))
+        sched_multiple = sched_multiple.insert(10, acquire(qubits, mem_slots, reg_slots))
 
         self.assertEqual(len(sched_multiple.instructions), 1)
         self.assertEqual(len(sched_multiple.channels), 6)
@@ -383,8 +381,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched_duration = sched.duration
         sched += GaussianSquare(duration=1500, amp=0.2,
                                 sigma=8, width=140)(MeasureChannel(0)) << sched_duration
-        sched += Acquire(duration=1500)(AcquireChannel(0),
-                                        mem_slots=[MemorySlot(0)]) << sched_duration
+        sched += Acquire(duration=1500)(AcquireChannel(0), [MemorySlot(0)]) << sched_duration
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].command.parameters)
 
