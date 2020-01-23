@@ -347,7 +347,7 @@ class TestControlledGate(QiskitTestCase):
         mat[-2:, -2:] = [[0, 1], [1, 0]]
 
         vec_groundtruth = mat @ np.kron(np.kron(
-            np.array([1] + [0] * (2 ** -1)),
+            np.array([1]),
             [1 / 2 ** (num_controls / 2)] * 2 ** num_controls), [1, 0])
 
         s_f = state_fidelity(vec_mct, vec_groundtruth)
