@@ -624,17 +624,18 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def _get_composite_circuit_qasm(self, instruction):
+    @staticmethod
+    def _get_composite_circuit_qasm_from_instruction(instruction):
         """Returns OpenQASM string of a decomposed composite circuit"""
 
-        total_qubits_used = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
+        qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
         for data, qargs, _ in instruction.definition:
             gate_qargs = ",".join(["q%i" % num for num in range(len(qargs))])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
-        qasm_string = "gate %s %s {%s}" % (instruction.name, total_qubits_used,
+        qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
                                            composite_circuit_gates)
 
         return qasm_string
