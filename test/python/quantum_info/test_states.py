@@ -28,40 +28,58 @@ from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.test import QiskitTestCase
 
 
-class TestStates(QiskitTestCase):
-    """Tests for qi.py"""
+class TestStateFidelity(QiskitTestCase):
+    """Tests state_fidelity function"""
 
-    def test_state_fidelity(self):
-        psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
-        psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
-        rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0],
-               [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
+    def test_both_statevector(self):
+        """Test state_fidelity function for statevector inputs"""
+        psi1 = Statevector([0.70710678118654746, 0, 0, 0.70710678118654746])
+        psi2 = Statevector([0., 0.70710678118654746, 0.70710678118654746, 0.])
         self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi2, psi2), 1.0, places=7,
                                msg='vector-vector input')
         self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7,
                                msg='vector-vector input')
-        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi2, rho1), 0.0, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(psi2, mix), 0.25, places=7,
-                               msg='vector-matrix input')
-        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7,
-                               msg='matrix-vector input')
+
+    def test_statevector_density_matrix(self):
+        """Test state_fidelity function for statevector and density matrix inputs"""
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0.5, 0, 0, 0.5]])
+        mix = DensityMatrix([[0.25, 0, 0, 0],
+                             [0, 0.25, 0, 0],
+                             [0, 0, 0.25, 0],
+                             [0, 0, 0, 0.25]])
         self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7,
                                msg='matrix-matrix input')
         self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7,
                                msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, mix), 0.25, places=7,
+                               msg='matrix-matrix input')
 
-    def test_state_fidelity_qubit(self):
-        state0 = np.array([1.+0.j, 0.+0.j])
-        state1 = np.array([0.+0.j, 1.+0.j])
-        self.assertEqual(state_fidelity(state0, state0), 1.0)
-        self.assertEqual(state_fidelity(state1, state1), 1.0)
-        self.assertEqual(state_fidelity(state0, state1), 0.0)
+    def test_both_density_matrix(self):
+        """Test state_fidelity function for density matrix inputs"""
+        psi1 = Statevector([0.70710678118654746, 0, 0, 0.70710678118654746])
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0.5, 0, 0, 0.5]])
+        mix = DensityMatrix([[0.25, 0, 0, 0],
+                             [0, 0.25, 0, 0],
+                             [0, 0, 0.25, 0],
+                             [0, 0, 0, 0.25]])
+        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7,
+                               msg='matrix-vector input')
+
+
+class TestStates(QiskitTestCase):
+    """Tests for qi.py"""
 
     def test_projector(self):
         state0 = np.array([1.+0.j, 0.+0.j])
