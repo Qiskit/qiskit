@@ -103,10 +103,13 @@ class Acquire(Command):
     def to_instruction(self,
                        qubit: Union[AcquireChannel, List[AcquireChannel]],
                        mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                       reg_slot: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                       reg_slot: Optional[RegisterSlot] = None,
                        name: Optional[str] = None) -> 'AcquireInstruction':
 
-        return AcquireInstruction(self, qubit, mem_slot, reg_slot, name=name)
+        return AcquireInstruction(self, qubit, mem_slot=mem_slot, reg_slot=reg_slot,
+                                  mem_slots=mem_slots, reg_slots=reg_slots, name=name)
     # pylint: enable=arguments-differ
 
 
@@ -117,7 +120,9 @@ class AcquireInstruction(Instruction):
                  command: Acquire,
                  acquire: Union[AcquireChannel, List[AcquireChannel]],
                  mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                 reg_slot: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
         if isinstance(acquire, list) or isinstance(mem_slot, list)\
@@ -136,9 +141,15 @@ class AcquireInstruction(Instruction):
 
         if mem_slot and not isinstance(mem_slot, list):
             mem_slot = [mem_slot]
+        elif mem_slots:
+            mem_slot = mem_slots
 
-        if reg_slot and not isinstance(reg_slot, list):
+        if reg_slot:
             reg_slot = [reg_slot]
+        elif reg_slots and not isinstance(reg_slots, list):
+            reg_slot = [reg_slots]
+        else:
+            reg_slot = reg_slots
 
         if not (mem_slot or reg_slot):
             raise PulseError('Neither memoryslots or registers were supplied')

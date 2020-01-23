@@ -352,6 +352,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test schedule with acquire on single and multiple qubits."""
         acquire = Acquire(10)
 
+        # schedule with acquire on single qubit
         sched_single = Schedule()
         for i in range(self.config.n_qubits):
             sched_single = sched_single.insert(10, acquire(self.config.acquire(i),
@@ -361,6 +362,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(len(sched_single.instructions), 2)
         self.assertEqual(len(sched_single.channels), 6)
 
+        # schedule with acquire on multiple qubits
         sched_multiple = Schedule()
         qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
         mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
@@ -371,6 +373,22 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(len(sched_multiple.channels), 6)
 
         self.assertEqual(len(sched_single.channels), len(sched_multiple.channels))
+
+        # test on back and forward compatibility
+        cmds = [
+            acquire(AcquireChannel(0), MemorySlot(0)),
+            acquire([AcquireChannel(0)], MemorySlot(0)),
+            acquire(AcquireChannel(0), [MemorySlot(0)]),
+            acquire([AcquireChannel(0)], mem_slots=[MemorySlot(0)]),
+            acquire(AcquireChannel(0), MemorySlot(0), [RegisterSlot(0)]),
+            acquire(AcquireChannel(0), MemorySlot(0), reg_slot=RegisterSlot(0))
+        ]
+        for cmd in cmds:
+            mixed_schedule = Schedule()
+            mixed_schedule = mixed_schedule.insert(10, cmd)
+
+            self.assertEqual(len(mixed_schedule.instructions), 1)
+            self.assertTrue(MemorySlot(0) in mixed_schedule.channels)
 
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""
