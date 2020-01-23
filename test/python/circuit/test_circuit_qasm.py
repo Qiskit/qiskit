@@ -77,3 +77,37 @@ measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_composite_circuit(self):
+        """Test circuit qasm() method when a composite circuit instruction
+        is included within circuit.
+        """
+
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name = "composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_instr = composite_circ.to_instruction()
+
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_instr, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate composite_circ q0,q1 {h q0; x q1; cx q0,q1; }
+qreg qr[2];
+creg cr[2];
+h qr[0];
+cx qr[0],qr[1];
+barrier qr[0],qr[1];
+composite_circ qr[0],qr[1];
+measure qr[0] -> cr[0];
+measure qr[1] -> cr[1];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
