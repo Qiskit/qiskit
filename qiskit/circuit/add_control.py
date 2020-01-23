@@ -16,7 +16,7 @@ Add control to operation if supported.
 """
 from typing import Union, Optional
 
-from qiskit import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
@@ -24,14 +24,15 @@ from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 def add_control(operation: Union[Gate, ControlledGate],
                 num_ctrl_qubits: int,
                 label: Union[str, None],
-                ctrl_state: Union[int, None]) -> ControlledGate:
+                ctrl_state: Union[int, str, None]) -> ControlledGate:
     """Adds num_ctrl_qubits controls to operation.
 
     Args:
         operation: Operation for which control will be added.
         num_ctrl_qubits: The number of controls to add to gate (default=1).
         label: Optional gate label.
-        ctrl_state: The control state in decimal. If None, use 2**num_ctrl_qubits-1.
+            ctrl_state (int or str or None): The control state in decimal or as
+                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
     Returns:
         Controlled version of gate.
@@ -103,7 +104,7 @@ def _control_predefined(operation, num_ctrl_qubits):
         import qiskit.extensions.standard.ccx
         cgate = qiskit.extensions.standard.ccx.ToffoliGate()
     else:
-        raise QiskitError('No standard controlled gate for "{}"'.format(
+        raise CircuitError('No standard controlled gate for "{}"'.format(
             operation.name))
     return cgate
 
@@ -111,20 +112,21 @@ def _control_predefined(operation, num_ctrl_qubits):
 def control(operation: Union[Gate, ControlledGate],
             num_ctrl_qubits: Optional[int] = 1,
             label: Optional[Union[None, str]] = None,
-            ctrl_state: Optional[Union[None, int]] = None) -> ControlledGate:
+            ctrl_state: Optional[Union[None, int, str]] = None) -> ControlledGate:
     """Return controlled version of gate using controlled rotations
 
     Args:
         operation: gate to create ControlledGate from
         num_ctrl_qubits: number of controls to add to gate (default=1)
         label: optional gate label
-        ctrl_state: The control state in decimal. If None, use 2**num_ctrl_qubits-1.
+            ctrl_state (int or str or None): The control state in decimal or as
+                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
     Returns:
         Controlled version of gate.
 
     Raises:
-        QiskitError: gate contains non-gate in definition
+        CircuitError: gate contains non-gate in definition
     """
     from math import pi
     # pylint: disable=cyclic-import
@@ -140,6 +142,16 @@ def control(operation: Union[Gate, ControlledGate],
     qc = QuantumCircuit(q_control, q_target)
 
     if ctrl_state is not None:
+        if isinstance(ctrl_state, str):
+            try:
+                assert(len(ctrl_state) == num_ctrl_qubits)
+                ctrl_state = int(ctrl_state, 2)
+            except ValueError:
+                raise CircuitError(f'invalid control bit string: '
+                                   '"{ctrl_state}"')
+            except AssertionError:
+                raise CircuitError('invalid control bit string: length != '
+                                   'num_ctrl_qubits')
         _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
@@ -187,7 +199,7 @@ def control(operation: Union[Gate, ControlledGate],
                        None,
                        mode='noancilla')
             else:
-                raise QiskitError('gate contains non-controllable instructions')
+                raise CircuitError('gate contains non-controllable instructions')
     if ctrl_state is not None:
         _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     instr = qc.to_instruction()
@@ -221,10 +233,13 @@ def control(operation: Union[Gate, ControlledGate],
     return cgate
 
 
-def _toggle_ctrl_state(qc: QuantumCircuit, num_qubits: int, ctrl_state: int) -> Gate:
-    if not (isinstance(ctrl_state, int) and 0 <= ctrl_state < 2**num_qubits):
-        raise QiskitError('invalid control state specified')
-    bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_qubits)
+def _toggle_ctrl_state(qc: QuantumCircuit,
+                       num_qubits: int,
+                       ctrl_state: int) -> Gate:
+    if isinstance(ctrl_state, int) and 0 <= ctrl_state < 2**num_qubits:
+        bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_qubits)
+    else:
+        raise CircuitError('invalid control state specified')
     for ind, val in enumerate(bit_ctrl_state):
         if val == '0':
             qc.x(num_qubits - ind - 1)
@@ -236,7 +251,7 @@ def _gate_to_circuit(operation):
     if hasattr(operation, 'definition') and operation.definition:
         for rule in operation.definition:
             if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
-                raise QiskitError('Cannot make controlled gate with {} instruction'.format(
+                raise CircuitError('Cannot make controlled gate with {} instruction'.format(
                     rule[0].name))
             qc.append(rule[0], qargs=[qr[bit.index] for bit in rule[1]], cargs=[])
     else:

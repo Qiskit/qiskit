@@ -188,7 +188,8 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     Args:
         base_mat (ndarray): unitary to be controlled
         num_ctrl_qubits (int): number of controls for new unitary
-        ctrl_state (int or None): The control state in decimal. If None, use 2**num_ctrl_qubits-1.
+        ctrl_state (int or str or None): The control state in decimal or as
+            a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
     Returns:
         ndarray: controlled version of base matrix.
@@ -201,8 +202,13 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
     if ctrl_state is None:
         ctrl_state = ctrl_dim - 1
-    elif not (isinstance(ctrl_state, int) and 0 <= ctrl_state < ctrl_dim):
-        raise QiskitError('Invalid control state for number of control qubits.')
+    elif isinstance(ctrl_state, str):
+        ctrl_state = int(ctrl_state, 2)
+    if isinstance(ctrl_state, int):
+        if not 0 <= ctrl_state < ctrl_dim:
+            raise QiskitError('Invalid control state value specified.')
+    else:
+        raise QiskitError('Invalid control state type specified.')
     full_mat_dim = ctrl_dim * base_mat.shape[0]
     full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))

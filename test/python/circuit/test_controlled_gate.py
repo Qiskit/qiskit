@@ -25,6 +25,7 @@ from ddt import ddt, data
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
@@ -512,18 +513,23 @@ class TestControlledGate(QiskitTestCase):
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
+        ctrl_state = '110'
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
     def test_open_controlled_gate_raises(self):
         """
         Test controlled gates with open controls raises if ctrl_state isn't allowed.
         """
         base_gate = XGate()
         num_ctrl_qubits = 3
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state=-1)
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
-        with self.assertRaises(QiskitError):
-            base_gate.control(num_ctrl_qubits, ctrl_state='101')
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
 
 if __name__ == '__main__':
