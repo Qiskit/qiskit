@@ -73,7 +73,7 @@ class ParametricPulse(PulseCommand):
         """Return a SamplePulse with samples filled according to the formula that the pulse
         represents and the parameter values it contains.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def validate_parameters(self) -> None:
@@ -83,7 +83,7 @@ class ParametricPulse(PulseCommand):
         Raises:
             PulseError: If the parameters passed are not valid.
         """
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
