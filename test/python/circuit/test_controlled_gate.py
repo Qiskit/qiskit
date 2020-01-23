@@ -402,7 +402,7 @@ class TestControlledGate(QiskitTestCase):
         if num_ancillas > 0:
             mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
 
-        assert_allclose(mat_mct, mat_groundtruth)
+        assert_allclose(mat_mct, mat_groundtruth, atol=1e-08)
 
     def test_single_controlled_rotation_gates(self):
         """Test the controlled rotation gates controlled on one qubit."""
