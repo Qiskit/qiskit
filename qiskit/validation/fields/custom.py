@@ -47,12 +47,11 @@ class Complex(ModelTypeValidator):
             raise self.make_error_serialize('format', input=value)
 
     def _deserialize(self, value, attr, data, **_):
-        if not is_collection(value) or len(value) != 2:
-            raise self.make_error('invalid', input=value)
-
-        try:
-            return complex(*value)
-        except (ValueError, TypeError):
+        if is_collection(value) and (len(value) == 2):
+            return complex(value[0], value[1])
+        elif isinstance(value, complex):
+            return value
+        else:
             raise self.make_error('invalid', input=value)
 
 
