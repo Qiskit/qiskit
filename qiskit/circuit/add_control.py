@@ -153,8 +153,8 @@ def control(operation: Union[Gate, ControlledGate],
                 assert len(ctrl_state) == num_ctrl_qubits
                 ctrl_state = int(ctrl_state, 2)
             except ValueError:
-                raise CircuitError(f'invalid control bit string: '
-                                   '"{ctrl_state}"')
+                raise CircuitError('invalid control bit string: '
+                                   f'"{ctrl_state}"')
             except AssertionError:
                 raise CircuitError('invalid control bit string: length != '
                                    'num_ctrl_qubits')
