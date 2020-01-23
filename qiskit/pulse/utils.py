@@ -17,7 +17,6 @@ Pulse utilities.
 """
 
 from typing import List, Dict, Optional
-from qiskit.providers import BaseBackend
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import MemorySlot
@@ -83,7 +82,7 @@ def measure(qubits: List[int],
     return schedule
 
 
-def measure_all(backend: BaseBackend) -> Schedule:
+def measure_all(backend: 'BaseBackend') -> Schedule:
     """
     This function measure all qubits of the given backend and returns a Schedule.
 
