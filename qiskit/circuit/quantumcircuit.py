@@ -632,7 +632,8 @@ class QuantumCircuit:
         composite_circuit_gates = ""
 
         for data, qargs, _ in instruction.definition:
-            gate_qargs = ",".join(["q%i" % num for num in range(len(qargs))])
+            # [x.index for x in qargs]
+            gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
         qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
@@ -662,7 +663,7 @@ class QuantumCircuit:
             # If instruction is a composite circuit
             elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
                                                                                  'reset']):
-                qasm_string = self._get_composite_circuit_qasm(instruction)
+                qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
                 # Insert composite circuit qasm definition right after header and extension lib
                 string_temp = string_temp.replace(self.extension_lib,
