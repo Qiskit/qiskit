@@ -15,8 +15,8 @@
 """Test cases for Pulse Utility functions."""
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, measure)
-
+                          MeasureChannel, MemorySlot, measure, measure_all)
+from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
 
@@ -31,12 +31,8 @@ class TestUtils(QiskitTestCase):
     def test_measure(self):
         """Test utility function - measure."""
         sched = Schedule()
-        sched = measure(qubits=[0],
-                        schedule=sched,
-                        backend=self.backend,
-                        inst_map=None,
-                        meas_map=self.backend.configuration().meas_map,
-                        qubit_mem_slots={0: 1})
+        sched += measure(qubits=[0],
+                         backend=self.backend)
         expected = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
@@ -45,16 +41,15 @@ class TestUtils(QiskitTestCase):
 
     def test_fail_measure(self):
         """Test failing measure."""
-        sched = Schedule()
-        with self.assertRaises(AttributeError):
-            sched = measure(qubits=[0],
-                            schedule=sched,
-                            backend=None,
-                            inst_map=None,
-                            meas_map=self.backend.configuration().meas_map)
-        with self.assertRaises(AttributeError):
-            sched = measure(qubits=[0],
-                            schedule=sched,
-                            backend=None,
-                            inst_map=self.backend.defaults().inst_map,
-                            meas_map=None)
+        with self.assertRaises(PulseError):
+            measure(qubits=[0],
+                    meas_map=self.backend.configuration().meas_map)
+        with self.assertRaises(PulseError):
+            measure(qubits=[0],
+                    inst_map=self.backend.defaults().circuit_instruction_map)
+
+    def test_measure_all(self):
+        """Test measure_all function"""
+        sched = measure_all(self.backend)
+        expected = Schedule(self.cmd_def.get('measure', [0, 1]))
+        self.assertEqual(sched.instructions, expected.instructions)
