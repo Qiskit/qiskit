@@ -17,6 +17,7 @@ Quantum information utility functions for states.
 """
 
 import numpy as np
+import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
@@ -95,3 +96,19 @@ def _format_state(state, validate=True):
     if validate and not state.is_valid():
         raise QiskitError("Input quantum state is not a valid")
     return state
+
+
+def _funm_svd(matrix, func):
+    """Apply real scalar function to singular values of a matrix.
+
+    Args:
+        matrix (array_like): (N, N) Matrix at which to evaluate the function.
+        func (callable): Callable object that evaluates a scalar function f.
+
+    Returns:
+        ndarray: funm (N, N) Value of the matrix function specified by func
+        evaluated at `A`.
+    """
+    unitary1, singular_values, unitary2 = la.svd(matrix, lapack_driver='gesvd')
+    diag_func_singular = np.diag(func(singular_values))
+    return unitary1.dot(diag_func_singular).dot(unitary2)
