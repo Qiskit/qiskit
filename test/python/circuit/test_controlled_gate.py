@@ -325,7 +325,35 @@ class TestControlledGate(QiskitTestCase):
                                                          [(1 - fac) / 2, (1 + fac) / 2]]
             assert_allclose(mat_mcu, mat_groundtruth)
 
-    @data(1, 2, 3)
+    @data(1, 2)
+    def test_multi_control_toffoli_matrix(self, num_controls):
+        """Test the multi-control Toffoli gate with clean ancillas."""
+
+        # set up circuit
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_target, q_controls)
+
+        # apply hadamard on control qubits and toffoli gate
+        qc.h(q_controls)
+        qc.mct(q_controls, q_target[0], None, mode='basic')
+
+        # execute the circuit and obtain statevector result
+        backend = BasicAer.get_backend('statevector_simulator')
+        vec_mct = execute(qc, backend).result().get_statevector(qc)
+
+        # compare to expectation
+        mat = np.eye(2 ** (num_controls + 1))
+        mat[-2:, -2:] = [[0, 1], [1, 0]]
+
+        vec_groundtruth = mat @ np.kron(np.kron(
+            np.array([1] + [0] * (2 ** -1)),
+            [1 / 2 ** (num_controls / 2)] * 2 ** num_controls), [1, 0])
+
+        s_f = state_fidelity(vec_mct, vec_groundtruth)
+        self.assertAlmostEqual(s_f, 1)
+
+    @data(3, 4)
     def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with clean ancillas."""
 
@@ -334,14 +362,9 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_target, q_controls)
 
-        # add ancillas if necessary
-        q_ancillas = None
-        if num_controls <= 2:
-            num_ancillas = 0
-        else:
-            num_ancillas = num_controls - 2
-            q_ancillas = QuantumRegister(num_ancillas)
-            qc.add_register(q_ancillas)
+        num_ancillas = num_controls - 2
+        q_ancillas = QuantumRegister(num_ancillas)
+        qc.add_register(q_ancillas)
 
         # apply hadamard on control qubits and toffoli gate
         qc.h(q_controls)
@@ -354,8 +377,7 @@ class TestControlledGate(QiskitTestCase):
         # compare to expectation
         mat = np.eye(2 ** (num_controls + 1))
         mat[-2:, -2:] = [[0, 1], [1, 0]]
-        if num_ancillas > 0:
-            mat = np.kron(np.eye(2 ** num_ancillas), mat)
+        mat = np.kron(np.eye(2 ** num_ancillas), mat)
 
         vec_groundtruth = mat @ np.kron(np.kron(
             np.array([1] + [0] * (2 ** num_ancillas - 1)),
@@ -687,15 +709,15 @@ class TestControlledGate(QiskitTestCase):
         """
         sig = signature(gate_classes)
         numargs = len([param for param in sig.parameters.values()
-        if param.kind == param.POSITIONAL_ONLY or
-        (param.kind == param.POSITIONAL_OR_KEYWORD and
-        param.default is param.empty)])
-        args =[1] * numargs
+                       if param.kind == param.POSITIONAL_ONLY or
+                       (param.kind == param.POSITIONAL_OR_KEYWORD and
+                        param.default is param.empty)])
+        args = [1] * numargs
 
-        gate = gate_classes( * args)
+        gate = gate_classes(*args)
         self.assertEqual(gate.inverse().control(2),
 
-        gate.control(2).inverse())
+                         gate.control(2).inverse())
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
