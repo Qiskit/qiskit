@@ -22,6 +22,7 @@ import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
@@ -624,6 +625,23 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
+    @staticmethod
+    def _get_composite_circuit_qasm_from_instruction(instruction):
+        """Returns OpenQASM string composite circuit given an instruction.
+        The given instruction should be the result of composite_circuit.to_instruction()."""
+
+        qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
+        composite_circuit_gates = ""
+
+        for data, qargs, _ in instruction.definition:
+            gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
+            composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
+
+        qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
+                                           composite_circuit_gates)
+
+        return qasm_string
+
     def qasm(self):
         """Return OpenQASM string."""
         string_temp = self.header + "\n"
@@ -640,6 +658,19 @@ class QuantumCircuit:
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
+            # If instruction is a composite circuit
+            elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
+                                                                                 'reset']):
+                qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+
+                # Insert composite circuit qasm definition right after header and extension lib
+                string_temp = string_temp.replace(self.extension_lib,
+                                                  "%s\n%s" % (self.extension_lib, qasm_string))
+
+                # Insert qasm representation of the original instruction
+                string_temp += "%s %s;\n" % (instruction.qasm(),
+                                             ",".join(["%s[%d]" % (j.register.name, j.index)
+                                                       for j in qargs + cargs]))
             else:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
