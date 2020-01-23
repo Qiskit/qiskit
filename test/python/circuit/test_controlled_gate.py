@@ -341,9 +341,11 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(q_target, q_controls)
 
         # add ancillas if necessary
-        num_ancillas = 0 if num_controls <= 2 else num_controls - 2
         q_ancillas = None
-        if num_ancillas > 0:
+        if num_controls <= 2:
+            num_ancillas = 0
+        else:
+            num_ancillas = num_controls - 2
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
