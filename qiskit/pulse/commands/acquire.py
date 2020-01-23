@@ -125,8 +125,7 @@ class AcquireInstruction(Instruction):
                  reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
-        if isinstance(acquire, list) or isinstance(mem_slot, list)\
-                or isinstance(reg_slot, list):
+        if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
             warnings.warn('AcquireInstruction on multiple qubits, multiple memory slots '
                           'and multiple reg slots has been deprecated. Parameter "mem_slots" '
                           'has been replaced by "mem_slot" and "reg_slots" has been '
@@ -187,8 +186,6 @@ class AcquireInstruction(Instruction):
     @property
     def acquires(self):
         """Acquire channels to be acquired on."""
-        warnings.warn('"acquires" is deprecated and being replaced by "acquire"',
-                      DeprecationWarning, 3)
         return self._acquires
 
     @property
