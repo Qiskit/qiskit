@@ -148,9 +148,8 @@ class AcquireInstruction(Instruction):
         if not (mem_slots or reg_slots):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slots:
-            if len(acquire) != len(mem_slots):
-                raise PulseError("#mem_slots must be equals to #acquires")
+        if mem_slots and len(acquire) != len(mem_slots):
+            raise PulseError("#mem_slots must be equals to #acquires")
 
         if reg_slots:
             if len(acquire) != len(reg_slots):
