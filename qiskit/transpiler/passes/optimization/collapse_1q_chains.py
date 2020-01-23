@@ -34,8 +34,6 @@ DEFAULT_ATOL = 1e-15
 class Collapse1qChains(TransformationPass):
     """Collapse chains of single-qubit gates into a single U3 gate each.
 
-    A single gate (chain of one) will also be converted.
-
     This pass can make some gates temporarily less optimized, for example
     by converting a U1 gate into a U3. A follow-up invocation of SimplifyU3
     can correct for this.
@@ -43,6 +41,15 @@ class Collapse1qChains(TransformationPass):
     If the chain evaluates to identity (e.g. U3(0,0,0)), this pass simply
     collapses the chain to none.
     """
+    def __init__(self, ignore_solo=True):
+        """
+        Args:
+            ignore_solo (bool): If True, all solo gates (chains of length one)
+                are left untouched. Otherwise, each will be converted to a U3.
+        """
+        self.ignore_solo = ignore_solo
+        super().__init__()
+
 
     def run(self, dag):
         """Run the Collapse1qChains pass on `dag`.
@@ -85,12 +92,8 @@ class Collapse1qChains(TransformationPass):
         # collapse chains into a single U3
         decomposer = OneQubitEulerDecomposer(basis='U3')
         for chain in chains:
-            if len(chain) == 1:
-                gate = chain[0].op
-                if isinstance(gate, U1Gate):
-                    _u1_to_u3(gate)
-                if isinstance(gate, U2Gate):
-                    _u2_to_u3(gate)
+            if len(chain) == 1 and self.ignore_solo:
+                continue
             left_parameters = (0, 0, 0)  # theta, phi, lambda
             for gate in reversed(chain):
                 right_parameters = decomposer(Operator(gate.op)).data[0][0].params
@@ -109,14 +112,6 @@ class Collapse1qChains(TransformationPass):
                 dag.substitute_node(chain[0], new_op, inplace=True)
 
         return dag
-
-
-def _u1_to_u3(g_u1):
-    return None
-
-
-def _u2_to_u3(g_u2):
-    return None
 
 
 def _compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
