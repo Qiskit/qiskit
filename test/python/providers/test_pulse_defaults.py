@@ -28,7 +28,7 @@ class TestPulseDefaults(QiskitTestCase):
 
     def setUp(self):
         self.defs = FakeOpenPulse2Q().defaults()
-        self.inst_map = self.defs.circuit_instruction_map
+        self.inst_map = self.defs.instruction_schedule_map
 
     def test_buffer(self):
         """Test getting the buffer value."""

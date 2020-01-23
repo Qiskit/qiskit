@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=len-as-condition
-
 """
 Kraus representation of a Quantum Channel.
 
@@ -35,7 +34,6 @@ References:
 """
 
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -50,7 +48,6 @@ from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 
 class Kraus(QuantumChannel):
     """Kraus representation of a quantum channel."""
-
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Kraus operator.
 
@@ -203,57 +200,38 @@ class Kraus(QuantumChannel):
                      output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the left multiplied channel other * self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
             qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
+            front (bool): DEPRECATED If True return self * other instead.
                           [default: False]
 
         Returns:
-            Kraus: The composition channel as a Kraus object.
+            Kraus: The left multiplied quantum channel.
 
         Raises:
-            QiskitError: if other cannot be converted to a channel, or
-            has incompatible dimensions.
+            QiskitError: if other cannot be converted to a Kraus or has
+            incompatible dimensions.
         """
-        if qargs is not None:
-            return Kraus(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+        return super().compose(other, qargs=qargs, front=front)
 
-        if not isinstance(other, Kraus):
-            other = Kraus(other)
-        # Check dimensions match up
-        if front and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if not front and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
+    def dot(self, other, qargs=None):
+        """Return the right multiplied channel self * other.
 
-        if front:
-            ka_l, ka_r = self._data
-            kb_l, kb_r = other._data
-            input_dim = other._input_dim
-            output_dim = self._output_dim
-        else:
-            ka_l, ka_r = other._data
-            kb_l, kb_r = self._data
-            input_dim = self._input_dim
-            output_dim = other._output_dim
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
 
-        kab_l = [np.dot(a, b) for a in ka_l for b in kb_l]
-        if ka_r is None and kb_r is None:
-            kab_r = None
-        elif ka_r is None:
-            kab_r = [np.dot(a, b) for a in ka_l for b in kb_r]
-        elif kb_r is None:
-            kab_r = [np.dot(a, b) for a in ka_r for b in kb_l]
-        else:
-            kab_r = [np.dot(a, b) for a in ka_r for b in kb_r]
-        return Kraus((kab_l, kab_r), input_dim, output_dim)
+        Returns:
+            Kraus: The right multiplied quantum channel.
+
+        Raises:
+            QiskitError: if other cannot be converted to a Kraus or has
+            incompatible dimensions.
+        """
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """The matrix power of the channel.
@@ -406,7 +384,7 @@ class Kraus(QuantumChannel):
         if reverse:
             input_dims = self.input_dims() + other.input_dims()
             output_dims = self.output_dims() + other.output_dims()
-            kab_l = [np.kron(b, a) for a in ka_l for b in kb_l]
+            kab_l = [np.kron(b_in, a_in) for a_in in ka_l for b_in in kb_l]
         else:
             input_dims = other.input_dims() + self.input_dims()
             output_dims = other.output_dims() + self.output_dims()
@@ -419,8 +397,62 @@ class Kraus(QuantumChannel):
             if kb_r is None:
                 kb_r = kb_l
             if reverse:
-                kab_r = [np.kron(b, a) for a in ka_r for b in kb_r]
+                kab_r = [np.kron(b_in, a_in) for a_in in ka_r for b_in in kb_r]
             else:
                 kab_r = [np.kron(a, b) for a in ka_r for b in kb_r]
         data = (kab_l, kab_r)
         return Kraus(data, input_dims, output_dims)
+
+    def _chanmul(self, other, qargs=None, left_multiply=False):
+        """Multiply two quantum channels.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+
+        Returns:
+            Kraus: The composition channel as a Kraus object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
+        if qargs is not None:
+            return Kraus(
+                SuperOp(self)._chanmul(other,
+                                       qargs=qargs,
+                                       left_multiply=left_multiply))
+
+        if not isinstance(other, Kraus):
+            other = Kraus(other)
+        # Check dimensions match up
+        if not left_multiply and self._input_dim != other._output_dim:
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
+        if left_multiply and self._output_dim != other._input_dim:
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
+
+        if left_multiply:
+            ka_l, ka_r = other._data
+            kb_l, kb_r = self._data
+            input_dim = self._input_dim
+            output_dim = other._output_dim
+        else:
+            ka_l, ka_r = self._data
+            kb_l, kb_r = other._data
+            input_dim = other._input_dim
+            output_dim = self._output_dim
+
+        kab_l = [np.dot(a, b) for a in ka_l for b in kb_l]
+        if ka_r is None and kb_r is None:
+            kab_r = None
+        elif ka_r is None:
+            kab_r = [np.dot(a, b) for a in ka_l for b in kb_r]
+        elif kb_r is None:
+            kab_r = [np.dot(a, b) for a in ka_r for b in kb_l]
+        else:
+            kab_r = [np.dot(a, b) for a in ka_r for b in kb_r]
+        return Kraus((kab_l, kab_r), input_dim, output_dim)
