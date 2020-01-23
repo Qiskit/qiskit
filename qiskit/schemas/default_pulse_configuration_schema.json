@@ -51,7 +51,7 @@
             "type": "array"
         },
         "complex_matrix": {
-            "description": "JSON representation of a complex matrix",
+            "description": "JSON representaiton of a complex matrix",
             "items": {
                 "$ref": "#/definitions/complex_array"
             },

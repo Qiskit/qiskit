@@ -88,7 +88,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     if item.name == 'gate_error':
                         g_reliab = 1.0 - item.value
                         break
-                    g_reliab = 1.0
+                    else:
+                        g_reliab = 1.0
                 swap_reliab = pow(g_reliab, 3)
                 # convert swap reliability to edge weight
                 # for the Floyd-Warshall shortest weighted paths algorithm
@@ -208,13 +209,9 @@ class NoiseAdaptiveLayout(AnalysisPass):
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):
             raise TranspilerError('Number of qubits greater than device.')
-
-        # sort by weight, then edge name for determinism (since networkx on python 3.5 returns
-        # different order of edges)
-        self.pending_program_edges = sorted(self.prog_graph.edges(data=True),
-                                            key=lambda x: [x[2]['weight'], -x[0], -x[1]],
-                                            reverse=True)
-
+        for end1, end2, _ in sorted(self.prog_graph.edges(data=True),
+                                    key=lambda x: x[2]['weight'], reverse=True):
+            self.pending_program_edges.append((end1, end2))
         while self.pending_program_edges:
             edge = self._select_next_edge()
             q1_mapped = edge[0] in self.prog2hw

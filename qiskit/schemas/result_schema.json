@@ -23,7 +23,7 @@
             }
         },
         "complex_matrix": {
-            "description": "JSON representation of a complex matrix",
+            "description": "JSON representaiton of a complex matrix",
             "type": "array",
             "minItems": 1,
             "items": {

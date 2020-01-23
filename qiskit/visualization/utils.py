@@ -48,14 +48,14 @@ def generate_latex_label(label):
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
     if not match:
-        label = label.replace(r'\$', '$')
+        label = label.replace('\$', '$')  # noqa
         return utf8tolatex(label)
     else:
-        mathmode_string = match.group(1).replace(r'\$', '$')
+        mathmode_string = match.group(1).replace('\$', '$')  # noqa
         before_match = label[:match.start()]
-        before_match = before_match.replace(r'\$', '$')
+        before_match = before_match.replace('\$', '$')  # noqa
         after_match = label[match.end():]
-        after_match = after_match.replace(r'\$', '$')
+        after_match = after_match.replace('\$', '$')  # noqa
         return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
             after_match)
 

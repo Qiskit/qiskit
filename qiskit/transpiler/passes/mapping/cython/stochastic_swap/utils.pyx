@@ -49,7 +49,7 @@ cdef class EdgeCollection:
 
     @cython.boundscheck(False)
     def edges(self):
-        """ Returns the vector of edges as a NumPy array.
+        """ Returns the vector of edges as a NumPy arrau.
         Returns:
             ndarray: Int array of edges.
         """

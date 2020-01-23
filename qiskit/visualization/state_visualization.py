@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name,ungrouped-imports,import-error
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=inconsistent-return-statements
 
 """
 Visualization functions for quantum states.

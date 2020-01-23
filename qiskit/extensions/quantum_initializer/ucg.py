@@ -216,7 +216,7 @@ class UCG(Gate):
 
     def _demultiplex_single_uc(self, a, b):
         """
-        This method implements the decomposition given in equation (3) in
+        This mehod implements the decomposition given in equation (3) in
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         The decomposition is used recursively to decompose uniformly controlled gates.
         a,b = single qubit unitaries

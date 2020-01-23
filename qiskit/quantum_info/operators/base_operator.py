@@ -182,31 +182,14 @@ class BaseOperator(ABC):
 
     @abstractmethod
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied operator other * self.
+        """Return the composition channel self∘other.
 
         Args:
             other (BaseOperator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply other on.
-            front (bool): DEPRECATED If False compose in standard order other(self(input))
+            qargs (list): a list of subsystem positions to compose other on.
+            front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
-
-        Returns:
-            BaseOperator: The composed operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
-        """
-        pass
-
-    @abstractmethod
-    def dot(self, other, qargs=None):
-        """Return the right multiplied operator self * other.
-
-        Args:
-            other (BaseOperator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply other on.
 
         Returns:
             BaseOperator: The composed operator.
@@ -372,20 +355,20 @@ class BaseOperator(ABC):
     def __matmul__(self, other):
         return self.compose(other)
 
-    def __mul__(self, other):
-        return self.dot(other)
-
-    def __rmul__(self, other):
-        return self.multiply(other)
-
     def __pow__(self, n):
         return self.power(n)
 
     def __xor__(self, other):
         return self.tensor(other)
 
+    def __mul__(self, other):
+        return self.multiply(other)
+
     def __truediv__(self, other):
         return self.multiply(1 / other)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __add__(self, other):
         return self.add(other)

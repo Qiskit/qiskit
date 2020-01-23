@@ -325,28 +325,24 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
-        self.qubit_lo_range = [[min_range * 1e9, max_range * 1e9] for
-                               (min_range, max_range) in qubit_lo_range]
-        self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
-                              (min_range, max_range) in meas_lo_range]
+        self.qubit_lo_range = qubit_lo_range
+        self.meas_lo_range = meas_lo_range
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
-
-        self._dt = dt * 1e-9
-        self._dtm = dtm * 1e-9
-
-        channel_bandwidth = kwargs.pop('channel_bandwidth', None)
-        if channel_bandwidth:
-            self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
-                                      (min_range, max_range) in channel_bandwidth]
+        self._dt = dt*1e-9
+        self._dtm = dtm*1e-9
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
-                         **kwargs)
+                         n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
+                         meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
+                         meas_lo_range=meas_lo_range,
+                         rep_times=rep_times, meas_kernels=meas_kernels,
+                         discriminators=discriminators, **kwargs)
 
     @property
     def dt(self) -> float:  # pylint: disable=invalid-name

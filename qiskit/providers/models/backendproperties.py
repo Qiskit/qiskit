@@ -233,7 +233,7 @@ class BackendProperties(BaseModel):
 
         Args:
             qubit: The property to look for.
-            name: Optionally used to specify within the hierarchy which property to return.
+            name: Optionally used to specify within the heirarchy which property to return.
 
         Returns:
             Qubit property as a tuple of the value and the time it was measured.

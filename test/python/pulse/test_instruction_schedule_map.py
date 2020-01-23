@@ -77,7 +77,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_has_from_mock(self):
         """Test `has` and `assert_has` from mock data."""
-        inst_map = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        inst_map = FakeOpenPulse2Q().defaults().circuit_instruction_map
         self.assertTrue(inst_map.has('u1', [0]))
         self.assertTrue(inst_map.has('cx', (0, 1)))
         self.assertTrue(inst_map.has('u3', 0))

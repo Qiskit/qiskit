@@ -120,7 +120,7 @@ def graysynth(cnots, angles, section_size=2):
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue
-        if 0 <= qubit < n_qubits:
+        elif 0 <= qubit < n_qubits:
             condition = True
             while condition:
                 condition = False

@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
+from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.rx import RXGate
@@ -51,7 +51,7 @@ class CommutativeCancellation(TransformationPass):
             DAGCircuit: the optimized DAG.
 
         Raises:
-            TranspilerError: when the 1-qubit rotation gates are not found
+            TranspilerError: when the 1 qubit rotation gates are not found
         """
         # Now the gates supported are hard-coded
         q_gate_list = ['cx', 'cy', 'cz', 'h', 'y']
@@ -61,7 +61,7 @@ class CommutativeCancellation(TransformationPass):
 
         # Traverse each qubit to generate the cancel dictionaries
         # Cancel dictionaries:
-        #  - For 1-qubit gates the key is (gate_type, qubit_id, commutation_set_id),
+        #  - For 1 qubit gates the key is (gate_type, qubit_id, commutation_set_id),
         #    the value is the list of gates that share the same gate type, qubit, commutation set.
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
@@ -82,7 +82,7 @@ class CommutativeCancellation(TransformationPass):
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['rx', 'x']:
                         cancellation_sets[('x_rotation', wire_name, com_set_idx)].append(node)
-                    # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
+                    # Doen't deal with Y rotaion, because Y rotation doesn't commute with CNOT, so
                     # it should be dealt with by optimized1qgate pass
                     elif num_qargs == 2 and node.qargs[0] == wire:
                         second_op_name = "{0}[{1}]".format(str(node.qargs[1].register.name),

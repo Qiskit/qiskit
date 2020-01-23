@@ -360,11 +360,10 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True, scaling: float = None,
-             channels: Optional[List[Channel]] = None,
+             framechange: bool = True, channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
         """Plot the schedule.
 
@@ -373,7 +372,7 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
+            scaling: Relative visual scaling of waveform amplitudes
             channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -382,7 +381,6 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
-            scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
             show_framechange_channels: Plot channels with only framechanges
 
@@ -390,10 +388,6 @@ class Schedule(ScheduleComponent):
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
 
         from qiskit import visualization
 
@@ -404,7 +398,7 @@ class Schedule(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scale=scale, plot_all=plot_all,
+                                          scaling=scaling, plot_all=plot_all,
                                           plot_range=plot_range, interactive=interactive,
                                           table=table, label=label,
                                           framechange=framechange, channels=channels,
@@ -416,7 +410,7 @@ class Schedule(ScheduleComponent):
         Equality is checked by verifying there is an equal instruction at every time
         in `other` for every instruction in this Schedule.
 
-        Warning: This does not check for logical equivalency. Ie.,
+        Warning: This does not check for logical equivalencly. Ie.,
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))

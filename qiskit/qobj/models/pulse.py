@@ -62,7 +62,6 @@ class PulseQobjInstructionSchema(QobjInstructionSchema):
     discriminators = Nested(QobjMeasurementOptionSchema, many=True)
     label = String()
     type = String()
-    parameters = DictParameters(valid_value_types=(int, float, bool, complex))
 
 
 class PulseQobjExperimentConfigSchema(QobjExperimentConfigSchema):

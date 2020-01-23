@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=len-as-condition,unsubscriptable-object
+# pylint: disable=len-as-condition
 
 """
 Predicates for operators.

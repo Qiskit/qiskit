@@ -159,7 +159,7 @@ class DenseLayout(AnalysisPass):
 
             if self.backend_prop:
                 curr_error = 0
-                # compute meas error for subset
+                # commpute meas error for subset
                 avg_meas_err = np.mean(self.meas_arr)
                 meas_diff = np.mean(self.meas_arr[bfs[0:n_qubits]])-avg_meas_err
                 if meas_diff > 0:

@@ -135,8 +135,7 @@ import pydoc
 
 import numpy as np
 
-from qiskit.pulse.commands.sample_pulse import SamplePulse
-from qiskit.pulse.commands.pulse_decorators import functional_pulse
+import qiskit.pulse.commands as commands
 
 from . import strategies
 
@@ -216,7 +215,7 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(continuous_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> SamplePulse:
+        def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
@@ -231,7 +230,7 @@ def sampler(sample_function: Callable) -> Callable:
         # such as __name__, __qualname__
         call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
-        return functional_pulse(call_sampler)
+        return commands.functional_pulse(call_sampler)
 
     return generate_sampler
 

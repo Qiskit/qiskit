@@ -418,13 +418,13 @@ c1_0: 0 ════════════════════════
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual(
             '{\\$}{\\ensuremath{\\forall}}{\\$}',
-            utils.generate_latex_label(r'\$∀\$'))
+            utils.generate_latex_label('\$∀\$'))  # noqa
 
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(
             'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
-            utils.generate_latex_label(r'$a$bc$_∭X∀Y'))
+            utils.generate_latex_label('$a$bc$_∭X∀Y'))  # noqa
 
 
 if __name__ == '__main__':

@@ -180,34 +180,8 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho @ chan, targ)
 
-    def test_dot(self):
-        """Test dot method."""
-        # Random input test state
-        rho = DensityMatrix(self.rand_rho(2))
-
-        # UnitaryChannel evolution
-        chan1 = Kraus(self.UX)
-        chan2 = Kraus(self.UY)
-        targ = rho.evolve(Kraus(self.UZ))
-        self.assertEqual(rho.evolve(chan1.dot(chan2)), targ)
-        self.assertEqual(rho.evolve(chan1 * chan2), targ)
-
-        # 50% depolarizing channel
-        chan1 = Kraus(self.depol_kraus(0.5))
-        targ = rho @ Kraus(self.depol_kraus(0.75))
-        self.assertEqual(rho.evolve(chan1.dot(chan1)), targ)
-        self.assertEqual(rho.evolve(chan1 * chan1), targ)
-
-        # Compose different dimensions
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        targ = rho @ chan1 @ chan2
-        self.assertEqual(rho.evolve(chan2.dot(chan1)), targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), targ)
-
     def test_compose_front(self):
-        """Test deprecated front compose method."""
+        """Test front compose method."""
         # Random input test state
         rho = DensityMatrix(self.rand_rho(2))
 
@@ -362,6 +336,8 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(rho @ chan, targ)
         chan = val * chan1
         self.assertEqual(rho @ chan, targ)
+        chan = chan1 * val
+        self.assertEqual(rho @ chan, targ)
 
         # Double Kraus set
         chan2 = Kraus((kraus1, kraus2))
@@ -370,14 +346,14 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(rho @ chan, targ)
         chan = val * chan2
         self.assertEqual(rho @ chan, targ)
+        chan = chan2 * val
+        self.assertEqual(rho @ chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Kraus(self.depol_kraus(1))
         self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
         self.assertRaises(QiskitError, chan.multiply, chan)
-        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""

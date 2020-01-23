@@ -20,8 +20,7 @@ import unittest
 from datetime import datetime
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
-from qiskit.transpiler.passes.optimization import CrosstalkAdaptiveSchedule
-from qiskit.transpiler.passes.optimization.crosstalk_adaptive_schedule import HAS_Z3
+from qiskit.transpiler.passes.crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule, HAS_Z3
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile

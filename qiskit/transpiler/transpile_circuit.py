@@ -18,7 +18,7 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
-from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
+from qiskit.transpiler.passes.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 
 

@@ -173,34 +173,8 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
-    def test_dot(self):
-        """Test deprecated front compose method."""
-        # Random input test state
-        rho_init = DensityMatrix(self.rand_rho(2))
-
-        # UnitaryChannel evolution
-        chan1 = Stinespring(self.UX)
-        chan2 = Stinespring(self.UY)
-        rho_targ = rho_init.evolve(Stinespring(self.UZ))
-        self.assertEqual(rho_init.evolve(chan1.dot(chan2)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan1 * chan2), rho_targ)
-
-        # 50% depolarizing channel
-        chan1 = Stinespring(self.depol_stine(0.5))
-        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
-        self.assertEqual(rho_init.evolve(chan1.dot(chan1)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan1 * chan1), rho_targ)
-
-        # Compose different dimensions
-        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
-        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
-        chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        rho_targ = rho_init @ chan1 @ chan2
-        self.assertEqual(rho_init.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan2 * chan1), rho_targ)
-
     def test_compose_front(self):
-        """Test deprecated front compose method."""
+        """Test front compose method."""
         # Random input test state
         rho_init = DensityMatrix(self.rand_rho(2))
 
@@ -355,6 +329,8 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan1
         self.assertEqual(rho_init.evolve(chan), rho_targ)
+        chan = chan1 * val
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
@@ -363,14 +339,14 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
+        chan = chan2 * val
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Stinespring(self.depol_stine(1))
         self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
         self.assertRaises(QiskitError, chan.multiply, chan)
-        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""

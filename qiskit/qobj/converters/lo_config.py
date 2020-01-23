@@ -30,12 +30,10 @@ class LoConfigConverter:
 
         Args:
             qobj_model (PulseQobjExperimentConfig): qobj model for experiment config.
-            qubit_lo_freq (list): List of default qubit lo frequencies in Hz.
-            meas_lo_freq (list): List of default meas lo frequencies in Hz.
-            qubit_lo_range (list): List of qubit lo ranges,
-                each of form `[range_min, range_max]` in Hz.
-            meas_lo_range (list): List of measurement lo ranges,
-                each of form `[range_min, range_max]` in Hz.
+            qubit_lo_freq (list): List of default qubit lo frequencies.
+            meas_lo_freq (list): List of default meas lo frequencies.
+            qubit_lo_range (list): List of qubit lo ranges.
+            meas_lo_range (list): List of measurement lo ranges.
             run_config (dict): experimental configuration.
         """
         self.qobj_model = qobj_model
@@ -66,11 +64,11 @@ class LoConfigConverter:
 
         q_los = self.get_qubit_los(user_lo_config)
         if q_los:
-            lo_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
+            lo_config['qubit_lo_freq'] = q_los
 
         m_los = self.get_meas_los(user_lo_config)
         if m_los:
-            lo_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
+            lo_config['meas_lo_freq'] = m_los
 
         return self.qobj_model(**lo_config)
 

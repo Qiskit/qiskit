@@ -11,61 +11,71 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
-Quantum information measures, metrics, and related functions for states.
+A collection of useful quantum information functions for states.
+
+
 """
 
 import numpy as np
-from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.utils import _format_state, _funm_svd
+import scipy.linalg as la
 
 
-def state_fidelity(state1, state2, validate=True):
-    r"""Return the state fidelity between two quantum states.
+def state_fidelity(state1, state2):
+    """Return the state fidelity between two quantum states.
 
-    The state fidelity :math:`F` for density matrix input states
-    :math:`\rho_1, \rho_2` is given by
+    Either input may be a state vector, or a density matrix. The state
+    fidelity (F) for two density matrices is defined as::
 
-    .. math::
-        F(\rho_1, \rho_2) = Tr[\sqrt{\sqrt{\rho_1}\rho_2\sqrt{\rho_1}}]^2.
+        F(rho1, rho2) = Tr[sqrt(sqrt(rho1).rho2.sqrt(rho1))] ^ 2
 
-    If one of the states is a pure state this simplies to
-    :math:`F(\rho_1, \rho_2) = \langle\psi_1|\rho_2|\psi_1\rangle`, where
-    :math:`\rho_1 = |\psi_1\rangle\!\langle\psi_1|`.
+    For a pure state and mixed state the fidelity is given by::
+
+        F(|psi1>, rho2) = <psi1|rho2|psi1>
+
+    For two pure states the fidelity is given by::
+
+        F(|psi1>, |psi2>) = |<psi1|psi2>|^2
 
     Args:
-        state1 (Statevector or DensityMatrix): the first quantum state.
-        state2 (Statevector or DensityMatrix): the second quantum state.
-        validate (bool): check if the inputs are valid quantum states
-                         [Default: True]
+        state1 (array_like): a quantum state vector or density matrix.
+        state2 (array_like): a quantum state vector or density matrix.
 
     Returns:
-        float: The state fidelity :math:`F(\rho_1, \rho_2)`.
-
-    Raises:
-        QiskitError: if ``validate=True`` and the inputs are invalid quantum states.
+        array_like: The state fidelity F(state1, state2).
     """
     # convert input to numpy arrays
-    state1 = _format_state(state1, validate=validate)
-    state2 = _format_state(state2, validate=validate)
+    state1 = np.array(state1)
+    state2 = np.array(state2)
 
-    # Get underlying numpy arrays
-    arr1 = state1.data
-    arr2 = state2.data
-    if isinstance(state1, Statevector):
-        if isinstance(state2, Statevector):
-            # Fidelity of two Statevectors
-            fid = np.abs(arr2.conj().dot(arr1))**2
-        else:
-            # Fidelity of Statevector(1) and DensityMatrix(2)
-            fid = arr1.conj().dot(arr2).dot(arr1)
-    elif isinstance(state2, Statevector):
-        # Fidelity of Statevector(2) and DensityMatrix(1)
-        fid = arr2.conj().dot(arr1).dot(arr2)
-    else:
-        # Fidelity of two DensityMatrices
-        s1sq = _funm_svd(arr1, np.sqrt)
-        s2sq = _funm_svd(arr2, np.sqrt)
-        fid = np.linalg.norm(s1sq.dot(s2sq), ord='nuc')**2
-    # Convert to py float rather than return np.float
-    return float(np.real(fid))
+    # fidelity of two state vectors
+    if state1.ndim == 1 and state2.ndim == 1:
+        return np.abs(state2.conj().dot(state1)) ** 2
+    # fidelity of vector and density matrix
+    elif state1.ndim == 1:
+        # psi = s1, rho = s2
+        return np.abs(state1.conj().dot(state2).dot(state1))
+    elif state2.ndim == 1:
+        # psi = s2, rho = s1
+        return np.abs(state2.conj().dot(state1).dot(state2))
+    # fidelity of two density matrices
+    s1sq = _funm_svd(state1, np.sqrt)
+    s2sq = _funm_svd(state2, np.sqrt)
+    return np.linalg.norm(s1sq.dot(s2sq), ord='nuc') ** 2
+
+
+def _funm_svd(matrix, func):
+    """Apply real scalar function to singular values of a matrix.
+
+    Args:
+        matrix (array_like): (N, N) Matrix at which to evaluate the function.
+        func (callable): Callable object that evaluates a scalar function f.
+
+    Returns:
+        ndarray: funm (N, N) Value of the matrix function specified by func
+        evaluated at `A`.
+    """
+    unitary1, singular_values, unitary2 = la.svd(matrix, lapack_driver='gesvd')
+    diag_func_singular = np.diag(func(singular_values))
+    return unitary1.dot(diag_func_singular).dot(unitary2)

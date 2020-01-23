@@ -356,7 +356,7 @@ class TestParameters(QiskitTestCase):
                       for i in range(num_processes)]
 
         results = parallel_map(_construct_circuit,
-                               parameters,
+                               [(param) for param in parameters],
                                task_args=(qr,),
                                num_processes=num_processes)
 

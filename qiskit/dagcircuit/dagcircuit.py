@@ -210,7 +210,7 @@ class DAGCircuit:
         Returns:
             list[Clbit]: list of classical bits
         """
-        return [] if cond is None else list(cond[0])
+        return [] if cond is None else [cbit for cbit in cond[0]]
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
@@ -569,7 +569,7 @@ class DAGCircuit:
         """
         for wire in self.wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
-            if len(list(nodes)) == 2:
+            if len([i for i in nodes]) == 2:
                 yield wire
 
     def size(self):
@@ -791,7 +791,11 @@ class DAGCircuit:
 
         condition_bit_list = self._bits_in_condition(node.condition)
 
-        wire_map = dict(zip(wires, list(node.qargs) + list(node.cargs) + list(condition_bit_list)))
+        wire_map = {k: v for k, v in zip(wires,
+                                         [i for s in [node.qargs,
+                                                      node.cargs,
+                                                      condition_bit_list]
+                                          for i in s])}
         self._check_wiremap_validity(wire_map, wires, self.input_map)
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
@@ -1183,7 +1187,7 @@ class DAGCircuit:
     def multigraph_layers(self):
         """Yield layers of the multigraph."""
         predecessor_count = dict()  # Dict[node, predecessors not visited]
-        cur_layer = self.input_map.values()
+        cur_layer = [node for node in self.input_map.values()]
         yield cur_layer
         next_layer = []
         while cur_layer:

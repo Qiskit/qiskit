@@ -18,11 +18,10 @@ import unittest
 import numpy as np
 
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
-                                   SnapshotChannel, MeasureChannel)
+                                   SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction, Gaussian, Drag,
-                                   GaussianSquare, ConstantPulse)
+                                   PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -347,20 +346,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(actual.stop_time, expected.stop_time)
 
         self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
-
-    def test_parametric_commands_in_sched(self):
-        """Test that schedules can be built with parametric commands."""
-        sched = Schedule(name='test_parametric')
-        sched += Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
-        sched += Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4)(DriveChannel(1))
-        sched += ConstantPulse(duration=25, amp=1)(DriveChannel(2))
-        sched_duration = sched.duration
-        sched += GaussianSquare(duration=1500, amp=0.2,
-                                sigma=8, width=140)(MeasureChannel(0)) << sched_duration
-        sched += Acquire(duration=1500)(AcquireChannel(0),
-                                        mem_slots=[MemorySlot(0)]) << sched_duration
-        self.assertEqual(sched.duration, 1525)
-        self.assertTrue('sigma' in sched.instructions[0][1].command.parameters)
 
 
 class TestDelay(BaseTestSchedule):

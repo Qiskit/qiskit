@@ -20,7 +20,7 @@ import functools
 from typing import Union, Tuple, Optional
 
 import numpy as np
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:
@@ -184,7 +184,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         ret_gaussian: Return gaussian with which derivative was taken with.
     """
     gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
-    gauss_deriv = -x / sigma * gauss
+    gauss_deriv = -x/sigma*gauss
     if ret_gaussian:
         return gauss_deriv, gauss
     return gauss_deriv
@@ -317,6 +317,7 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
         in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
+
 
     Args:
         times: Times to output pulse for.

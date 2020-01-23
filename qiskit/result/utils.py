@@ -63,7 +63,7 @@ def count_keys(num_clbits):
 
 def _marginalize(counts, indices=None):
     # Extract total number of clbits from first count key
-    # We trim the whitespace separating classical registers
+    # We trim the whitespace seperating classical registers
     # and count the number of digits
     num_clbits = len(next(iter(counts)).replace(' ', ''))
 

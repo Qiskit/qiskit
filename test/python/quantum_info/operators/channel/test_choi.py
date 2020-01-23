@@ -169,44 +169,6 @@ class TestChoi(ChannelTestCase):
         chan = chan2.compose(chan1)
         self.assertEqual(chan.dim, (4, 4))
 
-    def test_dot(self):
-        """Test dot method."""
-        # UnitaryChannel evolution
-        chan1 = Choi(self.choiX)
-        chan2 = Choi(self.choiY)
-        targ = Choi(self.choiZ)
-        self.assertEqual(chan1.dot(chan2), targ)
-        self.assertEqual(chan1 * chan2, targ)
-
-        # 50% depolarizing channel
-        chan1 = Choi(self.depol_choi(0.5))
-        targ = Choi(self.depol_choi(0.75))
-        self.assertEqual(chan1.dot(chan1), targ)
-        self.assertEqual(chan1 * chan1, targ)
-
-        # Measure and rotation
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
-                                                           ]) / 2
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        # X-gate second does nothing
-        targ = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        self.assertEqual(chan2.dot(chan1), targ)
-        self.assertEqual(chan2 * chan1, targ)
-        # X-gate first swaps Z states
-        targ = Choi(np.kron(Zm, Xp) + np.kron(Zp, Xm))
-        self.assertEqual(chan1.dot(chan2), targ)
-        self.assertEqual(chan1 * chan2, targ)
-
-        # Compose different dimensions
-        chan1 = Choi(np.eye(8) / 4, input_dims=2, output_dims=4)
-        chan2 = Choi(np.eye(8) / 2, input_dims=4, output_dims=2)
-        chan = chan1.dot(chan2)
-        self.assertEqual(chan.dim, (4, 4))
-        chan = chan2.dot(chan1)
-        self.assertEqual(chan.dim, (2, 2))
-
     def test_compose_front(self):
         """Test front compose method."""
         # UnitaryChannel evolution
@@ -367,14 +329,13 @@ class TestChoi(ChannelTestCase):
         targ = Choi(val * self.choiI)
         self.assertEqual(chan.multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Choi(self.choiI)
         self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
         self.assertRaises(QiskitError, chan.multiply, chan)
-        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""

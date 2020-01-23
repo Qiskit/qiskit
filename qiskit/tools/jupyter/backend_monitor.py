@@ -74,7 +74,7 @@ def _load_jobs_data(self, change):
 
 def _backend_monitor(backend):
     """ A private function to generate a monitor widget
-    for a IBMQ backend repr.
+    for a IBMQ bakend repr.
 
     Args:
         backend (IBMQBackend | FakeBackend): The backend.
@@ -108,7 +108,7 @@ def _backend_monitor(backend):
     for i in range(len(details)):
         tabs.set_title(i, tab_contents[i])
 
-    # Make backend accessible to tabs widget
+    # Make backend accesible to tabs widget
     tabs._backend = backend  # pylint: disable=attribute-defined-outside-init
     tabs._did_jobs = False
     # pylint: disable=attribute-defined-outside-init

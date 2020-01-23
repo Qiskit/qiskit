@@ -155,8 +155,8 @@ class Pauli:
 
     def __repr__(self):
         """Return the representation of self."""
-        z = list(self._z)
-        x = list(self._x)
+        z = [p for p in self._z]
+        x = [p for p in self._x]
 
         ret = self.__class__.__name__ + "(z={}, x={})".format(z, x)
         return ret
