@@ -172,15 +172,12 @@ class TestControlledGate(QiskitTestCase):
 
     def test_controlled_u3_matrix(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
-        import qiskit.extensions.standard.u3 as u3
-        import qiskit.extensions.standard.cu3 as cu3
-
         num_ctrl = 3
         # U3 gate params
         alpha, beta, gamma = 0.2, 0.3, 0.4
 
         # cnu3 gate
-        u3gate = u3.U3Gate(alpha, beta, gamma)
+        u3gate = allGates.U3Gate(alpha, beta, gamma)
         cnu3 = u3gate.control(num_ctrl)
         width = cnu3.num_qubits
         qr = QuantumRegister(width)
@@ -199,7 +196,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
-        cu3gate = cu3.Cu3Gate(alpha, beta, gamma)
+        cu3gate = allGates.Cu3Gate(alpha, beta, gamma)
 
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
@@ -234,15 +231,12 @@ class TestControlledGate(QiskitTestCase):
 
     def test_controlled_u1_matrix(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
-        import qiskit.extensions.standard.u1 as u1
-        import qiskit.extensions.standard.cu1 as cu1
-
         num_ctrl = 3
         # U1 gate params
         theta = 0.2
 
         # cnu1 gate
-        u1gate = u1.U1Gate(theta)
+        u1gate = allGates.U1Gate(theta)
         cnu1 = u1gate.control(num_ctrl)
         width = cnu1.num_qubits
         qr = QuantumRegister(width)
@@ -261,7 +255,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu1 = QuantumCircuit(qr)
-        cu1gate = cu1.Cu1Gate(theta)
+        cu1gate = allGates.Cu1Gate(theta)
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
@@ -440,19 +434,15 @@ class TestControlledGate(QiskitTestCase):
 
     def test_single_controlled_rotation_gates(self):
         """Test the controlled rotation gates controlled on one qubit."""
-        import qiskit.extensions.standard.u1 as u1
-        import qiskit.extensions.standard.rx as rx
-        import qiskit.extensions.standard.ry as ry
-        import qiskit.extensions.standard.rz as rz
         num_ctrl = 2
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
 
         theta = pi
-        gu1 = u1.U1Gate(theta)
-        grx = rx.RXGate(theta)
-        gry = ry.RYGate(theta)
-        grz = rz.RZGate(theta)
+        gu1 = allGates.U1Gate(theta)
+        grx = allGates.RXGate(theta)
+        gry = allGates.RYGate(theta)
+        grz = allGates.RZGate(theta)
 
         ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
         ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
