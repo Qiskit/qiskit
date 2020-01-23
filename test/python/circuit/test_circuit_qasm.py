@@ -84,7 +84,7 @@ measure qr2[1] -> cr[2];\n"""
         """
 
         composite_circ_qreg = QuantumRegister(2)
-        composite_circ = QuantumCircuit(composite_circ_qreg, name = "composite_circ")
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
         composite_circ.h(0)
         composite_circ.x(1)
         composite_circ.cx(0, 1)
