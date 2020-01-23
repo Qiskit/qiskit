@@ -15,6 +15,7 @@
 """
 Pulse utilities.
 """
+
 import warnings
 from typing import List, Dict, Optional
 from qiskit.providers import BaseBackend

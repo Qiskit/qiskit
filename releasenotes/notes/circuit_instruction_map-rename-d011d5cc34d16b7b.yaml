@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The attribute of PulseDefaults, `circuit_instruction_map`, has been renamed
+    to `instruction_schedule_map`, to match the type of the attribute, which is
+    an InstructionScheduleMap.
