@@ -633,7 +633,6 @@ class QuantumCircuit:
         composite_circuit_gates = ""
 
         for data, qargs, _ in instruction.definition:
-            # [x.index for x in qargs]
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
