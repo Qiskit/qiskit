@@ -310,7 +310,7 @@ class TestControlledGate(QiskitTestCase):
             lam = 0.3165354 * pi
             qc = QuantumCircuit(q_target, q_controls)
             for idx in subset:
-                control_int += 2**idx
+                control_int += 2 ** idx
                 qc.x(q_controls[idx])
 
             qc.h(q_target[0])
@@ -323,7 +323,7 @@ class TestControlledGate(QiskitTestCase):
             backend = BasicAer.get_backend('unitary_simulator')
             mat_mcu = execute(qc, backend).result().get_unitary(qc)
 
-            dim = 2**(num_controls + 1)
+            dim = 2 ** (num_controls + 1)
             pos = dim - 2 * (control_int + 1)
             mat_groundtruth = np.eye(dim, dtype=complex)
             fac = np.exp(1j * lam)
@@ -331,8 +331,8 @@ class TestControlledGate(QiskitTestCase):
                                                          [(1 - fac) / 2, (1 + fac) / 2]]
             assert_allclose(mat_mcu, mat_groundtruth)
 
-    @combine(num_controls=[1, 2, 3], mode=['basic'])
-    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls, mode):
+    @data(1, 2, 3)
+    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with clean ancillas."""
 
         # set up circuit
@@ -349,7 +349,7 @@ class TestControlledGate(QiskitTestCase):
 
         # apply hadamard on control qubits and toffoli gate
         qc.h(q_controls)
-        qc.mct(q_controls, q_target[0], q_ancillas, mode=mode)
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic')
 
         # execute the circuit and obtain statevector result
         backend = BasicAer.get_backend('statevector_simulator')
@@ -516,7 +516,7 @@ class TestControlledGate(QiskitTestCase):
             theta = 0.871236 * pi
             qc = QuantumCircuit(q_target, q_controls)
             for idx in subset:
-                control_int += 2**idx
+                control_int += 2 ** idx
                 qc.x(q_controls[idx])
 
             # call mcrx/mcry/mcrz
@@ -533,7 +533,7 @@ class TestControlledGate(QiskitTestCase):
             backend = BasicAer.get_backend('unitary_simulator')
             mat_mcu = execute(qc, backend).result().get_unitary(qc)
 
-            dim = 2**(num_controls + 1)
+            dim = 2 ** (num_controls + 1)
             pos = dim - 2 * (control_int + 1)
             mat_groundtruth = np.eye(dim, dtype=complex)
 
@@ -578,7 +578,7 @@ class TestControlledGate(QiskitTestCase):
                 q_ancillas = None
 
             for idx in subset:
-                control_int += 2**idx
+                control_int += 2 ** idx
                 qc.x(q_controls[idx])
 
             qc.mcry(theta, q_controls, q_target[0], q_ancillas, mode='basic',
@@ -590,7 +590,7 @@ class TestControlledGate(QiskitTestCase):
             backend = BasicAer.get_backend('unitary_simulator')
             mat_mcu = execute(qc, backend).result().get_unitary(qc)
 
-            dim = 2**(num_controls + 1)
+            dim = 2 ** (num_controls + 1)
             mat_mcu = mat_mcu[:dim, :dim]
             pos = dim - 2 * (control_int + 1)
             mat_groundtruth = np.eye(dim, dtype=complex)
@@ -741,12 +741,12 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits):
         ndarray: controlled version of base matrix.
     """
     num_target = int(np.log2(base_mat.shape[0]))
-    ctrl_dim = 2**num_ctrl_qubits
+    ctrl_dim = 2 ** num_ctrl_qubits
     ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim - 1])
     full_mat_dim = ctrl_dim * base_mat.shape[0]
     full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
-    full_mat = (np.kron(np.eye(2**num_target),
+    full_mat = (np.kron(np.eye(2 ** num_target),
                         np.eye(ctrl_dim) - ctrl_proj) +
                 np.kron(base_mat, ctrl_proj))
     return full_mat
