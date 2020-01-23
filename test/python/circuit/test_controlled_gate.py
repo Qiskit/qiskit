@@ -368,32 +368,22 @@ class TestControlledGate(QiskitTestCase):
         s_f = state_fidelity(vec_mct, vec_groundtruth)
         self.assertAlmostEqual(s_f, 1)
 
-    @combine(num_controls=[1, 2, 3, 4, 5], mode=['basic-dirty-ancilla', 'advanced', 'noancilla'])
-    def test_multi_control_toffoli_matrix_dirty_ancillas(self, num_controls, mode):
-        """Test the multi-control Toffoli gate with dirty ancillas."""
+    @data(1, 2, 3, 4, 5)
+    def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla)."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_target, q_controls)
 
-        if mode == 'basic-dirty-ancilla':
-            if num_controls <= 2:
-                num_ancillas = 0
-            else:
-                num_ancillas = num_controls - 2
-        elif mode == 'noancilla':
+        q_ancillas = None
+        if num_controls <= 2:
             num_ancillas = 0
         else:
-            if num_controls <= 4:
-                num_ancillas = 0
-            else:
-                num_ancillas = 1
-
-        q_ancillas = None
-        if num_ancillas > 0:
+            num_ancillas = num_controls - 2
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mct(q_controls, q_target[0], q_ancillas, mode=mode)
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic-dirty-ancilla')
 
         mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
 
@@ -401,6 +391,48 @@ class TestControlledGate(QiskitTestCase):
         mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
         if num_ancillas > 0:
             mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
+
+        assert_allclose(mat_mct, mat_groundtruth, atol=1e-08)
+
+    @data(1, 2, 3, 4, 5)
+    def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (advanced)."""
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_target, q_controls)
+
+        q_ancillas = None
+        if num_controls <= 4:
+            num_ancillas = 0
+        else:
+            num_ancillas = 1
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
+
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='advanced')
+
+        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+
+        mat_groundtruth = np.eye(2 ** (num_controls + 1))
+        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
+        if num_ancillas > 0:
+            mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
+
+        assert_allclose(mat_mct, mat_groundtruth, atol=1e-08)
+
+    @data(1, 2, 3, 4, 5)
+    def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (noancilla)."""
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_target, q_controls)
+
+        qc.mct(q_controls, q_target[0], None, mode='noancilla')
+
+        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+
+        mat_groundtruth = np.eye(2 ** (num_controls + 1))
+        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
 
         assert_allclose(mat_mct, mat_groundtruth, atol=1e-08)
 
