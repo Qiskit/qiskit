@@ -248,8 +248,10 @@ def _transpile_circuit(circuit_config_tuple):
             set(['u3', 'cx']).union(pass_manager_config.basis_gates))
 
     if transpile_config['pass_manager'] is not None:
+        # either the pass manager is already selected...
         pass_manager = transpile_config['pass_manager']
     else:
+        # or we choose an appropriate one based on desired optimization level (default: level 1)
         if transpile_config['optimization_level'] is not None:
             level = transpile_config['optimization_level']
         else:
