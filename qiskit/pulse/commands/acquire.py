@@ -126,10 +126,11 @@ class AcquireInstruction(Instruction):
                  name: Optional[str] = None):
 
         if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
-            warnings.warn('AcquireInstruction on multiple qubits, multiple memory slots '
-                          'and multiple reg slots has been deprecated. Parameter "mem_slots" '
-                          'has been replaced by "mem_slot" and "reg_slots" has been '
-                          'replaced by "reg_slot"', DeprecationWarning, 3)
+            warnings.warn('The AcquireInstruction no longer supports multiple qubits, '
+                          'multiple memory slots and multiple reg slots. '
+                          'This behavior has been deprecated. The parameter '
+                          '"mem_slots" has been replaced by "mem_slot" and '
+                          '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
 
         if not isinstance(acquire, list):
             acquire = [acquire]
@@ -154,11 +155,12 @@ class AcquireInstruction(Instruction):
             raise PulseError('Neither memoryslots or registers were supplied')
 
         if mem_slot and len(acquire) != len(mem_slot):
-            raise PulseError("#mem_slots must be equals to #acquires")
+            raise PulseError("The number of mem_slots must be equals to the number of acquires")
 
         if reg_slot:
             if len(acquire) != len(reg_slot):
-                raise PulseError("#reg_slots must be equals to #acquires")
+                raise PulseError("The number of reg_slots must be equals "
+                                 "to the number of acquires")
         else:
             reg_slot = []
 

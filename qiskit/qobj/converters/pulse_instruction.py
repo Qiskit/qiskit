@@ -329,7 +329,7 @@ class QobjToInstructionConverter:
             register_slots = [channels.RegisterSlot(instruction.register_slot[i])
                               for i in range(len(qubits))]
         else:
-            register_slots = [None for _ in range(len(qubits))]
+            register_slots = [None] * len(qubits)
 
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)

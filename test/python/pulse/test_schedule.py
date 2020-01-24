@@ -348,11 +348,9 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertEqual(par_sched.parameters, ('x', 'y', 'z'))
 
-    def test_schedule_with_acquire_on_single_and_multiple_qubits(self):
-        """Test schedule with acquire on single and multiple qubits."""
+    def test_schedule_with_acquire_on_single_qubit(self):
+        """Test schedule with acquire on single qubit."""
         acquire = Acquire(10)
-
-        # schedule with acquire on single qubit
         sched_single = Schedule()
         for i in range(self.config.n_qubits):
             sched_single = sched_single.insert(10, acquire(self.config.acquire(i),
@@ -362,7 +360,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(len(sched_single.instructions), 2)
         self.assertEqual(len(sched_single.channels), 6)
 
-        # schedule with acquire on multiple qubits
+    def test_schedule_with_acquire_on_multiple_qubits(self):
+        """Test schedule with acquire on multiple qubits."""
+        acquire = Acquire(10)
         sched_multiple = Schedule()
         qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
         mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
@@ -372,9 +372,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(len(sched_multiple.instructions), 1)
         self.assertEqual(len(sched_multiple.channels), 6)
 
-        self.assertEqual(len(sched_single.channels), len(sched_multiple.channels))
-
-        # test on back and forward compatibility
+    def test_schedule_with_acquire_for_back_and_forward_compatibility(self):
+        """Test schedule with acquire for back and forward compatibility."""
+        acquire = Acquire(10)
         cmds = [
             acquire(AcquireChannel(0), MemorySlot(0)),
             acquire([AcquireChannel(0)], MemorySlot(0)),
