@@ -31,7 +31,12 @@ def measure(qubits: List[int],
             meas_map: Optional[List[List[int]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
-    This function measure given qubits using OpenPulse and returns a Schedule.
+    Return a schedule which measures the requested qubits according to the given
+    instruction mapping and measure map, or by using the defaults provided by the backend.
+    
+    By default, the measurement results for each qubit are trivially mapped to the qubit
+    index. This behavior is overridden by qubit_mem_slots. For instance, to measure
+    qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
 
     Args:
         qubits: List of qubits to be measured.
