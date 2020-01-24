@@ -22,20 +22,21 @@ from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
-from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.validation.jsonschema import SchemaValidationError
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
              backend=None,
              qobj_id=None, qobj_header=None,
-             shots=1024, memory=False, max_credits=None, seed_simulator=None,
+             shots=None, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
              meas_return=MeasReturnType.AVERAGE, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
+             parametric_pulses=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -64,6 +65,7 @@ def assemble(experiments,
 
         shots (int):
             Number of repetitions of each circuit, for sampling. Default: 1024
+            or max_shots from the backend configuration, whichever is smaller
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
@@ -124,6 +126,10 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
+        parametric_pulses (list[str]):
+            A list of pulse shapes which are supported internally on the backend.
+            Example: ['gaussian', 'constant']
+
         **run_config (dict):
             extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
@@ -156,6 +162,7 @@ def assemble(experiments,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
                                        meas_map, memory_slot_size, rep_time,
+                                       parametric_pulses,
                                        **run_config_common_dict)
 
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
@@ -184,7 +191,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-        memory.
+        memory. Also if shots exceeds max_shots for the configured backend.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -209,6 +216,17 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
                    **qobj_header}
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
 
+    max_shots = getattr(backend_config, 'max_shots', None)
+    if shots is None:
+        if max_shots:
+            shots = min(1024, max_shots)
+        else:
+            shots = 1024
+    elif max_shots and max_shots < shots:
+        raise QiskitError(
+            'Number of shots specified: %s exceeds max_shots property of the '
+            'backend: %s.' % (shots, max_shots))
+
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
                            memory=memory,
@@ -223,6 +241,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
                       memory_slot_size, rep_time,
+                      parametric_pulses,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
@@ -230,22 +249,19 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
+    Raises:
+        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
     backend_default = None
     if backend:
+        backend_default = backend.defaults()
         backend_config = backend.configuration()
-        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
-        try:
-            backend_default = backend.defaults()
-        except (ModelValidationError, AttributeError):
-            from collections import namedtuple
-            backend_config_defaults = getattr(backend_config, 'defaults', {})
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
-            backend_default = BackendDefault(
-                qubit_freq_est=backend_config_defaults.get('qubit_freq_est'),
-                meas_freq_est=backend_config_defaults.get('meas_freq_est')
+        if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
+            raise SchemaValidationError(
+                ('meas_level = {} not supported for backend {}, only {} is supported'
+                 ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
@@ -270,6 +286,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
 
+    parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
+
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
@@ -281,6 +299,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
