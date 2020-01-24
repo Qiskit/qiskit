@@ -126,6 +126,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     they operate on, for each element encountered in the input circuit. Measures are grouped when
     possible, so qc.measure(q0, c0)/qc.measure(q1, c1) will generate a synchronous measurement
     pulse.
+
     Args:
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
@@ -143,7 +144,8 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         sched += measure(qubits=list(qubit_mem_slots.keys()),
-                         inst_map=inst_map, meas_map=schedule_config.meas_map,
+                         inst_map=inst_map,
+                         meas_map=schedule_config.meas_map,
                          qubit_mem_slots=qubit_mem_slots)
         qubit_mem_slots.clear()
         return CircuitPulseDef(schedule=sched,
