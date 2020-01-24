@@ -84,7 +84,7 @@ def measure(qubits: List[int],
 
 def measure_all(backend: 'BaseBackend') -> Schedule:
     """
-    This function measure all qubits of the given backend and returns a Schedule.
+    Return a Schedule which measures all qubits of the given backend.
 
     Args:
         backend: A backend instance, which contains hardware-specific data required for scheduling.
