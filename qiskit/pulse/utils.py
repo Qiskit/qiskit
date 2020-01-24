@@ -56,6 +56,7 @@ def measure(qubits: List[int],
         raise PulseError('inst_map or meas_map, and backend cannot be None simultaneously')
     if isinstance(meas_map, List):
         meas_map = format_meas_map(meas_map)
+
     measure_groups = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
