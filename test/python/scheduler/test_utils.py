@@ -34,7 +34,7 @@ class TestUtils(QiskitTestCase):
         sched = Schedule()
         sched += measure(qubits=[0],
                          backend=self.backend,
-                         qubit_mem_slots={0:1})
+                         qubit_mem_slots={0: 1})
         expected = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
