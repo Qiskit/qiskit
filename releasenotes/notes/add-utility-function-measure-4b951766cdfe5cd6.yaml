@@ -4,7 +4,8 @@ features:
     Added a utility function - ``measure`` and ``measure_all`` in pulse module to measure qubits
     using OpenPulse. For example::
 
-        from qiskit.pulse import measure, measure_all, Schedule
+        from qiskit.scheduler.utils import measure, measure_all
+        from qiskit.pulse import Schedule
 
         sched = Schedule(name="measure_q0_schedule")
         sched += measure(qubits=[0], backend=backend)
