@@ -23,6 +23,7 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.add_control import add_control
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.quantum_info import Operator
 
 
 DEFAULT_ATOL = 1e-12
@@ -73,6 +74,9 @@ class SimplifyU3(TransformationPass):
             if isinstance(op, U3Gate):
                 theta, phi, lam = op.params
 
+                new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
+
+
                 if np.isclose(_mod2pi(theta), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                     if np.isclose(_mod2pi(phi+lam), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                         new_op = None
@@ -96,4 +100,7 @@ class SimplifyU3(TransformationPass):
 
 
 def _mod2pi(angle):
-    return np.mod(angle, 2*np.pi)
+    if angle >= 0:
+        return np.mod(angle, 2*np.pi)
+    else:
+        return np.mod(angle, -2*np.pi)

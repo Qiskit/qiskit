@@ -514,6 +514,8 @@ class TestTranspile(QiskitTestCase):
         circ.h(qr[0])
         circ.cx(qr[0], qr[1])
         circ.cx(qr[0], qr[1])
+        circ.s(qr[1])
+        circ.sdg(qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
                           basis_gates=['u1', 'u2', 'u3', 'cx'])
