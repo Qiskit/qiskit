@@ -28,7 +28,7 @@ from qiskit.scheduler.utils import format_meas_map
 def measure(qubits: List[int],
             backend: Optional['BaseBackend'] = None,
             inst_map: Optional[InstructionScheduleMap] = None,
-            meas_map: Optional[Union[List[List[int]], Dict[List[int]]]] = None,
+            meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
     Return a schedule which measures the requested qubits according to the given
