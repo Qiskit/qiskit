@@ -130,8 +130,10 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     Args:
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
+
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element
+
     Raises:
         QiskitError: If circuit uses a command that isn't defined in config.inst_map
     """
