@@ -15,7 +15,8 @@
 """Test cases for Pulse Utility functions."""
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, measure, measure_all)
+                          MeasureChannel, MemorySlot)
+from qiskit.scheduler.utils import measure, measure_all
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
@@ -32,7 +33,8 @@ class TestUtils(QiskitTestCase):
         """Test utility function - measure."""
         sched = Schedule()
         sched += measure(qubits=[0],
-                         backend=self.backend)
+                         backend=self.backend,
+                         qubit_mem_slots={0:1})
         expected = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
