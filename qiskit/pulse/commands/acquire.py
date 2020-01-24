@@ -51,21 +51,13 @@ class Acquire(Command):
 
         self._name = Acquire.create_name(name)
 
-        if kernel:
-            if isinstance(kernel, Kernel):
-                self._kernel = kernel
-            else:
-                raise PulseError('Invalid kernel object is specified.')
-        else:
-            self._kernel = None
+        if kernel and not isinstance(kernel, Kernel):
+            raise PulseError('Invalid kernel object is specified.')
+        self._kernel = kernel
 
-        if discriminator:
-            if isinstance(discriminator, Discriminator):
-                self._discriminator = discriminator
-            else:
-                raise PulseError('Invalid discriminator object is specified.')
-        else:
-            self._discriminator = None
+        if discriminator and not isinstance(discriminator, Discriminator):
+            raise PulseError('Invalid discriminator object is specified.')
+        self._discriminator = discriminator
 
     @property
     def kernel(self):
