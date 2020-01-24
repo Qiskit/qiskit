@@ -65,7 +65,7 @@ class BaseJob(ABC):
                     * job_id: job ID
                     * job_status: status of the job from the last query
                     * job: this BaseJob instance
-                Note: different subclass might provider different arguments to
+                Note: different subclass might provide different arguments to
                     the callback function.
 
         Raises:
