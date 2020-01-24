@@ -71,7 +71,7 @@ def measure(qubits: List[int],
     """
     schedule = Schedule(name="Default measurement schedule for qubits {}".format(qubits))
     try:
-        inst_map = inst_map or backend.defaults().instruction_schedule_map
+        inst_map = inst_map or backend.defaults().circuit_instruction_map
         meas_map = meas_map or backend.configuration().meas_map
     except AttributeError:
         raise PulseError('inst_map or meas_map, and backend cannot be None simultaneously')
@@ -98,7 +98,7 @@ def measure(qubits: List[int],
                                                  mem_slots=mem_slots)
                 schedule = schedule.insert(time, new_acquire)
             # Measurement pulses should only be added if its qubit was measured by the user
-            elif {channel.index for channel in inst.channels} & set(qubits):
+            elif inst.channels[0].index in qubits:
                 schedule = schedule.insert(time, inst)
     return schedule
 

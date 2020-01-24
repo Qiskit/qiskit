@@ -40,9 +40,6 @@ class TestUtils(QiskitTestCase):
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
                                  [MemorySlot(0), MemorySlot(1)]))
         self.assertEqual(sched.instructions, expected.instructions)
-        sched = measure(qubits=[0],
-                        backend=self.backend)
-        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_fail_measure(self):
         """Test failing measure."""
