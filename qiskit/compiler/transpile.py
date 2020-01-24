@@ -301,7 +301,7 @@ def _parse_transpile_args(circuits, backend,
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
-    output_name = _parse_output_name(output_name, num_circuits)
+    output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
 
     list_transpile_args = []
@@ -426,13 +426,13 @@ def _parse_callback(callback, num_circuits):
     return callback
 
 
-def _parse_output_name(output_name, num_circuits):
+def _parse_output_name(output_name, circuits):
     # naming and returning circuits
     # output_name could be either a string or a list
     if output_name is not None:
         if isinstance(output_name, str):
             # single circuit
-            if num_circuits == 1:
+            if len(circuits) == 1:
                 return [output_name]
             # multiple circuits
             else:
@@ -440,7 +440,7 @@ def _parse_output_name(output_name, num_circuits):
                                       "to that of the number of circuits " +
                                       "being transpiled")
         elif isinstance(output_name, list):
-            if num_circuits == len(output_name) and \
+            if len(circuits) == len(output_name) and \
                     all(isinstance(name, str) for name in output_name):
                 return output_name
             else:
@@ -452,4 +452,4 @@ def _parse_output_name(output_name, num_circuits):
             raise TranspilerError("The parameter output_name should be a string or a"
                                   "list of strings: %s was used." % type(output_name))
     else:
-        return [None] * num_circuits
+        return [circuit.name for circuit in circuits]
