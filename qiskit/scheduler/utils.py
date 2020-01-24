@@ -71,7 +71,7 @@ def measure(qubits: List[int],
     """
     schedule = Schedule(name="Default measurement schedule for qubits {}".format(qubits))
     try:
-        inst_map = inst_map or backend.defaults().circuit_instruction_map
+        inst_map = inst_map or backend.defaults().instruction_schedule_map
         meas_map = meas_map or backend.configuration().meas_map
     except AttributeError:
         raise PulseError('inst_map or meas_map, and backend cannot be None simultaneously')
@@ -86,10 +86,10 @@ def measure(qubits: List[int],
             unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
         default_sched = inst_map.get('measure', measure_group_qubits)
         for time, inst in default_sched.instructions:
-            if qubit_mem_slots is not None and isinstance(inst, AcquireInstruction):
+            if qubit_mem_slots and isinstance(inst, AcquireInstruction):
                 mem_slots = []
                 for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots.keys():
+                    if channel.index in qubit_mem_slots:
                         mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
                     else:
                         mem_slots.append(MemorySlot(unused_mem_slots.pop()))
@@ -97,6 +97,8 @@ def measure(qubits: List[int],
                                                  acquires=inst.acquires,
                                                  mem_slots=mem_slots)
                 schedule = schedule.insert(time, new_acquire)
+            elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
+                schedule = schedule.insert(time, inst)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:
                 schedule = schedule.insert(time, inst)
