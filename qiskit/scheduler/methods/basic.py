@@ -24,7 +24,7 @@ from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import AcquireChannel
-from qiskit.pulse.utils import measure
+from qiskit.pulse import measure
 
 from qiskit.scheduler.config import ScheduleConfig
 

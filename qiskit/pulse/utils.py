@@ -16,7 +16,7 @@
 Pulse utilities.
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import MemorySlot
@@ -28,12 +28,12 @@ from qiskit.scheduler.utils import format_meas_map
 def measure(qubits: List[int],
             backend: Optional['BaseBackend'] = None,
             inst_map: Optional[InstructionScheduleMap] = None,
-            meas_map: Optional[List[List[int]]] = None,
+            meas_map: Optional[Union[List[List[int]], Dict[List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
     """
     Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
-    
+
     By default, the measurement results for each qubit are trivially mapped to the qubit
     index. This behavior is overridden by qubit_mem_slots. For instance, to measure
     qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
