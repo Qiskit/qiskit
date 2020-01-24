@@ -96,7 +96,7 @@ class Collapse1qChains(TransformationPass):
                 continue
             left_parameters = (0, 0, 0)  # theta, phi, lambda
             for gate in reversed(chain):
-                right_parameters = decomposer(Operator(gate.op)).data[0][0].params
+                right_parameters = decomposer(gate.op.to_matrix()).data[0][0].params
                 left_parameters = _compose_u3(left_parameters[0],
                                                left_parameters[1],
                                                left_parameters[2],

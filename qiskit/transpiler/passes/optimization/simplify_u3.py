@@ -73,19 +73,17 @@ class SimplifyU3(TransformationPass):
             if isinstance(op, U3Gate):
                 theta, phi, lam = op.params
 
-                new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
+                if np.isclose(_mod2pi(theta), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
+                    if np.isclose(_mod2pi(phi+lam), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
+                        new_op = None
+                    else:
+                        new_op = U1Gate(_mod2pi(phi+lam))
 
-                if np.allclose([theta, phi, lam], [0., 0., 0.], atol=DEFAULT_ATOL):
-                    new_op = None
+                elif np.isclose(theta, [np.pi/2, 3*np.pi/2], atol=DEFAULT_ATOL).any():
+                    new_op = U2Gate(_mod2pi(phi+theta-np.pi/2), _mod2pi(lam+theta-np.pi/2))
 
-                elif np.allclose([theta], [0.], atol=DEFAULT_ATOL):
-                    new_op = U1Gate(_mod2pi(phi+lam))
-
-                elif np.isclose(theta, np.pi/2, atol=DEFAULT_ATOL):
-                    new_op = U2Gate(_mod2pi(phi), _mod2pi(lam))
-
-                elif np.isclose(theta, 3*np.pi/2, atol=DEFAULT_ATOL):
-                    new_op = U2Gate(_mod2pi(phi+np.pi), _mod2pi(lam+np.pi))
+                else:
+                    new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
 
                 if new_op is None:
                     dag.remove_op_node(node)
