@@ -54,7 +54,6 @@ def y(self, q):
     """Apply Y gate to a specified qubit (q).
     A Y-gate implements a pi rotation of the qubit state vector about the
     y-axis of the Bloch sphere.
-    It is also equivalent to the combined effect of X gate and Z gate.
     This gate is canonically used to rotate the qubit state from |0⟩ to i|1⟩, or vise versa.
 
     Examples:
