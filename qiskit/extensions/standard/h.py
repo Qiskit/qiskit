@@ -56,8 +56,7 @@ class HGate(Gate):
 
 def h(self, q):  # pylint: disable=invalid-name
     """Apply Hadamard (H) gate to a specified qubit (q).
-    An H-gate implements a combination of rotations of the qubit state vector - pi rotation about
-    z-axis followed by pi/2 rotation about the y-axis of the Bloch sphere.
+    An H-gate implements a rotation of pi about the axis (x + z)/sqrt(2) on the Bloch sphere.
     This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ or |1⟩ to |-⟩.
 
     Examples:
