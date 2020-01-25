@@ -60,7 +60,7 @@ class U2Gate(Gate):
 
 def u2(self, phi, lam, q):  # pylint: disable=invalid-name
     """Apply U2 gate with angle phi and lam to a specified qubit (q).
-    A U2-gate implements a phi and lam radian rotation of the qubit state vector about the
+    A U2 gate implements a phi and lam radian rotation of the qubit state vector about the
     x and z-axis, respectively of the Bloch sphere.
 
     Examples:
