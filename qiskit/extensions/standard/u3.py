@@ -66,7 +66,7 @@ def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
             import numpy
 
             circuit = QuantumCircuit(1)
-            theta = numpy.pi/2
+            theta = Parameter('theta')
             phi = numpy.pi/2
             lam = numpy.pi/2
             circuit.u3(theta,phi,lam,0)
