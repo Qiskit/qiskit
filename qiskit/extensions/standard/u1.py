@@ -68,13 +68,6 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
             theta = numpy.pi/2
             circuit.u1(theta,0)
             circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.u1 import U1Gate
-            U1Gate(numpy.pi/2).to_matrix()
     """
     return self.append(U1Gate(theta), [q], [])
 

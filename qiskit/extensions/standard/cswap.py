@@ -55,6 +55,17 @@ class FredkinGate(ControlledGate):
         """Invert this gate."""
         return FredkinGate()  # self-inverse
 
+    def to_matrix(self):
+        """Return a Numpy.array for the Fredkin (CSWAP) gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+
 
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin (CSWAP) gate from a specified control (ctl) to target1 (tgt1)
@@ -73,6 +84,13 @@ def cswap(self, ctl, tgt1, tgt2):
             circuit = QuantumCircuit(3)
             circuit.cswap(0,1,2)
             circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.cswap import FredkinGate
+            FredkinGate().to_matrix()
     """
     return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
 
