@@ -19,15 +19,26 @@ from qiskit.transpiler.passes.analysis.dag_longest_path import DAGLongestPath
 
 
 class Runtime(AnalysisPass):
-    """ An analysis pass for estimating the circuit runtime based on op runtimes.
+    """ An analysis pass for estimating the circuit runtime based on operation
+    runtimes.
     """
 
     def __init__(self, op_times=None):
+        """Runtime initializer.
+
+        Args:
+            op_times (dict): Dictionary of operation runtimes for all gates in
+            basis gate set.
+                e.g.::
+
+                {'h': 1,
+                'cx': 4}
+        """
         super().__init__()
         self.requires.append(DAGLongestPath(op_times))
 
     def run(self, dag):
-        """ Calculate the overall runtime for the DAG longest path by putting the
+        """Calculate the overall runtime for the DAG longest path by putting the
         operation times as weights on edges.
         """
 

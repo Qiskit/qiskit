@@ -23,6 +23,16 @@ class DAGLongestPath(AnalysisPass):
     """
 
     def __init__(self, op_times=None):
+        """DAGLongestPath initializer.
+
+        Args:
+            op_times (dict): Dictionary of operation runtimes for all gates in
+            basis gate set.
+                e.g.::
+
+                {'h': 1,
+                'cx': 4}
+        """
         super().__init__()
         self.op_times = op_times
 

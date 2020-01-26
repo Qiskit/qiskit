@@ -21,6 +21,6 @@ class CountOpsDeepestPath(AnalysisPass):
     """Count the operations on the deepest path in a DAGcircuit."""
 
     def run(self, dag):
-        """Run the CountOpsLongestPath pass on `dag`."""
+        """Run the CountOpsDeepestPath pass on `dag`."""
         self.property_set['count_ops_deepest_path'] = \
             dag.count_ops_deepest_path()
