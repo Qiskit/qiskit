@@ -16,6 +16,7 @@
 # pylint: disable=unused-variable
 # pylint: disable=missing-param-doc
 # pylint: disable=missing-type-doc
+# pylint: disable=no-member
 
 """
 Generic isometries from m to n qubits.
@@ -416,7 +417,7 @@ def _get_qubits_by_label(labels, qubits, num_qubits):
 
 
 def _reverse_qubit_oder(qubits):
-    return [q for q in reversed(qubits)]
+    return list(reversed(qubits))
 
 
 # Convert list of binary digits to integer

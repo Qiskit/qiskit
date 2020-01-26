@@ -11,6 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=unpacking-non-sequence
+
 """
 Superoperator representation of a Quantum Channel.
 
@@ -415,7 +418,7 @@ class SuperOp(QuantumChannel):
         chan = None
         if obj.name == 'reset':
             # For superoperator evolution we can simulate a reset as
-            # a non-unitary supeorperator matrix
+            # a non-unitary superoperator matrix
             chan = SuperOp(
                 np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0],
                           [0, 0, 0, 0]]))

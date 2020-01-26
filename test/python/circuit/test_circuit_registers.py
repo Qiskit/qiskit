@@ -369,6 +369,17 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
 
+    def test_bit_index_mix_list(self):
+        """Test mix of bit and index in list indexing"""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.h([qr[0], qr[1]])
+
+        qc.h([qr[0], 1])
+        self.assertEqual(qc, expected)
+
     def test_4_args_custom_gate_trivial_expansion(self):
         """test 'expansion' of 4 args in custom gate.
         See https://github.com/Qiskit/qiskit-terra/issues/2508"""
@@ -408,40 +419,3 @@ class TestCircuitRegisters(QiskitTestCase):
         for (gate, qargs, _) in circ.data:
             self.assertEqual(gate.name, 'unitary')
             self.assertEqual(len(qargs), 4)
-
-
-class TestCircuitBit(QiskitTestCase):
-    """QuantumCircuit Registers tests."""
-
-    def test_bit_getitem(self):
-        """ Deprecated Bit.__getitem__.
-        """
-        qubit = QuantumRegister(1, "q")[0]
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qubit[0], qubit.register)
-            self.assertEqual(qubit[1], qubit.index)
-
-    def test_gate_with_tuples(self):
-        """ Deprecated gate parameters as tuples"""
-        qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h(qr[0])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h((qr, 0))
-        self.assertEqual(qc, expected)
-
-    def test_gate_with_tuple_list(self):
-        """ Deprecated gate parameters as tuple list"""
-        qr = QuantumRegister(2)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h([qr[0], qr[1]])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h([(qr, 0), (qr, 1)])
-        self.assertEqual(qc, expected)

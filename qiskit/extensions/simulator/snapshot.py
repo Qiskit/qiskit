@@ -15,8 +15,6 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-import warnings
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
@@ -104,7 +102,7 @@ def snapshot(self,
     For other types of snapshots use the Snapshot extension directly.
 
     Args:
-        label (str): a snapshot label to report the result
+        label (str): a snapshot label to report the result.
         snapshot_type (str): the type of the snapshot.
         qubits (list or None): the qubits to apply snapshot to [Default: None].
         params (list or None): the parameters for snapshot_type [Default: None].
@@ -115,12 +113,6 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is depreciated.", DeprecationWarning)
-        label = str(label)
     # If no qubits are specified we add all qubits so it acts as a barrier
     # This is needed for full register snapshots like statevector
     if isinstance(qubits, QuantumRegister):

@@ -28,6 +28,7 @@ Operators
    Operator
    Pauli
    pauli_group
+   Quaternion
 
 States
 ======
@@ -69,6 +70,14 @@ Random
    random_state
    random_density_matrix
 
+Analysis
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   hellinger_fidelity
+
 Synthesis
 =========
 
@@ -83,6 +92,7 @@ Synthesis
 
 from .operators.operator import Operator
 from .operators.pauli import Pauli, pauli_group
+from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
 from .states import Statevector, DensityMatrix
@@ -91,3 +101,4 @@ from .states.measures import state_fidelity
 from .random import random_unitary, random_state, random_density_matrix
 from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
                         two_qubit_cnot_decompose)
+from .analysis import hellinger_fidelity

@@ -24,7 +24,7 @@ qi/                   @chriseclectic @ajavadia
 result/               @diego-plan9 @jyu00 @taalexander @mtreinish @ajavadia
 schemas/              @diego-plan9 @dcmckayibm
 transpiler/           @ajavadia @kdk @1ucian0 @itoko @mtreinish
-assembler/            @ajavadia @kdk @diego-plan @taalexander @mtreinish
-qobj/                 @diego-plan9 @jyu00 @taalexander @kdk
-validation/           @ajavadia @diego-plan @taalexander @mtreinish
+assembler/            @ajavadia @kdk @diego-plan9 @taalexander @mtreinish
+qobj/                 @diego-plan9 @jyu00 @taalexander @kdk @mtreinish
+validation/           @ajavadia @diego-plan9 @taalexander @mtreinish
 visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod @ajavadia
