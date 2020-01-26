@@ -26,6 +26,7 @@ from collections import OrderedDict
 import copy
 import itertools
 import networkx as nx
+import warnings
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -992,11 +993,20 @@ class DAGCircuit:
                 three_q_gates.append(node)
         return three_q_gates
 
+    def longest_path(self):
+        warnings.warn('The longest_path property of the DAG is '
+                      'deprecated as of the 0.11.2 release and '
+                      'will be removed no earlier than 3 months '
+                      'after that release date. You should '
+                      'use the deepest_path property instead.',
+                      DeprecationWarning, stacklevel=3)
+        return self.deepest_path()
+
     def deepest_path(self):
         """Returns the longest path in the dag as a list of DAGNodes."""
         # Note: naming for a dagcircuit is the following
-        #       deepest path: path with largest number of operations
-        #       longest path: path which takes longest to execute
+        #       deepest path: path with largest number of operations, no notion of time
+        #       longest path: path which takes longest to execute, needs notion of time
         return nx.dag_longest_path(self._multi_graph)
 
     def successors(self, node):
@@ -1291,6 +1301,15 @@ class DAGCircuit:
             else:
                 op_dict[name] += 1
         return op_dict
+
+    def count_ops_longest_path(self):
+        warnings.warn('The count_ops_longest_path property of the DAG is '
+                      'deprecated as of the 0.11.2 release and '
+                      'will be removed no earlier than 3 months '
+                      'after that release date. You should '
+                      'use the count_ops_deepest_path property instead.',
+                      DeprecationWarning, stacklevel=3)
+        return self.count_ops_deepest_path()
 
     def count_ops_deepest_path(self):
         """Count the occurrences of operation names on the deepest path.
