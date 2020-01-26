@@ -778,7 +778,7 @@ class QuantumCircuit:
                 are::
 
                     {
-                        'i': 'i',
+                        'id': 'id',
                         'u0': 'U_0',
                         'u1': 'U_1',
                         'u2': 'U_2',
@@ -788,9 +788,9 @@ class QuantumCircuit:
                         'z': 'Z',
                         'h': 'H',
                         's': 'S',
-                        'sinv': 'S^\\dagger',
+                        'sdg': 'S^\\dagger',
                         't': 'T',
-                        'tinv': 'T^\\dagger',
+                        'tdg': 'T^\\dagger',
                         'rx': 'R_x',
                         'ry': 'R_y',
                         'rz': 'R_z',
@@ -803,7 +803,7 @@ class QuantumCircuit:
                 element. The default values are::
 
                     {
-                        'i': '#F0E442',
+                        'id': '#F0E442',
                         'u0': '#E7AB3B',
                         'u1': '#E7AB3B',
                         'u2': '#E7AB3B',
@@ -813,9 +813,9 @@ class QuantumCircuit:
                         'z': '#58C698',
                         'h': '#70B7EB',
                         's': '#E0722D',
-                        'sinv': '#E0722D',
+                        'sdg': '#E0722D',
                         't': '#E0722D',
-                        'tinv': '#E0722D',
+                        'tdg': '#E0722D',
                         'rx': '#ffffff',
                         'ry': '#ffffff',
                         'rz': '#ffffff',

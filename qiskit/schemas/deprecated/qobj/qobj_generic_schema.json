@@ -26,7 +26,7 @@
             "title": "fixed 1Q op",
             "required": ["qubits"],
             "properties": {
-                "name": {"enum": ["reset", "i", "h", "s", "sinv", "t", "tinv", "x", "y", "z"]},
+                "name": {"enum": ["reset", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z"]},
                 "qubits": {"maxItems": 1},
                 "clbits": {"maxItems": 0},
                 "params": {"maxItems": 0},

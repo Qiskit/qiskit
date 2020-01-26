@@ -41,7 +41,7 @@ class FakeTenerife(FakeBackend):
             backend_name='fake_tenerife',
             backend_version='0.0.0',
             n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,
             local=True,
             conditional=False,

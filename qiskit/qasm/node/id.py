@@ -28,7 +28,7 @@ class Id(Node):
     def __init__(self, id, line, file):
         """Create the id node."""
         # pylint: disable=redefined-builtin
-        super().__init__("i", None, None)
+        super().__init__("id", None, None)
         self.name = id
         self.line = line
         self.file = file
@@ -39,7 +39,7 @@ class Id(Node):
     def to_string(self, indent):
         """Print the node with indent."""
         ind = indent * ' '
-        print(ind, 'i', self.name)
+        print(ind, 'id', self.name)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

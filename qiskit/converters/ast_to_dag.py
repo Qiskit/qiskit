@@ -34,9 +34,9 @@ from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SInvGate
+from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TInvGate
+from qiskit.extensions.standard.t import TdgGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -104,18 +104,15 @@ class AstInterpreter:
                           "y": YGate,
                           "z": ZGate,
                           "t": TGate,
-                          "tdg": TInvGate,
-                          "tinv": TInvGate,
+                          "tdg": TdgGate,
                           "s": SGate,
-                          "sdg": SInvGate,
-                          "sinv": SInvGate,
+                          "sdg": SdgGate,
                           "swap": SwapGate,
                           "rx": RXGate,
                           "rxx": RXXGate,
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
-                          "i": IGate,
                           "id": IGate,
                           "h": HGate,
                           "cx": CXGate,
@@ -164,7 +161,7 @@ class AstInterpreter:
         if node.type == "indexed_id":
             # An indexed bit or qubit
             return [reg[node.index]]
-        elif node.type == "i":
+        elif node.type == "id":
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
@@ -285,7 +282,7 @@ class AstInterpreter:
             creg = ClassicalRegister(node.index, node.name)
             self.dag.add_creg(creg)
 
-        elif node.type == "i":
+        elif node.type == "id":
             raise QiskitError("internal error: _process_node on i")
 
         elif node.type == "int":

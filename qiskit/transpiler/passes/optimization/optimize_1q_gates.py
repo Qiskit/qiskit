@@ -54,7 +54,7 @@ class Optimize1qGates(TransformationPass):
                 left_name = current_node.name
                 if (current_node.condition is not None
                         or len(current_node.qargs) != 1
-                        or left_name not in ["u1", "u2", "u3", "i"]):
+                        or left_name not in ["u1", "u2", "u3", "id"]):
                     raise TranspilerError("internal error")
                 if left_name == "u1":
                     left_parameters = (0, 0, current_node.op.params[0])

@@ -92,7 +92,7 @@ class QasmParser:
         # This insures the thing is from the bitlist and not from the
         # argument list.
         sym = self.current_symtab[obj.name]
-        if not (sym.type == 'i' and sym.is_bit):
+        if not (sym.type == 'id' and sym.is_bit):
             raise QasmError("Bit", obj.name,
                             'is not declared as a bit in the gate.')
 
@@ -196,7 +196,7 @@ class QasmParser:
 
     def id_tuple_list(self, id_node):
         """Return a list of (name, index) tuples for this id node."""
-        if id_node.type != "i":
+        if id_node.type != "id":
             raise QasmError("internal error, id_tuple_list")
         bit_list = []
         try:
@@ -226,7 +226,7 @@ class QasmParser:
         filename = ""
         for node_ in list_of_nodes:
             # id node: add all bits in register or (name, -1) for id
-            if node_.type == "i":
+            if node_.type == "id":
                 bit_list.extend(self.id_tuple_list(node_))
                 line_number = node_.line
                 filename = node_.file
@@ -238,7 +238,7 @@ class QasmParser:
             # primary_list: for each id or indexed_id child, add
             elif node_.type == "primary_list":
                 for child in node_.children:
-                    if child.type == "i":
+                    if child.type == "id":
                         bit_list.extend(self.id_tuple_list(child))
                     else:
                         bit_list.append((child.name, child.index))

@@ -46,9 +46,9 @@ Standard Extensions
    RZGate
    RZZGate
    SGate
-   SInvGate
+   SdgGate
    SwapGate
-   TInvGate
+   TdgGate
    U0Gate
    U1Gate
    U2Gate

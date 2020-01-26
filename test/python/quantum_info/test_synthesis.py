@@ -21,7 +21,7 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import (HGate, IGate, SInvGate, SGate, U3Gate,
+from qiskit.extensions.standard import (HGate, IGate, SdgGate, SGate, U3Gate,
                                         XGate, YGate, ZGate, CXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
@@ -41,7 +41,7 @@ def make_oneq_cliffords():
     ixyz_list = [g().to_matrix() for g in (IGate, XGate, YGate, ZGate)]
     ih_list = [g().to_matrix() for g in (IGate, HGate)]
     irs_list = [IGate().to_matrix(),
-                SInvGate().to_matrix() @ HGate().to_matrix(),
+                SdgGate().to_matrix() @ HGate().to_matrix(),
                 HGate().to_matrix() @ SGate().to_matrix()]
     oneq_cliffords = [Operator(ixyz @ ih @ irs) for ixyz in ixyz_list
                       for ih in ih_list

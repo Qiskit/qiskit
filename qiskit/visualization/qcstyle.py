@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'i': 'I',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -57,9 +57,9 @@ class DefaultStyle:
             'z': 'Z',
             'h': 'H',
             's': 'S',
-            'sinv': 'S^\\dagger',
+            'sdg': 'S^\\dagger',
             't': 'T',
-            'tinv': 'T^\\dagger',
+            'tdg': 'T^\\dagger',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
@@ -71,16 +71,16 @@ class DefaultStyle:
             'u1': basis_color,
             'u2': basis_color,
             'u3': basis_color,
-            'i': iden_color,
+            'id': iden_color,
             'x': pauli_color,
             'y': pauli_color,
             'z': pauli_color,
             'h': clifford_color,
             'cx': clifford_color,
             's': clifford_color,
-            'sinv': clifford_color,
+            'sdg': clifford_color,
             't': other_color,
-            'tinv': other_color,
+            'tdg': other_color,
             'r': other_color,
             'rx': other_color,
             'ry': other_color,
@@ -151,7 +151,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'i': 'I',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -161,9 +161,9 @@ class BWStyle:
             'z': 'Z',
             'h': 'H',
             's': 'S',
-            'sinv': 'S^\\dagger',
+            'sdg': 'S^\\dagger',
             't': 'T',
-            'tinv': 'T^\\dagger',
+            'tdg': 'T^\\dagger',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
@@ -171,7 +171,7 @@ class BWStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'i': '#ffffff',
+            'id': '#ffffff',
             'u0': '#ffffff',
             'u1': '#ffffff',
             'u2': '#ffffff',
@@ -182,9 +182,9 @@ class BWStyle:
             'h': '#ffffff',
             'cx': '#000000',
             's': '#ffffff',
-            'sinv': '#ffffff',
+            'sdg': '#ffffff',
             't': '#ffffff',
-            'tinv': '#ffffff',
+            'tdg': '#ffffff',
             'r': '#ffffff',
             'rx': '#ffffff',
             'ry': '#ffffff',

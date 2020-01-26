@@ -13,7 +13,6 @@ gate u1(lambda) q { U(0,0,lambda) q; }
 gate cx c,t { CX c,t; }
 // idle gate (identity)
 gate id a { U(0,0,0) a; }
-gate i a { id a; }
 // idle gate (identity) with length gamma*sqglen
 gate u0(gamma) q { U(0,0,0) q; }
 
@@ -31,12 +30,10 @@ gate h a { u2(0,pi) a; }
 gate s a { u1(pi/2) a; }
 // Clifford gate: conjugate of sqrt(Z)
 gate sdg a { u1(-pi/2) a; }
-gate sinv a { sdg a; }
 // C3 gate: sqrt(S) phase gate
 gate t a { u1(pi/4) a; }
 // C3 gate: conjugate of sqrt(S)
 gate tdg a { u1(-pi/4) a; }
-gate tinv a { tdg a; }
 
 // --- Standard rotations ---
 // Rotation around X-axis
@@ -51,12 +48,12 @@ gate rz(phi) a { u1(phi) a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
-gate cy a,b { sinv b; cx a,b; s b; }
+gate cy a,b { sdg b; cx a,b; s b; }
 // swap
 gate swap a,b { cx a,b; cx b,a; cx a,b; }
 // controlled-H
 gate ch a,b {
-h b; sinv b;
+h b; sdg b;
 cx a,b;
 h b; t b;
 cx a,b;
@@ -66,11 +63,11 @@ t b; h b; s b; x b; s a;
 gate ccx a,b,c
 {
   h c;
-  cx b,c; tinv c;
+  cx b,c; tdg c;
   cx a,c; t c;
-  cx b,c; tinv c;
+  cx b,c; tdg c;
   cx a,c; t b; t c; h c;
-  cx a,b; t a; tinv b;
+  cx a,b; t a; tdg b;
   cx a,b;
 }
 // cswap (Fredkin)

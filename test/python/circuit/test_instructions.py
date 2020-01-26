@@ -216,10 +216,10 @@ class TestInstructions(QiskitTestCase):
         gate = circ.to_instruction()
         circ = QuantumCircuit(q, name='circ')
         circ.inverse()
-        circ.tinv(q)
+        circ.tdg(q)
         circ.t(q)
         circ.s(q)
-        circ.sinv(q)
+        circ.sdg(q)
         gate_inverse = circ.to_instruction()
         self.assertEqual(gate.inverse().definition, gate_inverse.definition)
 

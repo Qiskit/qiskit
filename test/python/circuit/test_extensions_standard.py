@@ -376,13 +376,13 @@ class TestStandard1Q(QiskitTestCase):
     def test_iden(self):
         self.circuit.i(self.qr[1])
         op, _, _ = self.circuit[0]
-        self.assertEqual(op.name, 'i')
+        self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
     def test_iden_wires(self):
         self.circuit.i(1)
         op, _, _ = self.circuit[0]
-        self.assertEqual(op.name, 'i')
+        self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
     def test_iden_invalid(self):
@@ -396,13 +396,13 @@ class TestStandard1Q(QiskitTestCase):
     def test_iden_reg(self):
         instruction_set = self.circuit.i(self.qr)
         self.assertEqual(len(instruction_set.instructions), 3)
-        self.assertEqual(instruction_set.instructions[0].name, 'i')
+        self.assertEqual(instruction_set.instructions[0].name, 'id')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
 
     def test_iden_reg_inv(self):
         instruction_set = self.circuit.i(self.qr).inverse()
         self.assertEqual(len(instruction_set.instructions), 3)
-        self.assertEqual(instruction_set.instructions[0].name, 'i')
+        self.assertEqual(instruction_set.instructions[0].name, 'id')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
 
     def test_rx(self):
@@ -593,38 +593,38 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_s_reg_inv(self):
         instruction_set = self.circuit.s(self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'sinv')
+        self.assertEqual(instruction_set.instructions[0].name, 'sdg')
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_sinv(self):
-        self.circuit.sinv(self.qr[1])
+    def test_sdg(self):
+        self.circuit.sdg(self.qr[1])
         op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'sinv')
+        self.assertEqual(op.name, 'sdg')
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_sinv_wires(self):
-        self.circuit.sinv(1)
+    def test_sdg_wires(self):
+        self.circuit.sdg(1)
         op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'sinv')
+        self.assertEqual(op.name, 'sdg')
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_sinv_invalid(self):
+    def test_sdg_invalid(self):
         qc = self.circuit
-        self.assertRaises(CircuitError, qc.sinv, self.cr[0])
-        self.assertRaises(CircuitError, qc.sinv, self.cr)
-        self.assertRaises(CircuitError, qc.sinv, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.sinv, (self.qr, 'a'))
-        self.assertRaises(CircuitError, qc.sinv, .0)
+        self.assertRaises(CircuitError, qc.sdg, self.cr[0])
+        self.assertRaises(CircuitError, qc.sdg, self.cr)
+        self.assertRaises(CircuitError, qc.sdg, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.sdg, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.sdg, .0)
 
-    def test_sinv_reg(self):
-        instruction_set = self.circuit.sinv(self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'sinv')
+    def test_sdg_reg(self):
+        instruction_set = self.circuit.sdg(self.qr)
+        self.assertEqual(instruction_set.instructions[0].name, 'sdg')
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_sinv_reg_inv(self):
-        instruction_set = self.circuit.sinv(self.qr).inverse()
+    def test_sdg_reg_inv(self):
+        instruction_set = self.circuit.sdg(self.qr).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 's')
         self.assertEqual(instruction_set.instructions[2].params, [])
 
@@ -682,39 +682,39 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_t_reg_inv(self):
         instruction_set = self.circuit.t(self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'tinv')
+        self.assertEqual(instruction_set.instructions[0].name, 'tdg')
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_tinv(self):
-        self.circuit.tinv(self.qr[1])
+    def test_tdg(self):
+        self.circuit.tdg(self.qr[1])
         op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'tinv')
+        self.assertEqual(op.name, 'tdg')
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_tinv_wires(self):
-        self.circuit.tinv(1)
+    def test_tdg_wires(self):
+        self.circuit.tdg(1)
         op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'tinv')
+        self.assertEqual(op.name, 'tdg')
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_tinv_invalid(self):
+    def test_tdg_invalid(self):
         qc = self.circuit
-        self.assertRaises(CircuitError, qc.tinv, self.cr[0])
-        self.assertRaises(CircuitError, qc.tinv, self.cr)
-        self.assertRaises(CircuitError, qc.tinv, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.tinv, (self.qr, 'a'))
-        self.assertRaises(CircuitError, qc.tinv, .0)
+        self.assertRaises(CircuitError, qc.tdg, self.cr[0])
+        self.assertRaises(CircuitError, qc.tdg, self.cr)
+        self.assertRaises(CircuitError, qc.tdg, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.tdg, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.tdg, .0)
 
-    def test_tinv_reg(self):
-        instruction_set = self.circuit.tinv(self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'tinv')
+    def test_tdg_reg(self):
+        instruction_set = self.circuit.tdg(self.qr)
+        self.assertEqual(instruction_set.instructions[0].name, 'tdg')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
-    def test_tinv_reg_inv(self):
-        instruction_set = self.circuit.tinv(self.qr).inverse()
+    def test_tdg_reg_inv(self):
+        instruction_set = self.circuit.tdg(self.qr).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 't')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])

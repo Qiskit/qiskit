@@ -65,7 +65,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         stopped the block collection from working properly. This was because
         the pass didn't expect to have measures in the middle of the circuit.
 
-        blocks : [['cx', 'i', 'i', 'i'], ['i', 'cx']]
+        blocks : [['cx', 'id', 'id', 'id'], ['id', 'cx']]
 
                 ┌───┐┌───┐┌─┐     ┌───┐┌───┐
         q_0: |0>┤ X ├┤ I ├┤M├─────┤ I ├┤ X ├
@@ -89,7 +89,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
-        good_names = ['cx', 'u1', 'u2', 'u3', 'i']
+        good_names = ['cx', 'u1', 'u2', 'u3', 'id']
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different

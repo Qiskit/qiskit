@@ -68,7 +68,7 @@ class UnitarySimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'i', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -91,7 +91,7 @@ class UnitarySimulatorPy(BaseBackend):
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
-                'name': 'i',
+                'name': 'id',
                 'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
@@ -323,7 +323,7 @@ class UnitarySimulatorPy(BaseBackend):
                 qubit = operation.qubits[0]
                 gate = single_gate_matrix(operation.name, params)
                 self._add_unitary(gate, [qubit])
-            elif operation.name in ('i', 'u0'):
+            elif operation.name in ('id', 'u0'):
                 pass
             # Check if CX gate
             elif operation.name in ('CX', 'cx'):

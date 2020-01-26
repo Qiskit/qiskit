@@ -671,7 +671,7 @@ class TestDagLayers(QiskitTestCase):
         qr = QuantumRegister(1, 'q0')
 
         # the order the nodes should be in
-        truth = [('in', 'q0[0]', 1), ('op', 'x', 3), ('op', 'i', 4), ('out', 'q0[0]', 2)]
+        truth = [('in', 'q0[0]', 1), ('op', 'x', 3), ('op', 'id', 4), ('out', 'q0[0]', 2)]
 
         # this only occurred sometimes so has to be run more than once
         # (10 times seemed to always be enough for this bug to show at least once)

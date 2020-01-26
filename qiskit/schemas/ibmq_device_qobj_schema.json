@@ -9,7 +9,7 @@
                 { 
                     "properties": {
                         "name": {
-                            "enum": ["u3", "U", "i", "u1", "u0", "u2", "cx", "CX", "snapshot", "reset", "barrier", "bfunc", "copy", "measure"]
+                            "enum": ["u3", "U", "id", "u1", "u0", "u2", "cx", "CX", "snapshot", "reset", "barrier", "bfunc", "copy", "measure"]
                             }
                     }
                 }    

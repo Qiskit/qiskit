@@ -33,7 +33,7 @@ class FakeOpenPulse2Q(FakeBackend):
             backend_version='0.0.0',
             n_qubits=2,
             meas_levels=[0, 1, 2],
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,
             local=True,
             conditional=True,

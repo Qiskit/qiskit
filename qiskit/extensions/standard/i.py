@@ -40,7 +40,7 @@ class IGate(Gate, metaclass=IMeta):
 
     def __init__(self, label=None):
         """Create new Identity gate."""
-        super().__init__('i', 1, [], label=label)
+        super().__init__('id', 1, [], label=label)
 
     def inverse(self):
         """Invert this gate."""

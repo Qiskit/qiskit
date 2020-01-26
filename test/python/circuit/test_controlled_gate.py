@@ -201,7 +201,7 @@ class TestControlledGate(QiskitTestCase):
         qc_cu3.append(c_cu3, qr, [])
 
         job = execute([qcnu3, qu3, qcu3, qc_cu3], BasicAer.get_backend('unitary_simulator'),
-                      basis_gates=['u1', 'u2', 'u3', 'i', 'cx'])
+                      basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
         result = job.result()
 
         # Circuit unitaries
@@ -262,7 +262,7 @@ class TestControlledGate(QiskitTestCase):
         qc_cu1.append(c_cu1, qr, [])
 
         job = execute([qcnu1, qu1, qcu1, qc_cu1], BasicAer.get_backend('unitary_simulator'),
-                      basis_gates=['u1', 'u2', 'u3', 'i', 'cx'])
+                      basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
         result = job.result()
 
         # Circuit unitaries

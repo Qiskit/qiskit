@@ -44,19 +44,19 @@ class TestUnroller(QiskitTestCase):
         self.assertEqual(op_nodes[0].name, 'u2')
 
     def test_unroll_toffoli(self):
-        """Test unroll toffoli on multi regs to h, t, tinv, cx.
+        """Test unroll toffoli on multi regs to h, t, tdg, cx.
         """
         qr1 = QuantumRegister(2, 'qr1')
         qr2 = QuantumRegister(1, 'qr2')
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(['h', 't', 'tinv', 'cx'])
+        pass_ = Unroller(['h', 't', 'tdg', 'cx'])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            self.assertIn(node.name, ['h', 't', 'tinv', 'cx'])
+            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
 
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional.
@@ -65,7 +65,7 @@ class TestUnroller(QiskitTestCase):
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr)
-        circuit.tinv(qr)
+        circuit.tdg(qr)
         circuit.z(qr)
         circuit.t(qr)
         circuit.ry(0.5, qr)
@@ -131,10 +131,10 @@ class TestUnroller(QiskitTestCase):
         circuit.rz(0.3, qr[2])
         circuit.rzz(0.6, qr[1], qr[0])
         circuit.s(qr[0])
-        circuit.sinv(qr[1])
+        circuit.sdg(qr[1])
         circuit.swap(qr[1], qr[2])
         circuit.t(qr[2])
-        circuit.tinv(qr[0])
+        circuit.tdg(qr[0])
         circuit.u1(0.1, qr[1])
         circuit.u2(0.2, -0.1, qr[0])
         circuit.u3(0.3, 0.0, -0.1, qr[2])
@@ -144,7 +144,7 @@ class TestUnroller(QiskitTestCase):
         circuit.snapshot('0')
         circuit.measure(qr, cr)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(basis=['u3', 'cx', 'i'])
+        pass_ = Unroller(basis=['u3', 'cx', 'id'])
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)

@@ -26,11 +26,11 @@ def _apply_rccx(circ, qba, qbb, qbc):
     circ.u2(0, pi, qbc)  # h
     circ.u1(pi / 4, qbc)  # t
     circ.cx(qbb, qbc)
-    circ.u1(-pi / 4, qbc)  # tinv
+    circ.u1(-pi / 4, qbc)  # tdg
     circ.cx(qba, qbc)
     circ.u1(pi / 4, qbc)  # t
     circ.cx(qbb, qbc)
-    circ.u1(-pi / 4, qbc)  # tinv
+    circ.u1(-pi / 4, qbc)  # tdg
     circ.u2(0, pi, qbc)  # h
 
 
@@ -38,20 +38,20 @@ def _apply_rcccx(circ, qba, qbb, qbc, qbd):
     circ.u2(0, pi, qbd)  # h
     circ.u1(pi / 4, qbd)  # t
     circ.cx(qbc, qbd)
-    circ.u1(-pi / 4, qbd)  # tinv
+    circ.u1(-pi / 4, qbd)  # tdg
     circ.u2(0, pi, qbd)  # h
     circ.cx(qba, qbd)
     circ.u1(pi / 4, qbd)  # t
     circ.cx(qbb, qbd)
-    circ.u1(-pi / 4, qbd)  # tinv
+    circ.u1(-pi / 4, qbd)  # tdg
     circ.cx(qba, qbd)
     circ.u1(pi / 4, qbd)  # t
     circ.cx(qbb, qbd)
-    circ.u1(-pi / 4, qbd)  # tinv
+    circ.u1(-pi / 4, qbd)  # tdg
     circ.u2(0, pi, qbd)  # h
     circ.u1(pi / 4, qbd)  # t
     circ.cx(qbc, qbd)
-    circ.u1(-pi / 4, qbd)  # tinv
+    circ.u1(-pi / 4, qbd)  # tdg
     circ.u2(0, pi, qbd)  # h
 
 

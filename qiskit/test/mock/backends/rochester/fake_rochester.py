@@ -48,7 +48,7 @@ class FakeRochester(FakeBackend):
             backend_name='fake_rochester',
             backend_version='0.0.0',
             n_qubits=53,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,
             local=True,
             conditional=False,

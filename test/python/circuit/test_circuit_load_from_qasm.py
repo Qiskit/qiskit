@@ -58,8 +58,7 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.u3(0.2, 0.1, 0.6, 0)
         ref_circuit.u2(0.1, 0.6, 0)
         ref_circuit.u1(0.6, 0)
-        ref_circuit.i(0)
-        ref_circuit.i(0)
+        ref_circuit.id(0)
         ref_circuit.cx(0, 1)
         # the standard single qubit gates
         ref_circuit.x(0)
@@ -68,10 +67,8 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.h(0)
         ref_circuit.s(0)
         ref_circuit.t(0)
-        ref_circuit.sinv(0)  # called sdg in QASM, but this is a deprecated Gate so use sinv
-        ref_circuit.sinv(0)
-        ref_circuit.tinv(0)  # called tdg in QASM, but this is a deprecated Gate so use sinv
-        ref_circuit.tinv(0)
+        ref_circuit.sdg(0)
+        ref_circuit.tdg(0)
         # the standard rotations
         ref_circuit.rx(0.1, 0)
         ref_circuit.ry(0.1, 0)

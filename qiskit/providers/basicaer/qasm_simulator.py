@@ -69,7 +69,7 @@ class QasmSimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'i', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -92,7 +92,7 @@ class QasmSimulatorPy(BaseBackend):
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
-                'name': 'i',
+                'name': 'id',
                 'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
@@ -357,7 +357,7 @@ class QasmSimulatorPy(BaseBackend):
                 if measure_flag:
                     # If we find a non-measure instruction
                     # we cannot do measure sampling
-                    if instruction.name not in ["measure", "barrier", "i", "u0"]:
+                    if instruction.name not in ["measure", "barrier", "id", "u0"]:
                         self._sample_measure = False
                         return
                 elif instruction.name == "measure":
@@ -520,7 +520,7 @@ class QasmSimulatorPy(BaseBackend):
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
                 # Check if CX gate
-                elif operation.name in ('i', 'u0'):
+                elif operation.name in ('id', 'u0'):
                     pass
                 elif operation.name in ('CX', 'cx'):
                     qubit0 = operation.qubits[0]

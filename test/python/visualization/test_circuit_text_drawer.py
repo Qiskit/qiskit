@@ -1874,7 +1874,7 @@ class TestTextWithLayout(QiskitTestCase):
         coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8],
                         [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
-        qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'i'],
+        qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0)
         self.assertEqual(qc_result.draw(output='text', fold=86).single_string(), expected)
 

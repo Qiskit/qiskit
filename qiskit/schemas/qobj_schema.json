@@ -258,7 +258,7 @@
                 {
                     "properties": {
                         "name": {"not": {
-                            "enum": ["u3", "U", "i", "h", "s", "sinv", "t", "tinv", "x", "y", "z",
+                            "enum": ["u3", "U", "id", "h", "s", "sdg", "t", "tdg", "x", "y", "z",
                             "u1", "u0", "rx", "ry", "rz", "u2", "cx", "CX", "cy", "cz", "ch",
                             "swap", "cu1", "crz", "rzz", "cu3", "ccx", "cswap", "snapshot",
                             "reset", "barrier", "bfunc", "copy", "measure"]
@@ -310,12 +310,12 @@
                         "name": {
                             "enum": [
                                 "reset",
-                                "i",
+                                "id",
                                 "h",
                                 "s",
-                                "sinv",
+                                "sdg",
                                 "t",
-                                "tinv",
+                                "tdg",
                                 "x",
                                 "y",
                                 "z"
