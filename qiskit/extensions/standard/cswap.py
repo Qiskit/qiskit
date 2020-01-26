@@ -15,13 +15,13 @@
 """
 Fredkin gate. Controlled-SWAP.
 """
+import numpy
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
 from qiskit.extensions.standard.swap import SwapGate
-import numpy
 
 
 class FredkinGate(ControlledGate):
