@@ -59,7 +59,7 @@ class SwapGate(Gate):
 
 def swap(self, qubit1, qubit2):
     """Apply SWAP gate to a pair specified qubits (qubit1, qubit2).
-    The SWAP gate simply swaps the states of two qubits.
+    The SWAP gate canonically swaps the states of two qubits.
 
     Examples:
 

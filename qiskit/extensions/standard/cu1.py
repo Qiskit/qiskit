@@ -68,11 +68,10 @@ def cu1(self, theta, ctl, tgt):
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
-            import numpy
+            from qiskit.circuit import QuantumCircuit, Parameter
 
+            theta = Parameter('θ')
             circuit = QuantumCircuit(2)
-            theta = numpy.pi/2
             circuit.cu1(theta,0,1)
             circuit.draw()
     """

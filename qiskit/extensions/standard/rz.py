@@ -60,11 +60,10 @@ def rz(self, phi, q):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
-            import numpy
+            from qiskit.circuit import QuantumCircuit, Parameter
 
+            phi = Parameter('φ')
             circuit = QuantumCircuit(1)
-            phi = numpy.pi/2
             circuit.rz(phi,0)
             circuit.draw()
     """

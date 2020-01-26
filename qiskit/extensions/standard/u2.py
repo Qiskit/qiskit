@@ -69,12 +69,11 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
-            import numpy
+            from qiskit.circuit import QuantumCircuit, Parameter
 
+            theta = Parameter('θ')
+            phi = Parameter('φ')
             circuit = QuantumCircuit(1)
-            phi = 0
-            lam = numpy.pi
             circuit.u2(phi,lam,0)
             circuit.draw()
     """

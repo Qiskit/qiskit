@@ -61,11 +61,10 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
-            import numpy
+            from qiskit.circuit import QuantumCircuit, Parameter
 
+            theta = Parameter('θ')
             circuit = QuantumCircuit(1)
-            theta = numpy.pi/2
             circuit.u1(theta,0)
             circuit.draw()
     """

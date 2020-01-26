@@ -74,13 +74,12 @@ def cu3(self, theta, phi, lam, ctl, tgt):
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
-            import numpy
+            from qiskit.circuit import QuantumCircuit, Parameter
 
+            theta = Parameter('θ')
+            phi = Parameter('φ')
+            lam = Parameter('λ')
             circuit = QuantumCircuit(2)
-            theta = numpy.pi/2
-            phi = numpy.pi/2
-            lam = numpy.pi/2
             circuit.cu3(theta,phi,lam,0,1)
             circuit.draw()
     """

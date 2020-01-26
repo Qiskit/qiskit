@@ -95,7 +95,6 @@ def t(self, q):  # pylint: disable=invalid-name
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
-            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.t(0)
@@ -123,7 +122,6 @@ def tdg(self, q):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
-            import numpy
 
             circuit = QuantumCircuit(1)
             circuit.tdg(0)
