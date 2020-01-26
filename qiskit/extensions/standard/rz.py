@@ -15,6 +15,7 @@
 """
 Rotation around the z-axis.
 """
+import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -48,6 +49,12 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
+    def to_matrix(self):
+        """Return a Numpy.array for the RZ gate."""
+        phi = self.params[0]
+        phi = float(phi)
+        return numpy.array([[numpy.exp(-1j * phi/2), 0], [0, numpy.exp(1j * phi/2)]], dtype=complex)
+
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
     """Apply Rz gate with angle phi to a specified qubit (q).
@@ -66,6 +73,14 @@ def rz(self, phi, q):  # pylint: disable=invalid-name
             circuit = QuantumCircuit(1)
             circuit.rz(phi,0)
             circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.rz import RZGate
+            RZGate(numpy.pi/2).to_matrix()
     """
     return self.append(RZGate(phi), [q], [])
 

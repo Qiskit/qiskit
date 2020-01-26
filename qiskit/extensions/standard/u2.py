@@ -46,7 +46,7 @@ class U2Gate(Gate):
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
     def to_matrix(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
@@ -60,8 +60,7 @@ class U2Gate(Gate):
 
 def u2(self, phi, lam, q):  # pylint: disable=invalid-name
     """Apply U2 gate with angle phi and lam to a specified qubit (q).
-    A U2 gate implements a phi and lam radian rotation of the qubit state vector about the
-    x and z-axis, respectively of the Bloch sphere.
+    u2(φ,λ) := U(π/2,φ,λ) = Rz(φ + π/2)Rx(π/2)Rz(λ − π/2)
 
     Examples:
 
@@ -71,11 +70,19 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
 
             from qiskit.circuit import QuantumCircuit, Parameter
 
-            theta = Parameter('θ')
             phi = Parameter('φ')
+            lam = Parameter('λ')
             circuit = QuantumCircuit(1)
             circuit.u2(phi,lam,0)
             circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.u2 import U2Gate
+            U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
     """
     return self.append(U2Gate(phi, lam), [q], [])
 

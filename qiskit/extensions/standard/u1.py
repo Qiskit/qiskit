@@ -44,7 +44,7 @@ class U1Gate(Gate):
         return U1Gate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a Numpy.array for the U1 gate."""
         lam = self.params[0]
         lam = float(lam)
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
@@ -52,8 +52,7 @@ class U1Gate(Gate):
 
 def u1(self, theta, q):  # pylint: disable=invalid-name
     """Apply U1 gate with angle theta to a specified qubit (q).
-    A U1 gate implements a theta radian rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
+    u1(λ) := diag(1, eiλ) ∼ U(0, 0, λ) = Rz(λ) where ~ is equivalence up to a global phase.
 
     Examples:
 
@@ -67,6 +66,14 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
             circuit = QuantumCircuit(1)
             circuit.u1(theta,0)
             circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.u1 import U1Gate
+            U1Gate(numpy.pi/2).to_matrix()
     """
     return self.append(U1Gate(theta), [q], [])
 
