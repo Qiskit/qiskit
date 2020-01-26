@@ -25,8 +25,8 @@ directly from the graph.
 from collections import OrderedDict
 import copy
 import itertools
-import networkx as nx
 import warnings
+import networkx as nx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -994,6 +994,7 @@ class DAGCircuit:
         return three_q_gates
 
     def longest_path(self):
+        """Returns the longest path in the dag as a list of DAGNodes."""
         warnings.warn('The longest_path property of the DAG is '
                       'deprecated as of the 0.11.2 release and '
                       'will be removed no earlier than 3 months '
@@ -1003,7 +1004,7 @@ class DAGCircuit:
         return self.deepest_path()
 
     def deepest_path(self):
-        """Returns the longest path in the dag as a list of DAGNodes."""
+        """Returns the deepest path in the dag as a list of DAGNodes."""
         # Note: naming for a dagcircuit is the following
         #       deepest path: path with largest number of operations, no notion of time
         #       longest path: path which takes longest to execute, needs notion of time
@@ -1303,6 +1304,10 @@ class DAGCircuit:
         return op_dict
 
     def count_ops_longest_path(self):
+        """Count the occurrences of operation names on the longest path.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
         warnings.warn('The count_ops_longest_path property of the DAG is '
                       'deprecated as of the 0.11.2 release and '
                       'will be removed no earlier than 3 months '
