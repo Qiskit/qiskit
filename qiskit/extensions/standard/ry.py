@@ -81,6 +81,7 @@ def ry(self, theta, q):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
+            import numpy
             from qiskit.extensions.standard.ry import RYGate
             RYGate(numpy.pi/2).to_matrix()
     """
