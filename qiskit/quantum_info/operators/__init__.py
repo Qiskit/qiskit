@@ -18,3 +18,4 @@ from .operator import Operator
 from .pauli import Pauli, pauli_group
 from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .quaternion import Quaternion
+from .measures import process_fidelity, average_gate_fidelity, gate_error
