@@ -85,8 +85,8 @@ class TdgGate(Gate):
 
 def t(self, q):  # pylint: disable=invalid-name
     """Apply T gate to a specified qubit (q).
-    A T-gate implements a pi/4 rotation of a qubit state vector about the
-    z-axis of the Bloch sphere.
+    A T gate implements a pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere.
 
     Examples:
 
@@ -113,8 +113,8 @@ def t(self, q):  # pylint: disable=invalid-name
 
 def tdg(self, q):
     """Apply Tdg gate to a specified qubit (q).
-    A Tdg-gate implements a -pi/4 rotation of a qubit state vector about the
-    z-axis of the Bloch sphere. It is the inverse of T-gate.
+    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of T-gate.
 
     Examples:
 

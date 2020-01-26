@@ -65,8 +65,8 @@ class Cu3Gate(ControlledGate):
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cU3 gate from a specified control (ctl) to target (tgt) qubit
     with angle theta, phi, and lam.
-    A cU3-gate implements a theta, phi, and lam radian rotation of the qubit state vector about the
-    x, y, and z-axis, respectively of the Bloch sphere when the control qubit is in state |1>.
+    A cU3 gate implements a theta, phi, and lam radian rotation of the qubit state vector about the
+    x, y, and z axis, respectively of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 

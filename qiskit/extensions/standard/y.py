@@ -52,9 +52,10 @@ class YGate(Gate):
 
 def y(self, q):
     """Apply Y gate to a specified qubit (q).
-    A Y-gate implements a pi rotation of the qubit state vector about the
-    y-axis of the Bloch sphere.
-    This gate is canonically used to rotate the qubit state from |0⟩ to i|1⟩, or vice versa.
+    A Y gate implements a pi rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0>.
 
     Examples:
 

@@ -62,7 +62,7 @@ def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit
+            from qiskit import QuantumCircuit, Parameter
             import numpy
 
             circuit = QuantumCircuit(1)

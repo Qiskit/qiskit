@@ -52,8 +52,8 @@ class U1Gate(Gate):
 
 def u1(self, theta, q):  # pylint: disable=invalid-name
     """Apply U1 gate with angle theta to a specified qubit (q).
-    A U1-gate implements a theta radian rotation of the qubit state vector about the
-    z-axis of the Bloch sphere.
+    A U1 gate implements a theta radian rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
 
     Examples:
 

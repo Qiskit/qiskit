@@ -61,8 +61,8 @@ class RYGate(Gate):
 
 def ry(self, theta, q):  # pylint: disable=invalid-name
     """Apply Ry gate with angle theta to a specified qubit (q).
-    An Ry-gate implements a theta radian rotation of the qubit state vector about the
-    y-axis of the Bloch sphere.
+    An Ry gate implements a theta radian rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
 
     Examples:
 

@@ -59,7 +59,7 @@ class Cu1Gate(ControlledGate):
 
 def cu1(self, theta, ctl, tgt):
     """Apply cU1 gate from a specified control (ctl) to target (tgt) qubit with angle theta.
-    A cU1-gate implements a theta radian rotation of the qubit state vector about the z-axis
+    A cU1 gate implements a theta radian rotation of the qubit state vector about the z axis
     of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:

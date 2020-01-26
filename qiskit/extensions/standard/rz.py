@@ -51,8 +51,8 @@ class RZGate(Gate):
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
     """Apply Rz gate with angle phi to a specified qubit (q).
-    An Rz-gate implemements a phi radian rotation of the qubit state vector about the
-    z-axis of the Bloch sphere.
+    An Rz gate implemements a phi radian rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
 
     Examples:
 

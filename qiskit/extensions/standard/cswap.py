@@ -71,7 +71,7 @@ class FredkinGate(ControlledGate):
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin (CSWAP) gate from a specified control (ctl) to target1 (tgt1)
     and target2 (tgt2) qubits.
-    The CSWAP gate swaps the qubit states of target1 and target2 when the control qubit
+    The CSWAP gate is canonically used to swap the qubit states of target1 and target2 when the control qubit
     is in state |1>.
 
     Examples:

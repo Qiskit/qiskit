@@ -58,7 +58,7 @@ class CrzGate(ControlledGate):
 
 def crz(self, theta, ctl, tgt):
     """Apply cRz gate from a specified control (ctl) to target (tgt) qubit with angle theta.
-    A cRz-gate implements a phi radian rotation of the qubit state vector about the z-axis
+    A cRz gate implements a phi radian rotation of the qubit state vector about the z axis
     of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:

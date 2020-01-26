@@ -55,8 +55,10 @@ class CyGate(ControlledGate):
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply cY gate from a specified control (ctl) to target (tgt) qubit.
-    A cY-gate implements a pi rotation of the qubit state vector about the y-axis
+    A cY gate implements a pi rotation of the qubit state vector about the y axis
     of the Bloch sphere when the control qubit is in state |1>.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0> when the control qubit is in state |1>.
 
     Examples:
 

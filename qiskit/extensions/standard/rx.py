@@ -60,8 +60,8 @@ class RXGate(Gate):
 
 def rx(self, theta, q):  # pylint: disable=invalid-name
     """Apply Rx gate with angle theta to a specified qubit (q).
-    An Rx-gate implements a theta radian rotation of the qubit state vector about the
-    x-axis of the Bloch sphere.
+    An Rx gate implements a theta radian rotation of the qubit state vector about the
+    x axis of the Bloch sphere.
 
     Examples:
 

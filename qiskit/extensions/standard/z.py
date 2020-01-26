@@ -52,9 +52,10 @@ class ZGate(Gate):
 
 def z(self, q):
     """Apply Z gate to a specified qubit (q).
-    A Z-gate implements a pi rotation of the qubit state vector about the
-    z-axis of the Bloch sphere.
-    This gate is canonically used to rotate the qubit state from |+⟩ to |-⟩, or vice versa.
+    A Z gate implements a pi rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
+    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
+    or vice versa.
 
     Examples:
 

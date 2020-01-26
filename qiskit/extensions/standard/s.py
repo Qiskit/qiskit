@@ -85,8 +85,8 @@ class SdgGate(Gate):
 
 def s(self, q):  # pylint: disable=invalid-name
     """Apply S gate to a specified qubit (q).
-    An S-gate implements a pi/2 rotation of the qubit state vector about the
-    z-axis of the Bloch sphere.
+    An S gate implements a pi/2 rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
 
     Examples:
 
@@ -113,8 +113,8 @@ def s(self, q):  # pylint: disable=invalid-name
 
 def sdg(self, q):
     """Apply Sdg gate to a specified qubit (q).
-    An Sdg-gate implements a -pi/2 rotation of the qubit state vector about the
-    z-axis of the Bloch sphere. It is the inverse of S gate.
+    An Sdg gate implements a -pi/2 rotation of the qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of S gate.
 
     Examples:
 
