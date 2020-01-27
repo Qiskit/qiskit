@@ -212,6 +212,23 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+
+    def test_measure_all_copy(self):
+        """Test measure_all with inplace=False
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr)
+        new_circuit = circuit.measure_all(inplace=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, new_circuit)
+        self.assertFalse('measure' in circuit.count_ops().keys())
+
     def test_measure_all_repetition(self):
         """Test measure_all in a circuit with a 'measure' creg.
         measure_all should be aware that the creg 'measure' might exists.

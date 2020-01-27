@@ -1118,14 +1118,31 @@ class QuantumCircuit:
         self.barrier()
         self.measure(qubits_to_measure, new_creg)
 
-    def measure_all(self):
+    def measure_all(self, inplace=True):
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
+
+        Returns a new circuit with measurements if `inplace=False`.
+
+        Parameters:
+            inplace (bool): All measurements inplace or return new circuit.
+
+        Returns:
+            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
         """
-        new_creg = self._create_creg(len(self.qubits), 'measure')
-        self.add_register(new_creg)
-        self.barrier()
-        self.measure(self.qubits, new_creg)
+        if inplace:
+            circ = self
+        else:
+            circ = self.copy()
+
+        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        circ.add_register(new_creg)
+        circ.barrier()
+        circ.measure(circ.qubits, new_creg)
+
+        # pylint: disable=inconsistent-return-statements
+        if not inplace:
+            return circ
 
     def remove_final_measurements(self):
         """Removes final measurement on all qubits if they are present.
