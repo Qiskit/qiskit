@@ -149,7 +149,13 @@ class SamplePulse(PulseCommand):
         return hash((super().__hash__(), self.samples.tostring()))
 
     def __repr__(self):
-        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+        opt = np.get_printoptions()
+        np.set_printoptions(threshold=50)
+        repr_str = '%s(samples=%s, name="%s")' % (self.__class__.__name__,
+                                                  repr(self.samples),
+                                                  self.name)
+        np.set_printoptions(**opt)
+        return repr_str
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel,
