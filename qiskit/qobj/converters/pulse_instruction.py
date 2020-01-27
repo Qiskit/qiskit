@@ -192,6 +192,8 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+                      "instead.", DeprecationWarning)
         command_dict = {
             'name': 'pv',
             't0': shift + instruction.start_time,
