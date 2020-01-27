@@ -16,7 +16,7 @@
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot)
-from qiskit.scheduler.utils import measure, measure_all
+from qiskit.scheduler.utils import measure, measure_all, format_meas_map
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
@@ -54,7 +54,14 @@ class TestUtils(QiskitTestCase):
                     inst_map=self.backend.defaults().circuit_instruction_map)
 
     def test_measure_all(self):
-        """Test measure_all function"""
+        """Test measure_all function."""
         sched = measure_all(self.backend)
         expected = Schedule(self.cmd_def.get('measure', [0, 1]))
         self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_format_meas_map(self):
+        """Test format_meas_map function."""
+        meas_map = [[0, 1]]
+        actual = format_meas_map(meas_map)
+        expected = {0: [0, 1], 1: [0, 1]}
+        self.assertEqual(actual, expected)
