@@ -20,4 +20,4 @@ import warnings
 from qiskit.extensions.standard.z import CzGate, cz
 
 warnings.warn('This module is deprecated. The CzGate can now be found in z.py',
-              category=DeprecationWarning, stacklevel=3)
+              category=DeprecationWarning, stacklevel=2)

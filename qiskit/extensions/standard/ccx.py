@@ -21,4 +21,4 @@ import warnings
 from qiskit.extensions.standard.x import ToffoliGate, ccx
 
 warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py',
-              category=DeprecationWarning, stacklevel=3)
+              category=DeprecationWarning, stacklevel=2)

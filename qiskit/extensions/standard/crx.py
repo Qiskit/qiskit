@@ -20,4 +20,4 @@ import warnings
 from qiskit.extensions.standard.rx import CrxGate, crx
 
 warnings.warn('This module is deprecated. The CrxGate can now be found in rx.py',
-              category=DeprecationWarning, stacklevel=3)
+              category=DeprecationWarning, stacklevel=2)

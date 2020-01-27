@@ -20,4 +20,4 @@ import warnings
 from qiskit.extensions.standard.ry import CryGate, cry
 
 warnings.warn('This module is deprecated. The CryGate can now be found in ry.py',
-              category=DeprecationWarning, stacklevel=3)
+              category=DeprecationWarning, stacklevel=2)
