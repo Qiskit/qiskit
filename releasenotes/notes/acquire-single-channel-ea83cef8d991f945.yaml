@@ -13,10 +13,6 @@ features:
       schedule.insert(60, acquire(AcquireChannel(0), MemorySlot(0), RegisterSlot(0)))
       schedule.insert(60, acquire(AcquireChannel(1), MemorySlot(1), RegisterSlot(1)))
 
-issues:
-  - |
-    Acquire command should only apply to a single qubit. See
-    `#2262 <https://github.com/Qiskit/qiskit-terra/issues/2262>`.
 deprecations:
   - |
     Acquire on multiple qubits has been deprecated.
