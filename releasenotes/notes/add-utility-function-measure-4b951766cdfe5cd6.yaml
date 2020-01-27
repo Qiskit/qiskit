@@ -7,8 +7,6 @@ features:
         from qiskit.scheduler.utils import measure, measure_all
         from qiskit.pulse import Schedule
 
-        sched = Schedule(name="measure_q0_schedule")
-        sched += measure(qubits=[0], backend=backend)
-        schedule1 = Schedule(name="measure_all_schedule")
-        schedule1 += measure_all(backend)
+        measure_q0_schedule = measure(qubits=[0], backend=backend)
+        measure_all_schedule = measure_all(backend)
 
