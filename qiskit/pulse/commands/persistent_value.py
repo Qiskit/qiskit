@@ -67,7 +67,9 @@ class PersistentValue(Command):
         return hash((super().__hash__(), self.value))
 
     def __repr__(self):
-        return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
+        return '%s(value=%s, name="%s")' % (self.__class__.__name__,
+                                            self.value,
+                                            self.name)
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel, name=None) -> 'PersistentValueInstruction':
