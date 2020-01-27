@@ -263,4 +263,6 @@ class Instruction(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        return "Instruction(%s, %s)" % (self._command, ', '.join(str(ch) for ch in self.channels))
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self._command,
+                               ', '.join(str(ch) for ch in self.channels))
