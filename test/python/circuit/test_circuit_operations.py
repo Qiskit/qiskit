@@ -212,7 +212,6 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
-
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False
         """
