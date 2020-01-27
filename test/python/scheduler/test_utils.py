@@ -16,7 +16,7 @@
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot)
-from qiskit.scheduler.utils import measure, measure_all, format_meas_map
+from qiskit.scheduler.utils import measure, measure_all
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
@@ -31,18 +31,25 @@ class TestUtils(QiskitTestCase):
 
     def test_measure(self):
         """Test utility function - measure."""
-        sched = Schedule()
-        sched += measure(qubits=[0],
-                         backend=self.backend,
-                         qubit_mem_slots={0: 1})
+        sched_with_qubit_mem_slots = measure(qubits=[0],
+                                             backend=self.backend,
+                                             qubit_mem_slots={0: 1})
+        sched_without_qubit_mem_slots = measure(qubits=[0],
+                                                backend=self.backend)
+        sched_with_meas_map_list = measure(qubits=[0],
+                                           backend=self.backend,
+                                           meas_map=[[0, 1]])
+        sched_with_meas_map_dict = measure(qubits=[0],
+                                           backend=self.backend,
+                                           meas_map={0: [0, 1], 1: [0, 1]})
         expected = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
                                  [MemorySlot(0), MemorySlot(1)]))
-        self.assertEqual(sched.instructions, expected.instructions)
-        sched = measure(qubits=[0],
-                        backend=self.backend)
-        self.assertEqual(sched.instructions, expected.instructions)
+        self.assertEqual(sched_with_qubit_mem_slots.instructions, expected.instructions)
+        self.assertEqual(sched_without_qubit_mem_slots.instructions, expected.instructions)
+        self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
+        self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
     def test_fail_measure(self):
         """Test failing measure."""
@@ -58,10 +65,3 @@ class TestUtils(QiskitTestCase):
         sched = measure_all(self.backend)
         expected = Schedule(self.cmd_def.get('measure', [0, 1]))
         self.assertEqual(sched.instructions, expected.instructions)
-
-    def test_format_meas_map(self):
-        """Test format_meas_map function."""
-        meas_map = [[0, 1]]
-        actual = format_meas_map(meas_map)
-        expected = {0: [0, 1], 1: [0, 1]}
-        self.assertEqual(actual, expected)
