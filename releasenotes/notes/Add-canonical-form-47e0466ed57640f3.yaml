@@ -15,12 +15,17 @@ features:
     The ''qiskit.converters.circuit_to_dagcanonical'' introduces a converter
     from a QuantumCircuit() object to a DAGcanonical() object.
     The ''qiskit.converters.dagconical_to_ciruit'' introduces a converter
-    from a DAGcanonical() object to aQuantumCircuit() object.
+    from a DAGcanonical() object to a QuantumCircuit() object.
+    The ''qiskit.converters.dag_to_dagcanonical'' introduces a converter
+    from a DAGCircuit() object to a DAGcanonical() object.
+    The ''qiskit.converters.dagconical_to_ciruit'' introduces a converter
+    from a DAGcanonical() object to a DAGCircuit() object.
+
     For exmaple:
     
     from qiskit.converters.dagcanonical_to_circuit import dagcanonical_to_circuit
     from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-    
+
     circuit_in = QuantumCircuit(2)
     circuit_in.h(qr[0])
     circuit_in.h(qr[1])
