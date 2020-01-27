@@ -69,3 +69,26 @@ def state_fidelity(state1, state2, validate=True):
         fid = np.linalg.norm(s1sq.dot(s2sq), ord='nuc')**2
     # Convert to py float rather than return np.float
     return float(np.real(fid))
+
+
+def purity(state, validate=True):
+    r"""Calculate the purity of a quantum state.
+
+    The purity of a density matrix :math:`\rho` is
+
+    ..code:
+
+        \text{Purity}(\rho) = \Tr[\rho^2]
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        validate (bool): check if input state is valid [Default: True]
+
+    Returns:
+        float: the purity :math:`\Tr[\rho^2]`.
+
+    Raises:
+        QiskitError: if the input isn't a valid quantum state.
+    """
+    state = _format_state(state, validate=validate)
+    return state.purity()
