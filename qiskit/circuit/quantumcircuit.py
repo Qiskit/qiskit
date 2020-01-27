@@ -1118,6 +1118,7 @@ class QuantumCircuit:
         self.barrier()
         self.measure(qubits_to_measure, new_creg)
 
+    # pylint: disable=inconsistent-return-statements
     def measure_all(self, inplace=True):
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
@@ -1140,7 +1141,6 @@ class QuantumCircuit:
         circ.barrier()
         circ.measure(circ.qubits, new_creg)
 
-        # pylint: disable=inconsistent-return-statements
         if not inplace:
             return circ
 
