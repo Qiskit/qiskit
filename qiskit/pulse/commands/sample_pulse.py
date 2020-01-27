@@ -24,13 +24,11 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
-from .command import Command
+from .pulse_command import PulseCommand
 
 
-class SamplePulse(Command):
+class SamplePulse(PulseCommand):
     """Container for functional pulse."""
-
-    prefix = 'p'
 
     def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
                  epsilon: float = 1e-7):
