@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.y import CyGate, cy
 
-warnings.warn('This module is deprecated. The CyGate can now be found in y.py')
+warnings.warn('This module is deprecated. The CyGate can now be found in y.py',
+              category=DeprecationWarning, stacklevel=3)

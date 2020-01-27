@@ -20,4 +20,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.x import ToffoliGate, ccx
 
-warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py')
+warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py',
+              category=DeprecationWarning, stacklevel=3)

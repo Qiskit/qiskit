@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.rx import CrxGate, crx
 
-warnings.warn('This module is deprecated. The CrxGate can now be found in rx.py')
+warnings.warn('This module is deprecated. The CrxGate can now be found in rx.py',
+              category=DeprecationWarning, stacklevel=3)

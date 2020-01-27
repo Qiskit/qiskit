@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.rz import CrzGate, crz
 
-warnings.warn('This module is deprecated. The CrzGate can now be found in rz.py')
+warnings.warn('This module is deprecated. The CrzGate can now be found in rz.py',
+              category=DeprecationWarning, stacklevel=3)

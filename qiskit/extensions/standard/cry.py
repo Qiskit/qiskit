@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.ry import CryGate, cry
 
-warnings.warn('This module is deprecated. The CryGate can now be found in ry.py')
+warnings.warn('This module is deprecated. The CryGate can now be found in ry.py',
+              category=DeprecationWarning, stacklevel=3)

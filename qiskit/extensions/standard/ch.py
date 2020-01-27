@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.h import HGate, ch
 
-warnings.warn('This module is deprecated. The CHGate can now be found in h.py')
+warnings.warn('This module is deprecated. The CHGate can now be found in h.py',
+              category=DeprecationWarning, stacklevel=3)

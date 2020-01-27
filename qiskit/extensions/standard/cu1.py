@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.u1 import Cu1Gate, cu1
 
-warnings.warn('This module is deprecated. The Cu1Gate can now be found in u1.py')
+warnings.warn('This module is deprecated. The Cu1Gate can now be found in u1.py',
+              category=DeprecationWarning, stacklevel=3)

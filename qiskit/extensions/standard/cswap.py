@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.swap import FredkinGate, cswap
 
-warnings.warn('This module is deprecated. The FredkinGate can now be found in swap.py')
+warnings.warn('This module is deprecated. The FredkinGate can now be found in swap.py',
+              category=DeprecationWarning, stacklevel=3)

@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.u3 import Cu3Gate, cu3
 
-warnings.warn('This module is deprecated. The Cu3Gate can now be found in u3.py')
+warnings.warn('This module is deprecated. The Cu3Gate can now be found in u3.py',
+              category=DeprecationWarning, stacklevel=3)

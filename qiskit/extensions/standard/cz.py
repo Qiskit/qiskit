@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.z import CzGate, cz
 
-warnings.warn('This module is deprecated. The CzGate can now be found in z.py')
+warnings.warn('This module is deprecated. The CzGate can now be found in z.py',
+              category=DeprecationWarning, stacklevel=3)

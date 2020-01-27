@@ -19,4 +19,5 @@ import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.standard.x import CnotGate, cx
 
-warnings.warn('This module is deprecated. The CnotGate can now be found in x.py')
+warnings.warn('This module is deprecated. The CnotGate can now be found in x.py',
+              category=DeprecationWarning, stacklevel=3)
