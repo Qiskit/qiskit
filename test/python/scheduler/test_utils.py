@@ -31,6 +31,7 @@ class TestUtils(QiskitTestCase):
 
     def test_measure(self):
         """Test utility function - measure."""
+        acquire = Acquire(duration=10)
         sched_with_qubit_mem_slots = measure(qubits=[0],
                                              backend=self.backend,
                                              qubit_mem_slots={0: 1})
@@ -42,14 +43,18 @@ class TestUtils(QiskitTestCase):
         sched_with_meas_map_dict = measure(qubits=[0],
                                            backend=self.backend,
                                            meas_map={0: [0, 1], 1: [0, 1]})
-        expected = Schedule(
+        expected1 = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
-                                 [MemorySlot(0), MemorySlot(1)]))
-        self.assertEqual(sched_with_qubit_mem_slots.instructions, expected.instructions)
-        self.assertEqual(sched_without_qubit_mem_slots.instructions, expected.instructions)
-        self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
-        self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
+            acquire(AcquireChannel(0), MemorySlot(1)),
+            acquire(AcquireChannel(1), MemorySlot(0)))
+        expected2 = Schedule(
+            self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
+            acquire(AcquireChannel(0), MemorySlot(0)),
+            acquire(AcquireChannel(1), MemorySlot(1)))
+        self.assertEqual(sched_with_qubit_mem_slots.instructions, expected1.instructions)
+        self.assertEqual(sched_without_qubit_mem_slots.instructions, expected2.instructions)
+        self.assertEqual(sched_with_meas_map_list.instructions, expected2.instructions)
+        self.assertEqual(sched_with_meas_map_dict.instructions, expected2.instructions)
 
     def test_fail_measure(self):
         """Test failing measure."""
