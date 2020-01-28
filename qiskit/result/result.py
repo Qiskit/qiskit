@@ -166,7 +166,7 @@ class Result(BaseModel):
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of
-                dictionaries. A dictionary has the counts for each qubit, with
+                dictionaries. A dictionary has the counts for each qubit with
                 the keys containing a string in binary format and separated
                 according to the registers in circuit (e.g. ``0100 1110``).
                 The string is little-endian (cr[0] on the right hand side).
@@ -193,7 +193,7 @@ class Result(BaseModel):
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
                 dict_list.append(state_to_counts(vec))
             else:
-                raise QiskitError(('No counts for experiment '+'"{'+str(key)+'}"').format(key))
+                raise QiskitError('No counts for experiment "{0}"'.format(key))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
