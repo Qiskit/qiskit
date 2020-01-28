@@ -15,6 +15,8 @@
 """
 Persistent value.
 """
+import warnings
+
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
@@ -42,6 +44,9 @@ class PersistentValue(Command):
 
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
+
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+                      "instead.", DeprecationWarning)
 
         self._value = complex(value)
         self._name = PersistentValue.create_name(name)
