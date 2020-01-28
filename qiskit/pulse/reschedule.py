@@ -140,12 +140,14 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
         Schedule
     """
     new_schedule = Schedule(name=schedule.name)
+    acquire_map = dict()
 
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
+
             cmd = Acquire(inst.duration, inst.command.discriminator, inst.command.kernel)
             # Get the label of all qubits that are measured with the qubit(s) in this instruction
             existing_qubits = {chan.index for chan in inst.acquires}
@@ -155,10 +157,14 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
                     all_qubits.extend(sublist)
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
-            new_schedule |= AcquireInstruction(
-                cmd,
-                [AcquireChannel(i) for i in all_qubits],
-                [MemorySlot(i) for i in all_qubits]) << time
+            for i in all_qubits:
+                explicit_inst = AcquireInstruction(cmd, AcquireChannel(i), MemorySlot(i)) << time
+                if time not in acquire_map:
+                    new_schedule |= explicit_inst
+                    acquire_map = {time: {i}}
+                elif i not in acquire_map[time]:
+                    new_schedule |= explicit_inst
+                    acquire_map[time].add(i)
         else:
             new_schedule |= inst << time
 
