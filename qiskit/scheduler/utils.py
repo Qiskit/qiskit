@@ -93,7 +93,7 @@ def measure(qubits: List[int],
                     else:
                         mem_slot = MemorySlot(unused_mem_slots.pop())
                 schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
-                                                                    acquire=channel,
+                                                                    acquire=inst.acquires,
                                                                     mem_slot=mem_slot))
             elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
                 schedule = schedule.insert(time, inst)
