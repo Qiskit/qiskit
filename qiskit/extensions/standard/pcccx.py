@@ -11,14 +11,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-The 3-control relative-phase Toffoli gate.
-"""
+"""The 3-control relative-phase Toffoli gate."""
 
 from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.cx import CXGate
+from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.qasm import pi
 
@@ -61,19 +59,19 @@ class PCCCXGate(ControlledGate):
         rule = [
             (U2Gate(0, pi), [q[3]], []),  # H gate
             (U1Gate(pi / 4), [q[3]], []),  # T gate
-            (CXGate(), [q[2], q[3]], []),
+            (CnotGate(), [q[2], q[3]], []),
             (U1Gate(-pi / 4), [q[3]], []),  # inverse T gate
-            (CXGate(), [q[0], q[3]], []),
+            (CnotGate(), [q[0], q[3]], []),
             (U1Gate(pi / 4), [q[3]], []),
-            (CXGate(), [q[1], q[3]], []),
+            (CnotGate(), [q[1], q[3]], []),
             (U1Gate(-pi / 4), [q[3]], []),
-            (CXGate(), [q[0], q[3]], []),
+            (CnotGate(), [q[0], q[3]], []),
             (U1Gate(pi / 4), [q[3]], []),
-            (CXGate(), [q[1], q[3]], []),
+            (CnotGate(), [q[1], q[3]], []),
             (U1Gate(-pi / 4), [q[3]], []),
             (U2Gate(0, pi), [q[3]], []),
             (U1Gate(pi / 4), [q[3]], []),
-            (CXGate(), [q[2], q[3]], []),
+            (CnotGate(), [q[2], q[3]], []),
             (U1Gate(-pi / 4), [q[3]], []),
             (U2Gate(0, pi), [q[3]], []),
         ]
@@ -83,8 +81,7 @@ class PCCCXGate(ControlledGate):
 
 
 def pcccx(self, ctl1, ctl2, ctl3, tgt):
-    """
-    Apply 3-Control Relative-Phase Toffoli gate.
+    """Apply 3-Control Relative-Phase Toffoli gate.
 
     The implementation is based on https://arxiv.org/pdf/1508.03273.pdf Figure 4.
     """
