@@ -157,16 +157,15 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
             default_sched = inst_map.get('measure', qubits)
             for time, inst in default_sched.instructions:
                 if isinstance(inst, AcquireInstruction):
-                    mem_slots = []
                     for channel in inst.acquires:
                         if channel.index in qubit_mem_slots.keys():
-                            mem_slots.append(MemorySlot(qubit_mem_slots[channel.index]))
+                            mem_slot = MemorySlot(qubit_mem_slots[channel.index])
                         else:
-                            mem_slots.append(MemorySlot(unused_mem_slots.pop()))
-                    new_acquire = AcquireInstruction(command=inst.command,
-                                                     acquires=inst.acquires,
-                                                     mem_slots=mem_slots)
-                    sched._union((time, new_acquire))
+                            mem_slot = MemorySlot(unused_mem_slots.pop())
+                        sched._union((time, AcquireInstruction(command=inst.command,
+                                                               acquire=channel,
+                                                               mem_slot=mem_slot)))
+
                 # Measurement pulses should only be added if its qubit was measured by the user
                 elif inst.channels[0].index in qubit_mem_slots.keys():
                     sched._union((time, inst))

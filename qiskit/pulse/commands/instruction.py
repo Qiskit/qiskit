@@ -45,7 +45,7 @@ class Instruction(ScheduleComponent):
         duration = command.duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
-                                               for channel in channels))
+                                               for channel in channels if channel is not None))
 
         channels = self.channels
 
