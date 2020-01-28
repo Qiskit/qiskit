@@ -18,7 +18,7 @@ import unittest
 
 from ddt import ddt, data
 
-import networkx as nx
+import retworkx as nx
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
@@ -72,8 +72,8 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Every edge should be labled with a known wire.
     edges_outside_wires = [edge_data['wire']
-                           for source, dest, edge_data
-                           in multi_graph.edges(data=True)
+                           for edge_data
+                           in multi_graph.edges()
                            if edge_data['wire'] not in dag.wires]
     if edges_outside_wires:
         raise DAGCircuitError('multi_graph contains one or more edges ({}) '
@@ -94,23 +94,22 @@ def raise_if_dagcircuit_invalid(dag):
     for wire in dag.wires:
         cur_node = dag.input_map[wire]
         out_node = dag.output_map[wire]
-
         while cur_node != out_node:
-            out_edges = multi_graph.out_edges(cur_node, data=True)
+            out_edges = multi_graph.out_edges(cur_node._node_id)
             edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges
                                if data['wire'] == wire]
 
             assert len(edges_to_follow) == 1
-            cur_node = edges_to_follow[0][1]
+            cur_node = dag._id_to_node[edges_to_follow[0][1]]
 
     # Wires can only terminate at input/output nodes.
     for op_node in dag.op_nodes():
-        assert multi_graph.in_degree(op_node) == multi_graph.out_degree(op_node)
+        assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
-        in_edges = multi_graph.in_edges(node, data=True)
-        out_edges = multi_graph.out_edges(node, data=True)
+        in_edges = multi_graph.in_edges(node._node_id)
+        out_edges = multi_graph.out_edges(node._node_id)
 
         in_wires = {data['wire'] for src, dest, data in in_edges}
         out_wires = {data['wire'] for src, dest, data in out_edges}
@@ -219,7 +218,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(h_node.condition, h_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(h_node, data=True)),
+            sorted(self.dag._multi_graph.in_edges(h_node._node_id)),
             sorted([
                 (self.dag.input_map[self.qubit2], h_node,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
@@ -230,7 +229,7 @@ class TestDagOperations(QiskitTestCase):
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(h_node, data=True)),
+            sorted(self.dag._multi_graph.out_edges(h_node._node_id)),
             sorted([
                 (h_node, self.dag.output_map[self.qubit2],
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
@@ -261,7 +260,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
+            sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
             sorted([
                 (self.dag.input_map[self.qubit0], meas_node,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
@@ -272,7 +271,7 @@ class TestDagOperations(QiskitTestCase):
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
+            sorted(self.dag._multi_graph.out_edges(meas_node._node_id)),
             sorted([
                 (meas_node, self.dag.output_map[self.qubit0],
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
@@ -300,7 +299,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
+            sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
             sorted([
                 (self.dag.input_map[self.qubit1], meas_node,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
@@ -311,7 +310,7 @@ class TestDagOperations(QiskitTestCase):
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
+            sorted(self.dag._multi_graph.out_edges(meas_node)),
             sorted([
                 (meas_node, self.dag.output_map[self.qubit1],
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
@@ -565,7 +564,7 @@ class TestDagOperations(QiskitTestCase):
         """Try to remove a non-op node with remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
-        in_node = next(self.dag.topological_nodes())
+        in_node = next(iter(self.dag.topological_nodes()))
         self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
 
     def test_dag_collect_runs(self):
