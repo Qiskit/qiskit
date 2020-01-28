@@ -16,6 +16,8 @@
 
 from collections.abc import Iterable, Mapping
 
+import numpy as np
+
 from marshmallow import fields as _fields
 from marshmallow.exceptions import ValidationError
 from marshmallow.utils import is_collection
@@ -88,3 +90,20 @@ class Dict(_fields.Dict, ModelTypeValidator):
     __doc__ = _fields.Dict.__doc__
 
     valid_types = (Mapping, )
+
+
+class NumpyArray(List):
+    # pylint: disable=missing-docstring
+    __doc__ = List.__doc__
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        # If an numpy array just return that:
+        if isinstance(value, np.ndarray):
+            return value
+        # If not a native numpy array deserialize the list and convert:
+        deserialized_list = super(NumpyArray, self)._deserialize(
+            value, attr, data, **kwargs)
+        try:
+            return np.array(deserialized_list)
+        except ValueError as err:
+            raise ValidationError([err])
