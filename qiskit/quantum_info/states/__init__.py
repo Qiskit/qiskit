@@ -17,5 +17,6 @@
 from .statevector import Statevector
 from .densitymatrix import DensityMatrix
 from .utils import partial_trace
-from .states import basis_state, projector, purity
+from .measures import state_fidelity, purity
+from .states import basis_state, projector
 from .counts import state_to_counts
