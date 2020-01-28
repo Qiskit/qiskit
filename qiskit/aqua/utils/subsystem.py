@@ -93,3 +93,31 @@ def get_subsystems_counts(complete_system_counts):
         for k, d_l in zip(mixed_measurement.split(), subsystems_counts):
             d_l[k] += count
     return [dict(d) for d in subsystems_counts]
+
+def get_subsystems_counts_postselected(complete_system_counts, index, postselect_value):
+    """
+    Extract all subsystems' counts from the single complete system count dictionary subject to a
+    specific postselection.
+
+    Args:
+        complete_system_counts (dict): The measurement count dictionary of a complete system
+            that contains multiple classical registers for measurements s.t. the dictionary's
+            keys have space delimiters.
+        index (int): The index of the subsystem to apply the post-selection to.
+        postselect_value (str): The postselection value to apply to the subsystem at index.
+
+    Returns:
+        list: A list of measurement count dictionaries corresponding to
+                each of the subsystems measured subject to a specific postselection.
+    """
+    mixed_measurements = list(complete_system_counts)
+    subsystems_counts = [defaultdict(int) for _ in mixed_measurements[0].split()]
+
+    for mixed_measurement in mixed_measurements:
+        count = complete_system_counts[mixed_measurement]
+        subsystem_measurements = mixed_measurement.split()
+        for k, d_l in zip(subsystem_measurements, subsystems_counts):
+            if (subsystem_measurements[index] == postselect_value):
+                d_l[k] += count
+
+    return [dict(d) for d in subsystems_counts]
