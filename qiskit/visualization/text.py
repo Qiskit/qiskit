@@ -791,7 +791,14 @@ class TextDrawing():
                 actual_index = self.qregs.index(instruction.qargs[i])
                 current_cons.append((actual_index, gate))
 
-        if instruction.name == 'measure':
+        if len(instruction.qargs) >= 2 and \
+                not instruction.cargs and \
+                getattr(instruction.op, 'label', None) is not None:
+            # If a multi qubit instruction has a label, it is a box
+            layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
+                                conditional=conditional)
+
+        elif instruction.name == 'measure':
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())

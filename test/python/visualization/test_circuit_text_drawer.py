@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate
+from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CzGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -939,6 +939,21 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circ.append(XGate(), [qr[0]])
         circ.append(XGate(label='alt-X'), [qr[0]])
         circ.append(UnitaryGate(numpy.eye(4), label="iswap"), [qr[0], qr[1]])
+
+        self.assertEqual(str(_text_circuit_drawer(circ)), expected)
+
+    def test_label_turns_to_box_2286(self):
+        """ If there is a label, non-boxes turn into boxes
+        See https://github.com/Qiskit/qiskit-terra/issues/2286 """
+        expected = '\n'.join(["           ┌───────────┐",
+                              "q_0: |0>─■─┤0          ├",
+                              "         │ │  cz label │",
+                              "q_1: |0>─■─┤1          ├",
+                              "           └───────────┘"])
+        qr = QuantumRegister(2, 'q')
+        circ = QuantumCircuit(qr)
+        circ.append(CzGate(), [qr[0], qr[1]])
+        circ.append(CzGate(label='cz label'), [qr[0], qr[1]])
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
