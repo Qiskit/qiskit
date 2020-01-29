@@ -119,7 +119,8 @@ class InstructionToQobjConverter:
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction):
+    def convert_acquire(self, shift, instruction,
+                        qubits=None, memory_slots=None, register_slots=None):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -134,8 +135,8 @@ class InstructionToQobjConverter:
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': qubits or [q.index for q in instruction.acquires],
+            'memory_slot': memory_slots or [m.index for m in instruction.mem_slots]
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -150,7 +151,8 @@ class InstructionToQobjConverter:
             # setup register_slots
             if instruction.reg_slots:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': register_slots or \
+                                     [regs.index for regs in instruction.reg_slots]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
