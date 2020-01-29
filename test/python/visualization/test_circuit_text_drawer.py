@@ -30,6 +30,7 @@ from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions.standard import HGate, U2Gate
+from qiskit.extensions import XGate, UnitaryGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -926,6 +927,22 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
+    def test_label_over_name_2286(self):
+        """ If there is a label, it should be used instead of the name
+        See https://github.com/Qiskit/qiskit-terra/issues/2286 """
+        expected = '\n'.join(["        ┌───┐┌───────┐┌────────┐",
+                              "q_0: |0>┤ X ├┤ alt-X ├┤0       ├",
+                              "        └───┘└───────┘│  iswap │",
+                              "q_1: |0>──────────────┤1       ├",
+                              "                      └────────┘"])
+        qr = QuantumRegister(2, 'q')
+        circ = QuantumCircuit(qr)
+        circ.append(XGate(), [qr[0]])
+        circ.append(XGate(label='alt-X'), [qr[0]])
+        circ.append(UnitaryGate(numpy.eye(4), label="iswap"), [qr[0], qr[1]])
+
+        self.assertEqual(str(_text_circuit_drawer(circ)), expected)
+
 
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
@@ -1513,7 +1530,7 @@ class TestTextNonRational(QiskitTestCase):
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
-        ket = numpy.array([0.1*numpy.pi, 0, 0, 0.9493702944526474*1j])
+        ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
@@ -1527,7 +1544,7 @@ class TestTextNonRational(QiskitTestCase):
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
-        ket = numpy.array([0.9493702944526474, 0, 0, 0.1*numpy.pi*1j])
+        ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
