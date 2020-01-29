@@ -800,7 +800,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
 
-        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[], label='twoQ')
         circuit.append(my_gate2, [qr[0], qr[1]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
@@ -816,7 +816,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
 
-        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[], label='twoQ')
         circuit.append(my_gate2, [qr[1], qr[0]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
@@ -834,7 +834,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
 
-        my_gate3 = Gate(name='threeQ', num_qubits=3, params=[])
+        my_gate3 = Gate(name='threeQ', num_qubits=3, params=[], label='threeQ')
         circuit.append(my_gate3, [qr[1], qr[2], qr[0]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
@@ -851,7 +851,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
 
-        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[], label='twoQ')
         circuit.append(my_gate2, [qr[0], qr[2]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
@@ -871,7 +871,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
 
-        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[], label='twoQ')
         circuit.append(my_gate2, [qr[0], qr[3]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
@@ -882,7 +882,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "q_0: |0>┤0         ├",
                               "        │          │",
                               "q_1: |0>┤          ├",
-                              "        │  unitary │",
+                              "        │  Unitary │",
                               "q_2: |0>┤          ├",
                               "        │          │",
                               "q_3: |0>┤1         ├",
@@ -914,7 +914,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
         expected = '\n'.join(["        ┌──────────────┐",
                               "q_0: |0>┤0             ├",
-                              "        │  multiplexer │",
+                              "        │  Multiplexer │",
                               "q_1: |0>┤1             ├",
                               "        └──────────────┘"])
 
@@ -1426,7 +1426,7 @@ class TestTextConditional(QiskitTestCase):
 
         expected = '\n'.join(["         ┌──────────────┐",
                               "qr_0: |0>┤0             ├",
-                              "         │  multiplexer │",
+                              "         │  Multiplexer │",
                               "qr_1: |0>┤1             ├",
                               "         └──────┬───────┘",
                               "qr_2: |0>───────┼────────",
@@ -1495,7 +1495,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["        ┌────────────────────────────────────┐",
                               "q_0: |0>┤0                                   ├",
-                              "        │  initialize(0.5+0.1j,0,0,0.86023j) │",
+                              "        │  Initialize(0.5+0.1j,0,0,0.86023j) │",
                               "q_1: |0>┤1                                   ├",
                               "        └────────────────────────────────────┘"
                               ])
@@ -1509,7 +1509,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["        ┌─────────────────────────────────┐",
                               "q_0: |0>┤0                                ├",
-                              "        │  initialize(pi/10,0,0,0.94937j) │",
+                              "        │  Initialize(pi/10,0,0,0.94937j) │",
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
@@ -1523,7 +1523,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["        ┌─────────────────────────────────┐",
                               "q_0: |0>┤0                                ├",
-                              "        │  initialize(0.94937,0,0,pi/10j) │",
+                              "        │  Initialize(0.94937,0,0,pi/10j) │",
                               "q_1: |0>┤1                                ├",
                               "        └─────────────────────────────────┘"
                               ])
@@ -1541,7 +1541,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         """ Test q0-c0 in q0-c0"""
         expected = '\n'.join(["         ┌───────┐",
                               "qr_0: |0>┤0      ├",
-                              "         │  name │",
+                              "         │  Name │",
                               " cr_0: 0 ╡0      ╞",
                               "         └───────┘"])
 
@@ -1559,7 +1559,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
                               "qr_0: |0>┤0      ├",
                               "         │       │",
                               "qr_1: |0>┤1      ├",
-                              "         │  name │",
+                              "         │  Name │",
                               " cr_0: 0 ╡0      ╞",
                               "         │       │",
                               " cr_1: 0 ╡1      ╞",
@@ -1585,7 +1585,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
                               "q_3: |0>┤2      ├",
                               "        │       │",
                               "q_4: |0>┤3      ├",
-                              "        │  name │",
+                              "        │  Name │",
                               "q_5: |0>┤       ├",
                               "        │       │",
                               " c_0: 0 ╡       ╞",
