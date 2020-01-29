@@ -57,13 +57,13 @@ def measure(qubits: List[int],
 
     Args:
         qubits: List of qubits to be measured.
-        measure_name: Name of the measurement schedule.
         backend: A backend instance, which contains hardware-specific data required for scheduling.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
                   ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
                   the ``meas_map`` of ``backend``.
         qubit_mem_slots: Mapping of measured qubit index to classical bit index.
+        measure_name: Name of the measurement schedule.
 
     Returns:
         A schedule corresponding to the inputs provided.
