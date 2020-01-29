@@ -97,11 +97,9 @@ class ApproximateTokenSwapper(Generic[_V]):
         def take_until_zero(results: Iterable[List[_T]]) -> Iterator[List[_T]]:
             """Take results until one is emitted of length zero (and also emit that)."""
             for result in results:
+                yield result
                 if not result:
-                    yield result
                     break
-                else:
-                    yield result
 
         trial_results = take_until_zero(trial_results)
         return min(trial_results, key=len)
