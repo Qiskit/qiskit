@@ -26,6 +26,7 @@ from collections import OrderedDict
 import copy
 import itertools
 import retworkx as nx
+import networkx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -82,7 +83,14 @@ class DAGCircuit:
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
-        return copy.copy(self._multi_graph)
+        G = networkx.MultiDiGraph()
+        for node in self._multi_graph.nodes():
+            G.add_node(node)
+        for node in nx.topological_sort(self._multi_graph):
+            for source, dest, edge in self._multi_graph.in_edges(node):
+                G.add_edge(self._id_to_node[source], self._id_to_node[dest],
+                           **edge)
+        return G
 
     def qubits(self):
         """Return a list of qubits (as a list of Qubit instances)."""
