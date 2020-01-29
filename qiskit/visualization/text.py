@@ -695,7 +695,10 @@ class TextDrawing():
         if controlled:
             label = instruction.op.base_gate_name
         else:
-            label = instruction.name
+            if getattr(instruction.op, 'label', None) is not None:
+                label = instruction.op.label
+            else:
+                label = instruction.name
         params = TextDrawing.params_for_label(instruction)
         label = label.capitalize()
         if params:
@@ -879,7 +882,7 @@ class TextDrawing():
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
-            label = instruction.name
+            label = TextDrawing.label_for_box(instruction)
             params = TextDrawing.params_for_label(instruction)
             if params:
                 label += "(%s)" % ','.join(params)
