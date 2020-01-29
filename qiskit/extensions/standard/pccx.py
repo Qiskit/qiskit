@@ -18,7 +18,6 @@ from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.x import XGate
 from qiskit.qasm import pi
 
 
@@ -28,8 +27,8 @@ class PCCXGate(ControlledGate):
     def __init__(self):
         """Create a new PCCX gate."""
         super().__init__('pccx', 3, [], num_ctrl_qubits=2)
-        self.base_gate = XGate
-        self.base_gate_name = 'x'
+        self.base_gate = None
+        self.base_gate_name = None
 
     def _define(self):
         """
@@ -69,9 +68,9 @@ class PCCXGate(ControlledGate):
                             [0, 0, 1, 0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, 0, -1j],
                             [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, -1, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, -1j, 0, 0, 0, 0]], dtype=complex)
+                            [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
 
 def pccx(self, ctl1, ctl2, tgt):
