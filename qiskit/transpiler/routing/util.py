@@ -28,9 +28,12 @@
 
 """Utility functions shared between permutation functionality."""
 
-from typing import Tuple, TypeVar, Iterable, MutableMapping, Optional
+from typing import List, Tuple, Dict, TypeVar, Iterable, NamedTuple, Any, MutableMapping, Optional
 
 import qiskit.transpiler.routing as rt
+from qiskit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.extensions import SwapGate
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
@@ -63,3 +66,46 @@ def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]],
                 mapping[sw2] = val1
             if val2 is not None:
                 mapping[sw1] = val2
+
+
+# Represents a circuit for permuting to a mapping with the associated cost.
+PermutationCircuit = NamedTuple('PermutationCircuit',
+                                [('circuit', DAGCircuit),
+                                 ('inputmap', Dict[Any, Reg])
+                                 # A mapping from architecture nodes to circuit registers.
+                                 ])
+
+
+def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
+    """Produce a circuit description of a list of swaps.
+        With a given permutation and permuter you can compute the swaps using the permuter function
+        then feed it into this circuit function to obtain a circuit description.
+    Args:
+      swaps: An iterable of swaps to perform.
+    Returns:
+      A MappingCircuit with the circuit and a mapping of node to qubit in the circuit.
+    """
+    # Construct a circuit with each unique node id becoming a quantum register of size 1.
+    dag = DAGCircuit()
+    swap_list = list(swaps)
+
+    # Set of unique nodes used in the swaps.
+    nodes = {
+        swap_node
+        for swap_step in swap_list
+        for swap_nodes in swap_step
+        for swap_node in swap_nodes
+        }
+
+    node_qargs = {node: QuantumRegister(1) for node in nodes}
+    for qubit in node_qargs.values():
+        dag.add_qreg(qubit)
+
+    inputmap = {node: q[0] for node, q in node_qargs.items()}
+
+    # Apply swaps to the circuit.
+    for swap_step in swap_list:
+        for swap0, swap1 in swap_step:
+            dag.apply_operation_back(SwapGate(), [inputmap[swap0], inputmap[swap1]])
+
+    return PermutationCircuit(dag, inputmap)
