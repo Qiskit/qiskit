@@ -14,7 +14,6 @@
 
 """Test cases for Scheduler Utility functions."""
 
-import numpy as np
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire, InstructionScheduleMap,
                           MeasureChannel, MemorySlot, GaussianSquare)
 from qiskit.scheduler.utils import measure, measure_all
@@ -71,7 +70,6 @@ class TestUtils(QiskitTestCase):
 
     def test_measure_with_custom_inst_map(self):
         """Test measure with custom inst_map and meas_map."""
-        acquire = Acquire(duration=1200)
         q0_sched = GaussianSquare(1200, 1, 0.4, 1150)(MeasureChannel(0))
         q0_sched += Acquire(1200)(AcquireChannel(0), MemorySlot(0))
         inst_map = InstructionScheduleMap()
