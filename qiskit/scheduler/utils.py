@@ -42,6 +42,7 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 
 def measure(qubits: List[int],
+            measure_name: str = 'measure',
             backend: Optional['BaseBackend'] = None,
             inst_map: Optional[InstructionScheduleMap] = None,
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
@@ -56,9 +57,10 @@ def measure(qubits: List[int],
 
     Args:
         qubits: List of qubits to be measured.
+        measure_name: Name of the measurement schedule.
         backend: A backend instance, which contains hardware-specific data required for scheduling.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
-                  ``circuit_instruction_map`` of ``backend``.
+                  ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
                   the ``meas_map`` of ``backend``.
         qubit_mem_slots: Mapping of measured qubit index to classical bit index.
@@ -81,25 +83,29 @@ def measure(qubits: List[int],
     measure_groups = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
-    for measure_group_qubits in measure_groups:
-        if qubit_mem_slots is not None:
-            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
-        default_sched = inst_map.get('measure', measure_group_qubits)
-        for time, inst in default_sched.instructions:
-            if qubit_mem_slots and isinstance(inst, AcquireInstruction):
-                for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots:
-                        mem_slot = MemorySlot(qubit_mem_slots[channel.index])
-                    else:
-                        mem_slot = MemorySlot(unused_mem_slots.pop())
-                    schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
-                                                                        acquire=channel,
-                                                                        mem_slot=mem_slot))
-            elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
-                schedule = schedule.insert(time, inst)
-            # Measurement pulses should only be added if its qubit was measured by the user
-            elif inst.channels[0].index in qubits:
-                schedule = schedule.insert(time, inst)
+    try:
+        for measure_group_qubits in measure_groups:
+            if qubit_mem_slots is not None:
+                unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+            default_sched = inst_map.get(measure_name, measure_group_qubits)
+            for time, inst in default_sched.instructions:
+                if qubit_mem_slots and isinstance(inst, AcquireInstruction):
+                    for channel in inst.acquires:
+                        if channel.index in qubit_mem_slots:
+                            mem_slot = MemorySlot(qubit_mem_slots[channel.index])
+                        else:
+                            mem_slot = MemorySlot(unused_mem_slots.pop())
+                        schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
+                                                                            acquire=channel,
+                                                                            mem_slot=mem_slot))
+                elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
+                    schedule = schedule.insert(time, inst)
+                # Measurement pulses should only be added if its qubit was measured by the user
+                elif inst.channels[0].index in qubits:
+                    schedule = schedule.insert(time, inst)
+    except PulseError:
+        raise PulseError("Invalid `meaure_name` argument. Provide the name of your measurement "
+                         "schedule to the `measure_name` arg.")
     return schedule
 
 
