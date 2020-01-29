@@ -62,7 +62,7 @@ class CmdDef:
         """
         warnings.warn("The CmdDef is being deprecated. All CmdDef methods are now supported by "
                       "`InstructionScheduleMap` accessible as "
-                      "`backend.defaults().circuit_instruction_map` for any Pulse enabled system.",
+                      "`backend.defaults().instruction_schedule_map` for any Pulse enabled system.",
                       DeprecationWarning)
         self._cmd_dict = {}
 
