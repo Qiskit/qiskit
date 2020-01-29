@@ -66,7 +66,7 @@ def measure(qubits: List[int],
         measure_name: Name of the measurement schedule.
 
     Returns:
-        A schedule corresponding to the inputs provided.
+        A measurement schedule corresponding to the inputs provided.
 
     Raises:
         PulseError: If both ``inst_map`` or ``meas_map``, and ``backend`` is None.
@@ -93,6 +93,7 @@ def measure(qubits: List[int],
                              "Please provide another name using the 'measure_name' keyword "
                              "argument. For assistance, the instructions which are defined are: "
                              "{}".format(measure_name, inst_map.instructions))
+
         for time, inst in default_sched.instructions:
             if qubit_mem_slots and isinstance(inst, AcquireInstruction):
                 for channel in inst.acquires:
