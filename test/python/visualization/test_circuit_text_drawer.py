@@ -29,8 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions.standard import HGate, U2Gate
-from qiskit.extensions import XGate, UnitaryGate
+from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
