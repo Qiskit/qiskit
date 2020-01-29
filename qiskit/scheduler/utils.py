@@ -42,11 +42,11 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 
 def measure(qubits: List[int],
-            measure_name: str = 'measure',
             backend: Optional['BaseBackend'] = None,
             inst_map: Optional[InstructionScheduleMap] = None,
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
-            qubit_mem_slots: Optional[Dict[int, int]] = None) -> Schedule:
+            qubit_mem_slots: Optional[Dict[int, int]] = None,
+            measure_name: str = 'measure') -> Schedule:
     """
     Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
@@ -83,29 +83,32 @@ def measure(qubits: List[int],
     measure_groups = set()
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
-    try:
-        for measure_group_qubits in measure_groups:
-            if qubit_mem_slots is not None:
-                unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+    for measure_group_qubits in measure_groups:
+        if qubit_mem_slots is not None:
+            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+        try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
-            for time, inst in default_sched.instructions:
-                if qubit_mem_slots and isinstance(inst, AcquireInstruction):
-                    for channel in inst.acquires:
-                        if channel.index in qubit_mem_slots:
-                            mem_slot = MemorySlot(qubit_mem_slots[channel.index])
-                        else:
-                            mem_slot = MemorySlot(unused_mem_slots.pop())
-                        schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
-                                                                            acquire=channel,
-                                                                            mem_slot=mem_slot))
-                elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
-                    schedule = schedule.insert(time, inst)
-                # Measurement pulses should only be added if its qubit was measured by the user
-                elif inst.channels[0].index in qubits:
-                    schedule = schedule.insert(time, inst)
-    except PulseError:
-        raise PulseError("Invalid `meaure_name` argument. Provide the name of your measurement "
-                         "schedule to the `measure_name` arg.")
+        except PulseError:
+            raise PulseError("We could not find a default measurement schedule called '{}'. "
+                             "Please provide another name using the 'measure_name' keyword "
+                             "argument. For assistance, the instructions which are defined are: "
+                             "{}".format(measure_name, inst_map.instructions))
+        for time, inst in default_sched.instructions:
+            if qubit_mem_slots and isinstance(inst, AcquireInstruction):
+                for channel in inst.acquires:
+                    if channel.index in qubit_mem_slots:
+                        mem_slot = MemorySlot(qubit_mem_slots[channel.index])
+                    else:
+                        mem_slot = MemorySlot(unused_mem_slots.pop())
+                    schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
+                                                                        acquire=channel,
+                                                                        mem_slot=mem_slot))
+            elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
+                schedule = schedule.insert(time, inst)
+            # Measurement pulses should only be added if its qubit was measured by the user
+            elif inst.channels[0].index in qubits:
+                schedule = schedule.insert(time, inst)
+
     return schedule
 
 

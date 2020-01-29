@@ -2,10 +2,13 @@
 features:
   - |
     Added a utility function - ``measure`` and ``measure_all`` in pulse module to return a
-    `Schedule` which measures qubits using OpenPulse. For example::
+    ``Schedule`` which measures qubits using OpenPulse. For example::
 
         from qiskit.scheduler.utils import measure, measure_all
 
         measure_q0_schedule = measure(qubits=[0], backend=backend)
         measure_all_schedule = measure_all(backend)
-
+        measure_custom_schedule = measure(qubits=[0],
+                                          inst_map=backend.defaults().instruction_schedule_map,
+                                          meas_map=[[0]],
+                                          qubit_mem_slots={0: 1})
