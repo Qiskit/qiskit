@@ -119,8 +119,7 @@ class InstructionToQobjConverter:
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction,
-                        qubits=None, memory_slots=None, register_slots=None):
+    def convert_acquire(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -135,8 +134,8 @@ class InstructionToQobjConverter:
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': qubits or [q.index for q in instruction.acquires],
-            'memory_slot': memory_slots or [m.index for m in instruction.mem_slots]
+            'qubits': [q.index for q in instruction.acquires],
+            'memory_slot': [m.index for m in instruction.mem_slots]
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -151,8 +150,7 @@ class InstructionToQobjConverter:
             # setup register_slots
             if instruction.reg_slots:
                 command_dict.update({
-                    'register_slot': register_slots or \
-                                     [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
@@ -165,6 +163,28 @@ class InstructionToQobjConverter:
                     ]
                 })
         return self._qobj_model(**command_dict)
+
+    def convert_single_acquires(self, shift, instruction,
+                                qubits=None, memory_slot=None, register_slot=None):
+        """Return converted `AcquireInstruction`, with options to override the qubits,
+        memory_slot, and register_slot fields. This is useful for grouping
+        AcquisitionInstructions which are operated on a single AcquireChannel and
+        a single MemorySlot.
+
+        Args:
+            shift(int): Offset time.
+            instruction (AcquireInstruction): acquire instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        res = self.convert_acquire(shift, instruction)
+        if qubits:
+            res.qubits = qubits
+        if memory_slot:
+            res.memory_slot = memory_slot
+        if register_slot:
+            res.register_slot = register_slot
+        return res
 
     @bind_instruction(commands.FrameChangeInstruction)
     def convert_frame_change(self, shift, instruction):

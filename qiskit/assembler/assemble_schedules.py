@@ -83,7 +83,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # instructions
         max_memory_slot = 0
         qobj_instructions = []
-        acquire_instructions = defaultdict(list)
+        acquire_instruction_map = defaultdict(list)
 
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
@@ -112,22 +112,27 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             if isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
-                acquire_instructions[(shift, instruction.command)].append(instruction)
+                acquire_instruction_map[(shift, instruction.command)].append(instruction)
 
             if isinstance(instruction, DelayInstruction):
                 # delay instructions are ignored as timing is explicit within qobj
                 continue
 
-        if acquire_instructions:
+        if acquire_instruction_map:
             if meas_map:
-                _validate_meas_map(acquire_instructions, meas_map)
-            for (shift, cmd), instruction_map in acquire_instructions.items():
-                qubits = [aq.index for aq in [inst.acquires for inst in instruction_map]]
-                mem_slots = [slot.index for slot in [inst.mem_slots for inst in instruction_map]]
-                reg_slots = [reg.index for reg in [inst.reg_slots for inst in instruction_map]]
+                _validate_meas_map(acquire_instruction_map, meas_map)
+            for (shift, cmd), instructions in acquire_instruction_map.items():
+                qubits = []
+                mem_slots = []
+                reg_slots = []
+                for inst in instructions:
+                    qubits.extend(aq.index for aq in inst.acquires)
+                    mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
+                    reg_slots.extend(reg.index for reg in inst.reg_slots)
                 qobj_instructions.append(
-                    instruction_converter(shift, instruction_map[0],
-                                          qubits=qubits, mem_slots=mem_slots, reg_slots=reg_slots))
+                    instruction_converter.convert_single_acquires(
+                        shift, instructions[0],
+                        qubits=qubits, memory_slot=mem_slots, register_slot=reg_slots))
 
         # memory slot size is memory slot index + 1 because index starts from zero
         exp_memory_slot_size = max_memory_slot + 1
