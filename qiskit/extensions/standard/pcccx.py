@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """The 3-control relative-phase Toffoli gate."""
+import numpy
 
 from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
@@ -26,7 +27,7 @@ class PCCCXGate(ControlledGate):
 
     def __init__(self):
         """Create a new PCCCX gate."""
-        super().__init__('pcccx', 3, [], num_ctrl_qubits=3)
+        super().__init__('pcccx', 4, [], num_ctrl_qubits=3)
         self.base_gate = XGate
         self.base_gate_name = 'x'
 
@@ -61,6 +62,7 @@ class PCCCXGate(ControlledGate):
             (U1Gate(pi / 4), [q[3]], []),  # T gate
             (CnotGate(), [q[2], q[3]], []),
             (U1Gate(-pi / 4), [q[3]], []),  # inverse T gate
+            (U2Gate(0, pi), [q[3]], []),
             (CnotGate(), [q[0], q[3]], []),
             (U1Gate(pi / 4), [q[3]], []),
             (CnotGate(), [q[1], q[3]], []),
@@ -78,6 +80,25 @@ class PCCCXGate(ControlledGate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def to_matrix(self):
+        """Return a numpy.array for the PCCCX gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
 
 def pcccx(self, ctl1, ctl2, ctl3, tgt):

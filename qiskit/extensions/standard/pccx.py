@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """The 2-control relative-phase Toffoli gate."""
+import numpy
 
 from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
@@ -21,7 +22,7 @@ from qiskit.extensions.standard.x import XGate
 from qiskit.qasm import pi
 
 
-class PCCnotGate(ControlledGate):
+class PCCXGate(ControlledGate):
     """The 2-control relative-phase Toffoli gate."""
 
     def __init__(self):
@@ -60,6 +61,17 @@ class PCCnotGate(ControlledGate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def to_matrix(self):
+        """Return a numpy.array for the PCCX gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, -1j],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, -1j, 0, 0, 0, 0]], dtype=complex)
 
 
 def pccx(self, ctl1, ctl2, tgt):
