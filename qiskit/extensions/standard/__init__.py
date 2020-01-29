@@ -32,6 +32,8 @@ from .u3 import U3Gate
 from .x import XGate
 from .y import YGate
 from .z import ZGate
+from .pccx import PCCXGate
+from .pcccx import PCCCXGate
 from .r import RGate
 from .rx import RXGate
 from .ry import RYGate
