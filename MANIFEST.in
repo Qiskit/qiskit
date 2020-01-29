@@ -1,3 +1,4 @@
+include LICENSE.txt
 include qiskit/qasm/libs/*.inc
 include qiskit/schemas/*.json
 include qiskit/VERSION.txt
