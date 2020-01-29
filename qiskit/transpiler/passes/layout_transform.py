@@ -14,10 +14,9 @@
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
 
-
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.general import ApproximateTokenSwapper
@@ -48,7 +47,7 @@ class LayoutTransformation(TransformationPass):
 
         # Find the permutation that between the initial physical qubits and final physical qubits.
         permutation = {pqubit: final_layout.get_virtual_bits()[vqubit]
-                               for vqubit, pqubit in initial_layout.get_virtual_bits().items()}
+                       for vqubit, pqubit in initial_layout.get_virtual_bits().items()}
         swaps = token_swapper.map(permutation, trials)
         # None of the swaps are guaranteed to be disjoint so we perform one swap every layer.
         parallel_swaps = [[swap] for swap in swaps]
