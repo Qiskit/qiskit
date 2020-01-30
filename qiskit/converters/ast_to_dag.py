@@ -25,11 +25,11 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.cswap import FredkinGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cy import CyGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.x import ToffoliGate
+from qiskit.extensions.standard.swap import FredkinGate
+from qiskit.extensions.standard.x import CnotGate
+from qiskit.extensions.standard.y import CyGate
+from qiskit.extensions.standard.z import CzGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.iden import IdGate
@@ -46,12 +46,12 @@ from qiskit.extensions.standard.z import ZGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.cu1 import Cu1Gate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crx import CrxGate
-from qiskit.extensions.standard.cry import CryGate
-from qiskit.extensions.standard.crz import CrzGate
-from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.u1 import Cu1Gate
+from qiskit.extensions.standard.h import CHGate
+from qiskit.extensions.standard.rx import CrxGate
+from qiskit.extensions.standard.ry import CryGate
+from qiskit.extensions.standard.rz import CrzGate
+from qiskit.extensions.standard.u3 import Cu3Gate
 from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
 

@@ -77,6 +77,43 @@ def partial_trace(state, qargs):
     return ret
 
 
+def shannon_entropy(pvec, base=2):
+    r"""Compute the Shannon entropy of a probability vector.
+
+    The shannon entropy of a probability vector
+    :math:`\vec{p} = [p_0, ..., p_{n-1}]` is defined as
+
+    .. math:
+
+        H(\vec{p}) = \sum_{i=0}^{n-1} p_i \log_b(p_i)
+
+    where :math:`b` is the log base and (default 2), and
+    :math:`0 \log_b(0) \equiv 0`.
+
+    Args:
+        pvec (array_like): a probability vector.
+        base (int): the base of the logarithm [Default: 2].
+
+    Returns:
+        float: The Shannon entropy H(pvec).
+    """
+    if base == 2:
+        def logfn(x):
+            return - x * np.log2(x)
+    elif base == np.e:
+        def logfn(x):
+            return - x * np.log(x)
+    else:
+        def logfn(x):
+            return -x * np.log(x) / np.log(base)
+
+    h_val = 0.
+    for x in pvec:
+        if 0 < x < 1:
+            h_val += logfn(x)
+    return h_val
+
+
 def _format_state(state, validate=True):
     """Format input state into class object"""
     if isinstance(state, list):
