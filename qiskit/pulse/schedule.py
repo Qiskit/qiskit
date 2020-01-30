@@ -15,7 +15,7 @@
 """Schedule."""
 
 import abc
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type
 import warnings
 
 from .timeslots import Interval
