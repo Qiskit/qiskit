@@ -42,7 +42,7 @@ class LayoutTransformation(TransformationPass):
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
         self.final_layout = final_layout
-        graph = coupling_map.graph.to_undirected
+        graph = coupling_map.graph.to_undirected()
         token_swapper = ApproximateTokenSwapper(graph)
 
         # Find the permutation that between the initial physical qubits and final physical qubits.
@@ -73,5 +73,5 @@ class LayoutTransformation(TransformationPass):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         edge_map = {self.initial_layout.get_physical_bits()[pqubit]: vqubit
-                    for (pqubit, vqubit) in self.permutation_circuit.inputmap}
+                    for (pqubit, vqubit) in self.permutation_circuit.inputmap.items()}
         return dag.extend_back(self.permutation_circuit.circuit, edge_map=edge_map)
