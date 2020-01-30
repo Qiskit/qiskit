@@ -771,11 +771,24 @@ class TextDrawing():
             instruction.layer_width = longest
 
     @staticmethod
-    def controlled_wires(instruction):
-        qargs_all_set = set(instruction.qargs)
+    def controlled_wires(instruction, layer):
+        allargs = set(instruction.qargs)
         ctrl_qubits = set(instruction.qargs[:instruction.op.num_ctrl_qubits])
-        if len(qargs_all_set - ctrl_qubits) <= 1:
-            return (ctrl_qubits, set())
+        args = allargs - ctrl_qubits
+
+        if len(args) <= 1:
+            return (ctrl_qubits, set(), args - ctrl_qubits)
+
+        in_box = set()
+        out_box = set()
+        qubit_index = sorted([i for i, x in enumerate(layer.qregs) if x in args])
+
+        for ctrl_qubit in ctrl_qubits:
+            if min(qubit_index) <= layer.qregs.index(ctrl_qubit) <= max(qubit_index):
+                in_box.add(ctrl_qubit)
+            else:
+                out_box.add(ctrl_qubit)
+        return (out_box, in_box, args - out_box - in_box)
 
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
@@ -889,11 +902,11 @@ class TextDrawing():
             label = TextDrawing.label_for_box(instruction, controlled=True)
             gates = []
 
-            controlled_out, controlled_edge = TextDrawing.controlled_wires(instruction)
+            controlled_out, controlled_edge, rest = TextDrawing.controlled_wires(instruction, layer)
             for _ in controlled_out:
                 gates.append(Bullet(conditional=conditional))
             if controlled_edge:
-                layer.set_qu_multibox(instruction.qargs, label,
+                layer.set_qu_multibox(rest, label,
                                       conditional=conditional,
                                       controlled_edge=controlled_edge)
             else:
