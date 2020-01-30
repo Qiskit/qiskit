@@ -3,7 +3,7 @@
 # least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
 # Global rule, unless specialized by a later one
-* @ajavadia @kdk @mtreinish @1ucian0
+!/releasenotes/ @ajavadia @kdk @mtreinish @1ucian0
 
 # Individual folders on root directory
 /tools/               @mtreinish @kdk
