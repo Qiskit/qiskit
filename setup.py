@@ -41,8 +41,8 @@ REQUIREMENTS = [
 
 # Add Cython extensions here
 CYTHON_EXTS = ['utils', 'swap_trial']
-CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
-CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
+CYTHON_MODULE = 'qiskit.transpiler.passes.routing.cython.stochastic_swap'
+CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/routing/cython/stochastic_swap'
 
 INCLUDE_DIRS = []
 # Extra link args
@@ -70,13 +70,18 @@ for ext in CYTHON_EXTS:
                     language='c++')
     EXT_MODULES.append(mod)
 
+# Read long description from README.
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'README.md')
+with open(README_PATH) as readme_file:
+    README = readme_file.read()
 
 setup(
     name="qiskit-terra",
-    version="0.11.0",
+    version="0.12.0",
     description="Software for developing quantum computing programs",
-    long_description="""Terra provides the foundations for Qiskit. It allows the user to write
-        quantum circuits easily, and takes care of the constraints of real hardware.""",
+    long_description=README,
+    long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
     author_email="qiskit@qiskit.org",
@@ -89,9 +94,11 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -104,7 +111,8 @@ setup(
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
                           "seaborn>=0.9.0"],
-        'full-featured-simulators': ['qiskit-aer>=0.1']
+        'full-featured-simulators': ['qiskit-aer>=0.1'],
+        'crosstalk-pass': ['z3-solver>=4.7'],
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

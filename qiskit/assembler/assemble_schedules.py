@@ -12,18 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Assemble function for converting a list of circuits into a qobj"""
+"""Assemble function for converting a list of circuits into a qobj."""
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
-                                   DelayInstruction, SamplePulse)
+                                   DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
+from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
-    """Assembles a list of schedules into a qobj which can be run on the backend.
+    """Assembles a list of schedules into a qobj that can be run on the backend.
 
     Args:
         schedules (list[Schedule]): schedules to assemble
@@ -50,12 +52,21 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     if meas_lo_freq is None:
         raise QiskitError('meas_lo_freq must be supplied.')
 
-    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
-    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
+
+    # convert enums to serialized values
+    meas_return = qobj_config.get('meas_return', 'avg')
+    if isinstance(meas_return, MeasReturnType):
+        qobj_config['meas_return'] = meas_return.value
+
+    meas_level = qobj_config.get('meas_return', 2)
+    if isinstance(meas_level, MeasLevel):
+        qobj_config['meas_level'] = meas_level.value
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
                                      qubit_lo_range=qubit_lo_range,
                                      meas_lo_range=meas_lo_range,
@@ -70,16 +81,25 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # instructions
         max_memory_slot = 0
         qobj_instructions = []
+        acquire_instructions = []
 
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
 
+            if isinstance(instruction, ParametricInstruction):
+                pulse_shape = ParametricPulseShapes(type(instruction.command)).name
+                if pulse_shape not in run_config.parametric_pulses:
+                    # Convert to SamplePulse if the backend does not support it
+                    instruction = PulseInstruction(instruction.command.get_sample_pulse(),
+                                                   instruction.channels[0],
+                                                   name=instruction.name)
+
             if isinstance(instruction, DelayInstruction):
                 # delay instructions are ignored as timing is explicit within qobj
                 continue
 
-            elif isinstance(instruction, PulseInstruction):
+            if isinstance(instruction, PulseInstruction):
                 name = instruction.command.name
                 if name in user_pulselib and instruction.command != user_pulselib[name]:
                     name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
@@ -92,12 +112,15 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             elif isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
-                if meas_map:
-                    # verify all acquires satisfy meas_map
-                    _validate_meas_map(instruction, meas_map)
+
+                acquire_instructions.append(instruction)
 
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
+
+        if meas_map:
+            # verify all acquires satisfy meas_map
+            _validate_meas_map(acquire_instructions, meas_map)
 
         # memory slot size is memory slot index + 1 because index starts from zero
         exp_memory_slot_size = max_memory_slot + 1
@@ -122,6 +145,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib.values()]
 
+    # convert lo frequencies to GHz
+    qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in qubit_lo_freq]
+    qobj_config['meas_lo_freq'] = [freq/1e9 for freq in meas_lo_freq]
+
     # create qobj experiment field
     experiments = []
     schedule_los = qobj_config.pop('schedule_los', [])
@@ -131,10 +158,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # update global config
         q_los = lo_converter.get_qubit_los(lo_dict)
         if q_los:
-            qobj_config['qubit_lo_freq'] = q_los
+            qobj_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
         m_los = lo_converter.get_meas_los(lo_dict)
         if m_los:
-            qobj_config['meas_lo_freq'] = m_los
+            qobj_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
 
     if schedule_los:
         # multiple frequency setups
@@ -176,11 +203,16 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                      header=qobj_header)
 
 
-def _validate_meas_map(acquire, meas_map):
+def _validate_meas_map(instructions, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
+
+    acquires = []
+    for inst in instructions:
+        acquires += inst.acquires
+    measured_qubits = {acq_ch.index for acq_ch in acquires}
+
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:

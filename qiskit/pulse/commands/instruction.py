@@ -45,7 +45,7 @@ class Instruction(ScheduleComponent):
         duration = command.duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
-                                               for channel in channels))
+                                               for channel in channels if channel is not None))
 
         channels = self.channels
 
@@ -191,10 +191,11 @@ class Instruction(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             scale: float = 1, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
+             scaling: float = None,
              channels: Optional[List[Channel]] = None):
         """Plot the instruction.
 
@@ -203,7 +204,7 @@ class Instruction(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes
             channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -212,13 +213,17 @@ class Instruction(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
+            scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
-
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
 
         from qiskit import visualization
 
@@ -229,10 +234,11 @@ class Instruction(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scaling, plot_all=plot_all,
-                                          plot_range=plot_range, interactive=interactive,
-                                          table=table, label=label,
-                                          framechange=framechange, channels=channels)
+                                          scale=scale,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table,
+                                          label=label, framechange=framechange,
+                                          channels=channels)
 
     def __eq__(self, other: 'Instruction'):
         """Check if this Instruction is equal to the `other` instruction.
@@ -257,4 +263,6 @@ class Instruction(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        return "Instruction(%s, %s)" % (self._command, ', '.join(str(ch) for ch in self.channels))
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self._command,
+                               ', '.join(str(ch) for ch in self.channels))

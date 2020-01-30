@@ -574,7 +574,7 @@ class TextDrawing():
 
         lines = []
         for layer_group in layer_groups:
-            wires = [i for i in zip(*layer_group)]
+            wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
         return lines
@@ -605,7 +605,7 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '({name}{index}) q{physical}' + initial_qubit_value
+                label = '{name}_{index} -> {physical} ' + initial_qubit_value
                 qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
                                                  index=self.layout[bit.index].index,
                                                  physical=bit.index))
@@ -692,6 +692,8 @@ class TextDrawing():
     @staticmethod
     def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
+        if getattr(instruction.op, 'label', None) is not None:
+            return instruction.op.label
         if controlled:
             label = instruction.op.base_gate_name
         else:
@@ -763,7 +765,7 @@ class TextDrawing():
         Args:
             layer (list): A list of elements.
         """
-        instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
+        instructions = list(filter(lambda x: x is not None, layer))
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
             instruction.layer_width = longest
@@ -789,7 +791,14 @@ class TextDrawing():
                 actual_index = self.qregs.index(instruction.qargs[i])
                 current_cons.append((actual_index, gate))
 
-        if instruction.name == 'measure':
+        if len(instruction.qargs) >= 2 and \
+                not instruction.cargs and \
+                getattr(instruction.op, 'label', None) is not None:
+            # If a multi qubit instruction has a label, it is a box
+            layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
+                                conditional=conditional)
+
+        elif instruction.name == 'measure':
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
@@ -883,18 +892,12 @@ class TextDrawing():
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
-            label = instruction.name
-            params = TextDrawing.params_for_label(instruction)
-            if params:
-                label += "(%s)" % ','.join(params)
+            label = TextDrawing.label_for_box(instruction)
             layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
 
         elif instruction.qargs and instruction.cargs:
             # multiple gate, involving both qargs AND cargs
-            label = instruction.name
-            params = TextDrawing.params_for_label(instruction)
-            if params:
-                label += "(%s)" % ','.join(params)
+            label = TextDrawing.label_for_box(instruction)
             layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:

@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unpacking-non-sequence
+
 """
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 
@@ -36,7 +38,6 @@ References:
 """
 
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -137,45 +138,38 @@ class PTM(QuantumChannel):
         return PTM(SuperOp(self).transpose())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the left multiplied channel other * self.
 
         Args:
             other (QuantumChannel): a quantum channel.
             qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
+            front (bool): DEPRECATED If True return self * other instead.
                           [default: False]
 
         Returns:
-            PTM: The composition channel as a PTM object.
+            PTM: The left multiplied quantum channel.
 
         Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
+            QiskitError: if other cannot be converted to a PTM or has
+            incompatible dimensions.
         """
-        if qargs is not None:
-            return PTM(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+        return super().compose(other, qargs=qargs, front=front)
 
-        # Convert other to PTM
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        # Check dimensions match up
-        if front and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if not front and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        if front:
-            # Composition A(B(input))
-            input_dim = other._input_dim
-            output_dim = self._output_dim
-            return PTM(np.dot(self._data, other.data), input_dim, output_dim)
-        # Composition B(A(input))
-        input_dim = self._input_dim
-        output_dim = other._output_dim
-        return PTM(np.dot(other.data, self._data), input_dim, output_dim)
+    def dot(self, other, qargs=None):
+        """Return the right multiplied channel self * other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+
+        Returns:
+            PTM: The right multiplied quantum channel.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PTM or has
+            incompatible dimensions.
+        """
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """The matrix power of the channel.
@@ -304,3 +298,46 @@ class PTM(QuantumChannel):
             specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
+
+    def _chanmul(self, other, qargs=None, left_multiply=False):
+        """Multiply two quantum channels.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+
+        Returns:
+            PTM: The composition channel as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
+        if qargs is not None:
+            return PTM(
+                SuperOp(self)._chanmul(other,
+                                       qargs=qargs,
+                                       left_multiply=left_multiply))
+
+        # Convert other to PTM
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        # Check dimensions match up
+        if not left_multiply and self._input_dim != other._output_dim:
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
+        if left_multiply and self._output_dim != other._input_dim:
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
+        if left_multiply:
+            # other * self
+            input_dim = self._input_dim
+            output_dim = other._output_dim
+            return PTM(np.dot(other.data, self._data), input_dim, output_dim)
+
+        # self * other
+        input_dim = other._input_dim
+        output_dim = self._output_dim
+        return PTM(np.dot(self._data, other.data), input_dim, output_dim)
