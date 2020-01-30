@@ -300,7 +300,7 @@ class BoxOnClWireTop(MultiBox, BoxOnClWire):
 class BoxOnClWireMid(BoxOnWireMid, BoxOnClWire):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label, input_length, order, wire_label='', control_label=False):
+    def __init__(self, label, input_length, order, wire_label='', **_):
         super().__init__(label, input_length, order, wire_label=wire_label)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
 
@@ -775,6 +775,20 @@ class TextDrawing():
 
     @staticmethod
     def controlled_wires(instruction, layer):
+        """
+        Analyzes the instruction in the layer and checks if the controlled arguments are in
+        the box or out of the box.
+
+        Args:
+            instruction (Instruction): instruction to analyse
+            layer (Layer): The layer in which the instruction is inserted.
+
+        Returns:
+            Tuple(list, list, list):
+              - controlled arguments out of the "instruction box"
+              - controlled arguments in the "instruction box"
+              - the rest of the arguments
+        """
         ctrl_qubits = instruction.qargs[:instruction.op.num_ctrl_qubits]
         args_qubits = instruction.qargs[instruction.op.num_ctrl_qubits:]
 
@@ -1099,6 +1113,7 @@ class Layer:
             bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
             conditional (bool): If the box has a conditional
+            controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
         """
         self._set_multibox(label, qubits=bits, conditional=conditional,
                            controlled_edge=controlled_edge)

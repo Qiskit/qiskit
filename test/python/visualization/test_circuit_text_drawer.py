@@ -1737,8 +1737,8 @@ class TestTextControlledGate(QiskitTestCase):
         circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_controlled_composite_gate_in_edge(self):
-        """Controlled composite gates (in edge)
+    def test_controlled_composite_gate_edge(self):
+        """Controlled composite gates (edge)
         See: https://github.com/Qiskit/qiskit-terra/issues/3546 """
         expected = '\n'.join(["        ┌──────┐",
                               "q_0: |0>┤0     ├",
