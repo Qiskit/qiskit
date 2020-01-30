@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -753,8 +753,11 @@ class WeightedPauliOperator(BaseOperator):
         if use_simulator_snapshot_mode:
             snapshot_data = result.data(
                 circuit_name_prefix + 'snapshot_mode')['snapshots']
-            expval = snapshot_data['expectation_value']['expval'][0]['value']
-            avg = expval[0] + 1j * expval[1]
+            avg = snapshot_data['expectation_value']['expval'][0]['value']
+            if isinstance(avg, (list, tuple)):
+                # Aer versions before 0.4 use a list snapshot format
+                # which must be converted to a complex value.
+                avg = avg[0] + 1j * avg[1]
         elif statevector_mode:
             quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
             for weight, pauli in self._paulis:
