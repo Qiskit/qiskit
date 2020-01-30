@@ -1737,6 +1737,29 @@ class TestTextControlledGate(QiskitTestCase):
         circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_controlled_composite_gate_in_edge(self):
+        """Controlled composite gates (in edge)
+        See: https://github.com/Qiskit/qiskit-terra/issues/3546 """
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_0: |0>┤0     ├",
+                              "        │      │",
+                              "q_1: |0>■      ├",
+                              "        │  Ghz │",
+                              "q_2: |0>┤1     ├",
+                              "        │      │",
+                              "q_3: |0>┤2     ├",
+                              "        └──────┘"])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        cghz = ghz.control(1)
+        circuit = QuantumCircuit(4)
+        circuit.append(cghz, [1, 0, 2, 3])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
