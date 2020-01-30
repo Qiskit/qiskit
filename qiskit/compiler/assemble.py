@@ -114,7 +114,7 @@ def assemble(experiments,
         memory_slot_size (int):
             Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
+        rep_time (float): repetition time of the experiment in s.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
@@ -258,6 +258,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if backend:
         backend_default = backend.defaults()
         backend_config = backend.configuration()
+
         if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
@@ -281,10 +282,13 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
-
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
+
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
+
+    if rep_time:
+        rep_time = int(rep_time * 1e6)
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
