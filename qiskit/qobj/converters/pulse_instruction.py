@@ -172,8 +172,11 @@ class InstructionToQobjConverter:
         a single MemorySlot.
 
         Args:
-            shift(int): Offset time.
+            shift (int): Offset time.
             instruction (AcquireInstruction): acquire instruction.
+            qubits (list(int)): A list of qubit indices to acquire.
+            memory_slot (list(int)): A list of memory slot indices to store results.
+            register_slot (list(int)): A list of register slot addresses to store results.
         Returns:
             dict: Dictionary of required parameters.
         """

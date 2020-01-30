@@ -107,21 +107,23 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                         channel=instruction.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
-                qobj_instructions.append(instruction_converter(shift, instruction))
 
             if isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
                 acquire_instruction_map[(shift, instruction.command)].append(instruction)
+                continue
 
             if isinstance(instruction, DelayInstruction):
                 # delay instructions are ignored as timing is explicit within qobj
                 continue
 
+            qobj_instructions.append(instruction_converter(shift, instruction))
+
         if acquire_instruction_map:
             if meas_map:
                 _validate_meas_map(acquire_instruction_map, meas_map)
-            for (shift, cmd), instructions in acquire_instruction_map.items():
+            for (shift, _), instructions in acquire_instruction_map.items():
                 qubits = []
                 mem_slots = []
                 reg_slots = []
@@ -230,4 +232,4 @@ def _validate_meas_map(instruction_map, meas_map):
             intersection = measured_qubits.intersection(meas_set)
             if intersection and intersection != meas_set:
                 raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
-                                  'in measurement map: {1}'.format(measured_qubits, tied_qubits))
+                                  'in measurement map: {1}'.format(measured_qubits, meas_set))
