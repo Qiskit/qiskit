@@ -23,7 +23,7 @@ from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
@@ -788,6 +788,29 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                             memory_slots=self.memory_slots,
                             rep_time=self.rep_time,
                             )
+
+    def test_single_and_deprecated_acquire_styles(self):
+        """Test that acquires are identically combined with Acquires that take a single channel."""
+        backend = FakeOpenPulse2Q()
+        new_style_schedule = Schedule()
+        acq = Acquire(1200)
+        for i in range(5):
+            new_style_schedule += acq(AcquireChannel(i), MemorySlot(i))
+
+        deprecated_style_schedule = Schedule()
+        deprecated_style_schedule += acq([AcquireChannel(i) for i in range(5)],
+                                         [MemorySlot(i) for i in range(5)])
+
+        # The Qobj IDs will be different
+        n_qobj = assemble(new_style_schedule, backend)
+        n_qobj.qobj_id = None
+        d_qobj = assemble(deprecated_style_schedule, backend)
+        d_qobj.qobj_id = None
+        self.assertEqual(n_qobj, d_qobj)
+
+        assembled_acquire = n_qobj.experiments[0].instructions[0]
+        self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
+        self.assertEqual(assembled_acquire.mem_slots, [0, 1, 2, 3, 4])
 
 
 if __name__ == '__main__':
