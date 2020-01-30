@@ -26,9 +26,22 @@ logger = logging.getLogger(__name__)
 
 
 class AQGD(Optimizer):
-    """Analytic Quantum Gradient Descent (AQGD) optimizer class.
-    Performs optimization by gradient descent where gradients
-    are evaluated "analytically" using the quantum circuit evaluating
+    """Analytic Quantum Gradient Descent (AQGD) optimizer.
+
+    Performs gradient descent optimization with a momentum term and analytic gradients
+    for parametrized quantum gates, i.e. Pauli Rotations. See, for example:
+
+    * K. Mitarai, M. Negoro, M. Kitagawa, and K. Fujii. (2018).
+      Quantum circuit learning. Phys. Rev. A 98, 032309.
+      https://arxiv.org/abs/1803.00745
+
+    * Maria Schuld, Ville Bergholm, Christian Gogolin, Josh Izaac, Nathan Killoran. (2019).
+      Evaluating analytic gradients on quantum hardware. Phys. Rev. A 99, 032331.
+      https://arxiv.org/abs/1811.11184
+
+    for further details on analytic gradients of parametrized quantum gates.
+
+    Gradients are computed "analytically" using the quantum circuit when evaluating
     the objective function.
     """
 
@@ -41,19 +54,15 @@ class AQGD(Optimizer):
                  disp: bool = False,
                  momentum: float = 0.25) -> None:
         """
-        Constructor.
-
-        Performs Analytical Quantum Gradient Descent (AQGD).
-
         Args:
             maxiter: Maximum number of iterations, each iteration evaluation gradient.
             eta: The coefficient of the gradient update. Increasing this value
-                         results in larger step sizes: param = previous_param - eta * deriv
+                 results in larger step sizes: param = previous_param - eta * deriv
             tol: The convergence criteria that must be reached before stopping.
-                         Optimization stops when: absolute(loss - previous_loss) < tol
-            disp: Set to true to display convergence messages.
+                 Optimization stops when: absolute(loss - previous_loss) < tol
+            disp: Set to True to display convergence messages.
             momentum: Bias towards the previous gradient momentum in current update.
-                              Must be within the bounds: [0,1)
+                      Must be within the bounds: [0,1)
 
         """
         validate_range_exclusive_max('momentum', momentum, 0, 1)
