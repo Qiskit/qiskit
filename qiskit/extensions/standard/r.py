@@ -21,7 +21,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
 
 
 class RGate(Gate):
@@ -35,6 +34,7 @@ class RGate(Gate):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
+        from qiskit.extensions.standard.u3 import U3Gate
         definition = []
         q = QuantumRegister(1, "q")
         theta = self.params[0]

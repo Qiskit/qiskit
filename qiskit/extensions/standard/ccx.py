@@ -16,79 +16,9 @@
 Toffoli gate. Controlled-Controlled-X.
 """
 
-import numpy
+import warnings
+# pylint: disable=unused-import
+from qiskit.extensions.standard.x import ToffoliGate, ccx
 
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TdgGate
-
-
-class ToffoliGate(ControlledGate):
-    """Toffoli gate."""
-
-    def __init__(self):
-        """Create new Toffoli gate."""
-        super().__init__("ccx", 3, [], num_ctrl_qubits=2)
-        self.base_gate = XGate
-        self.base_gate_name = "x"
-
-    def _define(self):
-        """
-        gate ccx a,b,c
-        {
-        h c; cx b,c; tdg c; cx a,c;
-        t c; cx b,c; tdg c; cx a,c;
-        t b; t c; h c; cx a,b;
-        t a; tdg b; cx a,b;}
-        """
-        definition = []
-        q = QuantumRegister(3, "q")
-        rule = [
-            (HGate(), [q[2]], []),
-            (CnotGate(), [q[1], q[2]], []),
-            (TdgGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[2]], []),
-            (TGate(), [q[2]], []),
-            (CnotGate(), [q[1], q[2]], []),
-            (TdgGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[2]], []),
-            (TGate(), [q[1]], []),
-            (TGate(), [q[2]], []),
-            (HGate(), [q[2]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (TGate(), [q[0]], []),
-            (TdgGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
-
-    def inverse(self):
-        """Invert this gate."""
-        return ToffoliGate()  # self-inverse
-
-    def to_matrix(self):
-        """Return a Numpy.array for the Toffoli gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
-
-
-def ccx(self, ctl1, ctl2, tgt):
-    """Apply Toffoli to ctl1 and ctl2 to tgt."""
-    return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
-
-
-QuantumCircuit.ccx = ccx
-QuantumCircuit.toffoli = ccx
+warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py',
+              category=DeprecationWarning, stacklevel=2)
