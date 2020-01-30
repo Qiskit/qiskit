@@ -266,6 +266,7 @@ class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
         else:
             self.mid_format = "┤{} %s ├".format(self.wire_label)
 
+
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
@@ -774,23 +775,22 @@ class TextDrawing():
 
     @staticmethod
     def controlled_wires(instruction, layer):
-        allargs = set(instruction.qargs)
-        ctrl_qubits = set(instruction.qargs[:instruction.op.num_ctrl_qubits])
-        args = allargs - ctrl_qubits
+        ctrl_qubits = instruction.qargs[:instruction.op.num_ctrl_qubits]
+        args_qubits = instruction.qargs[instruction.op.num_ctrl_qubits:]
 
-        if len(args) <= 1:
-            return (ctrl_qubits, set(), args - ctrl_qubits)
+        if len(args_qubits) <= 1:
+            return (ctrl_qubits, list(), args_qubits)
 
-        in_box = set()
-        out_box = set()
-        qubit_index = sorted([i for i, x in enumerate(layer.qregs) if x in args])
+        in_box = list()
+        out_box = list()
+        qubit_index = sorted([i for i, x in enumerate(layer.qregs) if x in args_qubits])
 
         for ctrl_qubit in ctrl_qubits:
             if min(qubit_index) <= layer.qregs.index(ctrl_qubit) <= max(qubit_index):
-                in_box.add(ctrl_qubit)
+                in_box.append(ctrl_qubit)
             else:
-                out_box.add(ctrl_qubit)
-        return (out_box, in_box, args - out_box - in_box)
+                out_box.append(ctrl_qubit)
+        return (out_box, in_box, args_qubits)
 
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
