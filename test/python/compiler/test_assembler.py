@@ -810,7 +810,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
         assembled_acquire = n_qobj.experiments[0].instructions[0]
         self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
-        self.assertEqual(assembled_acquire.mem_slots, [0, 1, 2, 3, 4])
+        self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
 
 
 if __name__ == '__main__':
