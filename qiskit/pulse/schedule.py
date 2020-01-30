@@ -324,17 +324,28 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)]
             intervals: For example, [Interval(0, 5), Interval(6, 10)]
         """
-        def only_channels(channels: Set[Channel]) -> Callable:
+
+        def if_scalar_cast_to_list(to_list):
+            return_ls = []
+            if str(type(to_list)) != "<class 'list'>":
+                return_ls.append(to_list)
+                return return_ls
+            return to_list
+
+        def only_channels(channels: Channel) -> Callable:
+            channels = if_scalar_cast_to_list(channels)
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
+            types = if_scalar_cast_to_list(types)
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
+            ranges = if_scalar_cast_to_list(ranges)
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
                     if all([(i.start <= ts.interval.shift(time_inst[0]).start
@@ -346,10 +357,11 @@ class Schedule(ScheduleComponent):
 
         filter_func_list = list(filter_funcs)
         if channels is not None:
-            filter_func_list.append(only_channels(set(channels)))
+            filter_func_list.append(only_channels(channels))
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
+            time_ranges = if_scalar_cast_to_list(time_ranges)
             filter_func_list.append(
                 only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals is not None:
