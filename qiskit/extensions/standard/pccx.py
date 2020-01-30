@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,24 +11,34 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""The 2-control relative-phase Toffoli gate."""
+
+"""The simplified Toffoli gate."""
+
 import numpy
 
-from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
-class PCCXGate(ControlledGate):
-    """The 2-control relative-phase Toffoli gate."""
+class PCCXGate(Gate):
+    """The simplified Toffoli gate.
+
+    The simplified Toffoli gate implements the Toffoli gate up to relative phases.
+    This implementation requires three CX gates which is the minimal amount possible,
+    as shown in https://arxiv.org/abs/quant-ph/0312225.
+    Note, that the simplified Toffoli is not equivalent to the Toffoli. But can be used in places
+    where the Toffoli gate is uncomputed again.
+
+    This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
+    of Fig. 3.
+    """
 
     def __init__(self):
         """Create a new PCCX gate."""
-        super().__init__('pccx', 3, [], num_ctrl_qubits=2)
-        self.base_gate = None
-        self.base_gate_name = None
+        super().__init__('pccx', 3, [])
 
     def _define(self):
         """
@@ -74,10 +84,7 @@ class PCCXGate(ControlledGate):
 
 
 def pccx(self, ctl1, ctl2, tgt):
-    """Apply the 2-Control Relative-Phase Toffoli gate.
-
-    The implementation is based on https://arxiv.org/pdf/1508.03273.pdf Figure 3.
-    """
+    """Apply the simplified Toffoli gate."""
     return self.append(PCCXGate(), [ctl1, ctl2, tgt], [])
 
 

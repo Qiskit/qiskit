@@ -11,24 +11,32 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""The 3-control relative-phase Toffoli gate."""
+
+"""The simplified 3-controlled Toffoli gate."""
+
 import numpy
 
-from qiskit.circuit import QuantumCircuit, ControlledGate, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
-class PCCCXGate(ControlledGate):
-    """The 3-control relative-phase Toffoli gate."""
+class PCCCXGate(Gate):
+    """The simplified 3-controlled Toffoli gate.
+
+    The simplified Toffoli gate implements the Toffoli gate up to relative phases.
+    Note, that the simplified Toffoli is not equivalent to the Toffoli. But can be used in places
+    where the Toffoli gate is uncomputed again.
+
+    This concrete implementation is from https://arxiv.org/abs/1508.03273, the complete circuit
+    of Fig. 4.
+    """
 
     def __init__(self):
         """Create a new PCCCX gate."""
-        super().__init__('pcccx', 4, [], num_ctrl_qubits=3)
-        self.base_gate = None
-        self.base_gate_name = None
+        super().__init__('pcccx', 4, [])
 
     def _define(self):
         """
@@ -101,10 +109,7 @@ class PCCCXGate(ControlledGate):
 
 
 def pcccx(self, ctl1, ctl2, ctl3, tgt):
-    """Apply 3-Control Relative-Phase Toffoli gate.
-
-    The implementation is based on https://arxiv.org/pdf/1508.03273.pdf Figure 4.
-    """
+    """Apply the simplified 3-control Toffoli gate."""
     return self.append(PCCCXGate(), [ctl1, ctl2, ctl3, tgt], [])
 
 
