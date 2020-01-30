@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Add state measure functions to the ``quantum_info`` module for ``entropy``,
+    ``mutual_information``, ``concurrence``, and ``entanglement_of_formation``.
+    These functions work with the ``Statevector`` and ``DensityMatrix`` classes.
+
+deprecations:
+  - |
+    Deprecates everything in the legacy `tools.qi.qi.py` file, and
+    `quantum_info.states.states.py` file. These legacy functions have all been
+    superseded by functions and classes in the ``quantum_info`` module.
