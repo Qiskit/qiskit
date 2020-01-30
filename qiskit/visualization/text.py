@@ -259,10 +259,12 @@ class BoxOnWireMid(MultiBox):
 class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
     """ Draws the middle part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length, order, wire_label=''):
+    def __init__(self, label, input_length, order, wire_label='', control_label=False):
         super().__init__(label, input_length, order, wire_label=wire_label)
-        self.mid_format = "┤{} %s ├".format(self.wire_label)
-
+        if control_label:
+            self.mid_format = "■{} %s ├".format(self.wire_label)
+        else:
+            self.mid_format = "┤{} %s ├".format(self.wire_label)
 
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
@@ -297,7 +299,7 @@ class BoxOnClWireTop(MultiBox, BoxOnClWire):
 class BoxOnClWireMid(BoxOnWireMid, BoxOnClWire):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label, input_length, order, wire_label=''):
+    def __init__(self, label, input_length, order, wire_label='', control_label=False):
         super().__init__(label, input_length, order, wire_label=wire_label)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
 
@@ -1034,7 +1036,6 @@ class Layer:
             self.set_clbit(clbits.pop(0),
                            BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
             return
-
         if qubits is None and clbits is not None:
             bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
@@ -1058,12 +1059,16 @@ class Layer:
         else:
             raise VisualizationError("_set_multibox error!.")
 
+        if controlled_edge:
+            control_index = [i for i, x in enumerate(self.qregs) if x in controlled_edge]
+        else:
+            control_index = []
+
         if len(bit_index) == 1:
             set_bit(bits[0], OnWire(label, top_connect=top_connect))
         else:
             box_height = max(bit_index) - min(bit_index) + 1
-            set_bit(bits.pop(0),
-                    OnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
+            set_bit(bits.pop(0), OnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
             for order, bit_i in enumerate(range(min(bit_index) + 1, max(bit_index))):
                 if bit_i in bit_index:
                     named_bit = bits.pop(0)
@@ -1071,7 +1076,8 @@ class Layer:
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
-                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label))
+                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,
+                                             control_label=bit_i in control_index))
             set_bit(bits.pop(0), OnWireBot(label, box_height, wire_label=qargs.pop(0),
                                            conditional=conditional))
 
