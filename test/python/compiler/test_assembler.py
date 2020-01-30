@@ -391,7 +391,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_multi_schedules_without_lo_config(self):
         """Test assembling schedules, no lo config."""
@@ -405,7 +405,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config(self):
         """Test assembling a single schedule, with a single lo config."""
@@ -420,7 +420,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
         """Test assembling a single schedule, with a single lo config supplied as dictionary."""
@@ -435,7 +435,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
         """Test assembling a single schedule, with lo configs (frequency sweep)."""
@@ -449,7 +449,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
         self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
@@ -466,7 +466,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
         self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
