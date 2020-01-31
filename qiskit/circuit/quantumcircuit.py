@@ -1092,9 +1092,6 @@ class QuantumCircuit:
         cpy = deepcopy(self)
         if name:
             cpy.name = name
-        else:
-            self._increment_instances()
-            cpy.name = self.cls_prefix() + str(self.cls_instances())
         return cpy
 
     def _create_creg(self, length, name):
@@ -1256,6 +1253,9 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
+        self._increment_instances()
+        new_circuit.name = self.cls_prefix() + str(self.cls_instances())
+
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         if unrolled_value_dict.keys() > self.parameters:
