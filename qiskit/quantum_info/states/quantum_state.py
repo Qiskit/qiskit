@@ -60,7 +60,10 @@ class QuantumState(ABC):
         """
         Generate a LaTeX representation of the Quantum State.
 
+        This file is part of QuTiP: Quantum Toolbox in Python.
+
         Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+        All rights reserved.
         """
         shape = self._data.shape
         atol = 1e-15
