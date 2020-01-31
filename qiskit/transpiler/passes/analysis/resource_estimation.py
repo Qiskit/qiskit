@@ -15,12 +15,12 @@
 """Automatically require analysis passes for resource estimation."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.passes.depth import Depth
-from qiskit.transpiler.passes.width import Width
-from qiskit.transpiler.passes.size import Size
-from qiskit.transpiler.passes.count_ops import CountOps
-from qiskit.transpiler.passes.num_tensor_factors import NumTensorFactors
-from qiskit.transpiler.passes.num_qubits import NumQubits
+from qiskit.transpiler.passes.analysis.depth import Depth
+from qiskit.transpiler.passes.analysis.width import Width
+from qiskit.transpiler.passes.analysis.size import Size
+from qiskit.transpiler.passes.analysis.count_ops import CountOps
+from qiskit.transpiler.passes.analysis.num_tensor_factors import NumTensorFactors
+from qiskit.transpiler.passes.analysis.num_qubits import NumQubits
 
 
 class ResourceEstimation(AnalysisPass):

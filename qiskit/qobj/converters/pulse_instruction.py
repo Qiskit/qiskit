@@ -17,12 +17,26 @@
 import re
 import warnings
 
+from enum import Enum
+
 from qiskit.pulse import commands, channels
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
+
+
+class ParametricPulseShapes(Enum):
+    """Map the assembled pulse names to the pulse module commands.
+
+    The enum name is the transport layer name for pulse shapes, the
+    value is its mapping to the OpenPulse Command in Qiskit.
+    """
+    gaussian = commands.Gaussian
+    gaussian_square = commands.GaussianSquare
+    drag = commands.Drag
+    constant = commands.ConstantPulse
 
 
 class ConversionMethodBinder:
@@ -76,7 +90,7 @@ class InstructionToQobjConverter:
             def convert_custom_command(self, shift, instruction):
                 command_dict = {
                     'name': 'custom_command',
-                    't0': shift+instruction.start_time,
+                    't0': shift + instruction.start_time,
                     'param1': instruction.param1,
                     'param2': instruction.param2
                 }
@@ -118,7 +132,7 @@ class InstructionToQobjConverter:
 
         command_dict = {
             'name': 'acquire',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'duration': instruction.duration,
             'qubits': [q.index for q in instruction.acquires],
             'memory_slot': [m.index for m in instruction.mem_slots]
@@ -162,7 +176,7 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'fc',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'phase': instruction.command.phase
         }
@@ -178,9 +192,11 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+                      "instead.", DeprecationWarning)
         command_dict = {
             'name': 'pv',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'val': instruction.command.value
         }
@@ -198,8 +214,27 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': instruction.command.name,
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(commands.ParametricInstruction)
+    def convert_parametric(self, shift, instruction):
+        """Return the converted `ParametricInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (ParametricInstruction): An instance of a ParametricInstruction subclass.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'parametric_pulse',
+            'pulse_shape': ParametricPulseShapes(type(instruction.command)).name,
+            't0': shift + instruction.start_time,
+            'ch': instruction.channels[0].name,
+            'parameters': instruction.command.parameters
         }
         return self._qobj_model(**command_dict)
 
@@ -215,7 +250,7 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'snapshot',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'label': instruction.label,
             'type': instruction.type
         }
@@ -288,7 +323,7 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
-        qubit_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
+        acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
 
         mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
 
@@ -296,7 +331,7 @@ class QobjToInstructionConverter:
             register_slots = [channels.RegisterSlot(instruction.register_slot[i])
                               for i in range(len(qubits))]
         else:
-            register_slots = None
+            register_slots = [None] * len(qubits)
 
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
@@ -323,8 +358,9 @@ class QobjToInstructionConverter:
 
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
-        schedule |= commands.AcquireInstruction(cmd, qubit_channels, mem_slots,
-                                                register_slots) << t0
+
+        for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
+            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
 
         return schedule
 
@@ -400,6 +436,20 @@ class QobjToInstructionConverter:
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
             return pulse(channel) << t0
+
+    @bind_name('parametric_pulse')
+    def convert_parametric(self, instruction):
+        """Return the ParametricPulse implementation that is described by the instruction.
+
+        Args:
+            instruction (PulseQobjInstruction): pulse qobj
+        Returns:
+            Schedule: Schedule containing the converted pulse
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        command = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+        return command(channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):

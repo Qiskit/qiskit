@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added ``partial_trace`` function to ``qiskit.quantum_info`` that works with
+    ``Statevector`` and ``DensityMatrix`` quantum state classes.
+deprecations:
+  - |
+    Deprecated ``qiskit.tools.qi.partial_trace`` function. Use the new function
+    ``qiskit.quantum_info.partial_trace`` instead.
