@@ -661,10 +661,13 @@ class ScheduleDrawer:
                                  t0, tf, dt, scale_dict, label=label,
                                  framechange=framechange)
 
-        self._draw_snapshots(ax, snapshot_channels, dt, y0)
+        y_ub = 0.5 + self.style.vertical_span
+        y_lb = y0 + 0.5 - self.style.vertical_span
+
+        self._draw_snapshots(ax, snapshot_channels, dt, y_lb)
 
         ax.set_xlim(t0 * dt, tf * dt)
-        ax.set_ylim(y0 + 0.5 - self.style.vertical_span, 0.5 + self.style.vertical_span)
+        ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
 
         return figure
