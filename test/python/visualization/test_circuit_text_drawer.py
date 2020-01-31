@@ -1774,6 +1774,20 @@ class TestTextControlledGate(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_controlled_composite_gate_bot(self):
+        """Controlled composite gates (bottom) """
+        expected = '\n'.join([])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        cghz = ghz.control(1)
+        circuit = QuantumCircuit(4)
+        circuit.append(cghz, [3, 1, 0, 2])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
