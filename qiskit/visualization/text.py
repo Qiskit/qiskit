@@ -828,7 +828,7 @@ class TextDrawing():
         def add_connected_gate(instruction, gates, layer, current_cons):
             for i, gate in enumerate(gates):
                 actual_index = self.qregs.index(instruction.qargs[i])
-                if actual_index not in [ i for i,j in current_cons]:
+                if actual_index not in [i for i, j in current_cons]:
                     layer.set_qubit(instruction.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
@@ -931,10 +931,10 @@ class TextDrawing():
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
                 indexes = layer.set_qu_multibox(rest, label,
-                                      conditional=conditional,
-                                      controlled_edge=controlled_edge,
-                                      top_connect=top_connect, bot_connect=bot_connect)
-                for index in range(min(indexes), max(indexes)+1):
+                                                conditional=conditional,
+                                                controlled_edge=controlled_edge,
+                                                top_connect=top_connect, bot_connect=bot_connect)
+                for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
             else:
@@ -1061,7 +1061,7 @@ class Layer:
                                                          wire_label=wire_label))
             self.set_clbit(clbits.pop(0),
                            BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
-            return
+            return cbit_index
         if qubits is None and clbits is not None:
             bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
@@ -1126,11 +1126,16 @@ class Layer:
         Args:
             bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
+            top_connect (char): None or a char connector on the top
+            bot_connect (char): None or a char connector on the bottom
             conditional (bool): If the box has a conditional
             controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
+        Return:
+            List: A list of indexes of the box.
         """
-        return self._set_multibox(label, qubits=bits, top_connect=top_connect, bot_connect=bot_connect,
-                           conditional=conditional, controlled_edge=controlled_edge)
+        return self._set_multibox(label, qubits=bits, top_connect=top_connect,
+                                  bot_connect=bot_connect,
+                                  conditional=conditional, controlled_edge=controlled_edge)
 
     def connect_with(self, wire_char):
         """Connects the elements in the layer using wire_char.
