@@ -230,6 +230,7 @@ def _validate_meas_map(instruction_map, meas_map):
                 raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
                                   'in measurement map: {1}'.format(measured_qubits, meas_set))
 
+
 def _bundle_channel_indices(instructions):
     """From the list of AcquireInstructions, bundle the indices of the acquire channels,
     memory slots, and register slots into a 3-tuple of lists."""
