@@ -1092,6 +1092,9 @@ class QuantumCircuit:
         cpy = deepcopy(self)
         if name:
             cpy.name = name
+        else:
+            self._increment_instances()
+            cpy.name = self.cls_prefix() + str(self.cls_instances())
         return cpy
 
     def _create_creg(self, length, name):
