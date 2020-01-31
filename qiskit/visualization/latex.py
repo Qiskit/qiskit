@@ -23,6 +23,7 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
@@ -242,6 +243,8 @@ class QCircuitImage:
                     self.has_box = True
                 if op.name in target_gates:
                     self.has_target = True
+                if isinstance(op.op, ControlledGate):
+                    self.has_target = True
 
         for layer in self.ops:
 
@@ -369,8 +372,41 @@ class QCircuitImage:
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
-                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                   'save', 'noise']:
+                if isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'cswap']:
+                    qarglist = op.qargs
+                    name = generate_latex_label(
+                        op.op.base_gate_name.upper()).replace(" ", "\\,")
+                    pos_array = []
+                    for ctrl in range(len(qarglist)):
+                        pos_array.append(self.img_regs[qarglist[ctrl]])
+
+                    if op.condition:
+                        mask = self._get_mask(op.condition[0])
+                        cl_reg = self.clbit_list[self._ffs(mask)]
+                        if_reg = cl_reg.register
+                        pos_cond = self.img_regs[if_reg[0]]
+                        temp = pos_array + [pos_cond]
+                        temp.sort(key=int)
+                        bottom = temp[len(pos_array) - 1]
+                        gap = pos_cond - bottom
+                        for i in range(self.cregs[if_reg]):
+                            if if_value[i] == '1':
+                                self._latex[pos_cond + i][column] = \
+                                    "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                            else:
+                                self._latex[pos_cond + i][column] = \
+                                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                    for index, pos in enumerate(pos_array[:-1]):
+                        self._latex[pos][column] = "\\ctrl{" + str(
+                            index + 1 - index) + "}"
+                    self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+
+                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
+                                     'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
