@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 """
 Abstract QuantumState class.
@@ -89,9 +90,9 @@ class QuantumState(ABC):
             else:
                 return "%.3f" % value
 
-        def _format_element(m, n, d):
+        def _format_element(_, n, d):
             s = " & " if n > 0 else ""
-            if type(d) == str:
+            if isinstance(d, str):
                 return s + d
             else:
                 if abs(np.imag(d)) < atol:
@@ -102,9 +103,9 @@ class QuantumState(ABC):
                     s_re = _format_float(np.real(d))
                     s_im = _format_float(np.imag(d))
                     if np.imag(d) > 0.0:
-                        return (s + "(" + s_re + "+" + s_im + "j)")
+                        return s + "(" + s_re + "+" + s_im + "j)"
                     else:
-                        return (s + "(" + s_re + s_im + "j)")
+                        return s + "(" + s_re + s_im + "j)"
 
         if M > 10 and N > 10:
             # truncated matrix output
