@@ -41,7 +41,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     wait time (to allow for calibration pulses) is enforced.
 
     This is only defined for schedules that are acquire-less or acquire-final per channel: a
-    schedule with pulses or acquires occuring on a channel which has already had a measurement will
+    schedule with pulses or acquires occurring on a channel which has already had a measurement will
     throw an error.
 
     Args:
@@ -94,7 +94,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for schedule in schedules:
-        new_schedule = Schedule()
+        new_schedule = Schedule(name=schedule.name)
         acquired_channels = set()
         measured_channels = set()
 
@@ -102,7 +102,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
             for chan in inst.channels:
                 if isinstance(chan, MeasureChannel):
                     if chan.index in measured_channels:
-                        raise PulseError("Muliple measurements are not supported by this "
+                        raise PulseError("Multiple measurements are not supported by this "
                                          "rescheduling pass.")
                 elif chan.index in acquired_channels:
                     raise PulseError("Pulse encountered on channel {0} after acquire on "
@@ -140,12 +140,14 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
         Schedule
     """
     new_schedule = Schedule(name=schedule.name)
+    acquire_map = dict()
 
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
+
             cmd = Acquire(inst.duration, inst.command.discriminator, inst.command.kernel)
             # Get the label of all qubits that are measured with the qubit(s) in this instruction
             existing_qubits = {chan.index for chan in inst.acquires}
@@ -155,10 +157,14 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
                     all_qubits.extend(sublist)
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
-            new_schedule |= AcquireInstruction(
-                cmd,
-                [AcquireChannel(i) for i in all_qubits],
-                [MemorySlot(i) for i in all_qubits]) << time
+            for i in all_qubits:
+                explicit_inst = AcquireInstruction(cmd, AcquireChannel(i), MemorySlot(i)) << time
+                if time not in acquire_map:
+                    new_schedule |= explicit_inst
+                    acquire_map = {time: {i}}
+                elif i not in acquire_map[time]:
+                    new_schedule |= explicit_inst
+                    acquire_map[time].add(i)
         else:
             new_schedule |= inst << time
 
