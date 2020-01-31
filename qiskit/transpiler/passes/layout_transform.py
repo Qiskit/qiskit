@@ -72,6 +72,7 @@ class LayoutTransformation(TransformationPass):
         if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        edge_map = {self.initial_layout.get_physical_bits()[pqubit]: vqubit
+        edge_map = {vqubit: self.initial_layout.get_physical_bits()[pqubit]
                     for (pqubit, vqubit) in self.permutation_circuit.inputmap.items()}
-        return dag.extend_back(self.permutation_circuit.circuit, edge_map=edge_map)
+        dag.compose_back(self.permutation_circuit.circuit, edge_map=edge_map)
+        return dag
