@@ -111,6 +111,8 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             if isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
+                # Acquires have a single AcquireChannel per inst, but we have to bundle them
+                # together into the Qobj as one instruction with many channels
                 acquire_instruction_map[(shift, instruction.command)].append(instruction)
                 continue
 
@@ -124,13 +126,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             if meas_map:
                 _validate_meas_map(acquire_instruction_map, meas_map)
             for (shift, _), instructions in acquire_instruction_map.items():
-                qubits = []
-                mem_slots = []
-                reg_slots = []
-                for inst in instructions:
-                    qubits.extend(aq.index for aq in inst.acquires)
-                    mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
-                    reg_slots.extend(reg.index for reg in inst.reg_slots)
+                qubits, mem_slots, reg_slots = _bundle_channel_indices(instructions)
                 qobj_instructions.append(
                     instruction_converter.convert_single_acquires(
                         shift, instructions[0],
@@ -233,3 +229,15 @@ def _validate_meas_map(instruction_map, meas_map):
             if intersection and intersection != meas_set:
                 raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
                                   'in measurement map: {1}'.format(measured_qubits, meas_set))
+
+def _bundle_channel_indices(instructions):
+    """From the list of AcquireInstructions, bundle the indices of the acquire channels,
+    memory slots, and register slots into a 3-tuple of lists."""
+    qubits = []
+    mem_slots = []
+    reg_slots = []
+    for inst in instructions:
+        qubits.extend(aq.index for aq in inst.acquires)
+        mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
+        reg_slots.extend(reg.index for reg in inst.reg_slots)
+    return qubits, mem_slots, reg_slots
