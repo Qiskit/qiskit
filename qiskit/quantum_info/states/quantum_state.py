@@ -71,8 +71,8 @@ class QuantumState(ABC):
 
         s += ("{} ".format(self.rep) +
               "dims = {}".format(str(self._dims)) +
-              ", shape = {}".format(str(shape))
-             )
+              ", shape = {}".format(str(shape)))
+
         if len(shape) == 2:
             M, N = shape
             flat = False
