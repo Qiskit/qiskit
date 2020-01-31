@@ -135,7 +135,7 @@ class QuantumState(ABC):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M > 10 and N <= 10:
+        elif M > 10 and N <= 10: # pylint: disable=chained-comparison
             # truncated vertically elongated matrix output
             for m in range(5):
                 for n in range(N):
@@ -155,7 +155,7 @@ class QuantumState(ABC):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M <= 10 and N > 10:
+        elif M <= 10 and N > 10: # pylint: disable=chained-comparison
             # truncated horizontally elongated matrix output
             for m in range(M):
                 for n in range(5):
