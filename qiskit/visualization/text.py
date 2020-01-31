@@ -794,6 +794,7 @@ class TextDrawing():
         """
         ctrl_qubits = instruction.qargs[:instruction.op.num_ctrl_qubits]
         args_qubits = instruction.qargs[instruction.op.num_ctrl_qubits:]
+
         in_box = list()
         top_box = list()
         bot_box = list()
@@ -928,10 +929,13 @@ class TextDrawing():
             if len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
-                layer.set_qu_multibox(rest, label,
+                indexes = layer.set_qu_multibox(rest, label,
                                       conditional=conditional,
                                       controlled_edge=controlled_edge,
                                       top_connect=top_connect, bot_connect=bot_connect)
+                for index in indexes:
+                    # Dummy element to connect the multibox with the bullets
+                    current_cons.append((index, DrawElement('')))
             else:
                 gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
@@ -1101,6 +1105,7 @@ class Layer:
                                              control_label=bit_i in control_index))
             set_bit(bits.pop(0), OnWireBot(label, box_height, bot_connect=bot_connect,
                                            wire_label=qargs.pop(0), conditional=conditional))
+        return bit_index
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
         """Sets the multi clbit box.
@@ -1123,7 +1128,7 @@ class Layer:
             conditional (bool): If the box has a conditional
             controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
         """
-        self._set_multibox(label, qubits=bits, top_connect=top_connect, bot_connect=bot_connect,
+        return self._set_multibox(label, qubits=bits, top_connect=top_connect, bot_connect=bot_connect,
                            conditional=conditional, controlled_edge=controlled_edge)
 
     def connect_with(self, wire_char):

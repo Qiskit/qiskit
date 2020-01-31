@@ -1762,7 +1762,15 @@ class TestTextControlledGate(QiskitTestCase):
 
     def test_controlled_composite_gate_top(self):
         """Controlled composite gates (top) """
-        expected = '\n'.join([])
+        expected = '\n'.join(["                ",
+                              "q_0: |0>───■────",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤0     ├",
+                              "        │      │",
+                              "q_2: |0>┤2 Ghz ├",
+                              "        │      │",
+                              "q_3: |0>┤1     ├",
+                              "        └──────┘"])
         ghz_circuit = QuantumCircuit(3, name='ghz')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
@@ -1776,7 +1784,15 @@ class TestTextControlledGate(QiskitTestCase):
 
     def test_controlled_composite_gate_bot(self):
         """Controlled composite gates (bottom) """
-        expected = '\n'.join([])
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_0: |0>┤1     ├",
+                              "        │      │",
+                              "q_1: |0>┤0 Ghz ├",
+                              "        │      │",
+                              "q_2: |0>┤2     ├",
+                              "        └──┬───┘",
+                              "q_3: |0>───■────",
+                              "                "])
         ghz_circuit = QuantumCircuit(3, name='ghz')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
