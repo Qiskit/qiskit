@@ -18,7 +18,7 @@ from collections import defaultdict
 import numpy as np
 from scipy.linalg import sqrtm
 
-from qiskit.tools.qi.qi import partial_trace
+from qiskit.quantum_info.states import partial_trace
 
 
 def get_subsystem_density_matrix(statevector, trace_systems):
@@ -33,7 +33,7 @@ def get_subsystem_density_matrix(statevector, trace_systems):
         numpy.ndarray: The reduced density matrix for the desired subsystem
     """
     rho = np.outer(statevector, np.conj(statevector))
-    rho_sub = partial_trace(rho, trace_systems)
+    rho_sub = partial_trace(rho, trace_systems).data
     return rho_sub
 
 
@@ -51,7 +51,7 @@ def get_subsystem_fidelity(statevector, trace_systems, subsystem_state):
         numpy.ndarray: The subsystem fidelity
     """
     rho = np.outer(np.conj(statevector), statevector)
-    rho_sub = partial_trace(rho, trace_systems)
+    rho_sub = partial_trace(rho, trace_systems).data
     rho_sub_in = np.outer(np.conj(subsystem_state), subsystem_state)
     fidelity = np.trace(
         sqrtm(
