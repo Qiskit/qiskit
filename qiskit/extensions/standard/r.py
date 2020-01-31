@@ -21,20 +21,20 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
 
 
 class RGate(Gate):
     """Rotation θ around the cos(φ)x + sin(φ)y axis."""
 
     def __init__(self, theta, phi):
-        """Create new r single qubit gate."""
+        """Create new r single-qubit gate."""
         super().__init__("r", 1, [theta, phi])
 
     def _define(self):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
+        from qiskit.extensions.standard.u3 import U3Gate
         definition = []
         q = QuantumRegister(1, "q")
         theta = self.params[0]

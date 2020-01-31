@@ -12,20 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,unsupported-assignment-operation
 """
-A collection of useful quantum information functions.
+A collection of DEPRECATED quantum information functions.
 
-Currently this file is very sparse. More functions will be added
-over time.
+Please see the `qiskit.quantum_info` module for replacements.
 """
 
+import warnings
 import math
 import numpy as np
 import scipy.linalg as la
 
 from qiskit.quantum_info import pauli_group
-
 
 ###############################################################
 # circuit manipulation.
@@ -35,6 +34,9 @@ from qiskit.quantum_info import pauli_group
 # Define methods for making QFT circuits
 def qft(circ, q, n):
     """n-qubit QFT on q in circ."""
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     for j in range(n):
         for k in range(j):
             circ.cu1(math.pi / float(2**(j - k)), q[j], q[k])
@@ -69,12 +71,16 @@ def partial_trace(state, trace_systems, dimensions=None, reverse=True):
     Raises:
         Exception: if input is not a multi-qubit state.
     """
-    state = np.array(state)  # convert op to density matrix
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.partial_trace` function',
+        DeprecationWarning)
 
     if dimensions is None:  # compute dims if not specified
         num_qubits = int(np.log2(len(state)))
         dimensions = [2 for _ in range(num_qubits)]
-        if len(state) != 2 ** num_qubits:
+        if len(state) != 2**num_qubits:
             raise Exception("Input is not a multi-qubit state, "
                             "specify input state dims")
     else:
@@ -163,12 +169,14 @@ def __partial_trace_mat(mat, trace_systems, dimensions, reverse=True):
 
         # Reshape input array into tri-partite system with system to be
         # traced as the middle index
-        mat = mat.reshape([dimension_left, dimension_trace, dimension_right,
-                           dimension_left, dimension_trace, dimension_right])
+        mat = mat.reshape([
+            dimension_left, dimension_trace, dimension_right, dimension_left,
+            dimension_trace, dimension_right
+        ])
         # trace out the middle system and reshape back to a matrix
-        mat = mat.trace(axis1=1, axis2=4).reshape(
-            dimension_left * dimension_right,
-            dimension_left * dimension_right)
+        mat = mat.trace(axis1=1,
+                        axis2=4).reshape(dimension_left * dimension_right,
+                                         dimension_left * dimension_right)
     return mat
 
 
@@ -189,6 +197,9 @@ def vectorize(density_matrix, method='col'):
     Raises:
         Exception: if input state is not a n-qubit state
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     density_matrix = np.array(density_matrix)
     if method == 'col':
         return density_matrix.flatten(order='F')
@@ -202,8 +213,9 @@ def vectorize(density_matrix, method='col'):
             pgroup = pauli_group(num, case='weight')
         else:
             pgroup = pauli_group(num, case='tensor')
-        vals = [np.trace(np.dot(p.to_matrix(), density_matrix))
-                for p in pgroup]
+        vals = [
+            np.trace(np.dot(p.to_matrix(), density_matrix)) for p in pgroup
+        ]
         return np.array(vals)
     return None
 
@@ -225,6 +237,9 @@ def devectorize(vectorized_mat, method='col'):
     Raises:
         Exception: if input state is not a n-qubit state
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.',
+        DeprecationWarning)
     vectorized_mat = np.array(vectorized_mat)
     dimension = int(np.sqrt(vectorized_mat.size))
     if len(vectorized_mat) != dimension * dimension:
@@ -236,13 +251,13 @@ def devectorize(vectorized_mat, method='col'):
         return vectorized_mat.reshape(dimension, dimension, order='C')
     elif method in ['pauli', 'pauli_weights']:
         num_qubits = int(np.log2(dimension))  # number of qubits
-        if dimension != 2 ** num_qubits:
+        if dimension != 2**num_qubits:
             raise Exception('Input state must be n-qubit state')
         if method == 'pauli_weights':
             pgroup = pauli_group(num_qubits, case='weight')
         else:
             pgroup = pauli_group(num_qubits, case='tensor')
-        pbasis = np.array([p.to_matrix() for p in pgroup]) / 2 ** num_qubits
+        pbasis = np.array([p.to_matrix() for p in pgroup]) / 2**num_qubits
         return np.tensordot(vectorized_mat, pbasis, axes=1)
     return None
 
@@ -272,6 +287,10 @@ def choi_to_pauli(choi, order=1):
     Returns:
         np.array: A superoperator in the Pauli basis.
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.'
+        ' Use the `quantum_info.Choi` and `quantum_info.PTM` quantum channel'
+        ' classes for similar functionality', DeprecationWarning)
     if order == 0:
         order = 'weight'
     elif order == 1:
@@ -285,7 +304,7 @@ def choi_to_pauli(choi, order=1):
         for j in pgp:
             pauliop = np.kron(j.to_matrix().T, i.to_matrix())
             rauli += [np.trace(np.dot(choi, pauliop))]
-    return np.array(rauli).reshape(4 ** num_qubits, 4 ** num_qubits)
+    return np.array(rauli).reshape(4**num_qubits, 4**num_qubits)
 
 
 def chop(array, epsilon=1e-10):
@@ -299,6 +318,9 @@ def chop(array, epsilon=1e-10):
     Returns:
         np.array: A new operator with small values set to zero.
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.'
+        ' Use `numpy.round` for similar functionality.', DeprecationWarning)
     ret = np.array(array)
 
     if np.isrealobj(ret):
@@ -324,11 +346,16 @@ def outer(vector1, vector2=None):
         np.array: The matrix |v1><v2|.
 
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.'
+        ' Please use `numpy.outer` function for similar functionality.',
+        DeprecationWarning)
     if vector2 is None:
         vector2 = np.array(vector1).conj()
     else:
         vector2 = np.array(vector2).conj()
     return np.outer(vector1, vector2)
+
 
 ###############################################################
 # Measures.
@@ -346,6 +373,10 @@ def concurrence(state):
     Raises:
         Exception: if attempted on more than two qubits.
     """
+    warnings.warn(
+        'This function is deprecated and will be removed in a future release.'
+        ' It is superseded by the `quantum_info.concurrence` function.',
+        DeprecationWarning)
     rho = np.array(state)
     if rho.ndim == 1:
         rho = outer(state)
@@ -373,13 +404,21 @@ def shannon_entropy(pvec, base=2):
     Returns:
         float: The Shannon entropy H(pvec).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.shannon_entropy` function',
+        DeprecationWarning)
     if base == 2:
+
         def logfn(x):
-            return - x * np.log2(x)
+            return -x * np.log2(x)
     elif base == np.e:
+
         def logfn(x):
-            return - x * np.log(x)
+            return -x * np.log(x)
     else:
+
         def logfn(x):
             return -x * np.log(x) / np.log(base)
 
@@ -400,8 +439,12 @@ def entropy(state):
     Returns:
         float: The von-Neumann entropy S(rho).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.entropy` function.',
+        DeprecationWarning)
     # pylint: disable=assignment-from-no-return
-
     rho = np.array(state)
     if rho.ndim == 1:
         return 0
@@ -421,6 +464,11 @@ def mutual_information(state, d0, d1=None):
     Returns:
         float: The mutual information S(rho_A) + S(rho_B) - S(rho_AB).
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.mutual_information` function',
+        DeprecationWarning)
     if d1 is None:
         d1 = int(len(state) / d0)
     mi = entropy(partial_trace(state, [0], dimensions=[d0, d1]))
@@ -445,6 +493,11 @@ def entanglement_of_formation(state, d0, d1=None):
     Returns:
         float: The entanglement of formation.
     """
+    # DEPRECATED
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the `quantum_info.entanglement_of_formation` function.',
+        DeprecationWarning)
     state = np.array(state)
 
     if d1 is None:
@@ -487,4 +540,9 @@ def __eof_qubit(rho):
 
 def is_pos_def(x):
     """Return is_pos_def."""
+    warnings.warn(
+        'This function is deprecated and will be removed in the future.'
+        ' It is superseded by the '
+        '`quantum_info.operators.predicates.is_positive_semidefinite_matrix`'
+        ' function.', DeprecationWarning)
     return np.all(np.linalg.eigvals(x) > 0)
