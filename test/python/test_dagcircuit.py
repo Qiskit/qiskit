@@ -452,6 +452,7 @@ class TestDagOperations(QiskitTestCase):
 
     def test_topological_nodes(self):
         """The topological_nodes() method"""
+        self.maxDiff = None
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
@@ -475,7 +476,8 @@ class TestDagOperations(QiskitTestCase):
                     ('cr[0]', []),
                     ('cr[1]', []),
                     ('cr[1]', [])]
-        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
+        result = [(i.name, i.qargs) for i in named_nodes]
+        self.assertEqual(expected, result)
 
     def test_topological_op_nodes(self):
         """The topological_op_nodes() method"""
