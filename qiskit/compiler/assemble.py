@@ -36,6 +36,7 @@ def assemble(experiments,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
              meas_return=MeasReturnType.AVERAGE, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
+             parametric_pulses=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -113,7 +114,7 @@ def assemble(experiments,
         memory_slot_size (int):
             Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
+        rep_time (float): repetition time of the experiment in s.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
@@ -124,6 +125,10 @@ def assemble(experiments,
             executed across all experiments; e.g., if parameter_binds is a
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
+
+        parametric_pulses (list[str]):
+            A list of pulse shapes which are supported internally on the backend.
+            Example: ['gaussian', 'constant']
 
         **run_config (dict):
             extra arguments used to configure the run (e.g., for Aer configurable
@@ -157,6 +162,7 @@ def assemble(experiments,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
                                        meas_map, memory_slot_size, rep_time,
+                                       parametric_pulses,
                                        **run_config_common_dict)
 
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
@@ -219,7 +225,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     elif max_shots and max_shots < shots:
         raise QiskitError(
             'Number of shots specified: %s exceeds max_shots property of the '
-            'backend: %s. Reducing shots to max_shots' % (shots, max_shots))
+            'backend: %s.' % (shots, max_shots))
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
@@ -235,6 +241,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
                       memory_slot_size, rep_time,
+                      parametric_pulses,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
@@ -251,6 +258,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if backend:
         backend_default = backend.defaults()
         backend_config = backend.configuration()
+
         if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
             raise SchemaValidationError(
                 ('meas_level = {} not supported for backend {}, only {} is supported'
@@ -274,10 +282,15 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
-
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
+
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
+
+    if rep_time:
+        rep_time = int(rep_time * 1e6)
+
+    parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
@@ -290,6 +303,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
