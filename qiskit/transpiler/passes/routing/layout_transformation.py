@@ -14,10 +14,8 @@
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.general import ApproximateTokenSwapper
 
