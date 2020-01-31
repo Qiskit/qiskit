@@ -505,7 +505,7 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            edge_map (dict{Bit: Bit}): map from the input wires of
+            edge_map (dict): map {Bit: Bit} from the input wires of
                 input_circuit to output wires of self. The key and value
                 can either be of type Qubit or Clbit depending on the
                 type of the node.

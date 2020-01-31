@@ -30,8 +30,6 @@ from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.swap_trial import swap_trial
 
-from qiskit.converters import dag_to_circuit
-
 
 logger = getLogger(__name__)
 
@@ -271,13 +269,6 @@ class StochasticSwap(TransformationPass):
         for creg in layer_circuit.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        #print('compose lhs...')
-        #print(dag_to_circuit(dagcircuit_output))
-        #print('compose rhs...')
-        #print(dag_to_circuit(layer_circuit))
-        #print('edge_map')
-        #print(edge_map)
-
         dagcircuit_output.compose_back(layer_circuit, edge_map)
 
         return dagcircuit_output
@@ -390,8 +381,6 @@ class StochasticSwap(TransformationPass):
                                        best_circuit,
                                        layerlist),
                     identity_wire_map)
-            #print('dagcircuit_output...')
-            #print(dag_to_circuit(dagcircuit_output))
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
