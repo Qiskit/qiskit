@@ -827,9 +827,10 @@ class TextDrawing():
         # add in a gate that operates over multiple qubits
         def add_connected_gate(instruction, gates, layer, current_cons):
             for i, gate in enumerate(gates):
-                layer.set_qubit(instruction.qargs[i], gate)
                 actual_index = self.qregs.index(instruction.qargs[i])
-                current_cons.append((actual_index, gate))
+                if actual_index not in [ i for i,j in current_cons]:
+                    layer.set_qubit(instruction.qargs[i], gate)
+                    current_cons.append((actual_index, gate))
 
         if len(instruction.qargs) >= 2 and \
                 not instruction.cargs and \
@@ -924,7 +925,7 @@ class TextDrawing():
 
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            for _ in controlled_top + controlled_bot:
+            for _ in controlled_top + controlled_bot + controlled_edge:
                 gates.append(Bullet(conditional=conditional))
             if len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
@@ -933,7 +934,7 @@ class TextDrawing():
                                       conditional=conditional,
                                       controlled_edge=controlled_edge,
                                       top_connect=top_connect, bot_connect=bot_connect)
-                for index in indexes:
+                for index in range(min(indexes), max(indexes)+1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
             else:
