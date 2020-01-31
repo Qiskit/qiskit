@@ -78,7 +78,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
 
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate_name == 'x'):
+            operation.base_gate.name == 'x'):
         qc.mct(q_control[:] + q_target[:-1],
                q_target[-1],
                None,
@@ -126,13 +126,13 @@ def control(operation, num_ctrl_qubits=1, label=None):
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        base_name = operation.base_gate_name
+        base_name = operation.base_gate.name
         base_gate = operation.base_gate
-        base_gate_name = operation.base_gate_name
+        base_gate_name = operation.base_gate.name
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
-        base_gate = operation.__class__
+        base_gate = operation
         base_gate_name = operation.name
     # In order to maintain some backward compatibility with gate names this
     # uses a naming convention where if the number of controls is <=2 the gate
