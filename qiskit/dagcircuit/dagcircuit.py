@@ -23,6 +23,7 @@ composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
 import os
+import warnings
 from collections import OrderedDict
 import copy
 import itertools
@@ -478,8 +479,10 @@ class DAGCircuit:
         return new_condition
 
     def extend_back(self, dag, edge_map=None):
-        """Add `dag` at the end of `self`, using `edge_map`.
+        """DEPRECATED: Add `dag` at the end of `self`, using `edge_map`.
         """
+        warnings.warn("dag.extend_back is deprecated, please use dag.compose_back.",
+                      DeprecationWarning)
         edge_map = edge_map or {}
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
@@ -502,39 +505,32 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            edge_map (dict): map {Bit: Bit} from the output wires of
-                input_circuit to input wires of self. The key and value
+            edge_map (dict{Bit: Bit}): map from the input wires of
+                input_circuit to output wires of self. The key and value
                 can either be of type Qubit or Clbit depending on the
                 type of the node.
 
         Raises:
             DAGCircuitError: if missing, duplicate or inconsistent wire
         """
-        edge_map = edge_map or {}
+        # if no edge_map given, try to do a 1-1 mapping in order
+        if edge_map is None:
+            if len(input_circuit.qubits()) > len(self.qubits()) or \
+               len(input_circuit.clbits()) > len(self.clbits()):
+                raise DAGCircuitError("Trying to compose with another DAGCircuit "
+                                      "which has more in edges.")
+            identity_qubit_map = dict(zip(input_circuit.qubits(), self.qubits()))
+            identity_clbit_map = dict(zip(input_circuit.clbits(), self.clbits()))
+            edge_map = {**identity_qubit_map, **identity_clbit_map}
 
-        # Check the wire map for duplicate values
+        # Check the edge_map for duplicate values
         if len(set(edge_map.values())) != len(edge_map):
             raise DAGCircuitError("duplicates in wire_map")
-
-        add_qregs = self._check_edgemap_registers(edge_map,
-                                                  input_circuit.qregs,
-                                                  self.qregs)
-        for qreg in add_qregs:
-            self.add_qreg(qreg)
-
-        add_cregs = self._check_edgemap_registers(edge_map,
-                                                  input_circuit.cregs,
-                                                  self.cregs)
-        for creg in add_cregs:
-            self.add_creg(creg)
-
-        self._check_wiremap_validity(edge_map, input_circuit.input_map,
-                                     self.output_map)
 
         # Compose
         for nd in input_circuit.topological_nodes():
             if nd.type == "in":
-                # if in wire_map, get new name, else use existing name
+                # if in edge_map, get new name, else use existing name
                 m_wire = edge_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
@@ -544,7 +540,6 @@ class DAGCircuit:
                 if nd.wire not in input_circuit._wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
                                           % (nd.register.name, nd.wire.index))
-
             elif nd.type == "out":
                 # ignore output nodes
                 pass
@@ -567,9 +562,8 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            edge_map (dict): map {(Register, int): (Register, int)}
-                from the output wires of input_circuit to input wires
-                of self.
+            edge_map (dict{Bit: Bit}): map from the output wires of
+                input_circuit to input wires of self.
 
         Raises:
             DAGCircuitError: missing, duplicate or inconsistent wire

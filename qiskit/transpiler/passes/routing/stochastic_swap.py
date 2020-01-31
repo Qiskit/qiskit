@@ -259,7 +259,7 @@ class StochasticSwap(TransformationPass):
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, "
                          "depth %d", best_depth)
-            dagcircuit_output.extend_back(best_circuit)
+            dagcircuit_output.compose_back(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Make qubit edge map and extend by classical bits
@@ -267,7 +267,18 @@ class StochasticSwap(TransformationPass):
         for bit in dagcircuit_output.clbits():
             edge_map[bit] = bit
         # Output this layer
-        dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
+        layer_circuit = layer_list[i]["graph"]
+        for creg in layer_circuit.cregs.values():
+            dagcircuit_output.add_creg(creg)
+
+        #print('compose lhs...')
+        #print(dag_to_circuit(dagcircuit_output))
+        #print('compose rhs...')
+        #print(dag_to_circuit(layer_circuit))
+        #print('edge_map')
+        #print(edge_map)
+
+        dagcircuit_output.compose_back(layer_circuit, edge_map)
 
         return dagcircuit_output
 
@@ -359,7 +370,7 @@ class StochasticSwap(TransformationPass):
                     # for each inner iteration
                     layout = best_layout
                     # Update the DAG
-                    dagcircuit_output.extend_back(
+                    dagcircuit_output.compose_back(
                         self._layer_update(j,
                                            best_layout,
                                            best_depth,
@@ -372,13 +383,15 @@ class StochasticSwap(TransformationPass):
                 layout = best_layout
 
                 # Update the DAG
-                dagcircuit_output.extend_back(
+                dagcircuit_output.compose_back(
                     self._layer_update(i,
                                        best_layout,
                                        best_depth,
                                        best_circuit,
                                        layerlist),
                     identity_wire_map)
+            #print('dagcircuit_output...')
+            #print(dag_to_circuit(dagcircuit_output))
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
