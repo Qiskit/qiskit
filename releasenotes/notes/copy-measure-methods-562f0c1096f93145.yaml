@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    QuantumCircuit methods `measure_active`, `measure_all`, and
+    `remove_final_measurements` now take the `inplace` keyword
+    argument that, when, `False` return a modified copy of the
+    circuit.

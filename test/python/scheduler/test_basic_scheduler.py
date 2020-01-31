@@ -15,8 +15,9 @@
 """Test cases for the pulse scheduler passes."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
+from qiskit.circuit import Gate
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot)
+                          MeasureChannel, MemorySlot, Gaussian)
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -27,7 +28,7 @@ class TestBasicSchedule(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.inst_map = self.backend.defaults().circuit_instruction_map
+        self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
@@ -169,19 +170,20 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
+        acquire = Acquire(duration=10)
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
             (28, self.inst_map.get('cx', [0, 1])),
             (50, self.inst_map.get('measure', [0, 1])),
             (60, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (60, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
-                                      [MemorySlot(0), MemorySlot(1)])))
+            (60, acquire(AcquireChannel(0), MemorySlot(0))),
+            (60, acquire(AcquireChannel(1), MemorySlot(1))))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D """
         backend = FakeOpenPulse3Q()
-        inst_map = backend.defaults().circuit_instruction_map
+        inst_map = backend.defaults().instruction_schedule_map
         q = QuantumRegister(3)
         c = ClassicalRegister(3)
         qc = QuantumCircuit(q, c)
@@ -284,6 +286,17 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1].command, expected[1].command)
             self.assertEqual(actual[1].channels, expected[1].channels)
+
+    def test_parametric_input(self):
+        """Test that scheduling works with parametric pulses as input."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.append(Gate('gauss', 1, []), qargs=[qr[0]])
+        custom_gauss = Schedule(Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0)))
+        self.inst_map.add('gauss', [0], custom_gauss)
+        sched = schedule(qc, self.backend, inst_map=self.inst_map)
+        self.assertEqual(sched.instructions[0],
+                         custom_gauss.instructions[0])
 
 
 class TestCmdDefBasicSchedule(QiskitTestCase):
@@ -427,13 +440,14 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
+        acquire = Acquire(duration=10)
         expected = Schedule(
             self.cmd_def.get('u2', [0], 3.14, 1.57),
             (28, self.cmd_def.get('cx', [0, 1])),
             (50, self.cmd_def.get('measure', [0, 1])),
             (60, self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (60, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
-                                      [MemorySlot(0), MemorySlot(1)])))
+            (60, acquire(AcquireChannel(0), MemorySlot(0))),
+            (60, acquire(AcquireChannel(1), MemorySlot(1))))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
@@ -551,10 +565,11 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.measure(q[0], c[1])
         sched = schedule(qc, self.backend)
+        acquire = Acquire(duration=10)
         expected = Schedule(
             self.cmd_def.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1)],
-                                 [MemorySlot(1), MemorySlot(0)]))
+            acquire(AcquireChannel(0), MemorySlot(1)),
+            acquire(AcquireChannel(1), MemorySlot(0)))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_user_mapping_for_memslots_3Q(self):
@@ -567,11 +582,13 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         qc.measure(q[1], c[2])
         qc.measure(q[2], c[0])
         sched = schedule(qc, backend)
+        acquire = Acquire(duration=10)
         expected = Schedule(
             cmd_def.get('measure', [0, 1, 2]).filter(
                 channels=[MeasureChannel(1), MeasureChannel(2)]),
-            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
-                                 [MemorySlot(1), MemorySlot(2), MemorySlot(0)]))
+            acquire(AcquireChannel(0), MemorySlot(1)),
+            acquire(AcquireChannel(1), MemorySlot(2)),
+            acquire(AcquireChannel(2), MemorySlot(0)))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_multiple_measure_in_3Q(self):
@@ -584,11 +601,16 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         qc.measure(q[0], c[2])
         qc.measure(q[0], c[4])
         sched = schedule(qc, backend)
+
+        acquire = Acquire(duration=10)
         expected = Schedule(
             cmd_def.get('measure', [0, 1, 2]).filter(channels=[MeasureChannel(0)]),
-            Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
-                                 [MemorySlot(2), MemorySlot(0), MemorySlot(1)]),
+            acquire(AcquireChannel(0), MemorySlot(2)),
+            acquire(AcquireChannel(1), MemorySlot(0)),
+            acquire(AcquireChannel(2), MemorySlot(1)),
             (10, cmd_def.get('measure', [0, 1, 2]).filter(channels=[MeasureChannel(0)])),
-            (10, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
-                                      [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
+            (10, acquire(AcquireChannel(0), MemorySlot(4))),
+            (10, acquire(AcquireChannel(1), MemorySlot(0))),
+            (10, acquire(AcquireChannel(2), MemorySlot(1)))
+        )
         self.assertEqual(sched.instructions, expected.instructions)
