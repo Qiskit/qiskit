@@ -77,7 +77,7 @@ def get_subsystems_counts(complete_system_counts, post_select_index=None, post_s
     partial measurement '11' or the 3-qubit partial measurement '011'.
 
     If the post_select_index and post_select_flag parameter are specified, the counts are
-    returned subject to that specific post-selection, that is, the counts for all subsystems where
+    returned subject to that specific post selection, that is, the counts for all subsystems where
     the subsystem at index post_select_index is equal to post_select_flag.
 
 
