@@ -499,16 +499,14 @@ class DAGCircuit:
     def compose_back(self, input_circuit, edge_map=None):
         """Apply the input circuit to the output of this circuit.
 
-        The two bases must be "compatible" or an exception occurs.
         A subset of input qubits of the input circuit are mapped
         to a subset of output qubits of this circuit.
 
         Args:
-            input_circuit (DAGCircuit): circuit to append
-            edge_map (dict): map {Bit: Bit} from the input wires of
-                input_circuit to output wires of self. The key and value
-                can either be of type Qubit or Clbit depending on the
-                type of the node.
+            input_circuit (DAGCircuit): circuit to compose with self
+            edge_map (dict): a {Bit: Bit} map from input wires of input_circuit
+                to output wires of self (i.e. rhs->lhs).
+                The key, value pairs can be either Qubit or Clbit mappings.
 
         Raises:
             DAGCircuitError: if missing, duplicate or inconsistent wire
