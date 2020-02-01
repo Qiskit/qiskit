@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,consider-using-enumerate
 
 """latex circuit visualization backends."""
 
@@ -379,6 +379,8 @@ class QCircuitImage:
                     name = generate_latex_label(
                         op.op.base_gate_name.upper()).replace(" ", "\\,")
                     pos_array = []
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    num_qargs = len(qarglist) - num_ctrl_qubits
                     for ctrl in range(len(qarglist)):
                         pos_array.append(self.img_regs[qarglist[ctrl]])
 
@@ -400,10 +402,21 @@ class QCircuitImage:
                                 self._latex[pos_cond + i][column] = \
                                     "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
-                    for index, pos in enumerate(pos_array[:-1]):
+                    for index, pos in enumerate(pos_array[:num_ctrl_qubits]):
                         self._latex[pos][column] = "\\ctrl{" + str(
-                            index + 1 - index) + "}"
-                    self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                            pos_array[index + 1] - pos_array[index]) + "}"
+                    if num_qargs == 1:
+                        self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                    else:
+                        pos_qargs = pos_array[num_ctrl_qubits:]
+                        pos_start = min(pos_qargs)
+                        pos_stop = max(pos_qargs)
+                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                                                          (num_qargs - 1, name))
+                        for pos in range(pos_start + 1, pos_stop + 1):
+                            self._latex[pos][column] = ("\\ghost{%s}" % name)
+
+
 
                 elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                      'save', 'noise']:
