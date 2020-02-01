@@ -416,8 +416,6 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
 
-
-
                 elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
