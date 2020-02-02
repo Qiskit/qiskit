@@ -51,7 +51,8 @@ def add_control(operation: Union[Gate, ControlledGate],
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
+    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label,
+                   ctrl_state=ctrl_state)
 
 
 def control(operation: Union[Gate, ControlledGate],
