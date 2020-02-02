@@ -27,6 +27,17 @@ from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
 
 from pylatex import Document, Command, Package, Math
+from pylatex.base_classes import ContainerCommand, CommandBase
+
+class QCircuit(ContainerCommand):
+    """This is a pylatex subclass to hold commands that generate the circuit image."""
+
+    def __init__(self, column_separation, row_separation):
+        super().__init__()
+        qcircuit_line = r"""Qcircuit @C=%.1fem @R=%.1fem @!R """
+        self.escape = False
+        self._latex_name = qcircuit_line % (column_separation, row_separation)
+        self.packages=[Package('qcircuit',options=['braket','qm'])]
 
 class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
@@ -137,45 +148,26 @@ class QCircuitImage:
         doc = Document(documentclass='beamer',document_options='draft')
         doc.packages.append(Package('beamerposter',options=[
             'size=custom', 'height=10', 'width=99', 'scale=0.7']))
-        qcircuit_line = r"""Qcircuit @C=%.1fem @R=%.1fem @!R """
-        doc.append(Math(data=Command(
-            qcircuit_line % (self.column_separation, self.row_separation),
-            arguments=arguments,
-            packages=[Package('qcircuit',options=['braket','qm']))))
-        output = io.StringIO()
-        output.write(header_1)
-        output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
-        output.write(beamer_line % self._get_beamer_page())
-        output.write(header_2)
-        if self.global_phase:
-            output.write(r"""
-{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
-        output.write(qcircuit_line %
-                     (self.column_separation, self.row_separation))
+        qcircuit = QCircuit(self.column_separation, self.row_separation)
         for i in range(self.img_width):
-            output.write("\t \t")
             for j in range(self.img_depth + 1):
                 cell_str = self._latex[i][j]
                 # Don't truncate offset float if drawing a barrier
                 if 'barrier' in cell_str:
-                    output.write(cell_str)
+                    qcircuit.append(cell_str)
                 else:
                     # floats can cause "Dimension too large" latex error in
                     # xymatrix this truncates floats to avoid issue.
                     cell_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
                                       _truncate_float,
                                       cell_str)
-                    output.write(cell_str)
+                    qcircuit.append(cell_str)
                 if j != self.img_depth:
-                    output.write(" & ")
+                    qcircuit.append('&')
                 else:
-                    output.write(r'\\' + '\n')
-        output.write('\t }\n')
-        output.write('\\end{equation*}\n\n')
-        output.write('\\end{document}')
-        contents = output.getvalue()
-        output.close()
-        return contents
+                    qcircuit.append('\\')
+        doc.append(Math(data=qcircuit))
+        return doc.dumps()
 
     def _initialize_latex_array(self):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
