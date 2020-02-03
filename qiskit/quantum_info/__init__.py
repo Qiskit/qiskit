@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 ================================================
 Quantum Information (:mod:`qiskit.quantum_info`)
@@ -59,9 +58,15 @@ Measures
    :toctree: ../stubs/
 
    state_fidelity
+   purity
    average_gate_fidelity
    process_fidelity
    gate_error
+   purity
+   concurrence
+   entropy
+   entanglement_of_formation
+   mutual_information
 
 Utility Functions
 =================
@@ -70,6 +75,7 @@ Utility Functions
    :toctree: ../stubs/
 
    partial_trace
+   shannon_entropy
 
 Random
 ======
@@ -109,9 +115,10 @@ from .operators.measures import process_fidelity
 from .operators import average_gate_fidelity
 from .operators import gate_error
 from .states import Statevector, DensityMatrix
-from .states.utils import partial_trace
-from .states.states import basis_state, projector, purity
-from .states.measures import state_fidelity
+from .states import (partial_trace, state_fidelity, purity, entropy,
+                     concurrence, entanglement_of_formation,
+                     mutual_information, shannon_entropy)
+from .states.states import basis_state, projector
 from .random import random_unitary, random_state, random_density_matrix
 from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
                         two_qubit_cnot_decompose)
