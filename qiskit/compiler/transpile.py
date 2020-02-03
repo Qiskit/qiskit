@@ -16,7 +16,6 @@
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.pass_manager_config import PassManagerConfig
-from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
@@ -271,10 +270,8 @@ def _transpile_circuit(circuit_config_tuple):
     if ms_basis_swap is not None:
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
-    return transpile_circuit(circuit,
-                             pass_manager,
-                             transpile_config['output_name'],
-                             transpile_config['callback'])
+    return pass_manager.run(circuit, callback=transpile_config['callback'],
+                            output_name=transpile_config['output_name'])
 
 
 def _parse_transpile_args(circuits, backend,
