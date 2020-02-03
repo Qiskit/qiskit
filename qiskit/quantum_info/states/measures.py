@@ -16,8 +16,11 @@ Quantum information measures, metrics, and related functions for states.
 """
 
 import numpy as np
-from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.utils import _format_state, _funm_svd
+import scipy.linalg as la
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix, Statevector
+from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
+                                              _format_state, _funm_svd)
 
 
 def state_fidelity(state1, state2, validate=True):
@@ -69,3 +72,179 @@ def state_fidelity(state1, state2, validate=True):
         fid = np.linalg.norm(s1sq.dot(s2sq), ord='nuc')**2
     # Convert to py float rather than return np.float
     return float(np.real(fid))
+
+
+def purity(state, validate=True):
+    r"""Calculate the purity of a quantum state.
+
+    The purity of a density matrix :math:`\rho` is
+
+    ..code:
+
+        \text{Purity}(\rho) = \Tr[\rho^2]
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        validate (bool): check if input state is valid [Default: True]
+
+    Returns:
+        float: the purity :math:`\Tr[\rho^2]`.
+
+    Raises:
+        QiskitError: if the input isn't a valid quantum state.
+    """
+    state = _format_state(state, validate=validate)
+    return state.purity()
+
+
+def entropy(state, base=2):
+    r"""Calculate the von-Neumann entropy of a quantum state.
+
+    The entropy :math:`S` is given by
+
+    .. math:
+
+        S(\rho) = - Tr[\rho \log(\rho)]
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        base (int): the base of the logarithm [Default: 2].
+
+    Returns:
+        float: The von-Neumann entropy S(rho).
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+    # pylint: disable=assignment-from-no-return
+    state = _format_state(state, validate=True)
+    if isinstance(state, Statevector):
+        return 0
+    # Density matrix case
+    evals = np.maximum(np.real(la.eigvals(state.data)), 0.)
+    return shannon_entropy(evals, base=base)
+
+
+def mutual_information(state, base=2):
+    r"""Calculate the mutual information of a bipartite state.
+
+    The mutual information :math:`I` is given by:
+
+    .. math:
+
+        I(\rho_{AB}) = S(\rho_A) + S(\rho_B) - S(\rho_{AB})
+
+    where :math:`\rho_A=Tr_B[\rho_{AB}], \rho_B=Tr_A[\rho_{AB}]`, are the
+    reduced density matrices of the bipartite state :math:`\rho_{AB}`.
+
+    Args:
+        state (Statevector or DensityMatrix): a bipartite state.
+        base (int): the base of the logarithm [Default: 2].
+
+    Returns:
+        float: The mutual information :math:`I(\rho_{AB})`.
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+        QiskitError: if input is not a bipartite QuantumState.
+    """
+    state = _format_state(state, validate=True)
+    if len(state.dims()) != 2:
+        raise QiskitError('Input must be a bipartite quantum state.')
+    rho_a = partial_trace(state, [1])
+    rho_b = partial_trace(state, [0])
+    return entropy(rho_a, base=base) + entropy(
+        rho_b, base=base) - entropy(state, base=base)
+
+
+def concurrence(state):
+    r"""Calculate the concurrence of a quantum state.
+
+    The concurrence of a bipartite
+    :class:`~qiskit.quantum_info.Statevector` :math:`|\psi\rangle` is
+    given by
+
+    .. math:
+
+        C(|\psi\rangle) = \sqrt{2(1 - Tr[\rho_0^2])}
+
+    where :math:`\rho_0 = Tr_1[|\psi\rangle\!\langle\psi|]` is the
+    reduced state from by taking the
+    :math:`~qiskit.quantum_info.partial_trace` of the input state.
+
+    For density matrices the concurrence is only defined for
+    2-qubit states, it is given by:
+
+    .. math:
+
+        C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lamda_3 - \lambda_4)
+
+    where  :math:`\lambda _1 \ge \lambda _2 \ge \lambda _3 \ge \lambda _4`
+    are the ordered eigenvalues of the matrix
+    :math:`R=\sqrt{\sqrt{\rho }(Y\otimes Y)\overline{\rho}(Y\otimes Y)\sqrt{\rho}}}`.
+
+    Args:
+        state (Statevector or DensityMatrix): a 2-qubit quantum state.
+
+    Returns:
+        float: The concurrence.
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+        QiskitError: if input is not a bipartite QuantumState.
+        QiskitError: if density matrix input is not a 2-qubit state.
+    """
+    # Concurrence computation requires the state to be valid
+    state = _format_state(state, validate=True)
+    if isinstance(state, Statevector):
+        # Pure state concurrence
+        dims = state.dims()
+        if len(dims) != 2:
+            raise QiskitError('Input is not a bipartite quantum state.')
+        qargs = [0] if dims[0] > dims[1] else [1]
+        rho = partial_trace(state, qargs)
+        return float(np.sqrt(2 * (1 - np.real(purity(rho)))))
+    # If input is a density matrix it must be a 2-qubit state
+    if state.dim != 4:
+        raise QiskitError('Input density matrix must be a 2-qubit state.')
+    rho = DensityMatrix(state).data
+    yy_mat = np.fliplr(np.diag([-1, 1, 1, -1]))
+    sigma = rho.dot(yy_mat).dot(rho.conj()).dot(yy_mat)
+    w = np.sort(np.real(la.eigvals(sigma)))
+    w = np.sqrt(np.maximum(w, 0.))
+    return max(0.0, w[-1] - np.sum(w[0:-1]))
+
+
+def entanglement_of_formation(state):
+    """Calculate the entanglement of formation of quantum state.
+
+    The input quantum state must be either a bipartite state vector, or a
+    2-qubit density matrix.
+
+    Args:
+        state (Statevector or DensityMatrix): a 2-qubit quantum state.
+
+    Returns:
+        float: The entanglement of formation.
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+        QiskitError: if input is not a bipartite QuantumState.
+        QiskitError: if density matrix input is not a 2-qubit state.
+    """
+    state = _format_state(state, validate=True)
+    if isinstance(state, Statevector):
+        # The entanglement of formation is given by the reduced state
+        # entropy
+        dims = state.dims()
+        if len(dims) != 2:
+            raise QiskitError('Input is not a bipartite quantum state.')
+        qargs = [0] if dims[0] > dims[1] else [1]
+        return entropy(partial_trace(state, qargs), base=2)
+
+    # If input is a density matrix it must be a 2-qubit state
+    if state.dim != 4:
+        raise QiskitError('Input density matrix must be a 2-qubit state.')
+    conc = concurrence(state)
+    val = (1 + np.sqrt(1 - (conc ** 2))) / 2
+    return shannon_entropy([val, 1 - val])
