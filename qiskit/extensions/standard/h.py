@@ -70,7 +70,29 @@ class HGate(Gate):
 
 
 def h(self, q):  # pylint: disable=invalid-name
-    """Apply H to q."""
+    """Apply Hadamard (H) gate to a specified qubit (q).
+    An H gate implements a rotation of pi about the axis (x + z)/sqrt(2) on the Bloch sphere.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ or |1⟩ to |-⟩.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.h(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.h import HGate
+            HGate().to_matrix()
+    """
     return self.append(HGate(), [q], [])
 
 
@@ -129,7 +151,29 @@ class CHGate(ControlledGate):
 
 
 def ch(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CH from ctl to tgt."""
+    """Apply cH gate from a specified control (ctl) to target (tgt) qubit.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ and and |1⟩ to |−⟩
+    when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.ch(0,1)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.ch import CHGate
+            CHGate().to_matrix()
+    """
     return self.append(CHGate(), [ctl, tgt], [])
 
 

@@ -85,12 +85,56 @@ class SdgGate(Gate):
 
 
 def s(self, q):  # pylint: disable=invalid-name
-    """Apply S to q."""
+    """Apply S gate to a specified qubit (q).
+    An S gate implements a pi/2 rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.s(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.s import SGate
+            SGate().to_matrix()
+    """
     return self.append(SGate(), [q], [])
 
 
 def sdg(self, q):
-    """Apply Sdg to q."""
+    """Apply Sdg gate to a specified qubit (q).
+    An Sdg gate implements a -pi/2 rotation of the qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of S gate.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.sdg(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.s import SdgGate
+            SdgGate().to_matrix()
+    """
     return self.append(SdgGate(), [q], [])
 
 

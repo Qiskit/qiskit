@@ -85,12 +85,56 @@ class TdgGate(Gate):
 
 
 def t(self, q):  # pylint: disable=invalid-name
-    """Apply T to q."""
+    """Apply T gate to a specified qubit (q).
+    A T gate implements a pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.t(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TGate
+            TGate().to_matrix()
+    """
     return self.append(TGate(), [q], [])
 
 
 def tdg(self, q):
-    """Apply Tdg to q."""
+    """Apply Tdg gate to a specified qubit (q).
+    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of T-gate.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.tdg(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TdgGate
+            TdgGate().to_matrix()
+    """
     return self.append(TdgGate(), [q], [])
 
 

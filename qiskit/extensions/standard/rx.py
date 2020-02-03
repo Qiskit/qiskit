@@ -75,7 +75,31 @@ class RXGate(Gate):
 
 
 def rx(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Rx to q."""
+    """Apply Rx gate with angle theta to a specified qubit (q).
+    An Rx gate implements a theta radian rotation of the qubit state vector about the
+    x axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(1)
+            circuit.rx(theta,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.rx import RXGate
+            RXGate(numpy.pi/2).to_matrix()
+    """
     return self.append(RXGate(theta), [q], [])
 
 

@@ -66,7 +66,31 @@ class YGate(Gate):
 
 
 def y(self, q):
-    """Apply Y to q."""
+    """Apply Y gate to a specified qubit (q).
+    A Y gate implements a pi rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.y(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.y import YGate
+            YGate().to_matrix()
+    """
     return self.append(YGate(), [q], [])
 
 
@@ -106,7 +130,24 @@ class CyGate(ControlledGate):
 
 
 def cy(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CY to circuit."""
+    """Apply cY gate from a specified control (ctl) to target (tgt) qubit.
+    A cY gate implements a pi rotation of the qubit state vector about the y axis
+    of the Bloch sphere when the control qubit is in state |1>.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0> when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.cy(0,1)
+            circuit.draw()
+    """
     return self.append(CyGate(), [ctl, tgt], [])
 
 

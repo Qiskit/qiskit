@@ -15,6 +15,7 @@
 """
 Rotation around the z-axis.
 """
+import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -63,9 +64,31 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
+    def to_matrix(self):
+        """Return a Numpy.array for the RZ gate."""
+        phi = self.params[0]
+        phi = float(phi)
+        return numpy.array([[numpy.exp(-1j * phi/2), 0], [0, numpy.exp(1j * phi/2)]], dtype=complex)
+
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
-    """Apply Rz to q."""
+    """Apply Rz gate with angle phi to a specified qubit (q).
+    An Rz gate implemements a phi radian rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            phi = Parameter('φ')
+            circuit = QuantumCircuit(1)
+            circuit.rz(phi,0)
+            circuit.draw()
+    """
     return self.append(RZGate(phi), [q], [])
 
 
@@ -108,7 +131,23 @@ class CrzGate(ControlledGate):
 
 
 def crz(self, theta, ctl, tgt):
-    """Apply crz from ctl to tgt with angle theta."""
+    """Apply cRz gate from a specified control (ctl) to target (tgt) qubit with angle theta.
+    A cRz gate implements a theta radian rotation of the qubit state vector about the z axis
+    of the Bloch sphere when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(2)
+            circuit.crz(theta,0,1)
+            circuit.draw()
+    """
     return self.append(CrzGate(theta), [ctl, tgt], [])
 
 

@@ -42,10 +42,30 @@ class IdGate(Gate):
 
 
 def iden(self, q):
-    """Apply Identity to q.
+    """Apply Identity gate to a specified qubit (q).
 
-    Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized or unrolled (it is an opaque gate).
+    The Identity gate ensures that nothing is applied to a qubit for one unit
+    of gate time. It leaves the quantum states |0> and |1> unchanged.
+    The Identity gate should not be optimized or unrolled (it is an opaque gate).
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.iden(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.iden import IdGate
+            IdGate().to_matrix()
     """
     return self.append(IdGate(), [q], [])
 
