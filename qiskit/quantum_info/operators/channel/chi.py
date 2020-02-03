@@ -142,32 +142,40 @@ class Chi(QuantumChannel):
         return Chi(Choi(self).transpose())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied channel other * self.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Chi: The left multiplied quantum channel.
+            Chi: The quantum channel self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to a Chi or has
             incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
-        """Return the right multiplied channel self * other.
+        """Return the right multiplied quantum channel self * other.
 
         Args:
             other (QuantumChannel): a quantum channel.
             qargs (list): a list of subsystem positions to compose other on.
 
         Returns:
-            Chi: The right multiplied quantum channel.
+            Chi: The quantum channel self * other.
 
         Raises:
             QiskitError: if other cannot be converted to a Chi or has
