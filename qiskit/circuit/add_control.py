@@ -128,15 +128,13 @@ def control(operation, num_ctrl_qubits=1, label=None):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         base_name = operation.base_gate.name
         base_gate = operation.base_gate
-        base_gate_name = operation.base_gate.name
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
         base_gate = operation
-        base_gate_name = operation.name
     # In order to maintain some backward compatibility with gate names this
     # uses a naming convention where if the number of controls is <=2 the gate
-    # is named like "cc<base_gate_name>", else it is named like
+    # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
         ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
@@ -150,7 +148,6 @@ def control(operation, num_ctrl_qubits=1, label=None):
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition)
     cgate.base_gate = base_gate
-    cgate.base_gate_name = base_gate_name
     return cgate
 
 

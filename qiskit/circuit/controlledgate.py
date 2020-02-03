@@ -52,7 +52,6 @@ class ControlledGate(Gate):
                     self.base_gate = base_gate
 
     def __eq__(self, other):
-        #import ipdb;ipdb.set_trace()
         if not isinstance(other, ControlledGate):
             return False
         else:
