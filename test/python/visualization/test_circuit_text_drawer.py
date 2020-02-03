@@ -1737,6 +1737,123 @@ class TestTextControlledGate(QiskitTestCase):
         circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_controlled_composite_gate_edge(self):
+        """Controlled composite gates (edge)
+        See: https://github.com/Qiskit/qiskit-terra/issues/3546 """
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_0: |0>┤0     ├",
+                              "        │      │",
+                              "q_1: |0>■      ├",
+                              "        │  Ghz │",
+                              "q_2: |0>┤1     ├",
+                              "        │      │",
+                              "q_3: |0>┤2     ├",
+                              "        └──────┘"])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        cghz = ghz.control(1)
+        circuit = QuantumCircuit(4)
+        circuit.append(cghz, [1, 0, 2, 3])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_controlled_composite_gate_top(self):
+        """Controlled composite gates (top) """
+        expected = '\n'.join(["                ",
+                              "q_0: |0>───■────",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤0     ├",
+                              "        │      │",
+                              "q_2: |0>┤2 Ghz ├",
+                              "        │      │",
+                              "q_3: |0>┤1     ├",
+                              "        └──────┘"])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        cghz = ghz.control(1)
+        circuit = QuantumCircuit(4)
+        circuit.append(cghz, [0, 1, 3, 2])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_controlled_composite_gate_bot(self):
+        """Controlled composite gates (bottom) """
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_0: |0>┤1     ├",
+                              "        │      │",
+                              "q_1: |0>┤0 Ghz ├",
+                              "        │      │",
+                              "q_2: |0>┤2     ├",
+                              "        └──┬───┘",
+                              "q_3: |0>───■────",
+                              "                "])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        cghz = ghz.control(1)
+        circuit = QuantumCircuit(4)
+        circuit.append(cghz, [3, 1, 0, 2])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_controlled_composite_gate_top_bot(self):
+        """Controlled composite gates (top and bottom) """
+        expected = '\n'.join(["                ",
+                              "q_0: |0>───■────",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤0     ├",
+                              "        │      │",
+                              "q_2: |0>┤1 Ghz ├",
+                              "        │      │",
+                              "q_3: |0>┤2     ├",
+                              "        └──┬───┘",
+                              "q_4: |0>───■────",
+                              "                "])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        ccghz = ghz.control(2)
+        circuit = QuantumCircuit(5)
+        circuit.append(ccghz, [4, 0, 1, 2, 3])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_controlled_composite_gate_all(self):
+        """Controlled composite gates (top, bot, and edge) """
+        expected = '\n'.join(["                ",
+                              "q_0: |0>───■────",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤0     ├",
+                              "        │      │",
+                              "q_2: |0>■      ├",
+                              "        │  Ghz │",
+                              "q_3: |0>┤1     ├",
+                              "        │      │",
+                              "q_4: |0>┤2     ├",
+                              "        └──┬───┘",
+                              "q_5: |0>───■────",
+                              "                "])
+        ghz_circuit = QuantumCircuit(3, name='ghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        ccghz = ghz.control(3)
+        circuit = QuantumCircuit(6)
+        circuit.append(ccghz, [0, 2, 5, 1, 3, 4])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
