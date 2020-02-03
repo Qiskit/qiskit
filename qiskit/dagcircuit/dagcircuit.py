@@ -699,14 +699,8 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
-        slf = self._multi_graph
-        oth = other._multi_graph
-
-#        for node in slf.nodes:
-#            slf.nodes[node]['node'] = node
-#        for node in oth.nodes:
-#            oth.nodes[node]['node'] = node
-
+        slf = copy.deepcopy(self._multi_graph)
+        oth = copy.deepcopy(other._multi_graph)
         return rx.is_isomorphic_node_match(slf, oth,
                                            lambda x, y: DAGNode.semantic_eq(
                                                x, y))
