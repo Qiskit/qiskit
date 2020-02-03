@@ -283,7 +283,7 @@ class AstInterpreter:
             self.dag.add_creg(creg)
 
         elif node.type == "id":
-            raise QiskitError("internal error: _process_node on i")
+            raise QiskitError("internal error: _process_node on id")
 
         elif node.type == "int":
             raise QiskitError("internal error: _process_node on int")
