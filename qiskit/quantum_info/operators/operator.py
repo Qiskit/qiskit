@@ -30,10 +30,22 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Operator(BaseOperator):
-    """Matrix operator class
+    r"""Matrix operator class
 
-    This represents a matrix operator `M` that acts on a statevector as: `M|v⟩`
-    or on a density matrix as M.ρ.M^dagger.
+    This represents a matrix operator :math:`M` that will
+    :meth:`~Statevector.evolve` a :class:`Statevector` :math:`|\psi\rangle`
+    by matrix-vector multiplication
+
+    .. math::
+
+        |\psi\rangle \mapsto M|\psi\rangle,
+
+    and will :meth:`~DensityMatrix.evolve` a :class:`DensityMatrix` :math:`\rho`
+    by left and right multiplication
+
+    .. math::
+
+        \rho \mapsto M \rho M^\dagger.
     """
 
     def __init__(self, data, input_dims=None, output_dims=None):

@@ -16,20 +16,6 @@
 
 """
 Choi-matrix representation of a Quantum Channel.
-
-
-For a quantum channel E, the Choi matrix Λ is defined by:
-Λ = sum_{i,j} |i⟩⟨j|⊗E(|i⟩⟨j|)
-
-Evolution of a density matrix with respect to the Choi-matrix is given by:
-
-    E(ρ) = Tr_{1}[Λ.(ρ^T⊗I)]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -45,7 +31,34 @@ from qiskit.quantum_info.operators.channel.transformations import _bipartite_ten
 
 
 class Choi(QuantumChannel):
-    """Choi-matrix representation of a quantum channel"""
+    r"""Choi-matrix representation of a Quantum Channel.
+
+    The Choi-matrix representation of a quantum channel :math:`\mathcal{E}`
+    is a matrix
+
+    .. math::
+
+        \Lambda = \sum_{i,j} |i\rangle\!\langle j|\otimes
+                    \mathcal{E}\left(|i\rangle\!\langle j|\right)
+
+    Evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
+    :math:`\rho` with respect to the Choi-matrix is given by
+
+    .. math::
+
+        \mathcal{E}(\rho) = \mbox{Tr}_{1}\left[\Lambda
+                            (\rho^T \otimes \mathbb{I})\right]
+
+    where :math:`\mbox{Tr}_1` is the :func:`partial_trace` over subsystem 1.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Choi matrix operator.
 

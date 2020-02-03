@@ -16,25 +16,6 @@
 
 """
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
-
-The PTM is the n-qubit superoperator defined with respect to vectorization in
-the Pauli basis. For a quantum channel E, the PTM is defined by
-
-    PTM_{i,j} = Tr[P_i.E(P_j)]
-
-where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
-
-Evolution is given by
-
-    |E(ρ)⟩⟩_p = PTM|ρ⟩⟩_p
-
-where |A⟩⟩_p denotes vectorization in the Pauli basis: ⟨i|A⟩⟩_p = Tr[P_i.A]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -49,7 +30,41 @@ from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
-    """Initialize a quantum channel Pauli-Transfer Matrix operator.
+    r"""Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
+
+    The PTM representation of an :math:`n`-qubit quantum channel
+    :math:`\mathcal{E}` is an :math:`n`-qubit :class:`SuperOp` :math:`R`
+    defined with respect to vectorization in the Pauli basis instead of
+    column-vectorization. The elements of the PTM :math:`R` are
+    given by
+
+    .. math::
+
+        R_{i,j} = \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
+
+    where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
+    lexicographic order.
+
+    Evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
+    :math:`\rho` with respect to the PTM is given by
+
+    .. math::
+
+        |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
+
+    where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
+    :math:`\langle i | A\rangle\!\rangle_P = \mbox{Tr}[P_i A]`.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a PTM quantum channel operator.
 
         Args:
             data (QuantumCircuit or
@@ -71,8 +86,6 @@ class PTM(QuantumChannel):
         automatically determined from the input data. The PTM
         representation is only valid for N-qubit channels.
         """
-    def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a PTM quantum channel operator."""
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):

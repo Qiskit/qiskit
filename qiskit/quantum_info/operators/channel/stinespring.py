@@ -13,22 +13,6 @@
 # that they have been altered from the originals.
 """
 Stinespring representation of a Quantum Channel.
-
-
-The Stinespring representation for a quantum channel E is given by a rectangular matrix A such that
-
-    E(ρ) = Tr_2[A.ρ.A^dagger]
-
-A general operator map G can also be written using the generalized Kraus representation which
-is given by two matrices A, B such that
-
-    G(ρ) = Tr_2[A.ρ.B^dagger]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -46,7 +30,34 @@ from qiskit.quantum_info.operators.channel.transformations import _to_stinesprin
 
 
 class Stinespring(QuantumChannel):
-    """Stinespring representation of a quantum channel"""
+    r"""Stinespring representation of a quantum channel.
+
+    The Stinespring representation of a quantum channel :math:`\mathcal{E}`
+    is a rectangular matrix :math:`A` such that the evolution of a
+    :class:`~qiskit.quantum_info.DensityMatrix` :math:`\rho` is given by
+
+    .. math::
+
+        \mathcal{E}(ρ) = \mbox{Tr}_2\left[A ρ A^\dagger\right]
+
+    where :math:`\mbox{Tr}_2` is the :func:`partial_trace` over subsystem 2.
+
+    A general operator map :math:`\mathcal{G}` can also be written using the
+    generalized Stinespring representation which is given by two matrices
+    :math:`A`, :math:`B` such that
+
+    .. math::
+
+        \mathcal{G}(ρ) = \mbox{Tr}_2\left[A ρ B^\dagger\right]
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Stinespring operator.
 
