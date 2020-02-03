@@ -502,12 +502,12 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
 
         qbit = self.dag.qubits()[0]
-        self.assertEqual([1, 11, 12, 2], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
-        self.assertEqual([11, 12],
+        self.assertEqual([0, 10, 11, 1], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
+        self.assertEqual([10, 11],
                          [i._node_id for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
 
         cbit = self.dag.clbits()[0]
-        self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
+        self.assertEqual([6, 7], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
         with self.assertRaises(DAGCircuitError):
