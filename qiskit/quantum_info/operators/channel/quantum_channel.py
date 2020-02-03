@@ -76,7 +76,7 @@ class QuantumChannel(BaseOperator):
             QiskitError: if other is not a QuantumChannel subclass, or has
             incompatible dimensions.
         """
-        super().dot(other, qargs=qargs)
+        return super().dot(other, qargs=qargs)
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""

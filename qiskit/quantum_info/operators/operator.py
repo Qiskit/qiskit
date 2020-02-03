@@ -233,7 +233,7 @@ class Operator(BaseOperator):
             QiskitError: if other cannot be converted to an Operator or has
             incompatible dimensions.
         """
-        super().dot(other, qargs=qargs)
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """Return the matrix power of the operator.
