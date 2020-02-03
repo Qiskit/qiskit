@@ -183,8 +183,6 @@ class Schedule(ScheduleComponent):
         else:  # isinstance(sched, Instruction)
             self.__children += ((shift_time, sched),)
 
-        if isinstance(sched, tuple):
-            import ipdb; ipdb.set_trace()
         sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
         self._timeslots = self.timeslots.merge(sched_timeslots)
 
@@ -544,7 +542,10 @@ class ParameterizedSchedule:
 
         # construct evaluated schedules
         for sched in schedules:
-            bound_schedule |= sched
+            if isinstance(sched, tuple):
+                bound_schedule.insert(sched[0], sched[1])
+            else:
+                bound_schedule |= sched
 
         return bound_schedule
 
