@@ -647,7 +647,6 @@ class ScheduleDrawer:
             figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)
-
         y0 = self._draw_channels(ax, output_channels, interp_method,
                                  t0, tf, dt, v_max, label=label,
                                  framechange=framechange)
@@ -657,5 +656,5 @@ class ScheduleDrawer:
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
         ax.set_yticklabels([])
-
+        figure.suptitle(schedule.name, fontsize=20, y=0.92)
         return figure
