@@ -86,8 +86,7 @@ class CnotGate(ControlledGate):
     def __init__(self):
         """Create new CNOT gate."""
         super().__init__("cx", 2, [], num_ctrl_qubits=1)
-        self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -130,8 +129,7 @@ class ToffoliGate(ControlledGate):
     def __init__(self):
         """Create new Toffoli gate."""
         super().__init__("ccx", 3, [], num_ctrl_qubits=2)
-        self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate = XGate()
 
     def _define(self):
         """
