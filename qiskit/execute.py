@@ -23,7 +23,6 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def execute(experiments, backend,
@@ -36,7 +35,7 @@ def execute(experiments, backend,
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-            get_schedule=False, inst_map=None, meas_map=None, scheduling_method=None,
+            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -181,7 +180,7 @@ def execute(experiments, backend,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        get_schedule (bool):
+        schedule_circuit (bool):
             If ``True``, ``experiments`` will be converted to ``Schedule``.
 
         inst_map (InstructionScheduleMap):
@@ -237,10 +236,7 @@ def execute(experiments, backend,
                             )
 
     # scheduling circuit into pulses.
-    if get_schedule and backend.configuration().open_pulse and \
-        (isinstance(experiments, QuantumCircuit) or
-         (isinstance(experiments, list) and
-          all(isinstance(e, QuantumCircuit) for e in experiments))):
+    if schedule_circuit:
         experiments = schedule(circuits=experiments,
                                backend=backend,
                                inst_map=inst_map,
