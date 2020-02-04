@@ -90,8 +90,7 @@ class CryGate(ControlledGate):
     def __init__(self, theta):
         """Create new cry gate."""
         super().__init__("cry", 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RYGate
-        self.base_gate_name = "ry"
+        self.base_gate = RYGate(theta)
 
     def _define(self):
         """

@@ -82,8 +82,7 @@ class Cu1Gate(ControlledGate):
     def __init__(self, theta):
         """Create new cu1 gate."""
         super().__init__("cu1", 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = U1Gate
-        self.base_gate_name = "u1"
+        self.base_gate = U1Gate(theta)
 
     def _define(self):
         """

@@ -81,8 +81,7 @@ class CzGate(ControlledGate):
     def __init__(self, label=None):
         """Create new CZ gate."""
         super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
-        self.base_gate = ZGate
-        self.base_gate_name = "z"
+        self.base_gate = ZGate()
 
     def _define(self):
         """

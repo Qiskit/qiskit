@@ -86,8 +86,7 @@ class FredkinGate(ControlledGate):
     def __init__(self):
         """Create new Fredkin gate."""
         super().__init__("cswap", 3, [], num_ctrl_qubits=1)
-        self.base_gate = SwapGate
-        self.base_gate_name = "swap"
+        self.base_gate = SwapGate()
 
     def _define(self):
         """
