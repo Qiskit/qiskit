@@ -632,7 +632,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertDictEqual(qobj_insts[2].parameters, {'duration': 25, 'amp': 1})
         self.assertDictEqual(qobj_insts[3].parameters,
                              {'duration': 150, 'sigma': 8, 'amp': 0.2, 'width': 140})
-        self.assertListEqual(
+        self.assertEqual(
             qobj.to_dict()['experiments'][0]['instructions'][0]['parameters']['amp'],
             0.0+0.5j)
 
