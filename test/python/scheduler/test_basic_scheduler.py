@@ -604,3 +604,13 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
             (10, Acquire(duration=10)([AcquireChannel(0), AcquireChannel(1), AcquireChannel(2)],
                                       [MemorySlot(4), MemorySlot(0), MemorySlot(1)])))
         self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_alap_keeps_circuit_same(self):
+        """Test that scheduling does not change the input circuit."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.cx(q[0], q[1])
+        qc_sched = qc + QuantumCircuit(*qc.qregs)
+        schedule(qc_sched, self.backend, method="alap")
+        self.assertEqual(qc, qc_sched)

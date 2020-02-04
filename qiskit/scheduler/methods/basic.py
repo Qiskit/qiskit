@@ -93,8 +93,8 @@ def as_late_as_possible(circuit: QuantumCircuit,
     """
     sched = Schedule(name=circuit.name)
     # Align channel end times.
-    circuit_barrier = circuit.copy()
-    circuit_barrier.barrier()
+    circuit = circuit + QuantumCircuit(*circuit.qregs)
+    circuit.barrier()
     # We schedule in reverse order to get ALAP behaviour. We need to know how far out from t=0 any
     # qubit will become occupied. We add positive shifts to these times as we go along.
     # The time is initialized to 0 because all qubits are involved in the final barrier.
@@ -109,7 +109,7 @@ def as_late_as_possible(circuit: QuantumCircuit,
                 # Uninvolved qubits might be free for the duration of the new instruction
                 qubit_available_until[q] += shift
 
-    circ_pulse_defs = translate_gates_to_pulse_defs(circuit_barrier, schedule_config)
+    circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in reversed(circ_pulse_defs):
         inst_sched = circ_pulse_def.schedule
         # The new instruction should end when one of its qubits becomes occupied
