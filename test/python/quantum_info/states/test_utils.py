@@ -18,10 +18,11 @@
 
 import unittest
 import logging
+import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
-from qiskit.quantum_info.states import partial_trace
+from qiskit.quantum_info.states import partial_trace, shannon_entropy
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class TestStateUtils(QiskitTestCase):
     """Test utility functions for QuantumState classes."""
 
     def test_statevector_partial_trace(self):
-        """Test partial_trace method"""
+        """Test partial_trace function on statevectors"""
         psi = Statevector.from_label('10+')
         self.assertEqual(
             partial_trace(psi, [0, 1]), DensityMatrix.from_label('1'))
@@ -46,7 +47,7 @@ class TestStateUtils(QiskitTestCase):
             partial_trace(psi, [2]), DensityMatrix.from_label('0+'))
 
     def test_density_matrix_partial_trace(self):
-        """Test partial_trace method"""
+        """Test partial_trace function on density matrices"""
         rho = DensityMatrix.from_label('10+')
         self.assertEqual(
             partial_trace(rho, [0, 1]), DensityMatrix.from_label('1'))
@@ -60,6 +61,19 @@ class TestStateUtils(QiskitTestCase):
             partial_trace(rho, [1]), DensityMatrix.from_label('1+'))
         self.assertEqual(
             partial_trace(rho, [2]), DensityMatrix.from_label('0+'))
+
+    def test_shannon_entropy(self):
+        """Test shannon_entropy function"""
+        input_pvec = np.array([0.5, 0.3, 0.07, 0.1, 0.03])
+        # Base 2
+        self.assertAlmostEqual(1.7736043871504037,
+                               shannon_entropy(input_pvec))
+        # Base e
+        self.assertAlmostEqual(1.229368880382052,
+                               shannon_entropy(input_pvec, np.e))
+        # Base 10
+        self.assertAlmostEqual(0.533908120973504,
+                               shannon_entropy(input_pvec, 10))
 
 
 if __name__ == '__main__':
