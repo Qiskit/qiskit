@@ -96,7 +96,8 @@ class PulseQobjInstruction:
     def __init__(self, name, t0, ch=None, conditional=None, val=None, phase=None,
                  duration=None, qubits=None, memory_slot=None,
                  register_slot=None, kernels=None, discriminators=None,
-                 label=None, type=None):
+                 label=None, type=None, pulse_shape=None,
+                 parameters=None):
         """Instantiate a new PulseQobjInstruction object.
 
         Args:
@@ -131,6 +132,8 @@ class PulseQobjInstruction:
                 used for ``acquire`` instructions.
             label (str): Label of instruction
             type (str): Type of instruction
+            pulse_shape (str): The shape of the parametric pulse
+            parameters (dict): The parameters for a parametric pulse
         """
         self.name = name
         self.t0 = t0
@@ -158,6 +161,10 @@ class PulseQobjInstruction:
             self.label = label
         if type is not None:
             self.type = type
+        if pulse_shape is not None:
+            self.pulse_shape = pulse_shape
+        if parameters is not None:
+            self.parameters = parameters
 
     def to_dict(self):
         """Return a dictionary format representation of the Instruction.
@@ -171,7 +178,8 @@ class PulseQobjInstruction:
         }
         for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
                      'qubits', 'memory_slot', 'register_slot',
-                     'discriminators', 'label', 'type']:
+                     'discriminators', 'label', 'type', 'pulse_shape',
+                     'parameters']:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)
         if hasattr(self, 'kernels'):
