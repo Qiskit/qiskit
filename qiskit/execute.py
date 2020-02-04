@@ -237,7 +237,6 @@ def execute(experiments, backend,
                             pass_manager=pass_manager,
                             )
 
-    # scheduling circuit into pulses.
     if schedule_circuit:
         if isinstance(experiments, Schedule) or \
                 (isinstance(experiments, list) and
