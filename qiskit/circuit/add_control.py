@@ -31,75 +31,18 @@ def add_control(operation, num_ctrl_qubits, label):
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
     """
+    import qiskit.extensions.standard as standard
+    if isinstance(operation, standard.RZGate) or operation.name == 'rz':
+        # num_ctrl_qubits > 1
+        # the condition matching 'name' above is to catch a test case,
+        # 'TestControlledGate.test_rotation_gates', where the rz gate
+        # gets converted to a circuit before becoming a generic Gate object.
+        cgate = standard.CrzGate(*operation.params)
+        return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    if _control_definition_known(operation, num_ctrl_qubits):
-        return _control_predefined(operation, num_ctrl_qubits)
     return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
-
-
-def _control_definition_known(operation, num_ctrl_qubits):
-    if num_ctrl_qubits == 2 and operation.name == 'x':
-        return True
-    elif num_ctrl_qubits == 1:
-        return operation.name in {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'u1', 'u3', 'cx'}
-    elif operation.name == 'rz' and num_ctrl_qubits > 1:
-        return True
-    else:
-        return False
-
-
-def _control_predefined(operation, num_ctrl_qubits):
-    """Returns controlled gates with hard-coded definitions in
-    the standard extensions."""
-    if operation.name == 'x' and num_ctrl_qubits in [1, 2]:
-        if num_ctrl_qubits == 1:
-            import qiskit.extensions.standard.cx
-            cgate = qiskit.extensions.standard.cx.CXGate()
-        else:
-            import qiskit.extensions.standard.ccx
-            cgate = qiskit.extensions.standard.ccx.CCXGate()
-    elif operation.name == 'y':
-        import qiskit.extensions.standard.cy
-        cgate = qiskit.extensions.standard.cy.CYGate()
-    elif operation.name == 'z':
-        import qiskit.extensions.standard.cz
-        cgate = qiskit.extensions.standard.cz.CZGate()
-    elif operation.name == 'h':
-        import qiskit.extensions.standard.ch
-        cgate = qiskit.extensions.standard.ch.CHGate()
-    elif operation.name in {'rx', 'ry', 'rz'}:
-        if operation.name == 'rx':
-            import qiskit.extensions.standard.crx
-            cgate = qiskit.extensions.standard.crx.CRXGate(*operation.params)
-        elif operation.name == 'ry':
-            import qiskit.extensions.standard.cry
-            cgate = qiskit.extensions.standard.cry.CRYGate(*operation.params)
-        else:  # operation.name == 'rz'
-            import qiskit.extensions.standard.crz
-            cgate = qiskit.extensions.standard.crz.CRZGate(*operation.params)
-        if num_ctrl_qubits == 1:
-            return cgate
-        else:
-            # only predefined for one control qubit
-            return cgate.control(num_ctrl_qubits - 1)
-    elif operation.name == 'swap':
-        import qiskit.extensions.standard.cswap
-        cgate = qiskit.extensions.standard.cswap.CSwapGate()
-    elif operation.name == 'u1':
-        import qiskit.extensions.standard.cu1
-        cgate = qiskit.extensions.standard.cu1.CU1Gate(*operation.params)
-    elif operation.name == 'u3':
-        import qiskit.extensions.standard.cu3
-        cgate = qiskit.extensions.standard.cu3.CU3Gate(*operation.params)
-    elif operation.name == 'cx':
-        import qiskit.extensions.standard.ccx
-        cgate = qiskit.extensions.standard.ccx.CCXGate()
-    else:
-        raise QiskitError('No standard controlled gate for "{}"'.format(
-            operation.name))
-    return cgate
 
 
 def control(operation, num_ctrl_qubits=1, label=None):

@@ -25,11 +25,11 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import CCXGate
-from qiskit.extensions.standard.cswap import CSwapGate
-from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.cy import CYGate
-from qiskit.extensions.standard.cz import CZGate
+from qiskit.extensions.standard.x import CCXGate
+from qiskit.extensions.standard.swap import CSwapGate
+from qiskit.extensions.standard.x import CXGate
+from qiskit.extensions.standard.y import CYGate
+from qiskit.extensions.standard.z import CZGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.i import IGate
@@ -48,12 +48,12 @@ from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
-from qiskit.extensions.standard.cu1 import CU1Gate
-from qiskit.extensions.standard.cu3 import CU3Gate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crx import CRXGate
-from qiskit.extensions.standard.cry import CRYGate
-from qiskit.extensions.standard.crz import CRZGate
+from qiskit.extensions.standard.u1 import CU1Gate
+from qiskit.extensions.standard.u3 import CU3Gate
+from qiskit.extensions.standard.h import CHGate
+from qiskit.extensions.standard.rx import CRXGate
+from qiskit.extensions.standard.ry import CRYGate
+from qiskit.extensions.standard.rz import CRZGate
 
 
 def ast_to_dag(ast):

@@ -24,6 +24,11 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import purity
+from qiskit.quantum_info import entropy
+from qiskit.quantum_info import concurrence
+from qiskit.quantum_info import entanglement_of_formation
+from qiskit.quantum_info import mutual_information
+from qiskit.quantum_info.states import shannon_entropy
 
 
 class TestStateMeasures(QiskitTestCase):
@@ -153,19 +158,196 @@ class TestStateMeasures(QiskitTestCase):
         self.assertRaises(QiskitError, purity, rho, validate=True)
         self.assertEqual(purity(rho, validate=False), 2)
 
-    def test_purity_statevector_density_matrix(self):
-        """Test purity is same for equivalent statevector and density matrix inputs"""
-        psi = Statevector([0.5, -0.5, 0.5j, -0.5j])
-        rho = DensityMatrix(psi)
-        self.assertAlmostEqual(purity(psi), purity(rho))
+    def test_purity_equivalence(self):
+        """Test purity is same for equivalent inputs"""
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            rho = DensityMatrix(psi)
+            self.assertAlmostEqual(purity(psi), purity(rho))
 
-        psi = Statevector([0.5, 0, 0, -0.5j])
-        rho = DensityMatrix(psi)
-        self.assertAlmostEqual(purity(psi, validate=False), purity(rho, validate=False))
+    def test_entropy_statevector(self):
+        """Test entropy function on statevector inputs"""
+        test_psis = [
+            [1, 0],
+            [0, 1, 0, 0],
+            [0.5, 0.5, 0.5, 0.5],
+            [0.5, 0.5j, -0.5j, 0.5],
+            [0.70710678118654746, 0, 0, -0.70710678118654746j],
+            [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j]
+        ]
+        for psi_ls in test_psis:
+            self.assertEqual(entropy(psi_ls), 0)
+            self.assertEqual(entropy(np.array(psi_ls)), 0)
 
-        psi = Statevector([1, 1])
-        rho = DensityMatrix(psi)
-        self.assertAlmostEqual(purity(psi, validate=False), purity(rho, validate=False))
+    def test_entropy_density_matrix(self):
+        """Test entropy function on density matrix inputs"""
+        # Density matrix input
+        rhos = [DensityMatrix(np.diag([0.5] + (n * [0]) + [0.5])) for n in range(1, 5)]
+        for rho in rhos:
+            self.assertAlmostEqual(entropy(rho), 1)
+            self.assertAlmostEqual(entropy(rho, base=2), 1)
+            self.assertAlmostEqual(entropy(rho, base=np.e), -np.log(0.5))
+        # Array input
+        for prob in [0.001, 0.3, 0.7, 0.999]:
+            rho = np.diag([prob, 1 - prob])
+            self.assertAlmostEqual(entropy(rho), shannon_entropy([prob, 1-prob]))
+            self.assertAlmostEqual(entropy(rho, base=np.e),
+                                   shannon_entropy([prob, 1-prob], base=np.e))
+            self.assertAlmostEqual(entropy(rho, base=2),
+                                   shannon_entropy([prob, 1-prob], base=2))
+        # List input
+        rho = [[0.5, 0], [0, 0.5]]
+        self.assertAlmostEqual(entropy(rho), 1)
+
+    def test_entropy_equivalence(self):
+        """Test entropy is same for equivalent inputs"""
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            rho = DensityMatrix(psi)
+            self.assertAlmostEqual(entropy(psi), entropy(rho))
+
+    def test_concurrence_statevector(self):
+        """Test concurrence function on statevector inputs"""
+        # Statevector input
+        psi = Statevector([0.70710678118654746, 0, 0, -0.70710678118654746j])
+        self.assertAlmostEqual(concurrence(psi), 1)
+        # List input
+        psi = [1, 0, 0, 0]
+        self.assertAlmostEqual(concurrence(psi), 0)
+        # Array input
+        psi = np.array([0.5, 0.5, 0.5, 0.5])
+        self.assertAlmostEqual(concurrence(psi), 0)
+        # Larger than 2 qubit input
+        psi_ls = [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j]
+        psi = Statevector(psi_ls, dims=(2, 8))
+        self.assertAlmostEqual(concurrence(psi), 1)
+        psi = Statevector(psi_ls, dims=(4, 4))
+        self.assertAlmostEqual(concurrence(psi), 1)
+        psi = Statevector(psi_ls, dims=(8, 2))
+        self.assertAlmostEqual(concurrence(psi), 1)
+
+    def test_concurrence_density_matrix(self):
+        """Test concurrence function on density matrix inputs"""
+        # Density matrix input
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
+        rho2 = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5j, 0], [0, 0.5j, 0.5, 0], [0, 0, 0, 0]])
+        self.assertAlmostEqual(concurrence(rho1), 1)
+        self.assertAlmostEqual(concurrence(rho2), 1)
+        self.assertAlmostEqual(concurrence(0.5 * rho1 + 0.5 * rho2), 0)
+        self.assertAlmostEqual(concurrence(0.75 * rho1 + 0.25 * rho2), 0.5)
+        # List input
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
+        self.assertEqual(concurrence(rho), 0)
+        # Array input
+        rho = np.diag([0.25, 0.25, 0.25, 0.25])
+        self.assertEqual(concurrence(rho), 0)
+
+    def test_concurrence_equivalence(self):
+        """Test concurrence is same for equivalent inputs"""
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            rho = DensityMatrix(psi)
+            self.assertAlmostEqual(concurrence(psi), concurrence(rho))
+
+    def test_entanglement_of_formation_statevector(self):
+        """Test entanglement of formation function on statevector inputs"""
+        # Statevector input
+        psi = Statevector([0.70710678118654746, 0, 0, -0.70710678118654746j])
+        self.assertAlmostEqual(entanglement_of_formation(psi), 1)
+        # List input
+        psi = [1, 0, 0, 0]
+        self.assertAlmostEqual(entanglement_of_formation(psi), 0)
+        # Array input
+        psi = np.array([0.5, 0.5, 0.5, 0.5])
+        self.assertAlmostEqual(entanglement_of_formation(psi), 0)
+        # Larger than 2 qubit input
+        psi_ls = [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j]
+        psi = Statevector(psi_ls, dims=(2, 8))
+        self.assertAlmostEqual(entanglement_of_formation(psi), 1)
+        psi = Statevector(psi_ls, dims=(4, 4))
+        self.assertAlmostEqual(entanglement_of_formation(psi), 1)
+        psi = Statevector(psi_ls, dims=(8, 2))
+        self.assertAlmostEqual(entanglement_of_formation(psi), 1)
+
+    def test_entanglement_of_formation_density_matrix(self):
+        """Test entanglement of formation function on density matrix inputs"""
+        # Density matrix input
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
+        rho2 = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5j, 0], [0, 0.5j, 0.5, 0], [0, 0, 0, 0]])
+        self.assertAlmostEqual(entanglement_of_formation(rho1), 1)
+        self.assertAlmostEqual(entanglement_of_formation(rho2), 1)
+        self.assertAlmostEqual(entanglement_of_formation(0.5 * rho1 + 0.5 * rho2), 0)
+        self.assertAlmostEqual(entanglement_of_formation(0.75 * rho1 + 0.25 * rho2),
+                               0.35457890266527003)
+        # List input
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
+        self.assertEqual(entanglement_of_formation(rho), 0)
+        # Array input
+        rho = np.diag([0.25, 0.25, 0.25, 0.25])
+        self.assertEqual(entanglement_of_formation(rho), 0)
+
+    def test_entanglement_of_formation_equivalence(self):
+        """Test entanglement of formation is same for equivalent inputs"""
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            rho = DensityMatrix(psi)
+            self.assertAlmostEqual(entanglement_of_formation(psi),
+                                   entanglement_of_formation(rho))
+
+    def test_mutual_information_statevector(self):
+        """Test mutual_information function on statevector inputs"""
+        # Statevector input
+        psi = Statevector([0.70710678118654746, 0, 0, -0.70710678118654746j])
+        self.assertAlmostEqual(mutual_information(psi), 2)
+        # List input
+        psi = [1, 0, 0, 0]
+        self.assertAlmostEqual(mutual_information(psi), 0)
+        # Array input
+        psi = np.array([0.5, 0.5, 0.5, 0.5])
+        self.assertAlmostEqual(mutual_information(psi), 0)
+        # Larger than 2 qubit input
+        psi_ls = [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j]
+        psi = Statevector(psi_ls, dims=(2, 8))
+        self.assertAlmostEqual(mutual_information(psi), 2)
+        psi = Statevector(psi_ls, dims=(4, 4))
+        self.assertAlmostEqual(mutual_information(psi), 2)
+        psi = Statevector(psi_ls, dims=(8, 2))
+        self.assertAlmostEqual(mutual_information(psi), 2)
+
+    def test_mutual_information_density_matrix(self):
+        """Test mutual_information  function on density matrix inputs"""
+        # Density matrix input
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
+        rho2 = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5j, 0], [0, 0.5j, 0.5, 0], [0, 0, 0, 0]])
+        self.assertAlmostEqual(mutual_information(rho1), 2)
+        self.assertAlmostEqual(mutual_information(rho2), 2)
+        # List input
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
+        self.assertEqual(mutual_information(rho), 0)
+        # Array input
+        rho = np.diag([0.25, 0.25, 0.25, 0.25])
+        self.assertEqual(mutual_information(rho), 0)
+
+    def test_mutual_information_equivalence(self):
+        """Test mutual_information is same for equivalent inputs"""
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            rho = DensityMatrix(psi)
+            self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
 
 
 if __name__ == '__main__':

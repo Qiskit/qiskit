@@ -15,73 +15,9 @@
 """
 Controlled-u1 gate.
 """
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CXGate
+import warnings
+# pylint: disable=unused-import
+from qiskit.extensions.standard.u1 import Cu1Gate, cu1
 
-
-class CU1Meta(type):
-    """A metaclass to ensure that Cu1Gate and CU1Gate are of the same type.
-
-    Can be removed when Cu1Gate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CU1Gate, Cu1Gate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CU1Gate(ControlledGate, metaclass=CU1Meta):
-    """The controlled-u1 gate."""
-
-    def __init__(self, theta):
-        """Create new cu1 gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = U1Gate
-        self.base_gate_name = 'u1'
-
-    def _define(self):
-        """
-        gate cu1(lambda) a,b
-        { u1(lambda/2) a; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-          u1(lambda/2) b;
-        }
-        """
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
-
-    def inverse(self):
-        """Invert this gate."""
-        return CU1Gate(-self.params[0])
-
-
-class Cu1Gate(CU1Gate, metaclass=CU1Meta):
-    """The deprecated CU1Gate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class Cu1Gate is deprecated as of 0.12.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CU1Gate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
-
-
-def cu1(self, theta, ctl, tgt):
-    """Apply cu1 from ctl to tgt with angle theta."""
-    return self.append(CU1Gate(theta), [ctl, tgt], [])
-
-
-QuantumCircuit.cu1 = cu1
+warnings.warn('This module is deprecated. The Cu1Gate can now be found in u1.py',
+              category=DeprecationWarning, stacklevel=2)

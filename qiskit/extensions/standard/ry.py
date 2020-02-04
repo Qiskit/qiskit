@@ -17,11 +17,11 @@ Rotation around the y-axis.
 """
 import math
 import numpy
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.r import RGate
 
 
 class RYGate(Gate):
@@ -35,6 +35,7 @@ class RYGate(Gate):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
+        from qiskit.extensions.standard.r import RGate
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [
@@ -43,6 +44,20 @@ class RYGate(Gate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if num_ctrl_qubits == 1:
+            return CryGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate.
@@ -65,3 +80,69 @@ def ry(self, theta, q):  # pylint: disable=invalid-name
 
 
 QuantumCircuit.ry = ry
+
+
+class CRYMeta(type):
+    """A metaclass to ensure that CryGate and CRYGate are of the same type.
+
+    Can be removed when CryGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CRYGate, CryGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CRYGate(ControlledGate, metaclass=CRYMeta):
+    """The controlled-ry gate."""
+
+    def __init__(self, theta):
+        """Create new cry gate."""
+        super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
+        self.base_gate = RYGate
+        self.base_gate_name = 'ry'
+
+    def _define(self):
+        """
+        gate cry(lambda) a,b
+        { u3(lambda/2,0,0) b; cx a,b;
+          u3(-lambda/2,0,0) b; cx a,b;
+        }
+
+        """
+        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.x import CXGate
+        definition = []
+        q = QuantumRegister(2, 'q')
+        rule = [
+            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (CXGate(), [q[0], q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return CRYGate(-self.params[0])
+
+
+class CryGate(CRYGate, metaclass=CRYMeta):
+    """The deprecated CRYGate class."""
+
+    def __init__(self, theta):
+        import warnings
+        warnings.warn('The class CryGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRYGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__(theta)
+
+
+def cry(self, theta, ctl, tgt):
+    """Apply cry from ctl to tgt with angle theta."""
+    return self.append(CRYGate(theta), [ctl, tgt], [])
+
+
+QuantumCircuit.cry = cry

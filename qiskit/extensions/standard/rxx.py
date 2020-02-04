@@ -19,11 +19,6 @@ import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.h import HGate
 
 
 class RXXGate(Gate):
@@ -38,6 +33,11 @@ class RXXGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
+        from qiskit.extensions.standard.x import CXGate
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.u2 import U2Gate
+        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.h import HGate
         definition = []
         q = QuantumRegister(2, 'q')
         theta = self.params[0]

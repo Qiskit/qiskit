@@ -13,11 +13,11 @@
 # that they have been altered from the originals.
 
 """
-Controlled-rz gate.
+Identity gate.
 """
 import warnings
 # pylint: disable=unused-import
-from qiskit.extensions.standard.rz import CrzGate, crz
+from qiskit.extensions.standard.i import Idgate, id, iden
 
-warnings.warn('This module is deprecated. The CrzGate can now be found in rz.py',
+warnings.warn('This module is deprecated. The IDGate can now be found in x.py',
               category=DeprecationWarning, stacklevel=2)

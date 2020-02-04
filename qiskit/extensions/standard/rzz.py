@@ -18,8 +18,6 @@ Two-qubit ZZ-rotation gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CXGate
 
 
 class RZZGate(Gate):
@@ -33,6 +31,8 @@ class RZZGate(Gate):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

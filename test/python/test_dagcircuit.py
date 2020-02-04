@@ -29,8 +29,8 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.cz import CZGate
+from qiskit.extensions.standard.x import CXGate
+from qiskit.extensions.standard.z import CZGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier

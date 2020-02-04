@@ -14,37 +14,24 @@
 
 """Standard gates."""
 from .barrier import Barrier
-from .ccx import CCXGate
-from .cswap import CSwapGate
-from .cx import CXGate
-from .cy import CYGate
-from .cz import CZGate
-from .swap import SwapGate
-from .h import HGate
+from .h import HGate, CHGate
 from .i import IGate
-from .s import SGate
-from .s import SdgGate
-from .t import TGate
-from .t import TdgGate
-from .u1 import U1Gate
-from .u2 import U2Gate
-from .u3 import U3Gate
-from .x import XGate
-from .y import YGate
-from .z import ZGate
-from .r import RGate
-from .rx import RXGate
-from .ry import RYGate
-from .rz import RZGate
-from .cu1 import CU1Gate
-from .cu3 import CU3Gate
-from .ch import CHGate
-from .crx import CRXGate
-from .cry import CRYGate
-from .crz import CRZGate
-from .rzz import RZZGate
-from .rxx import RXXGate
 from .ms import MSGate
+from .r import RGate
+from .rx import RXGate, CRXGate
+from .rxx import RXXGate
+from .ry import RYGate, CRYGate
+from .rz import RZGate, CRZGate
+from .rzz import RZZGate
+from .s import SGate, SdgGate
+from .swap import SwapGate, CSwapGate
+from .t import TGate, TdgGate
+from .u1 import U1Gate, CU1Gate
+from .u2 import U2Gate
+from .u3 import U3Gate, CU3Gate
+from .x import XGate, CXGate, CCXGate
+from .y import YGate, CYGate
+from .z import ZGate, CZGate
 
 # deprecated gates, to be removed
 from .i import IdGate

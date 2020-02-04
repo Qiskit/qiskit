@@ -15,61 +15,9 @@
 """
 Controlled-not gate.
 """
-import numpy
+import warnings
+# pylint: disable=unused-import
+from qiskit.extensions.standard.x import CnotGate, cx
 
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.extensions.standard.x import XGate
-
-
-class CXMeta(type):
-    """A metaclass to ensure that CnotGate and CXGate are of the same type.
-
-    Can be removed when CnotGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CnotGate, CXGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CXGate(ControlledGate, metaclass=CXMeta):
-    """The controlled-X gate."""
-
-    def __init__(self):
-        """Create new cx gate."""
-        super().__init__('cx', 2, [], num_ctrl_qubits=1)
-        self.base_gate = XGate
-        self.base_gate_name = 'x'
-
-    def inverse(self):
-        """Invert this gate."""
-        return CXGate()  # self-inverse
-
-    def to_matrix(self):
-        """Return a numpy.array for the CX gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, 1],
-                            [0, 0, 1, 0],
-                            [0, 1, 0, 0]], dtype=complex)
-
-
-class CnotGate(CXGate, metaclass=CXMeta):
-    """The deprecated CXGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class CnotGate is deprecated as of 0.12.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()
-
-
-def cx(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CX from ctl to tgt."""
-    return self.append(CXGate(), [ctl, tgt], [])
-
-
-# support both cx and cnot in QuantumCircuits
-QuantumCircuit.cx = cx
-QuantumCircuit.cnot = cx
+warnings.warn('This module is deprecated. The CnotGate can now be found in x.py',
+              category=DeprecationWarning, stacklevel=2)

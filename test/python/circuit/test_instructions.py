@@ -24,7 +24,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CXGate
+from qiskit.extensions.standard.x import CXGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.test import QiskitTestCase
