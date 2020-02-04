@@ -99,7 +99,7 @@ class FakeOpenPulse3Q(FakeBackend):
                                                             t0=0, phase='-P0'),
                                        PulseQobjInstruction(name='test_pulse_4', ch='d1', t0=0),
                                        PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=0, phase='-P0')]),
+                                                            t0=0, phase='-P1')]),
                      Command(name='u2', qubits=[2],
                              sequence=[PulseQobjInstruction(name='test_pulse_3', ch='d2', t0=0),
                                        PulseQobjInstruction(name='fc', ch='d2',
