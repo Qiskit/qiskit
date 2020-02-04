@@ -3,7 +3,7 @@ features:
   - |
     Circuits can be scheduled during ``execute`` by setting ``schedule_circuit=True``.
     This allows users building ``QuantumCircuits`` to make use of custom scheduler
-    methods, such as the `as_late_as_possible` and `as_soon_as_possible` methods.
+    methods, such as the ``as_late_as_possible`` and ``as_soon_as_possible`` methods.
     For example::
 
-        job = execute(qc, backend, schedule_circuit=True)
+        job = execute(qc, backend, schedule_circuit=True, scheduling_method="as_late_as_possible")
