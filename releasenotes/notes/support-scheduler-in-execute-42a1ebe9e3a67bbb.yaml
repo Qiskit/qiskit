@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Circuits can be scheduled during ``execute`` by setting ``schedule_circuit=True``.
+    For example::
+
+        job = execute(qc, backend, schedule_circuit=True, shots=4321)
