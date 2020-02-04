@@ -164,6 +164,31 @@ class InstructionToQobjConverter:
                 })
         return self._qobj_model(**command_dict)
 
+    def convert_single_acquires(self, shift, instruction,
+                                qubits=None, memory_slot=None, register_slot=None):
+        """Return converted `AcquireInstruction`, with options to override the qubits,
+        memory_slot, and register_slot fields. This is useful for grouping
+        AcquisitionInstructions which are operated on a single AcquireChannel and
+        a single MemorySlot.
+
+        Args:
+            shift (int): Offset time.
+            instruction (AcquireInstruction): acquire instruction.
+            qubits (list(int)): A list of qubit indices to acquire.
+            memory_slot (list(int)): A list of memory slot indices to store results.
+            register_slot (list(int)): A list of register slot addresses to store results.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        res = self.convert_acquire(shift, instruction)
+        if qubits:
+            res.qubits = qubits
+        if memory_slot:
+            res.memory_slot = memory_slot
+        if register_slot:
+            res.register_slot = register_slot
+        return res
+
     @bind_instruction(commands.FrameChangeInstruction)
     def convert_frame_change(self, shift, instruction):
         """Return converted `FrameChangeInstruction`.
