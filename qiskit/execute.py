@@ -23,6 +23,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.exceptions import QiskitError
 
 
 def execute(experiments, backend,
@@ -237,12 +238,15 @@ def execute(experiments, backend,
 
     # scheduling circuit into pulses.
     if schedule_circuit:
-        experiments = schedule(circuits=experiments,
-                               backend=backend,
-                               inst_map=inst_map,
-                               meas_map=meas_map,
-                               method=scheduling_method
-                               )
+        try:
+            experiments = schedule(circuits=experiments,
+                                   backend=backend,
+                                   inst_map=inst_map,
+                                   meas_map=meas_map,
+                                   method=scheduling_method
+                                   )
+        except (QiskitError, AttributeError):
+            raise QiskitError("Invalid inputs provided to schedule your circuit.")
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
