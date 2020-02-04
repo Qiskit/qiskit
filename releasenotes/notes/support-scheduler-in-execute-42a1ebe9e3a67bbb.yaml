@@ -6,4 +6,4 @@ features:
     methods, such as the `as_late_as_possible` and `as_soon_as_possible` methods.
     For example::
 
-        job = execute(qc, backend, schedule_circuit=True, shots=4321)
+        job = execute(qc, backend, schedule_circuit=True)
