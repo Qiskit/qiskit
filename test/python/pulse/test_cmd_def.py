@@ -164,6 +164,6 @@ class TestCmdDef(QiskitTestCase):
 
         self.assertEqual(cmd_def.get_parameters('u1', 0), ('P1',))
 
-        u1_minus_pi = cmd_def.get('u1', 0, P1=1)
+        u1_minus_pi = cmd_def.get('u1', 0, P1=np.pi)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
