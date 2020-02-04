@@ -192,6 +192,8 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+                      "instead.", DeprecationWarning)
         command_dict = {
             'name': 'pv',
             't0': shift + instruction.start_time,
@@ -321,7 +323,7 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
-        qubit_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
+        acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
 
         mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
 
@@ -329,7 +331,7 @@ class QobjToInstructionConverter:
             register_slots = [channels.RegisterSlot(instruction.register_slot[i])
                               for i in range(len(qubits))]
         else:
-            register_slots = None
+            register_slots = [None] * len(qubits)
 
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
@@ -356,8 +358,9 @@ class QobjToInstructionConverter:
 
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
-        schedule |= commands.AcquireInstruction(cmd, qubit_channels, mem_slots,
-                                                register_slots) << t0
+
+        for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
+            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
 
         return schedule
 
