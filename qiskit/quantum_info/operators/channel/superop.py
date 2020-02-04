@@ -15,21 +15,7 @@
 # pylint: disable=unpacking-non-sequence
 
 """
-Superoperator representation of a Quantum Channel.
-
-
-For a quantum channel E, the superoperator is defined as the matrix S such that
-
-    |E(ρ)⟩⟩ = S|ρ⟩⟩
-
-where |A⟩⟩ denotes the column stacking vectorization of a matrix A.
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
-"""
+Superoperator representation of a Quantum Channel."""
 
 from numbers import Number
 import numpy as np
@@ -43,7 +29,28 @@ from qiskit.quantum_info.operators.channel.transformations import _bipartite_ten
 
 
 class SuperOp(QuantumChannel):
-    """Superoperator representation of a quantum channel"""
+    r"""Superoperator representation of a quantum channel.
+
+    The Superoperator representation of a quantum channel :math:`\mathcal{E}`
+    is a matrix :math:`S` such that the evolution of a
+    :class:`~qiskit.quantum_info.DensityMatrix` :math:`\rho` is given by
+
+    .. math::
+
+        |\mathcal{E}(\rho)\rangle\!\rangle = S |\rho\rangle\!\rangle
+
+    where the double-ket notation :math:`|A\rangle\!\rangle` denotes a vector
+    formed by stacking the columns of the matrix :math:`A`
+    *(column-vectorization)*.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Superoperator operator.
 
@@ -135,32 +142,42 @@ class SuperOp(QuantumChannel):
                        output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied channel other * self.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            SuperOp: The left multiplied quantum channel.
+            SuperOp: The quantum channel self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to a SuperOp or has
             incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
-        """Return the right multiplied channel self * other.
+        """Return the right multiplied quantum channel self * other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
 
         Returns:
-            SuperOp: The right multiplied quantum channel.
+            SuperOp: The quantum channel self * other.
 
         Raises:
             QiskitError: if other cannot be converted to a SuperOp or has

@@ -15,22 +15,6 @@
 # pylint: disable=len-as-condition
 """
 Kraus representation of a Quantum Channel.
-
-
-The Kraus representation for a quantum channel E is given by a set of matrices [A_i] such that
-
-    E(ρ) = sum_i A_i.ρ.A_i^dagger
-
-A general operator map G can also be written using the generalized Kraus representation which
-is given by two sets of matrices [A_i], [B_i] such that
-
-    G(ρ) = sum_i A_i.ρ.B_i^dagger
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -47,7 +31,36 @@ from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 
 
 class Kraus(QuantumChannel):
-    """Kraus representation of a quantum channel."""
+    r"""Kraus representation of a quantum channel.
+
+    The Kraus representation for a quantum channel :math:`\mathcal{E}` is a
+    set of matrices :math:`[A_0,...,A_{K-1}]` such that
+
+    For a quantum channel :math:`\mathcal{E}`, the Kraus representation is
+    given by a set of matrices :math:`[A_0,...,A_{K-1}]` such that the
+    evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
+    :math:`\rho` is given by
+
+    .. math::
+
+        \mathcal{E}(\rho) = \sum_{i=0}^{K-1} A_i \rho A_i^\dagger
+
+    A general operator map :math:`\mathcal{G}` can also be written using the
+    generalized Kraus representation which is given by two sets of matrices
+    :math:`[A_0,...,A_{K-1}]`, :math:`[B_0,...,A_{B-1}]` such that
+
+    .. math::
+
+        \mathcal{G}(\rho) = \sum_{i=0}^{K-1} A_i \rho B_i^\dagger
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Kraus operator.
 
@@ -200,32 +213,42 @@ class Kraus(QuantumChannel):
                      output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied channel other * self.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Kraus: The left multiplied quantum channel.
+            Kraus: The quantum channel self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to a Kraus or has
             incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
-        """Return the right multiplied channel self * other.
+        """Return the right multiplied quantum channel self * other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
 
         Returns:
-            Kraus: The right multiplied quantum channel.
+            Kraus: The quantum channel self * other.
 
         Raises:
             QiskitError: if other cannot be converted to a Kraus or has
