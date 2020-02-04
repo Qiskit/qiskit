@@ -167,7 +167,7 @@ def cswap(self, ctl, tgt1, tgt2):
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.cswap import FredkinGate
+            from qiskit.extensions.standard.swap import FredkinGate
             FredkinGate().to_matrix()
     """
     return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
