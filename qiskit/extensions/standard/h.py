@@ -171,7 +171,7 @@ def ch(self, ctl, tgt):  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.ch import CHGate
+            from qiskit.extensions.standard.h import CHGate
             CHGate().to_matrix()
     """
     return self.append(CHGate(), [ctl, tgt], [])
