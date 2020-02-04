@@ -171,22 +171,23 @@ class Schedule(ScheduleComponent):
             new_sched._insert(sched_pair[0], sched_pair[1])
         return new_sched
 
-    def _insert(self, start_time: int, sched: ScheduleComponent) -> 'Schedule':
-        """Mutably insert `sched` into `self` at `start_time`.
+    def _insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
+        """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
             start_time: Time to insert the second schedule
             schedule: Schedule to mutably insert
         """
-        if isinstance(sched, Schedule):
-            shifted_children = sched._children
+        if isinstance(schedule, Schedule):
+            shifted_children = schedule._children
             if start_time != 0:
                 shifted_children = tuple((t + start_time, child) for t, child in shifted_children)
             self.__children += shifted_children
-        else:  # isinstance(sched, Instruction)
-            self.__children += ((start_time, sched),)
+        else:  # isinstance(schedule, Instruction)
+            self.__children += ((start_time, schedule),)
 
-        sched_timeslots = sched.timeslots if start_time == 0 else sched.timeslots.shift(start_time)
+        sched_timeslots = (schedule.timeslots if start_time == 0
+                           else schedule.timeslots.shift(start_time))
         self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
