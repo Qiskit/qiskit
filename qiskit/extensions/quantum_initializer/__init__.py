@@ -15,9 +15,9 @@
 """Initialize qubit registers to desired arbitrary state."""
 
 from .squ import SingleQubitUnitary
-from .ucz import UCZ
-from .ucy import UCY
-from .ucx import UCX
+from .ucrz import UCRZGate
+from .ucry import UCRYGate
+from .ucrx import UCRXGate
 from .diag import DiagGate
-from .ucg import UCG
+from .uc import UCGate
 from .isometry import Isometry

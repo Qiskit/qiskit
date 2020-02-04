@@ -24,7 +24,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate, HGate, SGate, TGate
+from qiskit.extensions.standard import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -129,7 +129,7 @@ class Operator(BaseOperator):
         """
         # Check label is valid
         label_mats = {
-            'I': IdGate().to_matrix(),
+            'I': IGate().to_matrix(),
             'X': XGate().to_matrix(),
             'Y': YGate().to_matrix(),
             'Z': ZGate().to_matrix(),

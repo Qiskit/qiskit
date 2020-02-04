@@ -15,7 +15,7 @@
 """Tests PassManager.run()"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import CnotGate
+from qiskit.extensions.standard import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
@@ -65,7 +65,7 @@ class TestPassManagerRun(QiskitTestCase):
         new_circuit = pass_manager.run(circuit)
 
         for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CnotGate):
+            if isinstance(gate, CXGate):
                 self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_default_pass_manager_two(self):
@@ -113,5 +113,5 @@ class TestPassManagerRun(QiskitTestCase):
 
         for new_circuit in new_circuits:
             for gate, qargs, _ in new_circuit.data:
-                if isinstance(gate, CnotGate):
+                if isinstance(gate, CXGate):
                     self.assertIn([x.index for x in qargs], coupling_map)

@@ -34,7 +34,11 @@ import scipy.linalg as la
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard.u3 import U3Gate
+<<<<<<< HEAD
 from qiskit.extensions.standard.x import CnotGate
+=======
+from qiskit.extensions.standard.cx import CXGate
+>>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
@@ -477,4 +481,4 @@ class TwoQubitBasisDecomposer():
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
-two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
+two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())

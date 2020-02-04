@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-Phase gate.
+Controlled-Phase gate.
 """
 import warnings
 # pylint: disable=unused-import

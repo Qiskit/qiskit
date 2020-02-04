@@ -31,11 +31,11 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
-                                        CyGate, CzGate, Cu1Gate, SwapGate,
-                                        ToffoliGate, HGate, RZGate, RXGate,
-                                        RYGate, CryGate, CrxGate, FredkinGate,
-                                        U3Gate, CHGate, CrzGate, Cu3Gate,
+from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
+                                        CYGate, CZGate, CU1Gate, SwapGate,
+                                        CCXGate, HGate, RZGate, RXGate,
+                                        RYGate, CRYGate, CRXGate, CSwapGate,
+                                        U3Gate, CHGate, CRZGate, CU3Gate,
                                         MSGate, Barrier)
 from qiskit.extensions.unitary import UnitaryGate
 import qiskit.extensions.standard as allGates
@@ -47,15 +47,15 @@ class TestControlledGate(QiskitTestCase):
 
     def test_controlled_x(self):
         """Test creation of controlled x gate"""
-        self.assertEqual(XGate().control(), CnotGate())
+        self.assertEqual(XGate().control(), CXGate())
 
     def test_controlled_y(self):
         """Test creation of controlled y gate"""
-        self.assertEqual(YGate().control(), CyGate())
+        self.assertEqual(YGate().control(), CYGate())
 
     def test_controlled_z(self):
         """Test creation of controlled z gate"""
-        self.assertEqual(ZGate().control(), CzGate())
+        self.assertEqual(ZGate().control(), CZGate())
 
     def test_controlled_h(self):
         """Test creation of controlled h gate"""
@@ -64,41 +64,41 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_u1(self):
         """Test creation of controlled u1 gate"""
         theta = 0.5
-        self.assertEqual(U1Gate(theta).control(), Cu1Gate(theta))
+        self.assertEqual(U1Gate(theta).control(), CU1Gate(theta))
 
     def test_controlled_rz(self):
         """Test creation of controlled rz gate"""
         theta = 0.5
-        self.assertEqual(RZGate(theta).control(), CrzGate(theta))
+        self.assertEqual(RZGate(theta).control(), CRZGate(theta))
 
     def test_controlled_ry(self):
         """Test creation of controlled ry gate"""
         theta = 0.5
-        self.assertEqual(RYGate(theta).control(), CryGate(theta))
+        self.assertEqual(RYGate(theta).control(), CRYGate(theta))
 
     def test_controlled_rx(self):
         """Test creation of controlled rx gate"""
         theta = 0.5
-        self.assertEqual(RXGate(theta).control(), CrxGate(theta))
+        self.assertEqual(RXGate(theta).control(), CRXGate(theta))
 
     def test_controlled_u3(self):
         """Test creation of controlled u3 gate"""
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(U3Gate(theta, phi, lamb).control(),
-                         Cu3Gate(theta, phi, lamb))
+                         CU3Gate(theta, phi, lamb))
 
     def test_controlled_cx(self):
         """Test creation of controlled cx gate"""
-        self.assertEqual(CnotGate().control(), ToffoliGate())
+        self.assertEqual(CXGate().control(), CCXGate())
 
     def test_controlled_swap(self):
         """Test creation of controlled swap gate"""
-        self.assertEqual(SwapGate().control(), FredkinGate())
+        self.assertEqual(SwapGate().control(), CSwapGate())
 
     def test_circuit_append(self):
         """Test appending controlled gate to quantum circuit"""
         circ = QuantumCircuit(5)
-        inst = CnotGate()
+        inst = CXGate()
         circ.append(inst.control(), qargs=[0, 2, 1])
         circ.append(inst.control(2), qargs=[0, 3, 1, 2])
         circ.append(inst.control().control(), qargs=[0, 3, 1, 2])  # should be same as above
@@ -194,7 +194,11 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
+<<<<<<< HEAD
         cu3gate = u3.Cu3Gate(alpha, beta, gamma)
+=======
+        cu3gate = cu3.CU3Gate(alpha, beta, gamma)
+>>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
 
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
@@ -255,7 +259,11 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu1 = QuantumCircuit(qr)
+<<<<<<< HEAD
         cu1gate = u1.Cu1Gate(theta)
+=======
+        cu1gate = cu1.CU1Gate(theta)
+>>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
@@ -431,7 +439,7 @@ class TestControlledGate(QiskitTestCase):
         for cls in gate_classes:
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
-            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+            if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                 continue
             try:
                 sig = signature(cls)

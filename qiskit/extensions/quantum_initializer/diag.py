@@ -87,7 +87,7 @@ class DiagGate(Gate):
             num_act_qubits = int(np.log2(n))
             contr_qubits = q[self.num_qubits - num_act_qubits + 1:self.num_qubits]
             target_qubit = q[self.num_qubits - num_act_qubits]
-            circuit.ucz(angles_rz, contr_qubits, target_qubit)
+            circuit.ucrz(angles_rz, contr_qubits, target_qubit)
             n //= 2
         return circuit
 

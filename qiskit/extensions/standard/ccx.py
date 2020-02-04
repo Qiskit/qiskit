@@ -13,12 +13,12 @@
 # that they have been altered from the originals.
 
 """
-Toffoli gate. Controlled-Controlled-X.
+Controlled-Controlled-X (or Toffoli) Gate.
 """
 
 import warnings
 # pylint: disable=unused-import
-from qiskit.extensions.standard.x import ToffoliGate, ccx
+from qiskit.extensions.standard.x import ToffoliGate, CCXGate, ccx
 
 warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py',
               category=DeprecationWarning, stacklevel=2)

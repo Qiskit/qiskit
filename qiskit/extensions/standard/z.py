@@ -20,6 +20,8 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CXGate
 from qiskit.qasm import pi
 
 
@@ -28,12 +30,12 @@ class ZGate(Gate):
 
     def __init__(self, label=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__('z', 1, [], label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(pi), [q[0]], [])
         ]
@@ -60,7 +62,7 @@ class ZGate(Gate):
         return ZGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the X gate."""
+        """Return a numpy.array for the Z gate."""
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
 
@@ -73,26 +75,34 @@ def z(self, q):
 QuantumCircuit.z = z
 
 
-class CzGate(ControlledGate):
-    """controlled-Z gate."""
+class CZMeta(type):
+    """A metaclass to ensure that CzGate and CZGate are of the same type.
+
+    Can be removed when CzGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CZGate, CzGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CZGate(ControlledGate, metaclass=CZMeta):
+    """The controlled-Z gate."""
 
     def __init__(self, label=None):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
+        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1)
         self.base_gate = ZGate
-        self.base_gate_name = "z"
+        self.base_gate_name = 'z'
 
     def _define(self):
         """
         gate cz a,b { h b; cx a,b; h b; }
         """
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.x import CnotGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (HGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
         for inst in rule:
@@ -101,19 +111,30 @@ class CzGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CzGate()  # self-inverse
+        return CZGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Cz gate."""
+        """Return a numpy.array for the CZ gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 1, 0, 0],
                             [0, 0, 1, 0],
                             [0, 0, 0, -1]], dtype=complex)
 
 
+class CzGate(CZGate, metaclass=CZMeta):
+    """The deprecated CZGate class."""
+    def __init__(self):
+        import warnings
+        warnings.warn('The class CzGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CZGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
+
+
 def cz(self, ctl, tgt):  # pylint: disable=invalid-name
     """Apply CZ to circuit."""
-    return self.append(CzGate(), [ctl, tgt], [])
+    return self.append(CZGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cz = cz

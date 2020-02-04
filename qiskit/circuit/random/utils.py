@@ -18,12 +18,12 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.extensions import (IdGate, U1Gate, U2Gate, U3Gate, XGate,
+from qiskit.extensions import (IGate, U1Gate, U2Gate, U3Gate, XGate,
                                YGate, ZGate, HGate, SGate, SdgGate, TGate,
-                               TdgGate, RXGate, RYGate, RZGate, CnotGate,
-                               CyGate, CzGate, CHGate, CrzGate, Cu1Gate,
-                               Cu3Gate, SwapGate, RZZGate,
-                               ToffoliGate, FredkinGate)
+                               TdgGate, RXGate, RYGate, RZGate, CXGate,
+                               CYGate, CZGate, CHGate, CRZGate, CU1Gate,
+                               CU3Gate, SwapGate, RZZGate,
+                               CCXGate, CSwapGate)
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -49,14 +49,14 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
     if max_operands < 1 or max_operands > 3:
         raise CircuitError("max_operands must be between 1 and 3")
 
-    one_q_ops = [IdGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
+    one_q_ops = [IGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
                  HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
-    one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, Cu1Gate, CrzGate]
+    one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, CU1Gate, CRZGate]
     two_param = [U2Gate]
-    three_param = [U3Gate, Cu3Gate]
-    two_q_ops = [CnotGate, CyGate, CzGate, CHGate, CrzGate,
-                 Cu1Gate, Cu3Gate, SwapGate, RZZGate]
-    three_q_ops = [ToffoliGate, FredkinGate]
+    three_param = [U3Gate, CU3Gate]
+    two_q_ops = [CXGate, CYGate, CZGate, CHGate, CRZGate,
+                 CU1Gate, CU3Gate, SwapGate, RZZGate]
+    three_q_ops = [CCXGate, CSwapGate]
 
     qr = QuantumRegister(n_qubits, 'q')
     qc = QuantumCircuit(n_qubits)
@@ -96,7 +96,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                 num_angles = 3
             else:
                 num_angles = 0
-            angles = [rng.uniform(0, 2*np.pi) for x in range(num_angles)]
+            angles = [rng.uniform(0, 2 * np.pi) for x in range(num_angles)]
             register_operands = [qr[i] for i in operands]
             op = operation(*angles)
 

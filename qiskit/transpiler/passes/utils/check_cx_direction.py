@@ -15,7 +15,11 @@
 """Check if the CNOTs follow the right direction with respect to the coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+<<<<<<< HEAD
 from qiskit.extensions.standard.x import CnotGate
+=======
+from qiskit.extensions.standard.cx import CXGate
+>>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
 
 
 class CheckCXDirection(AnalysisPass):
@@ -53,7 +57,7 @@ class CheckCXDirection(AnalysisPass):
             physical_q0 = gate.qargs[0].index
             physical_q1 = gate.qargs[1].index
 
-            if isinstance(gate.op, CnotGate) and (
+            if isinstance(gate.op, CXGate) and (
                     physical_q0, physical_q1) not in edges:
                 self.property_set['is_direction_mapped'] = False
                 return

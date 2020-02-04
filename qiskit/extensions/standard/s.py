@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-S=diag(1,i) Clifford phase gate or its inverse.
+The S gate (Clifford phase gate) and its inverse.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -23,11 +23,11 @@ from qiskit.qasm import pi
 
 
 class SGate(Gate):
-    """S=diag(1,i) Clifford phase gate."""
+    """The S gate, also called Clifford phase gate."""
 
     def __init__(self, label=None):
-        """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        """Create a new S gate."""
+        super().__init__('s', 1, [], label=label)
 
     def _define(self):
         """
@@ -35,7 +35,7 @@ class SGate(Gate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
@@ -48,7 +48,7 @@ class SGate(Gate):
         return SdgGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 
@@ -57,8 +57,8 @@ class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
 
     def __init__(self, label=None):
-        """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        """Create a new Sdg gate."""
+        super().__init__('sdg', 1, [], label=label)
 
     def _define(self):
         """
@@ -66,7 +66,7 @@ class SdgGate(Gate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
@@ -79,7 +79,7 @@ class SdgGate(Gate):
         return SGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the Sdg gate."""
+        """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)
 

@@ -19,14 +19,16 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.cx import CXGate
 
 
 class RZGate(Gate):
-    """rotation around the z-axis."""
+    """The rotation around the z-axis."""
 
     def __init__(self, phi):
-        """Create new rz single qubit gate."""
-        super().__init__("rz", 1, [phi])
+        """Create new RZ single qubit gate."""
+        super().__init__('rz', 1, [phi])
 
     def _define(self):
         """
@@ -34,7 +36,7 @@ class RZGate(Gate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(self.params[0]), [q[0]], [])
         ]
@@ -65,21 +67,31 @@ class RZGate(Gate):
 
 
 def rz(self, phi, q):  # pylint: disable=invalid-name
-    """Apply Rz to q."""
+    """Apply RZ to q."""
     return self.append(RZGate(phi), [q], [])
 
 
 QuantumCircuit.rz = rz
 
 
-class CrzGate(ControlledGate):
-    """controlled-rz gate."""
+class CRZMeta(type):
+    """A metaclass to ensure that CrzGate and CRZGate are of the same type.
+
+    Can be removed when CrzGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CRZGate, CrzGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CRZGate(ControlledGate, metaclass=CRZMeta):
+    """The controlled-rz gate."""
 
     def __init__(self, theta):
         """Create new crz gate."""
-        super().__init__("crz", 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RZGate
-        self.base_gate_name = "rz"
+        self.base_gate_name = 'rz'
 
     def _define(self):
         """
@@ -88,15 +100,13 @@ class CrzGate(ControlledGate):
           u1(-lambda/2) b; cx a,b;
         }
         """
-        from qiskit.extensions.standard.x import CnotGate
-        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (U1Gate(self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -104,12 +114,24 @@ class CrzGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CrzGate(-self.params[0])
+        return CRZGate(-self.params[0])
+
+
+class CrzGate(CRZGate, metaclass=CRZMeta):
+    """The deprecated CRZGate class."""
+
+    def __init__(self, theta):
+        import warnings
+        warnings.warn('The class CrzGate is deprecated as of 0.12.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRZGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__(theta)
 
 
 def crz(self, theta, ctl, tgt):
     """Apply crz from ctl to tgt with angle theta."""
-    return self.append(CrzGate(theta), [ctl, tgt], [])
+    return self.append(CRZGate(theta), [ctl, tgt], [])
 
 
 QuantumCircuit.crz = crz

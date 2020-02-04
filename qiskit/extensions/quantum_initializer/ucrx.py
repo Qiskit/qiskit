@@ -16,7 +16,7 @@
 # pylint: disable=missing-type-doc
 
 """
-Implementation of the abstract class UCRot for uniformly controlled
+Implementation of the abstract class UCPauliRotGate for uniformly controlled
 (also called multiplexed) single-qubit rotations around the X-axes
 (i.e., uniformly controlled R_x rotations).
 These gates can have several control qubits and a single target qubit.
@@ -27,10 +27,10 @@ import math
 
 from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.quantum_initializer.ucrot import UCRot
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCX(UCRot):
+class UCRXGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -45,7 +45,7 @@ class UCX(UCRot):
         super().__init__(angle_list, "X")
 
 
-def ucx(self, angle_list, q_controls, q_target):
+def ucrx(self, angle_list, q_controls, q_target):
     """Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
@@ -89,7 +89,17 @@ def ucx(self, angle_list, q_controls, q_target):
     if num_contr != len(q_controls):
         raise QiskitError("Number of controlled rotations does not correspond to the number of"
                           " control-qubits.")
-    return self.append(UCX(angle_list), [q_target] + q_controls, [])
+    return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
 
 
-QuantumCircuit.ucx = ucx
+def ucx(self, angle_list, q_controls, q_target):
+    """
+    Deprecated version of ucrx.
+    """
+    import warnings
+    warnings.warn('qc.ucx is deprecated, use qc.ucrx instead!', DeprecationWarning, 2)
+    ucrx(self, angle_list, q_controls, q_target)
+
+
+QuantumCircuit.ucrx = ucrx
+QuantumCircuit.ucx = ucx  # deprecated, but still supported
