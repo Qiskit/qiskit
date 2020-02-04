@@ -238,8 +238,6 @@ def execute(experiments, backend,
                             )
 
     if schedule_circuit:
-        if isinstance(experiments, Schedule) or \
-                (isinstance(experiments, list) and
         if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
             raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
         experiments = schedule(circuits=experiments,
