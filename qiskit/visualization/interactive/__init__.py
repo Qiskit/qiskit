@@ -13,10 +13,12 @@
 # that they have been altered from the originals.
 
 """Qiskit visualization library."""
+import sys
 
-from .iplot_blochsphere import iplot_bloch_multivector
-from .iplot_cities import iplot_state_city
-from .iplot_qsphere import iplot_state_qsphere
-from .iplot_hinton import iplot_state_hinton
-from .iplot_histogram import iplot_histogram
-from .iplot_paulivec import iplot_state_paulivec
+if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+    from .iplot_blochsphere import iplot_bloch_multivector
+    from .iplot_cities import iplot_state_city
+    from .iplot_qsphere import iplot_state_qsphere
+    from .iplot_hinton import iplot_state_hinton
+    from .iplot_histogram import iplot_histogram
+    from .iplot_paulivec import iplot_state_paulivec
