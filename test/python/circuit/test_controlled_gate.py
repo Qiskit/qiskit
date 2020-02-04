@@ -432,22 +432,23 @@ class TestControlledGate(QiskitTestCase):
         for cls in gate_classes:
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
-            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
-                continue
-            try:
-                sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY
-                               or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                   and param.default is param.empty)])
-                args = [1]*numargs
+            with self.subTest(i=cls):
+                if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+                    continue
+                try:
+                    sig = signature(cls)
+                    numargs = len([param for param in sig.parameters.values()
+                                   if param.kind == param.POSITIONAL_ONLY
+                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                       and param.default is param.empty)])
+                    args = [2]*numargs
 
-                gate = cls(*args)
-                self.assertEqual(gate.inverse().control(2),
-                                 gate.control(2).inverse())
-            except AttributeError:
-                # skip gates that do not have a control attribute (e.g. barrier)
-                pass
+                    gate = cls(*args)
+                    self.assertEqual(gate.inverse().control(2),
+                                     gate.control(2).inverse())
+                except AttributeError:
+                    # skip gates that do not have a control attribute (e.g. barrier)
+                    pass
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):

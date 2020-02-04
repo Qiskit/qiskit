@@ -83,8 +83,7 @@ class CyGate(ControlledGate):
     def __init__(self):
         """Create new CY gate."""
         super().__init__("cy", 2, [], num_ctrl_qubits=1)
-        self.base_gate = YGate
-        self.base_gate_name = "y"
+        self.base_gate = YGate()
 
     def _define(self):
         """

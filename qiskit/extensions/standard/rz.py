@@ -82,8 +82,7 @@ class CrzGate(ControlledGate):
     def __init__(self, theta):
         """Create new crz gate."""
         super().__init__("crz", 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RZGate
-        self.base_gate_name = "rz"
+        self.base_gate = RZGate(theta)
 
     def _define(self):
         """
