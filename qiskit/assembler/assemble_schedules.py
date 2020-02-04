@@ -18,7 +18,7 @@ from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
-from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
+from qiskit.pulse.commands import (Command, PulseInstruction, Acquire, AcquireInstruction,
                                    DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
@@ -76,11 +76,11 @@ def _assemble_experiments(
 
     Args:
         schedules: schedules to assemble
-        lo_converter: TODO
+        lo_converter: the configured frequency converter and validator
         run_config: configuration of the runtime environment
 
     Returns:
-        TODO
+        The list of assembled experiments, and the dictionary of related experiment config
 
     Raises:
         QiskitError: when frequency settings are not compatible with the experiments
@@ -150,11 +150,13 @@ def _assemble_instructions(
 
     Args:
         schedule: schedule to assemble
-        instruction_converter: TODO
+        instruction_converter: a converter instance which can convert PulseInstructions to
+                               PulseQobjInstructions
         run_config: configuration of the runtime environment
 
     Returns:
-        TODO
+        A list of converted instructions, the user pulse library dictionary (from pulse name to
+        pulse command), and the maximum number of readout memory slots used by this Schedule
     """
     max_memory_slot = 0
     qobj_instructions = []
@@ -211,13 +213,14 @@ def _assemble_instructions(
     return qobj_instructions, user_pulselib, max_memory_slot
 
 
-def _validate_meas_map(instruction_map: Dict[Tuple[int, Command], List[AcquireInstruction]],
+def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireInstruction]],
                        meas_map: List[List[int]]) -> None:
     """Validate all qubits tied in meas_map are to be acquired.
 
     Args:
-        instruction_map:
-        meas_map:
+        instruction_map: a dictionary grouping AcquireInstructions according to their start time
+                         and the command features (notably, their duration)
+        meas_map: list of groups of qubits that must be acquired together
 
     Raises:
         QiskitError: if the instructions do not satisfy the measurement map
@@ -244,10 +247,10 @@ def _bundle_channel_indices(
     memory slots, and register slots into a 3-tuple of lists.
 
     Args:
-        instructions:
+        instructions: a list of AcquireInstructions to be bundled
 
     Returns:
-        TODO
+        The qubit indices, the memory slot indices, and register slot indices from instructions
     """
     qubits = []
     mem_slots = []
@@ -262,16 +265,15 @@ def _bundle_channel_indices(
 def _assemble_config(lo_converter: LoConfigConverter,
                      experiment_config: Dict[str, Any],
                      run_config: RunConfig) -> PulseQobjConfig:
-    """Assembles a list of schedules into PulseQobjExperiments, and returns related metadata that
-    will be assembled into the Qobj configuration.
+    """Assembles the QobjConfiguration from experimental config and runtime config.
 
     Args:
+        lo_converter: The configured frequency converter and validator
         experiment_config: schedules to assemble
-        lo_converter: TODO
         run_config: configuration of the runtime environment
 
     Returns:
-        TODO
+        The assembled PulseQobjConfig
     """
     qobj_config = run_config.to_dict()
     qobj_config.update(experiment_config)
