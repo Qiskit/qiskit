@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
+from collections import defaultdict
+
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse, ParametricInstruction)
@@ -81,7 +83,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # instructions
         max_memory_slot = 0
         qobj_instructions = []
-        acquire_instructions = []
+        acquire_instruction_map = defaultdict(list)
 
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
@@ -95,10 +97,6 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                                                    instruction.channels[0],
                                                    name=instruction.name)
 
-            if isinstance(instruction, DelayInstruction):
-                # delay instructions are ignored as timing is explicit within qobj
-                continue
-
             if isinstance(instruction, PulseInstruction):
                 name = instruction.command.name
                 if name in user_pulselib and instruction.command != user_pulselib[name]:
@@ -109,18 +107,30 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                         channel=instruction.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
-            elif isinstance(instruction, AcquireInstruction):
+
+            if isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
+                # Acquires have a single AcquireChannel per inst, but we have to bundle them
+                # together into the Qobj as one instruction with many channels
+                acquire_instruction_map[(shift, instruction.command)].append(instruction)
+                continue
 
-                acquire_instructions.append(instruction)
+            if isinstance(instruction, DelayInstruction):
+                # delay instructions are ignored as timing is explicit within qobj
+                continue
 
-            converted_instruction = instruction_converter(shift, instruction)
-            qobj_instructions.append(converted_instruction)
+            qobj_instructions.append(instruction_converter(shift, instruction))
 
-        if meas_map:
-            # verify all acquires satisfy meas_map
-            _validate_meas_map(acquire_instructions, meas_map)
+        if acquire_instruction_map:
+            if meas_map:
+                _validate_meas_map(acquire_instruction_map, meas_map)
+            for (shift, _), instructions in acquire_instruction_map.items():
+                qubits, mem_slots, reg_slots = _bundle_channel_indices(instructions)
+                qobj_instructions.append(
+                    instruction_converter.convert_single_acquires(
+                        shift, instructions[0],
+                        qubits=qubits, memory_slot=mem_slots, register_slot=reg_slots))
 
         # memory slot size is memory slot index + 1 because index starts from zero
         exp_memory_slot_size = max_memory_slot + 1
@@ -203,23 +213,32 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                      header=qobj_header)
 
 
-def _validate_meas_map(instructions, meas_map):
+def _validate_meas_map(instruction_map, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
-    meas_map_set = [set(m) for m in meas_map]
-    # Verify that each qubit is listed once in measurement map
+    meas_map_sets = [set(m) for m in meas_map]
 
-    acquires = []
+    # Check each acquisition time individually
+    for _, instructions in instruction_map.items():
+
+        measured_qubits = set()
+        for inst in instructions:
+            measured_qubits.update([acq.index for acq in inst.acquires])
+
+        for meas_set in meas_map_sets:
+            intersection = measured_qubits.intersection(meas_set)
+            if intersection and intersection != meas_set:
+                raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
+                                  'in measurement map: {1}'.format(measured_qubits, meas_set))
+
+
+def _bundle_channel_indices(instructions):
+    """From the list of AcquireInstructions, bundle the indices of the acquire channels,
+    memory slots, and register slots into a 3-tuple of lists."""
+    qubits = []
+    mem_slots = []
+    reg_slots = []
     for inst in instructions:
-        acquires += inst.acquires
-    measured_qubits = {acq_ch.index for acq_ch in acquires}
-
-    tied_qubits = set()
-    for meas_qubit in measured_qubits:
-        for map_inst in meas_map_set:
-            if meas_qubit in map_inst:
-                tied_qubits |= map_inst
-
-    if measured_qubits != tied_qubits:
-        raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
-                          'in measurement map: {1}'.format(measured_qubits, tied_qubits))
-    return True
+        qubits.extend(aq.index for aq in inst.acquires)
+        mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
+        reg_slots.extend(reg.index for reg in inst.reg_slots)
+    return qubits, mem_slots, reg_slots
