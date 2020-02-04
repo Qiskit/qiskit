@@ -23,7 +23,7 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
-class PCCCXGate(Gate):
+class RCCCXGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
     The simplified Toffoli gate implements the Toffoli gate up to relative phases.
@@ -36,11 +36,11 @@ class PCCCXGate(Gate):
 
     def __init__(self):
         """Create a new PCCCX gate."""
-        super().__init__('pcccx', 4, [])
+        super().__init__('rcccx', 4, [])
 
     def _define(self):
         """
-        gate pcccx a,b,c,d
+        gate rcccx a,b,c,d
         { u2(0,pi) d;
           u1(pi/4) d;
           cx c,d;
@@ -108,9 +108,9 @@ class PCCCXGate(Gate):
                             [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
 
-def pcccx(self, ctl1, ctl2, ctl3, tgt):
-    """Apply the simplified 3-control Toffoli gate."""
-    return self.append(PCCCXGate(), [ctl1, ctl2, ctl3, tgt], [])
+def rcccx(self, ctl1, ctl2, ctl3, tgt):
+    """Apply the simplified, relative-phase 3-control Toffoli gate."""
+    return self.append(RCCCXGate(), [ctl1, ctl2, ctl3, tgt], [])
 
 
-QuantumCircuit.pcccx = pcccx
+QuantumCircuit.rcccx = rcccx

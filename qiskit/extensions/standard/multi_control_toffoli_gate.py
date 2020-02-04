@@ -56,13 +56,13 @@ def _mct_v_chain(qc, control_qubits, target_qubit, ancillary_qubits, dirty_ancil
         qc.u1(pi/4, ancillary_qubits[anci_idx])
 
         for idx in reversed(range(2, len(control_qubits) - 1)):
-            qc.pccx(control_qubits[idx], ancillary_qubits[anci_idx - 1], ancillary_qubits[anci_idx])
+            qc.rccx(control_qubits[idx], ancillary_qubits[anci_idx - 1], ancillary_qubits[anci_idx])
             anci_idx -= 1
 
     anci_idx = 0
-    qc.pccx(control_qubits[0], control_qubits[1], ancillary_qubits[anci_idx])
+    qc.rccx(control_qubits[0], control_qubits[1], ancillary_qubits[anci_idx])
     for idx in range(2, len(control_qubits) - 1):
-        qc.pccx(control_qubits[idx], ancillary_qubits[anci_idx], ancillary_qubits[anci_idx + 1])
+        qc.rccx(control_qubits[idx], ancillary_qubits[anci_idx], ancillary_qubits[anci_idx + 1])
         anci_idx += 1
 
     if dirty_ancilla:
@@ -79,14 +79,14 @@ def _mct_v_chain(qc, control_qubits, target_qubit, ancillary_qubits, dirty_ancil
         qc.ccx(control_qubits[len(control_qubits) - 1], ancillary_qubits[anci_idx], target_qubit)
 
     for idx in reversed(range(2, len(control_qubits) - 1)):
-        qc.pccx(control_qubits[idx], ancillary_qubits[anci_idx - 1], ancillary_qubits[anci_idx])
+        qc.rccx(control_qubits[idx], ancillary_qubits[anci_idx - 1], ancillary_qubits[anci_idx])
         anci_idx -= 1
-    qc.pccx(control_qubits[0], control_qubits[1], ancillary_qubits[anci_idx])
+    qc.rccx(control_qubits[0], control_qubits[1], ancillary_qubits[anci_idx])
 
     if dirty_ancilla:
         anci_idx = 0
         for idx in range(2, len(control_qubits) - 1):
-            qc.pccx(control_qubits[idx], ancillary_qubits[anci_idx], ancillary_qubits[anci_idx + 1])
+            qc.rccx(control_qubits[idx], ancillary_qubits[anci_idx], ancillary_qubits[anci_idx + 1])
             anci_idx += 1
 
 

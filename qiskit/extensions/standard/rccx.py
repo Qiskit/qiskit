@@ -23,8 +23,8 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.qasm import pi
 
 
-class PCCXGate(Gate):
-    """The simplified Toffoli gate.
+class RCCXGate(Gate):
+    """The simplified Toffoli gate, also referred to as Margolus gate.
 
     The simplified Toffoli gate implements the Toffoli gate up to relative phases.
     This implementation requires three CX gates which is the minimal amount possible,
@@ -37,12 +37,12 @@ class PCCXGate(Gate):
     """
 
     def __init__(self):
-        """Create a new PCCX gate."""
-        super().__init__('pccx', 3, [])
+        """Create a new simplified CCX gate."""
+        super().__init__('rccx', 3, [])
 
     def _define(self):
         """
-        gate pccx a,b,c
+        gate rccx a,b,c
         { u2(0,pi) c;
           u1(pi/4) c;
           cx b, c;
@@ -72,7 +72,7 @@ class PCCXGate(Gate):
         self.definition = definition
 
     def to_matrix(self):
-        """Return a numpy.array for the PCCX gate."""
+        """Return a numpy.array for the simplified CCX gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0],
@@ -83,9 +83,9 @@ class PCCXGate(Gate):
                             [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
 
-def pccx(self, ctl1, ctl2, tgt):
-    """Apply the simplified Toffoli gate."""
-    return self.append(PCCXGate(), [ctl1, ctl2, tgt], [])
+def rccx(self, ctl1, ctl2, tgt):
+    """Apply the simplified, relative-phase Toffoli gate."""
+    return self.append(RCCXGate(), [ctl1, ctl2, tgt], [])
 
 
-QuantumCircuit.pccx = pccx
+QuantumCircuit.rccx = rccx
