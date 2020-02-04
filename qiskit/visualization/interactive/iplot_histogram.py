@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """Interactive histogram from experiment counts"""
 
 import functools
@@ -60,7 +61,7 @@ def iplot_histogram(data, figsize=(None, None), color=None,
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit, BasicAer, execute
-           from theia.visualization import iplot_histogram
+           from qiskit.visualization.interactive import iplot_histogram
 
            qc = QuantumCircuit(2, 2)
            qc.h(0)
