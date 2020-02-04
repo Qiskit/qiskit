@@ -12,31 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unpacking-non-sequence
+
 """
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
-
-The PTM is the n-qubit superoperator defined with respect to vectorization in
-the Pauli basis. For a quantum channel E, the PTM is defined by
-
-    PTM_{i,j} = Tr[P_i.E(P_j)]
-
-where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
-
-Evolution is given by
-
-    |E(ρ)⟩⟩_p = PTM|ρ⟩⟩_p
-
-where |A⟩⟩_p denotes vectorization in the Pauli basis: ⟨i|A⟩⟩_p = Tr[P_i.A]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -48,7 +30,41 @@ from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
-    """Initialize a quantum channel Pauli-Transfer Matrix operator.
+    r"""Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
+
+    The PTM representation of an :math:`n`-qubit quantum channel
+    :math:`\mathcal{E}` is an :math:`n`-qubit :class:`SuperOp` :math:`R`
+    defined with respect to vectorization in the Pauli basis instead of
+    column-vectorization. The elements of the PTM :math:`R` are
+    given by
+
+    .. math::
+
+        R_{i,j} = \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
+
+    where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
+    lexicographic order.
+
+    Evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
+    :math:`\rho` with respect to the PTM is given by
+
+    .. math::
+
+        |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
+
+    where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
+    :math:`\langle i | A\rangle\!\rangle_P = \mbox{Tr}[P_i A]`.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a PTM quantum channel operator.
 
         Args:
             data (QuantumCircuit or
@@ -70,8 +86,6 @@ class PTM(QuantumChannel):
         automatically determined from the input data. The PTM
         representation is only valid for N-qubit channels.
         """
-    def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a PTM quantum channel operator."""
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
@@ -137,45 +151,48 @@ class PTM(QuantumChannel):
         return PTM(SuperOp(self).transpose())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            PTM: The composition channel as a PTM object.
+            PTM: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if qargs is not None:
-            return PTM(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            QiskitError: if other cannot be converted to a PTM or has
+            incompatible dimensions.
 
-        # Convert other to PTM
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        # Check dimensions match up
-        if front and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if not front and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        if front:
-            # Composition A(B(input))
-            input_dim = other._input_dim
-            output_dim = self._output_dim
-            return PTM(np.dot(self._data, other.data), input_dim, output_dim)
-        # Composition B(A(input))
-        input_dim = self._input_dim
-        output_dim = other._output_dim
-        return PTM(np.dot(other.data, self._data), input_dim, output_dim)
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        return super().compose(other, qargs=qargs, front=front)
+
+    def dot(self, other, qargs=None):
+        """Return the right multiplied quantum channel self * other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+
+        Returns:
+            PTM: The quantum channel self * other.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PTM or has
+            incompatible dimensions.
+        """
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """The matrix power of the channel.
@@ -304,3 +321,46 @@ class PTM(QuantumChannel):
             specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
+
+    def _chanmul(self, other, qargs=None, left_multiply=False):
+        """Multiply two quantum channels.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+
+        Returns:
+            PTM: The composition channel as a PTM object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
+        if qargs is not None:
+            return PTM(
+                SuperOp(self)._chanmul(other,
+                                       qargs=qargs,
+                                       left_multiply=left_multiply))
+
+        # Convert other to PTM
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        # Check dimensions match up
+        if not left_multiply and self._input_dim != other._output_dim:
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
+        if left_multiply and self._output_dim != other._input_dim:
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
+        if left_multiply:
+            # other * self
+            input_dim = self._input_dim
+            output_dim = other._output_dim
+            return PTM(np.dot(other.data, self._data), input_dim, output_dim)
+
+        # self * other
+        input_dim = other._input_dim
+        output_dim = self._output_dim
+        return PTM(np.dot(self._data, other.data), input_dim, output_dim)

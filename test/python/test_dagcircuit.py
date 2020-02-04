@@ -29,8 +29,8 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.x import CnotGate
+from qiskit.extensions.standard.z import CzGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
@@ -551,7 +551,7 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
 
-        op_nodes = [node for node in self.dag.topological_op_nodes()]
+        op_nodes = list(self.dag.topological_op_nodes())
         self.dag.remove_op_node(op_nodes[0])
 
         expected = [('h', [self.qubit0]),

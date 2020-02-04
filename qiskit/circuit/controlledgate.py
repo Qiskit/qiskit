@@ -49,9 +49,7 @@ class ControlledGate(Gate):
                 if isinstance(base_gate, ControlledGate):
                     self.base_gate = base_gate.base_gate
                 else:
-                    self.base_gate = base_gate.__class__
-
-                self.base_gate_name = base_gate.name
+                    self.base_gate = base_gate
 
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):
@@ -63,11 +61,4 @@ class ControlledGate(Gate):
 
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""
-        params = self.params
-        if self.base_gate is Gate:
-            return super().inverse()
-        # importing MSGate causes circular import error
-        if self.base_gate.__name__ == 'MSGate':
-            # MSGate constructor additionally requires number of qubits
-            params = [self.num_qubits - self.num_ctrl_qubits] + params
-        return self.base_gate(*params).inverse().control(self.num_ctrl_qubits)
+        return self.base_gate.inverse().control(self.num_ctrl_qubits)
