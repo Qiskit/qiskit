@@ -186,4 +186,4 @@ class TestCmdDef(QiskitTestCase):
                 cmd = instr.command
                 if isinstance(cmd, FrameChange):
                     u2_phases.append(cmd.phase)
-            self.assertEqual(u2_phases, [0, -np.pi])
+            self.assertEqual(u2_phases, [-np.pi, 0])
