@@ -20,8 +20,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CXGate
 from qiskit.qasm import pi
 
 
@@ -98,6 +96,8 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         """
         gate cz a,b { h b; cx a,b; h b; }
         """
+        from qiskit.extensions.standard.h import HGate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

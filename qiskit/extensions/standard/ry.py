@@ -21,8 +21,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.cx import CXGate
 from qiskit.qasm import pi
 
 
@@ -111,6 +109,8 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         }
 
         """
+        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

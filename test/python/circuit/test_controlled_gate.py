@@ -194,11 +194,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
-<<<<<<< HEAD
-        cu3gate = u3.Cu3Gate(alpha, beta, gamma)
-=======
-        cu3gate = cu3.CU3Gate(alpha, beta, gamma)
->>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
+        cu3gate = u3.CU3Gate(alpha, beta, gamma)
 
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
@@ -259,11 +255,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu1 = QuantumCircuit(qr)
-<<<<<<< HEAD
-        cu1gate = u1.Cu1Gate(theta)
-=======
-        cu1gate = cu1.CU1Gate(theta)
->>>>>>> 6aa4e7b6e54c06abbf82aca0bffdb0d02c8590f3
+        cu1gate = u1.CU1Gate(theta)
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 

@@ -20,7 +20,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CXGate
 
 
 # pylint: disable=cyclic-import
@@ -102,6 +101,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
           u1(lambda/2) b;
         }
         """
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

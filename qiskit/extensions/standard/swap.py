@@ -20,8 +20,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CXGate
-from qiskit.extensions.standard.cx import CCXGate
 
 
 class SwapGate(Gate):
@@ -35,6 +33,7 @@ class SwapGate(Gate):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
@@ -57,7 +56,7 @@ class SwapGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return FredkinGate()
+            return CSwapGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
@@ -107,6 +106,8 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
           cx c,b;
         }
         """
+        from qiskit.extensions.standard.x import CXGate
+        from qiskit.extensions.standard.x import CCXGate
         definition = []
         q = QuantumRegister(3, 'q')
         rule = [
