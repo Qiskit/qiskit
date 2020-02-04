@@ -253,7 +253,7 @@ def ccx(self, ctl1, ctl2, tgt):
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.ccx import ToffoliGate
+            from qiskit.extensions.standard.x import ToffoliGate
             ToffoliGate().to_matrix()
     """
     return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
