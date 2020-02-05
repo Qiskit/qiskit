@@ -236,7 +236,7 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.bot_connect = self.bot_pad = " "
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.left_fill = len(self.wire_label)
-        self.top_format = "┌{}─%s─┐".format(self.top_pad * self.left_fill)
+        self.top_format = "┌{}%s──┐".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
         self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = top_connect if top_connect else '─'
@@ -259,15 +259,18 @@ class BoxOnWireMid(MultiBox):
 class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
     """ Draws the middle part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length, order, wire_label=''):
+    def __init__(self, label, input_length, order, wire_label='', control_label=False):
         super().__init__(label, input_length, order, wire_label=wire_label)
-        self.mid_format = "┤{} %s ├".format(self.wire_label)
+        if control_label:
+            self.mid_format = "■{} %s ├".format(self.wire_label)
+        else:
+            self.mid_format = "┤{} %s ├".format(self.wire_label)
 
 
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length, bot_connect='─', wire_label='', conditional=False):
+    def __init__(self, label, input_length, bot_connect=None, wire_label='', conditional=False):
         super().__init__(label)
         self.wire_label = wire_label
         self.top_pad = " "
@@ -275,6 +278,7 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
         self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        bot_connect = bot_connect if bot_connect else '─'
         self.bot_connect = '┬' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
@@ -297,7 +301,7 @@ class BoxOnClWireTop(MultiBox, BoxOnClWire):
 class BoxOnClWireMid(BoxOnWireMid, BoxOnClWire):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label, input_length, order, wire_label=''):
+    def __init__(self, label, input_length, order, wire_label='', **_):
         super().__init__(label, input_length, order, wire_label=wire_label)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
 
@@ -314,6 +318,7 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
         self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        bot_connect = bot_connect if bot_connect else '─'
         self.bot_connect = bot_connect
 
         self.mid_content = self.top_connect = ""
@@ -692,8 +697,10 @@ class TextDrawing():
     @staticmethod
     def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
+        if getattr(instruction.op, 'label', None) is not None:
+            return instruction.op.label
         if controlled:
-            label = instruction.op.base_gate_name
+            label = instruction.op.base_gate.name
         else:
             label = instruction.name
         params = TextDrawing.params_for_label(instruction)
@@ -768,6 +775,41 @@ class TextDrawing():
         for instruction in instructions:
             instruction.layer_width = longest
 
+    @staticmethod
+    def controlled_wires(instruction, layer):
+        """
+        Analyzes the instruction in the layer and checks if the controlled arguments are in
+        the box or out of the box.
+
+        Args:
+            instruction (Instruction): instruction to analyse
+            layer (Layer): The layer in which the instruction is inserted.
+
+        Returns:
+            Tuple(list, list, list):
+              - controlled arguments on top of the "instruction box"
+              - controlled arguments on bottom of the "instruction box"
+              - controlled arguments in the "instruction box"
+              - the rest of the arguments
+        """
+        ctrl_qubits = instruction.qargs[:instruction.op.num_ctrl_qubits]
+        args_qubits = instruction.qargs[instruction.op.num_ctrl_qubits:]
+
+        in_box = list()
+        top_box = list()
+        bot_box = list()
+
+        qubit_index = sorted([i for i, x in enumerate(layer.qregs) if x in args_qubits])
+
+        for ctrl_qubit in ctrl_qubits:
+            if min(qubit_index) > layer.qregs.index(ctrl_qubit):
+                top_box.append(ctrl_qubit)
+            elif max(qubit_index) < layer.qregs.index(ctrl_qubit):
+                bot_box.append(ctrl_qubit)
+            else:
+                in_box.append(ctrl_qubit)
+        return (top_box, bot_box, in_box, args_qubits)
+
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
@@ -785,11 +827,19 @@ class TextDrawing():
         # add in a gate that operates over multiple qubits
         def add_connected_gate(instruction, gates, layer, current_cons):
             for i, gate in enumerate(gates):
-                layer.set_qubit(instruction.qargs[i], gate)
                 actual_index = self.qregs.index(instruction.qargs[i])
-                current_cons.append((actual_index, gate))
+                if actual_index not in [i for i, j in current_cons]:
+                    layer.set_qubit(instruction.qargs[i], gate)
+                    current_cons.append((actual_index, gate))
 
-        if instruction.name == 'measure':
+        if len(instruction.qargs) >= 2 and \
+                not instruction.cargs and \
+                getattr(instruction.op, 'label', None) is not None:
+            # If a multi qubit instruction has a label, it is a box
+            layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
+                                conditional=conditional)
+
+        elif instruction.name == 'measure':
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
@@ -872,25 +922,33 @@ class TextDrawing():
         elif isinstance(instruction.op, ControlledGate):
             label = TextDrawing.label_for_box(instruction, controlled=True)
             gates = []
-            for _ in instruction.qargs[:-1]:
+
+            params_array = TextDrawing.controlled_wires(instruction, layer)
+            controlled_top, controlled_bot, controlled_edge, rest = params_array
+            for _ in controlled_top + controlled_bot + controlled_edge:
                 gates.append(Bullet(conditional=conditional))
-            gates.append(BoxOnQuWire(label, conditional=conditional))
+            if len(rest) > 1:
+                top_connect = '┴' if controlled_top else None
+                bot_connect = '┬' if controlled_bot else None
+                indexes = layer.set_qu_multibox(rest, label,
+                                                conditional=conditional,
+                                                controlled_edge=controlled_edge,
+                                                top_connect=top_connect, bot_connect=bot_connect)
+                for index in range(min(indexes), max(indexes) + 1):
+                    # Dummy element to connect the multibox with the bullets
+                    current_cons.append((index, DrawElement('')))
+            else:
+                gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
             # multiple qubit gate
-            label = instruction.name
-            params = TextDrawing.params_for_label(instruction)
-            if params:
-                label += "(%s)" % ','.join(params)
+            label = TextDrawing.label_for_box(instruction)
             layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
 
         elif instruction.qargs and instruction.cargs:
             # multiple gate, involving both qargs AND cargs
-            label = instruction.name
-            params = TextDrawing.params_for_label(instruction)
-            if params:
-                label += "(%s)" % ','.join(params)
+            label = TextDrawing.label_for_box(instruction)
             layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:
@@ -969,7 +1027,8 @@ class Layer:
         """
         self.clbit_layer[self.cregs.index(clbit)] = element
 
-    def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None, conditional=False):
+    def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None,
+                      bot_connect=None, conditional=False, controlled_edge=None):
         if qubits is not None and clbits is not None:
             qubits = list(qubits)
             clbits = list(clbits)
@@ -1002,8 +1061,7 @@ class Layer:
                                                          wire_label=wire_label))
             self.set_clbit(clbits.pop(0),
                            BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
-            return
-
+            return cbit_index
         if qubits is None and clbits is not None:
             bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
@@ -1027,12 +1085,16 @@ class Layer:
         else:
             raise VisualizationError("_set_multibox error!.")
 
+        if controlled_edge:
+            control_index = [i for i, x in enumerate(self.qregs) if x in controlled_edge]
+        else:
+            control_index = []
+
         if len(bit_index) == 1:
             set_bit(bits[0], OnWire(label, top_connect=top_connect))
         else:
             box_height = max(bit_index) - min(bit_index) + 1
-            set_bit(bits.pop(0),
-                    OnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
+            set_bit(bits.pop(0), OnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
             for order, bit_i in enumerate(range(min(bit_index) + 1, max(bit_index))):
                 if bit_i in bit_index:
                     named_bit = bits.pop(0)
@@ -1040,9 +1102,11 @@ class Layer:
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
-                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label))
-            set_bit(bits.pop(0), OnWireBot(label, box_height, wire_label=qargs.pop(0),
-                                           conditional=conditional))
+                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,
+                                             control_label=bit_i in control_index))
+            set_bit(bits.pop(0), OnWireBot(label, box_height, bot_connect=bot_connect,
+                                           wire_label=qargs.pop(0), conditional=conditional))
+        return bit_index
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
         """Sets the multi clbit box.
@@ -1055,15 +1119,23 @@ class Layer:
         clbit = [bit for bit in self.cregs if bit.register == creg]
         self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
-    def set_qu_multibox(self, bits, label, conditional=False):
+    def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
+                        conditional=False, controlled_edge=None):
         """Sets the multi qubit box.
 
         Args:
             bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
+            top_connect (char): None or a char connector on the top
+            bot_connect (char): None or a char connector on the bottom
             conditional (bool): If the box has a conditional
+            controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
+        Return:
+            List: A list of indexes of the box.
         """
-        self._set_multibox(label, qubits=bits, conditional=conditional)
+        return self._set_multibox(label, qubits=bits, top_connect=top_connect,
+                                  bot_connect=bot_connect,
+                                  conditional=conditional, controlled_edge=controlled_edge)
 
     def connect_with(self, wire_char):
         """Connects the elements in the layer using wire_char.

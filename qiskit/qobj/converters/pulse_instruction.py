@@ -164,6 +164,31 @@ class InstructionToQobjConverter:
                 })
         return self._qobj_model(**command_dict)
 
+    def convert_single_acquires(self, shift, instruction,
+                                qubits=None, memory_slot=None, register_slot=None):
+        """Return converted `AcquireInstruction`, with options to override the qubits,
+        memory_slot, and register_slot fields. This is useful for grouping
+        AcquisitionInstructions which are operated on a single AcquireChannel and
+        a single MemorySlot.
+
+        Args:
+            shift (int): Offset time.
+            instruction (AcquireInstruction): acquire instruction.
+            qubits (list(int)): A list of qubit indices to acquire.
+            memory_slot (list(int)): A list of memory slot indices to store results.
+            register_slot (list(int)): A list of register slot addresses to store results.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        res = self.convert_acquire(shift, instruction)
+        if qubits:
+            res.qubits = qubits
+        if memory_slot:
+            res.memory_slot = memory_slot
+        if register_slot:
+            res.register_slot = register_slot
+        return res
+
     @bind_instruction(commands.FrameChangeInstruction)
     def convert_frame_change(self, shift, instruction):
         """Return converted `FrameChangeInstruction`.
@@ -192,6 +217,8 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+                      "instead.", DeprecationWarning)
         command_dict = {
             'name': 'pv',
             't0': shift + instruction.start_time,
@@ -321,7 +348,7 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
-        qubit_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
+        acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
 
         mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
 
@@ -329,7 +356,7 @@ class QobjToInstructionConverter:
             register_slots = [channels.RegisterSlot(instruction.register_slot[i])
                               for i in range(len(qubits))]
         else:
-            register_slots = None
+            register_slots = [None] * len(qubits)
 
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
@@ -356,8 +383,9 @@ class QobjToInstructionConverter:
 
         cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
-        schedule |= commands.AcquireInstruction(cmd, qubit_channels, mem_slots,
-                                                register_slots) << t0
+
+        for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
+            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
 
         return schedule
 

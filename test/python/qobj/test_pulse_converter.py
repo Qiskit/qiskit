@@ -26,7 +26,7 @@ from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Sn
                                    Drag)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
-from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse import LoConfig
 
 
@@ -134,9 +134,9 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from AcquireInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = Acquire(duration=10)
-        instruction = command([AcquireChannel(0)],
-                              [MemorySlot(0)],
-                              [RegisterSlot(0)])
+        instruction = command(AcquireChannel(0),
+                              MemorySlot(0),
+                              RegisterSlot(0))
 
         valid_qobj = PulseQobjInstruction(
             name='acquire',
@@ -150,7 +150,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(0, instruction), valid_qobj)
 
         # test without register
-        instruction = command([AcquireChannel(0)], [MemorySlot(0)])
+        instruction = command(AcquireChannel(0), MemorySlot(0))
 
         valid_qobj = PulseQobjInstruction(
             name='acquire',
@@ -236,11 +236,13 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
-        cmd = Acquire(10, Discriminator(name='test_disc', params={'test_params': 1.0}),
-                      Kernel(name='test_kern', params={'test_params': 'test'}))
-        instruction = cmd([AcquireChannel(i) for i in range(self.n_qubits)],
-                          [MemorySlot(i) for i in range(self.n_qubits)],
-                          [RegisterSlot(i) for i in range(self.n_qubits)])
+        cmd = Acquire(10,
+                      kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
+                      discriminator=Discriminator(name='test_disc', params={'test_params': 1.0}))
+
+        schedule = Schedule()
+        for i in range(self.n_qubits):
+            schedule |= cmd(AcquireChannel(i), MemorySlot(i), RegisterSlot(i))
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
                                     memory_slot=[0, 1], register_slot=[0, 1],
@@ -250,7 +252,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
                                         name='test_disc', params={'test_params': 1.0})])
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.timeslots, schedule.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
 
     def test_snapshot(self):
