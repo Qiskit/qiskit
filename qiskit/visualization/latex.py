@@ -377,7 +377,7 @@ class QCircuitImage:
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
-                        op.op.base_gate_name.upper()).replace(" ", "\\,")
+                        op.op.base_gate.name.upper()).replace(" ", "\\,")
                     pos_array = []
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(qarglist) - num_ctrl_qubits
