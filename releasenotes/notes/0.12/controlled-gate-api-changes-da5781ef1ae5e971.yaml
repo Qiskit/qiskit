@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    The ``base_gate`` parameter of :class:`qiskit.circuit.ControlledGate`
+    objects has been change from the class to the instance of the class of
+    the base gate.
+  - |
+    The ``base_gate_name`` parameter of :class:`qiskit.circuit.ControlledGate`
+    has been removed, you can get the name of the base gate by either accessing
+    ``base_gate.name`` on the object. For example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.extensions import HGate
+
+        qc = QuantumCircuit(3)
+        cch_gate = HGate().control(2)
+        base_gate_name = cch_gate.base_gate.name
