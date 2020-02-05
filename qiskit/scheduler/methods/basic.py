@@ -49,8 +49,6 @@ def as_soon_as_possible(circuit: QuantumCircuit,
     Returns:
         A schedule corresponding to the input `circuit` with pulses occurring as early as possible
     """
-    sched = Schedule(name=circuit.name)
-
     qubit_time_available = defaultdict(int)
 
     def update_times(inst_qubits: List[int], time: int = 0) -> None:
@@ -58,15 +56,20 @@ def as_soon_as_possible(circuit: QuantumCircuit,
         for q in inst_qubits:
             qubit_time_available[q] = time
 
+    start_times = []
     circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in circ_pulse_defs:
-        time = max(qubit_time_available[q] for q in circ_pulse_def.qubits)
-        if isinstance(circ_pulse_def.schedule, Barrier):
-            update_times(circ_pulse_def.qubits, time)
-        else:
-            sched = sched.insert(time, circ_pulse_def.schedule)
-            update_times(circ_pulse_def.qubits, time + circ_pulse_def.schedule.duration)
-    return sched
+        start_time = max(qubit_time_available[q] for q in circ_pulse_def.qubits)
+        stop_time = start_time
+        if not isinstance(circ_pulse_def.schedule, Barrier):
+            stop_time += circ_pulse_def.schedule.duration
+
+        start_times.append(start_time)
+        update_times(circ_pulse_def.qubits, stop_time)
+
+    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
+                       if not isinstance(cpd.schedule, Barrier)]
+    return Schedule(*timed_schedules, name=circuit.name)
 
 
 def as_late_as_possible(circuit: QuantumCircuit,
@@ -87,36 +90,29 @@ def as_late_as_possible(circuit: QuantumCircuit,
     Returns:
         A schedule corresponding to the input `circuit` with pulses occurring as late as possible
     """
-    sched = Schedule(name=circuit.name)
-    # Align channel end times.
-    circuit.barrier()
-    # We schedule in reverse order to get ALAP behaviour. We need to know how far out from t=0 any
-    # qubit will become occupied. We add positive shifts to these times as we go along.
-    # The time is initialized to 0 because all qubits are involved in the final barrier.
-    qubit_available_until = defaultdict(lambda: 0)
+    qubit_time_available = defaultdict(int)
 
-    def update_times(inst_qubits: List[int], shift: int = 0, inst_start_time: int = 0) -> None:
+    def update_times(inst_qubits: List[int], time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
-            qubit_available_until[q] = inst_start_time
-        for q in qubit_available_until.keys():
-            if q not in inst_qubits:
-                # Uninvolved qubits might be free for the duration of the new instruction
-                qubit_available_until[q] += shift
+            qubit_time_available[q] = time
 
+    rev_stop_times = []
     circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in reversed(circ_pulse_defs):
-        inst_sched = circ_pulse_def.schedule
-        # The new instruction should end when one of its qubits becomes occupied
-        inst_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
-                           - getattr(inst_sched, 'duration', 0))  # Barrier has no duration
-        # We have to translate qubit times forward when the inst_start_time is negative
-        shift_amount = max(0, -inst_start_time)
-        inst_start_time = max(inst_start_time, 0)
+        start_time = max(qubit_time_available[q] for q in circ_pulse_def.qubits)
+        stop_time = start_time
         if not isinstance(circ_pulse_def.schedule, Barrier):
-            sched = inst_sched.shift(inst_start_time).insert(shift_amount, sched, name=sched.name)
-        update_times(circ_pulse_def.qubits, shift_amount, inst_start_time)
-    return sched
+            stop_time += circ_pulse_def.schedule.duration
+
+        rev_stop_times.append(stop_time)
+        update_times(circ_pulse_def.qubits, stop_time)
+
+    last_stop = max(t for t in qubit_time_available.values())
+    start_times = [last_stop - t for t in reversed(rev_stop_times)]
+    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
+                       if not isinstance(cpd.schedule, Barrier)]
+    return Schedule(*timed_schedules, name=circuit.name)
 
 
 def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
