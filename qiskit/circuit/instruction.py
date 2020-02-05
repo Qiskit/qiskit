@@ -404,6 +404,6 @@ def _rename_kwargs(func_name, kwargs, kwarg_map):
             warnings.warn('{} keyword argument {} is deprecated and '
                           'replaced with {}.'.format(
                               func_name, old_arg, new_arg),
-                          DeprecationWarning)
+                          DeprecationWarning, stacklevel=3)
 
             kwargs[new_arg] = kwargs.pop(old_arg)
