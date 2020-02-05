@@ -21,7 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi
-from qiskit.circuit.instruction import deprecate_arguments
+from qiskit.util import deprecate_arguments
 
 
 class YGate(Gate):

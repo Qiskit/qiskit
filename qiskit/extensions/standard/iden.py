@@ -18,7 +18,7 @@ Identity gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.instruction import deprecate_arguments
+from qiskit.util import deprecate_arguments
 
 
 class IdGate(Gate):

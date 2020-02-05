@@ -20,7 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.instruction import deprecate_arguments
+from qiskit.util import deprecate_arguments
 
 
 class SwapGate(Gate):

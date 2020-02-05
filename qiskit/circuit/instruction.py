@@ -33,7 +33,6 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 import copy
-import functools
 from itertools import zip_longest
 import warnings
 
@@ -380,30 +379,3 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
-
-
-def deprecate_arguments(kwarg_map):
-    """Decorator to automatically alias deprecated agrument names and warn upon use."""
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            if kwargs:
-                _rename_kwargs(func.__name__, kwargs, kwarg_map)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
-def _rename_kwargs(func_name, kwargs, kwarg_map):
-    for old_arg, new_arg in kwarg_map.items():
-        if old_arg in kwargs:
-            if new_arg in kwargs:
-                raise TypeError('{} received both {} and {} (deprecated).'.format(
-                    func_name, new_arg, old_arg))
-
-            warnings.warn('{} keyword argument {} is deprecated and '
-                          'replaced with {}.'.format(
-                              func_name, old_arg, new_arg),
-                          DeprecationWarning, stacklevel=3)
-
-            kwargs[new_arg] = kwargs.pop(old_arg)

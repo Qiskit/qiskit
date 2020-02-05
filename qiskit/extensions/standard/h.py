@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.qasm import pi
-from qiskit.circuit.instruction import deprecate_arguments
+from qiskit.util import deprecate_arguments
 
 
 # pylint: disable=cyclic-import
