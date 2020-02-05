@@ -493,7 +493,7 @@ class QCircuitImage:
                         pos_2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
-                            pos_3 = self.img_regs[(if_reg, 0)]
+                            pos_3 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
                             bottom = temp[1]
@@ -641,7 +641,7 @@ class QCircuitImage:
                         pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
-                            pos_4 = self.img_regs[(if_reg, 0)]
+                            pos_4 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3, pos_4]
                             temp.sort(key=int)
                             bottom = temp[2]
