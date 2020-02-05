@@ -162,9 +162,9 @@ class TestCmdDef(QiskitTestCase):
                 pv_found = True
         self.assertTrue(pv_found)
 
-        self.assertEqual(cmd_def.get_parameters('u1', 0), ('P1',))
+        self.assertEqual(cmd_def.get_parameters('u1', 0), ('P0',))
 
-        u1_minus_pi = cmd_def.get('u1', 0, P1=np.pi)
+        u1_minus_pi = cmd_def.get('u1', 0, P0=np.pi)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
 
@@ -175,7 +175,7 @@ class TestCmdDef(QiskitTestCase):
 
         for i in range(2):
             u1_phases = []
-            for _, instr in cmd_def.get('u1', i, P1=np.pi).instructions:
+            for _, instr in cmd_def.get('u1', i, P0=np.pi).instructions:
                 cmd = instr.command
                 if isinstance(cmd, FrameChange):
                     u1_phases.append(cmd.phase)
