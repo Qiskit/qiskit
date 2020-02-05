@@ -383,7 +383,8 @@ class QCircuitImage:
                     num_qargs = len(qarglist) - num_ctrl_qubits
                     for ctrl in range(len(qarglist)):
                         pos_array.append(self.img_regs[qarglist[ctrl]])
-
+                    pos_qargs = pos_array[num_ctrl_qubits:]
+                    ctrl_pos = pos_array[:num_ctrl_qubits]
                     if op.condition:
                         mask = self._get_mask(op.condition[0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
@@ -402,15 +403,36 @@ class QCircuitImage:
                                 self._latex[pos_cond + i][column] = \
                                     "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
-                    for index, pos in enumerate(pos_array[:num_ctrl_qubits]):
-                        self._latex[pos][column] = "\\ctrl{" + str(
-                            pos_array[index + 1] - pos_array[index]) + "}"
                     if num_qargs == 1:
+                        for index, pos in enumerate(ctrl_pos):
+                            self._latex[pos][column] = "\\ctrl{" + str(
+                                pos_array[index + 1] - pos_array[index]) + "}"
                         self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
                     else:
-                        pos_qargs = pos_array[num_ctrl_qubits:]
                         pos_start = min(pos_qargs)
                         pos_stop = max(pos_qargs)
+                        # If any controls appear in the span of the multiqubit
+                        # gate just treat the whole thing as a big gate instead
+                        # of trying to render the controls separately
+                        if any(ctrl_pos) in range(pos_start, pos_stop):
+                            pos_start = min(pos_array)
+                            pos_stop = max(pos_array)
+                            num_qargs = len(qarglist)
+                            name = generate_latex_label(
+                                op.name).replace(" ", "\\,")
+                        else:
+                            for index, pos in enumerate(ctrl_pos):
+                                if index + 1 >= num_ctrl_qubits:
+                                    if pos_array[index] > pos_stop:
+                                        upper = pos_stop
+                                    else:
+                                        upper = pos_start
+                                else:
+                                    upper = pos_array[index + 1]
+
+                                self._latex[pos][column] = "\\ctrl{" + str(
+                                    upper - pos_array[index]) + "}"
+
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
                                                           (num_qargs - 1, name))
                         for pos in range(pos_start + 1, pos_stop + 1):
