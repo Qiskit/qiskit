@@ -1,16 +1,18 @@
 ---
 features:
   - |
-    Pulse ``Schedule`` objects now have better representations that should for
-    simple schedules be valid Python expressions.
+    Pulse :class:`qiskit.pulse.Schedule` objects now have better
+    representations that for simple schedules should be valid Python
+    expressions.
 
-    for example::
+    for example:
 
-      sched = pulse.Schedule(name='test')
-      sched += pulse.SamplePulse([0., 0,], name='test_pulse')(pulse.DriveChannel(0))
-      sched += pulse.FrameChange(1.0)(pulse.DriveChannel(0))
-      print(sched)
-      >>> Schedule((0, PulseInstruction(SamplePulse(samples=array([0.+0.j, 0.+0.j]),
-                    name="test_pulse"), DriveChannel(0))),
-                    (2, FrameChangeInstruction(FrameChange(phase=1.000, name="fc0"),
-                    DriveChannel(0))), name="test")
+    .. jupyter-execute:
+
+        from qiskit import pulse
+
+        sched = pulse.Schedule(name='test')
+        sched += pulse.SamplePulse(
+            [0., 0,], name='test_pulse')(pulse.DriveChannel(0))
+        sched += pulse.FrameChange(1.0)(pulse.DriveChannel(0))
+        print(sched)

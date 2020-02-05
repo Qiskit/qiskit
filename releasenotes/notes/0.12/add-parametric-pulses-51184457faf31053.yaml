@@ -6,10 +6,10 @@ features:
     shapes are still supported by the SamplePulse Command. The new supported
     pulse classes are:
 
-      - :class:`ConstantPulse`
-      - :class:`Drag`
-      - :class:`Gaussian`
-      - :class:`GaussianSquare`
+      - :class:`qiskit.pulse.ConstantPulse`
+      - :class:`qiskit.pulse.Drag`
+      - :class:`qiskit.pulse.Gaussian`
+      - :class:`qiskit.pulse.GaussianSquare`
 
     They can be used like any other Pulse command. An example::
 
@@ -47,15 +47,3 @@ features:
     on the number of instructions, whereas the size of a PulseQobj built
     otherwise will grow with the duration of the instructions (since every
     sample must be specified with a value).
-
-    New parametric pulses can easily be added. The new command must implement
-    a ``get_sample_pulse`` method to convert itself to a SamplePulse (for
-    drawing and to assemble to backends which do not support it). It should be
-    added to ``qiskit/pulse/commands/parametric_pulses.py``. The new pulse must
-    then be registered by the assembler in
-    ``qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes``
-    by following the existing pattern::
-
-        class ParametricPulseShapes(Enum):
-            ...
-            backend_config_pulse_str = commands.YourPulseCommandClass

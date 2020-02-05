@@ -1,9 +1,13 @@
 ---
 features:
   - |
-    Add state measure functions to the ``quantum_info`` module for ``entropy``,
-    ``mutual_information``, ``concurrence``, and ``entanglement_of_formation``.
-    These functions work with the ``Statevector`` and ``DensityMatrix`` classes.
+    Added new state measure functions to the :mod:`qiskit.quantum_info`
+    module for :func:`qiskit.quantum_info.entropy`,
+    :func:`qiskit.quantum_info.mutual_information`,
+    :func:`qiskit.quantum_info.concurrence`, and
+    :func:`qiskit.quantum_info.entanglement_of_formation`. These functions work
+    with the :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes.
 
 deprecations:
   - |
@@ -50,6 +54,6 @@ deprecations:
        * - Deprecated
          - Replacement
        * - ``qiskit.quantum_info.states.states.basis_state``
-         - :method:`qiskit.quantum_info.Statevector.from_label`
+         - :meth:`qiskit.quantum_info.Statevector.from_label`
        * - ``qiskit.quantum_info.states.states.projector``
          - :class:`qiskit.quantum_info.DensityMatrix`
