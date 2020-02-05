@@ -1,10 +1,11 @@
 ---
 features:
   - |
-    Pulse `Schedule`s now have better representations that should for simple
-    schedules be valid Python expressions.
+    Pulse ``Schedule`` objects now have better representations that should for
+    simple schedules be valid Python expressions.
 
     for example::
+
       sched = pulse.Schedule(name='test')
       sched += pulse.SamplePulse([0., 0,], name='test_pulse')(pulse.DriveChannel(0))
       sched += pulse.FrameChange(1.0)(pulse.DriveChannel(0))

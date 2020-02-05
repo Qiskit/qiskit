@@ -1,10 +1,12 @@
-features:
+upgrade:
   - |
-    `assemble()` now takes `rep_time` in units of seconds, not microseconds.
-    `PulseBackendConfiguration._parse_pulse_args()` still takes `rep_times` in units of microseconds,
-    but they are now transformed to units of seconds before being passed to `assemble()`
-    At first pass, `PulseBackendConfiguration` will raise a warning to the user.
-deprecations:
+    The value of the ``rep_time`` parameter for Pulse backend's configuration
+    object are now in units of seconds, not microseconds. The first time a
+    ``PulseBackendConfiguration`` object is initialized it will raise a single
+    warning to the user to indicate this.
   - |
-    `assemble()` now takes `rep_time` in units of seconds, not microseconds.
+    The ``rep_time`` argument for ``qiskit.compiler.assemble()`` now takes
+    in a value in units of seconds, not microseconds. This was done to make
+    the units with everything else in pulse. If you were passing in a value for
+    ``rep_time`` ensure that you update the value to account for this change.
 

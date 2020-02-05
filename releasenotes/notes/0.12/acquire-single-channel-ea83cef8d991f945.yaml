@@ -1,12 +1,10 @@
 ---
-prelude: >
-    Acquire and AcquireInstruction now can be applied to a single channel
 features:
   - |
     Within the terra API allow acquires be applied to a single qubit.
     This makes pulse programming more consistent and easier to reason
     about as all operations in pulse would then be for single channels.
-    For example:
+    For example::
 
       acquire = Acquire(duration=10)
       schedule = Schedule()
@@ -16,5 +14,5 @@ features:
 deprecations:
   - |
     Acquire on multiple qubits has been deprecated.
-    ``AcquireInstruction`` parameters ``mem_slots``, ``reg_slots`` has been deprecated,
-    use ``reg_slot``, ``mem_slot`` instead.
+    ``AcquireInstruction`` parameters ``mem_slots``, ``reg_slots`` has been
+    deprecated, use ``reg_slot``, ``mem_slot`` instead.
