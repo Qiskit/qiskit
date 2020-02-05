@@ -843,7 +843,7 @@ class MatplotlibDrawer:
                 elif isinstance(op.op, ControlledGate) and op.name not in [
                         'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
                         'cswap']:
-                    disp = op.op.base_gate_name
+                    disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
 
