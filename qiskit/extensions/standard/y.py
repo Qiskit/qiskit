@@ -21,6 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class YGate(Gate):
@@ -65,9 +66,10 @@ class YGate(Gate):
                             [1j, 0]], dtype=complex)
 
 
-def y(self, q):
-    """Apply Y to q."""
-    return self.append(YGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Y to qubit."""
+    return self.append(YGate(), [qubit], [])
 
 
 QuantumCircuit.y = y
@@ -104,9 +106,12 @@ class CyGate(ControlledGate):
         return CyGate()  # self-inverse
 
 
-def cy(self, ctl, tgt):  # pylint: disable=invalid-name
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply CY to circuit."""
-    return self.append(CyGate(), [ctl, tgt], [])
+    return self.append(CyGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cy = cy

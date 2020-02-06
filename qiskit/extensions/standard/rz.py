@@ -19,6 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
 class RZGate(Gate):
@@ -64,9 +65,10 @@ class RZGate(Gate):
         return RZGate(-self.params[0])
 
 
-def rz(self, phi, q):  # pylint: disable=invalid-name
-    """Apply Rz to q."""
-    return self.append(RZGate(phi), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply Rz to qubit."""
+    return self.append(RZGate(phi), [qubit], [])
 
 
 QuantumCircuit.rz = rz
@@ -106,9 +108,11 @@ class CrzGate(ControlledGate):
         return CrzGate(-self.params[0])
 
 
-def crz(self, theta, ctl, tgt):
+@deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+def crz(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply crz from ctl to tgt with angle theta."""
-    return self.append(CrzGate(theta), [ctl, tgt], [])
+    return self.append(CrzGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crz = crz
