@@ -23,7 +23,7 @@ from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
@@ -370,7 +370,7 @@ class TestPulseAssembler(QiskitTestCase):
             'meas_level': 1,
             'memory_slot_size': 100,
             'meas_return': 'avg',
-            'rep_time': 100
+            'rep_time': 0.0001,
         }
 
         self.header = {
@@ -391,7 +391,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_multi_schedules_without_lo_config(self):
         """Test assembling schedules, no lo config."""
@@ -405,7 +405,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config(self):
         """Test assembling a single schedule, with a single lo config."""
@@ -420,7 +420,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
         """Test assembling a single schedule, with a single lo config supplied as dictionary."""
@@ -435,7 +435,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
         self.assertEqual(len(test_dict['experiments']), 1)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
         """Test assembling a single schedule, with lo configs (frequency sweep)."""
@@ -449,7 +449,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
         self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
@@ -466,7 +466,7 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
-        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 3)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
         self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
@@ -788,6 +788,29 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                             memory_slots=self.memory_slots,
                             rep_time=self.rep_time,
                             )
+
+    def test_single_and_deprecated_acquire_styles(self):
+        """Test that acquires are identically combined with Acquires that take a single channel."""
+        backend = FakeOpenPulse2Q()
+        new_style_schedule = Schedule()
+        acq = Acquire(1200)
+        for i in range(5):
+            new_style_schedule += acq(AcquireChannel(i), MemorySlot(i))
+
+        deprecated_style_schedule = Schedule()
+        deprecated_style_schedule += acq([AcquireChannel(i) for i in range(5)],
+                                         [MemorySlot(i) for i in range(5)])
+
+        # The Qobj IDs will be different
+        n_qobj = assemble(new_style_schedule, backend)
+        n_qobj.qobj_id = None
+        d_qobj = assemble(deprecated_style_schedule, backend)
+        d_qobj.qobj_id = None
+        self.assertEqual(n_qobj, d_qobj)
+
+        assembled_acquire = n_qobj.experiments[0].instructions[0]
+        self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
+        self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
 
 
 if __name__ == '__main__':

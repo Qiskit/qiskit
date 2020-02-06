@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The most straightforward scheduling methods: scheduling as early or as late as possible.
-
-Warning: Currently for both of these methods, the MemorySlots in circuit Measures are ignored.
-Qubits will be measured into the MemorySlot which matches the measured qubit's index. (Issue #2704)
-"""
+"""The most straightforward scheduling methods: scheduling as early or as late as possible."""
 
 from collections import defaultdict, namedtuple
 from typing import List
@@ -27,8 +23,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.channels import MemorySlot
-from qiskit.pulse.commands import AcquireInstruction
+from qiskit.pulse.channels import AcquireChannel
+from qiskit.scheduler.utils import measure
 
 from qiskit.scheduler.config import ScheduleConfig
 
@@ -134,8 +130,10 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     Args:
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
+
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element
+
     Raises:
         QiskitError: If circuit uses a command that isn't defined in config.inst_map
     """
@@ -146,31 +144,15 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
-        measures = set()
-        all_qubits = set()
         sched = Schedule()
-        for qubit in qubit_mem_slots:
-            measures.add(tuple(schedule_config.meas_map[qubit]))
-        for qubits in measures:
-            all_qubits.update(qubits)
-            unused_mem_slots = set(qubits) - set(qubit_mem_slots.values())
-            default_sched = inst_map.get('measure', qubits)
-            for time, inst in default_sched.instructions:
-                if isinstance(inst, AcquireInstruction):
-                    for channel in inst.acquires:
-                        if channel.index in qubit_mem_slots.keys():
-                            mem_slot = MemorySlot(qubit_mem_slots[channel.index])
-                        else:
-                            mem_slot = MemorySlot(unused_mem_slots.pop())
-                        sched._union((time, AcquireInstruction(command=inst.command,
-                                                               acquire=channel,
-                                                               mem_slot=mem_slot)))
-
-                # Measurement pulses should only be added if its qubit was measured by the user
-                elif inst.channels[0].index in qubit_mem_slots.keys():
-                    sched._union((time, inst))
+        sched += measure(qubits=list(qubit_mem_slots.keys()),
+                         inst_map=inst_map,
+                         meas_map=schedule_config.meas_map,
+                         qubit_mem_slots=qubit_mem_slots)
         qubit_mem_slots.clear()
-        return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
+        return CircuitPulseDef(schedule=sched,
+                               qubits=[chan.index for chan in sched.channels
+                                       if isinstance(chan, AcquireChannel)])
 
     for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
