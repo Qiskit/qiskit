@@ -18,6 +18,7 @@ Identity gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.util import deprecate_arguments
 
 
 class IdGate(Gate):
@@ -41,13 +42,14 @@ class IdGate(Gate):
                             [0, 1]], dtype=complex)
 
 
-def iden(self, q):
-    """Apply Identity to q.
+@deprecate_arguments({'q': 'qubit'})
+def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Identity to qubit.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).
     """
-    return self.append(IdGate(), [q], [])
+    return self.append(IdGate(), [qubit], [])
 
 
 QuantumCircuit.iden = iden

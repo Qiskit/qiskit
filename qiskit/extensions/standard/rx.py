@@ -22,6 +22,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class RXGate(Gate):
@@ -74,9 +75,10 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-def rx(self, theta, q):  # pylint: disable=invalid-name
+@deprecate_arguments({'q': 'qubit'})
+def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply Rx to q."""
-    return self.append(RXGate(theta), [q], [])
+    return self.append(RXGate(theta), [qubit], [])
 
 
 QuantumCircuit.rx = rx
@@ -88,8 +90,7 @@ class CrxGate(ControlledGate):
     def __init__(self, theta):
         """Create new crx gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RXGate
-        self.base_gate_name = 'rx'
+        self.base_gate = RXGate(theta)
 
     def _define(self):
         """
@@ -122,9 +123,12 @@ class CrxGate(ControlledGate):
         return CrxGate(-self.params[0])
 
 
-def crx(self, theta, ctl, tgt):
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def crx(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply crx from ctl to tgt with angle theta."""
-    return self.append(CrxGate(theta), [ctl, tgt], [])
+    return self.append(CrxGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crx = crx

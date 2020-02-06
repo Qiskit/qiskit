@@ -21,6 +21,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class XGate(Gate):
@@ -72,9 +73,10 @@ class XGate(Gate):
                             [1, 0]], dtype=complex)
 
 
-def x(self, q):
-    """Apply X to q."""
-    return self.append(XGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply X to qubit."""
+    return self.append(XGate(), [qubit], [])
 
 
 QuantumCircuit.x = x
@@ -86,8 +88,7 @@ class CnotGate(ControlledGate):
     def __init__(self):
         """Create new CNOT gate."""
         super().__init__("cx", 2, [], num_ctrl_qubits=1)
-        self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None):
         """Controlled version of this gate.
@@ -115,9 +116,12 @@ class CnotGate(ControlledGate):
                             [0, 1, 0, 0]], dtype=complex)
 
 
-def cx(self, ctl, tgt):  # pylint: disable=invalid-name
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply CX from ctl to tgt."""
-    return self.append(CnotGate(), [ctl, tgt], [])
+    return self.append(CnotGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cx = cx
@@ -130,8 +134,7 @@ class ToffoliGate(ControlledGate):
     def __init__(self):
         """Create new Toffoli gate."""
         super().__init__("ccx", 3, [], num_ctrl_qubits=2)
-        self.base_gate = XGate
-        self.base_gate_name = "x"
+        self.base_gate = XGate()
 
     def _define(self):
         """
@@ -184,9 +187,15 @@ class ToffoliGate(ControlledGate):
                             [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
 
 
-def ccx(self, ctl1, ctl2, tgt):
+@deprecate_arguments({'ctl1': 'control_qubit1',
+                      'ctl2': 'control_qubit2',
+                      'tgt': 'target_qubit'})
+def ccx(self, control_qubit1, control_qubit2, target_qubit,
+        *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
     """Apply Toffoli to ctl1 and ctl2 to tgt."""
-    return self.append(ToffoliGate(), [ctl1, ctl2, tgt], [])
+
+    return self.append(ToffoliGate(),
+                       [control_qubit1, control_qubit2, target_qubit], [])
 
 
 QuantumCircuit.ccx = ccx

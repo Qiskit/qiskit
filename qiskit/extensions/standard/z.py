@@ -21,6 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class ZGate(Gate):
@@ -65,9 +66,10 @@ class ZGate(Gate):
                             [0, -1]], dtype=complex)
 
 
-def z(self, q):
-    """Apply Z to q."""
-    return self.append(ZGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Z to qubit."""
+    return self.append(ZGate(), [qubit], [])
 
 
 QuantumCircuit.z = z
@@ -79,8 +81,7 @@ class CzGate(ControlledGate):
     def __init__(self, label=None):
         """Create new CZ gate."""
         super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
-        self.base_gate = ZGate
-        self.base_gate_name = "z"
+        self.base_gate = ZGate()
 
     def _define(self):
         """
@@ -110,10 +111,12 @@ class CzGate(ControlledGate):
                             [0, 0, 1, 0],
                             [0, 0, 0, -1]], dtype=complex)
 
-
-def cz(self, ctl, tgt):  # pylint: disable=invalid-name
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply CZ to circuit."""
-    return self.append(CzGate(), [ctl, tgt], [])
+    return self.append(CzGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cz = cz
