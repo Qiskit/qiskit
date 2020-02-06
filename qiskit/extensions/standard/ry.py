@@ -17,11 +17,12 @@ Rotation around the y-axis.
 """
 import math
 import numpy
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.r import RGate
+from qiskit.util import deprecate_arguments
 
 
 class RYGate(Gate):
@@ -35,6 +36,7 @@ class RYGate(Gate):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
+        from qiskit.extensions.standard.r import RGate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -43,6 +45,20 @@ class RYGate(Gate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if num_ctrl_qubits == 1:
+            return CryGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
     def inverse(self):
         """Invert this gate.
@@ -59,9 +75,56 @@ class RYGate(Gate):
                             [sin, cos]], dtype=complex)
 
 
-def ry(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Ry to q."""
-    return self.append(RYGate(theta), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply Ry to qubit."""
+    return self.append(RYGate(theta), [qubit], [])
 
 
 QuantumCircuit.ry = ry
+
+
+class CryGate(ControlledGate):
+    """controlled-ry gate."""
+
+    def __init__(self, theta):
+        """Create new cry gate."""
+        super().__init__("cry", 2, [theta], num_ctrl_qubits=1)
+        self.base_gate = RYGate(theta)
+
+    def _define(self):
+        """
+        gate cry(lambda) a,b
+        { u3(lambda/2,0,0) b; cx a,b;
+          u3(-lambda/2,0,0) b; cx a,b;
+        }
+
+        """
+        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.u3 import U3Gate
+        definition = []
+        q = QuantumRegister(2, "q")
+        rule = [
+            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return CryGate(-self.params[0])
+
+
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cry(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+    """Apply cry from ctl to tgt with angle theta."""
+    return self.append(CryGate(theta), [control_qubit, target_qubit], [])
+
+
+QuantumCircuit.cry = cry

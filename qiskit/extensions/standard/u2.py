@@ -20,7 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.util import deprecate_arguments
 
 
 class U2Gate(Gate):
@@ -31,6 +31,7 @@ class U2Gate(Gate):
         super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
+        from qiskit.extensions.standard.u3 import U3Gate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
@@ -58,9 +59,10 @@ class U2Gate(Gate):
                            dtype=complex)
 
 
-def u2(self, phi, lam, q):  # pylint: disable=invalid-name
-    """Apply u2 to q."""
-    return self.append(U2Gate(phi, lam), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply u2 to qubit."""
+    return self.append(U2Gate(phi, lam), [qubit], [])
 
 
 QuantumCircuit.u2 = u2

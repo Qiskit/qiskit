@@ -431,7 +431,7 @@ class Schedule(ScheduleComponent):
         Equality is checked by verifying there is an equal instruction at every time
         in `other` for every instruction in this Schedule.
 
-        Warning: This does not check for logical equivalencly. Ie.,
+        Warning: This does not check for logical equivalency. Ie.,
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))
@@ -472,11 +472,11 @@ class Schedule(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        name = "name={}, ".format(self._name) if self._name else ""
+        name = format(self._name) if self._name else ""
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
-        if len(self.instructions) > 50:
+        if len(self.instructions) > 25:
             instructions += ", ..."
-        return "Schedule({0}{1} {2})".format(name, self.start_time, instructions)
+        return 'Schedule({}, name="{}")'.format(instructions, name)
 
 
 class ParameterizedSchedule:

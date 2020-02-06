@@ -20,7 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.util import deprecate_arguments
 
 
 class SGate(Gate):
@@ -34,6 +34,7 @@ class SGate(Gate):
         """
         gate s a { u1(pi/2) a; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -64,6 +65,7 @@ class SdgGate(Gate):
         """
         gate sdg a { u1(-pi/2) a; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
@@ -83,14 +85,16 @@ class SdgGate(Gate):
                             [0, -1j]], dtype=complex)
 
 
-def s(self, q):  # pylint: disable=invalid-name
-    """Apply S to q."""
-    return self.append(SGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply S to qubit."""
+    return self.append(SGate(), [qubit], [])
 
 
-def sdg(self, q):
-    """Apply Sdg to q."""
-    return self.append(SdgGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def sdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Sdg to qubit."""
+    return self.append(SdgGate(), [qubit], [])
 
 
 QuantumCircuit.s = s
