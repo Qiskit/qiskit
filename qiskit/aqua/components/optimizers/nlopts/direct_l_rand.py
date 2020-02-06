@@ -1,34 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2020.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-from qiskit.aqua.components.optimizers import Optimizer
-from ._nloptimizer import minimize
-from ._nloptimizer import check_pluggable_valid as check_nlopt_valid
-import logging
+"""DIRECT is the DIviding RECTangles algorithm for global optimization."""
 
-logger = logging.getLogger(__name__)
-
-try:
-    import nlopt
-except ImportError:
-    logger.info('nlopt is not installed. Please install it if you want to use them.')
+from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
 
-class DIRECT_L_RAND(Optimizer):
+class DIRECT_L_RAND(NLoptOptimizer):  # pylint: disable=invalid-name
     """DIRECT is the DIviding RECTangles algorithm for global optimization.
 
     DIRECT-L RAND is the "locally biased" variant with some randomization in near-tie decisions
@@ -36,49 +25,6 @@ class DIRECT_L_RAND(Optimizer):
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#direct-and-direct-l
     """
 
-    CONFIGURATION = {
-        'name': 'DIRECT_L_RAND',
-        'description': 'GN_DIRECT_L_RAND Optimizer',
-        'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
-            'id': 'direct_l_rand_schema',
-            'type': 'object',
-            'properties': {
-                'max_evals': {
-                    'type': 'integer',
-                    'default': 1000
-                }
-            },
-            'additionalProperties': False
-        },
-        'support_level': {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
-        },
-        'options': ['max_evals'],
-        'optimizer': ['global']
-    }
-
-    def __init__(self, max_evals=1000):
-        """
-        Constructor.
-
-        Args:
-            max_evals (int): Maximum allowed number of function evaluations.
-        """
-        self.validate(locals())
-        super().__init__()
-        for k, v in locals().items():
-            if k in self._configuration['options']:
-                self._options[k] = v
-
-    @staticmethod
-    def check_pluggable_valid():
-        check_nlopt_valid(DIRECT_L_RAND.CONFIGURATION['name'])
-
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
-
-        return minimize(nlopt.GN_DIRECT_L_RAND, objective_function, variable_bounds, initial_point, **self._options)
+    def get_nlopt_optimizer(self) -> NLoptOptimizerType:
+        """ return NLopt optimizer type """
+        return NLoptOptimizerType.GN_DIRECT_L_RAND

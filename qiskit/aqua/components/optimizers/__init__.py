@@ -1,21 +1,78 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2020.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+Optimizers (:mod:`qiskit.aqua.components.optimizers`)
+=====================================================
+Optimizers, local and global
+
+.. currentmodule:: qiskit.aqua.components.optimizers
+
+Optimizer Base Class
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   Optimizer
+
+Local Optimizers
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   ADAM
+   CG
+   COBYLA
+   L_BFGS_B
+   NELDER_MEAD
+   P_BFGS
+   POWELL
+   SLSQP
+   SPSA
+   TNC
+   AQGD
+
+Global Optimizers
+=================
+The global optimizers here all use NLopt for their core function and can only be
+used if their dependent NLopt package is manually installed. See the following
+section for installation instructions.
+
+.. toctree::
+
+   qiskit.aqua.components.optimizers.nlopts
+
+The global optimizers are as follows:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   CRS
+   DIRECT_L
+   DIRECT_L_RAND
+   ESCH
+   ISRES
+
+"""
 
 from .optimizer import Optimizer
+from .adam_amsgrad import ADAM
 from .cg import CG
 from .cobyla import COBYLA
 from .l_bfgs_b import L_BFGS_B
@@ -25,8 +82,15 @@ from .powell import POWELL
 from .slsqp import SLSQP
 from .spsa import SPSA
 from .tnc import TNC
+from .aqgd import AQGD
+from .nlopts.crs import CRS
+from .nlopts.direct_l import DIRECT_L
+from .nlopts.direct_l_rand import DIRECT_L_RAND
+from .nlopts.esch import ESCH
+from .nlopts.isres import ISRES
 
 __all__ = ['Optimizer',
+           'ADAM',
            'CG',
            'COBYLA',
            'L_BFGS_B',
@@ -35,18 +99,6 @@ __all__ = ['Optimizer',
            'POWELL',
            'SLSQP',
            'SPSA',
-           'TNC']
-
-try:
-    import nlopt
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info('NLopt version: {}.{}.{}'.format(nlopt.version_major(), nlopt.version_minor(), nlopt.version_bugfix()))
-    from .nlopts.crs import CRS
-    from .nlopts.direct_l import DIRECT_L
-    from .nlopts.direct_l_rand import DIRECT_L_RAND
-    from .nlopts.esch import ESCH
-    from .nlopts.isres import ISRES
-    __all__ += ['CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES']
-except ImportError:
-    pass
+           'TNC',
+           'AQGD',
+           'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES']

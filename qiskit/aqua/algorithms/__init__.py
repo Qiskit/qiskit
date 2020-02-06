@@ -1,48 +1,121 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2020.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+Algorithms (:mod:`qiskit.aqua.algorithms`)
+==========================================
+Quantum Algorithms...
+
+.. currentmodule:: qiskit.aqua.algorithms
+
+Algorithms Base Class
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   QuantumAlgorithm
+   ClassicalAlgorithm
+
+Quantum Algorithms
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   VQE
+   QAOA
+   VQC
+   QGAN
+   EOH
+   QSVM
+   Grover
+   IQPE
+   QPE
+   AmplitudeEstimation
+   IterativeAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimation
+   Simon
+   DeutschJozsa
+   BernsteinVazirani
+   HHL
+   Shor
+
+Classical Algorithms
+====================
+Aqua includes some classical algorithms. While these algorithms do not use a quantum device or
+simulator, and rely on purely classical approaches, they may be useful in the near term to
+generate reference values while experimenting with, developing and testing quantum algorithms.
+
+The algorithms are designed to take the same input data as the quantum algorithms so that
+behavior, data validity and output can be evaluated and compared to a quantum result.
+
+Note: The :class:`CPLEX_Ising` algorithm requires `IBM ILOG CPLEX Optimization Studio
+<https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html>`__
+and its Python API to be installed. See the following for more information:
+
+.. toctree::
+   :maxdepth: 1
+
+   qiskit.aqua.algorithms.classical.cplex
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   ExactEigensolver
+   ExactLSsolver
+   SVM_Classical
+   CPLEX_Ising
+
+"""
 
 from .quantum_algorithm import QuantumAlgorithm
-from .adaptive import VQE, QAOA, QSVMVariational
-from .classical import ExactEigensolver, SVM_Classical
-from .many_sample import EOH, QSVMKernel
-from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, Simon, \
-    DeutschJozsa, BernsteinVazirani, HHL
+from .adaptive import VQE, QAOA, VQC, QGAN
+from .classical import (ClassicalAlgorithm, ExactEigensolver, ExactLSsolver,
+                        SVM_Classical, CPLEX_Ising)
+from .many_sample import EOH, QSVM
+from .single_sample import (Grover, IQPE, QPE, AmplitudeEstimation,
+                            Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor,
+                            IterativeAmplitudeEstimation,
+                            MaximumLikelihoodAmplitudeEstimation)
 
 
-__all__ = ['QuantumAlgorithm',
-           'VQE',
-           'QAOA',
-           'QSVMVariational',
-           'ExactEigensolver',
-           'SVM_Classical',
-           'EOH',
-           'QSVMKernel',
-           'Grover',
-           'IQPE',
-           'QPE',
-           'AmplitudeEstimation',
-           'Simon',
-           'DeutschJozsa',
-           'BernsteinVazirani',
-           'HHL'
-           ]
-
-try:
-    from .classical import CPLEX_Ising
-    __all__ += ['CPLEX_Ising']
-except ImportError:
-    pass
+__all__ = [
+    'QuantumAlgorithm',
+    'VQE',
+    'QAOA',
+    'VQC',
+    'QGAN',
+    'ClassicalAlgorithm',
+    'ExactEigensolver',
+    'ExactLSsolver',
+    'SVM_Classical',
+    'CPLEX_Ising',
+    'EOH',
+    'QSVM',
+    'Grover',
+    'IQPE',
+    'QPE',
+    'AmplitudeEstimation',
+    'IterativeAmplitudeEstimation',
+    'MaximumLikelihoodAmplitudeEstimation',
+    'Simon',
+    'DeutschJozsa',
+    'BernsteinVazirani',
+    'HHL',
+    'Shor',
+]

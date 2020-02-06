@@ -12,18 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ESCH (evolutionary algorithm). """
+""" Aqua test packages """
 
-from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
+from .aqua_test_case import QiskitAquaTestCase
 
-
-class ESCH(NLoptOptimizer):
-    """ESCH (evolutionary algorithm).
-
-    NLopt global optimizer, derivative-free
-    http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#esch-evolutionary-algorithm
-    """
-
-    def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ return NLopt optimizer type """
-        return NLoptOptimizerType.GN_ESCH
+__all__ = ['QiskitAquaTestCase']

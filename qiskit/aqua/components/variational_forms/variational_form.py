@@ -1,72 +1,64 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2020.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 This module contains the definition of a base class for
 variational forms. Several types of commonly used ansatz.
 """
 
-from abc import abstractmethod
+from typing import Optional, Union, List
+# below to allow it for python 3.6.1
+try:
+    from typing import NoReturn
+except ImportError:
+    from typing import Any as NoReturn
 
-from qiskit.aqua import Pluggable, PluggableType, get_pluggable_class
+from abc import ABC, abstractmethod
+import numpy as np
+from qiskit import QuantumRegister
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 
 
-class VariationalForm(Pluggable):
+class VariationalForm(ABC):
 
     """Base class for VariationalForms.
 
-        This method should initialize the module and its configuration, and
-        use an exception if a component of the module is
+        This method should initialize the module and
+        use an exception if a component of the module is not
         available.
-
-        Args:
-            configuration (dict): configuration dictionary
     """
 
     @abstractmethod
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._num_parameters = 0
+        self._num_qubits = 0
         self._bounds = list()
+        self._support_parameterized_circuit = False
         pass
 
-    @classmethod
-    def init_params(cls, params):
-        var_form_params = params.get(Pluggable.SECTION_KEY_VAR_FORM)
-        args = {k: v for k, v in var_form_params.items() if k != 'name'}
-
-        # We pass on num_qubits to initial state since we know our dependent needs this
-        init_state_params = params.get(Pluggable.SECTION_KEY_INITIAL_STATE)
-        init_state_params['num_qubits'] = var_form_params['num_qubits']
-        args['initial_state'] = get_pluggable_class(PluggableType.INITIAL_STATE,
-                                                    init_state_params['name']).init_params(params)
-
-        return cls(**args)
-
     @abstractmethod
-    def construct_circuit(self, parameters, q=None):
+    def construct_circuit(self,
+                          parameters: Union[List[float], np.ndarray],
+                          q: Optional[QuantumRegister] = None) -> NoReturn:
         """Construct the variational form, given its parameters.
 
         Args:
-            parameters (numpy.ndarray[float]): circuit parameters.
-            q (QuantumRegister): Quantum Register for the circuit.
+            parameters: circuit parameters.
+            q: Quantum Register for the circuit.
 
         Returns:
-            A quantum circuit.
+            QuantumCircuit: A quantum circuit.
         """
         raise NotImplementedError()
 
@@ -75,16 +67,39 @@ class VariationalForm(Pluggable):
         """Number of parameters of the variational form.
 
         Returns:
-            An integer indicating the number of parameters.
+            int: An integer indicating the number of parameters.
         """
         return self._num_parameters
+
+    @property
+    def support_parameterized_circuit(self):
+        """ Whether or not the sub-class support parameterized circuit.
+
+        Returns:
+            boolean: indicate the sub-class support parameterized circuit
+        """
+        return self._support_parameterized_circuit
+
+    @support_parameterized_circuit.setter
+    def support_parameterized_circuit(self, new_value):
+        """ set whether or not the sub-class support parameterized circuit """
+        self._support_parameterized_circuit = new_value
+
+    @property
+    def num_qubits(self):
+        """Number of qubits of the variational form.
+
+        Returns:
+           int:  An integer indicating the number of qubits.
+        """
+        return self._num_qubits
 
     @property
     def parameter_bounds(self):
         """Parameter bounds.
 
         Returns:
-            A list of pairs indicating the bounds, as (lower,
+            list: A list of pairs indicating the bounds, as (lower,
             upper). None indicates an unbounded parameter in the
             corresponding direction. If None is returned, problem is
             fully unbounded.
@@ -93,22 +108,26 @@ class VariationalForm(Pluggable):
 
     @property
     def setting(self):
-        ret = "Variational Form: {}\n".format(self._configuration['name'])
+        """ setting """
+        ret = "Variational Form: {}\n".format(self.__class__.__name__)
         params = ""
         for key, value in self.__dict__.items():
-            if key != "_configuration" and key[0] == "_":
+            if key[0] == "_":
                 params += "-- {}: {}\n".format(key[1:], value)
         ret += "{}".format(params)
         return ret
 
     @property
     def preferred_init_points(self):
+        """ return preferred init points """
         return None
 
     @staticmethod
-    def get_entangler_map(map_type, num_qubits):
-        return get_entangler_map(map_type, num_qubits)
+    def get_entangler_map(map_type, num_qubits, offset=0):
+        """ returns entangler map """
+        return get_entangler_map(map_type, num_qubits, offset)
 
     @staticmethod
     def validate_entangler_map(entangler_map, num_qubits):
+        """ validate entangler map """
         return validate_entangler_map(entangler_map, num_qubits)

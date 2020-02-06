@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 This module implements the abstract base class for algorithm modules.
@@ -23,24 +20,19 @@ class in this module.
 Doing so requires that the required algorithm interface is implemented.
 """
 
-from abc import abstractmethod
-import logging
-from qiskit.providers import BaseBackend
-from qiskit.aqua import aqua_globals, Pluggable, QuantumInstance, AquaError
-
-logger = logging.getLogger(__name__)
+from abc import ABC, abstractmethod
+from qiskit.aqua import aqua_globals, QuantumInstance, AquaError
 
 
-class QuantumAlgorithm(Pluggable):
+class QuantumAlgorithm(ABC):
     """
     Base class for Algorithms.
 
-    This method should initialize the module and its configuration, and
+    This method should initialize the module and
     use an exception if a component of the module is available.
     """
     @abstractmethod
     def __init__(self):
-        super().__init__()
         self._quantum_instance = None
 
     @property
@@ -52,18 +44,22 @@ class QuantumAlgorithm(Pluggable):
         """Execute the algorithm with selected backend.
 
         Args:
-            quantum_instance (QuantumInstance or BaseBackend): the experiemental setting.
-
+            quantum_instance (QuantumInstance or BaseBackend): the experimental setting.
+            kwargs (dict): kwargs
         Returns:
             dict: results of an algorithm.
         """
-        if not self.configuration.get('classical', False):
-            if quantum_instance is None:
-                AquaError("Quantum device or backend is needed since you are running quantum algorithm.")
-            if isinstance(quantum_instance, BaseBackend):
-                quantum_instance = QuantumInstance(quantum_instance)
-                quantum_instance.set_config(**kwargs)
-            self._quantum_instance = quantum_instance
+        # pylint: disable=import-outside-toplevel
+        from qiskit.providers import BaseBackend
+
+        if quantum_instance is None:
+            AquaError("Quantum device or backend "
+                      "is needed since you are running quantum algorithm.")
+        if isinstance(quantum_instance, BaseBackend):
+            quantum_instance = QuantumInstance(quantum_instance)
+            quantum_instance.set_config(**kwargs)
+        self._quantum_instance = quantum_instance
+
         return self._run()
 
     @abstractmethod
@@ -72,4 +68,5 @@ class QuantumAlgorithm(Pluggable):
 
     @property
     def quantum_instance(self):
+        """ returns quantum instance """
         return self._quantum_instance
