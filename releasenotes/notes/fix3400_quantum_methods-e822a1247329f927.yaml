@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Explanation and examples have been added to QuantumCircuit methods for these gates (ccx, ch, crz, cswap, cu1, cu3, cx, cy, cz, h, iden, rx, ry, rz, s, sdg, swap, t, tdg, u1, u2, u3, x, y, z). 
+    Fixes `issue #3400 <https://github.com/Qiskit/qiskit-terra/issues/3400>`
+
