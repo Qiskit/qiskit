@@ -68,7 +68,31 @@ class ZGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Z to qubit."""
+    """Apply Z gate to a specified qubit (qubit).
+    A Z gate implements a pi rotation of the qubit state vector about the
+    z axis of the Bloch sphere.
+    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
+    or vice versa.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.z(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.z import ZGate
+            ZGate().to_matrix()
+    """
     return self.append(ZGate(), [qubit], [])
 
 
@@ -111,11 +135,37 @@ class CzGate(ControlledGate):
                             [0, 0, 1, 0],
                             [0, 0, 0, -1]], dtype=complex)
 
+
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply CZ to circuit."""
+    """Apply cZ gate from a specified control (control_qubit) to target (target_qubit) qubit.
+    A cZ gate implements a pi rotation of the qubit state vector about the z axis
+    of the Bloch sphere when the control qubit is in state |1>.
+    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
+    or vice versa when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+            import numpy
+
+            circuit = QuantumCircuit(2)
+            circuit.cz(0,1)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.cz import CzGate
+            CzGate().to_matrix()
+    """
     return self.append(CzGate(), [control_qubit, target_qubit], [])
 
 
