@@ -17,7 +17,10 @@
 import pickle
 from operator import add, sub, mul, truediv
 
+from test import combine
 import numpy
+
+from ddt import ddt, data
 
 import qiskit
 from qiskit import BasicAer
@@ -31,6 +34,7 @@ from qiskit.tools import parallel_map
 from qiskit.circuit.exceptions import CircuitError
 
 
+@ddt
 class TestParameters(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
@@ -434,6 +438,101 @@ class TestParameters(QiskitTestCase):
         bound_test_qc = test_qc.bind_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
+    @data('gate', 'instruction')
+    def test_decompose_propagates_bound_parameters(self, target_type):
+        """Verify bind-before-decompose preserves bound values."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2482
+        theta = Parameter('th')
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+
+        if target_type == 'gate':
+            inst = qc.to_gate()
+        elif target_type == 'instruction':
+            inst = qc.to_instruction()
+
+        qc2 = QuantumCircuit(1)
+        qc2.append(inst, [0])
+
+        bound_qc2 = qc2.bind_parameters({theta: 0.5})
+
+        self.assertEqual(qc2.parameters, {theta})
+        self.assertEqual(bound_qc2.parameters, set())
+
+        decomposed_qc2 = bound_qc2.decompose()
+
+        expected_qc2 = QuantumCircuit(1)
+        expected_qc2.rx(0.5, 0)
+
+        self.assertEqual(decomposed_qc2.parameters, set())
+        self.assertEqual(decomposed_qc2, expected_qc2)
+
+    @data('gate', 'instruction')
+    def test_decompose_propagates_deeply_bound_parameters(self, target_type):
+        """Verify bind-before-decompose preserves deeply bound values."""
+        theta = Parameter('th')
+        qc1 = QuantumCircuit(1)
+        qc1.rx(theta, 0)
+
+        if target_type == 'gate':
+            inst = qc1.to_gate()
+        elif target_type == 'instruction':
+            inst = qc1.to_instruction()
+
+        qc2 = QuantumCircuit(1)
+        qc2.append(inst, [0])
+
+        if target_type == 'gate':
+            inst = qc2.to_gate()
+        elif target_type == 'instruction':
+            inst = qc2.to_instruction()
+
+        qc3 = QuantumCircuit(1)
+        qc3.append(inst, [0])
+
+        bound_qc3 = qc3.bind_parameters({theta: 0.5})
+
+        self.assertEqual(qc3.parameters, {theta})
+        self.assertEqual(bound_qc3.parameters, set())
+
+        decomposed_qc3 = bound_qc3.decompose()
+        deep_decomposed_qc3 = decomposed_qc3.decompose()
+
+        expected_qc3 = QuantumCircuit(1)
+        expected_qc3.rx(0.5, 0)
+
+        self.assertEqual(deep_decomposed_qc3.parameters, set())
+        self.assertEqual(deep_decomposed_qc3, expected_qc3)
+
+    @data('gate', 'instruction')
+    def test_executing_parameterized_instruction_bound_early(self, target_type):
+        """Verify bind-before-execute preserves bound values."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2482
+
+        theta = Parameter('theta')
+
+        sub_qc = QuantumCircuit(2)
+        sub_qc.h(0)
+        sub_qc.cx(0, 1)
+        sub_qc.rz(theta, [0, 1])
+        sub_qc.cx(0, 1)
+        sub_qc.h(0)
+
+        if target_type == 'gate':
+            sub_inst = sub_qc.to_gate()
+        elif target_type == 'instruction':
+            sub_inst = sub_qc.to_instruction()
+
+        unbound_qc = QuantumCircuit(2, 1)
+        unbound_qc.append(sub_inst, [0, 1], [])
+        unbound_qc.measure(0, 0)
+
+        bound_qc = unbound_qc.bind_parameters({theta: numpy.pi/2})
+
+        shots = 1024
+        job = execute(bound_qc, backend=BasicAer.get_backend('qasm_simulator'), shots=shots)
+        self.assertDictAlmostEqual(job.result().get_counts(), {'1': shots}, 0.05 * shots)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -441,6 +540,7 @@ def _construct_circuit(param, qr):
     return qc
 
 
+@ddt
 class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
@@ -620,17 +720,36 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaises(CircuitError):
             _ = x / y
 
-    def test_to_instruction_with_expression(self):
-        """Test preservation of expressions via parameterized instructions."""
+    @combine(target_type=['gate', 'instruction'],
+             order=['bind-decompose', 'decompose-bind'])
+    def test_to_instruction_with_expression(self, target_type, order):
+        """Test preservation of expressions via parameterized instructions.
+
+                  ┌───────┐┌──────────┐┌───────────┐
+        qr1_0: |0>┤ Rx(θ) ├┤ Rz(pi/2) ├┤ Ry(phi*θ) ├
+                  └───────┘└──────────┘└───────────┘
+
+                     ┌───────────┐
+        qr2_0: |0>───┤ Ry(delta) ├───
+                  ┌──┴───────────┴──┐
+        qr2_1: |0>┤ Circuit0(phi,θ) ├
+                  └─────────────────┘
+        qr2_2: |0>───────────────────
+        """
 
         theta = Parameter('θ')
         phi = Parameter('phi')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
+
         qc1.rx(theta, qr1)
         qc1.rz(numpy.pi/2, qr1)
         qc1.ry(theta * phi, qr1)
-        gate = qc1.to_instruction()
+
+        if target_type == 'gate':
+            gate = qc1.to_gate()
+        elif target_type == 'instruction':
+            gate = qc1.to_instruction()
 
         self.assertEqual(gate.params, [phi, theta])
 
@@ -639,21 +758,34 @@ class TestParameterExpressions(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
+
         self.assertEqual(qc2.parameters, {delta, theta, phi})
 
-        bound_qc = qc2.decompose().bind_parameters({delta: 1, theta: 2, phi: 3})
-        self.assertEqual(float(bound_qc.data[0][0].params[0]), 1)
-        self.assertEqual(float(bound_qc.data[1][0].params[0]), 2)
-        self.assertEqual(float(bound_qc.data[2][0].params[0]), numpy.pi/2)
-        self.assertEqual(float(bound_qc.data[3][0].params[0]), 2 * 3)
+        binds = {delta: 1, theta: 2, phi: 3}
+        expected_qc = QuantumCircuit(qr2)
+        expected_qc.rx(2, 1)
+        expected_qc.rz(numpy.pi/2, 1)
+        expected_qc.ry(3 * 2, 1)
+        expected_qc.r(1, numpy.pi/2, 0)
 
-    def test_to_instruction_expression_parameter_map(self):
+        if order == 'bind-decompose':
+            decomp_bound_qc = qc2.bind_parameters(binds).decompose()
+        elif order == 'decompose-bind':
+            decomp_bound_qc = qc2.decompose().bind_parameters(binds)
+
+        self.assertEqual(decomp_bound_qc.parameters, set())
+        self.assertEqual(decomp_bound_qc, expected_qc)
+
+    @combine(target_type=['gate', 'instruction'],
+             order=['bind-decompose', 'decompose-bind'])
+    def test_to_instruction_expression_parameter_map(self, target_type, order):
         """Test preservation of expressions via instruction parameter_map."""
 
         theta = Parameter('θ')
         phi = Parameter('phi')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
+
         qc1.rx(theta, qr1)
         qc1.rz(numpy.pi/2, qr1)
         qc1.ry(theta * phi, qr1)
@@ -661,7 +793,10 @@ class TestParameterExpressions(QiskitTestCase):
         theta_p = Parameter('theta')
         phi_p = Parameter('phi')
 
-        gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
+        if target_type == 'gate':
+            gate = qc1.to_gate(parameter_map={theta: theta_p, phi: phi_p})
+        elif target_type == 'instruction':
+            gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
         self.assertEqual(gate.params, [phi_p, theta_p])
 
@@ -670,13 +805,23 @@ class TestParameterExpressions(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
+
         self.assertEqual(qc2.parameters, {delta, theta_p, phi_p})
 
-        bound_qc = qc2.decompose().bind_parameters({delta: 1, theta_p: 2, phi_p: 3})
-        self.assertEqual(float(bound_qc.data[0][0].params[0]), 1)
-        self.assertEqual(float(bound_qc.data[1][0].params[0]), 2)
-        self.assertEqual(float(bound_qc.data[2][0].params[0]), numpy.pi/2)
-        self.assertEqual(float(bound_qc.data[3][0].params[0]), 2 * 3)
+        binds = {delta: 1, theta_p: 2, phi_p: 3}
+        expected_qc = QuantumCircuit(qr2)
+        expected_qc.rx(2, 1)
+        expected_qc.rz(numpy.pi/2, 1)
+        expected_qc.ry(3 * 2, 1)
+        expected_qc.r(1, numpy.pi/2, 0)
+
+        if order == 'bind-decompose':
+            decomp_bound_qc = qc2.bind_parameters(binds).decompose()
+        elif order == 'decompose-bind':
+            decomp_bound_qc = qc2.decompose().bind_parameters(binds)
+
+        self.assertEqual(decomp_bound_qc.parameters, set())
+        self.assertEqual(decomp_bound_qc, expected_qc)
 
     def test_binding_across_broadcast_instruction(self):
         """Bind a parameter which was included via a broadcast instruction."""
