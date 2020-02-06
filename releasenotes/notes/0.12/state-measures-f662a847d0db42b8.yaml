@@ -43,9 +43,10 @@ deprecations:
          - ``quantum_info.operators.predicates.is_positive_semidefinite_matrix``
 
   - |
-    The :mod:`quantum_info.states.states` module is deprecated and will be
-    removed in a future release. The legacy functions in the modules have all
-    been superseded by functions and classes in the :mod:`quantum_info` module.
+    The :mod:`qiskit.quantum_info.states.states` module is deprecated and will
+    be removed in a future release. The legacy functions in the module have
+    all been superseded by functions and classes in the
+    :mod:`qiskit.quantum_info` module.
 
     .. list-table:: ``qiskit.quantum_info.states.states`` replacements
        :header-rows: 1
