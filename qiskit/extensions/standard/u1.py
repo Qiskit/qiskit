@@ -20,6 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
 # pylint: disable=cyclic-import
@@ -66,8 +67,9 @@ class U1Gate(Gate):
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
-def u1(self, theta, q):  # pylint: disable=invalid-name
-    """Apply U1 gate with angle theta to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply U1 gate with angle theta to a specified qubit (qubit).
     u1(λ) := diag(1, eiλ) ∼ U(0, 0, λ) = Rz(λ) where ~ is equivalence up to a global phase.
 
     Examples:
@@ -91,7 +93,7 @@ def u1(self, theta, q):  # pylint: disable=invalid-name
             from qiskit.extensions.standard.u1 import U1Gate
             U1Gate(numpy.pi/2).to_matrix()
     """
-    return self.append(U1Gate(theta), [q], [])
+    return self.append(U1Gate(theta), [qubit], [])
 
 
 QuantumCircuit.u1 = u1
@@ -103,8 +105,7 @@ class Cu1Gate(ControlledGate):
     def __init__(self, theta):
         """Create new cu1 gate."""
         super().__init__("cu1", 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = U1Gate
-        self.base_gate_name = "u1"
+        self.base_gate = U1Gate(theta)
 
     def _define(self):
         """
@@ -133,8 +134,11 @@ class Cu1Gate(ControlledGate):
         return Cu1Gate(-self.params[0])
 
 
-def cu1(self, theta, ctl, tgt):
-    """Apply cU1 gate from a specified control (ctl) to target (tgt) qubit with angle theta.
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cu1(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+    """Apply cU1 gate from a specified control (control_qubit) to target (target_qubit) qubit with angle theta.
     A cU1 gate implements a theta radian rotation of the qubit state vector about the z axis
     of the Bloch sphere when the control qubit is in state |1>.
 
@@ -151,7 +155,7 @@ def cu1(self, theta, ctl, tgt):
             circuit.cu1(theta,0,1)
             circuit.draw()
     """
-    return self.append(Cu1Gate(theta), [ctl, tgt], [])
+    return self.append(Cu1Gate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cu1 = cu1

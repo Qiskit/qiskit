@@ -21,6 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class ZGate(Gate):
@@ -65,8 +66,9 @@ class ZGate(Gate):
                             [0, -1]], dtype=complex)
 
 
-def z(self, q):
-    """Apply Z gate to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Z gate to a specified qubit (qubit).
     A Z gate implements a pi rotation of the qubit state vector about the
     z axis of the Bloch sphere.
     This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
@@ -91,7 +93,7 @@ def z(self, q):
             from qiskit.extensions.standard.z import ZGate
             ZGate().to_matrix()
     """
-    return self.append(ZGate(), [q], [])
+    return self.append(ZGate(), [qubit], [])
 
 
 QuantumCircuit.z = z
@@ -103,8 +105,7 @@ class CzGate(ControlledGate):
     def __init__(self, label=None):
         """Create new CZ gate."""
         super().__init__("cz", 2, [], label=label, num_ctrl_qubits=1)
-        self.base_gate = ZGate
-        self.base_gate_name = "z"
+        self.base_gate = ZGate()
 
     def _define(self):
         """
@@ -135,8 +136,11 @@ class CzGate(ControlledGate):
                             [0, 0, 0, -1]], dtype=complex)
 
 
-def cz(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply cZ gate from a specified control (ctl) to target (tgt) qubit.
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+    """Apply cZ gate from a specified control (control_qubit) to target (target_qubit) qubit.
     A cZ gate implements a pi rotation of the qubit state vector about the z axis
     of the Bloch sphere when the control qubit is in state |1>.
     This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
@@ -162,7 +166,7 @@ def cz(self, ctl, tgt):  # pylint: disable=invalid-name
             from qiskit.extensions.standard.cz import CzGate
             CzGate().to_matrix()
     """
-    return self.append(CzGate(), [ctl, tgt], [])
+    return self.append(CzGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cz = cz

@@ -18,6 +18,7 @@ Identity gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.util import deprecate_arguments
 
 
 class IdGate(Gate):
@@ -41,8 +42,9 @@ class IdGate(Gate):
                             [0, 1]], dtype=complex)
 
 
-def iden(self, q):
-    """Apply Identity gate to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Identity to to a specified qubit (qubit).
 
     The Identity gate ensures that nothing is applied to a qubit for one unit
     of gate time. It leaves the quantum states |0> and |1> unchanged.
@@ -67,7 +69,7 @@ def iden(self, q):
             from qiskit.extensions.standard.iden import IdGate
             IdGate().to_matrix()
     """
-    return self.append(IdGate(), [q], [])
+    return self.append(IdGate(), [qubit], [])
 
 
 QuantumCircuit.iden = iden

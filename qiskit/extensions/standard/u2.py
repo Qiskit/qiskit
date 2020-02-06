@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class U2Gate(Gate):
@@ -58,8 +59,9 @@ class U2Gate(Gate):
                            dtype=complex)
 
 
-def u2(self, phi, lam, q):  # pylint: disable=invalid-name
-    """Apply U2 gate with angle phi and lam to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply U2 gate with angle phi and lam to a specified qubit (qubit).
     u2(φ,λ) := U(π/2,φ,λ) = Rz(φ + π/2)Rx(π/2)Rz(λ − π/2)
 
     Examples:
@@ -84,7 +86,7 @@ def u2(self, phi, lam, q):  # pylint: disable=invalid-name
             from qiskit.extensions.standard.u2 import U2Gate
             U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
     """
-    return self.append(U2Gate(phi, lam), [q], [])
+    return self.append(U2Gate(phi, lam), [qubit], [])
 
 
 QuantumCircuit.u2 = u2

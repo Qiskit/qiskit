@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class TGate(Gate):
@@ -84,8 +85,9 @@ class TdgGate(Gate):
                             [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-def t(self, q):  # pylint: disable=invalid-name
-    """Apply T gate to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply T gate to a specified qubit (qubit).
     A T gate implements a pi/4 rotation of a qubit state vector about the
     z axis of the Bloch sphere.
 
@@ -108,11 +110,12 @@ def t(self, q):  # pylint: disable=invalid-name
             from qiskit.extensions.standard.t import TGate
             TGate().to_matrix()
     """
-    return self.append(TGate(), [q], [])
+    return self.append(TGate(), [qubit], [])
 
 
-def tdg(self, q):
-    """Apply Tdg gate to a specified qubit (q).
+@deprecate_arguments({'q': 'qubit'})
+def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Tdg gate to a specified qubit (qubit).
     A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
     z axis of the Bloch sphere. It is the inverse of T-gate.
 
@@ -135,7 +138,7 @@ def tdg(self, q):
             from qiskit.extensions.standard.t import TdgGate
             TdgGate().to_matrix()
     """
-    return self.append(TdgGate(), [q], [])
+    return self.append(TdgGate(), [qubit], [])
 
 
 QuantumCircuit.t = t
