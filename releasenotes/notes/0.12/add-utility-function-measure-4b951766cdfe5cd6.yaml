@@ -1,8 +1,10 @@
 ---
 features:
   - |
-    Added utility functions - ``measure`` and ``measure_all`` in scheduler module to return a
-    ``Schedule`` which measures qubits using OpenPulse. For example::
+    Added utility functions, :func:`qiskit.scheduler.measure` and
+    :func:`qiskit.scheduler.measure_all` to `qiskit.scheduler` module. These
+    functions return a :class:`qiskit.pulse.Schedule` object which measures
+    qubits using OpenPulse. For example::
 
         from qiskit.scheduler import measure, measure_all
 
