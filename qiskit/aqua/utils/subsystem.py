@@ -1,25 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2020.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
+""" sub system """
+
+from collections import defaultdict
 import numpy as np
 from scipy.linalg import sqrtm
-from collections import defaultdict
 
-from qiskit.tools.qi.qi import partial_trace
+from qiskit.quantum_info.states import partial_trace
 
 
 def get_subsystem_density_matrix(statevector, trace_systems):
@@ -31,10 +30,10 @@ def get_subsystem_density_matrix(statevector, trace_systems):
         trace_systems (list|range): The indices of the qubits to be traced out.
 
     Returns:
-        The reduced density matrix for the desired subsystem
+        numpy.ndarray: The reduced density matrix for the desired subsystem
     """
     rho = np.outer(statevector, np.conj(statevector))
-    rho_sub = partial_trace(rho, trace_systems)
+    rho_sub = partial_trace(rho, trace_systems).data
     return rho_sub
 
 
@@ -49,10 +48,10 @@ def get_subsystem_fidelity(statevector, trace_systems, subsystem_state):
         subsystem_state (list|array): The ground-truth state vector of the subsystem
 
     Returns:
-        The subsystem fidelity
+        numpy.ndarray: The subsystem fidelity
     """
     rho = np.outer(np.conj(statevector), statevector)
-    rho_sub = partial_trace(rho, trace_systems)
+    rho_sub = partial_trace(rho, trace_systems).data
     rho_sub_in = np.outer(np.conj(subsystem_state), subsystem_state)
     fidelity = np.trace(
         sqrtm(
@@ -65,7 +64,7 @@ def get_subsystem_fidelity(statevector, trace_systems, subsystem_state):
     return fidelity
 
 
-def get_subsystems_counts(complete_system_counts):
+def get_subsystems_counts(complete_system_counts, post_select_index=None, post_select_flag=None):
     """
     Extract all subsystems' counts from the single complete system count dictionary.
 
@@ -77,19 +76,31 @@ def get_subsystems_counts(complete_system_counts):
     (one 2-qubit, and the other 3-qubit) in order to get the counts for the 2-qubit
     partial measurement '11' or the 3-qubit partial measurement '011'.
 
+    If the post_select_index and post_select_flag parameter are specified, the counts are
+    returned subject to that specific post selection, that is, the counts for all subsystems where
+    the subsystem at index post_select_index is equal to post_select_flag.
+
 
     Args:
         complete_system_counts (dict): The measurement count dictionary of a complete system
             that contains multiple classical registers for measurements s.t. the dictionary's
             keys have space delimiters.
+        post_select_index (int): Optional, the index of the subsystem to apply the post selection
+            to.
+        post_select_flag (str): Optional, the post selection value to apply to the subsystem
+            at index post_select_index.
 
     Returns:
-        A list of measurement count dictionaries corresponding to each of the subsystems measured.
+        list: A list of measurement count dictionaries corresponding to
+                each of the subsystems measured.
     """
     mixed_measurements = list(complete_system_counts)
     subsystems_counts = [defaultdict(int) for _ in mixed_measurements[0].split()]
     for mixed_measurement in mixed_measurements:
         count = complete_system_counts[mixed_measurement]
-        for k, d in zip(mixed_measurement.split(), subsystems_counts):
-            d[k] += count
+        subsystem_measurements = mixed_measurement.split()
+        for k, d_l in zip(subsystem_measurements, subsystems_counts):
+            if (post_select_index is None or
+                    subsystem_measurements[post_select_index] == post_select_flag):
+                d_l[k] += count
     return [dict(d) for d in subsystems_counts]
