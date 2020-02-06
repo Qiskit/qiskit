@@ -35,7 +35,7 @@ from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 
 try:
@@ -185,8 +185,8 @@ class TestDagRegisters(QiskitTestCase):
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
 
 
-class TestDagOperations(QiskitTestCase):
-    """Test ops inside the dag"""
+class TestDagApplyOperation(QiskitTestCase):
+    """Test adding an op node to a dag."""
 
     def setUp(self):
         self.dag = DAGCircuit()
@@ -363,6 +363,128 @@ class TestDagOperations(QiskitTestCase):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+
+class TestDagCompose(QiskitTestCase):
+    """Test composition of two dags"""
+
+    def setUp(self):
+        qreg1 = QuantumRegister(3, 'lqr_1')
+        qreg2 = QuantumRegister(2, 'lqr_2')
+        creg = ClassicalRegister(2, 'cr_left')
+
+        self.circuit_left = QuantumCircuit(qreg1, qreg2, creg)
+        self.circuit_left.h(qreg1[0])
+        self.circuit_left.x(qreg1[1])
+        self.circuit_left.u1(0.1, qreg1[2])
+        self.circuit_left.cx(qreg2[0], qreg2[1])
+
+        self.left_qubit0 = qreg1[0]
+        self.left_qubit1 = qreg1[1]
+        self.left_qubit2 = qreg1[2]
+        self.left_qubit3 = qreg2[0]
+        self.left_qubit4 = qreg2[1]
+        self.left_clbit0 = creg[0]
+        self.left_clbit1 = creg[1]
+        self.condition = (creg, 3)
+        print()
+        print(self.circuit_left)
+
+    def test_compose_simple(self):
+        """Composing two dags of the same width, default order.
+
+                       ┌───┐                                
+        lqr_1_0: |0>───┤ H ├───     rqr_0: |0>──■─────── 
+                       ├───┤                    │  ┌───┐
+        lqr_1_1: |0>───┤ X ├───     rqr_1: |0>──┼──┤ X ├
+                    ┌──┴───┴──┐                 │  ├───┤
+        lqr_1_2: |0>┤ U1(0.1) ├  +  rqr_2: |0>──┼──┤ Y ├  = 
+                    └─────────┘               ┌─┴─┐└───┘
+        lqr_2_0: |0>─────■─────     rqr_3: |0>┤ X ├─────
+                       ┌─┴─┐                  └───┘┌───┐
+        lqr_2_1: |0>───┤ X ├───     rqr_4: |0>─────┤ Z ├                         
+                       └───┘                       └───┘
+        cr_left_0: 0 ═══════════
+
+        cr_left_1: 0 ═══════════
+
+
+                        ┌───┐
+         lqr_1_0: |0>───┤ H ├──────────■──
+                        ├───┤   ┌───┐  │
+         lqr_1_1: |0>───┤ X ├───┤ X ├──┼──
+                     ┌──┴───┴──┐├───┤  │
+         lqr_1_2: |0>┤ U1(0.1) ├┤ Y ├──┼──
+                     └─────────┘└───┘┌─┴─┐
+         lqr_2_0: |0>─────■──────────┤ X ├
+                        ┌─┴─┐   ┌───┐└───┘
+         lqr_2_1: |0>───┤ X ├───┤ Z ├─────
+                        └───┘   └───┘
+        cr_left_0: 0 ═════════════════════
+
+        cr_left_1: 0 ═════════════════════
+
+        """
+        qreg = QuantumRegister(5, 'rqr')
+        right_qubit0 = qreg[0]
+        right_qubit1 = qreg[1]
+        right_qubit2 = qreg[2]
+        right_qubit3 = qreg[3]
+        right_qubit4 = qreg[4]
+
+        circuit_right = QuantumCircuit(qreg)
+        circuit_right.cx(qreg[0], qreg[3])
+        circuit_right.x(qreg[1])
+        circuit_right.y(qreg[2])
+        circuit_right.z(qreg[4])
+
+        dag_left = circuit_to_dag(self.circuit_left)
+        dag_right = circuit_to_dag(circuit_right)
+
+        # default wiring: i <- i
+        dag_left.compose_back(dag_right)
+
+        # permuted wiring
+        #dag_left.compose_back(dag_right, edge_map={right_qubit0: self.left_qubit3,
+        #                                           right_qubit1: self.left_qubit1,
+        #                                           right_qubit2: self.left_qubit2,
+        #                                           right_qubit3: self.left_qubit4,
+        #                                           right_qubit4: self.left_qubit0})
+
+        # permuted subset
+        # TODO
+
+        circuit_composed = dag_to_circuit(dag_left)
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit0, self.left_qubit3)
+        circuit_expected.x(self.left_qubit1)
+        circuit_expected.y(self.left_qubit2)
+        circuit_expected.z(self.left_qubit4)
+        circuit_expected.cx(self.left_qubit3, self.left_qubit4)
+        circuit_expected.x(self.left_qubit1)
+        circuit_expected.y(self.left_qubit2)
+        circuit_expected.z(self.left_qubit0)
+
+        self.assertEqual(circuit_composed, circuit_expected)
+
+
+class TestDagNodeSelection(QiskitTestCase):
+    """Test methods that select certain dag nodes"""
+
+    def setUp(self):
+        self.dag = DAGCircuit()
+        qreg = QuantumRegister(3, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        self.dag.add_qreg(qreg)
+        self.dag.add_creg(creg)
+
+        self.qubit0 = qreg[0]
+        self.qubit1 = qreg[1]
+        self.qubit2 = qreg[2]
+        self.clbit0 = creg[0]
+        self.clbit1 = creg[1]
+        self.condition = (creg, 3)
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
