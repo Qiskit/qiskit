@@ -7,7 +7,7 @@ features:
 
     for example:
 
-    .. jupyter-execute:
+    .. jupyter-execute::
 
         from qiskit import pulse
 

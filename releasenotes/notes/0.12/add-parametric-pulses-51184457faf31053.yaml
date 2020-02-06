@@ -24,15 +24,17 @@ features:
                                 width=140)(MeasureChannel(0)) << sched.duration
 
     The resulting schedule will be similar to a SamplePulse schedule built
-    using `pulse.pulse_lib`, however, waveform sampling will be performed by the
-    backend. The method `sched.draw()` can still be used as usual. However, the
-    command will be converted to a SamplePulse with the `get_sample_pulse`
-    method, so the pulse shown may not sample the continuous function the same
-    way that the backend will.
+    using :mod:`qiskit.pulse.pulse_lib`, however, waveform sampling will be
+    performed by the backend. The method :meth:`qiskit.pulse.Schedule.draw`
+    can still be used as usual. However, the command will be converted to a
+    ``SamplePulse`` with the
+    :meth:`qiskit.pulse.ParametricPulse.get_sample_pulse` method, so the
+    pulse shown may not sample the continuous function the same way that the
+    backend will.
 
     This feature can be used to construct Pulse programs for any backend, but
-    the pulses will be converted to `SamplePulse`s if the backend does not
-    support parametric pulses. Backends which support them will have the
+    the pulses will be converted to ``SamplePulse`` objects if the backend does
+    not support parametric pulses. Backends which support them will have the
     following new attribute::
 
         backend.configuration().parametric_pulses: List[str]

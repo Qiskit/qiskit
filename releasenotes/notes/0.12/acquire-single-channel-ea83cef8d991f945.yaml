@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Within the terra API allow acquires be applied to a single qubit.
+    :class:`qiskit.pulse.Acquire` can now be applied to a single qubit.
     This makes pulse programming more consistent and easier to reason
-    about as all operations in pulse would then be for single channels.
+    about, as now all operations in now apply to a single channel.
     For example::
 
       acquire = Acquire(duration=10)
@@ -13,6 +13,8 @@ features:
 
 deprecations:
   - |
-    Acquire on multiple qubits has been deprecated.
-    ``AcquireInstruction`` parameters ``mem_slots``, ``reg_slots`` has been
-    deprecated, use ``reg_slot``, ``mem_slot`` instead.
+    Running :class:`qiskit.pulse.Acquire` on multiple qubits has been
+    deprecated and will be removed in a future release. Additionally, the
+    :class:`qiskit.pulse.AcquireInstruction` parameters ``mem_slots`` and
+    ``reg_slots`` have been deprecated. Instead ``reg_slot`` and ``mem_slot``
+    should be used instead.

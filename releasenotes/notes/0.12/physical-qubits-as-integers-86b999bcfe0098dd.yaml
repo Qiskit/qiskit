@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    When :meth:`qiskit.QuantumCircuit.draw` or
+    When :meth:`qiskit.circuit.QuantumCircuit.draw` or
     :func:`qiskit.visualization.circuit_drawer` is called with the
     ``with_layout`` kwarg set True (the default) the output visualization
     will now display the physical qubits as integers to clearly
@@ -9,7 +9,7 @@ features:
 
     For Example:
 
-    .. jupyter-execute:
+    .. jupyter-execute::
 
         from qiskit import QuantumCircuit
         from qiskit import transpile

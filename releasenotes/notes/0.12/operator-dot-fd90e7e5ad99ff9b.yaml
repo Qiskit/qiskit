@@ -5,7 +5,7 @@ features:
     :meth:`qiskit.quantum_info.Operator.dot` to
     the abstract ``BaseOperator`` class, so it is included for all
     implementations of that abstract
-    class, including :class:`qiskit.quantum_info.Operator`` and
+    class, including :class:`qiskit.quantum_info.Operator` and
     ``QuantumChannel`` (e.g., :class:`qiskit.quantum_info.Choi`)
     objects. This method returns the right operator multiplication
     ``a.dot(b)`` :math:`= a \cdot b`. This is equivalent to
@@ -15,9 +15,11 @@ features:
 upgrade:
   - |
     Changed :class:`qiskit.quantum_info.Operator` magic methods so that
-    :meth:`qiskit.quantum_info.Operator.__mul__` which gets executed by
-    using python's multiplication implements right matrix
-    multiplication (ie :meth:`qiskit.quantum_info.Operator.dot`), and
-    :meth:`qiskit.quantum_info.Operator.__rmul__` implements scalar
-    multiplication (ie :meth:`qiskit.quantum_info.Operator.multiply`).
-    Previously both methods implemented scalar multiplciation.
+    ``__mul__`` (which gets executed by python's multiplication operation,
+    if the left hand side of the operation has it defined) implements right
+    matrix multiplication (i.e. :meth:`qiskit.quantum_info.Operator.dot`), and
+    ``__rmul__`` (which gets executed by python's multiplication operation
+    from the right hand side of the operation if the left does not have
+    ``__mul__`` defined) implements scalar multiplication (i.e.
+    :meth:`qiskit.quantum_info.Operator.multiply`). Previously both methods
+    implemented scalar multiplciation.

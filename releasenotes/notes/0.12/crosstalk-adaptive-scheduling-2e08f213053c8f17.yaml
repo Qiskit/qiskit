@@ -25,11 +25,11 @@ features:
       scheduled_dag = pass_.run(dag)
       scheduled_circ = dag_to_circuit(scheduled_dag)
 
-    ``backend_prop`` is a ``BackendProperties`` object for the target backend.
-    ``crosstalk_prop`` is a dict which specifies conditional error rates.
-    For two gates ``g1`` and ``g2``, ``crosstalk_prop[g1][g2]`` specifies the
-    conditional error rate of ``g1`` when ``g1`` and ``g2`` are executed
-    simultaneously. A method for generating ``crosstalk_prop`` will be added
-    in a future release of qiskit-ignis. Until then you'll either have to
-    already know the crosstalk properties of your device, or manually
-    write your own device characterization experiments.
+    ``backend_prop`` is a :class:`qiskit.providers.models.BackendProperties`
+    object for the target backend. ``crosstalk_prop`` is a dict which specifies
+    conditional error rates. For two gates ``g1`` and ``g2``,
+    ``crosstalk_prop[g1][g2]`` specifies the conditional error rate of ``g1``
+    when ``g1`` and ``g2`` are executed simultaneously. A method for generating
+    ``crosstalk_prop`` will be added in a future release of qiskit-ignis. Until
+    then you'll either have to already know the crosstalk properties of your
+    device, or manually write your own device characterization experiments.

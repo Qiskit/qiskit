@@ -1,8 +1,11 @@
 ---
 features:
   - |
-    Added ``partial_trace`` function to ``qiskit.quantum_info`` that works with
-    ``Statevector`` and ``DensityMatrix`` quantum state classes. For example::
+    Added the :func:`qiskit.quantum_info.partial_trace` function to the
+    :mod:`qiskit.quantum_info` that works with
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` quantum state classes.
+    For example::
 
         from qiskit.quantum_info.states import Statevector
         from qiskit.quantum_info.states import DensityMatrix
@@ -12,9 +15,3 @@ features:
         partial_trace(psi, [0, 1])
         rho = DensityMatrix.from_label('10+')
         partial_trace(rho, [0, 1])
-
-deprecations:
-  - |
-    The ``qiskit.tools.qi.partial_trace`` function is deprecated and will be
-    removed in a future release. Use the new functio
-    ``qiskit.quantum_info.partial_trace`` instead.

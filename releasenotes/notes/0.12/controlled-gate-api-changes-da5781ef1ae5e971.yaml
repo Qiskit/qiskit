@@ -1,11 +1,11 @@
 ---
 upgrade:
   - |
-    The ``base_gate`` parameter of :class:`qiskit.circuit.ControlledGate`
-    objects has been change from the class to the instance of the class of
-    the base gate.
+    The value of the ``base_gate`` property of
+    :class:`qiskit.circuit.ControlledGate` objects has been changed from the
+    class of the base gate to an instance of the class of the base gate.
   - |
-    The ``base_gate_name`` parameter of :class:`qiskit.circuit.ControlledGate`
+    The ``base_gate_name`` property of :class:`qiskit.circuit.ControlledGate`
     has been removed, you can get the name of the base gate by either accessing
     ``base_gate.name`` on the object. For example::
 

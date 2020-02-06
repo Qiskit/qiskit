@@ -41,6 +41,7 @@ Commands
 
    Instruction
    Acquire
+   AcquireInstruction
    FrameChange
    PersistentValue
    SamplePulse
@@ -89,9 +90,10 @@ from .channels import (PulseChannelSpec, DriveChannel,
                        MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
-                       SamplePulse, Snapshot, Kernel, Discriminator, Delay,
-                       ParametricPulse, ParametricInstruction, Gaussian,
+from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
+                       PersistentValue, SamplePulse, Snapshot, Kernel,
+                       Discriminator, Delay, ParametricPulse,
+                       ParametricInstruction, Gaussian,
                        GaussianSquare, Drag, ConstantPulse, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError

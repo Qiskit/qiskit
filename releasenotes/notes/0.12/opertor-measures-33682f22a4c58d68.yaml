@@ -9,9 +9,9 @@ features:
 upgrade:
   - |
     The second argument of the :func:`qiskit.quantum_info.process_fidelity`
-    function is now optional. If a target unitary is not specified, then
-    process fidelity of the input channel with the identity operator will be
-    returned.
+    function, ``target``, is now optional. If a target unitary is not
+    specified, then process fidelity of the input channel with the identity
+    operator will be returned.
 deprecations:
   - |
     The ``require_cptp`` kwarg of the
