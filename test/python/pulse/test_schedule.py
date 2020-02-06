@@ -16,7 +16,6 @@
 import unittest
 from unittest.mock import patch
 
-import itertools
 import numpy as np
 
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
@@ -47,10 +46,6 @@ class BaseTestSchedule(QiskitTestCase):
 
 class TestScheduleBuilding(BaseTestSchedule):
     """Test construction of schedules."""
-
-    def tearDown(self):
-        """Reset instance counter, since it is used for naming"""
-        Schedule.instances_counter = itertools.count()
 
     def test_append_an_instruction_to_empty_schedule(self):
         """Test append instructions to an empty schedule."""
@@ -277,14 +272,16 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         del is_main_process_mock
 
-        sched0 = Schedule()
-        self.assertEqual('sched1', sched0.name)
+        sched_0 = Schedule()
+        sched_0_name_count = int(sched_0.name[len('sched'):])
 
-        sched1 = Schedule()
-        self.assertEqual('sched2', sched1.name)
+        sched_1 = Schedule()
+        sched_1_name_count = int(sched_1.name[len('sched'):])
+        self.assertEqual(sched_1_name_count, sched_0_name_count + 1)
 
-        sched2 = Schedule()
-        self.assertEqual('sched3', sched2.name)
+        sched_2 = Schedule()
+        sched_2_name_count = int(sched_2.name[len('sched'):])
+        self.assertEqual(sched_2_name_count, sched_1_name_count + 1)
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
