@@ -15,7 +15,6 @@
 """
 Rotation around the z-axis.
 """
-import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -128,9 +127,9 @@ class CrzGate(ControlledGate):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def crz(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cRz gate from a specified control (control_qubit) to target (target_qubit) qubit with angle theta.
-    A cRz gate implements a theta radian rotation of the qubit state vector about the z axis
-    of the Bloch sphere when the control qubit is in state |1>.
+    """Apply cRz gate from a specified control (control_qubit) to target (target_qubit) qubit
+    with angle theta. A cRz gate implements a theta radian rotation of the qubit state vector
+    about the z axis of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 

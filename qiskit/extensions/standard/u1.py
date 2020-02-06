@@ -138,9 +138,9 @@ class Cu1Gate(ControlledGate):
                       'tgt': 'target_qubit'})
 def cu1(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cU1 gate from a specified control (control_qubit) to target (target_qubit) qubit with angle theta.
-    A cU1 gate implements a theta radian rotation of the qubit state vector about the z axis
-    of the Bloch sphere when the control qubit is in state |1>.
+    """Apply cU1 gate from a specified control (control_qubit) to target (target_qubit) qubit
+    with angle theta. A cU1 gate implements a theta radian rotation of the qubit state vector
+    about the z axis of the Bloch sphere when the control qubit is in state |1>.
 
     Examples:
 

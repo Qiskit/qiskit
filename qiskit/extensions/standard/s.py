@@ -115,7 +115,7 @@ def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
 
 @deprecate_arguments({'q': 'qubit'})
 def sdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
-     """Apply Sdg gate to a specified qubit (qubit).
+    """Apply Sdg gate to a specified qubit (qubit).
     An Sdg gate implements a -pi/2 rotation of the qubit state vector about the
     z axis of the Bloch sphere. It is the inverse of S gate.
 

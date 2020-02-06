@@ -144,7 +144,7 @@ class CnotGate(ControlledGate):
                       'tgt': 'target_qubit'})
 def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-     """Apply CX gate from a specified control (control_qubit) to target (target_qubit) qubit.
+    """Apply CX gate from a specified control (control_qubit) to target (target_qubit) qubit.
     A CX gate implements a pi rotation of the qubit state vector about the x axis
     of the Bloch sphere when the control qubit is in state |1>.
     This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
