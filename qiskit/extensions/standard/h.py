@@ -21,6 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 # pylint: disable=cyclic-import
@@ -69,9 +70,10 @@ class HGate(Gate):
                             [1, -1]], dtype=complex) / numpy.sqrt(2)
 
 
-def h(self, q):  # pylint: disable=invalid-name
+@deprecate_arguments({'q': 'qubit'})
+def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply H to q."""
-    return self.append(HGate(), [q], [])
+    return self.append(HGate(), [qubit], [])
 
 
 QuantumCircuit.h = h
@@ -127,9 +129,11 @@ class CHGate(ControlledGate):
                             [0, 1/numpy.sqrt(2), 0, -1/numpy.sqrt(2)]], dtype=complex)
 
 
-def ch(self, ctl, tgt):  # pylint: disable=invalid-name
+@deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply CH from ctl to tgt."""
-    return self.append(CHGate(), [ctl, tgt], [])
+    return self.append(CHGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.ch = ch

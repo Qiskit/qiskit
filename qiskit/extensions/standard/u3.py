@@ -21,6 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
 # pylint: disable=cyclic-import
@@ -68,9 +69,10 @@ class U3Gate(Gate):
             dtype=complex)
 
 
-def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
-    """Apply u3 to q."""
-    return self.append(U3Gate(theta, phi, lam), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def u3(self, theta, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply u3 to qubit."""
+    return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
 
 QuantumCircuit.u3 = u3
@@ -116,9 +118,14 @@ class Cu3Gate(ControlledGate):
         return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
-def cu3(self, theta, phi, lam, ctl, tgt):
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cu3(self, theta, phi, lam, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    return self.append(Cu3Gate(theta, phi, lam), [ctl, tgt], [])
+    return self.append(Cu3Gate(theta, phi, lam),
+                       [control_qubit, target_qubit],
+                       [])
 
 
 QuantumCircuit.cu3 = cu3
