@@ -29,11 +29,11 @@
 """Permutation algorithms for general graphs."""
 
 import logging
-import numpy as np
 from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, \
     Iterable, Optional, Union
 
 import networkx as nx
+import numpy as np
 
 from qiskit.transpiler.routing import Swap
 

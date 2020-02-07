@@ -30,10 +30,11 @@
 
 from typing import List, Tuple, Dict, TypeVar, Iterable, NamedTuple, Any, MutableMapping, Optional
 
-from .types import Swap
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import SwapGate
+
+from .types import Swap
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
@@ -95,7 +96,7 @@ def circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
         for swap_step in swap_list
         for swap_nodes in swap_step
         for swap_node in swap_nodes
-        }
+    }
 
     node_qargs = {node: QuantumRegister(1) for node in nodes}
     for qubit in node_qargs.values():

@@ -17,6 +17,7 @@ from typing import Union
 
 import numpy as np
 
+from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.routing import util
@@ -30,7 +31,8 @@ class LayoutTransformation(TransformationPass):
     More details are available in the routing code.
     """
 
-    def __init__(self, coupling_map, initial_layout, final_layout, seed: Union[int, np.random.RandomState] = None,
+    def __init__(self, coupling_map: CouplingMap, initial_layout: Layout, final_layout: Layout,
+                 seed: Union[int, np.random.RandomState] = None,
                  trials=4):
         """LayoutTransformation initializer.
 
@@ -38,7 +40,7 @@ class LayoutTransformation(TransformationPass):
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): The starting layout of qubits onto physical qubits.
             final_layout (Layout): The final layout of qubits on phyiscal qubits.
-            seed (int or numpy RandomState): Seed to use for random trials.
+            seed (Union[int, np.random.RandomState]): Seed to use for random trials.
             trials (int): How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
@@ -75,7 +77,7 @@ class LayoutTransformation(TransformationPass):
         if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        edge_map = {vqubit: self.initial_layout.get_physical_bits()[pqubit]
+        edge_map = {vqubit: dag.qubits()[pqubit]
                     for (pqubit, vqubit) in self.permutation_circuit.inputmap.items()}
         dag.compose_back(self.permutation_circuit.circuit, edge_map=edge_map)
         return dag
