@@ -87,7 +87,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         qc = self.sample_circuit()
         circuit_drawer(qc, filename=filename, output='latex')
         self.assertImagesAreEqual(filename, self.latex_reference)
-        #os.remove(filename)
+        os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.

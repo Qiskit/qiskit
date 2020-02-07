@@ -36,6 +36,7 @@ REQUIREMENTS = [
     "fastjsonschema>=2.10",
     "python-constraint>=1.4",
     "python-dateutil>=2.8.0",
+    "pylatex>=1.3.1",
 ]
 
 # Add Cython extensions here

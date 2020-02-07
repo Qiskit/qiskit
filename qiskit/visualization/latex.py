@@ -15,19 +15,21 @@
 """latex circuit visualization backends."""
 
 import collections
-import io
+import json
 import math
 import re
 
 import numpy as np
+
+from pylatex import Document, Package, Math
+from pylatex.base_classes import ContainerCommand
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
 
-from pylatex import Document, Command, Package, Math
-from pylatex.base_classes import ContainerCommand, CommandBase
 
 class QCircuit(ContainerCommand):
     """This is a pylatex subclass to hold commands that generate the circuit image."""
@@ -37,7 +39,8 @@ class QCircuit(ContainerCommand):
         qcircuit_line = r"""Qcircuit @C=%.1fem @R=%.1fem @!R """
         self.escape = False
         self._latex_name = qcircuit_line % (column_separation, row_separation)
-        self.packages=[Package('qcircuit',options=['braket','qm'])]
+        self.packages = [Package('qcircuit', options=['braket', 'qm'])]
+
 
 class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
@@ -142,11 +145,9 @@ class QCircuitImage:
             string: for writing to a LaTeX file.
         """
         self._initialize_latex_array(aliases)
-        print(self._latex)
         self._build_latex_array(aliases)
-        print(self._latex)
-        doc = Document(documentclass='beamer',document_options='draft')
-        doc.packages.append(Package('beamerposter',options=[
+        doc = Document(documentclass='beamer', document_options='draft')
+        doc.packages.append(Package('beamerposter', options=[
             'size=custom', 'height=10', 'width=99', 'scale=0.7']))
         qcircuit = QCircuit(self.column_separation, self.row_separation)
         for i in range(self.img_width):
@@ -165,7 +166,7 @@ class QCircuitImage:
                 if j != self.img_depth:
                     qcircuit.append('&')
                 else:
-                    qcircuit.append('\\')
+                    qcircuit.append(r'\\')
         doc.append(Math(data=qcircuit))
         return doc.dumps()
 
