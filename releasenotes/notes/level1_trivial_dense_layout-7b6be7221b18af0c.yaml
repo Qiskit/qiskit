@@ -1,6 +1,0 @@
----
-features:
-  - |
-    In the transpiler optimization level 1, if trivial layout is
-    not a perfect match for a particular circuit, then dense
-    layout is used.
