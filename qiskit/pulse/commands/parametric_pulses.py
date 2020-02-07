@@ -127,6 +127,8 @@ class Gaussian(ParametricPulse):
     A truncated pulse envelope shaped according to the Gaussian function whose mean is centered at
     the center of the pulse (duration / 2):
 
+    .. math::
+
         f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )  ,  0 <= x < duration
     """
 
@@ -178,15 +180,20 @@ class GaussianSquare(ParametricPulse):
     """
     A square pulse with a Gaussian shaped risefall on either side:
 
+    .. math::
+
         risefall = (duration - width) / 2
 
-    0 <= x < risefall
+        0 <= x < risefall
+
         f(x) = amp * exp( -(1/2) * (x - risefall/2)^2 / sigma^2) )
 
-    risefall <= x < risefall + width
+        risefall <= x < risefall + width
+
         f(x) = amp
 
-    risefall + width <= x < duration
+        risefall + width <= x < duration
+
         f(x) = amp * exp( -(1/2) * (x - (risefall + width)/2)^2 / sigma^2) )
     """
 
@@ -252,10 +259,15 @@ class Drag(ParametricPulse):
     spectrum of a normal gaussian pulse near the |1>-|2> transition, reducing the chance of
     leakage to the |2> state.
 
+    .. math::
+
         f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
              = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
 
     where 'Gaussian' is:
+
+    .. math::
+
         Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
 
     Ref:
@@ -343,6 +355,8 @@ class Drag(ParametricPulse):
 class ConstantPulse(ParametricPulse):
     """
     A simple constant pulse, with an amplitude value and a duration:
+
+    .. math::
 
         f(x) = amp    ,  0 <= x < duration
         f(x) = 0      ,  elsewhere
