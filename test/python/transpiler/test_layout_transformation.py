@@ -15,14 +15,14 @@
 """Test the LayoutTransformation pass"""
 
 import unittest
+
 import numpy as np
 
-from qiskit.transpiler.passes import StochasticSwap, LayoutTransformation
-from qiskit.transpiler import CouplingMap, PassManager, Layout
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler.passes import LayoutTransformation
 
 
 class TestLayoutTransformation(QiskitTestCase):
