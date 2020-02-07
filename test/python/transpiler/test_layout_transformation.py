@@ -46,7 +46,7 @@ class TestLayoutTransformation(QiskitTestCase):
         op_nodes = output_dag.op_nodes()
         # output_dag.draw()
         # Check that only two swaps were performed
-        self.assertCountEqual(["swap", "swap"], [op.name for op in op_nodes])
+        self.assertCountEqual(["swap"] * 2, [op.name for op in op_nodes])
         # And check that the swaps were first performed on {q0,q1} then on {q1,q2}.
         self.assertEqual([frozenset([q[0], q[1]]), frozenset([q[1], q[2]])],
                          [frozenset(op.qargs) for op in op_nodes])
