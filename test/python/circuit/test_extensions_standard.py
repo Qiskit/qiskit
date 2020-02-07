@@ -15,16 +15,25 @@
 # pylint: disable=missing-docstring
 
 import unittest
+import warnings
 from inspect import signature
+from ddt import ddt, data, unpack
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, ControlledGate
+from qiskit.circuit import Gate, ControlledGate, ParameterVector
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+
+from qiskit.extensions.standard import (
+    HGate, CHGate, IdGate, RGate, RXGate, CrxGate, RYGate, CryGate, RZGate,
+    CrzGate, SGate, SdgGate, FredkinGate, TGate, TdgGate, U1Gate, Cu1Gate,
+    U2Gate, U3Gate, Cu3Gate, XGate, CnotGate, ToffoliGate, YGate, CyGate,
+    ZGate, CzGate
+)
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -1370,6 +1379,111 @@ class TestStandardMethods(QiskitTestCase):
             definition_unitary = execute([circ], simulator).result().get_unitary()
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
+
+
+@ddt
+class TestQubitKeywordArgRenaming(QiskitTestCase):
+    """Test renaming of qubit keyword args on standard instructions."""
+
+    # pylint: disable=bad-whitespace
+    @unpack
+    @data(
+        ('h',    HGate,    0, [('q', 'qubit')]),
+        ('ch',   CHGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('iden', IdGate,   0, [('q', 'qubit')]),
+        ('r',    RGate,    2, [('q', 'qubit')]),
+        ('rx',   RXGate,   1, [('q', 'qubit')]),
+        ('crx',  CrxGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('ry',   RYGate,   1, [('q', 'qubit')]),
+        ('cry',  CryGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('rz',   RZGate,   1, [('q', 'qubit')]),
+        ('crz',  CrzGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('s',    SGate,    0, [('q', 'qubit')]),
+        ('sdg',  SdgGate,  0, [('q', 'qubit')]),
+        ('cswap',
+         FredkinGate,
+         0,
+         [('ctl', 'control_qubit'),
+          ('tgt1', 'target_qubit1'),
+          ('tgt2', 'target_qubit2')]),
+        ('t',    TGate,    0, [('q', 'qubit')]),
+        ('tdg',  TdgGate,  0, [('q', 'qubit')]),
+        ('u1',   U1Gate,   1, [('q', 'qubit')]),
+        ('cu1',  Cu1Gate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('u2',   U2Gate,   2, [('q', 'qubit')]),
+        ('u3',   U3Gate,   3, [('q', 'qubit')]),
+        ('cu3',  Cu3Gate,  3, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('x',    XGate,    0, [('q', 'qubit')]),
+        ('cx',   CnotGate, 0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('ccx',
+         ToffoliGate,
+         0,
+         [('ctl1', 'control_qubit1'),
+          ('ctl2', 'control_qubit2'),
+          ('tgt', 'target_qubit')]),
+        ('y',    YGate,    0, [('q', 'qubit')]),
+        ('cy',   CyGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('z',    ZGate,    0, [('q', 'qubit')]),
+        ('cz',   CzGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+    )
+    # pylint: enable=bad-whitespace
+    def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):
+        # Verify providing *args is unchanged
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        getattr(qc, instr_name)(*params[:], *qr[:])
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
+
+        # Verify providing old_arg raises a DeprecationWarning
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        with self.assertWarns(DeprecationWarning):
+            getattr(qc, instr_name)(*params[:],
+                                    **{keyword[0]: qubit
+                                       for keyword, qubit
+                                       in zip(kwarg_map, qr[:])})
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
+
+        # Verify providing new_arg does not raise a DeprecationWarning
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            getattr(qc, instr_name)(*params[:],
+                                    **{keyword[1]: qubit
+                                       for keyword, qubit
+                                       in zip(kwarg_map, qr[:])})
+
+            self.assertEqual(len(w), 0)
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
 
 
 if __name__ == '__main__':
