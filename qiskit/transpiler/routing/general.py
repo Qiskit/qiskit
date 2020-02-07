@@ -29,9 +29,9 @@
 """Permutation algorithms for general graphs."""
 
 import logging
-import random
+import numpy as np
 from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, \
-    Iterable, Optional
+    Iterable, Optional, Union
 
 import networkx as nx
 
@@ -49,7 +49,7 @@ class ApproximateTokenSwapper(Generic[_V]):
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(self, graph: nx.Graph) -> None:
+    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.RandomState] = None) -> None:
         """Construct an ApproximateTokenSwapping object."""
         self.graph = graph
         # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
@@ -57,6 +57,10 @@ class ApproximateTokenSwapper(Generic[_V]):
         nodelist = list(graph.nodes())
         self.node_map = {node: i for i, node in enumerate(nodelist)}
         self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
+        if isinstance(seed, np.random.RandomState):
+            self.seed = seed
+        else:
+            self.seed = np.random.RandomState(seed)
 
     def distance(self, vertex0: _V, vertex1: _V) -> int:
         """Compute the distance between two nodes in `graph`."""
@@ -126,7 +130,8 @@ class ApproximateTokenSwapper(Generic[_V]):
         # Can't just iterate over todo_nodes, since it may change during iteration.
         steps = 0
         while todo_nodes and steps <= 4 * self.graph.number_of_nodes() ** 2:
-            todo_node = random.sample(todo_nodes, 1)[0]
+            todo_node_id = self.seed.randint(0, len(todo_nodes))
+            todo_node = tuple(todo_nodes)[todo_node_id]
 
             # Try to find a happy swap chain first by searching for a cycle,
             # excluding self-loops.

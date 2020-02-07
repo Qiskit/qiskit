@@ -13,6 +13,9 @@
 # that they have been altered from the originals.
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
+from typing import Union
+
+import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -27,13 +30,15 @@ class LayoutTransformation(TransformationPass):
     More details are available in the routing code.
     """
 
-    def __init__(self, coupling_map, initial_layout, final_layout, trials=4):
+    def __init__(self, coupling_map, initial_layout, final_layout, seed: Union[int, np.random.RandomState] = None,
+                 trials=4):
         """LayoutTransformation initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): The starting layout of qubits onto physical qubits.
             final_layout (Layout): The final layout of qubits on phyiscal qubits.
+            seed (int or numpy RandomState): Seed to use for random trials.
             trials (int): How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
@@ -41,7 +46,7 @@ class LayoutTransformation(TransformationPass):
         self.initial_layout = initial_layout
         self.final_layout = final_layout
         graph = coupling_map.graph.to_undirected()
-        token_swapper = ApproximateTokenSwapper(graph)
+        token_swapper = ApproximateTokenSwapper(graph, seed)
 
         # Find the permutation that between the initial physical qubits and final physical qubits.
         permutation = {pqubit: final_layout.get_virtual_bits()[vqubit]
