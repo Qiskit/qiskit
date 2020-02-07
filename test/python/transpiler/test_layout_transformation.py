@@ -30,7 +30,8 @@ class TestLayoutTransformation(QiskitTestCase):
     Tests the LayoutTransformation pass.
     """
 
-    def test_basic(self):
+    def test_three_qubit(self):
+        """Test if the permutation {0->2,1->0,2->1} is implemented correctly."""
         np.random.seed(0)
         v = QuantumRegister(3, 'v')  # virtual qubits
         coupling = CouplingMap([[0, 1], [1, 2]])
