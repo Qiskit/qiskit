@@ -183,7 +183,8 @@ def execute(experiments, backend,
             experiments will be run (one for each experiment/bind pair).
 
         schedule_circuit (bool):
-            If ``True``, ``experiments`` will be converted to ``Schedule``.
+            If ``True``, ``experiments`` will be converted to ``Schedule``s prior to
+            execution.
 
         inst_map (InstructionScheduleMap):
             Mapping of circuit operations to pulse schedules. If None, defaults to the
