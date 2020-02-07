@@ -40,7 +40,7 @@ _V = TypeVar('_V')
 Reg = Tuple[str, int]
 
 
-def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]],
+def swap_permutation(swaps: Iterable[Iterable[Swap[_K]]],
                      mapping: MutableMapping[_K, _V],
                      allow_missing_keys: bool = False) -> None:
     """Given a circuit of swaps, apply them to the permutation (in-place).
@@ -76,7 +76,7 @@ PermutationCircuit = NamedTuple('PermutationCircuit',
                                  ])
 
 
-def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
+def circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.
