@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Circuits can be scheduled during ``execute`` by setting ``schedule_circuit=True``.
+    Circuits can be scheduled during :func:`qiskit.execute.execute` by setting ``schedule_circuit=True``.
     This allows users building ``QuantumCircuits`` to make use of custom scheduler
     methods, such as the ``as_late_as_possible`` and ``as_soon_as_possible`` methods.
     For example::
