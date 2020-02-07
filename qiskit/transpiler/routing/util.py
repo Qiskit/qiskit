@@ -30,7 +30,7 @@
 
 from typing import List, Tuple, Dict, TypeVar, Iterable, NamedTuple, Any, MutableMapping, Optional
 
-import qiskit.transpiler.routing as rt
+from .types import Swap
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import SwapGate
