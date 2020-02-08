@@ -17,9 +17,18 @@ Algorithms (:mod:`qiskit.aqua.algorithms`)
 ==========================================
 Aqua contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
-near-term quantum devices with short depth circuits. Aqua uses
-`Terra <https://www.qiskit.org/terra>`__ for compilation and execution
-of the quantum circuits required by the algorithm for the specific problems.
+near-term quantum devices with short depth circuits.
+
+Algorithms configuration includes the use of :mod:`~qiskit.aqua.components` which
+were designed to be swappable sub-parts of an algorithm. Any component and may be exchanged for
+a different implementation of the same component type in order to potentially alter the behavior
+and outcome of the algorithm.
+
+Algorithms are run via a :class:`~qiskit.aqua.QuantumInstance` which must be set with the desired
+backend where the algorithm's circuits will be executed and be configured with a number of compile
+and runtime parameters controlling circuit compilation and execution. Aqua ultimately uses
+`Terra <https://www.qiskit.org/terra>`__ for the actual compilation and execution of the quantum
+circuits created by the algorithm and its components.
 
 .. currentmodule:: qiskit.aqua.algorithms
 
