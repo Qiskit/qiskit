@@ -246,9 +246,7 @@ class SamplePulseDrawer:
 
         samples = pulse.samples
         time = np.arange(0, len(samples) + 1, dtype=float) * dt
-
         time, re, im = interp_method(time, samples, self.style.num_points)
-
         # plot
         ax.fill_between(x=time, y1=re, y2=np.zeros_like(time),
                         facecolor=self.style.wave_color[0], alpha=0.3,
@@ -258,7 +256,6 @@ class SamplePulseDrawer:
                         facecolor=self.style.wave_color[1], alpha=0.3,
                         edgecolor=self.style.wave_color[1], linewidth=1.5,
                         label='imaginary part')
-
         ax.set_xlim(0, pulse.duration * dt)
         if scaling:
             ax.set_ylim(-scaling, scaling)
@@ -506,21 +503,24 @@ class ScheduleDrawer:
                 color = self._get_channel_color(channel)
                 # Minimum amplitude scaled
                 amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
+                amp_max = v_max * abs(max(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
-                offset = np.zeros_like(time) + y0
+                # offset = np.zeros_like(time) + y0
                 # plot
-                ax.fill_between(x=time, y1=re, y2=offset,
-                                facecolor=color[0], alpha=0.3,
-                                edgecolor=color[0], linewidth=1.5,
-                                label='real part')
-                ax.fill_between(x=time, y1=im, y2=offset,
-                                facecolor=color[1], alpha=0.3,
-                                edgecolor=color[1], linewidth=1.5,
-                                label='imaginary part')
+                # ax.fill_between(x=time, y1=re, y2=offset,
+                #        facecolor=color[0], alpha=0.3,
+                #        edgecolor=color[0], linewidth=1.5,
+                #        label='real part')
+                # ax.fill_between(x=time, y1=im, y2=offset,
+                #        facecolor=color[1], alpha=0.3,
+                #        edgecolor=color[1], linewidth=1.5,
+                #        label='imaginary part')
+                ax.axhspan(ymin=y0, ymax=amp_max, xmin=t0-0.5, 
+                           xmax=tf+0.5, facecolor=color[0], alpha=0.3,
+                           edgecolor=color[0], linewidth=1.5)
                 ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
-
                 # plot frame changes
                 fcs = events.framechanges
                 if fcs and framechange:

@@ -37,14 +37,14 @@ def interp1d(time, samples, nop, kind='linear'):
     """
     re_y = np.real(samples)
     im_y = np.imag(samples)
-
+    
     dt = time[1] - time[0]
+    time += 0.5*dt
 
-    time += 0.5 * dt
     cs_ry = interpolate.interp1d(time[:-1], re_y, kind=kind, bounds_error=False)
     cs_iy = interpolate.interp1d(time[:-1], im_y, kind=kind, bounds_error=False)
 
-    time_ = np.linspace(time[0], time[-1] * dt, nop)
+    time_ = np.linspace(time[0], time[-1], nop)
 
     return time_, cs_ry(time_), cs_iy(time_)
 
