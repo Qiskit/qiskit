@@ -1,9 +1,10 @@
 ---
 deprecations:
   - |
-    The PersistentValue command is deprecated from Qiskit Pulse. Similar
-    functionality can be achieved with the ConstantPulse command (one of
-    the new parametric pulses). Compare the following:
+    The :class:`qiskit.pulse.PersistentValue` command is deprecated and will
+    be removed in a future release. Similar functionality can be achieved with
+    the :class:`qiskit.pulse.ConstantPulse` command (one of the new parametric
+    pulses). Compare the following::
 
         from qiskit.pulse import Schedule, PersistentValue, ConstantPulse, \
                                  DriveChannel

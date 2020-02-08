@@ -20,6 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
 class SwapGate(Gate):
@@ -72,7 +73,28 @@ class SwapGate(Gate):
 
 
 def swap(self, qubit1, qubit2):
-    """Apply SWAP from qubit1 to qubit2."""
+    """Apply SWAP gate to a pair specified qubits (qubit1, qubit2).
+    The SWAP gate canonically swaps the states of two qubits.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.swap(0,1)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.swap import SwapGate
+            SwapGate().to_matrix()
+    """
     return self.append(SwapGate(), [qubit1, qubit2], [])
 
 
@@ -111,10 +133,50 @@ class FredkinGate(ControlledGate):
         """Invert this gate."""
         return FredkinGate()  # self-inverse
 
+    def to_matrix(self):
+        """Return a Numpy.array for the Fredkin (CSWAP) gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
 
-def cswap(self, ctl, tgt1, tgt2):
-    """Apply Fredkin to circuit."""
-    return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
+
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt1': 'target_qubit1',
+                      'tgt2': 'target_qubit2'})
+def cswap(self, control_qubit, target_qubit1, target_qubit2,
+          *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+    """Apply Fredkin (CSWAP) gate from a specified control (control_qubit) to target1
+    (target_qubit1) and target2 (target_qubit2) qubits. The CSWAP gate is canonically
+    used to swap the qubit states of target1 and target2 when the control qubit is in
+    state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(3)
+            circuit.cswap(0,1,2)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.swap import FredkinGate
+            FredkinGate().to_matrix()
+    """
+    return self.append(FredkinGate(),
+                       [control_qubit, target_qubit1, target_qubit2],
+                       [])
 
 
 QuantumCircuit.cswap = cswap

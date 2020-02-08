@@ -34,6 +34,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
+from qiskit.circuit import ControlledGate
 from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
@@ -839,6 +840,24 @@ class MatplotlibDrawer:
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text="Unitary")
+                elif isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'cswap']:
+                    disp = op.op.base_gate.name
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    num_qargs = len(q_xy) - num_ctrl_qubits
+
+                    for i in range(num_ctrl_qubits):
+                        self._ctrl_qubit(q_xy[i], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                    # add qubit-qubit wiring
+                    self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
+                    if num_qargs == 1:
+                        self._gate(q_xy[-1], wide=_iswide, text=disp)
+                    else:
+                        self._custom_multiqubit_gate(
+                            q_xy[num_ctrl_qubits:], wide=_iswide, text=disp)
+
                 #
                 # draw single qubit gates
                 #
