@@ -997,7 +997,7 @@ class DAGCircuit:
 
     def longest_path(self):
         """Returns the longest path in the dag as a list of DAGNodes."""
-        return rx.dag_longest_path(self._multi_graph)
+        return [self._id_to_node[x] for x in rx.dag_longest_path(self._multi_graph)]
 
     def successors(self, node):
         """Returns iterator of the successors of a node as DAGNodes."""
