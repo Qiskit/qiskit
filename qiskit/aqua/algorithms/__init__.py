@@ -15,7 +15,11 @@
 """
 Algorithms (:mod:`qiskit.aqua.algorithms`)
 ==========================================
-Quantum Algorithms...
+Aqua contains a collection of quantum algorithms, for use with quantum computers, to
+carry out research and investigate how to solve problems in different domains on
+near-term quantum devices with short depth circuits. Aqua uses
+`Terra <https://www.qiskit.org/terra>`__ for compilation and execution
+of the quantum circuits required by the algorithm for the specific problems.
 
 .. currentmodule:: qiskit.aqua.algorithms
 
