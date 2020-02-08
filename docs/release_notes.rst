@@ -32,7 +32,7 @@ Prelude
 -------
 
 The 0.12.0 release includes several new features and bug fixes. The biggest
-changes for this release is the addition of support for parametric pulses to
+change for this release is the addition of support for parametric pulses to
 OpenPulse. These are Pulse commands which take parameters rather than sample
 points to describe a pulse. 0.12.0 is also the first release to include
 support for Python 3.8. It also marks the beginning of the deprecation for
@@ -46,16 +46,16 @@ New Features
 ------------
 
 - The pass :class:`qiskit.transpiler.passes.CSPLayout` was extended with two
-  new parameters: ``call_limit`` and ``time_limit``. These options allow to
-  limit how long this pass will run. The option ``call_limit`` limits the
-  amount of time that the recursive function in the backtracking solver is
-  called. Similarly, ``call_limit`` limits how long (in seconds) the solver
-  will be running. The defaults are ``1000`` calls and ``10`` seconds
+  new parameters: ``call_limit`` and ``time_limit``. These options allow
+  limiting how long the pass will run. The option ``call_limit`` limits the
+  number of times that the recursive function in the backtracking solver may
+  be called. Similarly, ``time_limit`` limits how long (in seconds) the solver
+  will be allowed to run. The defaults are ``1000`` calls and ``10`` seconds
   respectively.
 
 - :class:`qiskit.pulse.Acquire` can now be applied to a single qubit.
   This makes pulse programming more consistent and easier to reason
-  about, as now all operations in now apply to a single channel.
+  about, as now all operations apply to a single channel.
   For example::
 
     acquire = Acquire(duration=10)
@@ -64,7 +64,7 @@ New Features
     schedule.insert(60, acquire(AcquireChannel(1), MemorySlot(1), RegisterSlot(1)))
 
 - A new method :meth:`qiskit.transpiler.CouplingMap.draw` was added to
-  :class:`qiskit.transpiler.CouplingMap` to generate a graphviz images from
+  :class:`qiskit.transpiler.CouplingMap` to generate a graphviz image from
   the coupling map graph. For example:
 
   .. jupyter-execute::
@@ -183,9 +183,9 @@ New Features
       coupling_map.draw()
 
 - Introduced a new pass
-  :class:`qiskit.transpiler.passes.CrosstalkAdaptiveSchedule`.This pass
-  aims to reduce the impact of crosstalk noise on a program. It uses
-  crosstalk characterization data from the backend to schedule gates.
+  :class:`qiskit.transpiler.passes.CrosstalkAdaptiveSchedule`. This
+  pass aims to reduce the impact of crosstalk noise on a program. It
+  uses crosstalk characterization data from the backend to schedule gates.
   When a pair of gates has high crosstalk, they get serialized using a
   barrier. Naive serialization is harmful because it incurs decoherence
   errors. Hence, this pass uses a SMT optimization approach to compute a
@@ -301,7 +301,7 @@ Known Issues
   :func:`qiskit.execute.execute`, :func:`qiskit.compiler.transpile`, and
   :meth:`qiskit.transpiler.PassManager.run`) may not work when
   called from a script running outside of a ``if __name__ == '__main__':``
-  block when using Python 3.8 on MacOS. Other environments are uneffected by
+  block when using Python 3.8 on MacOS. Other environments are unaffected by
   this issue. This is due to changes in how parallel processes are launched
   by Python 3.8 on MacOS. If ``RuntimeError`` or ``AttributeError`` are
   raised by scripts that are directly calling ``parallel_map()`` or when
@@ -350,7 +350,7 @@ Upgrade Notes
 -------------
 
 - The value of the ``rep_time`` parameter for Pulse backend's configuration
-  object are now in units of seconds, not microseconds. The first time a
+  object is now in units of seconds, not microseconds. The first time a
   ``PulseBackendConfiguration`` object is initialized it will raise a single
   warning to the user to indicate this.
 
@@ -364,7 +364,7 @@ Upgrade Notes
   class of the base gate to an instance of the class of the base gate.
 
 - The ``base_gate_name`` property of :class:`qiskit.circuit.ControlledGate`
-  has been removed, you can get the name of the base gate by either accessing
+  has been removed; you can get the name of the base gate by accessing
   ``base_gate.name`` on the object. For example::
 
       from qiskit import QuantumCircuit
@@ -672,7 +672,7 @@ Bug Fixes
 Other Notes
 -----------
 
-- The transpiler passes in the :mod:`qiskit.transpiler.passes` directory hav
+- The transpiler passes in the :mod:`qiskit.transpiler.passes` directory have
   been organized into subdirectories to better categorize them by
   functionality. They are still all accessible under the
   ``qiskit.transpiler.passes`` namespace.
