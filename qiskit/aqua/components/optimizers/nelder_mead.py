@@ -38,7 +38,7 @@ class NELDER_MEAD(Optimizer):
     However, if the numerical computation of the derivatives can be trusted to be accurate,
     other algorithms using the first and/or second derivatives information might be preferred to
     Nelder-Mead for their better performance in the general case, especially in consideration of
-    the fact thatthe Nelder–Mead technique is a heuristic search method that can converge to
+    the fact that the Nelder–Mead technique is a heuristic search method that can converge to
     non-stationary points.
 
     Uses scipy.optimize.minimize Nelder-Mead.

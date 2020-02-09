@@ -35,7 +35,7 @@ class P_BFGS(Optimizer):
     """
     Parallelized Limited-memory BFGS optimizer.
 
-    P-BFGS is a parallellized version of :class:`L_BFGS_B` with which it shares the same parameters.
+    P-BFGS is a parallelized version of :class:`L_BFGS_B` with which it shares the same parameters.
     P-BFGS can be useful when the target hardware is a quantum simulator running on a classical
     machine. This allows the multiple processes to use simulation to potentially reach a minimum
     faster. The parallelization may also help the optimizer avoid getting stuck at local optima.

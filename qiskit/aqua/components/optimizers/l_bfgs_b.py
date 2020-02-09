@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Limited-memory BFGS Bound ptimizer."""
+"""Limited-memory BFGS Bound optimizer."""
 
 import logging
 
