@@ -12,21 +12,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Controlled Random Search (CRS) with local mutation."""
+"""Controlled Random Search (CRS) with local mutation optimizer."""
 
 from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
 
 class CRS(NLoptOptimizer):
-    # pylint: disable=line-too-long
     """
-    Controlled Random Search (CRS) with local mutation.
+    Controlled Random Search (CRS) with local mutation optimizer.
 
-    NLopt global optimizer, derivative-free. See `NLOpt CRS documentation
-    <https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#controlled-random-search-crs-with-local-mutation>`_
-    for more information.
+    Controlled Random Search (CRS) with local mutation is part of the family of the CRS optimizers.
+    The CRS optimizers start with a random population of points, and randomly evolve these points
+    by heuristic rules. In the case of CRS with local mutation, the evolution is a randomized
+    version of the :class:`NELDER_MEAD` local optimizer.
+
+
+    NLopt global optimizer, derivative-free.
+    For further detail, please refer to
+    https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#controlled-random-search-crs-with-local-mutation
     """
 
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ return NLopt optimizer type """
+        """ Return NLopt optimizer type """
         return NLoptOptimizerType.GN_CRS2_LM
