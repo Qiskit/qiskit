@@ -1194,7 +1194,7 @@ class DAGCircuit:
         while cur_layer:
             for node in cur_layer:
                 # Count multiedges with multiplicity.
-                for successor in self._multi_graph.successors(node._node_id):
+                for successor in set(self._multi_graph.successors(node._node_id)):
                     multiplicity = len(self._multi_graph.get_all_edge_data(
                         node._node_id, successor._node_id))
                     if successor in predecessor_count:
