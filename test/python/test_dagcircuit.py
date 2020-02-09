@@ -220,22 +220,22 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(h_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit2], h_node,
+                (self.dag.input_map[self.qubit2]._node_id, h_node._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (self.dag.input_map[self.clbit0], h_node,
+                (self.dag.input_map[self.clbit0]._node_id, h_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], h_node,
+                (self.dag.input_map[self.clbit1]._node_id, h_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
             sorted(self.dag._multi_graph.out_edges(h_node._node_id)),
             sorted([
-                (h_node, self.dag.output_map[self.qubit2],
+                (h_node._node_id, self.dag.output_map[self.qubit2]._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (h_node, self.dag.output_map[self.clbit0],
+                (h_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (h_node, self.dag.output_map[self.clbit1],
+                (h_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
@@ -262,22 +262,22 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit0], meas_node,
+                (self.dag.input_map[self.qubit0]._node_id, meas_node._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[new_creg[0]], meas_node,
+                (self.dag.input_map[new_creg[0]]._node_id, meas_node._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
         self.assertEqual(
             sorted(self.dag._multi_graph.out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit0],
+                (meas_node._node_id, self.dag.output_map[self.qubit0]._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[new_creg[0]],
+                (meas_node._node_id, self.dag.output_map[new_creg[0]]._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
@@ -301,22 +301,22 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit1], meas_node,
+                (self.dag.input_map[self.qubit1]._node_id, meas_node._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], meas_node,
+                (self.dag.input_map[self.clbit1]._node_id, meas_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(meas_node)),
+            sorted(self.dag._multi_graph.out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit1],
+                (meas_node._node_id, self.dag.output_map[self.qubit1]._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit1],
+                (meas_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
@@ -452,7 +452,6 @@ class TestDagOperations(QiskitTestCase):
 
     def test_topological_nodes(self):
         """The topological_nodes() method"""
-        self.maxDiff = None
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
