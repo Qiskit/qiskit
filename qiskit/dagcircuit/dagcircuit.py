@@ -1029,7 +1029,7 @@ class DAGCircuit:
         Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
         and [DAGNode] is its successors in  BFS order.
         """
-        return rx.bfs_successors(self._multi_graph, node)
+        return iter(rx.bfs_successors(self._multi_graph, node._node_id))
 
     def quantum_successors(self, node):
         """Returns iterator of the successors of a node that are
