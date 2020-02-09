@@ -36,12 +36,10 @@ class Optimizer(ABC):
 
     @abstractmethod
     def __init__(self):
-        """Constructor.
-
+        """
         Initialize the optimization algorithm, setting the support
         level for _gradient_support_level, _bound_support_level,
         _initial_point_support_level, and empty options.
-
         """
         self._gradient_support_level = self.get_support_level()['gradient']
         self._bounds_support_level = self.get_support_level()['bounds']
@@ -51,7 +49,7 @@ class Optimizer(ABC):
 
     @abstractmethod
     def get_support_level(self):
-        """ return support level dictionary """
+        """ Return support level dictionary """
         raise NotImplementedError
 
     def set_options(self, **kwargs):
@@ -75,6 +73,7 @@ class Optimizer(ABC):
         """
         We compute the gradient with the numeric differentiation in the parallel way,
         around the point x_center.
+
         Args:
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
@@ -124,6 +123,7 @@ class Optimizer(ABC):
     def wrap_function(function, args):
         """
         Wrap the function to implicitly inject the args at the call of the function.
+
         Args:
             function (func): the target function
             args (tuple): the args to be injected
@@ -136,7 +136,7 @@ class Optimizer(ABC):
 
     @property
     def setting(self):
-        """ return setting """
+        """ Return setting """
         ret = "Optimizer: {}\n".format(self.__class__.__name__)
         params = ""
         for key, value in self.__dict__.items():
@@ -148,19 +148,20 @@ class Optimizer(ABC):
     @abstractmethod
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):
-        """Perform optimization.
+        """
+        Perform optimization.
 
         Args:
-            num_vars (int) : number of parameters to be optimized.
-            objective_function (callable) : handle to a function that
+            num_vars (int) : Number of parameters to be optimized.
+            objective_function (callable) : A function that
                 computes the objective function.
-            gradient_function (callable) : handle to a function that
+            gradient_function (callable) : A function that
                 computes the gradient of the objective function, or
                 None if not available.
-            variable_bounds (list[(float, float)]) : list of variable
+            variable_bounds (list[(float, float)]) : List of variable
                 bounds, given as pairs (lower, upper). None means
                 unbounded.
-            initial_point (numpy.ndarray[float]) : initial point.
+            initial_point (numpy.ndarray[float]) : Initial point.
 
         Returns:
             point, value, nfev
@@ -204,62 +205,62 @@ class Optimizer(ABC):
 
     @property
     def gradient_support_level(self):
-        """ returns gradient support level """
+        """ Returns gradient support level """
         return self._gradient_support_level
 
     @property
     def is_gradient_ignored(self):
-        """ returns is gradient ignored """
+        """ Returns is gradient ignored """
         return self._gradient_support_level == self.SupportLevel.ignored
 
     @property
     def is_gradient_supported(self):
-        """ returns is gradient supported """
+        """ Returns is gradient supported """
         return self._gradient_support_level != self.SupportLevel.not_supported
 
     @property
     def is_gradient_required(self):
-        """ returns is gradient required """
+        """ Returns is gradient required """
         return self._gradient_support_level == self.SupportLevel.required
 
     @property
     def bounds_support_level(self):
-        """ returns bounds support level """
+        """ Returns bounds support level """
         return self._bounds_support_level
 
     @property
     def is_bounds_ignored(self):
-        """ returns is bounds ignored """
+        """ Returns is bounds ignored """
         return self._bounds_support_level == self.SupportLevel.ignored
 
     @property
     def is_bounds_supported(self):
-        """ returns is bounds supported """
+        """ Returns is bounds supported """
         return self._bounds_support_level != self.SupportLevel.not_supported
 
     @property
     def is_bounds_required(self):
-        """ returns is bounds required """
+        """ Returns is bounds required """
         return self._bounds_support_level == self.SupportLevel.required
 
     @property
     def initial_point_support_level(self):
-        """ returns initial point support level """
+        """ Returns initial point support level """
         return self._initial_point_support_level
 
     @property
     def is_initial_point_ignored(self):
-        """ return is initial point ignored """
+        """ Returns is initial point ignored """
         return self._initial_point_support_level == self.SupportLevel.ignored
 
     @property
     def is_initial_point_supported(self):
-        """ returns is initial point supported """
+        """ Returns is initial point supported """
         return self._initial_point_support_level != self.SupportLevel.not_supported
 
     @property
     def is_initial_point_required(self):
-        """ returns is initial point required """
+        """ Returns is initial point required """
         return self._initial_point_support_level == self.SupportLevel.required
 
     def print_options(self):
@@ -268,5 +269,5 @@ class Optimizer(ABC):
             logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
 
     def set_max_evals_grouped(self, limit):
-        """ set max evals grouped """
+        """ Set max evals grouped """
         self._max_evals_grouped = limit

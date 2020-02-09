@@ -15,7 +15,17 @@
 """
 Optimizers (:mod:`qiskit.aqua.components.optimizers`)
 =====================================================
-Optimizers, local and global
+Aqua  contains a variety of classical optimizers for use by quantum variational algorithms,
+such as :class:`~qiskit.aqua.algorithms.VQE`.
+Logically, these optimizers can be divided into two categories:
+
+`Local Optimizers`_
+  Given an optimization problem, a **local optimizer** is a function
+  that attempts to find an optimal value within the neighboring set of a candidate solution.
+
+`Global Optimizers`_
+  Given an optimization problem, a **global optimizer** is a function
+  that attempts to find an optimal value among all possible solutions.
 
 .. currentmodule:: qiskit.aqua.components.optimizers
 
@@ -36,6 +46,7 @@ Local Optimizers
    :nosignatures:
 
    ADAM
+   AQGD
    CG
    COBYLA
    L_BFGS_B
@@ -45,7 +56,6 @@ Local Optimizers
    SLSQP
    SPSA
    TNC
-   AQGD
 
 Global Optimizers
 =================
@@ -91,6 +101,7 @@ from .nlopts.isres import ISRES
 
 __all__ = ['Optimizer',
            'ADAM',
+           'AQGD',
            'CG',
            'COBYLA',
            'L_BFGS_B',
@@ -100,5 +111,4 @@ __all__ = ['Optimizer',
            'SLSQP',
            'SPSA',
            'TNC',
-           'AQGD',
            'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES']

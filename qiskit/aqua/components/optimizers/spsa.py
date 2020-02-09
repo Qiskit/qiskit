@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Simultaneous Perturbation Stochastic Approximation algorithm."""
+"""Simultaneous Perturbation Stochastic Approximation optimizer."""
 
 import logging
 
@@ -26,7 +26,36 @@ logger = logging.getLogger(__name__)
 
 
 class SPSA(Optimizer):
-    """Simultaneous Perturbation Stochastic Approximation algorithm."""
+    """
+    Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
+
+    SPSA is an algorithmic method for optimizing systems with multiple unknown parameters.
+    As an optimization method, it is appropriately suited to large-scale population models,
+    adaptive modeling, and simulation optimization.
+
+    .. seealso::
+        Many examples are presented at the `SPSA Web site <http://www.jhuapl.edu/SPSA>`__.
+
+    SPSA is a descent method capable of finding global minima,
+    sharing this property with other methods as simulated annealing.
+    Its main feature is the gradient approximation, which requires only two
+    measurements of the objective function, regardless of the dimension of the optimization
+    problem.
+
+    .. note::
+
+        SPSA can be used in the presence of noise, and it is therefore indicated in situations
+        involving measurement uncertainty on a quantum computation when finding a minimum.
+        If you are executing a variational algorithm using a Quantum ASseMbly Language (QASM)
+        simulator or a real device, SPSA would be the most recommended choice among the optimizers
+        provided here.
+
+    The optimization process includes a calibration phase, which requires additional
+    functional evaluations.
+
+    For further details, please refer to https://arxiv.org/pdf/1704.05018v2.pdf#section*.11
+    (Supplementary information Section IV.)
+    """
 
     _C0 = 2*np.pi*0.1
     _OPTIONS = ['save_steps', 'last_avg']
@@ -43,24 +72,17 @@ class SPSA(Optimizer):
                  c4: float = 0,
                  skip_calibration: float = False) -> None:
         """
-        Constructor.
-
-        For details, please refer to https://arxiv.org/pdf/1704.05018v2.pdf.
-        Supplementary information Section IV.
-
         Args:
             max_trials: Maximum number of iterations to perform.
-            save_steps: Save intermediate info every save_steps step.
-                        It has a min. value of 1.
+            save_steps: Save intermediate info every save_steps step. It has a min. value of 1.
             last_avg: Averaged parameters over the last_avg iterations.
-                            If last_avg = 1, only the last iteration is considered.
-                            It has a min. value of 1.
+                If last_avg = 1, only the last iteration is considered. It has a min. value of 1.
             c0: The initial a. Step size to update parameters.
             c1: The initial c. The step size used to approximate gradient.
             c2: The alpha in the paper, and it is used to adjust a (c0) at each iteration.
             c3: The gamma in the paper, and it is used to adjust c (c1) at each iteration.
             c4: The parameter used to control a as well.
-            skip_calibration: skip calibration and use provided c(s) as is.
+            skip_calibration: Skip calibration and use provided c(s) as is.
         """
         validate_min('save_steps', save_steps, 1)
         validate_min('last_avg', last_avg, 1)

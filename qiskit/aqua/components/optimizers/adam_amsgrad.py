@@ -38,18 +38,26 @@ logger = logging.getLogger(__name__)
 
 
 class ADAM(Optimizer):
-
     """
-    Adam and AMSGRAD Optimizer
+    Adam and AMSGRAD optimizer.
 
     | **Adam**
     | *Kingma, Diederik & Ba, Jimmy. (2014).*
     | Adam: A Method for Stochastic Optimization. \
     International Conference on Learning Representations.
 
+    Adam is a gradient-based optimization algorithm that is relies on adaptive estimates of
+    lower-order moments. The algorithm requires little memory and is invariant to diagonal
+    rescaling of the gradients. Furthermore, it is able to cope with non-stationary objective
+    functions and noisy and/or sparse gradients.
+
+    |
     | **AMSGRAD**
     | *Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).*
     | On the Convergence of Adam and Beyond. International Conference on Learning Representations.
+
+    AMSGRAD (a variant of ADAM) uses a 'long-term memory' of past gradients and, thereby,
+    improves convergence properties.
     """
 
     _OPTIONS = ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2',
@@ -109,7 +117,7 @@ class ADAM(Optimizer):
                 writer.writeheader()
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """ Return support level dictionary """
         return {
             'gradient': Optimizer.SupportLevel.supported,
             'bounds': Optimizer.SupportLevel.ignored,
