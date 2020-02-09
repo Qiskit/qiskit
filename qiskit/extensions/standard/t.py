@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class TGate(Gate):
@@ -84,14 +85,60 @@ class TdgGate(Gate):
                             [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-def t(self, q):  # pylint: disable=invalid-name
-    """Apply T to q."""
-    return self.append(TGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply T gate to a specified qubit (qubit).
+    A T gate implements a pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.t(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TGate
+            TGate().to_matrix()
+    """
+    return self.append(TGate(), [qubit], [])
 
 
-def tdg(self, q):
-    """Apply Tdg to q."""
-    return self.append(TdgGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Tdg gate to a specified qubit (qubit).
+    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of T-gate.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.tdg(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TdgGate
+            TdgGate().to_matrix()
+    """
+    return self.append(TdgGate(), [qubit], [])
 
 
 QuantumCircuit.t = t

@@ -166,9 +166,10 @@ class BaseSchema(Schema):
 class _SchemaBinder:
     """Helper class for the parametrized decorator ``bind_schema``."""
 
-    def __init__(self, schema_cls):
+    def __init__(self, schema_cls, **kwargs):
         """Get the schema for the decorated model."""
         self._schema_cls = schema_cls
+        self._kwargs = kwargs
 
     def __call__(self, model_cls):
         """Augment the model class with the validation API.
@@ -184,7 +185,7 @@ class _SchemaBinder:
 
         # Set a reference to the Model in the Schema, and vice versa.
         self._schema_cls.model_cls = model_cls
-        model_cls.schema = self._schema_cls()
+        model_cls.schema = self._schema_cls(**self._kwargs)
 
         # Append the methods to the Model class.
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
@@ -195,7 +196,7 @@ class _SchemaBinder:
         return model_cls
 
     @staticmethod
-    def _create_validation_schema(schema_cls):
+    def _create_validation_schema(schema_cls, **kwargs):
         """Create a patched Schema for validating models.
 
         Model validation is not part of Marshmallow. Schemas have a ``validate``
@@ -211,7 +212,7 @@ class _SchemaBinder:
             BaseSchema: a copy of the original Schema, overriding the
                 ``_deserialize()`` call of its fields.
         """
-        validation_schema = schema_cls()
+        validation_schema = schema_cls(**kwargs)
         for _, field in validation_schema.fields.items():
             if isinstance(field, ModelTypeValidator):
                 validate_function = field.__class__.check_type
@@ -245,7 +246,7 @@ class _SchemaBinder:
         return _decorated
 
 
-def bind_schema(schema):
+def bind_schema(schema, **kwargs):
     """Class decorator for adding schema validation to its instances.
 
     The decorator acts on the model class by adding:
@@ -276,13 +277,18 @@ def bind_schema(schema):
         instantiation. If ``validate=False`` is passed to the constructor, this
         validation will not be performed.
 
+    Args:
+        schema (class): the schema class used for validation.
+        **kwargs: Additional attributes for the ``marshmallow.Schema``
+            initializer.
+
     Raises:
         ValueError: when trying to bind the same schema more than once.
 
     Return:
         type: the same class with validation capabilities.
     """
-    return _SchemaBinder(schema)
+    return _SchemaBinder(schema, **kwargs)
 
 
 def _base_model_from_kwargs(cls, kwargs):
