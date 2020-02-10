@@ -1,1 +1,68 @@
-{"qubit_lo_range":[],"memory":true,"rep_times":[1000],"gates":[],"backend_version":"1.2.4","coupling_map":[[0, 1]],"description":"100 qubit device pulse","max_shots":8192,"n_uchannels":46,"acquisition_latency":[],"max_experiments":900,"conditional_latency":[],"n_registers":1,"dt":2.2222222222222221e-10,"meas_lo_range":[],"basis_gates":["u1","u2","u3","cx","id"],"backend_name":"alt_almaden","u_channel_lo":[],"sample_name":"Qubert","conditional":false,"open_pulse":true,"meas_map":[],"meas_kernels":["boxcar"],"dtm":2.2222222222222221e-10,"discriminators":["linear_discriminator","quadratic_discriminator"],"online_date":"2018-05-10T04:00:00+00:00","simulator":false,"credits_required":true,"n_qubits":20,"local":false,"meas_levels":[1,2],"allow_object_storage":true,"allow_q_circuit":false,"allow_q_object":true,"uchannels_enabled":true,"url":"None","hamiltonian":{"description":"","h_latex":"","h_str":[],"osc":{},"qub":{},"vars":{}},"quantum_volume":8}
+{
+    "acquisition_latency": [],
+    "backend_name": "100q",
+    "backend_version": "0.0.0",
+    "basis_gates": [
+        "id",
+        "u1",
+        "u2",
+        "u3"
+    ],
+    "conditional": true,
+    "conditional_latency": [],
+    "coupling_map": [
+        [
+            0,
+            1
+        ]
+    ],
+    "discriminators": [],
+    "dt": 1.3333e-09,
+    "dtm": 1.0500000000000001e-08,
+    "gates": [
+        {
+            "name": "TODO",
+            "parameters": [],
+            "qasm_def": "TODO"
+        }
+    ],
+    "hamiltonian": {
+        "description": "",
+        "h_str": [],
+        "qub": {},
+        "vars": {}
+    },
+    "local": true,
+    "max_shots": 65536,
+    "meas_kernels": [],
+    "meas_level": [],
+    "meas_levels": [
+        0,
+        1,
+        2
+    ],
+    "meas_lo_range": [],
+    "meas_map": [
+        [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+        ]
+    ],
+    "memory": false,
+    "n_qubits": 10,
+    "n_registers": 10,
+    "n_uchannels": 10,
+    "open_pulse": true,
+    "qubit_lo_range": [],
+    "rep_times": [],
+    "simulator": false,
+    "u_channel_lo": []
+}

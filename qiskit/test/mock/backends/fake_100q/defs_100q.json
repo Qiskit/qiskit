@@ -1,1 +1,592 @@
-{"discriminator":{},"meas_freq_est":[],"qubit_freq_est":[],"pulse_library":[],"cmd_def":[],"buffer":0,"meas_kernel":{"name":"boxcar","params":{}}}
+{
+    "buffer": 10,
+    "cmd_def": [
+        {
+            "name": "id",
+            "qubits": [
+                0
+            ],
+            "sequence": [
+                {
+                    "ch": "d0",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                0
+            ],
+            "sequence": [
+                {
+                    "ch": "d0",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                0
+            ],
+            "sequence": [
+                {
+                    "ch": "d0",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                0
+            ],
+            "sequence": [
+                {
+                    "ch": "d0",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                1
+            ],
+            "sequence": [
+                {
+                    "ch": "d1",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                1
+            ],
+            "sequence": [
+                {
+                    "ch": "d1",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                1
+            ],
+            "sequence": [
+                {
+                    "ch": "d1",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                1
+            ],
+            "sequence": [
+                {
+                    "ch": "d1",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                2
+            ],
+            "sequence": [
+                {
+                    "ch": "d2",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                2
+            ],
+            "sequence": [
+                {
+                    "ch": "d2",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                2
+            ],
+            "sequence": [
+                {
+                    "ch": "d2",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                2
+            ],
+            "sequence": [
+                {
+                    "ch": "d2",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                3
+            ],
+            "sequence": [
+                {
+                    "ch": "d3",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                3
+            ],
+            "sequence": [
+                {
+                    "ch": "d3",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                3
+            ],
+            "sequence": [
+                {
+                    "ch": "d3",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                3
+            ],
+            "sequence": [
+                {
+                    "ch": "d3",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                4
+            ],
+            "sequence": [
+                {
+                    "ch": "d4",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                4
+            ],
+            "sequence": [
+                {
+                    "ch": "d4",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                4
+            ],
+            "sequence": [
+                {
+                    "ch": "d4",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                4
+            ],
+            "sequence": [
+                {
+                    "ch": "d4",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                5
+            ],
+            "sequence": [
+                {
+                    "ch": "d5",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                5
+            ],
+            "sequence": [
+                {
+                    "ch": "d5",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                5
+            ],
+            "sequence": [
+                {
+                    "ch": "d5",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                5
+            ],
+            "sequence": [
+                {
+                    "ch": "d5",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                6
+            ],
+            "sequence": [
+                {
+                    "ch": "d6",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                6
+            ],
+            "sequence": [
+                {
+                    "ch": "d6",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                6
+            ],
+            "sequence": [
+                {
+                    "ch": "d6",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                6
+            ],
+            "sequence": [
+                {
+                    "ch": "d6",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                7
+            ],
+            "sequence": [
+                {
+                    "ch": "d7",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                7
+            ],
+            "sequence": [
+                {
+                    "ch": "d7",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                7
+            ],
+            "sequence": [
+                {
+                    "ch": "d7",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                7
+            ],
+            "sequence": [
+                {
+                    "ch": "d7",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                8
+            ],
+            "sequence": [
+                {
+                    "ch": "d8",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                8
+            ],
+            "sequence": [
+                {
+                    "ch": "d8",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                8
+            ],
+            "sequence": [
+                {
+                    "ch": "d8",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                8
+            ],
+            "sequence": [
+                {
+                    "ch": "d8",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "id",
+            "qubits": [
+                9
+            ],
+            "sequence": [
+                {
+                    "ch": "d9",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u1",
+            "qubits": [
+                9
+            ],
+            "sequence": [
+                {
+                    "ch": "d9",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u2",
+            "qubits": [
+                9
+            ],
+            "sequence": [
+                {
+                    "ch": "d9",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        },
+        {
+            "name": "u3",
+            "qubits": [
+                9
+            ],
+            "sequence": [
+                {
+                    "ch": "d9",
+                    "name": "fc",
+                    "phase": 1.0,
+                    "t0": 0
+                }
+            ]
+        }
+    ],
+    "converter": "",
+    "instruction_schedule_map": "",
+    "meas_freq_est": [
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0,
+        6500000000.0
+    ],
+    "pulse_library": [],
+    "qubit_freq_est": [
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0,
+        4900000000.0
+    ]
+}
