@@ -198,6 +198,16 @@ class Schedule(ScheduleComponent):
             name = self.name
         return Schedule((time, self), name=name)
 
+    def _insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False):
+        """Mutably return a new schedule with `schedule` inserted within `self` at `start_time`.
+
+        Args:
+            start_time: Time to insert the schedule
+            schedule: Schedule to insert
+            buffer: Whether to obey buffer when inserting
+        """
+        return self._union((start_time, schedule))
+
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
@@ -211,6 +221,22 @@ class Schedule(ScheduleComponent):
         if buffer:
             warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return self.union((start_time, schedule), name=name)
+
+    def _append(self, schedule: ScheduleComponent, buffer: bool = False):
+        r"""Mutably eturn a new schedule with `schedule` inserted at the maximum time over
+        all channels shared between `self` and `schedule`.
+
+       $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
+
+        Args:
+            schedule: schedule to be appended
+            buffer: Whether to obey buffer when appending
+        """
+        if buffer:
+            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
+        common_channels = set(self.channels) & set(schedule.channels)
+        time = self.ch_stop_time(*common_channels)
+        return self._insert(time, schedule)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
