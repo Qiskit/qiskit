@@ -23,7 +23,23 @@ from .variational_form import VariationalForm
 
 
 class RYRZ(VariationalForm):
-    """Layers of Y+Z rotations followed by entangling gates."""
+    r"""
+    The RYRZ Variational Form.
+
+    The RYRZ trial wave function is layers of :math:`y` plus :math:`z` rotations with entanglements.
+    When none of qubits are unentangled to other qubits, the number of optimizer parameters this
+    form creates and uses is given by :math:`q \times (d + 1) \times 2`, where :math:`q` is the
+    total number of qubits and :math:`d` is the depth of the circuit.
+    Nonetheless, in some cases, if an `entangler_map` does not include all qubits, that is, some
+    qubits are not entangled by other qubits. The number of parameters is reduced by
+    :math:`d \times q' \times 2` where :math:`q'` is the number of unentangled qubits.
+    This is because adding more parameters to the unentangled qubits only introduce overhead
+    without bringing any benefit; furthermore, theoretically, applying multiple Ry and Rz gates
+    in a row can be reduced to a single Ry gate and one Rz gate with the summed rotation angles.
+
+    See :class:`RY` for more detail on `entangler_map` and `entanglement` which apply here too
+    but note RYRZ only supports 'full' and 'linear' values.
+    """
 
     def __init__(self,
                  num_qubits: int,
@@ -33,19 +49,18 @@ class RYRZ(VariationalForm):
                  initial_state: Optional[InitialState] = None,
                  entanglement_gate: str = 'cz',
                  skip_unentangled_qubits: bool = False) -> None:
-        """Constructor.
-
+        """
         Args:
-            num_qubits: number of qubits, has a min. value of 1.
-            depth: number of rotation layers, has a min. value of 1.
-            entangler_map (list[list]): describe the connectivity of qubits, each list describes
-                                        [source, target], or None for full entanglement.
-                                        Note that the order is the list is the order of
-                                        applying the two-qubit gate.
-            entanglement (str): 'full' or 'linear'
-            initial_state (InitialState): an initial state object
-            entanglement_gate (str): cz or cx
-            skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
+            num_qubits: Number of qubits, has a minimum value of 1.
+            depth: Number of rotation layers, has a minimum value of 1.
+            entangler_map: Describe the connectivity of qubits, each list pair describes
+                [source, target], or None for as defined by `entanglement`.
+                Note that the order is the list is the order of applying the two-qubit gate.
+            entanglement: ('full' | 'linear') overridden by 'entangler_map` if its
+                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbour.
+            initial_state: An initial state object
+            entanglement_gate: ('cz' | 'cx')
+            skip_unentangled_qubits: Skip the qubits not in the entangler_map
         """
         validate_min('num_qubits', num_qubits, 1)
         validate_min('depth', depth, 1)

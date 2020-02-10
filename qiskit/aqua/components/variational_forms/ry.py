@@ -23,7 +23,49 @@ from .variational_form import VariationalForm
 
 
 class RY(VariationalForm):
-    """Layers of Y rotations followed by entangling gates."""
+    r"""
+    The RY Variational Form.
+
+    The RY trial wave function is layers of :math:`y` rotations with entanglements.
+    When none of qubits are unentangled to other qubits the number of parameters
+    and the entanglement gates themselves have no additional parameters,
+    the number of optimizer parameters this form creates and uses is given by
+    :math:`q \times (d + 1)`, where :math:`q` is the total number of qubits and :math:`d` is
+    the depth of the circuit.
+
+    Nonetheless, in some cases, if an `entangler_map` does not include all qubits, that is, some
+    qubits are not entangled by other qubits. The number of parameters is reduced by
+    :math:`d \times q'` where :math:`q'` is the number of unentangled qubits.
+    This is because adding more parameters to the unentangled qubits only introduce overhead
+    without bringing any benefit; furthermore, theoretically, applying multiple RY gates in a row
+    can be reduced to a single RY gate with the summed rotation angles.
+
+    If the form uses entanglement gates with parameters (such as `'crx'`) the number of parameters
+    increases by the number of entanglements. For instance with `'linear'` or `'sca'` entanglement
+    the total number of parameters is :math:`2q \times (d + 1/2)`. For `'full'` entanglement an
+    additional :math:`q \times (q - 1)/2 \times d` parameters, hence a total of
+    :math:`d \times q \times (q + 1) / 2 + q`. It is possible to skip the final layer or :math:`y`
+    rotations by setting the argument `skip_final_ry` to True.
+    Then the number of parameters in above formulae decreases by :math:`q`.
+
+    * 'full' entanglement is each qubit is entangled with all the others.
+    * 'linear' entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+      for all :math:`i \in \{0, 1, ... , q - 2\}`, where :math:`q` is the total number of qubits.
+    * 'sca' (shifted-circular-alternating) entanglement it is a generalised and modified version of
+      the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
+      It consists of circular entanglement where the 'long' entanglement connecting the first with
+      the last qubit is shifted by one each block.  Furthermore the role of control and target
+      qubits are swapped every block (therefore alternating).
+
+    The `entanglement` parameter can be overridden by an `entangler_map` explicitly
+    The entangler map is specified in the form of a list; where each element in the
+    list is a list pair of a source qubit and a target qubit index. Indexes are integer values
+    from :math:`0` to :math:`q-1`, where :math:`q` is the total number of qubits,
+    as in the following example:
+
+         entangler_map = [[0, 1], [0, 2], [1, 3]]
+
+    """
 
     def __init__(self,
                  num_qubits: int,
@@ -34,20 +76,20 @@ class RY(VariationalForm):
                  entanglement_gate: str = 'cz',
                  skip_unentangled_qubits: bool = False,
                  skip_final_ry: bool = False) -> None:
-        """Constructor.
-
+        """
         Args:
-            num_qubits: number of qubits, has a min. value of 1.
-            depth: number of rotation layers, has a min. value of 1.
-            entangler_map: describe the connectivity of qubits, each list describes
-                                        [source, target], or None for full entanglement.
-                                        Note that the order is the list is the order of
-                                        applying the two-qubit gate.
-            entanglement: 'full', 'linear' or 'sca'
-            initial_state: an initial state object
-            entanglement_gate: cz or cx or crx
-            skip_unentangled_qubits: skip the qubits not in the entangler_map
-            skip_final_ry: skip the final layer of Y rotations
+            num_qubits: Number of qubits, has a minimum value of 1.
+            depth: Number of rotation layers, has a minimum value of 1.
+            entangler_map: Describe the connectivity of qubits, each list pair describes
+                [source, target], or None for as defined by `entanglement`.
+                Note that the order is the list is the order of applying the two-qubit gate.
+            entanglement: ('full' | 'linear' | 'sca'), overridden by 'entangler_map` if its
+                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbour and
+                'sca' is a shifted-circular-alternating entanglement.
+            initial_state: An initial state object
+            entanglement_gate: ('cz' | 'cx' | 'crx')
+            skip_unentangled_qubits: Skip the qubits not in the entangler_map
+            skip_final_ry: Skip the final layer of Y rotations
         """
         validate_min('num_qubits', num_qubits, 1)
         validate_min('depth', depth, 1)
