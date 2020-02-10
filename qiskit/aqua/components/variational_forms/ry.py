@@ -51,7 +51,7 @@ class RY(VariationalForm):
     * 'full' entanglement is each qubit is entangled with all the others.
     * 'linear' entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
       for all :math:`i \in \{0, 1, ... , q - 2\}`, where :math:`q` is the total number of qubits.
-    * 'sca' (shifted-circular-alternating) entanglement it is a generalised and modified version of
+    * 'sca' (shifted-circular-alternating) entanglement it is a generalized and modified version of
       the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
       It consists of circular entanglement where the 'long' entanglement connecting the first with
       the last qubit is shifted by one each block.  Furthermore the role of control and target
@@ -84,7 +84,7 @@ class RY(VariationalForm):
                 [source, target], or None for as defined by `entanglement`.
                 Note that the order is the list is the order of applying the two-qubit gate.
             entanglement: ('full' | 'linear' | 'sca'), overridden by 'entangler_map` if its
-                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbour and
+                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbor and
                 'sca' is a shifted-circular-alternating entanglement.
             initial_state: An initial state object
             entanglement_gate: ('cz' | 'cx' | 'crx')

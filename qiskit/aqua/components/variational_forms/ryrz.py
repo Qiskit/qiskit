@@ -57,7 +57,7 @@ class RYRZ(VariationalForm):
                 [source, target], or None for as defined by `entanglement`.
                 Note that the order is the list is the order of applying the two-qubit gate.
             entanglement: ('full' | 'linear') overridden by 'entangler_map` if its
-                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbour.
+                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbor.
             initial_state: An initial state object
             entanglement_gate: ('cz' | 'cx')
             skip_unentangled_qubits: Skip the qubits not in the entangler_map
