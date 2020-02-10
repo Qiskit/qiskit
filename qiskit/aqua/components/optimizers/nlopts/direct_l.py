@@ -12,19 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DIRECT is the DIviding RECTangles algorithm for global optimization. """
+""" DIviding RECTangles Locally-biased optimizer. """
 
 from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
 
 class DIRECT_L(NLoptOptimizer):  # pylint: disable=invalid-name
-    """DIRECT is the DIviding RECTangles algorithm for global optimization.
+    """
+    DIviding RECTangles Locally-biased optimizer.
 
-    DIRECT-L is the "locally biased" variant
-    NLopt global optimizer, derivative-free
+    DIviding RECTangles (DIRECT) is a deterministic-search algorithms based on systematic division
+    of the search domain into increasingly smaller hyper-rectangles.
+    The DIRECT-L version is a "locally biased" variant of DIRECT that makes the algorithm more
+    biased towards local search, so that it is more efficient for functions with few local minima.
+
+    NLopt global optimizer, derivative-free.
+    For further detail, please refer to
     http://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#direct-and-direct-l
     """
 
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ return NLopt optimizer type """
+        """ Return NLopt optimizer type """
         return NLoptOptimizerType.GN_DIRECT_L

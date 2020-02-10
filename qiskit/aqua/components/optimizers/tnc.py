@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Truncated Newton (TNC) algorithm. """
+"""Truncated Newton (TNC) optimizer. """
 
 from typing import Optional
 import logging
@@ -24,9 +24,16 @@ logger = logging.getLogger(__name__)
 
 
 class TNC(Optimizer):
-    """Truncated Newton (TNC) algorithm.
+    """
+    Truncated Newton (TNC) optimizer.
+
+    TNC uses a truncated Newton algorithm to minimize a function with variables subject to bounds.
+    This algorithm uses gradient information; it is also called Newton Conjugate-Gradient.
+    It differs from the :class:`CG` method as it wraps a C implementation and allows each variable
+    to be given upper and lower bounds.
 
     Uses scipy.optimize.minimize TNC
+    For further detail, please refer to
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
@@ -43,29 +50,22 @@ class TNC(Optimizer):
                  tol: Optional[float] = None,
                  eps: float = 1e-08) -> None:
         """
-        Constructor.
-
-        For details, please refer to
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html.
-
         Args:
             maxiter: Maximum number of function evaluation.
             disp: Set to True to print convergence messages.
             accuracy: Relative precision for finite difference calculations.
-                              If <= machine_precision, set to sqrt(machine_precision).
-                              Defaults to 0.
+                If <= machine_precision, set to sqrt(machine_precision). Defaults to 0.
             ftol: Precision goal for the value of f in the stopping criterion.
-                          If ftol < 0.0, ftol is set to 0.0 defaults to -1.
+                If ftol < 0.0, ftol is set to 0.0 defaults to -1.
             xtol: Precision goal for the value of x in the stopping criterion
-                          (after applying x scaling factors).
-                          If xtol < 0.0, xtol is set to sqrt(machine_precision).
-                          Defaults to -1.
+                (after applying x scaling factors).
+                If xtol < 0.0, xtol is set to sqrt(machine_precision). Defaults to -1.
             gtol: Precision goal for the value of the projected gradient in
-                          the stopping criterion (after applying x scaling factors).
-                          If gtol < 0.0, gtol is set to 1e-2 * sqrt(accuracy).
-                          Setting it to 0.0 is not recommended. Defaults to -1.
+                the stopping criterion (after applying x scaling factors).
+                If gtol < 0.0, gtol is set to 1e-2 * sqrt(accuracy).
+                Setting it to 0.0 is not recommended. Defaults to -1.
             tol: Tolerance for termination.
-            eps: Step size used for numerical approximation of the jacobian.
+            eps: Step size used for numerical approximation of the Jacobian.
         """
         super().__init__()
         for k, v in locals().items():

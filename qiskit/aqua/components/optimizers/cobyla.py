@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Constrained Optimization By Linear Approximation algorithm."""
+"""Constrained Optimization By Linear Approximation optimizer."""
 
 from typing import Optional
 import logging
@@ -24,10 +24,15 @@ logger = logging.getLogger(__name__)
 
 
 class COBYLA(Optimizer):
-    """Constrained Optimization By Linear Approximation algorithm.
+    """
+    Constrained Optimization By Linear Approximation optimizer.
 
-    Uses scipy.optimize.minimize COBYLA
-    See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+    COBYLA is a numerical optimization method for constrained problems
+    where the derivative of the objective function is not known.
+
+    Uses scipy.optimize.minimize COBYLA.
+    For further detail, please refer to
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
     _OPTIONS = ['maxiter', 'disp', 'rhobeg']
@@ -39,17 +44,12 @@ class COBYLA(Optimizer):
                  rhobeg: float = 1.0,
                  tol: Optional[float] = None) -> None:
         """
-        Constructor.
-
-        For details, please refer to
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html.
-
         Args:
             maxiter: Maximum number of function evaluations.
             disp: Set to True to print convergence messages.
             rhobeg: Reasonable initial changes to the variables.
             tol: Final accuracy in the optimization (not precisely guaranteed).
-                         This is a lower bound on the size of the trust region.
+                 This is a lower bound on the size of the trust region.
         """
         super().__init__()
         for k, v in locals().items():
@@ -58,7 +58,7 @@ class COBYLA(Optimizer):
         self._tol = tol
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """ Return support level dictionary """
         return {
             'gradient': Optimizer.SupportLevel.ignored,
             'bounds': Optimizer.SupportLevel.ignored,

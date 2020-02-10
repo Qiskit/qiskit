@@ -23,7 +23,35 @@ from .variational_form import VariationalForm
 
 
 class SwapRZ(VariationalForm):
-    """Layers of Swap+Z rotations followed by entangling gates."""
+    r"""
+    The SwapRZ Variational Form.
+
+    This trial wave function is layers of swap plus :math:`z` rotations with entanglements.
+    It was designed principally to be a particle-preserving variational form for
+    :mod:`qiskit.chemistry`. Given an initial state as a set of 1's and 0's it will preserve
+    the number of 1's - where for chemistry a 1 will indicate a particle.
+
+    Note:
+
+        In chemistry, to define the particles for SwapRZ, use a
+        :class:`~qiskit.chemistry.components.initial_states.HartreeFock` initial state with
+        the `Jordan-Wigner` qubit mapping
+
+    For the case of none of qubits are unentangled to other qubits, the number of optimizer
+    parameters SwapRz creates and uses is given by
+    :math:`q + d \times \left(q + \sum_{k=0}^{q-1}|D(k)|\right)`, where :math:`|D(k)|` denotes the
+    *cardinality* of :math:`D(k)` or, more precisely, the *length* of :math:`D(k)`
+    (since :math:`D(k)` is not just a set, but a list).
+    Nonetheless, in some cases, if an `entangler_map` does not include all qubits, that is, some
+    qubits are not entangled by other qubits. The number of parameters is reduced by
+    :math:`d \times q'`, where :math:`q'` is the number of unentangled qubits.
+    This is because adding more Rz gates to the unentangled qubits only introduce overhead without
+    bringing any benefit; furthermore, theoretically, applying multiple Rz gates in a row can be
+    reduced to a single Rz gate with the summed rotation angles.
+
+    See :class:`RY` for more detail on `entangler_map` and `entanglement` which apply here too
+    but note SwapRZ only supports 'full' and 'linear' values.
+    """
 
     def __init__(self,
                  num_qubits: int,
@@ -32,18 +60,17 @@ class SwapRZ(VariationalForm):
                  entanglement: str = 'full',
                  initial_state: Optional[InitialState] = None,
                  skip_unentangled_qubits: bool = False) -> None:
-        """Constructor.
-
+        """
         Args:
-            num_qubits: number of qubits, has a min. value of 1.
-            depth: number of rotation layers, has a min. value of 1.
-            entangler_map: describe the connectivity of qubits, each list describes
-                                        [source, target], or None for full entanglement.
-                                        Note that the order is the list is the order of
-                                        applying the two-qubit gate.
-            entanglement: 'full' or 'linear'
-            initial_state: an initial state object
-            skip_unentangled_qubits: skip the qubits not in the entangler_map
+            num_qubits: Number of qubits, has a minimum value of 1.
+            depth: Number of rotation layers, has a minimum value of 1.
+            entangler_map: Describe the connectivity of qubits, each list describes
+                [source, target], or None for full entanglement.
+                Note that the order is the list is the order of applying the two-qubit gate.
+            entanglement: ('full' | 'linear') overridden by 'entangler_map` if its
+                provided. 'full' is all-to-all entanglement, 'linear' is nearest-neighbor.
+            initial_state: An initial state object
+            skip_unentangled_qubits: Skip the qubits not in the entangler_map
         """
         validate_min('num_qubits', num_qubits, 1)
         validate_min('depth', depth, 1)

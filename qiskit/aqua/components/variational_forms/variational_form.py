@@ -119,7 +119,13 @@ class VariationalForm(ABC):
 
     @property
     def preferred_init_points(self):
-        """ return preferred init points """
+        """
+        Return preferred init points.
+
+        If an initial state is provided then the variational form may provide back
+        this set of parameters which when used on the variational form should
+        result in the overall state being that defined by the initial state
+        """
         return None
 
     @staticmethod

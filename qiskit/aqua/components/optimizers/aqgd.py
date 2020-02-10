@@ -76,7 +76,7 @@ class AQGD(Optimizer):
         self._previous_loss = None
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """ Return support level dictionary """
         return {
             'gradient': Optimizer.SupportLevel.ignored,
             'bounds': Optimizer.SupportLevel.ignored,
