@@ -72,7 +72,29 @@ class HGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply H to q."""
+    """Apply Hadamard (H) gate to a specified qubit (qubit).
+    An H gate implements a rotation of pi about the axis (x + z)/sqrt(2) on the Bloch sphere.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ or |1⟩ to |-⟩.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.h(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.h import HGate
+            HGate().to_matrix()
+    """
     return self.append(HGate(), [qubit], [])
 
 
@@ -132,7 +154,29 @@ class CHGate(ControlledGate):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply CH from ctl to tgt."""
+    """Apply cH gate from a specified control (control_qubit) to target (target_qubit) qubit.
+    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ and and |1⟩ to |−⟩
+    when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.ch(0,1)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.h import CHGate
+            CHGate().to_matrix()
+    """
     return self.append(CHGate(), [control_qubit, target_qubit], [])
 
 

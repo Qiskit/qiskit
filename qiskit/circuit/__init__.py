@@ -38,6 +38,7 @@ Gates and Instructions
    :toctree: ../stubs/
 
    Gate
+   ControlledGate
    Measure
    Reset
    Instruction

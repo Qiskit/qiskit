@@ -87,13 +87,57 @@ class TdgGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply T to qubit."""
+    """Apply T gate to a specified qubit (qubit).
+    A T gate implements a pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.t(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TGate
+            TGate().to_matrix()
+    """
     return self.append(TGate(), [qubit], [])
 
 
 @deprecate_arguments({'q': 'qubit'})
 def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Tdg to q."""
+    """Apply Tdg gate to a specified qubit (qubit).
+    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of T-gate.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.tdg(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TdgGate
+            TdgGate().to_matrix()
+    """
     return self.append(TdgGate(), [qubit], [])
 
 

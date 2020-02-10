@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The transpiler passes in the :mod:`qiskit.transpiler.passes` directory hav
+    been organized into subdirectories to better categorize them by
+    functionality. They are still all accessible under the
+    ``qiskit.transpiler.passes`` namespace.

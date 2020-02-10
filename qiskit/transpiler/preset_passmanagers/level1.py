@@ -42,7 +42,7 @@ from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import DenseLayout
 
 
-def level_1_pass_manager(transpile_config):
+def level_1_pass_manager(pass_manager_config):
     """
     Level 1 pass manager: light optimization by simple adjacent gate collapsing
 
@@ -57,16 +57,16 @@ def level_1_pass_manager(transpile_config):
     stages are done.
 
     Args:
-        transpile_config (TranspileConfig)
+        pass_manager_config (PassManagerConfig)
 
     Returns:
         PassManager: a level 1 pass manager.
     """
-    basis_gates = transpile_config.basis_gates
-    coupling_map = transpile_config.coupling_map
-    initial_layout = transpile_config.initial_layout
-    seed_transpiler = transpile_config.seed_transpiler
-    backend_properties = getattr(transpile_config, 'backend_properties', None)
+    basis_gates = pass_manager_config.basis_gates
+    coupling_map = pass_manager_config.coupling_map
+    initial_layout = pass_manager_config.initial_layout
+    seed_transpiler = pass_manager_config.seed_transpiler
+    backend_properties = pass_manager_config.backend_properties
 
     # 1. Use trivial layout if no layout given
     _set_initial_layout = SetLayout(initial_layout)
