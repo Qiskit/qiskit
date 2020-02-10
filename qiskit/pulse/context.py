@@ -1,5 +1,9 @@
-import contextvars
 from contextlib import contextmanager
+import contextvars
+
+from .channels import Channel, DriveChannel, ControlChannel, MeasureChannel, AcquireChannel
+from .commands.delay import Delay
+from .schedule import Schedule
 
 backend_ctx = contextvars.ContextVar("backend")
 schedule_ctx = contextvars.ContextVar("schedule")
@@ -16,22 +20,30 @@ schedule_ctx = contextvars.ContextVar("schedule")
 #     schedule.append(('rx180', q))
 
 
-def measure(q: int):
-    cim = backend_ctx.get().circuit_instruction_map
+def measure(qubit: int):
+    ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(cim.get('measure', q))
+    schedule._append(ism.get('measure', qubit))
 
 
-def u1(q: int, P0):
-    cim = backend_ctx.get().circuit_instruction_map
+def u1(qubit: int, P0):
+    ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(cim.get('u1', q, P0=P0))
+    schedule._append(ism.get('u1', qubit, P0=P0))
 
 
-def u2(q: int, P0, P1):
-    cim = backend_ctx.get().circuit_instruction_map
+def u2(qubit: int, P0, P1):
+    ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(cim.get('u2', q, P0=P0, P1=P1))
+    schedule._append(ism.get('u2', qubit, P0=P0, P1=P1))
+
+
+def delay(qubit: int, duration: int):
+    schedule = schedule_ctx.get()
+    schedule._append(Delay(duration).to_instruction(DriveChannel(qubit)))
+    schedule._append(Delay(duration).to_instruction(ControlChannel(qubit)))
+    schedule._append(Delay(duration).to_instruction(MeasureChannel(qubit)))
+    schedule._append(Delay(duration).to_instruction(AcquireChannel(qubit)))
 
 
 @contextmanager
@@ -54,7 +66,6 @@ def build(backend, schedule):
 # testing (to be moved to another module)
 
 from math import pi
-from .schedule import Schedule
 
 def context_test(provider):
     backend = provider.get_backend('ibmq_armonk')
@@ -62,6 +73,7 @@ def context_test(provider):
     schedule = Schedule()
     with build(backend, schedule):
         u2(0, 0, pi/2)
+        delay(0, 100)
         u2(0, 0, pi)
         measure(0)
 
