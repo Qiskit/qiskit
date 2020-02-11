@@ -12,11 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The most straightforward scheduling methods: scheduling as early or as late as possible.
-
-Warning: Currently for both of these methods, the MemorySlots in circuit Measures are ignored.
-Qubits will be measured into the MemorySlot which matches the measured qubit's index. (Issue #2704)
-"""
+"""The most straightforward scheduling methods: scheduling as early or as late as possible."""
 
 from collections import defaultdict, namedtuple
 from typing import List
@@ -27,6 +23,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.channels import AcquireChannel
+from qiskit.scheduler.utils import measure
 
 from qiskit.scheduler.config import ScheduleConfig
 
@@ -89,18 +87,18 @@ def as_late_as_possible(circuit: QuantumCircuit,
     Returns:
         A schedule corresponding to the input `circuit` with pulses occurring as late as possible
     """
-    circuit.barrier()  # Adding a final barrier is an easy way to align the channel end times.
     sched = Schedule(name=circuit.name)
-
+    # Align channel end times.
+    circuit.barrier()
     # We schedule in reverse order to get ALAP behaviour. We need to know how far out from t=0 any
     # qubit will become occupied. We add positive shifts to these times as we go along.
-    qubit_available_until = defaultdict(lambda: float("inf"))
+    # The time is initialized to 0 because all qubits are involved in the final barrier.
+    qubit_available_until = defaultdict(lambda: 0)
 
-    def update_times(inst_qubits: List[int], shift: int = 0) -> None:
+    def update_times(inst_qubits: List[int], shift: int = 0, inst_start_time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
-            # A newly scheduled instruction on q starts at t=0 as we move backwards
-            qubit_available_until[q] = 0
+            qubit_available_until[q] = inst_start_time
         for q in qubit_available_until.keys():
             if q not in inst_qubits:
                 # Uninvolved qubits might be free for the duration of the new instruction
@@ -108,21 +106,16 @@ def as_late_as_possible(circuit: QuantumCircuit,
 
     circ_pulse_defs = translate_gates_to_pulse_defs(circuit, schedule_config)
     for circ_pulse_def in reversed(circ_pulse_defs):
-        if isinstance(circ_pulse_def.schedule, Barrier):
-            update_times(circ_pulse_def.qubits)
-        else:
-            cmd_sched = circ_pulse_def.schedule
-            # The new instruction should end when one of its qubits becomes occupied
-            cmd_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
-                              - cmd_sched.duration)
-            if cmd_start_time == float("inf"):
-                # These qubits haven't been used yet, so schedule the instruction at t=0
-                cmd_start_time = 0
-            # We have to translate qubit times forward when the cmd_start_time is negative
-            shift_amount = max(0, -cmd_start_time)
-            cmd_start_time = max(cmd_start_time, 0)
-            sched = cmd_sched.shift(cmd_start_time).insert(shift_amount, sched, name=sched.name)
-            update_times(circ_pulse_def.qubits, shift_amount)
+        inst_sched = circ_pulse_def.schedule
+        # The new instruction should end when one of its qubits becomes occupied
+        inst_start_time = (min([qubit_available_until[q] for q in circ_pulse_def.qubits])
+                           - getattr(inst_sched, 'duration', 0))  # Barrier has no duration
+        # We have to translate qubit times forward when the inst_start_time is negative
+        shift_amount = max(0, -inst_start_time)
+        inst_start_time = max(inst_start_time, 0)
+        if not isinstance(circ_pulse_def.schedule, Barrier):
+            sched = inst_sched.shift(inst_start_time).insert(shift_amount, sched, name=sched.name)
+        update_times(circ_pulse_def.qubits, shift_amount, inst_start_time)
     return sched
 
 
@@ -137,49 +130,53 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     Args:
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
+
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element
+
     Raises:
-        QiskitError: If circuit uses a command that isn't defined in config.cmd_def
+        QiskitError: If circuit uses a command that isn't defined in config.inst_map
     """
     circ_pulse_defs = []
 
-    cmd_def = schedule_config.cmd_def
-    measured_qubits = set()  # Collect qubits that would like to be measured
+    inst_map = schedule_config.inst_map
+    qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
-        measures = set()
-        all_qubits = set()
         sched = Schedule()
-        for q in measured_qubits:
-            measures.add(tuple(schedule_config.meas_map[q]))
-        for qubits in measures:
-            all_qubits.update(qubits)
-            # TODO (Issue #2704): Respect MemorySlots from the input circuit
-            sched |= cmd_def.get('measure', qubits)
-        measured_qubits.clear()
-        return CircuitPulseDef(schedule=sched, qubits=list(all_qubits))
+        sched += measure(qubits=list(qubit_mem_slots.keys()),
+                         inst_map=inst_map,
+                         meas_map=schedule_config.meas_map,
+                         qubit_mem_slots=qubit_mem_slots)
+        qubit_mem_slots.clear()
+        return CircuitPulseDef(schedule=sched,
+                               qubits=[chan.index for chan in sched.channels
+                                       if isinstance(chan, AcquireChannel)])
 
-    for inst, qubits, _ in circuit.data:
+    for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
-        if any(q in measured_qubits for q in inst_qubits):
+        if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
             circ_pulse_defs.append(get_measure_schedule())
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
-            measured_qubits.update(inst_qubits)
+            if (len(inst_qubits) != 1 and len(clbits) != 1):
+                raise QiskitError("Qubit '{0}' or classical bit '{1}' errored because the "
+                                  "circuit Measure instruction only takes one of "
+                                  "each.".format(inst_qubits, clbits))
+            qubit_mem_slots[inst_qubits[0]] = clbits[0].index
         else:
             try:
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=cmd_def.get(inst.name, inst_qubits, *inst.params),
+                    CircuitPulseDef(schedule=inst_map.get(inst.name, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
             except PulseError:
                 raise QiskitError("Operation '{0}' on qubit(s) {1} not supported by the backend "
                                   "command definition. Did you remember to transpile your input "
                                   "circuit for the same backend?".format(inst.name, inst_qubits))
-    if measured_qubits:
+    if qubit_mem_slots:
         circ_pulse_defs.append(get_measure_schedule())
 
     return circ_pulse_defs

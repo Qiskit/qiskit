@@ -63,11 +63,9 @@ def random_unitary(dim, seed=None):
     Raises:
         QiskitError: if dim is not a positive power of 2.
     """
-    if seed is not None:
-        np.random.seed(seed)
     if dim == 0 or not math.log2(dim).is_integer():
         raise QiskitError("Desired unitary dimension not a positive power of 2.")
-    return Operator(unitary_group.rvs(dim))
+    return Operator(unitary_group.rvs(dim, random_state=seed))
 
 
 # TODO: return a DensityMatrix object.
@@ -110,10 +108,9 @@ def __ginibre_matrix(nrow, ncol=None, seed=None):
     """
     if ncol is None:
         ncol = nrow
-    if seed is not None:
-        np.random.seed(seed)
+    rng = np.random.RandomState(seed)
 
-    ginibre = np.random.normal(size=(nrow, ncol)) + np.random.normal(size=(nrow, ncol)) * 1j
+    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 

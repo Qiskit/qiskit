@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,consider-using-enumerate
 
 """latex circuit visualization backends."""
 
@@ -23,6 +23,8 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from .tools.pi_check import pi_check
@@ -211,13 +213,14 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {}_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    self._latex[i][0] = "\\lstick{{({}_{{{}}})~q_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
+                self._latex[i][0] = label
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
@@ -239,6 +242,8 @@ class QCircuitImage:
                 if op.name in boxed_gates:
                     self.has_box = True
                 if op.name in target_gates:
+                    self.has_target = True
+                if isinstance(op.op, ControlledGate):
                     self.has_target = True
 
         for layer in self.ops:
@@ -330,6 +335,12 @@ class QCircuitImage:
                 mask |= (1 << index)
         return mask
 
+    def parse_params(self, param):
+        """Parse parameters."""
+        if isinstance(param, (ParameterExpression, str)):
+            return generate_latex_label(str(param))
+        return pi_check(param, output='latex')
+
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \\LaTeX for this circuit.
 
@@ -361,8 +372,74 @@ class QCircuitImage:
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
-                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                   'save', 'noise']:
+                if isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'cswap']:
+                    qarglist = op.qargs
+                    name = generate_latex_label(
+                        op.op.base_gate.name.upper()).replace(" ", "\\,")
+                    pos_array = []
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    num_qargs = len(qarglist) - num_ctrl_qubits
+                    for ctrl in range(len(qarglist)):
+                        pos_array.append(self.img_regs[qarglist[ctrl]])
+                    pos_qargs = pos_array[num_ctrl_qubits:]
+                    ctrl_pos = pos_array[:num_ctrl_qubits]
+                    if op.condition:
+                        mask = self._get_mask(op.condition[0])
+                        cl_reg = self.clbit_list[self._ffs(mask)]
+                        if_reg = cl_reg.register
+                        pos_cond = self.img_regs[if_reg[0]]
+                        temp = pos_array + [pos_cond]
+                        temp.sort(key=int)
+                        bottom = temp[len(pos_array) - 1]
+                        gap = pos_cond - bottom
+                        for i in range(self.cregs[if_reg]):
+                            if if_value[i] == '1':
+                                self._latex[pos_cond + i][column] = \
+                                    "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                            else:
+                                self._latex[pos_cond + i][column] = \
+                                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                    if num_qargs == 1:
+                        for index, pos in enumerate(ctrl_pos):
+                            self._latex[pos][column] = "\\ctrl{" + str(
+                                pos_array[index + 1] - pos_array[index]) + "}"
+                        self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                    else:
+                        pos_start = min(pos_qargs)
+                        pos_stop = max(pos_qargs)
+                        # If any controls appear in the span of the multiqubit
+                        # gate just treat the whole thing as a big gate instead
+                        # of trying to render the controls separately
+                        if any(ctrl_pos) in range(pos_start, pos_stop):
+                            pos_start = min(pos_array)
+                            pos_stop = max(pos_array)
+                            num_qargs = len(qarglist)
+                            name = generate_latex_label(
+                                op.name).replace(" ", "\\,")
+                        else:
+                            for index, pos in enumerate(ctrl_pos):
+                                if index + 1 >= num_ctrl_qubits:
+                                    if pos_array[index] > pos_stop:
+                                        upper = pos_stop
+                                    else:
+                                        upper = pos_start
+                                else:
+                                    upper = pos_array[index + 1]
+
+                                self._latex[pos][column] = "\\ctrl{" + str(
+                                    upper - pos_array[index]) + "}"
+
+                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                                                          (num_qargs - 1, name))
+                        for pos in range(pos_start + 1, pos_stop + 1):
+                            self._latex[pos][column] = ("\\ghost{%s}" % name)
+
+                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
+                                     'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
@@ -394,29 +471,29 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        pi_check(op.op.params[0], output='latex'),
-                                        pi_check(op.op.params[1], output='latex'))
+                                        self.parse_params(op.op.params[0]),
+                                        self.parse_params(op.op.params[1]))
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'),
-                                    pi_check(op.op.params[1], output='latex'),
-                                    pi_check(op.op.params[2], output='latex')))
+                                    self.parse_params(op.op.params[0]),
+                                    self.parse_params(op.op.params[1]),
+                                    self.parse_params(op.op.params[2])))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             else:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
@@ -450,29 +527,29 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        pi_check(op.op.params[0], output='latex'),
-                                        pi_check(op.op.params[1], output='latex'))
+                                        self.parse_params(op.op.params[0]),
+                                        self.parse_params(op.op.params[1]))
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'),
-                                    pi_check(op.op.params[1], output='latex'),
-                                    pi_check(op.op.params[2], output='latex')))
+                                    self.parse_params(op.op.params[0]),
+                                    self.parse_params(op.op.params[1]),
+                                    self.parse_params(op.op.params[2])))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    pi_check(op.op.params[0], output='latex'))
+                                    self.parse_params(op.op.params[0]))
                             elif nm == "reset":
                                 self._latex[pos_1][column] = (
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
@@ -485,7 +562,7 @@ class QCircuitImage:
                         pos_2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
-                            pos_3 = self.img_regs[(if_reg, 0)]
+                            pos_3 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
                             bottom = temp[1]
@@ -525,13 +602,13 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (pi_check(op.op.params[0], output='latex'))
+                                    "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
                             elif nm == "cu1":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (pi_check(op.op.params[0], output='latex'))
+                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 # this is because this gate takes up 2 columns,
                                 # and we have just written to the next column
@@ -541,9 +618,9 @@ class QCircuitImage:
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{U_3(%s,%s,%s)}" % \
-                                    (pi_check(op.op.params[0], output='latex'),
-                                     pi_check(op.op.params[1], output='latex'),
-                                     pi_check(op.op.params[2], output='latex'))
+                                    (self.parse_params(op.op.params[0]),
+                                     self.parse_params(op.op.params[1]),
+                                     self.parse_params(op.op.params[2]))
                             elif nm == "rzz":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
@@ -551,8 +628,8 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
-                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
                         else:
@@ -583,13 +660,13 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (pi_check(op.op.params[0], output='latex'))
+                                    "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
                             elif nm == "cu1":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (pi_check(op.op.params[0], output='latex'))
+                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
                             elif nm == "cu3":
@@ -597,9 +674,9 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     ("\\gate{U_3(%s,%s,%s)}" %
-                                     (pi_check(op.op.params[0], output='latex'),
-                                      pi_check(op.op.params[1], output='latex'),
-                                      pi_check(op.op.params[2], output='latex')))
+                                     (self.parse_params(op.op.params[0]),
+                                      self.parse_params(op.op.params[1]),
+                                      self.parse_params(op.op.params[2])))
                             elif nm == "rzz":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
@@ -607,8 +684,8 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
-                                    (max(pos_1, pos_2), pi_check(op.op.params[0], output='latex'))
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
                             else:
@@ -633,7 +710,7 @@ class QCircuitImage:
                         pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
-                            pos_4 = self.img_regs[(if_reg, 0)]
+                            pos_4 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3, pos_4]
                             temp.sort(key=int)
                             bottom = temp[2]

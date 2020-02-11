@@ -30,3 +30,4 @@ Circuit to pulse scheduling functionality
 
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
+from qiskit.scheduler.utils import measure, measure_all

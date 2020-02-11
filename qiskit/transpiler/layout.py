@@ -19,8 +19,6 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
-from warnings import warn
-
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -77,8 +75,6 @@ class Layout():
                      2: qr[2]}
         """
         for key, value in input_dict.items():
-            key = Layout._cast_tuple_to_bit(key)
-            value = Layout._cast_tuple_to_bit(value)
             virtual, physical = Layout.order_based_on_type(key, value)
             self._p2v[physical] = virtual
             if virtual is None:
@@ -99,16 +95,7 @@ class Layout():
                               ' or the other way around.' % (type(value1), type(value2)))
         return virtual, physical
 
-    @staticmethod
-    def _cast_tuple_to_bit(value):
-        if isinstance(value, tuple):
-            warn('Querying layout with a tuple (i.e. layout[(qr, 0)]) is deprecated. '
-                 'Go for layout[qr[0]].', DeprecationWarning)
-            value = value[0][value[1]]
-        return value
-
     def __getitem__(self, item):
-        item = Layout._cast_tuple_to_bit(item)
         if item in self._p2v:
             return self._p2v[item]
         if item in self._v2p:
@@ -116,8 +103,6 @@ class Layout():
         raise KeyError('The item %s does not exist in the Layout' % (item,))
 
     def __setitem__(self, key, value):
-        key = Layout._cast_tuple_to_bit(key)
-        value = Layout._cast_tuple_to_bit(value)
         virtual, physical = Layout.order_based_on_type(key, value)
         self._set_type_checked_item(virtual, physical)
 
@@ -296,30 +281,6 @@ class Layout():
         return out
 
     @staticmethod
-    def from_tuplelist(tuple_list):
-        """
-        Populates a Layout from a list containing virtual
-        qubits---(QuantumRegister, int) tuples---, or None.
-
-        Args:
-            tuple_list (list):
-                e.g.: [(qr,0), None, (qr,2), (qr,3)]
-        Returns:
-            Layout: the corresponding Layout object
-        Raises:
-            LayoutError: If the elements are not (Register, integer) or None
-        """
-        warn('Creating a layout with a list of tuples (eg. [(qr,0), None, (qr,2), (qr,3)]) '
-             'is deprecated. Go for [qr[0], None, qr[2], qr[3]].', DeprecationWarning)
-        new_list = []
-        for tuple_ in tuple_list:
-            if tuple_ is None:
-                new_list.append(None)
-            else:
-                new_list.append(tuple_[0][tuple_[1]])
-        return Layout.from_qubit_list(new_list)
-
-    @staticmethod
     def from_qubit_list(qubit_list):
         """
         Populates a Layout from a list containing virtual
@@ -337,7 +298,7 @@ class Layout():
         for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif isinstance(virtual, Qubit):
+            if isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical

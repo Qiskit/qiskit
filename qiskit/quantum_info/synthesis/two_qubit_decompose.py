@@ -34,7 +34,7 @@ import scipy.linalg as la
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CnotGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
@@ -161,8 +161,9 @@ class TwoQubitWeylDecomposition:
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
-        for _ in range(100):  # FIXME: this randomized algorithm is horrendous
-            M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+        for i in range(100):  # FIXME: this randomized algorithm is horrendous
+            state = np.random.RandomState(i)
+            M2real = state.randn()*M2.real + state.randn()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
