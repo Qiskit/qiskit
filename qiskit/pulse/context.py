@@ -64,6 +64,21 @@ def right_barrier():
         instruction_list.append(aligned_schedule)
 
 
+@contextmanager
+def sequence():
+    # clear the instruction list in this context
+    token = instruction_list_ctx.set([])
+    try:
+        yield
+    finally:
+        aligned_schedule = alignment.align_in_sequence(*instruction_list_ctx.get())
+        # restore the containing context instruction list
+        instruction_list_ctx.reset(token)
+        # add our aligned schedule to the outer context instruction list
+        instruction_list = instruction_list_ctx.get()
+        instruction_list.append(aligned_schedule)
+
+
 # def rx90(q: int):
 #     backend_defaults = backend_ctx.get()
 #     schedule = schedule_ctx.get()
@@ -148,6 +163,10 @@ def context_test():
             shift_phase(DriveChannel(0), pi/2)
             play(DriveChannel(0), gaussian(500, 0.1, 125))
             u2(1, 0, pi/2)
+        with sequence():
+            u2(0, 0, pi/2)
+            u2(1, 0, pi/2)
+            u2(0, 0, pi/2)
         # measure(0)
 
     return schedule
