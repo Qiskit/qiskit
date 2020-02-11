@@ -156,11 +156,10 @@ class DAGCircuit:
             self._id_to_node[output_map_wire] = outp_node
             self.input_map[wire] = inp_node
             self.output_map[wire] = outp_node
-
-
             self._multi_graph.add_edge(inp_node._node_id,
                                        outp_node._node_id,
-                                       {'name': "%s[%s]" % (wire.register.name, wire.index),
+                                       {'name': "%s[%s]" % (wire.register.name,
+                                                            wire.index),
                                         'wire': wire})
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
