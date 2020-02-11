@@ -71,7 +71,7 @@ def left_barrier(*instructions: List[pulse.ScheduleComponent], channels=None) ->
     Returns:
         pulse.Schedule
     """
-    aligned = align_left(*instructions)
+    aligned = left_align(*instructions)
     return pad(aligned, channels=channels)
 
 
@@ -84,7 +84,7 @@ def right_align(*instructions: List[pulse.ScheduleComponent]) -> pulse.Schedule:
     Returns:
         pulse.Schedule
     """
-    left_aligned = align_left(*instructions)
+    left_aligned = left_align(*instructions)
     max_duration = 0
 
     channel_durations = {}
@@ -113,7 +113,7 @@ def right_barrier(*instructions: List[pulse.ScheduleComponent], channels=None) -
     Returns:
         pulse.Schedule
     """
-    aligned = align_right(*instructions)
+    aligned = right_align(*instructions)
     return pad(aligned, channels=channels)
 
 

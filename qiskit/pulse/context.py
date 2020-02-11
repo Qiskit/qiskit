@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import contextvars
 
 from . import alignment
-from .channels import Channel, DriveChannel, ControlChannel, MeasureChannel, AcquireChannel
+from .channels import Channel, DriveChannel, MeasureChannel, AcquireChannel
 from .commands.delay import Delay
 from .commands.frame_change import FrameChange
 from .commands.sample_pulse import SamplePulse
@@ -13,6 +13,7 @@ from qiskit.scheduler import measure as measure_schedule
 backend_ctx = contextvars.ContextVar("backend")
 schedule_ctx = contextvars.ContextVar("schedule")
 instruction_list_ctx = contextvars.ContextVar("instruction_list")
+
 
 @contextmanager
 def build(backend, schedule):
@@ -29,7 +30,7 @@ def build(backend, schedule):
     try:
         yield
     finally:
-        schedule.append(alignment.align_left(*instruction_list_ctx.get()), mutate=True)
+        schedule.append(alignment.left_align(*instruction_list_ctx.get()), mutate=True)
         backend_ctx.reset(token1)
         schedule_ctx.reset(token2)
         instruction_list_ctx.reset(token3)
@@ -150,13 +151,13 @@ def u2(qubit: int, p0, p1):
 
 
 def u3(qubit: int, p0, p1, p2):
-    ism = backend_ctx.get().instruction_schedule_map
+    ism = backend_ctx.get().defaults().instruction_schedule_map
     instruction_list = instruction_list_ctx.get()
     instruction_list.append(ism.get('u3', qubit, P0=p0, P1=p1, P2=p2))
 
 
 def cx(control: int, target: int):
-    ism = backend_ctx.get().instruction_schedule_map
+    ism = backend_ctx.get().defaults().instruction_schedule_map
     instruction_list = instruction_list_ctx.get()
     instruction_list.append(ism.get('cx', (control, target)))
 
