@@ -128,3 +128,25 @@ def align_in_sequence(*instructions: List[pulse.ScheduleComponent]) -> pulse.Sch
     for instruction in instructions:
         aligned.insert(aligned.duration, instruction, mutate=True)
     return aligned
+
+
+def sprinkle(instructions: List[Union[pulse.Instruction, pulse.Schedule]], instruction, pts):
+    """Sprinkler
+    RIght now assumes exactly two pulses
+    Args:
+        instructions: List of pulse instructions to align.
+    Returns:
+        pulse.Schedule
+    """
+    sched = left_align(*instructions)
+    duration = (sched.duration)
+    sched = sched.shift(50)
+    inst_dur = instruction.duration
+    half_dur = int(inst_dur / 2)
+
+    a_start = sched.start_time
+    i_start = instruction.start_time
+    for pt in pts:
+        shift = a_start + int(duration*pt) - half_dur - i_start
+        sched = sched.union(instruction.shift(shift))
+    return sched

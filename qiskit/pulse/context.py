@@ -111,16 +111,22 @@ def sequence():
         instruction_list.append(aligned_schedule)
 
 
-# def rx90(q: int):
-#     backend_defaults = backend_ctx.get()
-#     schedule = schedule_ctx.get()
-#     schedule.append(('rx90', q))
-#
-#
-# def rx180(q: int):
-#     backend_defaults = backend_ctx.get()
-#     schedule = schedule_ctx.get()
-#     schedule.append(('rx180', q))
+@contextmanager
+def sprinkle(instruction, pts):
+    # clear the instruction list in this context
+    token = instruction_list_ctx.set([])
+    try:
+        yield
+    finally:
+        aligned_schedule = alignment.sprinkle(*instruction_list_ctx.get(),
+                                              instruction,
+                                              pts)
+        # restore the containing context instruction list
+        instruction_list_ctx.reset(token)
+        # add our aligned schedule to the outer context instruction list
+        instruction_list = instruction_list_ctx.get()
+        instruction_list.append(aligned_schedule)
+
 
 def qubit_channels(qubit: int):
     """
