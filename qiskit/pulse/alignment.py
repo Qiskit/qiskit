@@ -45,7 +45,7 @@ def push_append(this: List[pulse.ScheduleComponent],
         return this.insert(insert_time, other)
 
 
-def align_left(*instructions: List[Union[pulse.Instruction, pulse.Schedule]]) -> pulse.Schedule:
+def left_align(*instructions: List[Union[pulse.Instruction, pulse.Schedule]]) -> pulse.Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
@@ -75,7 +75,7 @@ def left_barrier(*instructions: List[pulse.ScheduleComponent], channels=None) ->
     return pad(aligned, channels=channels)
 
 
-def align_right(*instructions: List[pulse.ScheduleComponent]) -> pulse.Schedule:
+def right_align(*instructions: List[pulse.ScheduleComponent]) -> pulse.Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
