@@ -28,8 +28,6 @@ def build(backend, schedule):
     try:
         yield
     finally:
-        # resolve barriers here
-        # ...
         schedule.append(alignment.align_left(*instruction_list_ctx.get()), mutate=True)
         backend_ctx.reset(token1)
         schedule_ctx.reset(token2)
@@ -38,18 +36,17 @@ def build(backend, schedule):
 
 @contextmanager
 def left_barrier():
-    # build the schedule so far
-    instruction_list = instruction_list_ctx.get()
-    schedule = schedule_ctx.get()
-    schedule.append(alignment.align_left(*instruction_list), mutate=True)
-    # clear the instruction list
-    instruction_list.clear()
+    # clear the instruction list in this context
+    token = instruction_list_ctx.set([])
     try:
         yield
     finally:
-        schedule.append(alignment.left_barrier(*instruction_list), mutate=True)
-        # re-clear the instruction list
-        instruction_list.clear()
+        aligned_schedule = alignment.left_barrier(*instruction_list_ctx.get())
+        # restore the containing context instruction list
+        instruction_list_ctx.reset(token)
+        # add our aligned schedule to the outer context instruction list
+        instruction_list = instruction_list_ctx.get()
+        instruction_list.append(aligned_schedule)
 
 
 @contextmanager
@@ -62,8 +59,12 @@ def right_barrier():
     try:
         yield
     finally:
-        schedule.append(alignment.right_barrier(*instruction_list_ctx.get()))
+        aligned_schedule = alignment.right_barrier(*instruction_list_ctx.get())
+        # restore the containing context instruction list
         instruction_list_ctx.reset(token)
+        # add our aligned schedule to the outer context instruction list
+        instruction_list = instruction_list_ctx.get()
+        instruction_list.append(aligned_schedule)
 
 
 # def rx90(q: int):
