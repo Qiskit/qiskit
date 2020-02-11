@@ -104,6 +104,18 @@ def u2(qubit: int, p0, p1):
     instruction_list.append(ism.get('u2', qubit, P0=p0, P1=p1))
 
 
+def u3(qubit: int, p0, p1, p2):
+    ism = backend_ctx.get().instruction_schedule_map
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(ism.get('u3', qubit, P0=p0, P1=p1, P2=p2))
+
+
+def cx(control: int, target: int):
+    ism = backend_ctx.get().instruction_schedule_map
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(ism.get('cx', (control, target)))
+
+
 def delay(qubit: int, duration: int):
     instruction_list = instruction_list_ctx.get()
     for ch in qubit_channels(qubit):
