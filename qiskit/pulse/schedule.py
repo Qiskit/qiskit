@@ -165,24 +165,6 @@ class Schedule(ScheduleComponent):
         else:
             return self._immutable_union(*schedules, name=name)
 
-    def _immutable_union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
-                         name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule which is the union of both `self` and `schedules`.
-
-        Args:
-            *schedules: Schedules to be take the union with this `Schedule`.
-            name: Name of the new schedule. Defaults to name of self
-        """
-        if name is None:
-            name = self.name
-        new_sched = Schedule(name=name)
-        new_sched._union((0, self))
-        for sched_pair in schedules:
-            if not isinstance(sched_pair, tuple):
-                sched_pair = (0, sched_pair)
-            new_sched._union(sched_pair)
-        return new_sched
-
     def _mutable_union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
         """Mutably union `self` and `other` Schedule with shift time.
 
@@ -202,6 +184,18 @@ class Schedule(ScheduleComponent):
         sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
         self._timeslots = self.timeslots.merge(sched_timeslots)
         return self
+
+    def _immutable_union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+                         name: Optional[str] = None) -> 'Schedule':
+        """Return a new schedule which is the union of both `self` and `schedules`.
+
+        Args:
+            *schedules: Schedules to be take the union with this `Schedule`.
+            name: Name of the new schedule. Defaults to name of self
+        """
+        if name is None:
+            name = self.name
+        return Schedule(self, *schedules, name=name)
 
     def shift(self, time: int, name: Optional[str] = None,
               mutate: bool = False) -> 'Schedule':
@@ -254,8 +248,7 @@ class Schedule(ScheduleComponent):
         """
         if buffer:
             warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-        if mutate:
-            return self.union((start_time, schedule), mutate=mutate, name=name)
+        return self.union((start_time, schedule), name=name, mutate=mutate)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None, mutate: bool = False) -> 'Schedule':

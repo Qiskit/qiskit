@@ -172,7 +172,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
 
 
 def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
-        until: Optional[int] = None) -> Schedule:
+        until: Optional[int] = None, mutate: bool = False) -> Schedule:
     """Pad the input Schedule with `Delay`s on all unoccupied timeslots until
     `schedule.duration` or `until` if not `None`.
 
@@ -182,6 +182,7 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
             `schedule` if not provided. If the supplied channel is not a member
             of `schedule` it will be added.
         until: Time to pad until. Defaults to `schedule.duration` if not provided.
+        mutate: Pad this schedule by mutating rather than returning a new schedule.
     Returns:
         Schedule: The padded schedule
     """
@@ -196,9 +197,11 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
 
     for channel in channels:
         for timeslot in empty_timeslot_collection.ch_timeslots(channel):
-            schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
+            schedule = schedule.insert(timeslot.start,
+                                       Delay(timeslot.duration)(timeslot.channel),
+                                       mutate=mutate)
 
     for channel in unoccupied_channels:
-        schedule |= Delay(until)(channel)
+        schedule = schedule.insert(0, Delay(until)(channel), mutate=mutate)
 
     return schedule
