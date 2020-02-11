@@ -152,7 +152,21 @@ class Schedule(ScheduleComponent):
             yield from child_sched._instructions(time + insert_time)
 
     def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
-              name: Optional[str] = None) -> 'Schedule':
+              name: Optional[str] = None, mutate: bool = False) -> 'Schedule':
+        """Return a schedule which is the union of both `self` and `schedules`.
+
+        Args:
+            *schedules: Schedules to be take the union with this `Schedule`.
+             Name of the new schedule if call was mutable. Defaults to name of self
+            mutate: Perform the union by mutating and returning this schedule
+        """
+        if mutate:
+            return self._mutable_union(*schedules)
+        else:
+            return self._immutable_union(*schedules, name=name)
+
+    def _immutable_union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+                         name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of both `self` and `schedules`.
 
         Args:
@@ -169,7 +183,7 @@ class Schedule(ScheduleComponent):
             new_sched._union(sched_pair)
         return new_sched
 
-    def _union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
+    def _mutable_union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
         """Mutably union `self` and `other` Schedule with shift time.
 
         Args:
@@ -179,68 +193,73 @@ class Schedule(ScheduleComponent):
         if isinstance(sched, Schedule):
             shifted_children = sched._children
             if shift_time != 0:
-                shifted_children = tuple((t + shift_time, child) for t, child in shifted_children)
+                shifted_children = tuple((t + shift_time, child) for
+                                         t, child in shifted_children)
             self.__children += shifted_children
         else:  # isinstance(sched, Instruction)
             self.__children += (other,)
 
         sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
         self._timeslots = self.timeslots.merge(sched_timeslots)
+        return self
 
-    def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
+    def shift(self, time: int, name: Optional[str] = None,
+              mutate: bool = False) -> 'Schedule':
+        """Return a schedule shifted forward by `time`.
+
+        Args:
+            time: Time to shift by
+            name: Name of the new schedule if call was mutable. Defaults to name of self
+            mutate: Return this scheduling after mutably shifting instructions
+        """
+        if mutate:
+            return self._immutable_shift(time, name=name)
+        else:
+            return self._mutable_shift(time)
+
+    def _immutable_shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
-            name: Name of the new schedule. Defaults to name of self
+            name: Name of the new schedule if call was mutable. Defaults to name of self
+            mutate: Return this scheduling after mutably shifting instructions
         """
         if name is None:
             name = self.name
         return Schedule((time, self), name=name)
 
-    def _insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False):
-        """Mutably return a new schedule with `schedule` inserted within `self` at `start_time`.
+    def _mutable_shift(self, time: int) -> 'Schedule':
+        """Return this schedule shifted forward by `time`.
 
         Args:
-            start_time: Time to insert the schedule
-            schedule: Schedule to insert
-            buffer: Whether to obey buffer when inserting
+            time: Time to shift by
+            mutate: Return this scheduling after mutably shifting instructions
         """
-        return self._union((start_time, schedule))
+        self._timeslots = self._timeslots.shift(time)
+        self._children = ((orig_time+time, component) for
+                          orig_time, component in self._children)
+        return self
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
-               name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`.
+               name: Optional[str] = None, mutate: bool = False) -> 'Schedule':
+        """Return a schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
             start_time: Time to insert the schedule
             schedule: Schedule to insert
             buffer: Whether to obey buffer when inserting
-            name: Name of the new schedule. Defaults to name of self
+            name: Name of the new schedule if call was mutable. Defaults to name of self
+            mutate: Insert by mutating and returning this schedule
         """
         if buffer:
             warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-        return self.union((start_time, schedule), name=name)
-
-    def _append(self, schedule: ScheduleComponent, buffer: bool = False):
-        r"""Mutably eturn a new schedule with `schedule` inserted at the maximum time over
-        all channels shared between `self` and `schedule`.
-
-       $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
-
-        Args:
-            schedule: schedule to be appended
-            buffer: Whether to obey buffer when appending
-        """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-        common_channels = set(self.channels) & set(schedule.channels)
-        time = self.ch_stop_time(*common_channels)
-        return self._insert(time, schedule)
+        if mutate:
+            return self.union((start_time, schedule), mutate=mutate, name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = False,
-               name: Optional[str] = None) -> 'Schedule':
-        r"""Return a new schedule with `schedule` inserted at the maximum time over
+               name: Optional[str] = None, mutate: bool = False) -> 'Schedule':
+        r"""Return a schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
        $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
@@ -249,12 +268,13 @@ class Schedule(ScheduleComponent):
             schedule: schedule to be appended
             buffer: Whether to obey buffer when appending
             name: Name of the new schedule. Defaults to name of self
+            mutate: Append by mutating and returning this schedule
         """
         if buffer:
             warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, name=name)
+        return self.insert(time, schedule, name=name, mutate=mutate)
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
