@@ -3,6 +3,9 @@ import contextvars
 
 from .channels import Channel, DriveChannel, ControlChannel, MeasureChannel, AcquireChannel
 from .commands.delay import Delay
+from .commands.frame_change import FrameChange
+from .commands.sample_pulse import SamplePulse
+from .reschedule import pad
 from .schedule import Schedule
 
 backend_ctx = contextvars.ContextVar("backend")
@@ -19,31 +22,50 @@ schedule_ctx = contextvars.ContextVar("schedule")
 #     schedule = schedule_ctx.get()
 #     schedule.append(('rx180', q))
 
+def qubit_channels(qubit: int):
+    """
+    Returns the 'typical' set of channels associated with a qubit.
+    """
+    return [DriveChannel(qubit), ControlChannel(qubit), MeasureChannel(qubit),
+            AcquireChannel(qubit)]
+
 
 def measure(qubit: int):
     ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(ism.get('measure', qubit))
+    schedule.append(ism.get('measure', qubit), mutate=True)
+    pad(schedule, channels=qubit_channels(qubit), mutate=True)
 
 
-def u1(qubit: int, P0):
+def u1(qubit: int, p0):
     ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(ism.get('u1', qubit, P0=P0))
+    schedule.append(ism.get('u1', qubit, P0=p0), mutate=True)
+    pad(schedule, channels=qubit_channels(qubit), mutate=True)
 
 
-def u2(qubit: int, P0, P1):
+def u2(qubit: int, p0, p1):
     ism = backend_ctx.get().instruction_schedule_map
     schedule = schedule_ctx.get()
-    schedule._append(ism.get('u2', qubit, P0=P0, P1=P1))
+    schedule.append(ism.get('u2', qubit, P0=p0, P1=p1), mutate=True)
+    pad(schedule, channels=qubit_channels(qubit), mutate=True)
 
 
 def delay(qubit: int, duration: int):
     schedule = schedule_ctx.get()
-    schedule._append(Delay(duration).to_instruction(DriveChannel(qubit)))
-    schedule._append(Delay(duration).to_instruction(ControlChannel(qubit)))
-    schedule._append(Delay(duration).to_instruction(MeasureChannel(qubit)))
-    schedule._append(Delay(duration).to_instruction(AcquireChannel(qubit)))
+    for ch in qubit_channels(qubit):
+        schedule.append(Delay(duration)(ch), mutate=True)
+
+
+def play(ch: Channel, pulse: SamplePulse):
+    schedule = schedule_ctx.get()
+    schedule.append(pulse(ch), mutate=True)
+    # pad(schedule, channels=qubit_channels(qubit), mutate=True)
+
+
+def shift_phase(ch: Channel, phase: float):
+    schedule = schedule_ctx.get()
+    schedule.append(FrameChange(phase)(ch), mutate=True)
 
 
 @contextmanager
@@ -66,6 +88,7 @@ def build(backend, schedule):
 # testing (to be moved to another module)
 
 from math import pi
+from .pulse_lib.discrete import gaussian
 
 def context_test(provider):
     backend = provider.get_backend('ibmq_armonk')
@@ -73,8 +96,11 @@ def context_test(provider):
     schedule = Schedule()
     with build(backend, schedule):
         u2(0, 0, pi/2)
-        delay(0, 100)
+        delay(0, 1000)
         u2(0, 0, pi)
+        play(DriveChannel(0), gaussian(1000, 1.0, 250))
+        shift_phase(DriveChannel(0), pi/2)
+        play(DriveChannel(0), gaussian(1000, 1.0, 250))
         measure(0)
 
     return schedule
