@@ -19,7 +19,7 @@ import numpy
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CnotGate
 from qiskit.qasm import pi
 
 
