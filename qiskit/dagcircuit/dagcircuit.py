@@ -34,8 +34,8 @@ import retworkx as rx
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
-from .exceptions import DAGCircuitError
-from .dagnode import DAGNode
+from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.dagcircuit.dagnode import DAGNode
 
 
 # During retworkx transition, transition between 'nx' and 'rx' graph libraries
@@ -481,7 +481,7 @@ class DAGCircuit:
     def extend_back(self, dag, edge_map=None):
         """DEPRECATED: Add `dag` at the end of `self`, using `edge_map`.
         """
-        warnings.warn("dag.extend_back is deprecated, please use dag.compose_back.",
+        warnings.warn("dag.extend_back is deprecated, please use dag.compose.",
                       DeprecationWarning)
         edge_map = edge_map or {}
         for qreg in dag.qregs.values():
@@ -497,28 +497,40 @@ class DAGCircuit:
         self.compose_back(dag, edge_map)
 
     def compose_back(self, input_circuit, edge_map=None):
-        """Apply the input circuit to the output of this circuit.
+        """DEPRECATED: use DAGCircuit.compose() instead.
+        """
+        warnings.warn("dag.compose_back is deprecated, please use dag.compose.",
+                      DeprecationWarning)
+        self.compose(input_circuit, edge_map)
+
+    def compose(self, other, edge_map=None, front=False):
+        """Compose the ``other`` circuit onto the output of this circuit.
 
         A subset of input qubits of the input circuit are mapped
         to a subset of output qubits of this circuit.
 
+        ``other`` can be narrower or of equal width to ``self``.
+
         Args:
-            input_circuit (DAGCircuit): circuit to compose with self
-            edge_map (dict): a {Bit: Bit} map from input wires of input_circuit
+            other (DAGCircuit): circuit to compose with self
+            edge_map (dict): a {Bit: Bit} map from input wires of other
                 to output wires of self (i.e. rhs->lhs).
                 The key, value pairs can be either Qubit or Clbit mappings.
 
         Raises:
-            DAGCircuitError: if missing, duplicate or inconsistent wire
+            DAGCircuitError: if ``other`` is wider or there are duplicate edge mappings.
         """
+        if front:
+            raise DAGCircuitError("Front composition not supported yet.")
+
         # if no edge_map given, try to do a 1-1 mapping in order
         if edge_map is None:
-            if len(input_circuit.qubits()) > len(self.qubits()) or \
-               len(input_circuit.clbits()) > len(self.clbits()):
+            if len(other.qubits()) > len(self.qubits()) or \
+               len(other.clbits()) > len(self.clbits()):
                 raise DAGCircuitError("Trying to compose with another DAGCircuit "
-                                      "which has more in edges.")
-            identity_qubit_map = dict(zip(input_circuit.qubits(), self.qubits()))
-            identity_clbit_map = dict(zip(input_circuit.clbits(), self.clbits()))
+                                      "which has more 'in' edges.")
+            identity_qubit_map = dict(zip(other.qubits(), self.qubits()))
+            identity_clbit_map = dict(zip(other.clbits(), self.clbits()))
             edge_map = {**identity_qubit_map, **identity_clbit_map}
 
         # Check the edge_map for duplicate values
@@ -526,7 +538,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicates in wire_map")
 
         # Compose
-        for nd in input_circuit.topological_nodes():
+        for nd in other.topological_nodes():
             if nd.type == "in":
                 # if in edge_map, get new name, else use existing name
                 m_wire = edge_map.get(nd.wire, nd.wire)
@@ -534,9 +546,8 @@ class DAGCircuit:
                 if m_wire not in self.output_map:
                     raise DAGCircuitError("wire %s[%d] not in self" % (
                         m_wire.register.name, m_wire.index))
-
-                if nd.wire not in input_circuit._wires:
-                    raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
+                if nd.wire not in other._wires:
+                    raise DAGCircuitError("inconsistent wire type for %s[%d] in other"
                                           % (nd.register.name, nd.wire.index))
             elif nd.type == "out":
                 # ignore output nodes

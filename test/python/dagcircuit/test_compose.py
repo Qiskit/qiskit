@@ -202,7 +202,7 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # default wiring: i <- i
-        dag_left.compose_back(dag_right)
+        dag_left.compose(dag_right)
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
@@ -259,7 +259,7 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # default wiring: i <- i
-        dag_left.compose_back(dag_right)
+        dag_left.compose(dag_right)
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
@@ -317,11 +317,11 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # permuted wiring
-        dag_left.compose_back(dag_right, edge_map={right_qubit0: self.left_qubit3,
-                                                   right_qubit1: self.left_qubit1,
-                                                   right_qubit2: self.left_qubit2,
-                                                   right_qubit3: self.left_qubit4,
-                                                   right_qubit4: self.left_qubit0})
+        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit3,
+                                              right_qubit1: self.left_qubit1,
+                                              right_qubit2: self.left_qubit2,
+                                              right_qubit3: self.left_qubit4,
+                                              right_qubit4: self.left_qubit0})
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
@@ -377,8 +377,8 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # permuted wiring of subset
-        dag_left.compose_back(dag_right, edge_map={right_qubit0: self.left_qubit3,
-                                                   right_qubit1: self.left_qubit2})
+        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit3,
+                                              right_qubit1: self.left_qubit2})
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
@@ -443,14 +443,12 @@ class TestDagCompose(QiskitTestCase):
 
         dag_left = circuit_to_dag(self.circuit_left)
         dag_right = circuit_to_dag(circuit_right)
-        print()
-        print(circuit_right)
 
         # permuted subset of qubits and clbits
-        dag_left.compose_back(dag_right, edge_map={right_qubit0: self.left_qubit1,
-                                                   right_qubit1: self.left_qubit4,
-                                                   right_clbit0: self.left_clbit1,
-                                                   right_clbit1: self.left_clbit0})
+        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit1,
+                                              right_qubit1: self.left_qubit4,
+                                              right_clbit0: self.left_clbit1,
+                                              right_clbit1: self.left_clbit0})
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
