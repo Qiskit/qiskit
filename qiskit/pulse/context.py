@@ -50,15 +50,27 @@ def left_barrier():
 
 @contextmanager
 def right_barrier():
-    # build the schedule so far
-    schedule = schedule_ctx.get()
-    schedule.append(alignment.align_left(*instruction_list_ctx.get()), mutate=True)
-    # clear the instruction list
+    # clear the instruction list in this context
     token = instruction_list_ctx.set([])
     try:
         yield
     finally:
         aligned_schedule = alignment.right_barrier(*instruction_list_ctx.get())
+        # restore the containing context instruction list
+        instruction_list_ctx.reset(token)
+        # add our aligned schedule to the outer context instruction list
+        instruction_list = instruction_list_ctx.get()
+        instruction_list.append(aligned_schedule)
+
+
+@contextmanager
+def sequence():
+    # clear the instruction list in this context
+    token = instruction_list_ctx.set([])
+    try:
+        yield
+    finally:
+        aligned_schedule = alignment.align_in_sequence(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -103,6 +115,18 @@ def u2(qubit: int, p0, p1):
     instruction_list.append(ism.get('u2', qubit, P0=p0, P1=p1))
 
 
+def u3(qubit: int, p0, p1, p2):
+    ism = backend_ctx.get().instruction_schedule_map
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(ism.get('u3', qubit, P0=p0, P1=p1, P2=p2))
+
+
+def cx(control: int, target: int):
+    ism = backend_ctx.get().instruction_schedule_map
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(ism.get('cx', (control, target)))
+
+
 def delay(qubit: int, duration: int):
     instruction_list = instruction_list_ctx.get()
     for ch in qubit_channels(qubit):
@@ -137,7 +161,11 @@ def context_test():
             play(DriveChannel(0), gaussian(500, 0.1, 125))
             shift_phase(DriveChannel(0), pi/2)
             play(DriveChannel(0), gaussian(500, 0.1, 125))
+            u2(1, 0, pi/2)
+        with sequence():
+            u2(0, 0, pi/2)
+            u2(1, 0, pi/2)
+            u2(0, 0, pi/2)
         # measure(0)
-        u2(1, 0, pi/2)
 
     return schedule
