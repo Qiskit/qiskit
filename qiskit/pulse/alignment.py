@@ -161,12 +161,10 @@ def align_center(*instructions: List[Union[pulse.Instruction, pulse.Schedule]]):
     Returns:
         pulse.Schedule
     """
-    print(instructions)
-    if len(instructions[0]) != 2:
-        print(len(instructions))
+    if len(instructions) != 2:
         raise Exception("Not implemented")
-    pulse1 = instructions[0][0]
-    pulse2 = instructions[0][1]
+    pulse1 = instructions[0]
+    pulse2 = instructions[1]
     d1 = pulse1.duration
     d2 = pulse2.duration
     d2_shift = 0

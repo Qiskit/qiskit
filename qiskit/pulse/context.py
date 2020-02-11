@@ -183,10 +183,15 @@ def cx(control: int, target: int):
     instruction_list.append(ism.get('cx', (control, target)))
 
 
-def delay(qubit: int, duration: int):
+def delay_all(qubit: int, duration: int):
     instruction_list = instruction_list_ctx.get()
     for ch in qubit_channels(qubit):
         instruction_list.append(Delay(duration)(ch))
+
+
+def delay(qubit: int, duration: int):
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(Delay(duration)(DriveChannel(qubit)))
 
 
 def play(ch: Channel, pulse: SamplePulse):
@@ -198,6 +203,10 @@ def shift_phase(ch: Channel, phase: float):
     instruction_list = instruction_list_ctx.get()
     instruction_list.append(FrameChange(phase)(ch))
 
+def x(qubit: int):
+    ism = backend_ctx.get().defaults().instruction_schedule_map
+    instruction_list = instruction_list_ctx.get()
+    instruction_list.append(ism.get('x', qubit))
 
 # testing (to be moved to another module)
 
