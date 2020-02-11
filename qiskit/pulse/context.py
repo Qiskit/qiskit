@@ -7,6 +7,8 @@ from .commands.delay import Delay
 from .commands.frame_change import FrameChange
 from .commands.sample_pulse import SamplePulse
 from .schedule import Schedule
+from qiskit.scheduler import measure as measure_schedule
+
 
 backend_ctx = contextvars.ContextVar("backend")
 schedule_ctx = contextvars.ContextVar("schedule")
@@ -21,7 +23,7 @@ def build(backend, schedule):
         backend: a qiskit backend
         schedule: a *mutable* pulse Schedule
     """
-    token1 = backend_ctx.set(backend.defaults())
+    token1 = backend_ctx.set(backend)
     token2 = schedule_ctx.set(schedule)
     token3 = instruction_list_ctx.set([])
     try:
@@ -128,19 +130,21 @@ def qubit_channels(qubit: int):
 
 
 def measure(qubit: int):
-    ism = backend_ctx.get().instruction_schedule_map
+    sched = measure_schedule(qubits=[qubit],
+                             inst_map=backend_ctx.get().defaults().instruction_schedule_map,
+                             meas_map=backend_ctx.get().configuration().meas_map)
     instruction_list = instruction_list_ctx.get()
-    instruction_list.append(ism.get('measure', qubit))
+    instruction_list.append(sched)
 
 
 def u1(qubit: int, p0):
-    ism = backend_ctx.get().instruction_schedule_map
+    ism = backend_ctx.get().defaults().instruction_schedule_map
     instruction_list = instruction_list_ctx.get()
     instruction_list.append(ism.get('u1', qubit, P0=p0))
 
 
 def u2(qubit: int, p0, p1):
-    ism = backend_ctx.get().instruction_schedule_map
+    ism = backend_ctx.get().defaults().instruction_schedule_map
     instruction_list = instruction_list_ctx.get()
     instruction_list.append(ism.get('u2', qubit, P0=p0, P1=p1))
 
