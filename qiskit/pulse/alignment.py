@@ -15,6 +15,8 @@
 """Alignment methods."""
 from typing import List, Union
 
+import numpy as np
+
 from qiskit import pulse
 from qiskit.pulse.reschedule import pad
 
@@ -30,12 +32,16 @@ def push_append(this: List[pulse.ScheduleComponent],
             schedule: schedule to be appended
             buffer: Whether to obey buffer when appending
         """
-        other_channels = other.channels
+        channels = list(set(this.channels) & set(other.channels))
 
-        ch_slacks = [this.ch_stop_time(channel)+other.ch_start_time(channel)
-                     for channel in other_channels]
+        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+                     for channel in channels]
 
-        insert_time = this.start_time + max(ch_slacks, default=0)
+        if ch_slacks:
+            slack_chan = channels[np.argmin(ch_slacks)]
+            insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
+        else:
+            insert_time = 0
         return this.insert(insert_time, other)
 
 

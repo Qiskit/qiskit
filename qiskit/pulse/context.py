@@ -6,7 +6,6 @@ from .channels import Channel, DriveChannel, ControlChannel, MeasureChannel, Acq
 from .commands.delay import Delay
 from .commands.frame_change import FrameChange
 from .commands.sample_pulse import SamplePulse
-from .reschedule import pad
 from .schedule import Schedule
 
 backend_ctx = contextvars.ContextVar("backend")
@@ -82,7 +81,7 @@ def qubit_channels(qubit: int):
     """
     Returns the 'typical' set of channels associated with a qubit.
     """
-    return [DriveChannel(qubit), ControlChannel(qubit), MeasureChannel(qubit),
+    return [DriveChannel(qubit), MeasureChannel(qubit),
             AcquireChannel(qubit)]
 
 
