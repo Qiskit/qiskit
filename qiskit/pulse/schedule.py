@@ -231,8 +231,8 @@ class Schedule(ScheduleComponent):
             mutate: Return this scheduling after mutably shifting instructions
         """
         self._timeslots = self._timeslots.shift(time)
-        self._children = ((orig_time+time, component) for
-                          orig_time, component in self._children)
+        self.__children = ((orig_time+time, component) for
+                           orig_time, component in self._children)
         return self
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
