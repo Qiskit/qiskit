@@ -51,10 +51,7 @@ def left_barrier():
 
 @contextmanager
 def right_barrier():
-    # build the schedule so far
-    schedule = schedule_ctx.get()
-    schedule.append(alignment.align_left(*instruction_list_ctx.get()), mutate=True)
-    # clear the instruction list
+    # clear the instruction list in this context
     token = instruction_list_ctx.set([])
     try:
         yield
@@ -150,7 +147,7 @@ def context_test():
             play(DriveChannel(0), gaussian(500, 0.1, 125))
             shift_phase(DriveChannel(0), pi/2)
             play(DriveChannel(0), gaussian(500, 0.1, 125))
+            u2(1, 0, pi/2)
         # measure(0)
-        u2(1, 0, pi/2)
 
     return schedule
