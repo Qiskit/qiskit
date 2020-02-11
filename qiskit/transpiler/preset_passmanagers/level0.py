@@ -35,7 +35,7 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_0_pass_manager(transpile_config):
+def level_0_pass_manager(pass_manager_config):
     """
     Level 0 pass manager: no explicit optimization other than mapping to backend.
 
@@ -48,15 +48,15 @@ def level_0_pass_manager(transpile_config):
     stages are done.
 
     Args:
-        transpile_config (TranspileConfig)
+        pass_manager_config (PassManagerConfig)
 
     Returns:
         PassManager: a level 0 pass manager.
     """
-    basis_gates = transpile_config.basis_gates
-    coupling_map = transpile_config.coupling_map
-    initial_layout = transpile_config.initial_layout
-    seed_transpiler = transpile_config.seed_transpiler
+    basis_gates = pass_manager_config.basis_gates
+    coupling_map = pass_manager_config.coupling_map
+    initial_layout = pass_manager_config.initial_layout
+    seed_transpiler = pass_manager_config.seed_transpiler
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)

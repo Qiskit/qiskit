@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class U2Gate(Gate):
@@ -46,7 +47,7 @@ class U2Gate(Gate):
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
     def to_matrix(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
@@ -58,9 +59,34 @@ class U2Gate(Gate):
                            dtype=complex)
 
 
-def u2(self, phi, lam, q):  # pylint: disable=invalid-name
-    """Apply u2 to q."""
-    return self.append(U2Gate(phi, lam), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply U2 gate with angle phi and lam to a specified qubit (qubit).
+    u2(φ,λ) := U(π/2,φ,λ) = Rz(φ + π/2)Rx(π/2)Rz(λ − π/2)
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            phi = Parameter('φ')
+            lam = Parameter('λ')
+            circuit = QuantumCircuit(1)
+            circuit.u2(phi,lam,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.u2 import U2Gate
+            U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
+    """
+    return self.append(U2Gate(phi, lam), [qubit], [])
 
 
 QuantumCircuit.u2 = u2
