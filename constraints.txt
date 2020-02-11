@@ -1,2 +1,1 @@
-matplotlib==3.2.0rc1;python_version=='3.8'
 nbformat==4.4.0
