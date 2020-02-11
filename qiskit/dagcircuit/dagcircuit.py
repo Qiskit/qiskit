@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unnecessary-lambda
+
 """
 Object to represent a quantum circuit as a directed acyclic graph (DAG).
 
@@ -215,6 +217,8 @@ class DAGCircuit:
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
             condition (tuple or None): optional condition (ClassicalRegister, int)
+        Returns:
+            int: The integer node index for the new op node on the DAG
         """
         node_properties = {
             "type": "op",
@@ -1277,10 +1281,11 @@ class DAGCircuit:
             # TODO(mtreinish): Add function in retworkx that does this nested api
             for node_index in self._multi_graph.adj(current_node._node_id):
                 node = self._id_to_node[node_index]
-                try:
+                if self._multi_graph.has_edge(current_node._node_id,
+                                              node_index):
                     edge_data = self._multi_graph.get_all_edge_data(
                         current_node._node_id, node_index)
-                except Exception:
+                else:
                     edge_data = self._multi_graph.get_all_edge_data(
                         node_index, current_node._node_id)
                 if any(wire == edge['wire'] for edge in edge_data):
