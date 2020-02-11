@@ -18,6 +18,7 @@ from typing import List, Union
 import numpy as np
 
 from qiskit import pulse
+from qiskit.pulse import Delay
 from qiskit.pulse.reschedule import pad
 
 
@@ -150,3 +151,48 @@ def sprinkle(instructions: List[Union[pulse.Instruction, pulse.Schedule]], instr
         shift = a_start + int(duration*pt) - half_dur - i_start
         sched = sched.union(instruction.shift(shift))
     return sched
+
+
+def align_center(*instructions: List[Union[pulse.Instruction, pulse.Schedule]]):
+    """Align a list of pulse instructions on the left
+    RIght now assumes exactly two pulses
+    Args:
+        instructions: List of pulse instructions to align.
+    Returns:
+        pulse.Schedule
+    """
+    print(instructions)
+    if len(instructions[0]) != 2:
+        print(len(instructions))
+        raise Exception("Not implemented")
+    pulse1 = instructions[0][0]
+    pulse2 = instructions[0][1]
+    d1 = pulse1.duration
+    d2 = pulse2.duration
+    d2_shift = 0
+    d1_shift = 0
+    if d1 > d2:
+        d2_shift = int((d1-d2)/2)
+    else:
+        d1_shift = int((d2-d1)/2)
+    aligned = pulse.Schedule()
+    if 'delay' in pulse1.name:
+        aligned += Delay(d2_shift)(pulse2.channels[0])
+        aligned += pulse2
+        aligned += Delay(d2_shift)(pulse2.channels[0])
+    elif 'delay' in pulse2.name:
+        aligned += Delay(d1_shift)(pulse1.channels[0])
+        aligned += pulse1
+        aligned += Delay(d1_shift)(pulse1.channels[0])
+    else:
+        if d1_shift > 0:
+            aligned += Delay(d1_shift)(pulse1.channels[0])
+        if d2_shift > 0:
+            aligned += Delay(d2_shift)(pulse2.channels[0])
+        aligned += pulse1
+        aligned += pulse2
+        if d1_shift > 0:
+            aligned += Delay(d1_shift)(pulse1.channels[0])
+        if d2_shift > 0:
+            aligned += Delay(d2_shift)(pulse2.channels[0])
+    return aligned
