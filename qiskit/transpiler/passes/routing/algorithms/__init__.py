@@ -32,4 +32,4 @@ A permutation function takes in a graph and a permutation of graph nodes,
 and returns a sequence of SWAPs that implements that permutation on the graph.
 """
 
-from qiskit.transpiler.routing.types import Permutation, Swap
+from .general import ApproximateTokenSwapper

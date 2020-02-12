@@ -20,8 +20,8 @@ import numpy as np
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.routing import util
-from qiskit.transpiler.routing.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.routing.algorithms import util
+from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 
 class LayoutTransformation(TransformationPass):

@@ -35,7 +35,7 @@ from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableS
 import networkx as nx
 import numpy as np
 
-from qiskit.transpiler.routing import Swap
+from .types import Swap
 
 _V = TypeVar('_V')
 _T = TypeVar('_T')
