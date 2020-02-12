@@ -9,23 +9,22 @@ deprecations:
 
     This is a list of the changed names in the format `new_name <- old_name`:
 
-    class                    | name        | qc._
-    -------------------------+-------------+---------------
-    CCXGate <- ToffoliGate   | ccx            | ccx, toffoli   |
-    CRXGate <- CrxGate       | crx            | crx            |
-    CRYGate <- CryGate       | cry            | cry            |
-    CRZGate <- CrzGate       | crz            | crz            |
-    CSwapGate <- FredkinGate | cswap          | cswap, fredkin |
-    CU1Gate <- Cu1Gate       | cu1            | cu1            |
-    CU3Gate <- Cu3Gate       | cu3            | cu3            |
-    CXGate <- CnotGate       | cx             | cx, cnot       |
-    CYGate <- CyGate         | cy             | cy             |
-    CZGate <- CzGate         | cz             | cz             |
-    IGate <- IdGate          | id             | i <- iden      |
-    SInvGate <- SdgGate      | sinv <- sdg    | sinv <- sdg    |
-    TInvGate <- TdgGate      | tinv <- tdg    | tinv <- tdg    |
-    UCGate <- UCG            | multiplexer    | uc <- ucg      |
-    UCPauliRotGate <- UCRot  |                |                |
-    UCRXGate <- UCX          | ucrx <- ucrotX | ucrx <- ucx    |
-    UCRYGate <- UCY          | ucry <- ucrotY | ucry <- ucy    |
-    UCRZGate <- UCZ          | ucrz <- ucrotZ | ucrz <- ucz    |
+    class                    | name           | qc._
+    -------------------------+----------------+-------------------
+    CCXGate <- ToffoliGate   | ccx            | ccx, toffoli
+    CRXGate <- CrxGate       | crx            | crx
+    CRYGate <- CryGate       | cry            | cry
+    CRZGate <- CrzGate       | crz            | crz
+    CSwapGate <- FredkinGate | cswap          | cswap, fredkin
+    CU1Gate <- Cu1Gate       | cu1            | cu1
+    CU3Gate <- Cu3Gate       | cu3            | cu3
+    CXGate <- CnotGate       | cx             | cx, cnot
+    CYGate <- CyGate         | cy             | cy
+    CZGate <- CzGate         | cz             | cz
+    DiagGate                 | diag           | diag <- diag_gate
+    IGate <- IdGate          | id             | i,id <- iden
+    UCGate <- UCG            | multiplexer    | uc <- ucg
+    UCPauliRotGate <- UCRot  |                |
+    UCRXGate <- UCX          | ucrx <- ucrotX | ucrx <- ucx
+    UCRYGate <- UCY          | ucry <- ucrotY | ucry <- ucy
+    UCRZGate <- UCZ          | ucrz <- ucrotZ | ucrz <- ucz

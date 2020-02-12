@@ -100,7 +100,7 @@ def _extract_rz(phi1, phi2):
     return phase, z_angle
 
 
-def diag_gate(self, diag, qubit):
+def diag(self, diag, qubit):
     """Attach a diagonal gate to a circuit.
 
     The decomposition is based on Theorem 7 given in "Synthesis of Quantum Logic Circuits" by
@@ -140,4 +140,14 @@ def diag_gate(self, diag, qubit):
     return self.append(DiagGate(diag), qubit)
 
 
-QuantumCircuit.diag_gate = diag_gate
+def diag_gate(self, diag, qubit):
+    """Deprecated version of QuantumCircuit.diag."""
+    warnings.warn('The QuantumCircuit.diag_gate() method is deprecated as of 0.12.0, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit.diag() method instead.',
+                  DeprecationWarning, stacklevel=2)
+    return diag(self, diag, qubit)
+
+
+QuantumCircuit.diag = diag
+QuantumCircuit.diag_gate = diag_gate  # deprecated
