@@ -59,7 +59,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
 
         backend:
             If set, some runtime options are automatically grabbed from
-            `backend.configuration()` and `backend.defaults()`.
+            ``backend.configuration()`` and ``backend.defaults()``.
             If any other option is explicitly set (e.g., rep_rate), it
             will override the backend's.
             If any other options is set in the run_config, it will
@@ -89,18 +89,18 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
 
         qubit_lo_freq:
             List of default qubit LO frequencies in Hz. Will be overridden by
-            `schedule_los` if set.
+            ``schedule_los`` if set.
 
         meas_lo_freq:
             List of default measurement LO frequencies in Hz. Will be overridden
-            by `schedule_los` if set.
+            by ``schedule_los`` if set.
 
         qubit_lo_range:
-            List of drive LO ranges each of form `[range_min, range_max]` in Hz.
+            List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
 
         meas_lo_range:
-            List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
+            List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
 
         schedule_los:
@@ -112,7 +112,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
         meas_return:
             Level of measurement data for the backend to return.
 
-            For `meas_level` 0 and 1:
+            For ``meas_level`` 0 and 1:
                 * "single" returns information from every shot.
                 * "avg" returns average measurement output (averaged over number of shots).
 
