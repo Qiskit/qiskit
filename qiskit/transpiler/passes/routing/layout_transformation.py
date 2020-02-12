@@ -30,28 +30,30 @@ class LayoutTransformation(TransformationPass):
     More details are available in the routing code.
     """
 
-    def __init__(self, coupling_map: CouplingMap, initial_layout: Layout, final_layout: Layout,
+    def __init__(self, coupling_map: CouplingMap,
+                 from_layout: Layout,
+                 to_layout: Layout,
                  seed: Union[int, np.random.RandomState] = None,
                  trials=4):
         """LayoutTransformation initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            initial_layout (Layout): The starting layout of qubits onto physical qubits.
-            final_layout (Layout): The final layout of qubits on phyiscal qubits.
+            from_layout (Layout): The starting layout of qubits onto physical qubits.
+            to_layout (Layout): The final layout of qubits on phyiscal qubits.
             seed (Union[int, np.random.RandomState]): Seed to use for random trials.
             trials (int): How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.initial_layout = initial_layout
-        self.final_layout = final_layout
+        self.from_layout = from_layout
+        self.to_layout = to_layout
         graph = coupling_map.graph.to_undirected()
         token_swapper = ApproximateTokenSwapper(graph, seed)
 
         # Find the permutation that between the initial physical qubits and final physical qubits.
-        permutation = {pqubit: final_layout.get_virtual_bits()[vqubit]
-                       for vqubit, pqubit in initial_layout.get_virtual_bits().items()}
+        permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
+                       for vqubit, pqubit in from_layout.get_virtual_bits().items()}
 
         self.permutation_circuit = token_swapper.permutation_circuit(permutation, trials)
 

@@ -38,8 +38,8 @@ class TestLayoutTransformation(QiskitTestCase):
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2})
         to_layout = Layout({v[0]: 2, v[1]: 0, v[2]: 1})
         ltpass = LayoutTransformation(coupling_map=coupling,
-                                      initial_layout=from_layout,
-                                      final_layout=to_layout)
+                                      from_layout=from_layout,
+                                      to_layout=to_layout)
         qc = QuantumCircuit(3)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
         q = dag.qubits()
