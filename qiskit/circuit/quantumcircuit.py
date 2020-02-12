@@ -323,7 +323,6 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
-        print('extend')
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -335,10 +334,9 @@ class QuantumCircuit:
             if element not in self.cregs:
                 self.cregs.append(element)
 
-        # copy the circuit data
-        # TODO only if rhs is self or if rhs is in self?
-        # data = rhs.data.copy() if rhs is self else rhs.data
-        data = rhs.data.copy()
+        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
+        # appended to both self and rhs resulting in an infinite loop
+        data = rhs.data.copy() if rhs is self else rhs.data
 
         # Add new gates
         for instruction_context in data:
