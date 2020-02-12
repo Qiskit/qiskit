@@ -39,16 +39,16 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Args:
         circuits: The quantum circuit or circuits to translate
         backend: A backend instance, which contains hardware-specific data required for scheduling
-        inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
-                  `backend` `instruction_schedule_map`
+        inst_map: Mapping of circuit operations to pulse schedules. If `None`, defaults to the
+                  ``backend`` ``instruction_schedule_map``
         cmd_def: Deprecated
         meas_map: List of sets of qubits that must be measured together. If `None`, defaults to
-                  the `backend` `meas_map`
+                  the ``backend`` ``meas_map``
         method: Optionally specify a particular scheduling method
     Returns:
-        A pulse `Schedule` that implements the input circuit
+        A pulse ``Schedule`` that implements the input circuit
     Raises:
-        QiskitError: If `inst_map` and `meas_map` are not passed and `backend` is not passed
+        QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
     if inst_map is None:
         if cmd_def is not None:
