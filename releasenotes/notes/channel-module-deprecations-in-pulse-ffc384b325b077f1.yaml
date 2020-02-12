@@ -1,14 +1,14 @@
 ---
 other:
   - |
-    Channel ``buffer`` option was deprecated 4 months ago and has been removed.
+    Channel ``buffer`` option was deprecated 4 months ago and has now been removed.
     To add a delay on a channel, specify it explicitly in your Schedule with a
     Delay::
 
         sched = Schedule()
         sched += Delay(5)(DriveChannel(0))
   - |
-    PulseChannelSpec has been deprecated 3 months and removed.
+    PulseChannelSpec was deprecated 3 months ago and has now been removed.
     Use BackendConfiguration instead::
 
         config = backend.configuration()
@@ -17,7 +17,7 @@ other:
 
     or, simply reference the channel directly, such as ``DriveChannel(index)``.
   - |
-    An import path has been deprecated for 5 months and removed: for
+    An import path was deprecated 5 months and has now been removed: for
     ``PulseChannel``, ``DriveChannel``, ``MeasureChannel``, and
     ``ControlChannel``, use ``from qiskit.pulse.channels import X`` in place of
     ``from qiskit.pulse.channels.pulse_channels import X``.

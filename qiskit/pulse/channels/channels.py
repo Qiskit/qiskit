@@ -32,7 +32,7 @@ class Channel(metaclass=ABCMeta):
             index: Index of channel
 
         Raises:
-            PulseError: If index is not an integer
+            PulseError: If ``index`` is not an integer
         """
         if not isinstance(index, int):
             raise PulseError('Channel index must be integer')
