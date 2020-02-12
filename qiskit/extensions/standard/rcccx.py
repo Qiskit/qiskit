@@ -35,7 +35,7 @@ class RCCCXGate(Gate):
     """
 
     def __init__(self):
-        """Create a new PCCCX gate."""
+        """Create a new RCCCX gate."""
         super().__init__('rcccx', 4, [])
 
     def _define(self):
