@@ -51,7 +51,12 @@ class ApproximateTokenSwapper(Generic[_V]):
     """
 
     def __init__(self, graph: nx.Graph, seed: Union[int, np.random.RandomState] = None) -> None:
-        """Construct an ApproximateTokenSwapping object."""
+        """Construct an ApproximateTokenSwapping object.
+
+        Args:
+            graph (nx.Graph): Undirected graph represented a coupling map.
+            seed (Union[int, np.random.RandomState]): Seed to use for random trials.
+        """
         self.graph = graph
         # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
         # The nodes in graph don't have to integer nor contiguous, but those in a NumPy array are.
@@ -234,15 +239,3 @@ class ApproximateTokenSwapper(Generic[_V]):
                 todo_nodes.add(node)
             elif node in todo_nodes:
                 todo_nodes.remove(node)
-
-    def parallel_map(self, mapping: Mapping[_V, _V],
-                     trials: Optional[int] = None) -> List[List[Swap[_V]]]:
-        """A convenience function to wrap each swap in a list.
-
-        Useful for code that expects a parallel sequence of swaps.
-        """
-        if trials is not None:
-            sequential_swaps = self.map(mapping, trials=trials)
-        else:
-            sequential_swaps = self.map(mapping)
-        return [[swap] for swap in sequential_swaps]
