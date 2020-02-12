@@ -15,3 +15,4 @@
 """Module for builtin pulse_lib."""
 
 from .discrete import *
+from .continuous import *

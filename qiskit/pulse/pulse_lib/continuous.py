@@ -99,7 +99,7 @@ def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -
 
     .. math::
 
-        f(x) = -2 \times A \times (|\textnormal{sawtooth}(x, A, period, phase)| + 1)
+        f(x) = A \times (-2*|\textnormal{sawtooth}(x, A, period, phase)| + 1)
 
     This corresponds to a sine wave with linear ramps.
 
@@ -121,7 +121,13 @@ def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
-    """Continuous cosine wave.
+    r"""Continuous cosine wave.
+
+    For amplitude :math:`A`, frequency :math:`\omega`, phase :math:`\phi`:
+
+    .. math::
+
+        f(x) = A \cos(2 \pi \omega x + \phi)
 
     Args:
         times: Times to output wave for.
@@ -133,7 +139,13 @@ def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
-    """Continuous cosine wave.
+    r"""Continuous sine wave.
+
+    For amplitude :math:`A`, frequency :math:`\omega`, phase :math:`\phi`:
+
+    .. math::
+
+        f(x) = A \cos(2 \pi \omega x + \phi)
 
     Args:
         times: Times to output wave for.
