@@ -24,7 +24,11 @@ from qiskit.pulse.exceptions import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:
-    """Continuous constant pulse.
+    """Continuous constant pulse:
+
+    .. math::
+
+        f(x) = amp
 
     Args:
         times: Times to output pulse for.
@@ -34,7 +38,11 @@ def constant(times: np.ndarray, amp: complex) -> np.ndarray:
 
 
 def zero(times: np.ndarray) -> np.ndarray:
-    """Continuous zero pulse.
+    """Continuous zero pulse:
+
+    .. math::
+
+        f(x) = 0
 
     Args:
         times: Times to output pulse for.
@@ -43,7 +51,15 @@ def zero(times: np.ndarray) -> np.ndarray:
 
 
 def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
-    """Continuous square wave.
+    r"""Continuous square wave.
+
+    For amplitude :math:`A`, period :math:`T`, and phase :math:`\phi`:
+
+    .. math::
+
+        f(x) = A \times \sign( \sin(2 \pi x/T + 2\phi) )
+
+    where :math:`sign(0) = 1`.
 
     Args:
         times: Times to output wave for.
@@ -56,7 +72,15 @@ def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> 
 
 
 def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
-    """Continuous sawtooth wave.
+    r"""Continuous sawtooth wave.
+
+    For amplitude :math:`A`, period :math:`T`, and phase :math:`\phi`:
+
+    .. math::
+
+        f(x) = A \times 2 \times ( g(x) - \floor(\frac{1}{2} + g(x)))
+
+    where :math:`g(x) = x/T + \phi/\pi`.
 
     Args:
         times: Times to output wave for.
@@ -69,7 +93,23 @@ def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -
 
 
 def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
-    """Continuous triangle wave.
+    r"""Continuous triangle wave.
+
+    For amplitude :math:`A`, period :math:`T`, and phase :math:`\phi`:
+
+    .. math::
+
+        f(x) = -2 \times A \times (|\textnormal{sawtooth}(x, A, period, phase)| + 1)
+
+    This corresponds to a sine wave with linear ramps.
+
+    .. jupyter-execute::
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        x = np.linspace(0, 1, 100)
+        plot.plot(x, triangle(x, 1, 0, 0))
 
     Args:
         times: Times to output wave for.
