@@ -33,7 +33,8 @@ from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         CyGate, CzGate, Cu1Gate, SwapGate,
-                                        ToffoliGate, HGate, RZGate, FredkinGate,
+                                        ToffoliGate, HGate, RZGate, RXGate,
+                                        RYGate, CryGate, CrxGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate,
                                         MSGate, Barrier)
 from qiskit.extensions.unitary import UnitaryGate
@@ -69,6 +70,16 @@ class TestControlledGate(QiskitTestCase):
         """Test creation of controlled rz gate"""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CrzGate(theta))
+
+    def test_controlled_ry(self):
+        """Test creation of controlled ry gate"""
+        theta = 0.5
+        self.assertEqual(RYGate(theta).control(), CryGate(theta))
+
+    def test_controlled_rx(self):
+        """Test creation of controlled rx gate"""
+        theta = 0.5
+        self.assertEqual(RXGate(theta).control(), CrxGate(theta))
 
     def test_controlled_u3(self):
         """Test creation of controlled u3 gate"""
@@ -158,7 +169,6 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_control_u3(self):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
-        import qiskit.extensions.standard.cu3 as cu3
 
         num_ctrl = 3
         # U3 gate params
@@ -184,7 +194,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
-        cu3gate = cu3.Cu3Gate(alpha, beta, gamma)
+        cu3gate = u3.Cu3Gate(alpha, beta, gamma)
 
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
@@ -220,7 +230,6 @@ class TestControlledGate(QiskitTestCase):
     def test_multi_control_u1(self):
         """Test multi controlled u1 gate"""
         import qiskit.extensions.standard.u1 as u1
-        import qiskit.extensions.standard.cu1 as cu1
 
         num_ctrl = 3
         # U1 gate params
@@ -246,7 +255,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu1 = QuantumCircuit(qr)
-        cu1gate = cu1.Cu1Gate(theta)
+        cu1gate = u1.Cu1Gate(theta)
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
@@ -289,7 +298,7 @@ class TestControlledGate(QiskitTestCase):
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
 
-        theta = pi
+        theta = pi/2
         gu1 = u1.U1Gate(theta)
         grx = rx.RXGate(theta)
         gry = ry.RYGate(theta)
@@ -422,22 +431,23 @@ class TestControlledGate(QiskitTestCase):
         for cls in gate_classes:
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
-            if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
-                continue
-            try:
-                sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY
-                               or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                   and param.default is param.empty)])
-                args = [1]*numargs
+            with self.subTest(i=cls):
+                if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+                    continue
+                try:
+                    sig = signature(cls)
+                    numargs = len([param for param in sig.parameters.values()
+                                   if param.kind == param.POSITIONAL_ONLY
+                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                       and param.default is param.empty)])
+                    args = [2]*numargs
 
-                gate = cls(*args)
-                self.assertEqual(gate.inverse().control(2),
-                                 gate.control(2).inverse())
-            except AttributeError:
-                # skip gates that do not have a control attribute (e.g. barrier)
-                pass
+                    gate = cls(*args)
+                    self.assertEqual(gate.inverse().control(2),
+                                     gate.control(2).inverse())
+                except AttributeError:
+                    # skip gates that do not have a control attribute (e.g. barrier)
+                    pass
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):

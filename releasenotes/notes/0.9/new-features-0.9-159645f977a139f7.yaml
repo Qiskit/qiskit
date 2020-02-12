@@ -38,7 +38,7 @@ features:
     Two new functions, ``sech()`` and ``sech_deriv()`` were added to the pulse
     library module ``qiskit.pulse.pulse_lib`` for creating an unnormalized
     hyperbolic secant ``SamplePulse`` object and an unnormalized hyperbolic
-    secant derviative ``SamplePulse`` object resepctively.
+    secant derviative ``SamplePulse`` object respectively.
   - |
     A new kwarg option ``vertical_compression`` was added to the
     ``QuantumCircuit.draw()`` method and the
@@ -108,9 +108,9 @@ features:
         sched.insert(60, Acquire(5))
         acquire_sched = sched.filter(instruction_types=[AcquireInstruction])
   - |
-    Additonal decomposition methods for several types of gates. These methods
+    Additional decomposition methods for several types of gates. These methods
     will use different decomposition techniques to break down a gate into
-    a squence of CNOTs and single qubit gates. The following methods are
+    a sequence of CNOTs and single qubit gates. The following methods are
     added:
 
     +--------------------------------+---------------------------------------+

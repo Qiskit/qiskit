@@ -14,32 +14,21 @@
 
 """Standard gates."""
 from .barrier import Barrier
-from .ccx import ToffoliGate
-from .cswap import FredkinGate
-from .cx import CnotGate
-from .cy import CyGate
-from .cz import CzGate
-from .swap import SwapGate
-from .h import HGate
+from .h import HGate, CHGate
 from .iden import IdGate
-from .s import SGate
-from .s import SdgGate
-from .t import TGate
-from .t import TdgGate
-from .u1 import U1Gate
-from .u2 import U2Gate
-from .u3 import U3Gate
-from .x import XGate
-from .y import YGate
-from .z import ZGate
-from .r import RGate
-from .rx import RXGate
-from .ry import RYGate
-from .rz import RZGate
-from .cu1 import Cu1Gate
-from .ch import CHGate
-from .crz import CrzGate
-from .cu3 import Cu3Gate
-from .rzz import RZZGate
-from .rxx import RXXGate
 from .ms import MSGate
+from .r import RGate
+from .rx import RXGate, CrxGate
+from .rxx import RXXGate
+from .ry import RYGate, CryGate
+from .rz import RZGate, CrzGate
+from .rzz import RZZGate
+from .s import SGate, SdgGate
+from .swap import SwapGate, FredkinGate
+from .t import TGate, TdgGate
+from .u1 import U1Gate, Cu1Gate
+from .u2 import U2Gate
+from .u3 import U3Gate, Cu3Gate
+from .x import XGate, CnotGate, ToffoliGate
+from .y import YGate, CyGate
+from .z import ZGate, CzGate

@@ -298,7 +298,7 @@ class Layout():
         for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif isinstance(virtual, Qubit):
+            if isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical

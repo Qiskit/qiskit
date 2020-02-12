@@ -11,29 +11,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Stinespring representation of a Quantum Channel.
-
-
-The Stinespring representation for a quantum channel E is given by a rectangular matrix A such that
-
-    E(ρ) = Tr_2[A.ρ.A^dagger]
-
-A general operator map G can also be written using the generalized Kraus representation which
-is given by two matrices A, B such that
-
-    G(ρ) = Tr_2[A.ρ.B^dagger]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -48,7 +30,33 @@ from qiskit.quantum_info.operators.channel.transformations import _to_stinesprin
 
 
 class Stinespring(QuantumChannel):
-    """Stinespring representation of a quantum channel"""
+    r"""Stinespring representation of a quantum channel.
+
+    The Stinespring representation of a quantum channel :math:`\mathcal{E}`
+    is a rectangular matrix :math:`A` such that the evolution of a
+    :class:`~qiskit.quantum_info.DensityMatrix` :math:`\rho` is given by
+
+    .. math::
+
+        \mathcal{E}(ρ) = \mbox{Tr}_2\left[A ρ A^\dagger\right]
+
+    where :math:`\mbox{Tr}_2` is the :func:`partial_trace` over subsystem 2.
+
+    A general operator map :math:`\mathcal{G}` can also be written using the
+    generalized Stinespring representation which is given by two matrices
+    :math:`A`, :math:`B` such that
+
+    .. math::
+
+        \mathcal{G}(ρ) = \mbox{Tr}_2\left[A ρ B^\dagger\right]
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Stinespring operator.
@@ -128,17 +136,15 @@ class Stinespring(QuantumChannel):
         # Initialize either single or general Stinespring
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
-            super().__init__(
-                'Stinespring', (stine[0], None),
-                input_dims=input_dims,
-                output_dims=output_dims)
+            super().__init__('Stinespring', (stine[0], None),
+                             input_dims=input_dims,
+                             output_dims=output_dims)
         else:
             # General (non-CPTP) Stinespring map
-            super().__init__(
-                'Stinespring',
-                stine,
-                input_dims=input_dims,
-                output_dims=output_dims)
+            super().__init__('Stinespring',
+                             stine,
+                             input_dims=input_dims,
+                             output_dims=output_dims)
 
     @property
     def data(self):
@@ -179,45 +185,53 @@ class Stinespring(QuantumChannel):
                 stine[i] = np.reshape(
                     np.transpose(np.reshape(mat, (dout, dtr, din)), (2, 1, 0)),
                     (din * dtr, dout))
-        return Stinespring(
-            tuple(stine),
-            input_dims=self.output_dims(),
-            output_dims=self.input_dims())
+        return Stinespring(tuple(stine),
+                           input_dims=self.output_dims(),
+                           output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the composed quantum channel self @ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Stinespring: The composition channel as a Stinespring object.
+            Stinespring: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if qargs is not None:
-            return Stinespring(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            QiskitError: if other cannot be converted to a Stinespring or has
+            incompatible dimensions.
 
-        # Convert other to Kraus
-        if not isinstance(other, Kraus):
-            other = Kraus(other)
-        # Check dimensions match up
-        if front and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if not front and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        # Since we cannot directly compose two channels in Stinespring
-        # representation we convert to the Kraus representation
-        return Stinespring(Kraus(self).compose(other, front=front))
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        return super().compose(other, qargs=qargs, front=front)
+
+    def dot(self, other, qargs=None):
+        """Return the right multiplied quantum channel self * other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+
+        Returns:
+            Stinespring: The quantum channel self * other.
+
+        Raises:
+            QiskitError: if other cannot be converted to a Stinespring or has
+            incompatible dimensions.
+        """
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """The matrix power of the channel.
@@ -416,3 +430,40 @@ class Stinespring(QuantumChannel):
                 np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
                 shape_out)
         return Stinespring((sab_l, sab_r), input_dims, output_dims)
+
+    def _chanmul(self, other, qargs=None, left_multiply=False):
+        """Multiply two quantum channels.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+
+        Returns:
+            Stinespring: The composition channel as a Stinespring object.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
+        """
+        if qargs is not None:
+            return Stinespring(
+                SuperOp(self)._chanmul(other,
+                                       qargs=qargs,
+                                       left_multiply=left_multiply))
+
+        # Convert other to Kraus
+        if not isinstance(other, Kraus):
+            other = Kraus(other)
+        # Check dimensions match up
+        if not left_multiply and self._input_dim != other._output_dim:
+            raise QiskitError(
+                'input_dim of self must match output_dim of other')
+        if left_multiply and self._output_dim != other._input_dim:
+            raise QiskitError(
+                'input_dim of other must match output_dim of self')
+        # Since we cannot directly compose two channels in Stinespring
+        # representation we convert to the Kraus representation
+        return Stinespring(
+            Kraus(self)._chanmul(other, left_multiply=left_multiply))

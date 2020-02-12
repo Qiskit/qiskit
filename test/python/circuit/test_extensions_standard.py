@@ -15,16 +15,25 @@
 # pylint: disable=missing-docstring
 
 import unittest
+import warnings
 from inspect import signature
+from ddt import ddt, data, unpack
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, ControlledGate
+from qiskit.circuit import Gate, ControlledGate, ParameterVector
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+
+from qiskit.extensions.standard import (
+    HGate, CHGate, IdGate, RGate, RXGate, CrxGate, RYGate, CryGate, RZGate,
+    CrzGate, SGate, SdgGate, FredkinGate, TGate, TdgGate, U1Gate, Cu1Gate,
+    U2Gate, U3Gate, Cu3Gate, XGate, CnotGate, ToffoliGate, YGate, CyGate,
+    ZGate, CzGate
+)
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -125,10 +134,38 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[0], self.qr[1]])
 
+    def test_cry(self):
+        self.circuit.cry(1, self.qr[0], self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cry')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_crx(self):
+        self.circuit.crx(1, self.qr[0], self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'crx')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
     def test_crz_wires(self):
         self.circuit.crz(1, 0, 1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'crz')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_cry_wires(self):
+        self.circuit.cry(1, 0, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cry')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
+    def test_crx_wires(self):
+        self.circuit.crx(1, 0, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'crx')
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[0], self.qr[1]])
 
@@ -142,6 +179,28 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.crz, 0, (self.qr, 3), self.qr[1])
         self.assertRaises(CircuitError, qc.crz, 0, self.cr, self.qr)
         # TODO self.assertRaises(CircuitError, qc.crz, 'a', self.qr[1], self.qr[2])
+
+    def test_cry_invalid(self):
+        qc = self.circuit
+        self.assertRaises(CircuitError, qc.cry, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.cry, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.cry, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.cry, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.cry, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.cry, 'a', self.qr[1], self.qr[2])
+
+    def test_crx_invalid(self):
+        qc = self.circuit
+        self.assertRaises(CircuitError, qc.crx, 0, self.cr[0], self.cr[1])
+        self.assertRaises(CircuitError, qc.crx, 0, self.qr[0], self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, 0, .0, self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, self.qr[2], self.qr[1], self.qr[0])
+        self.assertRaises(CircuitError, qc.crx, 0, self.qr[1], self.cr[2])
+        self.assertRaises(CircuitError, qc.crx, 0, (self.qr, 3), self.qr[1])
+        self.assertRaises(CircuitError, qc.crx, 0, self.cr, self.qr)
+        # TODO self.assertRaises(CircuitError, qc.crx, 'a', self.qr[1], self.qr[2])
 
     def test_cswap(self):
         self.circuit.cswap(self.qr[0], self.qr[1], self.qr[2])
@@ -983,6 +1042,78 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
+    def test_cry_reg_reg(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_reg_reg_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_cry_reg_bit(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1])
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_reg_bit_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1]).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_cry_bit_reg(self):
+        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_cry_bit_reg_inv(self):
+        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'cry')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_reg_reg(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_reg_reg_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_reg_bit(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1])
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_reg_bit_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1]).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
+    def test_crx_bit_reg(self):
+        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2)
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [1])
+
+    def test_crx_bit_reg_inv(self):
+        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2).inverse()
+        self.assertEqual(instruction_set.instructions[0].name, 'crx')
+        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
+        self.assertEqual(instruction_set.instructions[2].params, [-1])
+
     def test_cu1_reg_reg(self):
         instruction_set = self.circuit.cu1(1, self.qr, self.qr2)
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
@@ -1248,6 +1379,111 @@ class TestStandardMethods(QiskitTestCase):
             definition_unitary = execute([circ], simulator).result().get_unitary()
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
+
+
+@ddt
+class TestQubitKeywordArgRenaming(QiskitTestCase):
+    """Test renaming of qubit keyword args on standard instructions."""
+
+    # pylint: disable=bad-whitespace
+    @unpack
+    @data(
+        ('h',    HGate,    0, [('q', 'qubit')]),
+        ('ch',   CHGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('iden', IdGate,   0, [('q', 'qubit')]),
+        ('r',    RGate,    2, [('q', 'qubit')]),
+        ('rx',   RXGate,   1, [('q', 'qubit')]),
+        ('crx',  CrxGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('ry',   RYGate,   1, [('q', 'qubit')]),
+        ('cry',  CryGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('rz',   RZGate,   1, [('q', 'qubit')]),
+        ('crz',  CrzGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('s',    SGate,    0, [('q', 'qubit')]),
+        ('sdg',  SdgGate,  0, [('q', 'qubit')]),
+        ('cswap',
+         FredkinGate,
+         0,
+         [('ctl', 'control_qubit'),
+          ('tgt1', 'target_qubit1'),
+          ('tgt2', 'target_qubit2')]),
+        ('t',    TGate,    0, [('q', 'qubit')]),
+        ('tdg',  TdgGate,  0, [('q', 'qubit')]),
+        ('u1',   U1Gate,   1, [('q', 'qubit')]),
+        ('cu1',  Cu1Gate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('u2',   U2Gate,   2, [('q', 'qubit')]),
+        ('u3',   U3Gate,   3, [('q', 'qubit')]),
+        ('cu3',  Cu3Gate,  3, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('x',    XGate,    0, [('q', 'qubit')]),
+        ('cx',   CnotGate, 0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('ccx',
+         ToffoliGate,
+         0,
+         [('ctl1', 'control_qubit1'),
+          ('ctl2', 'control_qubit2'),
+          ('tgt', 'target_qubit')]),
+        ('y',    YGate,    0, [('q', 'qubit')]),
+        ('cy',   CyGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('z',    ZGate,    0, [('q', 'qubit')]),
+        ('cz',   CzGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+    )
+    # pylint: enable=bad-whitespace
+    def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):
+        # Verify providing *args is unchanged
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        getattr(qc, instr_name)(*params[:], *qr[:])
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
+
+        # Verify providing old_arg raises a DeprecationWarning
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        with self.assertWarns(DeprecationWarning):
+            getattr(qc, instr_name)(*params[:],
+                                    **{keyword[0]: qubit
+                                       for keyword, qubit
+                                       in zip(kwarg_map, qr[:])})
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
+
+        # Verify providing new_arg does not raise a DeprecationWarning
+        n_qubits = len(kwarg_map)
+
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr)
+        params = ParameterVector('theta', n_params)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            getattr(qc, instr_name)(*params[:],
+                                    **{keyword[1]: qubit
+                                       for keyword, qubit
+                                       in zip(kwarg_map, qr[:])})
+
+            self.assertEqual(len(w), 0)
+
+        op, qargs, cargs = qc.data[0]
+        self.assertIsInstance(op, inst_class)
+        self.assertEqual(op.params, params[:])
+        self.assertEqual(qargs, qr[:])
+        self.assertEqual(cargs, [])
 
 
 if __name__ == '__main__':

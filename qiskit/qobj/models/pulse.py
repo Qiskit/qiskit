@@ -26,7 +26,7 @@ from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperi
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
-    """Schema for QobjMeasOptiton."""
+    """Schema for QobjMeasOption."""
 
     # Required properties.
     name = String(required=True)
@@ -62,6 +62,7 @@ class PulseQobjInstructionSchema(QobjInstructionSchema):
     discriminators = Nested(QobjMeasurementOptionSchema, many=True)
     label = String()
     type = String()
+    parameters = DictParameters(valid_value_types=(int, float, bool, complex))
 
 
 class PulseQobjExperimentConfigSchema(QobjExperimentConfigSchema):

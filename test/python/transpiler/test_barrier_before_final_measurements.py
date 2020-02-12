@@ -191,7 +191,7 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
 
-class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
+class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
     """Tests the BarrierBeforeFinalMeasurements pass when there is a barrier already"""
 
     def test_handle_redundancy(self):

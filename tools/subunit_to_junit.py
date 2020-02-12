@@ -15,7 +15,7 @@
 # that they have been altered from the originals.
 
 # Based heavily on subunit2junit filter script from the upstream subunit python
-# package, https://github.com/testing-cabal/subunit/ just adapated to run on
+# package, https://github.com/testing-cabal/subunit/ just adapted to run on
 # python3 more reliably.
 
 import argparse
