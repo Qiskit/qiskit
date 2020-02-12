@@ -54,7 +54,7 @@
             "type": "array"
         },
         "complex_matrix": {
-            "description": "JSON representaiton of a complex matrix",
+            "description": "JSON representation of a complex matrix",
             "items": {
                 "$ref": "#/definitions/complex_array"
             },
@@ -96,7 +96,8 @@
                                 "enum": [
                                     "pv",
                                     "fc",
-                                    "acquire"
+                                    "acquire",
+                                    "parametric_pulse"
                                 ]
                             }
                         }
@@ -151,6 +152,24 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "parametric_pulse"
+                            ]
+                        },
+                        "pulse_shape": {"type": "string"},
+                        "parameters": {"type": "object"}
+                    },
+                    "required": [
+                        "pulse_shape",
+                        "parameters",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Parametric pulse"
                 },
                 {
                     "properties": {

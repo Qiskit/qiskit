@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Models for TranspileConfig and RunConfig."""
+"""Models for PassManagerConfig and RunConfig."""
 
 from qiskit.validation import BaseSchema
 
 
-class TranspileConfigSchema(BaseSchema):
-    """Schema for TranspileConfig."""
+class PassManagerConfigSchema(BaseSchema):
+    """Schema for PassManagerConfig."""
 
     # Required properties.
 

@@ -25,7 +25,7 @@ Instructions are identified by the following:
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
-    num_qubits, num_clbits: dimensions of the instruction
+    num_qubits, num_clbits: dimensions of the instruction.
 
     params: List of parameters to specialize a specific instruction instance.
 
@@ -131,7 +131,7 @@ class Instruction:
 
     @property
     def params(self):
-        """return instruction params"""
+        """return instruction params."""
         return self._params
 
     @params.setter
@@ -293,11 +293,11 @@ class Instruction:
 
     def copy(self, name=None):
         """
-        shallow copy of the instruction.
+        Shallow copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
-            if None then the name stays the same
+            if None then the name stays the same.
 
         Returns:
           Instruction: a shallow copy of the current instruction, with the name
@@ -308,6 +308,9 @@ class Instruction:
         if name:
             cpy.name = name
         return cpy
+
+    def __deepcopy__(self, memo=None):
+        return self.copy()
 
     def _qasmif(self, string):
         """Print an if statement if needed."""

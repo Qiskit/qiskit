@@ -17,7 +17,7 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import SamplePulse
+from qiskit.pulse import SamplePulse, PulseError
 import qiskit.pulse.pulse_lib as pulse_lib
 import qiskit.pulse.pulse_lib.continuous as continuous
 
@@ -195,6 +195,20 @@ class TestDiscretePulses(QiskitTestCase):
         gaussian_square_pulse = pulse_lib.gaussian_square(duration, amp, sigma, risefall)
         self.assertIsInstance(gaussian_square_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_square_pulse.samples, gaussian_square_ref)
+
+    def test_gaussian_square_args(self):
+        """Gaussian square allows the user to specify risefall or width. Test this."""
+        amp = 0.5
+        sigma = 0.1
+        duration = 10
+        # risefall and width consistent: no error
+        pulse_lib.gaussian_square(duration, amp, sigma, 2, width=6)
+        # supply width instead: no error
+        pulse_lib.gaussian_square(duration, amp, sigma, width=6)
+        with self.assertRaises(PulseError):
+            pulse_lib.gaussian_square(duration, amp, sigma, width=2, risefall=2)
+        with self.assertRaises(PulseError):
+            pulse_lib.gaussian_square(duration, amp, sigma)
 
     def test_drag(self):
         """Test discrete sampled drag pulse."""

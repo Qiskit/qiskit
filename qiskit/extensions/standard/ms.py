@@ -28,7 +28,6 @@ and is thus reduced to the RXXGate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.rxx import RXXGate
 
 
 class MSGate(Gate):
@@ -39,6 +38,7 @@ class MSGate(Gate):
         super().__init__("ms", n_qubits, [theta])
 
     def _define(self):
+        from qiskit.extensions.standard.rxx import RXXGate
         definition = []
         q = QuantumRegister(self.num_qubits, "q")
         rule = []

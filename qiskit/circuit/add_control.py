@@ -31,68 +31,18 @@ def add_control(operation, num_ctrl_qubits, label):
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
     """
+    import qiskit.extensions.standard as standard
+    if isinstance(operation, standard.RZGate) or operation.name == 'rz':
+        # num_ctrl_qubits > 1
+        # the condition matching 'name' above is to catch a test case,
+        # 'TestControlledGate.test_rotation_gates', where the rz gate
+        # gets converted to a circuit before becoming a generic Gate object.
+        cgate = standard.CrzGate(*operation.params)
+        return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    if _control_definition_known(operation, num_ctrl_qubits):
-        return _control_predefined(operation, num_ctrl_qubits)
     return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
-
-
-def _control_definition_known(operation, num_ctrl_qubits):
-    if num_ctrl_qubits == 2 and operation.name == 'x':
-        return True
-    elif num_ctrl_qubits == 1:
-        return operation.name in {'x', 'y', 'z', 'h', 'rz', 'swap', 'u1', 'u3', 'cx'}
-    elif operation.name == 'rz' and num_ctrl_qubits > 1:
-        return True
-    else:
-        return False
-
-
-def _control_predefined(operation, num_ctrl_qubits):
-    """Returns controlled gates with hard-coded definitions in
-    the standard extensions."""
-    if operation.name == 'x' and num_ctrl_qubits in [1, 2]:
-        if num_ctrl_qubits == 1:
-            import qiskit.extensions.standard.cx
-            cgate = qiskit.extensions.standard.cx.CnotGate()
-        else:
-            import qiskit.extensions.standard.ccx
-            cgate = qiskit.extensions.standard.ccx.ToffoliGate()
-    elif operation.name == 'y':
-        import qiskit.extensions.standard.cy
-        cgate = qiskit.extensions.standard.cy.CyGate()
-    elif operation.name == 'z':
-        import qiskit.extensions.standard.cz
-        cgate = qiskit.extensions.standard.cz.CzGate()
-    elif operation.name == 'h':
-        import qiskit.extensions.standard.ch
-        cgate = qiskit.extensions.standard.ch.CHGate()
-    elif operation.name == 'rz':
-        import qiskit.extensions.standard.crz
-        cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
-        if num_ctrl_qubits == 1:
-            return cgate
-        else:
-            # use crz as base gate for phase correctness
-            return cgate.control(num_ctrl_qubits - 1)
-    elif operation.name == 'swap':
-        import qiskit.extensions.standard.cswap
-        cgate = qiskit.extensions.standard.cswap.FredkinGate()
-    elif operation.name == 'u1':
-        import qiskit.extensions.standard.cu1
-        cgate = qiskit.extensions.standard.cu1.Cu1Gate(*operation.params)
-    elif operation.name == 'u3':
-        import qiskit.extensions.standard.cu3
-        cgate = qiskit.extensions.standard.cu3.Cu3Gate(*operation.params)
-    elif operation.name == 'cx':
-        import qiskit.extensions.standard.ccx
-        cgate = qiskit.extensions.standard.ccx.ToffoliGate()
-    else:
-        raise QiskitError('No standard controlled gate for "{}"'.format(
-            operation.name))
-    return cgate
 
 
 def control(operation, num_ctrl_qubits=1, label=None):
@@ -128,7 +78,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
 
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate_name == 'x'):
+            operation.base_gate.name == 'x'):
         qc.mct(q_control[:] + q_target[:-1],
                q_target[-1],
                None,
@@ -172,21 +122,19 @@ def control(operation, num_ctrl_qubits=1, label=None):
                        None,
                        mode='noancilla')
             else:
-                raise QiskitError('gate contains non-controllable intructions')
+                raise QiskitError('gate contains non-controllable instructions')
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        base_name = operation.base_gate_name
+        base_name = operation.base_gate.name
         base_gate = operation.base_gate
-        base_gate_name = operation.base_gate_name
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
-        base_gate = operation.__class__
-        base_gate_name = operation.name
+        base_gate = operation
     # In order to maintain some backward compatibility with gate names this
     # uses a naming convention where if the number of controls is <=2 the gate
-    # is named like "cc<base_gate_name>", else it is named like
+    # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
         ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
@@ -200,7 +148,6 @@ def control(operation, num_ctrl_qubits=1, label=None):
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition)
     cgate.base_gate = base_gate
-    cgate.base_gate_name = base_gate_name
     return cgate
 
 
