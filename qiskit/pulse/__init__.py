@@ -73,7 +73,7 @@ Configuration
 .. autosummary::
    :toctree: ../stubs/
 
-   CmdDef
+   InstructionScheduleMap
    LoConfig
    LoRange
 
