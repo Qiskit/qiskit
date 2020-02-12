@@ -17,7 +17,7 @@ import uuid
 import copy
 
 from typing import Union, List, Dict, Optional
-from qiskit.circuit import QuantumCircuit, Qubit
+from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
@@ -44,7 +44,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
              meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
              meas_map: Optional[List[List[Qubit]]] = None,
              memory_slot_size: int = 100, rep_time: Optional[float] = None,
-             parameter_binds: Optional[List[Dict]] = None,
+             parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
              parametric_pulses: Optional[List[str]] = None,
              **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a Qobj.
