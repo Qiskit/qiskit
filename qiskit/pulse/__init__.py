@@ -25,7 +25,6 @@ Channels
 .. autosummary::
    :toctree: ../stubs/
 
-   PulseChannelSpec
    DriveChannel
    MeasureChannel
    AcquireChannel
