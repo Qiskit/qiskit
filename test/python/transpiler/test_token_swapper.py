@@ -32,10 +32,10 @@ import itertools
 
 import networkx as nx
 from numpy import random
+from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.passes.routing.algorithms import util
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passes.routing.algorithms import util
-from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 
 class TestGeneral(QiskitTestCase):
@@ -101,7 +101,7 @@ class TestGeneral(QiskitTestCase):
 
     def test_large_partial_random(self) -> None:
         """Test a random (partial) mapping on a large randomly generated graph"""
-        size = 10 ** 3
+        size = 100
         # Note that graph may have "gaps" in the node counts, i.e. the numbering is noncontiguous.
         graph = nx.dense_gnm_random_graph(size, size ** 2 // 10)
         graph.remove_edges_from((i, i) for i in graph.nodes)  # Remove self-loops.
