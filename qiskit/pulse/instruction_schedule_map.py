@@ -39,13 +39,13 @@ from .exceptions import PulseError
 
 class InstructionScheduleMap():
     """Mapping from QuantumCircuit Instruction names and qubits to Schedules. In particular, the
-    mapping is formatted as type:
+    mapping is formatted as type::
 
          Dict[str, Dict[Tuple[int], Schedule]]
 
-    where the first key is the name of a circuit instruction (e.g. 'u1', 'measure'), the second
-    key is a tuple of qubit indices, and the final value is a Schedule implementing the requested
-    instruction.
+    where the first key is the name of a circuit instruction (e.g. ``'u1'``, ``'measure'``), the
+    second key is a tuple of qubit indices, and the final value is a Schedule implementing the
+    requested instruction.
     """
 
     def __init__(self):
@@ -182,9 +182,6 @@ class InstructionScheduleMap():
             qubits: The qubits which the instruction applies to.
             schedule: The Schedule that implements the given instruction.
 
-        Returns:
-            None
-
         Raises:
             PulseError: If the qubits are provided as an empty iterable.
         """
@@ -197,14 +194,11 @@ class InstructionScheduleMap():
         self._qubit_instructions[qubits].add(instruction)
 
     def remove(self, instruction: str, qubits: Union[int, Iterable[int]]) -> None:
-        """Remove the given instruction from the defined instructions.
+        """Remove the given instruction from the listing of instructions defined in self.
 
         Args:
             instruction: The name of the instruction to add.
             qubits: The qubits which the instruction applies to.
-
-        Returns:
-            None
         """
         qubits = _to_tuple(qubits)
         self.assert_has(instruction, qubits)
