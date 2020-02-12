@@ -13,7 +13,13 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-from qiskit.transpiler import Layout, CouplingMap
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.providers import BaseBackend
+from qiskit.providers.models import BackendProperties
+from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
+from qiskit.transpiler.basepasses import BasePass
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.pulse import Schedule
@@ -28,12 +34,17 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_3_pass_manager)
 
 
-def transpile(circuits,
-              backend=None,
-              basis_gates=None, coupling_map=None, backend_properties=None,
-              initial_layout=None, seed_transpiler=None,
-              optimization_level=None,
-              pass_manager=None, callback=None, output_name=None):
+def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+              backend: Optional[BaseBackend] = None, basis_gates: Optional[List[str]] = None,
+              coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
+              backend_properties: Optional[BackendProperties] = None,
+              initial_layout: Optional[Union[Layout, Dict, List]] = None,
+              seed_transpiler: Optional[int] = None, optimization_level: Optional[int] = None,
+              pass_manager: Optional[PassManager] = None,
+              callback: Optional[Callable[[BasePass, DAGCircuit, float,
+                                           PropertySet, int], Any]] = None,
+              output_name: Optional[Union[str, List[str]]] = None) -> Union[QuantumCircuit,
+                                                                            List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either a singleton or list. In case of a list,
@@ -42,19 +53,20 @@ def transpile(circuits,
     Transpilation is done in parallel using multiprocessing.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]):
+        circuits:
             Circuit(s) to transpile
 
-        backend (BaseBackend):
+        backend:
             If set, transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
             If any other option is explicitly set (e.g., coupling_map), it
             will override the backend's.
 
-            Note: the backend arg is purely for convenience. The resulting
-            circuit may be run on any backend as long as it is compatible.
+            .. note::
+                The backend arg is purely for convenience. The resulting
+                circuit may be run on any backend as long as it is compatible.
 
-        basis_gates (list[str]):
+        basis_gates:
             List of basis gate names to unroll to.
             e.g::
 
@@ -62,11 +74,15 @@ def transpile(circuits,
 
             If None, do not unroll.
 
-        coupling_map (CouplingMap or list):
+        coupling_map:
             Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
 
             1. CouplingMap instance
+                e.g::
+
+
+
             2. list
                 Must be given as an adjacency matrix, where each entry
                 specifies all two-qubit interactions supported by backend,
@@ -74,13 +90,13 @@ def transpile(circuits,
 
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
-        backend_properties (BackendProperties):
+        backend_properties:
             properties returned by a backend, including information on gate
             errors, readout errors, qubit coherence times, etc. Find a backend
             that provides this information with:
             ``backend.properties()``
 
-        initial_layout (Layout or dict or list):
+        initial_layout:
             Initial position of virtual qubits on physical qubits.
             If this layout makes the circuit compatible with the coupling_map
             constraints, it will be used.
@@ -112,10 +128,10 @@ def transpile(circuits,
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        seed_transpiler (int):
+        seed_transpiler:
             Sets random seed for the stochastic parts of the transpiler
 
-        optimization_level (int):
+        optimization_level:
             How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
@@ -127,21 +143,21 @@ def transpile(circuits,
 
             If None, level 1 will be chosen as default.
 
-        pass_manager (PassManager):
+        pass_manager:
             The pass manager to use for a custom pipeline of transpiler passes.
             If this arg is present, all other args will be ignored and the
             pass manager will be used directly (Qiskit will not attempt to
             auto-select a pass manager based on transpile options).
 
-        callback (func):
+        callback:
             A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments::
-                pass_ (Pass): the pass being run.
-                dag (DAGCircuit): the dag output of the pass.
-                time (float): the time to execute the pass.
-                property_set (PropertySet): the property set.
-                count (int): the index for the pass execution.
+                pass_: the pass being run.
+                dag: the dag output of the pass.
+                time: the time to execute the pass.
+                property_set: the property set.
+                count: the index for the pass execution.
 
             The exact arguments passed expose the internals of the pass manager,
             and are subject to change as the pass manager internals change. If
@@ -161,12 +177,12 @@ def transpile(circuits,
 
                 transpile(circ, callback=callback_func)
 
-        output_name (str or list[str]) :
+        output_name:
             A list with strings to identify the output circuits. The length of
             `list[str]` should be exactly the length of the `circuits` parameter.
 
     Returns:
-        QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
+        The transpiled circuit(s).
 
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
@@ -213,7 +229,7 @@ def transpile(circuits,
     return circuits
 
 
-def _transpile_circuit(circuit_config_tuple):
+def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit_config_tuple (tuple):
@@ -226,7 +242,7 @@ def _transpile_circuit(circuit_config_tuple):
                  'callback': callable,
                  'pass_manager_config': PassManagerConfig}
     Returns:
-        QuantumCircuit: transpiled circuit
+        The transpiled circuit
     Raises:
         TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
@@ -277,7 +293,7 @@ def _transpile_circuit(circuit_config_tuple):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, seed_transpiler, optimization_level,
-                          pass_manager, callback, output_name):
+                          pass_manager, callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
