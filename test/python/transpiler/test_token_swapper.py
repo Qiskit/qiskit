@@ -34,8 +34,8 @@ import networkx as nx
 from numpy import random
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.routing import util
-from qiskit.transpiler.routing.general import ApproximateTokenSwapper
+from qiskit.transpiler.passes.routing.algorithms import util
+from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 
 class TestGeneral(QiskitTestCase):
