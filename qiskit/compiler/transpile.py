@@ -79,9 +79,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             Multiple formats are supported:
 
             1. CouplingMap instance
-                e.g::
-
-
 
             2. list
                 Must be given as an adjacency matrix, where each entry
