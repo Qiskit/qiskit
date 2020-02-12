@@ -37,6 +37,8 @@ class Initialize(Instruction):
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
+    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
+    which is not unitary.
     """
 
     def __init__(self, params):
