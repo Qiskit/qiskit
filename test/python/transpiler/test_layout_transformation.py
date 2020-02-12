@@ -44,7 +44,7 @@ class TestLayoutTransformation(QiskitTestCase):
         dag = circuit_to_dag(qc)
         q = dag.qubits()
         output_dag = ltpass.run(dag)
-        op_nodes = output_dag.op_nodes()
+        op_nodes = [op for op in output_dag.topological_op_nodes()]
         # output_dag.draw()
         # Check that only two swaps were performed
         self.assertCountEqual(["swap"] * 2, [op.name for op in op_nodes])
