@@ -1,5 +1,5 @@
 ---
-other:
+upgrade:
   - |
     Channel ``buffer`` option was deprecated 4 months ago and has now been removed.
     To add a delay on a channel, specify it explicitly in your Schedule with a
