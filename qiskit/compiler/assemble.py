@@ -16,28 +16,37 @@
 import uuid
 import copy
 
-from qiskit.circuit import QuantumCircuit
+from typing import Union, List, Dict, Optional
+from qiskit.circuit import QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
+from qiskit.providers import BaseBackend
+from qiskit.pulse.channels import PulseChannel
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-def assemble(experiments,
-             backend=None,
-             qobj_id=None, qobj_header=None,
-             shots=None, memory=False, max_credits=None, seed_simulator=None,
-             qubit_lo_freq=None, meas_lo_freq=None,
-             qubit_lo_range=None, meas_lo_range=None,
-             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
-             meas_return=MeasReturnType.AVERAGE, meas_map=None,
-             memory_slot_size=100, rep_time=None, parameter_binds=None,
-             parametric_pulses=None,
-             **run_config):
+def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
+             backend: Optional[BaseBackend] = None,
+             qobj_id: Optional[str] = None, qobj_header: Optional[Union[QobjHeader, Dict]] = None,
+             shots: Optional[int] = None, memory: Optional[bool] = False,
+             max_credits: Optional[int] = None,
+             seed_simulator: Optional[int] = None,
+             qubit_lo_freq: Optional[List[int]] = None, meas_lo_freq: Optional[List[int]] = None,
+             qubit_lo_range: Optional[List[int]] = None, meas_lo_range: Optional[List[int]] = None,
+             schedule_los: Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
+                                          Union[Dict[PulseChannel, float], LoConfig]]] = None,
+             meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
+             meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
+             meas_map: Optional[List[List[Qubit]]] = None,
+             memory_slot_size: int = 100, rep_time: Optional[float] = None,
+             parameter_binds: Optional[List[Dict]] = None,
+             parametric_pulses: Optional[List[str]] = None,
+             **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -45,80 +54,79 @@ def assemble(experiments,
     header and configurations.
 
     Args:
-        experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
+        experiments:
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend):
+        backend:
             If set, some runtime options are automatically grabbed from
-            backend.configuration() and backend.defaults().
+            `backend.configuration()` and `backend.defaults()`.
             If any other option is explicitly set (e.g., rep_rate), it
             will override the backend's.
             If any other options is set in the run_config, it will
             also override the backend's.
 
-        qobj_id (str):
+        qobj_id:
             String identifier to annotate the Qobj
 
-        qobj_header (QobjHeader or dict):
+        qobj_header:
             User input that will be inserted in Qobj header, and will also be
             copied to the corresponding Result header. Headers do not affect the run.
 
-        shots (int):
+        shots:
             Number of repetitions of each circuit, for sampling. Default: 1024
             or max_shots from the backend configuration, whichever is smaller
 
-        memory (bool):
+        memory:
             If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int):
+        max_credits:
             Maximum credits to spend on job. Default: 10
 
-        seed_simulator (int):
+        seed_simulator:
             Random seed to control sampling, for when backend is a simulator
 
-        qubit_lo_freq (list):
+        qubit_lo_freq:
             List of default qubit LO frequencies in Hz. Will be overridden by
             `schedule_los` if set.
 
-        meas_lo_freq (list):
+        meas_lo_freq:
             List of default measurement LO frequencies in Hz. Will be overridden
             by `schedule_los` if set.
 
-        qubit_lo_range (list):
+        qubit_lo_range:
             List of drive LO ranges each of form `[range_min, range_max]` in Hz.
             Used to validate the supplied qubit frequencies.
 
-        meas_lo_range (list):
+        meas_lo_range:
             List of measurement LO ranges each of form `[range_min, range_max]` in Hz.
             Used to validate the supplied qubit frequencies.
 
-        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
-                      Union[Dict[PulseChannel, float], LoConfig]):
+        schedule_los:
             Experiment LO configurations, frequencies are given in Hz.
 
-        meas_level (int or MeasLevel):
+        meas_level:
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str or MeasReturn):
+        meas_return:
             Level of measurement data for the backend to return.
 
             For `meas_level` 0 and 1:
                 * "single" returns information from every shot.
                 * "avg" returns average measurement output (averaged over number of shots).
 
-        meas_map (list):
+        meas_map:
             List of lists, containing qubits that must be measured together.
 
-        memory_slot_size (int):
+        memory_slot_size:
             Size of each memory slot if the output is Level 0.
 
-        rep_time (float): repetition time of the experiment in s.
+        rep_time: repetition time of the experiment in s.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
-        parameter_binds (list[dict{Parameter: Value}]):
+        parameter_binds:
             List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -126,18 +134,18 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        parametric_pulses (list[str]):
+        parametric_pulses:
             A list of pulse shapes which are supported internally on the backend.
             Example: ['gaussian', 'constant']
 
-        **run_config (dict):
+        **run_config:
             extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
 
     Returns:
-            Qobj: a qobj that can be run on a backend. Depending on the type of input,
-            this will be either a QasmQobj or a PulseQobj.
+            A qobj that can be run on a backend. Depending on the type of input,
+            this will be either a ``QasmQobj`` or a ``PulseQobj``.
 
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
