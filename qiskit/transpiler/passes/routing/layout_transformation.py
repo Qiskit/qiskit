@@ -31,31 +31,37 @@ class LayoutTransformation(TransformationPass):
     """
 
     def __init__(self, coupling_map: CouplingMap,
-                 from_layout: Layout,
-                 to_layout: Layout,
+                 from_layout: Union[Layout, str],
+                 to_layout: Union[Layout, str],
                  seed: Union[int, np.random.RandomState] = None,
                  trials=4):
         """LayoutTransformation initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
-            from_layout (Layout): The starting layout of qubits onto physical qubits.
-            to_layout (Layout): The final layout of qubits on phyiscal qubits.
-            seed (Union[int, np.random.RandomState]): Seed to use for random trials.
-            trials (int): How many randomized trials to perform, taking the best circuit as output.
+            coupling_map (CouplingMap):
+                Directed graph represented a coupling map.
+
+            from_layout (Union[Layout, str]):
+                The starting layout of qubits onto physical qubits.
+                If the type is str, look up `property_set` when this pass runs.
+
+            to_layout (Union[Layout, str]):
+                The final layout of qubits on phyiscal qubits.
+                If the type is str, look up `property_set` when this pass runs.
+
+            seed (Union[int, np.random.RandomState]):
+                Seed to use for random trials.
+
+            trials (int):
+                How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.from_layout = from_layout
         self.to_layout = to_layout
         graph = coupling_map.graph.to_undirected()
-        token_swapper = ApproximateTokenSwapper(graph, seed)
-
-        # Find the permutation that between the initial physical qubits and final physical qubits.
-        permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
-                       for vqubit, pqubit in from_layout.get_virtual_bits().items()}
-
-        self.permutation_circuit = token_swapper.permutation_circuit(permutation, trials)
+        self.token_swapper = ApproximateTokenSwapper(graph, seed)
+        self.trials = trials
 
     def run(self, dag):
         """Apply the specified partial permutation to the circuit.
@@ -67,8 +73,8 @@ class LayoutTransformation(TransformationPass):
             DAGCircuit: The DAG with transformed layout.
 
         Raises:
-            TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG.
+            TranspilerError: if the coupling map or the layout are not compatible with the DAG.
+                Or if either of string from/to_layout is not found in `property_set`.
         """
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('LayoutTransform runs on physical circuits only')
@@ -76,7 +82,27 @@ class LayoutTransformation(TransformationPass):
         if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
+        from_layout = self.from_layout
+        if isinstance(from_layout, str):
+            try:
+                from_layout = self.property_set[from_layout]
+            except Exception:
+                raise TranspilerError('No {} (from_layout) in property_set.'.format(from_layout))
+
+        to_layout = self.to_layout
+        if isinstance(to_layout, str):
+            try:
+                to_layout = self.property_set[to_layout]
+            except Exception:
+                raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
+
+        # Find the permutation that between the initial physical qubits and final physical qubits.
+        permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
+                       for vqubit, pqubit in from_layout.get_virtual_bits().items()}
+
+        perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
+
         edge_map = {vqubit: dag.qubits()[pqubit]
-                    for (pqubit, vqubit) in self.permutation_circuit.inputmap.items()}
-        dag.compose_back(self.permutation_circuit.circuit, edge_map=edge_map)
+                    for (pqubit, vqubit) in perm_circ.inputmap.items()}
+        dag.compose_back(perm_circ.circuit, edge_map=edge_map)
         return dag
