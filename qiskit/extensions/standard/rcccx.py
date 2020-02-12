@@ -89,7 +89,7 @@ class RCCCXGate(Gate):
         self.definition = definition
 
     def to_matrix(self):
-        """Return a numpy.array for the PCCCX gate."""
+        """Return a numpy.array for the RCCCX gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
