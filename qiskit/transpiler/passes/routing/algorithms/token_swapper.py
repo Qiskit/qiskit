@@ -35,7 +35,8 @@ from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableS
 import networkx as nx
 import numpy as np
 
-from .types import Swap
+from .types import Swap, Permutation
+from .util import PermutationCircuit, permutation_circuit
 
 _V = TypeVar('_V')
 _T = TypeVar('_T')
@@ -66,6 +67,21 @@ class ApproximateTokenSwapper(Generic[_V]):
         """Compute the distance between two nodes in `graph`."""
         return self.shortest_paths[self.node_map[vertex0], self.node_map[vertex1]]
 
+    def permutation_circuit(self, permutation: Permutation,
+                            trials: int = 4) -> PermutationCircuit:
+        """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
+
+        Args:
+          permutation: The partial mapping to implement in swaps.
+          trials: The number of trials to try to perform the mapping. Minimize over the trials.
+
+        Returns:
+          The circuit to implement the permutation
+        """
+        sequential_swaps = self.map(permutation, trials=trials)
+        parallel_swaps = [[swap] for swap in sequential_swaps]
+        return permutation_circuit(parallel_swaps)
+
     def map(self, mapping: Mapping[_V, _V],
             trials: int = 4) -> List[Swap[_V]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
@@ -82,7 +98,6 @@ class ApproximateTokenSwapper(Generic[_V]):
 
         Returns:
           The swaps to implement the mapping
-
         """
         tokens = dict(mapping)
         digraph = nx.DiGraph()

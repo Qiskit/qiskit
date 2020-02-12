@@ -28,17 +28,16 @@
 
 """Utility functions shared between permutation functionality."""
 
-from typing import List, Tuple, Dict, TypeVar, Iterable, NamedTuple, Any, MutableMapping, Optional
+from typing import List, TypeVar, Iterable, MutableMapping, Optional
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import SwapGate
 
-from .types import Swap
+from .types import Swap, PermutationCircuit
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
-Reg = Tuple[str, int]
 
 
 def swap_permutation(swaps: Iterable[Iterable[Swap[_K]]],
@@ -69,15 +68,7 @@ def swap_permutation(swaps: Iterable[Iterable[Swap[_K]]],
                 mapping[sw1] = val2
 
 
-# Represents a circuit for permuting to a mapping with the associated cost.
-PermutationCircuit = NamedTuple('PermutationCircuit',
-                                [('circuit', DAGCircuit),
-                                 ('inputmap', Dict[Any, Reg])
-                                 # A mapping from architecture nodes to circuit registers.
-                                 ])
-
-
-def circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
+def permutation_circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.

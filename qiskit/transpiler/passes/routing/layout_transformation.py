@@ -20,7 +20,6 @@ import numpy as np
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.routing.algorithms import util
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 
@@ -53,10 +52,8 @@ class LayoutTransformation(TransformationPass):
         # Find the permutation that between the initial physical qubits and final physical qubits.
         permutation = {pqubit: final_layout.get_virtual_bits()[vqubit]
                        for vqubit, pqubit in initial_layout.get_virtual_bits().items()}
-        swaps = token_swapper.map(permutation, trials)
-        # None of the swaps are guaranteed to be disjoint so we perform one swap every layer.
-        parallel_swaps = [[swap] for swap in swaps]
-        self.permutation_circuit = util.circuit(parallel_swaps)
+
+        self.permutation_circuit = token_swapper.permutation_circuit(permutation, trials)
 
     def run(self, dag):
         """Apply the specified partial permutation to the circuit.
