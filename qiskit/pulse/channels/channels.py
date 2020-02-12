@@ -27,34 +27,24 @@ class Channel(metaclass=ABCMeta):
 
     prefix = None
 
-    def __init__(self, index: int, buffer: int = 0):
+    def __init__(self, index: int):
         """Channel class.
 
         Args:
             index: Index of channel
-            buffer: Buffer that should be placed between instructions on channel
 
         Raises:
-            PulseError: If integer index or buffer not supplied
+            PulseError: If index is not an integer
         """
         if not isinstance(index, int):
             raise PulseError('Channel index must be integer')
 
         self._index = index
 
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-
     @property
     def index(self) -> int:
         """Return the index of this channel."""
         return self._index
-
-    @property
-    def buffer(self) -> int:
-        """Return the buffer for this channel."""
-        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-        return 0
 
     @property
     def name(self) -> str:
@@ -70,6 +60,7 @@ class Channel(metaclass=ABCMeta):
 
         Args:
             other: The channel to compare to this channel.
+
         Returns:
             bool: equality
         """
