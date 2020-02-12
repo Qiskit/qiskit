@@ -21,12 +21,12 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import CmdDef, InstructionScheduleMap, Schedule
-
+from qiskit.providers import BaseBackend
 from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-             backend: Optional['BaseBackend'] = None,
+             backend: Optional[BaseBackend] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              cmd_def: Optional[CmdDef] = None,
              meas_map: Optional[List[List[int]]] = None,
