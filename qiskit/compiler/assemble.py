@@ -136,7 +136,9 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
 
         parametric_pulses:
             A list of pulse shapes which are supported internally on the backend.
-            Example: ['gaussian', 'constant']
+            Example::
+
+            ['gaussian', 'constant']
 
         **run_config:
             extra arguments used to configure the run (e.g., for Aer configurable
