@@ -32,6 +32,14 @@ import sphinx_rtd_theme
 
 
 # -- Project information -----------------------------------------------------
+from distutils import dir_util
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import warnings
 
 project = 'Qiskit'
 copyright = '2019, Qiskit Development Team'
@@ -41,7 +49,6 @@ author = 'Qiskit Development Team'
 version = ''
 # The full version, including alpha/beta/rc tags
 release = '0.15.0'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -61,7 +68,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
     'sphinx_automodapi.automodapi',
-    'jupyter_sphinx.execute'
+    'jupyter_sphinx.execute',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -165,82 +172,6 @@ html_favicon = 'theme/static/img/favicon.ico'
 
 html_last_updated_fmt = '%Y/%m/%d'
 
-html_copy_source = False
-
-# -- Options for HTMLHelp output ---------------------------------------------
-
-# Output file base name for HTML help builder.
-htmlhelp_basename = 'Qiskitdoc'
-
-
-# -- Options for LaTeX output ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'Qiskit.tex', 'Qiskit Documentation',
-     'Qiskit Development Team', 'manual'),
-]
-
-
-# -- Options for manual page output ------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'qiskit', 'Qiskit Documentation',
-     [author], 1)
-]
-
-
-# -- Options for Texinfo output ----------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (master_doc, 'Qiskit', 'Qiskit Documentation',
-     author, 'Qiskit', 'One line description of project.',
-     'Miscellaneous'),
-]
-
-
-# -- Options for Epub output -------------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = project
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
-# A list of files that should not be packed into the epub file.
-epub_exclude_files = ['search.html']
-
 autosummary_generate = True
 
 autodoc_default_options = {
@@ -248,9 +179,88 @@ autodoc_default_options = {
 }
 
 autoclass_content = 'both'
+# -- Extension configuration -------------------------------------------------
+
+# Elements with api doc sources
+qiskit_elements = ['qiskit-terra', 'qiskit-aer',
+                   'qiskit-aqua', 'qiskit-ibmq-provider']
+apidocs_exists = False
+apidocs_master = None
+
+
+def _get_current_versions(app):
+    versions = {}
+    setup_py_path = os.path.join(os.path.dirname(app.srcdir), 'setup.py')
+    with open(setup_py_path, 'r') as fd:
+        setup_py = fd.read()
+        for package in qiskit_elements:
+            version_regex = re.compile(package + '[=|>]=(.*)\"')
+            match = version_regex.search(setup_py)
+            if match:
+                ver = match[1]
+                versions[package] = ver
+    return versions
+
+
+def _install_from_master():
+    for package in qiskit_elements + ['qiskit-ignis']:
+        github_url = 'git+https://github.com/Qiskit/%s' % package
+        cmd = [sys.executable, '-m', 'pip', 'install', '-U', github_url]
+        subprocess.run(cmd)
+
+
+def _git_copy(package, sha1, api_docs_dir):
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            github_source = 'https://github.com/Qiskit/%s' % package
+            subprocess.run(['git', 'clone', github_source, temp_dir],
+                           capture_output=True)
+            subprocess.run(['git', 'checkout', sha1], cwd=temp_dir,
+                           capture_output=True)
+            dir_util.copy_tree(
+                os.path.join(temp_dir, 'docs', 'apidocs'),
+                api_docs_dir)
+    except FileNotFoundError:
+        warnings.warn('Copy from git failed for %s at %s, skipping...' %
+                      (package, sha1), RuntimeWarning)
+
+
+def load_api_sources(app):
+    api_docs_dir = os.path.join(app.srcdir, 'apidoc')
+    if os.getenv('DOCS_FROM_MASTER'):
+        global apidocs_master
+        apidocs_master = tempfile.mkdtemp()
+        shutil.move(api_docs_dir, apidocs_master)
+        _install_from_master()
+        for package in qiskit_elements:
+            _git_copy(package, 'HEAD', api_docs_dir)
+        return
+    elif os.path.isdir(api_docs_dir):
+        global apidocs_exists
+        apidocs_exists = True
+        warnings.warn('docs/apidocs already exists skipping source clone')
+        return
+    meta_versions = _get_current_versions(app)
+    for package in qiskit_elements:
+        _git_copy(package, meta_versions[package], api_docs_dir)
+
+
+def clean_api_source(app, exc):
+    api_docs_dir = os.path.join(app.srcdir, 'apidoc')
+    global apidocs_exists
+    global apidocs_master
+    if apidocs_exists:
+        return
+    elif apidocs_master:
+        shutil.rmtree(api_docs_dir)
+        shutil.move(os.path.join(apidocs_master, 'apidoc'), api_docs_dir)
+        return
+    shutil.rmtree(api_docs_dir)
 
 # -- Extension configuration -------------------------------------------------
 
 def setup(app):
+    load_api_sources(app)
     app.setup_extension('versionutils')
     app.add_css_file('css/theme-override.css')
+    app.connect('build-finished', clean_api_source)
