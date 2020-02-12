@@ -284,3 +284,16 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertEqual(drag_arr.dtype, np.complex_)
 
         np.testing.assert_equal(drag_arr, gaussian_arr)
+
+    def test_period_deprecation_warning(self):
+        """Tests for DeprecationWarning"""
+        amp = 0.5
+        period = 5.
+        samples = 101
+        times, _ = np.linspace(0, 10, samples, retstep=True)
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.triangle(times, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.sawtooth(times, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.square(times, amp=amp, period=period))

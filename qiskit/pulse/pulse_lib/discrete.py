@@ -18,6 +18,7 @@
 
 Note the sampling strategy use for all discrete pulses is `midpoint`.
 """
+import warnings
 from typing import Optional
 
 from qiskit.pulse.commands import SamplePulse
@@ -58,7 +59,7 @@ def zero(duration: int, name: Optional[str] = None) -> SamplePulse:
 _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
-def square(duration: int, amp: complex, freq: float = None,
+def square(duration: int, amp: complex, freq: float = None, period: float = None,
            phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates square wave `SamplePulse`.
 
@@ -68,11 +69,17 @@ def square(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
+        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if freq is None:
+    if (freq is None) and (period is None):
         freq = 1./duration
+    elif freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
 
     return _sampled_square_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -80,7 +87,7 @@ def square(duration: int, amp: complex, freq: float = None,
 _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
-def sawtooth(duration: int, amp: complex, freq: float = None,
+def sawtooth(duration: int, amp: complex, freq: float = None, period: float = None,
              phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates sawtooth wave `SamplePulse`.
 
@@ -88,11 +95,17 @@ def sawtooth(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
+        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if freq is None:
+    if (freq is None) and (period is None):
         freq = 1./duration
+    elif freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
 
     return _sampled_sawtooth_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -100,7 +113,7 @@ def sawtooth(duration: int, amp: complex, freq: float = None,
 _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
-def triangle(duration: int, amp: complex, freq: float = None,
+def triangle(duration: int, amp: complex, freq: float = None, period: float = None,
              phase: float = 0, name: Optional[str] = None) -> SamplePulse:
     """Generates triangle wave `SamplePulse`.
 
@@ -110,11 +123,17 @@ def triangle(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency, units of 1./dt. If `None` defaults to 1./duration.
+        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if freq is None:
+    if (freq is None) and (period is None):
         freq = 1./duration
+    elif freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
 
     return _sampled_triangle_pulse(duration, amp, freq, phase=phase, name=name)
 

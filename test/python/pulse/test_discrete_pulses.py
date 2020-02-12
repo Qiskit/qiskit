@@ -210,3 +210,17 @@ class TestDiscretePulses(QiskitTestCase):
         drag_pulse = pulse_lib.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
+
+
+    def test_period_deprecation_warning(self):
+        """Tests for DeprecationWarning"""
+        amp = 0.5
+        period = 5.
+        duration = 10
+
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.triangle(duration, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.sawtooth(duration, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.square(duration, amp=amp, period=period))
