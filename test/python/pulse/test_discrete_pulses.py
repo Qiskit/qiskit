@@ -225,7 +225,6 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(drag_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
 
-
     def test_period_deprecation_warning(self):
         """Tests for DeprecationWarning"""
         amp = 0.5
