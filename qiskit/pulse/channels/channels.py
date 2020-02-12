@@ -15,8 +15,6 @@
 """
 Channels.
 """
-import warnings
-
 from abc import ABCMeta
 
 from qiskit.pulse.exceptions import PulseError
