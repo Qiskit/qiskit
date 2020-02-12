@@ -217,7 +217,6 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         period = 5.
         duration = 10
-
         self.assertWarns(DeprecationWarning,
                          lambda: pulse_lib.triangle(duration, amp=amp, period=period))
         self.assertWarns(DeprecationWarning,
