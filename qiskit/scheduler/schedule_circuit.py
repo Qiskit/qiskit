@@ -32,18 +32,22 @@ def schedule_circuit(circuit: QuantumCircuit,
     scheduled to occur as late as possible.
 
     Supported methods:
-        'as_soon_as_possible': Schedule pulses greedily, as early as possible on a qubit resource
-            alias: 'asap'
-        'as_late_as_possible': Schedule pulses late-- keep qubits in the ground state when possible
-            alias: 'alap'
+
+        * ``as_soon_as_possible``: Schedule pulses greedily, as early as possible on a qubit resource.
+          (alias: ``asap``)
+        * ``as_late_as_possible``: Schedule pulses late-- keep qubits in the ground state when possible.
+          (alias: ``alap``)
+
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
-        method: The scheduling pass method to use
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
+        method: The scheduling pass method to use.
+
     Returns:
-        Schedule corresponding to the input circuit
+        Schedule corresponding to the input circuit.
+
     Raises:
-        QiskitError: If method isn't recognized
+        QiskitError: If method isn't recognized.
     """
     methods = {
         'as_soon_as_possible': as_soon_as_possible,
