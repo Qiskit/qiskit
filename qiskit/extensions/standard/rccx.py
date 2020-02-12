@@ -83,9 +83,9 @@ class RCCXGate(Gate):
                             [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
 
-def rccx(self, ctl1, ctl2, tgt):
+def rccx(self, control_qubit1, control_qubit2, target_qubit):
     """Apply the simplified, relative-phase Toffoli gate."""
-    return self.append(RCCXGate(), [ctl1, ctl2, tgt], [])
+    return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
 
 
 QuantumCircuit.rccx = rccx
