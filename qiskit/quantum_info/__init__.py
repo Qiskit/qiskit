@@ -22,40 +22,40 @@ Operators
 =========
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    Operator
-    Pauli
-    pauli_group
-    Quaternion
+   Operator
+   Pauli
+   pauli_group
+   Quaternion
 
 States
 ======
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    Statevector
-    DensityMatrix
+   Statevector
+   DensityMatrix
 
 Channels
 ========
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    Choi
-    SuperOp
-    Kraus
-    Stinespring
-    Chi
-    PTM
+   Choi
+   SuperOp
+   Kraus
+   Stinespring
+   Chi
+   PTM
 
 Measures
 ========
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
    state_fidelity
    purity
@@ -81,30 +81,30 @@ Random
 ======
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    random_unitary
-    random_state
-    random_density_matrix
+   random_unitary
+   random_state
+   random_density_matrix
 
 Analysis
 =========
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    hellinger_fidelity
+   hellinger_fidelity
 
 Synthesis
 =========
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-    euler_angles_1q
-    two_qubit_cnot_decompose
-    TwoQubitBasisDecomposer
-    OneQubitEulerDecomposer
+   euler_angles_1q
+   two_qubit_cnot_decompose
+   TwoQubitBasisDecomposer
+   OneQubitEulerDecomposer
 """
 
 from .operators.operator import Operator
