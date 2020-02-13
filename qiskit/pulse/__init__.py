@@ -48,14 +48,12 @@ Commands
    Kernel
    Discriminator
    Delay
-   functional_pulse
    ParametricPulse
    ParametricInstruction
    Gaussian
    GaussianSquare
    Drag
    ConstantPulse
-   functional_pulse
 
 Schedules
 =========
