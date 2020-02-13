@@ -68,7 +68,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 3 pass manager.
+        a level 3 pass manager.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
