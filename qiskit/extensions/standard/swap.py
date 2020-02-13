@@ -24,7 +24,7 @@ from qiskit.util import deprecate_arguments
 
 
 class SwapGate(Gate):
-    """Swap gate."""
+    """SWAP gate."""
 
     def __init__(self):
         """Create new SWAP gate."""
@@ -65,7 +65,7 @@ class SwapGate(Gate):
         return SwapGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a numpy.array for the Swap gate."""
+        """Return a numpy.array for the SWAP gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0],
@@ -115,7 +115,7 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     """The controlled-swap gate, also called Fredkin gate."""
 
     def __init__(self):
-        """Create new CSwap gate."""
+        """Create new CSWAP gate."""
         super().__init__('cswap', 3, [], num_ctrl_qubits=1)
         self.base_gate = SwapGate()
 
