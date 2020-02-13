@@ -19,13 +19,13 @@ import warnings
 from inspect import signature
 from ddt import ddt, data, unpack
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate, ParameterVector
-from qiskit import BasicAer
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 from qiskit.extensions.standard import (
@@ -1354,7 +1354,6 @@ class TestStandardMethods(QiskitTestCase):
         definition."""
         params = [0.1 * i for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
             sig = signature(gate_class.__init__)
             free_params = len(sig.parameters) - 1  # subtract "self"
@@ -1376,7 +1375,10 @@ class TestStandardMethods(QiskitTestCase):
                 self.log.info('to_matrix method FAILED for "%s" gate',
                               gate.name)
                 continue
-            definition_unitary = execute([circ], simulator).result().get_unitary()
+            # Unroll gate definition
+            ucirc = transpile(circ, optimization_level=0, basis_gates=['id', 'u3', 'cx'])
+            # Unrolled Unitary
+            definition_unitary = Operator(ucirc).data
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
 

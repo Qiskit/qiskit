@@ -473,12 +473,7 @@ class TestControlledGate(QiskitTestCase):
                     # 'object has no attribute "control"'
                     # skipping Id and Barrier
                     continue
-                if gate.name == 'rz':
-                    iden = Operator.from_label('I')
-                    zgen = Operator.from_label('Z')
-                    base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
-                else:
-                    base_mat = Operator(gate).data
+                base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
