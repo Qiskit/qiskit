@@ -55,12 +55,6 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @property
-    def buffer(self) -> int:
-        """Buffer for schedule. To be used when appending"""
-        warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-        return 0
-
-    @property
     @abstractmethod
     def stop_time(self) -> int:
         """Stopping time of this schedule component."""
@@ -128,27 +122,24 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @abstractmethod
     def insert(self, start_time: int, schedule: 'ScheduleComponent',
-               buffer: bool = False,
                name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
 
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
-            buffer: Obey buffer when appending
             name: Name of the new schedule. Defaults to name of parent
         """
         pass
 
     @abstractmethod
-    def append(self, schedule: 'ScheduleComponent', buffer: bool = False,
+    def append(self, schedule: 'ScheduleComponent',
                name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
         Args:
             schedule: schedule to be appended
-            buffer: Obey buffer when appending
             name: Name of the new schedule. Defaults to name of parent
         """
         pass

@@ -38,7 +38,6 @@ Commands
 .. autosummary::
    :toctree: ../stubs/
 
-   Instruction
    Acquire
    AcquireInstruction
    FrameChange
@@ -64,7 +63,7 @@ Schedules
    :toctree: ../stubs/
 
    Schedule
-   ScheduleComponent
+   Instruction
 
 Configuration
 =============
