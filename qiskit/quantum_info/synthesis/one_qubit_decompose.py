@@ -25,7 +25,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
                                         RGate)
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 DEFAULT_ATOL = 1e-12
@@ -81,18 +80,12 @@ class OneQubitEulerDecomposer:
         Raises:
             QiskitError: If input basis is not recognized.
         """
-        basis_methods = {
-            'U3': (self._params_u3, self._circuit_u3),
-            'U1X': (self._params_u1x, self._circuit_u1x),
-            'RR': (self._params_zyz, self._circuit_rr),
-            'ZYZ': (self._params_zyz, self._circuit_zyz),
-            'ZXZ': (self._params_zxz, self._circuit_zxz),
-            'XYX': (self._params_xyx, self._circuit_xyx)
-        }
-        if basis not in basis_methods:
-            raise QiskitError("OneQubitEulerDecomposer: unsupported basis")
-        self._basis = basis
-        self._params, self._circuit = basis_methods[self._basis]
+        # Default values
+        self._basis = 'U3'
+        self._params = self._params_u3
+        self._circuit = self._circuit_u3
+        # Set basis
+        self.basis = basis
 
     def __call__(self,
                  unitary,
@@ -143,6 +136,22 @@ class OneQubitEulerDecomposer:
     def basis(self):
         """The decomposition basis."""
         return self._basis
+
+    @basis.setter
+    def basis(self, basis):
+        """Set the decomposition basis."""
+        basis_methods = {
+            'U3': (self._params_u3, self._circuit_u3),
+            'U1X': (self._params_u1x, self._circuit_u1x),
+            'RR': (self._params_zyz, self._circuit_rr),
+            'ZYZ': (self._params_zyz, self._circuit_zyz),
+            'ZXZ': (self._params_zxz, self._circuit_zxz),
+            'XYX': (self._params_xyx, self._circuit_xyx)
+        }
+        if basis not in basis_methods:
+            raise QiskitError("OneQubitEulerDecomposer: unsupported basis {}".format(basis))
+        self._basis = basis
+        self._params, self._circuit = basis_methods[self._basis]
 
     def angles(self, unitary):
         """Return the Euler angles for input array.
@@ -198,6 +207,9 @@ class OneQubitEulerDecomposer:
         """
         # NOTE: this function isn't specific to this class so could be
         # moved to another location for more general use.
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators import Operator
         if phase_equal and Operator(circuit) != Operator(unitary):
             raise QiskitError(
                 "Phase equal circuit synthesis failed within required accuracy."
