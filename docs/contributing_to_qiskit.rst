@@ -812,6 +812,12 @@ universally depending on operating system.
 
             dnf install @development-tools
 
+         For Ubuntu/Debian install it using:
+
+         .. code:: sh
+
+            apt-get install build-essential
+
       4. Install OpenBLAS development headers.
 
          If you're using Fedora or an equivalent Linux distribution,
@@ -820,6 +826,12 @@ universally depending on operating system.
          .. code:: sh
 
             dnf install openblas-devel
+
+         For Ubuntu/Debian install it using:
+
+         .. code:: sh
+
+            apt-get install libopenblas-dev
 
 
    .. tab:: macOS
