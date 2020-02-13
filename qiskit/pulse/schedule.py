@@ -437,7 +437,7 @@ class Schedule(ScheduleComponent):
         .. warning::
 
             This does not check for logical equivalency. Ie.,
-            
+
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))
