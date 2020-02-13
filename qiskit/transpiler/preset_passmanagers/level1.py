@@ -44,9 +44,7 @@ from qiskit.transpiler.passes import DenseLayout
 
 
 def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
-    """Return a pass manager for optimization level 0.
-
-    Level 1 pass manager: light optimization by simple adjacent gate collapsing.
+    """Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
     This pass manager applies the user-given initial layout. If none is given, and a trivial
     layout (i-th virtual -> i-th physical) makes the circuit fit the coupling map, that is used.

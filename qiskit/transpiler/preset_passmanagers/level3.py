@@ -47,9 +47,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 
 
 def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
-    """Return a pass manager for optimization level 3.
-
-    Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
+    """Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
 
     This pass manager applies the user-given initial layout. If none is given, and

@@ -37,9 +37,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 
 
 def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
-    """Return a pass manager for optimization level 0.
-
-    Level 0 pass manager: no explicit optimization other than mapping to backend.
+    """Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
     layout consisting of mapping the i-th virtual qubit to the i-th physical qubit is used.
