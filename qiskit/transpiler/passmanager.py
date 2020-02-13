@@ -14,6 +14,7 @@
 
 """PassManager class for the transpiler."""
 
+import warnings
 import dill
 
 from qiskit.visualization import pass_manager_drawer
@@ -35,40 +36,22 @@ class PassManager:
                 to be added to the pass manager schedule. The default is None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
-            callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments::
-                    pass_ (Pass): the pass being run
-                    dag (DAGCircuit): the dag output of the pass
-                    time (float): the time to execute the pass
-                    property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
-
-                The exact arguments pass expose the internals of the pass
-                manager and are subject to change as the pass manager internals
-                change. If you intend to reuse a callback function over
-                multiple releases be sure to check that the arguments being
-                passed are the same.
-
-                To use the callback feature you define a function that will
-                take in kwargs dict and access the variables. For example::
-
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-
-                    PassManager(callback=callback_func)
-
+            callback (func): DEPRECATED - A callback function that will be called after each
+                pass execution.
         """
+        self.callback = None
+
+        if callback:
+            warnings.warn("Setting a callback at construction time is being deprecated in favor of"
+                          "PassManager.run(..., callback=callback,...)", DeprecationWarning, 2)
+            self.callback = callback
+        # the pass manager's schedule of passes, including any control-flow.
+        # Populated via PassManager.append().
+
         self._pass_sets = []
         if passes is not None:
             self.append(passes)
         self.max_iteration = max_iteration
-        self.callback = callback
         self.property_set = None
 
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
@@ -141,9 +124,7 @@ class PassManager:
         return len(self._pass_sets)
 
     def __getitem__(self, index):
-        max_iteration = self.max_iteration
-        call_back = self.callback
-        new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+        new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]
@@ -152,16 +133,13 @@ class PassManager:
 
     def __add__(self, other):
         if isinstance(other, PassManager):
-            max_iteration = self.max_iteration
-            call_back = self.callback
-            new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+            new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
             new_passmanager._pass_sets = self._pass_sets + other._pass_sets
             return new_passmanager
         else:
             try:
-                max_iteration = self.max_iteration
-                call_back = self.callback
-                new_passmanager = PassManager(max_iteration=max_iteration, callback=call_back)
+                new_passmanager = PassManager(max_iteration=self.max_iteration,
+                                              callback=self.callback)
                 new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
@@ -179,23 +157,49 @@ class PassManager:
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)
         return passes
 
-    def run(self, circuits):
+    def run(self, circuits, output_name=None, callback=None):
         """Run all the passes on circuit or circuits
 
         Args:
             circuits (QuantumCircuit or list[QuantumCircuit]): circuit(s) to
-            transform via all the registered passes.
+                transform via all the registered passes.
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
+            callback (func): A callback function that will be called after each
+                pass execution. The function will be called with 5 keyword
+                arguments::
+                    pass_ (Pass): the pass being run
+                    dag (DAGCircuit): the dag output of the pass
+                    time (float): the time to execute the pass
+                    property_set (PropertySet): the property set
+                    count (int): the index for the pass execution
 
+                The exact arguments pass expose the internals of the pass
+                manager and are subject to change as the pass manager internals
+                change. If you intend to reuse a callback function over
+                multiple releases be sure to check that the arguments being
+                passed are the same.
+
+                To use the callback feature you define a function that will
+                take in kwargs dict and access the variables. For example::
+
+                    def callback_func(**kwargs):
+                        pass_ = kwargs['pass_']
+                        dag = kwargs['dag']
+                        time = kwargs['time']
+                        property_set = kwargs['property_set']
+                        count = kwargs['count']
+                        ...
         Returns:
             QuantumCircuit or list[QuantumCircuit]: Transformed circuit(s).
         """
         if isinstance(circuits, QuantumCircuit):
-            return self._run_single_circuit(circuits)
+            return self._run_single_circuit(circuits, output_name, callback)
         else:
-            return self._run_several_circuits(circuits)
+            return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self):
-        running_passmanager = RunningPassManager(self.max_iteration, self.callback)
+        running_passmanager = RunningPassManager(self.max_iteration)
         for pass_set in self._pass_sets:
             running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
         return running_passmanager
@@ -207,29 +211,61 @@ class PassManager:
         result = running_passmanager.run(circuit)
         return result
 
-    def _run_several_circuits(self, circuits):
+    def _run_several_circuits(self, circuits, output_name=None, callback=None):
         """Run all the passes on each of the circuits in the circuits list
-
-        Args:
-            circuits (list[QuantumCircuit]): circuit to transform via all the registered passes
-
         Returns:
             list[QuantumCircuit]: Transformed circuits.
         """
+        # TODO support for List(output_name) and List(callback)
+        del output_name
+        del callback
+
         return parallel_map(PassManager._in_parallel, circuits,
                             task_kwargs={'pm_dill': dill.dumps(self)})
 
-    def _run_single_circuit(self, circuit):
+    def _run_single_circuit(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
+            callback (func): A callback function that will be called after each
+                pass execution. The function will be called with 5 keyword
+                arguments:
+                    pass_ (Pass): the pass being run
+                    dag (DAGCircuit): the dag output of the pass
+                    time (float): the time to execute the pass
+                    property_set (PropertySet): the property set
+                    count (int): the index for the pass execution
+
+                The exact arguments pass expose the internals of the pass
+                manager and are subject to change as the pass manager internals
+                change. If you intend to reuse a callback function over
+                multiple releases be sure to check that the arguments being
+                passed are the same.
+
+                To use the callback feature you define a function that will
+                take in kwargs dict and access the variables. For example::
+
+                    def callback_func(**kwargs):
+                        pass_ = kwargs['pass_']
+                        dag = kwargs['dag']
+                        time = kwargs['time']
+                        property_set = kwargs['property_set']
+                        count = kwargs['count']
+                        ...
+
+                    PassManager(callback=callback_func)
+
 
         Returns:
             QuantumCircuit: Transformed circuit.
         """
         running_passmanager = self._create_running_passmanager()
-        result = running_passmanager.run(circuit)
+        if callback is None and self.callback:  # TODO to remove with __init__(callback)
+            callback = self.callback
+        result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
         self.property_set = running_passmanager.property_set
         return result
 
@@ -266,8 +302,7 @@ class PassManager:
         for pass_set in self._pass_sets:
             item = {'passes': pass_set['passes']}
             if pass_set['flow_controllers']:
-                item['flow_controllers'] = {controller_name for controller_name in
-                                            pass_set['flow_controllers'].keys()}
+                item['flow_controllers'] = set(pass_set['flow_controllers'].keys())
             else:
                 item['flow_controllers'] = {}
             ret.append(item)

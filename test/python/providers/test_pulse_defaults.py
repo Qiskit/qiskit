@@ -28,7 +28,7 @@ class TestPulseDefaults(QiskitTestCase):
 
     def setUp(self):
         self.defs = FakeOpenPulse2Q().defaults()
-        self.inst_map = self.defs.circuit_instruction_map
+        self.inst_map = self.defs.instruction_schedule_map
 
     def test_buffer(self):
         """Test getting the buffer value."""
@@ -49,8 +49,8 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertTrue(self.inst_map.has('u3', (0,)))
         self.assertTrue(self.inst_map.has('u3', 1))
         self.assertTrue(self.inst_map.has('cx', (0, 1)))
-        self.assertEqual(self.inst_map.get_parameters('u1', 0), ('P1',))
-        u1_minus_pi = self.inst_map.get('u1', 0, P1=1)
+        self.assertEqual(self.inst_map.get_parameters('u1', 0), ('P0',))
+        u1_minus_pi = self.inst_map.get('u1', 0, P0=np.pi)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
 

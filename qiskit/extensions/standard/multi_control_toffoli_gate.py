@@ -22,8 +22,6 @@ from math import pi, ceil
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 
 from qiskit import QiskitError
-# pylint: disable=unused-import
-from .relative_phase_toffoli import rccx
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +218,7 @@ def _multicx_recursion(qc, qrs, qancilla=None):
         _ccccx(qc, qrs)
     else:  # qrs[0], qrs[n-2] is the controls, qrs[n-1] is the target, and qancilla as working qubit
         assert qancilla is not None, ('There must be an ancilla qubit not '
-                                      'necesseraly initialized to zero')
+                                      'necessarily initialized to zero')
         n = len(qrs)
         mid = ceil(n / 2)
         _multicx_recursion(qc, [*qrs[:mid], qancilla], qrs[mid])
@@ -274,7 +272,7 @@ def mct(self, q_controls, q_target, q_ancilla, mode='basic'):
     else:
         # check controls
         if isinstance(q_controls, QuantumRegister):
-            control_qubits = [qb for qb in q_controls]
+            control_qubits = list(q_controls)
         elif isinstance(q_controls, list):
             control_qubits = q_controls
         else:
@@ -290,7 +288,7 @@ def mct(self, q_controls, q_target, q_ancilla, mode='basic'):
         if q_ancilla is None:
             ancillary_qubits = []
         elif isinstance(q_ancilla, QuantumRegister):
-            ancillary_qubits = [qb for qb in q_ancilla]
+            ancillary_qubits = list(q_ancilla)
         elif isinstance(q_ancilla, list):
             ancillary_qubits = q_ancilla
         else:
