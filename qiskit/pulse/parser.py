@@ -286,6 +286,19 @@ def parse_string_expr(source: str, partial_binding: bool = False):
 
     Returns:
         PulseExpression: Returns a expression object.
+
+    Example:
+
+        expr = 'P1 + P2 + P3'
+        parsed_expr = parse_string_expr(expr, partial_binding=True)
+
+        # create new PulseExpression
+        bound_two = parsed_expr(P1=1, P2=2)
+        # evaluate expression
+        value1 = bound_two(P3=3)
+        value2 = bound_two(P3=4)
+        value3 = bound_two(P3=5)
+
     """
     subs = [('numpy.', ''), ('np.', ''), ('math.', ''), ('cmath.', '')]
     for match, sub in subs:
