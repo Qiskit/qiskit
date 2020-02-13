@@ -18,7 +18,7 @@ Tests for the Collect2qBlocks transpiler pass.
 
 import unittest
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
@@ -137,7 +137,49 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         transpile(qc, backend, pass_manager=pass_manager)
 
-        self.assertEqual([['cx', 'u1']],
+        self.assertEqual([['cx']],
+                         [[n.name for n in block]
+                          for block in pass_manager.property_set['block_list']])
+
+    def test_do_not_merge_conditioned_gates(self):
+        """Validate that classically conditioned gates are never considered for
+        inclusion in a block. Note that there are cases where gates conditioned
+        on the same (register, value) pair could be correctly merged, but this is
+        not yet implemented.
+
+                 ┌─────────┐┌─────────┐┌─────────┐      ┌───┐
+        qr_0: |0>┤ U1(0.1) ├┤ U1(0.2) ├┤ U1(0.3) ├──■───┤ X ├────■───
+                 └─────────┘└────┬────┘└────┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
+        qr_1: |0>────────────────┼──────────┼─────┤ X ├───■────┤ X ├─
+                                 │          │     └───┘   │    └─┬─┘
+        qr_2: |0>────────────────┼──────────┼─────────────┼──────┼───
+                              ┌──┴──┐    ┌──┴──┐       ┌──┴──┐┌──┴──┐
+         cr_0: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
+                              │ = 0 │    │ = 0 │       │ = 0 ││ = 1 │
+         cr_1: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
+                              └─────┘    └─────┘       └─────┘└─────┘
+
+        Previously the blocks collected were : [['u1', 'u1', 'u1', 'cx', 'cx', 'cx']]
+        This is now corrected to : [['cx']]
+        """
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
+
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+
+        qc = QuantumCircuit(qr, cr)
+        qc.u1(0.1, 0)
+        qc.u1(0.2, 0).c_if(cr, 0)
+        qc.u1(0.3, 0).c_if(cr, 0)
+        qc.cx(0, 1)
+        qc.cx(1, 0).c_if(cr, 0)
+        qc.cx(0, 1).c_if(cr, 1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+
+        transpile(qc, pass_manager=pass_manager)
+        self.assertEqual([['cx']],
                          [[n.name for n in block]
                           for block in pass_manager.property_set['block_list']])
 

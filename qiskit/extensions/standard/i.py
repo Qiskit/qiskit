@@ -19,6 +19,7 @@ import warnings
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.util import deprecate_arguments
 
 
 class IMeta(type):
@@ -63,16 +64,38 @@ class IdGate(IGate, metaclass=IMeta):
         super().__init__()
 
 
-def i(self, q):
-    """Apply Identity to q.
+@deprecate_arguments({'q': 'qubit'})
+def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Identity to to a specified qubit (qubit).
 
-    Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized or unrolled (it is an opaque gate).
+    The Identity gate ensures that nothing is applied to a qubit for one unit
+    of gate time. It leaves the quantum states |0> and |1> unchanged.
+    The Identity gate should not be optimized or unrolled (it is an opaque gate).
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.iden(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.iden import IdGate
+            IdGate().to_matrix()
     """
-    return self.append(IGate(), [q], [])
+    return self.append(IGate(), [qubit], [])
 
 
-def iden(self, q):
+@deprecate_arguments({'q': 'qubit'})
+def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Deprecated identity gate."""
     warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.12.0, and '
                   'will be removed no earlier than 3 months after that release date. '
@@ -84,4 +107,5 @@ def iden(self, q):
 # support both i and id as methods of QuantumCircuit
 QuantumCircuit.i = i
 QuantumCircuit.id = i
+
 QuantumCircuit.iden = iden  # deprecated, remove once IdGate is removed

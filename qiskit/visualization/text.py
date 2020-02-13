@@ -501,6 +501,9 @@ class TextDrawing():
                'font-family: &quot;Courier New&quot;,Courier,monospace">' \
                '%s</pre>' % self.single_string()
 
+    def __repr__(self):
+        return self.single_string()
+
     def single_string(self):
         """Creates a long string with the ascii art.
 
@@ -700,7 +703,7 @@ class TextDrawing():
         if getattr(instruction.op, 'label', None) is not None:
             return instruction.op.label
         if controlled:
-            label = instruction.op.base_gate_name
+            label = instruction.op.base_gate.name
         else:
             label = instruction.name
         params = TextDrawing.params_for_label(instruction)

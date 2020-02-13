@@ -37,7 +37,7 @@ def add_control(operation, num_ctrl_qubits, label):
         # the condition matching 'name' above is to catch a test case,
         # 'TestControlledGate.test_rotation_gates', where the rz gate
         # gets converted to a circuit before becoming a generic Gate object.
-        cgate = standard.CrzGate(*operation.params)
+        cgate = standard.CRZGate(*operation.params)
         return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
@@ -78,7 +78,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
 
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate_name == 'x'):
+            operation.base_gate.name == 'x'):
         qc.mct(q_control[:] + q_target[:-1],
                q_target[-1],
                None,
@@ -126,17 +126,15 @@ def control(operation, num_ctrl_qubits=1, label=None):
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        base_name = operation.base_gate_name
+        base_name = operation.base_gate.name
         base_gate = operation.base_gate
-        base_gate_name = operation.base_gate_name
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
-        base_gate = operation.__class__
-        base_gate_name = operation.name
+        base_gate = operation
     # In order to maintain some backward compatibility with gate names this
     # uses a naming convention where if the number of controls is <=2 the gate
-    # is named like "cc<base_gate_name>", else it is named like
+    # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
         ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
@@ -150,7 +148,6 @@ def control(operation, num_ctrl_qubits=1, label=None):
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition)
     cgate.base_gate = base_gate
-    cgate.base_gate_name = base_gate_name
     return cgate
 
 

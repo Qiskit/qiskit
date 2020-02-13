@@ -19,10 +19,11 @@
 import os
 import unittest
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.visualization import pulse_drawer
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
-from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot, Delay, Gaussian
+from qiskit.pulse.commands import FrameChange, Acquire, ConstantPulse, Snapshot, Delay, Gaussian
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
@@ -61,7 +62,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         delay = Delay(100)
         sched = Schedule()
         sched = sched.append(gp0(DriveChannel(0)))
-        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(ControlChannel(0)))
+        sched = sched.insert(0, ConstantPulse(duration=60, amp=0.2 + 0.4j)(ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))

@@ -147,6 +147,10 @@ class CommonUtilitiesMixin:
         with open(filename, "rb") as input_file:
             expected = pickle.load(input_file)
 
+        from qiskit.converters import circuit_to_dag
+        from qiskit.visualization import dag_drawer
+        print(circuit_to_dag(circuit))
+        print(circuit_to_dag(expected))
         self.assertEqual(result, expected)
 
 
