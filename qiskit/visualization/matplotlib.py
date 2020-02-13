@@ -531,10 +531,10 @@ class MatplotlibDrawer:
 
         def _fix_double_script(label):
             words = label.split(' ')
-            words = [word.replace('_', r'\_') if word.count('_') > 1 else word \
-                        for word in words]
-            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word \
-                        for word in words]
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word 
+                    for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word 
+                    for word in words]
             return ' '.join(words)
 
         len_longest_label = 0
@@ -552,11 +552,11 @@ class MatplotlibDrawer:
             else:
                 label = '${name}$'.format(name=reg.register.name)
 
+            label = _fix_double_script(label)
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
 
             pos = -ii
-            label = _fix_double_script(label)
             self._qreg_dict[ii] = {
                 'y': pos,
                 'label': label,
