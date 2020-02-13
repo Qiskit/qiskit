@@ -86,7 +86,7 @@ def square(duration: int, amp: complex, period: float = None,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        period: Pulse period, units of dt. If ``None``, defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -126,8 +126,8 @@ def sawtooth(duration: int, amp: complex, period: float = None,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
+        period: Pulse period, units of dt. If ``None``, defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -166,8 +166,8 @@ def triangle(duration: int, amp: complex, period: float = None,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt. If `None` defaults to single cycle.
+        amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
+        period: Pulse period, units of dt. If ``None``, defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -223,7 +223,7 @@ def sin(duration: int, amp: complex, freq: float = None,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude.
-        freq: Pulse frequency, units of 1/dt. If `None` defaults to single cycle.
+        freq: Pulse frequency, units of 1/dt. If ``None`` defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -263,7 +263,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude at `duration/2`.
+        amp: Pulse amplitude at ``duration/2``.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
         zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
@@ -294,7 +294,7 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude at `center`.
+        amp: Pulse amplitude of corresponding Gaussian at center ``duration/2``.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
     """
@@ -400,13 +400,14 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
         amp: Pulse amplitude.
         sigma: Width (standard deviation) of Gaussian rise/fall portion of the pulse.
         risefall: Number of samples over which pulse rise and fall happen. Width of
-            square portion of pulse will be `duration-2*risefall`.
-        width: The duration of the embedded square pulse. Only one of `width` or `risefall`
-               should be specified since width = duration - 2 * risefall.
+            square portion of pulse will be ``duration-2*risefall``.
+        width: The duration of the embedded square pulse. Only one of ``width`` or ``risefall``
+               should be specified as the functional form requires
+               ``width = duration - 2 * risefall``.
         name: Name of pulse.
-        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If ``True``, make the first and last sample zero, but rescale to preserve amp.
     Raises:
-        PulseError: If risefall and width arguments are inconsistent or not enough info.
+        PulseError: If ``risefall`` and ``width`` arguments are inconsistent or not enough info.
     """
     if risefall is None and width is None:
         raise PulseError("gaussian_square missing required argument: 'width' or 'risefall'.")
@@ -450,10 +451,10 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude at ``center = duration/2``.
+        amp: Pulse amplitude at center  ``duration/2``.
         sigma: Width (standard deviation) of pulse.
         beta: Y correction amplitude. For the SNO this is
-              :math:`\beta=-\frac{\lambda_1^2}{4\Delta_2}`. Where :math:`\lambds_1` is the
+              :math:`\beta=-\frac{\lambda_1^2}{4\Delta_2}`. Where :math:`\lambda_1` is the
               relative coupling strength between the first excited and second excited states
               and :math:`\Delta_2` is the detuning between the respective excited states.
         name: Name of pulse.
