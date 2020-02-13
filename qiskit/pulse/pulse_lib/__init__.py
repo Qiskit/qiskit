@@ -12,6 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for builtin pulse_lib."""
+"""
+.. currentmodule:: qiskit.pulse.pulse_lib
+
+Pulse Library
+=============
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    discrete
+"""
 
 from .discrete import *
