@@ -176,7 +176,7 @@ def visualize_transition(circuit,
     if not HAS_IPYTHON and jupyter is True:
         raise ImportError("Must have IPython installed.")
     if len(circuit.qubits) != 1:
-        raise VisualizationError("Only one quibit circuits are supported")
+        raise VisualizationError("Only one qubit circuits are supported")
 
     frames_per_gate = fpg
     time_between_frames = (spg*1000)/fpg
