@@ -32,7 +32,7 @@ _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 def constant(duration: int, amp: complex, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates constant-sampled :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, samples from the function:
+    For :math:`A=```amp``, samples from the function:
 
     .. math::
 
@@ -72,7 +72,7 @@ def square(duration: int, amp: complex, period: float = None,
            phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates square wave :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``period`` :math:`T`, and ``phase`` :math:`\phi`,
+    For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -80,12 +80,12 @@ def square(duration: int, amp: complex, period: float = None,
 
         f(x) = A \text{sign}\left[ \sin\left(\frac{2 \pi x}{T} + 2\phi\right) \right]
 
-    where :math:`\text{sign}(0) = 1`.
+    with the convention :math:`\text{sign}(0) = 1`.
 
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude. Wave range is [-amp, amp].
+        amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         period: Pulse period, units of dt. If `None` defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
@@ -103,7 +103,7 @@ def sawtooth(duration: int, amp: complex, period: float = None,
              phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates sawtooth wave :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``period`` :math:`T`, and ``phase`` :math:`\phi`,
+    For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -144,7 +144,7 @@ def triangle(duration: int, amp: complex, period: float = None,
              phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates triangle wave :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``period`` :math:`T`, and ``phase`` :math:`\phi`,
+    For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -184,7 +184,7 @@ def cos(duration: int, amp: complex, freq: float = None,
         phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates cosine wave :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``freq`` :math:`\omega`, and ``phase`` :math:`\phi`,
+    For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -195,7 +195,7 @@ def cos(duration: int, amp: complex, freq: float = None,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude.
-        freq: Pulse frequency, units of 1/dt. If `None` defaults to single cycle.
+        freq: Pulse frequency, units of 1/dt. If ``None`` defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -212,7 +212,7 @@ def sin(duration: int, amp: complex, freq: float = None,
         phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates sine wave :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``freq`` :math:`\omega`, and ``phase`` :math:`\phi`,
+    For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -240,7 +240,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
              zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates unnormalized gaussian :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A` and ``sigma`` :math:`\sigma`, applies the `midpoint` sampling strategy
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
     to generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -283,8 +283,8 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
                    name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates unnormalized gaussian derivative :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A` and ``sigma`` applies the `midpoint` sampling strategy to generate
-    a discrete pulse sampled from the continuous function:
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma`` applies the `midpoint` sampling strategy
+    to generate a discrete pulse sampled from the continuous function:
 
     .. math::
 
@@ -309,7 +309,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
          zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates unnormalized sech :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A` and ``sigma`` :math:`\sigma`, applies the `midpoint` sampling strategy
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
     to generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -349,7 +349,7 @@ _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
 def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> 'SamplePulse':
     r"""Generates unnormalized sech derivative :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``amp`` :math:`A`, ``sigma`` :math:`\sigma`, and center :math:`\mu=` ``duration/2``,
+    For :math:`A=` ``amp``, :math:`\sigma=` ``sigma``, and center :math:`\mu=` ``duration/2``,
     applies the `midpoint` sampling strategy to generate a discrete pulse sampled from
     the continuous function:
 
@@ -376,8 +376,8 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                     name: Optional[str] = None, zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates gaussian square :class:`~qiskit.pulse.SamplePulse`.
 
-    For ``duration`` :math:`d`, ``amp`` :math:`A`, ``sigma`` :math:`\sigma`,
-    and ``risefall`` :math:`r`, applies the `midpoint` sampling strategy to
+    For :math:`d=` ``duration``, :math:`A=` ``amp``, :math:`\sigma=` ``sigma``,
+    and :math:`r=` ``risefall``, applies the `midpoint` sampling strategy to
     generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -385,12 +385,15 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
         f(x) = \begin{cases}
                     g(x - r) ) & x\leq r \\
                     A & r\leq x\leq d-r \\
-                    g(x) & d-r\leq x
+                    g(x - (d - r)) & d-r\leq x
                 \end{cases}
 
     where :math:`g(x)` is the Gaussian function sampled from in :meth:`gaussian`
+    with :math:`A=` ``amp``, :math:`\mu=1`, and :math:`\sigma=` ``sigma``. I.e.
+    :math:`f(x)` represents a square pulse with smooth Gaussian edges.
 
-    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
+    If ``zero_ends == True``, the samples for the Gaussian ramps are remapped as in
+    :meth:`gaussian`.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
@@ -428,9 +431,18 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
     r"""Generates Y-only correction DRAG :class:`~qiskit.pulse.SamplePulse` for standard nonlinear
     oscillator (SNO) [1].
 
-    Centered at `duration/2` and zeroed at `t=0` to prevent large initial discontinuity.
+    For :math:`A=` ``amp``, :math:`\sigma=` ``sigma``, and :math:`\beta=` ``beta``, applies the
+    `midpoint` sampling strategy to generate a discrete pulse sampled from the
+    continuous function:
 
-    Applies `midpoint` sampling strategy to generate discrete pulse from continuous function.
+    .. math::
+
+        f(x) = g(x) + i h(x),
+
+    where :math:`g(x)` is the function sampled in :meth:`gaussian`, and :math:`h(x)`
+    is the function sampled in :meth:`gaussian_deriv`.
+
+    If ``zero_ends == True``, the amples from :math:`g(x)` are remapped as in :meth:`gaussian`.
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
@@ -438,11 +450,12 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude at `center`.
+        amp: Pulse amplitude at ``center = duration/2``.
         sigma: Width (standard deviation) of pulse.
-        beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
-            Where $\lambds_1$ is the relative coupling strength between the first excited and second
-            excited states and $\Delta_2$ is the detuning between the respective excited states.
+        beta: Y correction amplitude. For the SNO this is
+              :math:`\beta=-\frac{\lambda_1^2}{4\Delta_2}`. Where :math:`\lambds_1` is the
+              relative coupling strength between the first excited and second excited states
+              and :math:`\Delta_2` is the detuning between the respective excited states.
         name: Name of pulse.
         zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
     """
