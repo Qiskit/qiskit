@@ -234,7 +234,7 @@ class PassManager:
             output_name: str = None,
             callback: Callable = None
     ) -> List[QuantumCircuit]:
-        """Run all the passes on the specified ``circuit``.
+        """Run all the passes on the specified ``circuits``.
 
         Args:
             circuits: Circuits to transform via all the registered passes.
