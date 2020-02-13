@@ -35,13 +35,13 @@ from .z import ZGate, CZGate
 
 # deprecated gates, to be removed
 from .i import IdGate
-from .ccx import ToffoliGate
-from .cswap import FredkinGate
-from .cx import CnotGate
-from .cy import CyGate
-from .cz import CzGate
-from .cu1 import Cu1Gate
-from .cu3 import Cu3Gate
-from .crx import CrxGate
-from .cry import CryGate
-from .crz import CrzGate
+from .x import ToffoliGate
+from .swap import FredkinGate
+from .x import CnotGate
+from .y import CyGate
+from .z import CzGate
+from .u1 import Cu1Gate
+from .u3 import Cu3Gate
+from .rx import CrxGate
+from .ry import CryGate
+from .rz import CrzGate
