@@ -44,10 +44,12 @@ def as_soon_as_possible(circuit: QuantumCircuit,
     in the instruction are available.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
+
     Returns:
-        A schedule corresponding to the input `circuit` with pulses occurring as early as possible
+        A schedule corresponding to the input ``circuit`` with pulses occurring as early as
+        possible.
     """
     sched = Schedule(name=circuit.name)
 
@@ -82,10 +84,12 @@ def as_late_as_possible(circuit: QuantumCircuit,
     maximize the time that the qubit remains in the ground state.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
+
     Returns:
-        A schedule corresponding to the input `circuit` with pulses occurring as late as possible
+        A schedule corresponding to the input ``circuit`` with pulses occurring as late as
+        possible.
     """
     sched = Schedule(name=circuit.name)
     # Align channel end times.
@@ -128,14 +132,14 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
     pulse.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
 
     Returns:
-        A list of CircuitPulseDefs: the pulse definition for each circuit element
+        A list of CircuitPulseDefs: the pulse definition for each circuit element.
 
     Raises:
-        QiskitError: If circuit uses a command that isn't defined in config.inst_map
+        QiskitError: If circuit uses a command that isn't defined in config.inst_map.
     """
     circ_pulse_defs = []
 

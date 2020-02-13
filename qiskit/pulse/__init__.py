@@ -25,7 +25,6 @@ Channels
 .. autosummary::
    :toctree: ../stubs/
 
-   PulseChannelSpec
    DriveChannel
    MeasureChannel
    AcquireChannel
@@ -84,8 +83,7 @@ Exceptions
    PulseError
 """
 
-from .channels import (PulseChannelSpec, DriveChannel,
-                       MeasureChannel, AcquireChannel,
+from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
 from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,

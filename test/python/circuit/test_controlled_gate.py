@@ -36,7 +36,7 @@ from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         ToffoliGate, HGate, RZGate, RXGate,
                                         RYGate, CryGate, CrxGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate,
-                                        MSGate, Barrier)
+                                        MSGate, Barrier, RCCXGate, RCCCXGate)
 from qiskit.extensions.unitary import UnitaryGate
 import qiskit.extensions.standard as allGates
 
@@ -350,7 +350,6 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
-        print(uqc.size())
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
@@ -482,6 +481,40 @@ class TestControlledGate(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+
+    @data(2, 3)
+    def test_relative_phase_toffoli_gates(self, num_ctrl_qubits):
+        """Test the relative phase Toffoli gates.
+
+        This test compares the matrix representation of the relative phase gate classes
+        (i.e. RCCXGate().to_matrix()), the matrix obtained from the unitary simulator,
+        and the exact version of the gate as obtained through `_compute_control_matrix`.
+        """
+        # get target matrix (w/o relative phase)
+        base_mat = XGate().to_matrix()
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+
+        # build the matrix for the relative phase toffoli using the unitary simulator
+        circuit = QuantumCircuit(num_ctrl_qubits + 1)
+        if num_ctrl_qubits == 2:
+            circuit.rccx(0, 1, 2)
+        else:  # num_ctrl_qubits == 3:
+            circuit.rcccx(0, 1, 2, 3)
+        simulator = BasicAer.get_backend('unitary_simulator')
+        simulated_mat = execute(circuit, simulator).result().get_unitary()
+
+        # get the matrix representation from the class itself
+        if num_ctrl_qubits == 2:
+            repr_mat = RCCXGate().to_matrix()
+        else:  # num_ctrl_qubits == 3:
+            repr_mat = RCCCXGate().to_matrix()
+
+        # test up to phase
+        # note, that all entries may have an individual phase! (as opposed to a global phase)
+        self.assertTrue(matrix_equal(np.abs(simulated_mat), target_mat))
+
+        # compare simulated matrix with the matrix representation provided by the class
+        self.assertTrue(matrix_equal(simulated_mat, repr_mat))
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits):
