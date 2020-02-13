@@ -75,10 +75,12 @@ Configuration
    LoRange
 
 Pulse Library
-==============
+=============
 
-.. automodule:: qiskit.pulse.pulse_lib
-   :members:
+.. autosummary::
+   :toctree: ../stubs/
+
+   qiskit.pulse.pulse_lib.discrete
 
 Exceptions
 ==========
