@@ -38,8 +38,9 @@ from .exceptions import PulseError
 
 
 class InstructionScheduleMap():
-    """Mapping from QuantumCircuit Instruction names and qubits to Schedules. In particular, the
-    mapping is formatted as type::
+    """Mapping from :py:class:`qiskit.circuit.QuantumCircuit`:py:class:`qiskit.circuit.Instruction`
+    names and qubits to :py:class:`qiskit.pulse.Schedule` s. In particular, the mapping is
+    formatted as type::
 
          Dict[str, Dict[Tuple[int], Schedule]]
 
@@ -141,7 +142,7 @@ class InstructionScheduleMap():
             qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
-        """Return the defined Schedule for the given instruction on the given qubits.
+        """Return the defined ``Schedule`` for the given instruction on the given qubits.
 
         Args:
             instruction: Name of the instruction.
@@ -174,7 +175,7 @@ class InstructionScheduleMap():
     def add(self,
             instruction: str,
             qubits: Union[int, Iterable[int]],
-            schedule: [Schedule, ParameterizedSchedule]) -> None:
+            schedule: Union[Schedule, ParameterizedSchedule]) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
         Args:
@@ -214,7 +215,7 @@ class InstructionScheduleMap():
             qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
-        """Remove and return the defined Schedule for the given instruction on the given qubits.
+        """Remove and return the defined ``Schedule`` for the given instruction on the given qubits.
 
         Args:
             instruction: Name of the instruction.
@@ -270,7 +271,7 @@ class InstructionScheduleMap():
 
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
-    """Return the input as a tuple, even if it is an integer.
+    """Return the input as a tuple.
 
     Args:
         values: An integer, or iterable of integers.
