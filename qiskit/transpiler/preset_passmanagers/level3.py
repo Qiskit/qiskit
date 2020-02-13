@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
-
 """Pass manager for optimization level 3, providing heavy optimization.
 
 Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
