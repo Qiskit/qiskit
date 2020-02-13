@@ -158,7 +158,7 @@ class Cu3Gate(CU3Gate, metaclass=CU3Meta):
 
     def __init__(self, theta, phi, lam):
         import warnings
-        warnings.warn('The class Cu3Gate is deprecated as of 0.12.0, and '
+        warnings.warn('The class Cu3Gate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CU3Gate instead.',
                       DeprecationWarning, stacklevel=2)

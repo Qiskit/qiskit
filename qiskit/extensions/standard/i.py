@@ -57,7 +57,7 @@ class IdGate(IGate, metaclass=IMeta):
     """The deprecated IGate class."""
 
     def __init__(self):
-        warnings.warn('The class IdGate is deprecated as of 0.12.0, and '
+        warnings.warn('The class IdGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class IGate instead.',
                       DeprecationWarning, stacklevel=2)
@@ -97,7 +97,7 @@ def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
 @deprecate_arguments({'q': 'qubit'})
 def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Deprecated identity gate."""
-    warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.12.0, and '
+    warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
                   'will be removed no earlier than 3 months after that release date. '
                   'You should use the QuantumCircuit.i() method instead.',
                   DeprecationWarning, stacklevel=2)

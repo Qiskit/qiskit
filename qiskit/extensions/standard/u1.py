@@ -149,7 +149,7 @@ class Cu1Gate(CU1Gate, metaclass=CU1Meta):
 
     def __init__(self, theta):
         import warnings
-        warnings.warn('The class Cu1Gate is deprecated as of 0.12.0, and '
+        warnings.warn('The class Cu1Gate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CU1Gate instead.',
                       DeprecationWarning, stacklevel=2)

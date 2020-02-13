@@ -151,7 +151,7 @@ class CzGate(CZGate, metaclass=CZMeta):
 
     def __init__(self):
         import warnings
-        warnings.warn('The class CzGate is deprecated as of 0.12.0, and '
+        warnings.warn('The class CzGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CZGate instead.',
                       DeprecationWarning, stacklevel=2)
