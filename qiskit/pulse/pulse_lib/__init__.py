@@ -15,9 +15,6 @@
 """
 .. currentmodule:: qiskit.pulse.pulse_lib
 
-Pulse Library
-=============
-
 .. autosummary::
     :toctree: ../stubs/
 

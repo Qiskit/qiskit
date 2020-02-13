@@ -32,7 +32,7 @@ _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 def constant(duration: int, amp: complex, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates constant-sampled :class:`~qiskit.pulse.SamplePulse`.
 
-    For :math:`A=```amp``, samples from the function:
+    For :math:`A=` ``amp``, samples from the function:
 
     .. math::
 
@@ -113,23 +113,23 @@ def sawtooth(duration: int, amp: complex, period: float = None,
 
     where :math:`g(x) = x/T + \phi/\pi`.
 
-    .. jupyter-execute::
-
-        import matplotlib.pyplot as plt
-        from qiskit.pulse.pulse_lib import sawtooth
-
-        duration = 100
-        amp = 1
-        period = duration
-        plt.plot(range(duration), sawtooth(duration, amp, period).samples)
-
-
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         period: Pulse period, units of dt. If ``None``, defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
+
+    Example:
+        .. jupyter-execute::
+
+            import matplotlib.pyplot as plt
+            from qiskit.pulse.pulse_lib import sawtooth
+
+            duration = 100
+            amp = 1
+            period = duration
+            plt.plot(range(duration), sawtooth(duration, amp, period).samples)
     """
     if period is None:
         period = duration
@@ -154,22 +154,23 @@ def triangle(duration: int, amp: complex, period: float = None,
 
     This corresponds to a sine wave with linear ramps.
 
-    .. jupyter-execute::
-
-        import matplotlib.pyplot as plt
-        from qiskit.pulse.pulse_lib import triangle
-
-        duration = 100
-        amp = 1
-        period = duration
-        plt.plot(range(duration), triangle(duration, amp, period).samples)
-
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         period: Pulse period, units of dt. If ``None``, defaults to single cycle.
         phase: Pulse phase.
         name: Name of pulse.
+
+    Example:
+        .. jupyter-execute::
+
+            import matplotlib.pyplot as plt
+            from qiskit.pulse.pulse_lib import triangle
+
+            duration = 100
+            amp = 1
+            period = duration
+            plt.plot(range(duration), triangle(duration, amp, period).samples)
     """
     if period is None:
         period = duration
@@ -443,7 +444,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
     where :math:`g(x)` is the function sampled in :meth:`gaussian`, and :math:`h(x)`
     is the function sampled in :meth:`gaussian_deriv`.
 
-    If ``zero_ends == True``, the amples from :math:`g(x)` are remapped as in :meth:`gaussian`.
+    If ``zero_ends == True``, the samples from :math:`g(x)` are remapped as in :meth:`gaussian`.
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations

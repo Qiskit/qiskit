@@ -74,6 +74,12 @@ Configuration
    LoConfig
    LoRange
 
+Pulse Library
+==============
+
+.. automodule:: qiskit.pulse.pulse_lib
+   :members:
+
 Exceptions
 ==========
 
