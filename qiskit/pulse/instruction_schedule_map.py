@@ -98,7 +98,7 @@ class InstructionScheduleMap():
             All the instructions which are defined on the qubits.
 
             For 1 qubit, all the 1Q instructions defined. For multiple qubits, all the instructions
-            which apply to that whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
+            which apply to that whole set of qubits (e.g. ``qubits=[0, 1]`` may return ``['cx']``).
         """
         if _to_tuple(qubits) in self._qubit_instructions:
             return list(self._qubit_instructions[_to_tuple(qubits)])
