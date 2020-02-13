@@ -175,11 +175,11 @@ class PassManager:
             output_name: str = None,
             callback: Callable = None
     ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
-        """Run all the passes on the specified `circuits`.
+        """Run all the passes on the specified ``circuits``.
 
         Args:
             circuits: Circuit(s) to transform via all the registered passes.
-            output_name: The output circuit name. If `None`, it will be set to the same as the
+            output_name: The output circuit name. If ``None``, it will be set to the same as the
                 input circuit name.
             callback: A callback function that will be called after each pass execution. The
                 function will be called with 5 keyword arguments::
@@ -234,11 +234,11 @@ class PassManager:
             output_name: str = None,
             callback: Callable = None
     ) -> List[QuantumCircuit]:
-        """Run all the passes on the specified `circuit`.
+        """Run all the passes on the specified ``circuit``.
 
         Args:
             circuits: Circuits to transform via all the registered passes.
-            output_name: The output circuit name. If `None`, it will be set to the same as the
+            output_name: The output circuit name. If ``None``, it will be set to the same as the
                 input circuit name.
             callback: A callback function that will be called after each pass execution.
 
@@ -258,11 +258,11 @@ class PassManager:
             output_name: str = None,
             callback: Callable = None
     ) -> QuantumCircuit:
-        """Run all the passes on a `circuit`.
+        """Run all the passes on a ``circuit``.
 
         Args:
             circuit: Circuit to transform via all the registered passes.
-            output_name: The output circuit name. If `None`, it will be set to the same as the
+            output_name: The output circuit name. If ``None``, it will be set to the same as the
                 input circuit name.
             callback: A callback function that will be called after each pass execution.
 
@@ -284,8 +284,8 @@ class PassManager:
     ) -> Union['PIL.Image', None]:
         """Draw the pass manager.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+        `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
         Args:
             filename: file path to save image to.
@@ -293,10 +293,10 @@ class PassManager:
                 example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
                 a priority coloring when pass falls into multiple categories. Any values not
                 included in the provided dict will be filled in from the default dict.
-            raw: If `True`, save the raw Dot output instead of the image.
+            raw: If ``True``, save the raw Dot output instead of the image.
 
         Returns:
-            an in-memory representation of the pass manager, or `None` if no image was generated
+            an in-memory representation of the pass manager, or ``None`` if no image was generated
             or PIL is not installed.
 
         Raises:
