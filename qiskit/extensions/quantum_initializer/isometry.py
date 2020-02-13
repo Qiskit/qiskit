@@ -139,7 +139,7 @@ class Isometry(Instruction):
             # remove first column (which is now stored in diag)
             remaining_isometry = remaining_isometry[:, 1:]
         if len(diag) > 1 and not _diag_is_identity_up_to_global_phase(diag):
-            circuit.diag(np.conj(diag).tolist(), q_input)
+            circuit.diagonal(np.conj(diag).tolist(), q_input)
         return circuit
 
     def _decompose_column(self, circuit, q, diag, remaining_isometry, column_index):

@@ -18,6 +18,6 @@ from .squ import SingleQubitUnitary
 from .ucrz import UCRZGate
 from .ucry import UCRYGate
 from .ucrx import UCRXGate
-from .diag import DiagGate
+from .diagonal import DiagonalGate
 from .uc import UCGate
 from .isometry import Isometry

@@ -22,6 +22,7 @@
 Decomposes a diagonal matrix into elementary gates using the method described in Theorem 7 in
 "Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 """
+import warnings
 import cmath
 import math
 
@@ -34,7 +35,7 @@ from qiskit.exceptions import QiskitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class DiagGate(Gate):
+class DiagonalGate(Gate):
     """
     diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
     least two entries.
@@ -59,7 +60,7 @@ class DiagGate(Gate):
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
-        super().__init__("diag", int(num_action_qubits), diag)
+        super().__init__("diagonal", int(num_action_qubits), diag)
 
     def _define(self):
         diag_circuit = self._dec_diag()
@@ -100,7 +101,7 @@ def _extract_rz(phi1, phi2):
     return phase, z_angle
 
 
-def diag(self, diag, qubit):
+def diagonal(self, diag, qubit):
     """Attach a diagonal gate to a circuit.
 
     The decomposition is based on Theorem 7 given in "Synthesis of Quantum Logic Circuits" by
@@ -137,17 +138,17 @@ def diag(self, diag, qubit):
     if not len(qubit) == num_action_qubits:
         raise QiskitError("The number of diagonal entries does not correspond to"
                           " the number of qubits.")
-    return self.append(DiagGate(diag), qubit)
+    return self.append(DiagonalGate(diag), qubit)
 
 
 def diag_gate(self, diag, qubit):
-    """Deprecated version of QuantumCircuit.diag."""
+    """Deprecated version of QuantumCircuit.diagonal."""
     warnings.warn('The QuantumCircuit.diag_gate() method is deprecated as of 0.12.0, and '
                   'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.diag() method instead.',
+                  'You should use the QuantumCircuit.diagonal() method instead.',
                   DeprecationWarning, stacklevel=2)
-    return diag(self, diag, qubit)
+    return diagonal(self, diag, qubit)
 
 
-QuantumCircuit.diag = diag
+QuantumCircuit.diagonal = diagonal
 QuantumCircuit.diag_gate = diag_gate  # deprecated

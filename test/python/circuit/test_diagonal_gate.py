@@ -25,7 +25,7 @@ from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class TestDiagGate(QiskitTestCase):
+class TestDiagonalGate(QiskitTestCase):
     """
     Diagonal gate tests.
     """
@@ -41,7 +41,7 @@ class TestDiagGate(QiskitTestCase):
                 num_qubits = int(np.log2(len(diag)))
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
-                qc.diag(diag, q[0:num_qubits])
+                qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
                 # Simulate the decomposed gate
