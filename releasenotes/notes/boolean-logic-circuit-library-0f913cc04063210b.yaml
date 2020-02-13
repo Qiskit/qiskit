@@ -1,0 +1,11 @@
+---
+prelude: >
+    A library of quantum circuits is introduced in ``qiskit.circuit.library``.
+    This library contains useful circuits which can be used as-is, or can be
+    used as subcircuits in building up other circuits. The contents of this
+    library will grow over time.
+features:
+  - |
+    A few simple circuits for basic boolean logic operations such as ``shift``,
+    ``permutation``, and ``inner_product`` are added to
+    ``qiskit.circuit.library``.
