@@ -12,11 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Level 0 pass manager:
-no optimization, just conforming to basis and coupling map
+"""Pass manager for optimization level 0, providing no explicit optimization.
+
+Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
@@ -35,23 +36,27 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_0_pass_manager(pass_manager_config):
-    """
+def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Return a pass manager for optimization level 0.
+
     Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
     layout consisting of mapping the i-th virtual qubit to the i-th physical qubit is used.
     Any unused physical qubit is allocated as ancilla space.
+
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map. Finally, extra resets are removed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        pass_manager_config (PassManagerConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 0 pass manager.
+        a level 0 pass manager.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map

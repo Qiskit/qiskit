@@ -14,11 +14,13 @@
 
 # pylint: disable=unused-variable
 
-"""
-Level 3 pass manager:
-noise adaptive mapping in addition to heavy optimization based on unitary synthesis
+"""Pass manager for optimization level 3, providing heavy optimization.
+
+Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
+gate cancellation using commutativity rules and unitary synthesis.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.passes import Unroller
@@ -46,8 +48,9 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_3_pass_manager(pass_manager_config):
-    """
+def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Return a pass manager for optimization level 3.
+
     Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
 
@@ -55,15 +58,18 @@ def level_3_pass_manager(pass_manager_config):
     device calibration information is available, the circuit is mapped to the qubits
     with best readouts and to CX gates with highest fidelity. Otherwise, a layout on
     the most densely connected qubits is used.
+
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation, resynthesis
     of two-qubit unitary blocks, and redundant reset removal are performed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
 
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
+`
     Args:
-        pass_manager_config (PassManagerConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
         PassManager: a level 3 pass manager.

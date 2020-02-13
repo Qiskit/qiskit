@@ -12,11 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Level 1 pass manager:
-mapping in addition to light optimization via adjacent gate collapse
+"""Pass manager for optimization level 1, providing light optimization.
+
+Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
@@ -42,9 +43,10 @@ from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import DenseLayout
 
 
-def level_1_pass_manager(pass_manager_config):
-    """
-    Level 1 pass manager: light optimization by simple adjacent gate collapsing
+def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Return a pass manager for optimization level 0.
+
+    Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
     This pass manager applies the user-given initial layout. If none is given, and a trivial
     layout (i-th virtual -> i-th physical) makes the circuit fit the coupling map, that is used.
@@ -53,14 +55,16 @@ def level_1_pass_manager(pass_manager_config):
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map. Finally, optimizations in the form of adjacent
     gate collapse and redundant reset removal are performed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        pass_manager_config (PassManagerConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 1 pass manager.
+        a level 1 pass manager.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
