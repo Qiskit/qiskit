@@ -33,6 +33,8 @@ Scheduling utility functions
    :toctree: ../stubs/
 
    qiskit.scheduler.utils
+
+.. automodule:: qiskit.scheduler.methods
 """
 
 from qiskit.scheduler.config import ScheduleConfig
