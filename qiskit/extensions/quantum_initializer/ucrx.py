@@ -98,7 +98,7 @@ def ucx(self, angle_list, q_controls, q_target):
     """
     import warnings
     warnings.warn('qc.ucx is deprecated, use qc.ucrx instead!', DeprecationWarning, 2)
-    ucrx(self, angle_list, q_controls, q_target)
+    return ucrx(self, angle_list, q_controls, q_target)
 
 
 QuantumCircuit.ucrx = ucrx

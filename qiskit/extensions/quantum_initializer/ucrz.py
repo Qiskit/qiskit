@@ -96,7 +96,7 @@ def ucz(self, angle_list, q_controls, q_target):
     """
     import warnings
     warnings.warn('qc.ucz is deprecated, use qc.ucrz instead!', DeprecationWarning, 2)
-    ucrz(self, angle_list, q_controls, q_target)
+    return ucrz(self, angle_list, q_controls, q_target)
 
 
 QuantumCircuit.ucrz = ucrz
