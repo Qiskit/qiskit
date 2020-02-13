@@ -531,10 +531,9 @@ class MatplotlibDrawer:
 
         def _fix_double_script(label):
             words = label.split(' ')
-            words = [word.replace('_',r'\_') if word.count('_') > 1 else word for word in words]
-            words = [word.replace('^',r'\^{\ }') if word.count('^') > 1 else word for word in words]
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word for word in words]
             return ' '.join(words)
-
 
         len_longest_label = 0
         # quantum register
