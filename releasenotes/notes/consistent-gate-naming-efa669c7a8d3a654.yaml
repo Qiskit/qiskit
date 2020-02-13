@@ -23,6 +23,7 @@ deprecations:
     CZGate <- CzGate         | cz               | cz
     DiagonalGate <- DiagGate | diagonal <- diag | diagonal <- diag_gate
     IGate <- IdGate          | id               | i,id <- iden
+    Isometry                 | isometry <- iso  | isometry,iso <- iso
     UCGate <- UCG            | multiplexer      | uc <- ucg
     UCPauliRotGate <- UCRot  |                  |
     UCRXGate <- UCX          | ucrx <- ucrotX   | ucrx <- ucx

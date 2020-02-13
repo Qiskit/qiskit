@@ -93,7 +93,7 @@ class Isometry(Instruction):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("iso", num_qubits, 0, [isometry])
+        super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
         # call to generate the circuit that takes the isometry to the first 2^m columns
@@ -501,8 +501,8 @@ def _diag_is_identity_up_to_global_phase(diag):
     return True
 
 
-def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
-        q_ancillas_dirty=None):
+def isometry(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
+             q_ancillas_dirty=None):
     """
     Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
     this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
@@ -553,4 +553,6 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
                        q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty)
 
 
-QuantumCircuit.iso = iso
+# allow both QuantumCircuit.isometry and QuantumCircuit.iso
+QuantumCircuit.isometry = isometry
+QuantumCircuit.iso = isometry
