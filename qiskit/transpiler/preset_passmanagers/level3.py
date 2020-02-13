@@ -65,7 +65,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     Note:
         In simulators where ``coupling_map=None``, only the unrolling and
         optimization stages are done.
-`
+
     Args:
         pass_manager_config: configuration of the pass manager.
 
