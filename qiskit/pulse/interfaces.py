@@ -15,8 +15,6 @@
 """
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
-import warnings
-
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, List, Union, Optional
 
