@@ -1016,7 +1016,7 @@ class DAGCircuit:
         connected by a quantum edge as DAGNodes."""
         for predecessor in reversed(list(self.predecessors(node))):
             if any(isinstance(x['wire'], Qubit) for x in
-                    self._multi_graph.get_all_edge_data(
+                   self._multi_graph.get_all_edge_data(
                         predecessor._node_id, node._node_id)):
                 yield predecessor
 
@@ -1041,7 +1041,7 @@ class DAGCircuit:
         for successor in reversed(list(self.successors(node))):
             if any(isinstance(x['wire'], Qubit) for x in
                    self._multi_graph.get_all_edge_data(
-                    node._node_id, successor._node_id)):
+                       node._node_id, successor._node_id)):
                 yield successor
 
     def remove_op_node(self, node):
