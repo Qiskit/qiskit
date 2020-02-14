@@ -18,7 +18,6 @@
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit.circuit import Instruction
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
