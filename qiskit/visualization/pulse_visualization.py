@@ -98,7 +98,7 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
             sched += inst_map.get('measure', list(range(20))) << sched.duration
 
-            my_style = qiskit.visualization.pulse.SchedStyle(bg_color='w')
+            my_style = qiskit.visualization.SchedStyle(bg_color='w')
             channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
             scales = {pulse.DriveChannel(0): 10}
 

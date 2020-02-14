@@ -101,6 +101,8 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_qsphere)
 
 from .pulse_visualization import pulse_drawer
+from .pulse.qcstyle import PulseStyle, SchedStyle
+from .pulse.interpolation import step_wise, linear, cubic_spline
 from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
 from .pass_manager_visualization import pass_manager_drawer

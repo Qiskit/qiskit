@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-
-from .interpolation import step_wise, linear, cubic_spline
-from .qcstyle import PulseStyle, SchedStyle
+"""
+Pulse visualization module.
+"""
