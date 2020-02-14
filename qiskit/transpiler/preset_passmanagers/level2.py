@@ -120,7 +120,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm2.append(_unroll)
     if coupling_map:
         pm2.append(_given_layout)
-        pm2.append(CSPLayout(coupling_map), condition=_choose_layout_condition)
+        pm2.append(CSPLayout(coupling_map, call_limit=1000, time_limit=10),
+                   condition=_choose_layout_condition)
         pm2.append(_choose_layout, condition=_choose_layout_condition)
         pm2.append(_embed)
         pm2.append(_swap_check)
