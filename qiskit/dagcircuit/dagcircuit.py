@@ -1017,7 +1017,7 @@ class DAGCircuit:
         for predecessor in reversed(list(self.predecessors(node))):
             if any(isinstance(x['wire'], Qubit) for x in
                    self._multi_graph.get_all_edge_data(
-                        predecessor._node_id, node._node_id)):
+                       predecessor._node_id, node._node_id)):
                 yield predecessor
 
     def ancestors(self, node):
