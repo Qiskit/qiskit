@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
+"""Pass manager for optimization level 2, providing medium optimization.
 
-"""
-Level 2 pass manager:
-noise adaptive mapping in addition to commutation-based optimization
+Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
+gate cancellation using commutativity rules.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
@@ -43,9 +43,8 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_2_pass_manager(pass_manager_config):
-    """
-    Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
+def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules.
 
     This pass manager applies the user-given initial layout. If none is given, and
@@ -56,14 +55,16 @@ def level_2_pass_manager(pass_manager_config):
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation and redundant
     reset removal are performed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        pass_manager_config (PassManagerConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 2 pass manager.
+        a level 2 pass manager.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
