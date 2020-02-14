@@ -17,7 +17,7 @@
 import unittest
 from test.aqua import QiskitAquaTestCase
 
-from parameterized import parameterized
+from ddt import ddt, idata, unpack
 from scipy.optimize import rosen
 import numpy as np
 from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
@@ -25,6 +25,7 @@ from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 # pylint: disable=unused-import,import-outside-toplevel
 
 
+@ddt
 class TestNLOptOptimizers(QiskitAquaTestCase):
     """ Test NLOpt Optimizers """
 
@@ -36,11 +37,12 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
         return res
 
     # ESCH and ISRES do not do well with rosen
-    @parameterized.expand([
+    @idata([
         [CRS],
         [DIRECT_L],
         [DIRECT_L_RAND],
     ])
+    @unpack
     def test_nlopt(self, optimizer_cls):
         """ NLopt test """
         try:

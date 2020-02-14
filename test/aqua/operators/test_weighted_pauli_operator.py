@@ -19,7 +19,7 @@ import itertools
 import os
 from test.aqua import QiskitAquaTestCase
 import numpy as np
-from parameterized import parameterized
+from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Pauli, state_fidelity
 from qiskit.aqua import aqua_globals, QuantumInstance
@@ -28,6 +28,7 @@ from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.initial_states import Custom
 
 
+@ddt
 class TestWeightedPauliOperator(QiskitAquaTestCase):
     """WeightedPauliOperator tests."""
 
@@ -522,10 +523,11 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             use_simulator_snapshot_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
 
-    @parameterized.expand([
+    @idata([
         ['trotter', 1, 3],
         ['suzuki', 1, 3]
     ])
+    @unpack
     def test_evolve(self, expansion_mode, evo_time, num_time_slices):
         """ evolve test """
         expansion_orders = [1, 2, 3, 4] if expansion_mode == 'suzuki' else [1]
