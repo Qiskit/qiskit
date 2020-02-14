@@ -295,7 +295,7 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
-        amp: Pulse amplitude of corresponding Gaussian at center ``duration/2``.
+        amp: Pulse amplitude of corresponding Gaussian at the pulse center (``duration/2``).
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
     """
