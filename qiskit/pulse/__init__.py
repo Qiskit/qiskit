@@ -80,7 +80,7 @@ Pulse Library
 .. autosummary::
    :toctree: ../stubs/
 
-   qiskit.pulse.pulse_lib.discrete
+   ~qiskit.pulse.pulse_lib.discrete
 
 Exceptions
 ==========
