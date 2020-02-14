@@ -94,7 +94,10 @@ def ucy(self, angle_list, q_controls, q_target):
     Deprecated version of ucry.
     """
     import warnings
-    warnings.warn('qc.ucy is deprecated, use qc.ucry instead!', DeprecationWarning, 2)
+    warnings.warn('The QuantumCircuit. ucy() method is deprecated as of 0.14.0, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit. ucry() method instead.',
+                  DeprecationWarning, stacklevel=2)
     return ucry(self, angle_list, q_controls, q_target)
 
 
