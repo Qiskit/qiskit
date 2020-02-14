@@ -495,27 +495,27 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state = 5
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = None
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = 0
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = 7
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = '110'
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
     def test_open_controlled_gate_raises(self):
         """

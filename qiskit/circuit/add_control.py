@@ -25,7 +25,15 @@ def add_control(operation: Union[Gate, ControlledGate],
                 num_ctrl_qubits: int,
                 label: Union[str, None],
                 ctrl_state: Union[int, str, None]) -> ControlledGate:
-    """Adds num_ctrl_qubits controls to operation.
+    """For standard gates, if the controlled version already exists in the
+    library, it will be returned (e.g. XGate.control() = CnotGate().
+
+    For more generic gates, this method implements the controlled
+    version by first decomposing into a ["u1", "u3", "cx"] basis, then
+    controlling each gate in the decomposition.
+
+    Open controls are implemented by conjugating the control line with
+    X gates.  Adds num_ctrl_qubits controls to operation.
 
     Args:
         operation: Operation for which control will be added.
@@ -180,7 +188,7 @@ def control(operation: Union[Gate, ControlledGate],
 def _toggle_ctrl_state(qc: QuantumCircuit,
                        num_qubits: int,
                        ctrl_state: int) -> Gate:
-    if isinstance(ctrl_state, int) and 0 <= ctrl_state < 2**num_qubits:
+    if 0 <= ctrl_state < 2**num_qubits:
         bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_qubits)
     else:
         raise CircuitError('invalid control state specified')

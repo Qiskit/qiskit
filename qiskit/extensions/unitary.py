@@ -113,14 +113,13 @@ class UnitaryGate(Gate):
                                       "a {}-qubit unitary".format(self.num_qubits))
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return controlled version of gate
+        r"""Return controlled version of gate
 
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
             label (str): optional gate label
-            ctrl_state (int or None): The control state in decimal. If None,
-                use 2**num_ctrl_qubits-1.
-
+            ctrl_state (int or str or None): The control state in decimal or as a 
+                bit string (e.g. '1011'). If None, use 2**num_ctrl_qubits-1.
 
         Returns:
             UnitaryGate: controlled version of gate.
@@ -184,6 +183,15 @@ class UnitaryGate(Gate):
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     """
     Compute the controlled version of the input matrix with qiskit ordering.
+    This function computes the controlled unitary with :math:`n` control qubits
+    and :math:`m` target qubits,
+
+    .. math::
+
+        V_n^j(U_{2^m}) = (U_{2^m} \otimes |j\rangle\!\langle j|) +
+                         (I_{2^m} \otimes (I_{2^n} - |j\rangle\!\langle j|)).
+
+    where :math:`|j\rangle \in \mathcal{H}^{2^n}` is the control state.
 
     Args:
         base_mat (ndarray): unitary to be controlled

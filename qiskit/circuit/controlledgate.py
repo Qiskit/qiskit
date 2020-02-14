@@ -24,8 +24,12 @@ class ControlledGate(Gate):
     """Controlled unitary gate."""
 
     def __init__(self, name, num_qubits, params, label=None, num_ctrl_qubits=1,
-                 definition=None):
-        """Create a new gate.
+                 definition=None, ctrl_state=None):
+        """Create a controlled gate.
+
+        Attributes:
+            num_ctrl_qubits (int): The number of control qubits.
+            ctrl_state (int): The control state in decimal notation.
 
         Args:
             name (str): The Qobj name of the gate.
@@ -50,6 +54,7 @@ class ControlledGate(Gate):
                     self.base_gate = base_gate.base_gate
                 else:
                     self.base_gate = base_gate
+        self.ctrl_state = ctrl_state
 
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):
