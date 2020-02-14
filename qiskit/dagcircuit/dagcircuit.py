@@ -150,12 +150,12 @@ class DAGCircuit:
 
             inp_node = DAGNode(data_dict={'type': 'in', 'name': wire_name, 'wire': wire})
             outp_node = DAGNode(data_dict={'type': 'out', 'name': wire_name, 'wire': wire})
-            input_map_wire = self._multi_graph.add_node(inp_node)
-            output_map_wire = self._multi_graph.add_node(outp_node)
-            inp_node._node_id = input_map_wire
-            outp_node._node_id = output_map_wire
-            self._id_to_node[input_map_wire] = inp_node
-            self._id_to_node[output_map_wire] = outp_node
+            input_map_id = self._multi_graph.add_node(inp_node)
+            output_map_id = self._multi_graph.add_node(outp_node)
+            inp_node._node_id = input_map_id
+            outp_node._node_id = output_map_id
+            self._id_to_node[input_map_id] = inp_node
+            self._id_to_node[output_map_id] = outp_node
             self.input_map[wire] = inp_node
             self.output_map[wire] = outp_node
             self._multi_graph.add_edge(inp_node._node_id,
