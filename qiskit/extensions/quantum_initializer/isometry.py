@@ -501,8 +501,8 @@ def _diag_is_identity_up_to_global_phase(diag):
     return True
 
 
-def isometry(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
-             q_ancillas_dirty=None):
+def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
+        q_ancillas_dirty=None):
     """
     Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
     this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
@@ -553,6 +553,6 @@ def isometry(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=Non
                        q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty)
 
 
-# allow both QuantumCircuit.isometry and QuantumCircuit.iso
-QuantumCircuit.isometry = isometry
-QuantumCircuit.iso = isometry
+# support both QuantumCircuit.iso and QuantumCircuit.isometry
+QuantumCircuit.iso = iso
+QuantumCircuit.isometry = iso
