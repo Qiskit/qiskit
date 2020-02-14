@@ -152,7 +152,7 @@ def triangle(duration: int, amp: complex, period: float = None,
 
         f(x) = A \left(-2\left|\text{sawtooth}(x, A, T, \phi)\right| + 1\right)
 
-    This corresponds to a sine wave with linear ramps.
+    This a non-sinusoidal wave with linear ramping.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
