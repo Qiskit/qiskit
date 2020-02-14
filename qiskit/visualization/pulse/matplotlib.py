@@ -297,10 +297,10 @@ class ScheduleDrawer:
     def _build_channels(self, schedule: 'ScheduleComponent',
                         channels: List['Channel'],
                         t0: int, tf: int,
-                        show_framechange_channels: bool = True)\
-            -> Tuple[Dict['Channel', EventsOutputChannels],
-                     Dict['Channel', EventsOutputChannels],
-                     Dict['Channel', EventsOutputChannels]]:
+                        show_framechange_channels: bool = True
+                        ) -> Tuple[Dict['Channel', EventsOutputChannels],
+                                   Dict['Channel', EventsOutputChannels],
+                                   Dict['Channel', EventsOutputChannels]]:
         """Create event table of each pulse channels in the given schedule.
 
         Args:
@@ -381,8 +381,7 @@ class ScheduleDrawer:
                         channel_scales: Dict['Channel', float] = None,
                         channels: List['Channel'] = None,
                         plot_all: bool = False) -> Dict['Channel', float]:
-            -> Dict['Channel', float]:
-        """ Count number of channels that contains any instruction to show
+        """Count number of channels that contains any instruction to show
         and find scale factor of that channel.
 
         Args:
@@ -499,7 +498,7 @@ class ScheduleDrawer:
     def _draw_snapshots(ax: 'matplotlib.axes.Axes',
                         snapshot_channels: Dict['Channel', EventsOutputChannels],
                         dt: float, y0: float) -> NoReturn:
-        """ Draw snapshots to given mpl axis.
+        """Draw snapshots to given mpl axis.
 
         Args:
             ax: axis object to draw snapshots.
@@ -517,7 +516,7 @@ class ScheduleDrawer:
     def _draw_framechanges(self, ax: 'matplotlib.axes.Axes',
                            fcs: Dict[int, 'FrameChangeInstruction'],
                            dt: float, y0: float) -> NoReturn:
-        """ Draw frame change of given channel to given mpl axis.
+        """Draw frame change of given channel to given mpl axis.
 
         Args:
             ax: axis object to draw frame changes.
@@ -531,7 +530,7 @@ class ScheduleDrawer:
                     ha='center', va='center')
 
     def _get_channel_color(self, channel: 'Channel') -> str:
-        """ Lookup table for waveform color.
+        """Lookup table for waveform color.
 
         Args:
             channel: Type of channel.
@@ -555,7 +554,7 @@ class ScheduleDrawer:
     @staticmethod
     def _prev_label_at_time(prev_labels: List[Dict[int, Union['SamplePulse', 'Acquire']]],
                             time: int) -> bool:
-        """ Check overlap of pulses with pervious channels.
+        """Check overlap of pulses with pervious channels.
 
         Args:
             prev_labels: List of labels in previous channels.
@@ -574,7 +573,7 @@ class ScheduleDrawer:
                      labels: Dict[int, Union['SamplePulse', 'Acquire']],
                      prev_labels: List[Dict[int, Union['SamplePulse', 'Acquire']]],
                      dt: float, y0: float) -> NoReturn:
-        """ Draw label of pulse instructions on given mpl axis.
+        """Draw label of pulse instructions on given mpl axis.
 
         Args:
             ax: axis object to draw labels.
@@ -614,7 +613,7 @@ class ScheduleDrawer:
                        t0: int, tf: int, dt: float,
                        scale_dict: Dict['Chanenl', float],
                        label: bool = False, framechange: bool = True) -> float:
-        """ Draw pulse instructions on given mpl axis.
+        """Draw pulse instructions on given mpl axis.
 
         Args:
             ax: axis object to draw pulses.
@@ -702,7 +701,8 @@ class ScheduleDrawer:
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List['Channel'] = None,
-             show_framechange_channels: bool = True):
+             show_framechange_channels: bool = True
+             ) -> 'matplotlib.figure.Figure':
         """Draw figure.
 
         Args:

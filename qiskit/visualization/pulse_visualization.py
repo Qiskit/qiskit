@@ -44,8 +44,8 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
                  framechange: bool = True,
                  channels: List['Channel'] = None,
                  scaling: float = None,
-                 show_framechange_channels: bool = True) \
-        -> 'matplotlib.figure.Figure':
+                 show_framechange_channels: bool = True
+                 ) -> 'matplotlib.figure.Figure':
     """Plot the interpolated envelope of pulse and schedule.
 
     Args:
@@ -78,8 +78,7 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
             with only framechange instructions.
 
     Returns:
-        matplotlib.figure.Figure: A matplotlib figure object
-            for the pulse envelope.
+        A matplotlib figure object for the pulse envelope.
 
     Example:
         This example shows how to customize your schedule plot.

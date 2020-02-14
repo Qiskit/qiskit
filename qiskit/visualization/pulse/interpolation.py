@@ -21,9 +21,13 @@ from functools import partial
 
 from scipy import interpolate
 import numpy as np
+from typing import Tuple
 
 
-def interp1d(time, samples, nop, kind='linear'):
+def interp1d(time: np.ndarray,
+             samples: np.ndarray,
+             nop: int, kind: str = 'linear'
+             ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Scipy interpolation wrapper.
 
     Args:
@@ -33,7 +37,7 @@ def interp1d(time, samples, nop, kind='linear'):
         kind (str): Scipy interpolation type.
             See ``scipy.interpolate.interp1d`` documentation for more information.
     Returns:
-        ndarray: interpolated waveform.
+        interpolated time vector and real and imaginary part of waveform.
     """
     re_y = np.real(samples)
     im_y = np.imag(samples)
@@ -57,7 +61,7 @@ Args:
     samples (ndarray): complex pulse envelope.
     nop (int): data points for interpolation.
 Returns:
-    ndarray: interpolated waveform.
+    interpolated time vector and real and imaginary part of waveform.
 """
 
 cubic_spline = partial(interp1d, kind='cubic')
@@ -68,7 +72,7 @@ Args:
     samples (ndarray): complex pulse envelope.
     nop (int): data points for interpolation.
 Returns:
-    ndarray: interpolated waveform.
+    interpolated time vector and real and imaginary part of waveform.
 """
 
 step_wise = partial(interp1d, kind='nearest')
@@ -79,5 +83,5 @@ Args:
     samples (ndarray): complex pulse envelope.
     nop (int): data points for interpolation.
 Returns:
-    ndarray: interpolated waveform.
+    interpolated time vector and real and imaginary part of waveform.
 """
