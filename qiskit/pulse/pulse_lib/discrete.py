@@ -439,7 +439,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
 
     .. math::
 
-        f(x) = g(x) + i h(x),
+        f(x) = g(x) + i \beta h(x),
 
     where :math:`g(x)` is the function sampled in :meth:`gaussian`, and :math:`h(x)`
     is the function sampled in :meth:`gaussian_deriv`.
