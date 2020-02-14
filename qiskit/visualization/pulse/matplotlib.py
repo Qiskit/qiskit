@@ -244,7 +244,7 @@ class SamplePulseDrawer:
             scaling: Deprecated, see `scale`.
 
         Returns:
-            matplotlib.Figure: A matplotlib figure object of the pulse envelope.
+            A matplotlib figure object of the pulse envelope.
         """
         if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
