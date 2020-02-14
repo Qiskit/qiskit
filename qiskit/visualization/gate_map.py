@@ -19,51 +19,17 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 
-class _GraphDist:
-    """Transform the circles properly for non-square axes."""
-
-    def __init__(self, size, ax, x=True):
-        self.size = size
-        self.ax = ax  # pylint: disable=invalid-name
-        self.x = x
-
-    @property
-    def dist_real(self):
-        """Compute distance."""
-        x0, y0 = self.ax.transAxes.transform((0, 0))
-        x1, y1 = self.ax.transAxes.transform((1, 1))
-        value = x1 - x0 if self.x else y1 - y0
-        return value
-
-    @property
-    def dist_abs(self):
-        """Distance abs"""
-        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
-        return bounds[0] - bounds[1]
-
-    @property
-    def value(self):
-        """Return value."""
-        return (self.size / self.dist_real) * self.dist_abs
-
-    def __mul__(self, obj):
-        return self.value * obj
-
-
-def plot_gate_map(
-    backend,
-    figsize=None,
-    plot_directed=False,
-    label_qubits=True,
-    qubit_size=24,
-    line_width=4,
-    font_size=12,
-    qubit_color=None,
-    qubit_labels=None,
-    line_color=None,
-    font_color="w",
-    ax=None,
-):
+def plot_gate_map(backend, figsize=None,
+                  plot_directed=False,
+                  label_qubits=True,
+                  qubit_size=24,
+                  line_width=4,
+                  font_size=12,
+                  qubit_color=None,
+                  qubit_labels=None,
+                  line_color=None,
+                  font_color='w',
+                  ax=None):
     """Plots the gate map of a device.
 
     Args:
@@ -475,21 +441,17 @@ def plot_gate_map(
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
         _idx = [idx[1], -idx[0]]
-        width = _GraphDist(qubit_size, ax, True)
-        height = _GraphDist(qubit_size, ax, False)
-        ax.add_artist(mpatches.Ellipse(_idx, width, height, color=qubit_color[var], zorder=1))
-        if label_qubits:
-            ax.text(
-                *_idx,
-                s=qubit_labels[var],
-                horizontalalignment="center",
-                verticalalignment="center",
-                color=font_color,
-                size=font_size,
-                weight="bold",
-            )
+        ax.add_artist(mpatches.Ellipse(
+            _idx, qubit_size/48, qubit_size/48,  # This is here so that the changes
+            color=qubit_color[var], zorder=1))   # to how qubits are plotted does
+        if label_qubits:                         # not affect qubit size kwarg.
+            ax.text(*_idx, s=qubit_labels[var],
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                    color=font_color, size=font_size, weight='bold')
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
+    ax.set_aspect('equal')
     if not input_axes:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
@@ -722,16 +684,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if cmap:
         bright_ax = plt.subplot(grid_spec[-1, 7:])
 
-    plot_gate_map(
-        backend,
-        qubit_color=q_colors,
-        line_color=line_colors,
-        qubit_size=28,
-        line_width=5,
-        plot_directed=directed,
-        ax=main_ax,
-    )
-    main_ax.axis("off")
+    qubit_size = 28
+    if n_qubits <= 5:
+        qubit_size = 20
+    plot_gate_map(backend, qubit_color=q_colors,
+                  line_color=line_colors,
+                  qubit_size=qubit_size,
+                  line_width=5,
+                  plot_directed=directed,
+                  ax=main_ax)
+    main_ax.axis('off')
     main_ax.set_aspect(1)
     if cmap:
         single_cb = matplotlib.colorbar.ColorbarBase(
