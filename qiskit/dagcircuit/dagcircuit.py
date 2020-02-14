@@ -516,6 +516,7 @@ class DAGCircuit:
             edge_map (dict): a {Bit: Bit} map from input wires of other
                 to output wires of self (i.e. rhs->lhs).
                 The key, value pairs can be either Qubit or Clbit mappings.
+            front (bool): If True, front composition will be performed (not implemented yet)
 
         Raises:
             DAGCircuitError: if ``other`` is wider or there are duplicate edge mappings.
