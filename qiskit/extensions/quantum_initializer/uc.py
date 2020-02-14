@@ -315,7 +315,10 @@ def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
     Deprecated version of uc.
     """
     import warnings
-    warnings.warn('qc.ucg is deprecated, use qc.uc instead!', DeprecationWarning, 2)
+    warnings.warn('The QuantumCircuit.ucg() method is deprecated as of 0.14.0, and '
+                  'will be removed no earlier than 3 months after that release date. '
+                  'You should use the QuantumCircuit.uc() method instead.',
+                  DeprecationWarning, stacklevel=2)
     uc(self, angle_list, q_controls, q_target, up_to_diagonal)
 
 
