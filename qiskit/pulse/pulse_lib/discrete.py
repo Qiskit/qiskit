@@ -246,7 +246,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
 
     .. math::
 
-        f(x) = A\exp\left(\left(\frac{x - \mu}{\sigma}\right)^2 \right),
+        f(x) = A\exp\left(\left(\frac{x - \mu}{2\sigma}\right)^2 \right),
 
     with the center :math:`\mu=` ``duration/2``.
 
