@@ -18,6 +18,8 @@ from .h import HGate, CHGate
 from .iden import IdGate
 from .ms import MSGate
 from .r import RGate
+from .rccx import RCCXGate
+from .rcccx import RCCCXGate
 from .rx import RXGate, CrxGate
 from .rxx import RXXGate
 from .ry import RYGate, CryGate

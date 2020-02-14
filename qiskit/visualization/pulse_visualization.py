@@ -27,9 +27,9 @@ if _matplotlib.HAS_MATPLOTLIB:
 
 
 def pulse_drawer(data, dt=1, style=None, filename=None,
-                 interp_method=None, scale=None, channels_to_plot=None,
-                 plot_all=False, plot_range=None, interactive=False,
-                 table=True, label=False, framechange=True,
+                 interp_method=None, scale=None, channel_scales=None,
+                 channels_to_plot=None, plot_all=False, plot_range=None,
+                 interactive=False, table=True, label=False, framechange=True,
                  channels=None, scaling=None,
                  show_framechange_channels=True):
     """Plot the interpolated envelope of pulse
@@ -43,6 +43,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         interp_method (Callable): interpolation function
             See `qiskit.visualization.interpolation` for more information
         scale (float): scaling of waveform amplitude
+        channel_scales (dict[Channel, float]): channel independent scaling as a
+            dictionary of `Channel` object.
         channels_to_plot (list): Deprecated, see `channels`
         plot_all (bool): Plot empty channels
         plot_range (tuple): A tuple of time range to plot
@@ -59,7 +61,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         matplotlib.figure: A matplotlib figure object for the pulse envelope
 
     Raises:
-        VisualizationError: when invalid data is given or lack of information
+        VisualizationError: when invalid data is given
         ImportError: when matplotlib is not installed
     """
     if scaling is not None:
@@ -79,8 +81,9 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
-                            plot_range=plot_range, plot_all=plot_all, table=table,
-                            label=label, framechange=framechange, channels=channels,
+                            channel_scales=channel_scales, plot_range=plot_range,
+                            plot_all=plot_all, table=table, label=label,
+                            framechange=framechange, channels=channels,
                             show_framechange_channels=show_framechange_channels)
     else:
         raise VisualizationError('This data cannot be visualized.')

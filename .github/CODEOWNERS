@@ -17,8 +17,8 @@ extensions/           @ajavadia @kdk @ewinston @1ucian0 @mtreinish
 dagcircuit/           @ajavadia @kdk @1ucian0 @maddy-tod
 providers/            @ajavadia @mtreinish @diego-plan9
 basicaer/             @chriseclectic @ajavadia
-pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989
-scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989
+pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
+scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
 quantum_info/         @chriseclectic @ajavadia
 qi/                   @chriseclectic @ajavadia
 result/               @diego-plan9 @jyu00 @taalexander @mtreinish @ajavadia

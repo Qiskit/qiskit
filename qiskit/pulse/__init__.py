@@ -25,7 +25,6 @@ Channels
 .. autosummary::
    :toctree: ../stubs/
 
-   PulseChannelSpec
    DriveChannel
    MeasureChannel
    AcquireChannel
@@ -41,6 +40,7 @@ Commands
 
    Instruction
    Acquire
+   AcquireInstruction
    FrameChange
    PersistentValue
    SamplePulse
@@ -48,7 +48,12 @@ Commands
    Kernel
    Discriminator
    Delay
-   functional_pulse
+   ParametricPulse
+   ParametricInstruction
+   Gaussian
+   GaussianSquare
+   Drag
+   ConstantPulse
 
 Schedules
 =========
@@ -65,7 +70,7 @@ Configuration
 .. autosummary::
    :toctree: ../stubs/
 
-   CmdDef
+   InstructionScheduleMap
    LoConfig
    LoRange
 
@@ -78,13 +83,13 @@ Exceptions
    PulseError
 """
 
-from .channels import (PulseChannelSpec, DriveChannel,
-                       MeasureChannel, AcquireChannel,
+from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
-                       SamplePulse, Snapshot, Kernel, Discriminator, Delay,
-                       ParametricPulse, ParametricInstruction, Gaussian,
+from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
+                       PersistentValue, SamplePulse, Snapshot, Kernel,
+                       Discriminator, Delay, ParametricPulse,
+                       ParametricInstruction, Gaussian,
                        GaussianSquare, Drag, ConstantPulse, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError

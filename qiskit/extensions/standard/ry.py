@@ -22,6 +22,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class RYGate(Gate):
@@ -78,9 +79,34 @@ class RYGate(Gate):
                             [sin, cos]], dtype=complex)
 
 
-def ry(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Ry to q."""
-    return self.append(RYGate(theta), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply Ry gate with angle theta to a specified qubit (qubit).
+    An Ry gate implements a theta radian rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(1)
+            circuit.ry(theta,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.ry import RYGate
+            RYGate(numpy.pi/2).to_matrix()
+    """
+    return self.append(RYGate(theta), [qubit], [])
 
 
 QuantumCircuit.ry = ry
@@ -121,9 +147,12 @@ class CryGate(ControlledGate):
         return CryGate(-self.params[0])
 
 
-def cry(self, theta, ctl, tgt):
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cry(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply cry from ctl to tgt with angle theta."""
-    return self.append(CryGate(theta), [ctl, tgt], [])
+    return self.append(CryGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cry = cry
