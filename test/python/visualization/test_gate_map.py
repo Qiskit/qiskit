@@ -17,7 +17,6 @@ from io import BytesIO
 from PIL import Image
 from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
-from qiskit.test import QiskitTestCase
 from qiskit.visualization.gate_map import plot_gate_map, plot_circuit_layout
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit import QuantumRegister, QuantumCircuit
