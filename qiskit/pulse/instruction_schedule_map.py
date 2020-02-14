@@ -38,8 +38,8 @@ from .exceptions import PulseError
 
 
 class InstructionScheduleMap():
-    """Mapping from :py:class:`qiskit.circuit.QuantumCircuit`:py:class:`qiskit.circuit.Instruction`
-    names and qubits to :py:class:`qiskit.pulse.Schedule` s. In particular, the mapping is
+    """Mapping from :py:class:`~qiskit.circuit.QuantumCircuit` :py:class:`qiskit.circuit.Instruction`
+    names and qubits to :py:class:`~qiskit.pulse.Schedule` s. In particular, the mapping is
     formatted as type::
 
          Dict[str, Dict[Tuple[int], Schedule]]
@@ -142,7 +142,7 @@ class InstructionScheduleMap():
             qubits: Union[int, Iterable[int]],
             *params: List[Union[int, float, complex]],
             **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
-        """Return the defined ``Schedule`` for the given instruction on the given qubits.
+        """Return the defined :py:class:`~qiskit.pulse.Schedule` for the given instruction on the given qubits.
 
         Args:
             instruction: Name of the instruction.
