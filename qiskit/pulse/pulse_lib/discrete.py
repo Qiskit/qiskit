@@ -447,8 +447,8 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
     If ``zero_ends == True``, the samples from :math:`g(x)` are remapped as in :meth:`gaussian`.
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
-        Analytic control methods for high-fidelity unitary operations
-        in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
+    Analytic control methods for high-fidelity unitary operations
+    in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
