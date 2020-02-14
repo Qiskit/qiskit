@@ -31,7 +31,7 @@ def interp1d(time, samples, nop, kind='linear'):
         samples (ndarray): complex pulse envelope.
         nop (int): data points for interpolation.
         kind (str): Scipy interpolation type.
-            See `scipy.interpolate.interp1d` documentation for more information.
+            See ``scipy.interpolate.interp1d`` documentation for more information.
     Returns:
         ndarray: interpolated waveform.
     """
