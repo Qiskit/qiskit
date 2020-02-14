@@ -1014,9 +1014,9 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
         for predecessor in reversed(list(self.predecessors(node))):
-            if isinstance(
-                    self._multi_graph.get_edge_data(
-                        predecessor._node_id, node._node_id)['wire'], Qubit):
+            if any(isinstance(x['wire'], Qubit) for x in
+                    self._multi_graph.get_all_edge_data(
+                        predecessor._node_id, node._node_id)):
                 yield predecessor
 
     def ancestors(self, node):
@@ -1038,8 +1038,9 @@ class DAGCircuit:
         """Returns iterator of the successors of a node that are
         connected by a quantum edge as DAGNodes."""
         for successor in reversed(list(self.successors(node))):
-            if isinstance(self._multi_graph.get_edge_data(
-                    node._node_id, successor._node_id)['wire'], Qubit):
+            if any(isinstance(x['wire'], Qubit) for x in
+                   self._multi_graph.get_all_edge_data(
+                    node._node_id, successor._node_id)):
                 yield successor
 
     def remove_op_node(self, node):
