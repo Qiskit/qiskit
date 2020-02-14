@@ -13,6 +13,7 @@
 """
 Visualization function for animation of state transitions by applying gates to single qubit.
 """
+import sys
 from math import sin, cos, acos, sqrt
 import numpy as np
 
@@ -135,7 +136,6 @@ class _Quaternion:
 
 
 def visualize_transition(circuit,
-                         jupyter=False,
                          trace=False,
                          saveas=None,
                          fpg=100,
@@ -147,9 +147,6 @@ def visualize_transition(circuit,
     Args:
         circuit (QuantumCircuit): Qiskit single-qubit QuantumCircuit. Gates supported are
             h,x, y, z, rx, ry, rz, s, sdg, t, tdg and u1.
-        jupyter (bool): Controls whether to display tkinter GUI (when set to False) of the
-            animation or return IPython HTML video element of animation to be shown in
-            jupyter notebook.
         trace (bool): Controls whether to display tracing vectors - history of 10 past vectors
             at each step of the animation.
         saveas (str): User can choose to save the animation as a video to their filesystem.
@@ -171,6 +168,10 @@ def visualize_transition(circuit,
         VisualizationError: Given gate(s) are not supported.
 
     """
+    jupyter = False
+    if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+        jupyter = True
+
     if not HAS_MATPLOTLIB:
         raise ImportError("Must have Matplotlib installed.")
     if not HAS_IPYTHON and jupyter is True:
@@ -222,6 +223,9 @@ def visualize_transition(circuit,
                 quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
                 list_of_circuit_gates.append(('u1:'+str(theta), quaternion, '#f1c40f'))
 
+    if len(list_of_circuit_gates) == 0:
+        raise VisualizationError("Nothing to visualize.")
+
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
@@ -234,36 +238,47 @@ def visualize_transition(circuit,
         """Helper class serving as scope container"""
         def __init__(self):
             self.new_vec = []
-            self.points = []
+            self.last_gate = -2
+            self.colors = []
+            self.pnts = []
 
     namespace = Namespace()
     namespace.new_vec = starting_pos
-    namespace.points = []
-    namespace.points.append(starting_pos)
 
     def animate(i):
         sphere.clear()
 
+        # starting gate count from -1 which is the initial vector
+        gate_counter = (i-1) // frames_per_gate
+        if gate_counter != namespace.last_gate:
+            namespace.pnts.append([[], [], []])
+            namespace.colors.append(list_of_circuit_gates[gate_counter][2])
+
         # starts with default vector [0,0,1]
         if i == 0:
             sphere.add_vectors(namespace.new_vec)
+            namespace.pnts[0][0].append(namespace.new_vec[0])
+            namespace.pnts[0][1].append(namespace.new_vec[1])
+            namespace.pnts[0][2].append(namespace.new_vec[2])
+            namespace.colors[0] = 'r'
             sphere.make_sphere()
             return _ax
 
-        gate_counter = (i-1) // frames_per_gate
         namespace.new_vec = list_of_circuit_gates[gate_counter][1] * namespace.new_vec
-        if (i-1) % 10 == 0:
-            namespace.points.append(namespace.new_vec)
+
+        namespace.pnts[gate_counter+1][0].append(namespace.new_vec[0])
+        namespace.pnts[gate_counter+1][1].append(namespace.new_vec[1])
+        namespace.pnts[gate_counter+1][2].append(namespace.new_vec[2])
 
         sphere.add_vectors(namespace.new_vec)
-
         if trace:
-            if len(namespace.points) < 10:
-                sphere.add_vectors(namespace.points)
-            else:
-                sphere.add_vectors(namespace.points[-10:])
+            # sphere.add_vectors(namespace.points)
+            for point_set in namespace.pnts:
+                sphere.add_points([point_set[0], point_set[1], point_set[2]])
 
-        sphere.vector_color = [list_of_circuit_gates[2][2]]
+        sphere.vector_color = [list_of_circuit_gates[gate_counter][2]]
+        sphere.point_color = namespace.colors
+        sphere.point_marker = 'o'
 
         annotation_text = list_of_circuit_gates[gate_counter][0]
         annotationvector = [1.4, -0.45, 1.7]
@@ -274,6 +289,8 @@ def visualize_transition(circuit,
                               horizontalalignment='left')
 
         sphere.make_sphere()
+
+        namespace.last_gate = gate_counter
         return _ax
 
     def init():

@@ -14,6 +14,9 @@ features:
     but it takes longer to render in jupyter notebook because the
     animation must be rendered with a video codec.
 
+    Optional argument trace controls whether to show trailing points
+    or not. 
+
 
     Non-jupyter example::
 
@@ -28,7 +31,7 @@ features:
 
       visualize_transition(qc)
 
-    Jupyter example::
+    Jupyter example with trace::
       from qiskit.visualization import visualize_transition
       from qiskit import *
 
@@ -38,4 +41,4 @@ features:
       qc.rx(90,0)
       qc.rz(120,0)
 
-      visualize_transition(qc, jupyter=True, fpg=20, spg=1)
+      visualize_transition(qc, fpg=20, spg=1, trace=True)
