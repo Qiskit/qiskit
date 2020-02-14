@@ -27,41 +27,16 @@ class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
     def test_adding_self(self):
-        """Test qc += qc which can be prone to infinite while-loops.
+        """Test that qc += qc finishes, which can be prone to infinite while-loops.
+
+        This can occur e.g. when a user tries
+        >>> other_qc = qc
+        >>> other_qc += qc  # or qc2.extend(qc)
         """
         qc = QuantumCircuit(1)
         qc.x(0)  # must contain at least one operation to end up in a infinite while-loop
 
-        # modify _append to detect the issue
-        qc._call_count = 0
-
-        def mock_append(self, instruction, qargs, cargs):
-            if self._call_count > 0:
-                raise CircuitError('The circuit must be added as copy!')
-
-            self._call_count += 1
-
-            # the original _append method:
-            if not isinstance(instruction, Instruction):
-                raise CircuitError('object is not an Instruction.')
-
-            # do some compatibility checks
-            self._check_dups(qargs)
-            self._check_qargs(qargs)
-            self._check_cargs(cargs)
-
-            # add the instruction onto the given wires
-            instruction_context = instruction, qargs, cargs
-            self._data.append(instruction_context)
-
-            self._update_parameter_table(instruction)
-
-            return instruction
-
-        # monkey-patch the instance method
-        qc._append = mock_append.__get__(qc, QuantumCircuit)
-
-        # attempt addition
+        # attempt addition, times out if qc is added via reference
         qc += qc
 
     def test_combine_circuit_common(self):
