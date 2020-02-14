@@ -702,7 +702,8 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
-        # TODO this works but is a horrible way to do this
+        # TODO remove deepcopy calls after
+        # https://github.com/mtreinish/retworkx/issues/27 is fixed
         slf = copy.deepcopy(self._multi_graph)
         oth = copy.deepcopy(other._multi_graph)
         return rx.is_isomorphic_node_match(slf, oth,
