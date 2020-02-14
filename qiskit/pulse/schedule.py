@@ -15,7 +15,7 @@
 """Schedule."""
 
 import abc
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type, Set
 import warnings
 
 from .timeslots import Interval
@@ -332,19 +332,19 @@ class Schedule(ScheduleComponent):
                 return return_ls
             return to_list
 
-        def only_channels(channels: Channel) -> Callable:
+        def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
             channels = if_scalar_cast_to_list(channels)
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
-        def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
+        def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
             types = if_scalar_cast_to_list(types)
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
-        def only_intervals(ranges: Iterable[Interval]) -> Callable:
+        def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
