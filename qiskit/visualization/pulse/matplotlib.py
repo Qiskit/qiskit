@@ -301,7 +301,7 @@ class ScheduleDrawer:
             -> Tuple[Dict['Channel', EventsOutputChannels],
                      Dict['Channel', EventsOutputChannels],
                      Dict['Channel', EventsOutputChannels]]:
-        """ Create event table of each pulse channels in the given schedule.
+        """Create event table of each pulse channels in the given schedule.
 
         Args:
             schedule: Schedule object to plot.
