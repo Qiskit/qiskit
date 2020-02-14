@@ -191,7 +191,7 @@ def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.cx import CXGate
+            from qiskit.extensions.standard.x import CXGate
             CXGate().to_matrix()
     """
     return self.append(CXGate(), [control_qubit, target_qubit], [])
@@ -305,8 +305,8 @@ def ccx(self, control_qubit1, control_qubit2, target_qubit,
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.x import ToffoliGate
-            ToffoliGate().to_matrix()
+            from qiskit.extensions.standard.x import CCXGate
+            CCXGate().to_matrix()
     """
 
     return self.append(CCXGate(),

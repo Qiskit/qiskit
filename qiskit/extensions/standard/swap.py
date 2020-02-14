@@ -194,8 +194,8 @@ def cswap(self, control_qubit, target_qubit1, target_qubit2,
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.swap import FredkinGate
-            FredkinGate().to_matrix()
+            from qiskit.extensions.standard.swap import CSwapGate
+            CSwapGate().to_matrix()
     """
     return self.append(CSwapGate(), [control_qubit, target_qubit1, target_qubit2], [])
 

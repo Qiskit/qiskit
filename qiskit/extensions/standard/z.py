@@ -185,8 +185,8 @@ def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.cz import CzGate
-            CzGate().to_matrix()
+            from qiskit.extensions.standard.z import CZGate
+            CZGate().to_matrix()
     """
     return self.append(CZGate(), [control_qubit, target_qubit], [])
 

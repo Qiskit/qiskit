@@ -81,15 +81,15 @@ def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
             from qiskit import QuantumCircuit
 
             circuit = QuantumCircuit(1)
-            circuit.iden(0)
+            circuit.id(0)  # or circuit.i(0)
             circuit.draw()
 
         Matrix Representation:
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.iden import IdGate
-            IdGate().to_matrix()
+            from qiskit.extensions.standard.i import IGate
+            IGate().to_matrix()
     """
     return self.append(IGate(), [qubit], [])
 
