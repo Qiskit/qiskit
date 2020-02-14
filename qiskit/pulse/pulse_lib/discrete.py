@@ -459,7 +459,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
               relative coupling strength between the first excited and second excited states
               and :math:`\Delta_2` is the detuning between the respective excited states.
         name: Name of pulse.
-        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If ``True``, make the first and last sample zero, but rescale to preserve amp.
     """
     center = duration/2
     zeroed_width = duration if zero_ends else None
