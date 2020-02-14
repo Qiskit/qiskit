@@ -289,7 +289,7 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
 
     .. math::
 
-        f(x) = A\frac{2(x - \mu)}{\sigma^2}\exp\left(\left(\frac{x - \mu}{\sigma}\right)^2 \right)
+        f(x) = A\frac{(x - \mu)}{\sigma^2}\exp\left(\left(\frac{x - \mu}{2\sigma}\right)^2 \right)
 
     i.e. the derivative of the Gaussian function, with center :math:`\mu=` ``duration/2``.
 
