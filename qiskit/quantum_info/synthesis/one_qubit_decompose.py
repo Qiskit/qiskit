@@ -27,7 +27,8 @@ from qiskit.extensions.standard import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-DEFAULT_ATOL = 1e-12
+DEFAULT_SIMPLIFY_TOLERANCE = 1e-12
+DEFAULT_ATOL = 1e-7
 
 
 class OneQubitEulerDecomposer:
@@ -90,16 +91,20 @@ class OneQubitEulerDecomposer:
     def __call__(self,
                  unitary,
                  simplify=True,
+                 simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE,
                  phase_equal=False,
                  atol=DEFAULT_ATOL):
-        """Decompose single qubit gate into a basis circuit.
+        """Decompose single qubit gate into a circuit.
 
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
-            simplify (bool): remove zero-angle rotations [Default: True].
+            simplify (bool): reduce gate count in decomposition [Default: True].
+            simplify_tolerance (float): absolute tolerance for checking
+                                        angles in simplify [Default: 1e-12].
             phase_equal (bool): verify the output circuit is phase equal
                                 to the input matrix [Default: False].
-            atol (float): absolute tolerance for checking angles zero.
+            atol (bool): absolute tolerance for comparing synthesised circuit
+                         matrix to input [Default: 1e-7].
 
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
@@ -127,9 +132,13 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
         theta, phi, lam, _ = self._params(unitary)
-        circuit = self._circuit(theta, phi, lam, simplify=simplify, atol=atol)
+        circuit = self._circuit(theta, phi, lam,
+                                simplify=simplify,
+                                simplify_tolerance=simplify_tolerance)
         # Check circuit is correct
-        self.check_equiv(unitary, circuit, phase_equal=phase_equal)
+        self.check_equiv(unitary, circuit,
+                         phase_equal=phase_equal,
+                         atol=atol)
         return circuit
 
     @property
@@ -176,7 +185,8 @@ class OneQubitEulerDecomposer:
         """
         return self._params(unitary)
 
-    def circuit(self, theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
+    def circuit(self, theta, phi, lam, simplify=True,
+                simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
         """Return the basis circuit for the input parameters.
 
         Args:
@@ -184,16 +194,18 @@ class OneQubitEulerDecomposer:
             phi (float): euler angle parameter
             lam (float): euler angle parameter
             simplify (bool): simplify output circuit [Default: True]
-            atol (float): absolute tolerance for checking angles zero
-                          [Default: 1e-12].
+            simplify_tolerance (float): absolute tolerance for checking
+                                        angles zero [Default: 1e-12].
 
         Returns:
             QuantumCircuit: the basis circuits.
         """
-        return self._circuit(theta, phi, lam, simplify=simplify, atol=atol)
+        return self._circuit(theta, phi, lam,
+                             simplify=simplify,
+                             simplify_tolerance=simplify_tolerance)
 
     @staticmethod
-    def check_equiv(unitary, circuit, phase_equal=False):
+    def check_equiv(unitary, circuit, phase_equal=False, atol=DEFAULT_ATOL):
         """Check a circuit is equivalent to a unitary.
 
         Args:
@@ -201,6 +213,8 @@ class OneQubitEulerDecomposer:
             circuit (QuantumCircuit or Instruction): decomposition circuit.
             phase_equal (bool): require the decomposition to be global phase
                                 equal [Default: False]
+            atol (float): absolute tolerance for checking matrix entries.
+                          [Default: 1e-7]
 
         Raises:
             QiskitError: if the input unitary and circuit are not equivalent.
@@ -210,11 +224,11 @@ class OneQubitEulerDecomposer:
 
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators import Operator
-        if phase_equal and Operator(circuit) != Operator(unitary):
+        if phase_equal and not np.allclose(Operator(circuit).data, unitary, atol=atol):
             raise QiskitError(
                 "Phase equal circuit synthesis failed within required accuracy."
             )
-        if not phase_equal and not Operator(circuit).equiv(Operator(unitary)):
+        if not phase_equal and not Operator(circuit).equiv(unitary, atol=atol):
             raise QiskitError(
                 "Circuit synthesis failed within required accuracy.")
 
@@ -282,86 +296,111 @@ class OneQubitEulerDecomposer:
         return theta, phi, lam, phase - 0.5 * (theta + phi + lam)
 
     @staticmethod
-    def _circuit_zyz(theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_zyz(theta,
+                     phi,
+                     lam,
+                     simplify=True,
+                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
         circuit = QuantumCircuit(1)
-        if simplify and np.isclose(theta, 0.0, atol=atol):
+        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
             circuit.append(RZGate(phi + lam), [0])
             return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
+        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
             circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
+        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
             circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
+        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
             circuit.append(RZGate(phi), [0])
         return circuit
 
     @staticmethod
-    def _circuit_u3(theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_zxz(theta,
+                     phi,
+                     lam,
+                     simplify=False,
+                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
+            circuit = QuantumCircuit(1)
+            circuit.append(RZGate(phi + lam), [0])
+            return circuit
+        circuit = QuantumCircuit(1)
+        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
+            circuit.append(RZGate(lam), [0])
+        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
+            circuit.append(RXGate(theta), [0])
+        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
+            circuit.append(RZGate(phi), [0])
+        return circuit
+
+    @staticmethod
+    def _circuit_xyx(theta,
+                     phi,
+                     lam,
+                     simplify=True,
+                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+        circuit = QuantumCircuit(1)
+        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
+            circuit.append(RXGate(phi + lam), [0])
+            return circuit
+        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
+            circuit.append(RXGate(lam), [0])
+        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
+            circuit.append(RYGate(theta), [0])
+        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
+            circuit.append(RXGate(phi), [0])
+        return circuit
+
+    @staticmethod
+    def _circuit_u3(theta,
+                    phi,
+                    lam,
+                    simplify=True,
+                    simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1)
         circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
-    def _circuit_u1x(theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
-        # Check for U1 and U2 decompositions into minimimal
-        # required X90 pulses
-        if simplify and np.allclose([theta, phi], [0., 0.], atol=atol):
-            # zero X90 gate decomposition
+    def _circuit_u1x(theta,
+                     phi,
+                     lam,
+                     simplify=True,
+                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+        # Shift theta and phi so decomposition is
+        # U1(phi).X90.U1(theta).X90.U1(lam)
+        theta += np.pi
+        phi += np.pi
+        # Check for decomposition into minimimal number required X90 pulses
+        if simplify and np.isclose(abs(theta), np.pi, atol=simplify_tolerance):
+            # Zero X90 gate decomposition
             circuit = QuantumCircuit(1)
-            circuit.append(U1Gate(lam), [0])
+            circuit.append(U1Gate(lam + phi + theta), [0])
             return circuit
-        if simplify and np.isclose(theta, np.pi / 2, atol=atol):
-            # single X90 gate decomposition
-            # NOTE: Dropping the second X90 gate here requires a phase
-            # shift correction of pi/4
+        if simplify and np.isclose(abs(theta), np.pi/2, atol=simplify_tolerance):
+            # Single X90 gate decomposition
             circuit = QuantumCircuit(1)
-            circuit.append(U1Gate(lam - np.pi / 2), [0])
+            circuit.append(U1Gate(lam + theta), [0])
             circuit.append(RXGate(np.pi / 2), [0])
-            circuit.append(U1Gate(phi + np.pi / 2), [0])
+            circuit.append(U1Gate(phi + theta), [0])
             return circuit
         # General two-X90 gate decomposition
         circuit = QuantumCircuit(1)
         circuit.append(U1Gate(lam), [0])
         circuit.append(RXGate(np.pi / 2), [0])
-        circuit.append(U1Gate(theta + np.pi), [0])
+        circuit.append(U1Gate(theta), [0])
         circuit.append(RXGate(np.pi / 2), [0])
-        circuit.append(U1Gate(phi + np.pi), [0])
+        circuit.append(U1Gate(phi), [0])
         return circuit
 
     @staticmethod
-    def _circuit_rr(theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_rr(theta,
+                    phi,
+                    lam,
+                    simplify=True,
+                    simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
         circuit = QuantumCircuit(1)
-        if not simplify or not np.isclose(theta, -np.pi, atol=atol):
+        if not simplify or not np.isclose(theta, -np.pi, atol=simplify_tolerance):
             circuit.append(RGate(theta + np.pi, np.pi / 2 - lam), [0])
         circuit.append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [0])
-        return circuit
-
-    @staticmethod
-    def _circuit_zxz(theta, phi, lam, simplify=False, atol=DEFAULT_ATOL):
-        if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit = QuantumCircuit(1)
-            circuit.append(RZGate(phi + lam), [0])
-            return circuit
-        circuit = QuantumCircuit(1)
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
-            circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RXGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
-            circuit.append(RZGate(phi), [0])
-        return circuit
-
-    @staticmethod
-    def _circuit_xyx(theta, phi, lam, simplify=True, atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1)
-        if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RXGate(phi + lam), [0])
-            return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
-            circuit.append(RXGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
-            circuit.append(RXGate(phi), [0])
         return circuit
