@@ -18,7 +18,7 @@ import unittest
 import os
 from test.aqua import QiskitAquaTestCase
 import numpy as np
-from parameterized import parameterized
+from ddt import ddt, idata, unpack
 from qiskit import BasicAer
 
 from qiskit.aqua import QuantumInstance, aqua_globals
@@ -29,6 +29,7 @@ from qiskit.aqua.components.initial_states import Zero
 from qiskit.aqua.algorithms import VQE
 
 
+@ddt
 class TestVQE(QiskitAquaTestCase):
     """ Test VQE """
     def setUp(self):
@@ -65,12 +66,13 @@ class TestVQE(QiskitAquaTestCase):
         self.assertIn('eval_count', result)
         self.assertIn('eval_time', result)
 
-    @parameterized.expand([
+    @idata([
         [SLSQP, 5, 4],
         [SLSQP, 5, 1],
         [SPSA, 3, 2],  # max_evals_grouped=n is considered as max_evals_grouped=2 if n>2
         [SPSA, 3, 1]
     ])
+    @unpack
     def test_vqe_optimizers(self, optimizer_cls, places, max_evals_grouped):
         """ VQE Optimizers test """
         result = VQE(self.qubit_op,
@@ -83,10 +85,11 @@ class TestVQE(QiskitAquaTestCase):
 
         self.assertAlmostEqual(result['energy'], -1.85727503, places=places)
 
-    @parameterized.expand([
+    @idata([
         [RY, 5],
         [RYRZ, 5]
     ])
+    @unpack
     def test_vqe_var_forms(self, var_form_cls, places):
         """ VQE Var Forms test """
         result = VQE(self.qubit_op,

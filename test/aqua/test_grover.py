@@ -17,7 +17,7 @@
 import unittest
 import itertools
 from test.aqua import QiskitAquaTestCase
-from parameterized import parameterized
+from ddt import ddt, idata, unpack
 from qiskit import BasicAer
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import Grover
@@ -42,12 +42,14 @@ SIMULATORS = ['statevector_simulator', 'qasm_simulator']
 OPTIMIZATIONS = [True, False]
 
 
+@ddt
 class TestGrover(QiskitAquaTestCase):
     """ Grover test """
-    @parameterized.expand(
+    @idata(
         [x[0] + list(x[1:]) for x in list(itertools.product(TESTS, MCT_MODES,
                                                             SIMULATORS, OPTIMIZATIONS))]
     )
+    @unpack
     def test_grover(self, input_test, sol, oracle_cls, mct_mode, simulator, optimization):
         """ grover test """
         groundtruth = sol
