@@ -18,6 +18,8 @@
 matplotlib pulse visualization.
 """
 import warnings
+from typing import Union, Callable, List, Dict, Tuple
+
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
@@ -26,39 +28,86 @@ if _matplotlib.HAS_MATPLOTLIB:
     from matplotlib import get_backend
 
 
-def pulse_drawer(data, dt=1, style=None, filename=None,
-                 interp_method=None, scale=None, channel_scales=None,
-                 channels_to_plot=None, plot_all=False, plot_range=None,
-                 interactive=False, table=True, label=False, framechange=True,
-                 channels=None, scaling=None,
-                 show_framechange_channels=True):
-    """Plot the interpolated envelope of pulse
+def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
+                 dt: int = 1,
+                 style: Union['PulseStyle', 'SchedStyle'] = None,
+                 filename: str = None,
+                 interp_method: Callable = None,
+                 scale: float = None,
+                 channel_scales: Dict['Channel', float] = None,
+                 channels_to_plot: List['Channel'] = None,
+                 plot_all: bool = False,
+                 plot_range: Tuple[Union[int, float], Union[int, float]] = None,
+                 interactive: bool = False,
+                 table: bool = True,
+                 label: bool = False,
+                 framechange: bool = True,
+                 channels: List['Channel'] = None,
+                 scaling: float = None,
+                 show_framechange_channels: bool = True) \
+        -> 'matplotlib.figure.Figure':
+    """Plot the interpolated envelope of pulse and schedule.
 
     Args:
-        data (ScheduleComponent or SamplePulse): Data to plot
-        dt (float): Time interval of samples
-        style (PulseStyle or SchedStyle): A style sheet to configure
-            plot appearance
-        filename (str): Name required to save pulse image
-        interp_method (Callable): interpolation function
-            See `qiskit.visualization.interpolation` for more information
-        scale (float): scaling of waveform amplitude
-        channel_scales (dict[Channel, float]): channel independent scaling as a
-            dictionary of `Channel` object.
-        channels_to_plot (list): Deprecated, see `channels`
-        plot_all (bool): Plot empty channels
-        plot_range (tuple): A tuple of time range to plot
-        interactive (bool): When set true show the circuit in a new window
-            (this depends on the matplotlib backend being used supporting this)
-        table (bool): Draw event table for supported commands
-        label (bool): Label individual instructions
-        framechange (bool): Add framechange indicators
-        scaling (float): Deprecated, see `scale`
-        channels (list): A list of channel names to plot
-        show_framechange_channels (bool): Plot channels with only framechanges
+        data: Pulse or schedule object to plot.
+        dt: Time interval of samples. Pulses are visualized in the unit of
+            cycle time if not provided.
+        style: A style sheet to configure plot appearance.
+            See `qiskit.visualization.pulse.qcstyle` for more information.
+        filename: Name required to save pulse image. The drawer just returns
+            `matplot.Figure` object if not provided.
+        interp_method: Interpolation function. See example.
+            Interpolation is disabled in default.
+            See `qiskit.visualization.pulse.interpolation` for more information.
+        scale: Scaling of waveform amplitude. Pulses are automatically
+            scaled channel by channel if not provided.
+        channel_scales: Dictionary of scale factor for specific channels.
+            Scale of channels not specified here is overwritten by `scale`.
+        channels_to_plot: Deprecated, see `channels`.
+        plot_all: When set `True` plot empty channels.
+        plot_range: A tuple of time range to plot.
+        interactive: When set `True` show the circuit in a new window.
+            This depends on the matplotlib backend being used supporting this.
+        table: When set `True` draw event table for supported commands.
+        label: When set `True` draw label for individual instructions.
+        framechange: When set `True` draw framechange indicators.
+        scaling: Deprecated, see `scale`.
+        channels: A list of channel names to plot.
+            All non-empty channels are shown if not provided.
+        show_framechange_channels: When set `True` plot channels
+            with only framechange instructions.
 
     Returns:
-        matplotlib.figure: A matplotlib figure object for the pulse envelope
+        matplotlib.figure.Figure: A matplotlib figure object
+            for the pulse envelope.
+
+    Example:
+        This example shows how to customize your schedule plot.
+        Custom style sheet is applied and pulse names are added to the plot.
+        Unimportant channels are removed and the schedule is truncated to
+        draw out important pulses.
+
+        .. jupyter-execute::
+            import numpy as np
+            import qiskit
+            from qiskit import pulse
+            from qiskit.test.mock.backends.almaden import FakeAlmaden
+
+            inst_map = FakeAlmaden().defaults().instruction_schedule_map
+
+            sched = pulse.Schedule()
+            sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
+            sched += inst_map.get('measure', list(range(20))) << sched.duration
+
+            my_style = qiskit.visualization.pulse.SchedStyle(bg_color='w')
+            channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
+            scales = {pulse.DriveChannel(0): 10}
+
+            qiskit.visualization.pulse_drawer(sched, style=my_style,
+                                              channels=channels,
+                                              plot_range=(0, 1000),
+                                              label=True,
+                                              channel_scales=scales)
 
     Raises:
         VisualizationError: when invalid data is given

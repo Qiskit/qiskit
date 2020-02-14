@@ -30,8 +30,8 @@ def interp1d(time, samples, nop, kind='linear'):
         time (ndarray): time.
         samples (ndarray): complex pulse envelope.
         nop (int): data points for interpolation.
-        kind (str): Scipy interpolation type. See `scipy.interpolate.interp1d` documentation
-            for more information.
+        kind (str): Scipy interpolation type.
+            See `scipy.interpolate.interp1d` documentation for more information.
     Returns:
         ndarray: interpolated waveform.
     """
@@ -50,7 +50,34 @@ def interp1d(time, samples, nop, kind='linear'):
 
 
 linear = partial(interp1d, kind='linear')
+linear.__doc__ = """Apply linear interpolation between sampling points.
+
+Args:
+    time (ndarray): time.
+    samples (ndarray): complex pulse envelope.
+    nop (int): data points for interpolation.
+Returns:
+    ndarray: interpolated waveform.
+"""
 
 cubic_spline = partial(interp1d, kind='cubic')
+cubic_spline.__doc__ = """Apply cubic interpolation between sampling points.
+
+Args:
+    time (ndarray): time.
+    samples (ndarray): complex pulse envelope.
+    nop (int): data points for interpolation.
+Returns:
+    ndarray: interpolated waveform.
+"""
 
 step_wise = partial(interp1d, kind='nearest')
+step_wise.__doc__ = """No interpolation.
+
+Args:
+    time (ndarray): time.
+    samples (ndarray): complex pulse envelope.
+    nop (int): data points for interpolation.
+Returns:
+    ndarray: interpolated waveform.
+"""
