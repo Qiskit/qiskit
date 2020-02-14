@@ -429,7 +429,7 @@ class ScheduleDrawer:
     def _draw_table(self, figure: 'matplotlib.figure.Figure',
                     channels: Dict['Channel', EventsOutputChannels],
                     dt: float) -> 'matplotlib.axes.Axes':
-        """ Draw event table if events exist.
+        """Draw event table if events exist.
 
         Args:
             figure: Figure object
