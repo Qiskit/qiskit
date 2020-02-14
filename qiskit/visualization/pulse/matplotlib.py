@@ -380,7 +380,7 @@ class ScheduleDrawer:
                         scale: float,
                         channel_scales: Dict['Channel', float] = None,
                         channels: List['Channel'] = None,
-                        plot_all: bool = False)\
+                        plot_all: bool = False) -> Dict['Channel', float]:
             -> Dict['Channel', float]:
         """ Count number of channels that contains any instruction to show
         and find scale factor of that channel.
