@@ -58,12 +58,15 @@ def permutation(n_qubits: int,
     return circuit
 
 
-def shift(n_qubits: int, shift: int) -> QuantumCircuit:
+def shift(n_qubits: int,
+          amount: Optional[int] = None,
+          seed: Optional[int] = None) -> QuantumCircuit:
     """Return a circuit implementing bitwise xor (shift over Z_2).
 
     Args:
         n_qubits: the width of circuit.
-        shift: shift amount in decimal form.
+        amount: shift amount in decimal form.
+        seed: random seed in case a random shift amount is requested.
 
     Returns:
         A boolean shift circuit.
@@ -71,14 +74,18 @@ def shift(n_qubits: int, shift: int) -> QuantumCircuit:
     Raises:
         CircuitError: if the shift amount exceeds available qubits.
     """
-    if len(bin(shift)[2:]) > n_qubits:
-        raise Exception("Bits in 'shift' exceed circuit width")
-
     circuit = QuantumCircuit(n_qubits, name="shift")
 
+    if amount is not None:
+        if len(bin(amount)[2:]) > n_qubits:
+            raise Exception("Bits in 'amount' exceed circuit width")
+    else:
+        rng = np.random.RandomState(seed)
+        amount = rng.randint(0, 2**n_qubits)
+
     for i in range(n_qubits):
-        bit = shift & 1
-        shift = shift >> 1
+        bit = amount & 1
+        amount = amount >> 1
         if bit == 1:
             circuit.x(i)
 

@@ -32,7 +32,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
     def test_shift(self):
         """Test shift circuit."""
-        circuit = shift(n_qubits=3, shift=4)
+        circuit = shift(n_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
