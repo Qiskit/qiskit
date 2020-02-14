@@ -20,6 +20,7 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
+import qiskit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
 
@@ -30,6 +31,8 @@ TIMEOUT = 1000
 JUPYTER_KERNEL = 'python3'
 
 
+@unittest.skipUnless(hasattr(qiskit, 'IBMQ'),
+                     'qiskit-ibmq-provider is required for these tests')
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
