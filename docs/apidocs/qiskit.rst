@@ -1,8 +1,8 @@
 .. module:: qiskit
 
-=============
-API Reference
-=============
+==========================
+Qiskit Terra API Reference
+==========================
 
 .. toctree::
    :maxdepth: 1
