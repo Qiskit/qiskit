@@ -264,10 +264,10 @@ class TestFinalLayouts(QiskitTestCase):
                           17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
 
         dense_layout = {0: qr2[1], 1: qr1[2], 2: qr1[0], 3: ancilla[0], 4: ancilla[1], 5: qr2[0],
-                      6: qr1[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
-                      11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
-                      15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-                      19: ancilla[14]}
+                        6: qr1[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
+                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
+                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                        19: ancilla[14]}
 
         csp_layout = {0: qr1[1], 1: qr1[2], 2: qr2[0], 5: qr1[0], 3: qr2[1], 4: ancilla[0],
                       6: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
@@ -316,10 +316,10 @@ class TestFinalLayouts(QiskitTestCase):
                         19: ancilla[14]}
 
         noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4], 0: ancilla[0],
-                        1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4], 7: ancilla[5],
-                        8: ancilla[6], 9: ancilla[7], 12: ancilla[8], 13: ancilla[9],
-                        14: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-                        19: ancilla[14]}
+                                 1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4],
+                                 7: ancilla[5], 8: ancilla[6], 9: ancilla[7], 12: ancilla[8],
+                                 13: ancilla[9], 14: ancilla[10], 16: ancilla[11], 17: ancilla[12],
+                                 18: ancilla[13], 19: ancilla[14]}
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
