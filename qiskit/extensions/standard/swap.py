@@ -144,17 +144,6 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         """Invert this gate."""
         return CSwapGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
-
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):
     """The deprecated CSwapGate class."""
@@ -166,6 +155,17 @@ class FredkinGate(CSwapGate, metaclass=CSwapMeta):
                       'You should use the class CSwapGate instead.',
                       DeprecationWarning, stacklevel=2)
         super().__init__()
+
+    def to_matrix(self):
+        """Return a numpy.array for the Fredkin (CSWAP) gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
