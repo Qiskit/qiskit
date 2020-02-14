@@ -38,6 +38,9 @@ class TestCircuitOperations(QiskitTestCase):
         # attempt addition, times out if qc is added via reference
         qc += qc
 
+        # finally, qc should contain two X gates
+        self.assertEqual(['x', 'x'], [x[0].name for x in qc.data])
+
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers.
         """
