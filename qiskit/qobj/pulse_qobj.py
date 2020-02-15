@@ -519,7 +519,7 @@ class PulseLibraryItem:
 class PulseQobj:
     """A Pulse Qobj."""
 
-    def __init__(self, qobj_id=None, config=None, experiments=None,
+    def __init__(self, qobj_id, config, experiments=None,
                  header=None):
         """Instatiate a new QASM Qobj Object.
 
@@ -536,7 +536,7 @@ class PulseQobj:
                 objects representing an experiment
         """
         self.qobj_id = qobj_id
-        self.config = config or PulseQobjConfig()
+        self.config = config
         self.header = header or QobjHeader()
         self.experiments = experiments or []
         self.type = 'PULSE'
