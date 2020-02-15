@@ -31,8 +31,8 @@ class ScheduleConfig():
         Container for information needed to schedule a QuantumCircuit into a pulse Schedule.
 
         Args:
-            inst_map: The schedule definition of all gates supported on a backend
-            meas_map: A list of groups of qubits which have to be measured together
+            inst_map: The schedule definition of all gates supported on a backend.
+            meas_map: A list of groups of qubits which have to be measured together.
         """
         self.inst_map = inst_map
         self.meas_map = format_meas_map(meas_map)

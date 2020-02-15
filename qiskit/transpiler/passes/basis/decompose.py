@@ -14,6 +14,9 @@
 
 """Expand a gate in a circuit using its decomposition rules."""
 
+from typing import Type
+
+from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
@@ -21,23 +24,23 @@ from qiskit.dagcircuit import DAGCircuit
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    def __init__(self, gate=None):
+    def __init__(self, gate: Type[Gate] = None):
         """Decompose initializer.
 
         Args:
-            gate (qiskit.circuit.gate.Gate): Gate to decompose.
+            gate: gate to decompose.
         """
         super().__init__()
         self.gate = gate
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
 
         Args:
-            dag(DAGCircuit): input dag
+            dag: input dag.
 
         Returns:
-            DAGCircuit: output dag where gate was expanded.
+            output dag where ``gate`` was expanded.
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes(self.gate):
