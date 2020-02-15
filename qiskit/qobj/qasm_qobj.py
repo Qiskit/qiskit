@@ -70,25 +70,25 @@ class QasmQobjInstruction:
         """
         super(QasmQobjInstruction, self).__init__()
         self.name = name
-        if params:
+        if params is not None:
             self.params = params
-        if qubits:
+        if qubits is not None:
             self.qubits = qubits
-        if register:
+        if register is not None:
             self.register = register
-        if memory:
+        if memory is not None:
             self.memory = memory
-        if condition:
+        if condition is not None:
             self._condition = condition
-        if conditional:
+        if conditional is not None:
             self.conditional = conditional
-        if label:
+        if label is not None:
             self.label = label
-        if mask:
+        if mask is not None:
             self.mask = mask
-        if relation:
+        if relation is not None:
             self.relation = relation
-        if val:
+        if val is not None:
             self.val = val
 
     def to_dict(self):
