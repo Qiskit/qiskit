@@ -525,7 +525,7 @@ class PulseQobj:
 
         Args:
             qobj_id (str): An identifier for the qobj
-            config (PulseQobjRunConfig): A config for the entire run
+            config (PulseQobjConfig): A config for the entire run
             header (QobjHeader): A header for the entire run
             experiments (list): A list of lists of :class:`PulseQobjExperiment`
                 objects representing an experiment
