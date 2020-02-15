@@ -127,9 +127,9 @@ class PulseQobjInstruction:
                 defining the measurement kernels and set of parameters if the
                 measurement level is 1 or 2. Only used for ``acquire``
                 instructions.
-            discriminators (list): A list of dicts used to set the
-                discriminators to be used if the measurement level is 2. Only
-                used for ``acquire`` instructions.
+            discriminators (list): A list of :class:`QobjMeasurementOption`
+                used to set the discriminators to be used if the measurement
+                level is 2. Only used for ``acquire`` instructions.
             label (str): Label of instruction
             type (str): Type of instruction
             pulse_shape (str): The shape of the parametric pulse
@@ -178,12 +178,14 @@ class PulseQobjInstruction:
         }
         for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
                      'qubits', 'memory_slot', 'register_slot',
-                     'discriminators', 'label', 'type', 'pulse_shape',
-                     'parameters']:
+                     'label', 'type', 'pulse_shape', 'parameters']:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)
         if hasattr(self, 'kernels'):
             out_dict['kernels'] = [x.to_dict() for x in self.kernels]
+        if hasattr(self, 'discriminators'):
+            out_dict['discriminators'] = [
+                x.to_dict() for x in self.discriminators]
         return out_dict
 
     @classmethod
