@@ -534,6 +534,8 @@ class PulseQobj:
         self.config = config or PulseQobjConfig()
         self.header = header or QobjHeader()
         self.experiments = experiments or []
+        self.type = 'PULSE'
+        self.schema_version = '1.1.0'
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the Pulse Qobj.
@@ -570,8 +572,8 @@ class PulseQobj:
             'qobj_id': self.qobj_id,
             'header': self.header.to_dict(),
             'config': self.config.to_dict(),
-            'schema_version': '1.1.0',
-            'type': 'PULSE',
+            'schema_version': self.schema_version,
+            'type': self.type,
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
