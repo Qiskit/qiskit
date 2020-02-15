@@ -204,6 +204,11 @@ class PulseQobjInstruction:
             kernels = data.pop('kernels')
             kernel_obj = [QobjMeasurementOption.from_dict(x) for x in kernels]
             data['kernels'] = kernel_obj
+        if 'discriminators' in data:
+            discriminators = data.pop('discriminators')
+            discriminators_obj = [
+                QobjMeasurementOption.from_dict(x) for x in discriminators]
+            data['discriminators'] = discriminators_obj
         return cls(name, t0, **data)
 
     def __eq__(self, other):
