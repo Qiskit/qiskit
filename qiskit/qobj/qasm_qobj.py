@@ -140,7 +140,6 @@ class QasmQobjExperiment:
             header (QasmQobjExperimentHeader): A header object for the experiment
             instructions (list): A list of :class:`QasmQobjInstruction` objects
         """
-        super(QasmQobjExperiment, self).__init__()
         self.config = config or QasmQobjExperimentConfig()
         self.header = header or QasmQobjExperimentHeader()
         self.instructions = instructions or []

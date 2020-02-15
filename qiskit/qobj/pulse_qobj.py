@@ -371,7 +371,6 @@ class PulseQobjExperiment:
             header (PulseQobjExperimentHeader): A header object for the experiment
             instructions (list): A list of :class:`PulseQobjInstruction` objects
         """
-        super(PulseQobjExperiment, self).__init__()
         if config is not None:
             self.config = config
         if header is not None:
