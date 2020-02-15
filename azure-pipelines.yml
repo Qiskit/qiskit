@@ -234,8 +234,17 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+        - bash: sudo chown -R $USER $CONDA
+          displayName: Take ownership of conda installation
+        - script: conda create --yes --quiet --name qiskit-terra python=$(python.version)
+          displayName: Create Anaconda environment
         - bash: |
             set -e
+            source activate qiskit-terra
+            conda update --yes -n base conda
+            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
@@ -244,6 +253,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source activate qiskit-terra
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -262,6 +272,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source activate qiskit-terra
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -402,8 +413,17 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+        - bash: sudo chown -R $USER $CONDA
+          displayName: Take ownership of conda installation
+        - script: conda create --yes --quiet --name qiskit-terra python=$(python.version)
+          displayName: Create Anaconda environment
         - bash: |
             set -e
+            source activate qiskit-terra
+            conda update --yes -n base conda
+            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
@@ -412,6 +432,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source activate qiskit-terra
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run --concurrency 2
@@ -430,6 +451,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source activate qiskit-terra
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
