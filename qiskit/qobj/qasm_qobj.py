@@ -57,7 +57,7 @@ class QasmQobjInstruction:
             condition (tuple): A tuple of the form ``(int, int)`` where the
                 first `int` is the control register and the second `int` is
                 the control value if the gate has a condition.
-            conditional (int):  The register index of the cobndition
+            conditional (int):  The register index of the condition
             label (str): An optional label assigned to the instruction
             mask (int): For a ``bfunc`` instruction the hex value which is
                 applied as an ``AND`` to the register bits.
