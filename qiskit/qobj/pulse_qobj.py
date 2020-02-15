@@ -216,8 +216,8 @@ class PulseQobjInstruction:
 class PulseQobjConfig:
     """A configuration for a Pulse Qobj."""
 
-    def __init__(self, meas_level=None, meas_return=None, pulse_library=None,
-                 qubit_lo_freq=None, meas_lo_freq=None, memory_slot_size=None,
+    def __init__(self, meas_level, meas_return, pulse_library,
+                 qubit_lo_freq, meas_lo_freq, memory_slot_size=None,
                  rep_time=None, shots=None, max_credits=None,
                  seed_simulator=None, memory_slots=None, **kwargs):
         """Instantiate a PulseQobjConfig object.
@@ -242,13 +242,11 @@ class PulseQobjConfig:
                 configuration
         """
         self._data = {}
-        if meas_level is not None:
-            self._data['meas_level'] = meas_level
-        if meas_return is not None:
-            self._data['meas_return'] = meas_return
+        self._data['meas_level'] = meas_level
+        self._data['meas_return'] = meas_return
         self.pulse_library = pulse_library
-        self._data['qubit_lo_freq'] = qubit_lo_freq or []
-        self._data['meas_lo_freq'] = meas_lo_freq or []
+        self._data['qubit_lo_freq'] = qubit_lo_freq
+        self._data['meas_lo_freq'] = meas_lo_freq
         if memory_slot_size is not None:
             self._data['memory_slot_size'] = memory_slot_size
         if rep_time is not None:
