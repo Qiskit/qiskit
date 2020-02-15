@@ -383,7 +383,7 @@ class QobjDictField:
         return cls(**data)
 
     def __eq__(self, other):
-        if isinstance(other, QobjDictField):
+        if isinstance(other, self.__class__):
             if self.to_dict() == other.to_dict():
                 return True
         return False
@@ -391,40 +391,22 @@ class QobjDictField:
 
 class QasmQobjExperimentHeader(QobjDictField):
     """A header for a single QASM experiment in the qobj."""
-
-    def __eq__(self, other):
-        if isinstance(other, QasmQobjExperimentHeader):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
+    pass
 
 
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
-
-    def __eq__(self, other):
-        if isinstance(other, QasmQobjExperimentConfig):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
+    pass
 
 
 class QobjHeader(QobjDictField):
     """A class used to represent a dictionary header in Qobj objects."""
-    def __eq__(self, other):
-        if isinstance(other, QobjHeader):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
+    pass
 
 
 class QobjExperimentHeader(QobjHeader):
     """A class representing a header dictionary for a Qobj Experiment."""
-    def __eq__(self, other):
-        if isinstance(other, QobjExperimentHeader):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
+    pass
 
 
 class QasmQobj:
