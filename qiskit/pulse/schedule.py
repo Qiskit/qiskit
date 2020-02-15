@@ -360,7 +360,9 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scale: Optional[float] = None,
+             channel_scales: Optional[Dict[Channel, float]] = None,
+             channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None,
@@ -373,7 +375,8 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
+            scale: Relative visual scaling of waveform amplitudes, see Additional Information.
+            channel_scales: Channel independent scaling as a dictionary of `Channel` object.
             channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -385,6 +388,19 @@ class Schedule(ScheduleComponent):
             scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
             show_framechange_channels: Plot channels with only framechanges
+
+        Additional Information:
+            If you want to manually rescale the waveform amplitude of channels one by one,
+            you can set `channel_scales` argument instead of `scale`.
+            The `channel_scales` should be given as a python dictionary::
+
+                channel_scales = {pulse.DriveChannels(0): 10.0,
+                                  pulse.MeasureChannels(0): 5.0}
+
+            When the channel to plot is not included in the `channel_scales` dictionary,
+            scaling factor of that channel is overwritten by the value of `scale` argument.
+            In default, waveform amplitude is normalized by the maximum amplitude of the channel.
+            The scaling factor is displayed under the channel name alias.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
@@ -404,9 +420,9 @@ class Schedule(ScheduleComponent):
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scale=scale, plot_all=plot_all,
-                                          plot_range=plot_range, interactive=interactive,
-                                          table=table, label=label,
+                                          scale=scale, channel_scales=channel_scales,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table, label=label,
                                           framechange=framechange, channels=channels,
                                           show_framechange_channels=show_framechange_channels)
 

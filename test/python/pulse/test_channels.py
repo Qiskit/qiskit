@@ -16,11 +16,9 @@
 
 import unittest
 
-from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from qiskit.pulse.channels import PulseChannelSpec, Qubit
-from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.channels import (AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel,
+                                   DriveChannel, ControlChannel, MeasureChannel)
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
 
 
 class TestAcquireChannel(QiskitTestCase):
@@ -105,49 +103,6 @@ class TestMeasureChannel(QiskitTestCase):
 
         self.assertEqual(measure_channel.index, 123)
         self.assertEqual(measure_channel.name, 'm123')
-
-
-class TestQubit(QiskitTestCase):
-    """Qubit tests."""
-
-    def test_default(self):
-        """Test default qubit.
-        """
-        qubit = Qubit(1, DriveChannel(2), MeasureChannel(4), AcquireChannel(5),
-                      control_channels=[ControlChannel(3)])
-
-        self.assertEqual(qubit.drive, DriveChannel(2))
-        self.assertEqual(qubit.controls[0], ControlChannel(3))
-        self.assertEqual(qubit.measure, MeasureChannel(4))
-        self.assertEqual(qubit.acquire, AcquireChannel(5))
-
-
-class TestPulseSpecification(QiskitTestCase):
-    """PulseSpecification tests. (Deprecated)"""
-
-    def test_default(self):
-        """Test default device specification.
-        """
-        spec = PulseChannelSpec(n_qubits=2, n_control=0, n_registers=2)
-
-        self.assertEqual(spec.drives[0], DriveChannel(0))
-        self.assertEqual(spec.acquires[1], AcquireChannel(1))
-        self.assertEqual(spec.memoryslots[0], MemorySlot(0))
-        self.assertEqual(spec.registers[1], RegisterSlot(1))
-
-    def test_creation_from_backend_with_zero_u_channels(self):
-        """Test creation of device specification from backend.
-        """
-        backend = FakeOpenPulse2Q()
-
-        device = PulseChannelSpec.from_backend(backend)
-
-        self.assertEqual(device.drives[0], DriveChannel(0))
-        self.assertEqual(device.controls[0], ControlChannel(0))
-        self.assertEqual(device.measures[0], MeasureChannel(0))
-        self.assertEqual(device.acquires[0], AcquireChannel(0))
-        self.assertEqual(device.registers[0], RegisterSlot(0))
-        self.assertEqual(device.memoryslots[0], MemorySlot(0))
 
 
 if __name__ == '__main__':

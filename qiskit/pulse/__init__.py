@@ -25,7 +25,6 @@ Channels
 .. autosummary::
    :toctree: ../stubs/
 
-   PulseChannelSpec
    DriveChannel
    MeasureChannel
    AcquireChannel
@@ -49,14 +48,12 @@ Commands
    Kernel
    Discriminator
    Delay
-   functional_pulse
    ParametricPulse
    ParametricInstruction
    Gaussian
    GaussianSquare
    Drag
    ConstantPulse
-   functional_pulse
 
 Schedules
 =========
@@ -73,9 +70,17 @@ Configuration
 .. autosummary::
    :toctree: ../stubs/
 
-   CmdDef
+   InstructionScheduleMap
    LoConfig
    LoRange
+
+Pulse Library
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib.discrete
 
 Exceptions
 ==========
@@ -86,8 +91,7 @@ Exceptions
    PulseError
 """
 
-from .channels import (PulseChannelSpec, DriveChannel,
-                       MeasureChannel, AcquireChannel,
+from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
 from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
