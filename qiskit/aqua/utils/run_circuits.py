@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -291,6 +291,20 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
             results.append(job.result(**qjob_config))
 
     result = _combine_result_objects(results) if results else None
+
+    # If result was not successful then raise an exception with either the status msg or
+    # extra information if this was an Aer partial result return
+    if not result.success:
+        msg = result.status
+        if result.status == 'PARTIAL COMPLETED':
+            # Aer can return partial results which Aqua algorithms cannot process and signals
+            # using partial completed status where each returned result has a success and status.
+            # We use the status from the first result that was not successful
+            for res in result.results:
+                if not res.success:
+                    msg += ', ' + res.status
+                    break
+        raise AquaError('Circuit execution failed: {}'.format(msg))
 
     return result
 
