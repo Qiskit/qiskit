@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """
+Deprecated. Use InstructionScheduleMap instead.
+
 Command definition module. Relates circuit gates to pulse commands.
 """
 import warnings

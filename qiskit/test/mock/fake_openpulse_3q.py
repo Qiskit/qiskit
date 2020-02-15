@@ -102,7 +102,7 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d0',
                                              t0=0,
-                                             phase='-P1*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u1',
                     'qubits': [1],
@@ -110,7 +110,7 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d1',
                                              t0=0,
-                                             phase='-P1*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u1',
                     'qubits': [2],
@@ -118,7 +118,7 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d2',
                                              t0=0,
-                                             phase='-P1*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u2',
                     'qubits': [0],
@@ -126,14 +126,14 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d0',
                                              t0=0,
-                                             phase='-P0*np.pi').to_dict(),
+                                             phase='-P1').to_dict(),
                         PulseQobjInstruction(name='test_pulse_4',
                                              ch='d0',
                                              t0=0).to_dict(),
                         PulseQobjInstruction(name='fc',
                                              ch='d0',
                                              t0=0,
-                                             phase='-P1*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u2',
                     'qubits': [1],
@@ -141,14 +141,14 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d1',
                                              t0=0,
-                                             phase='-P0*np.pi').to_dict(),
+                                             phase='-P1').to_dict(),
                         PulseQobjInstruction(name='test_pulse_4',
                                              ch='d1',
                                              t0=0).to_dict(),
                         PulseQobjInstruction(name='fc',
                                              ch='d1',
                                              t0=0,
-                                             phase='-P0*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u2',
                     'qubits': [2],
@@ -159,7 +159,7 @@ class FakeOpenPulse3Q(FakeBackend):
                         PulseQobjInstruction(name='fc',
                                              ch='d2',
                                              t0=0,
-                                             phase='-P0*np.pi').to_dict()]}).to_dict(),
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u3',
                     'qubits': [0],
@@ -250,7 +250,6 @@ class FakeOpenPulse3Q(FakeBackend):
                 }).to_dict()
             ]
         })
-
         super().__init__(configuration)
 
     def defaults(self):  # pylint: disable=missing-docstring

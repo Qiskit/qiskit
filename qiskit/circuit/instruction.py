@@ -309,6 +309,9 @@ class Instruction:
             cpy.name = name
         return cpy
 
+    def __deepcopy__(self, memo=None):
+        return self.copy()
+
     def _qasmif(self, string):
         """Print an if statement if needed."""
         if self.condition is None:
