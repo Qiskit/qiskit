@@ -623,4 +623,4 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         qc.cx(q[0], q[1])
         qc_copy = qc.copy()
         schedule(qc, self.backend, method="alap")
-        self.assertEqual(qc, qc_sched)
+        self.assertEqual(qc, qc_copy)
