@@ -70,9 +70,17 @@ Configuration
 .. autosummary::
    :toctree: ../stubs/
 
-   CmdDef
+   InstructionScheduleMap
    LoConfig
    LoRange
+
+Pulse Library
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib.discrete
 
 Exceptions
 ==========
