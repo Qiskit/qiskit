@@ -67,28 +67,29 @@ class FakeBackendBuilder(object):
 
     For example:
 
-        builder = FakeBackendBuilder("tashkent", 100)
+        builder = FakeBackendBuilder("tashkent", grid_size=10)
         path = os.path.dirname(os.path.abspath(__file__))
         builder.dump(path)
     """
 
     def __init__(self,
                  name: str,
-                 n_qubits: int,
+                 grid_size: int,
                  version: Optional[str] = '0.0.0'):
         """
 
         Args:
             name:
-            n_qubits:
+            grid_size:
             version:
         """
         self.name = name
-        self.n_qubits = n_qubits
+        self.grid_size = grid_size
         self.version = version
         self.now = datetime.now()
         # TODO: add CNOT
         self.basis_gates = ['id', 'u1', 'u2', 'u3']
+        self.n_qubits = grid_size**2
 
     def build_props(self) -> BackendProperties:
         """Build properties for backend."""
@@ -125,7 +126,15 @@ class FakeBackendBuilder(object):
     def build_conf(self) -> PulseBackendConfiguration:
         """Build configuration for backend."""
         # TODO: correct values
-        cmap = [[0, 1]]
+
+        # generate Almaden like connectivity map
+        cmap = []
+        for i in range(self.n_qubits):
+            if i % self.grid_size != 0:
+                cmap.append([i, i + 1])
+            if i % self.grid_size < self.grid_size and i % 2 == 0:
+                cmap.append([i, i + self.grid_size])
+
         meas_map = [list(range(self.n_qubits))]
         hamiltonian = {'h_str': [], 'description': "", 'qub': {}, 'vars': {}}
         conditional_latency = []
