@@ -18,13 +18,12 @@ Initialize qubit registers to desired arbitrary state.
 
 import math
 import numpy as np
-import scipy
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.circuit.reset import Reset
@@ -156,7 +155,7 @@ class Initialize(Instruction):
     @staticmethod
     def _bloch_angles(pair_of_complex):
         """
-        Static internal method to work out rotation to create the passed in
+        Static internal method to work out rotation to create the passed-in
         qubit from the zero vector.
         """
         [a_complex, b_complex] = pair_of_complex
@@ -211,8 +210,8 @@ class Initialize(Instruction):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = scipy.kron([[0.5, 0.5], [0.5, -0.5]],
-                                  np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]],
+                               np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()

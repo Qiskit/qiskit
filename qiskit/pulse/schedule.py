@@ -62,7 +62,15 @@ class Schedule(ScheduleComponent):
         try:
             self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
-            raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+            formatted_schedules = []
+            for sched_pair in schedules:
+                sched = sched_pair[1] if isinstance(sched_pair, (List, tuple)) else sched_pair
+                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(sched.name,
+                                                                              sched.duration)
+                formatted_schedules.append(formatted_sched)
+            formatted_schedules = ", ".join(formatted_schedules)
+            raise PulseError('Schedules overlap: {0} for {1}'
+                             ''.format(ts_err.message, formatted_schedules)) from ts_err
 
         self.__children = tuple(_children)
 
@@ -337,14 +345,14 @@ class Schedule(ScheduleComponent):
             return interval_filter
 
         filter_func_list = list(filter_funcs)
-        if channels:
+        if channels is not None:
             filter_func_list.append(only_channels(set(channels)))
-        if instruction_types:
+        if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
-        if time_ranges:
+        if time_ranges is not None:
             filter_func_list.append(
                 only_intervals([Interval(start, stop) for start, stop in time_ranges]))
-        if intervals:
+        if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
         # return function returning true iff all filters are passed
@@ -352,10 +360,14 @@ class Schedule(ScheduleComponent):
 
     def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scaling: float = None, channels_to_plot: Optional[List[Channel]] = None,
+             scale: Optional[float] = None,
+             channel_scales: Optional[Dict[Channel, float]] = None,
+             channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
-             framechange: bool = True):
+             framechange: bool = True, scaling: float = None,
+             channels: Optional[List[Channel]] = None,
+             show_framechange_channels: bool = True):
         """Plot the schedule.
 
         Args:
@@ -363,8 +375,9 @@ class Schedule(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
-            channels_to_plot: A list of channel names to plot
+            scale: Relative visual scaling of waveform amplitudes, see Additional Information.
+            channel_scales: Channel independent scaling as a dictionary of `Channel` object.
+            channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
@@ -372,20 +385,46 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
+            scaling: Deprecated, see `scale`
+            channels: A list of channel names to plot
+            show_framechange_channels: Plot channels with only framechanges
+
+        Additional Information:
+            If you want to manually rescale the waveform amplitude of channels one by one,
+            you can set `channel_scales` argument instead of `scale`.
+            The `channel_scales` should be given as a python dictionary::
+
+                channel_scales = {pulse.DriveChannels(0): 10.0,
+                                  pulse.MeasureChannels(0): 5.0}
+
+            When the channel to plot is not included in the `channel_scales` dictionary,
+            scaling factor of that channel is overwritten by the value of `scale` argument.
+            In default, waveform amplitude is normalized by the maximum amplitude of the channel.
+            The scaling factor is displayed under the channel name alias.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
 
         from qiskit import visualization
 
+        if channels_to_plot:
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
+            channels = channels_to_plot
+
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
-                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          scale=scale, channel_scales=channel_scales,
                                           plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange)
+                                          interactive=interactive, table=table, label=label,
+                                          framechange=framechange, channels=channels,
+                                          show_framechange_channels=show_framechange_channels)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
@@ -393,7 +432,7 @@ class Schedule(ScheduleComponent):
         Equality is checked by verifying there is an equal instruction at every time
         in `other` for every instruction in this Schedule.
 
-        Warning: This does not check for logical equivalencly. Ie.,
+        Warning: This does not check for logical equivalency. Ie.,
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))
@@ -434,13 +473,11 @@ class Schedule(ScheduleComponent):
         return self.shift(time)
 
     def __repr__(self):
-        res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
-        res += '%d, ' % self.start_time
-        instructions = [repr(instr) for instr in self.instructions]
-        res += ', '.join([str(i) for i in instructions[:50]])
-        if len(instructions) > 50:
-            return res + ', ...)'
-        return res + ')'
+        name = format(self._name) if self._name else ""
+        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
+        if len(self.instructions) > 25:
+            instructions += ", ..."
+        return 'Schedule({}, name="{}")'.format(instructions, name)
 
 
 class ParameterizedSchedule:

@@ -155,8 +155,8 @@ class Pauli:
 
     def __repr__(self):
         """Return the representation of self."""
-        z = [p for p in self._z]
-        x = [p for p in self._x]
+        z = list(self._z)
+        x = list(self._x)
 
         ret = self.__class__.__name__ + "(z={}, x={})".format(z, x)
         return ret
@@ -461,10 +461,9 @@ class Pauli:
         Returns:
             Pauli: the random pauli
         """
-        if seed is not None:
-            np.random.seed(seed)
-        z = np.random.randint(2, size=num_qubits).astype(np.bool)
-        x = np.random.randint(2, size=num_qubits).astype(np.bool)
+        rng = np.random.RandomState(seed)
+        z = rng.randint(2, size=num_qubits).astype(np.bool)
+        x = rng.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
 
     @classmethod

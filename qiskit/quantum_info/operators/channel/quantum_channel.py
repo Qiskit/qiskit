@@ -17,7 +17,6 @@ Abstract base class for Quantum Channels.
 """
 
 from abc import abstractmethod
-
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -32,6 +31,52 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
+
+    def compose(self, other, qargs=None, front=False):
+        """Return the composed quantum channel self @ other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
+
+        Returns:
+            QuantumChannel: The quantum channel self @ other.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or has
+            incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        if front:
+            return self._chanmul(other, qargs, left_multiply=False)
+        return self._chanmul(other, qargs, left_multiply=True)
+
+    def dot(self, other, qargs=None):
+        """Return the right multiplied quantum channel self * other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+
+        Returns:
+            QuantumChannel: The quantum channel self * other.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or has
+            incompatible dimensions.
+        """
+        return super().dot(other, qargs=qargs)
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
@@ -149,6 +194,25 @@ class QuantumChannel(BaseOperator):
         Raises:
             QiskitError: if the quantum channel dimension does not match the
             specified quantum state subsystem dimensions.
+        """
+        pass
+
+    @abstractmethod
+    def _chanmul(self, other, qargs=None, left_multiply=False):
+        """Multiply two quantum channels.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list): a list of subsystem positions to compose other on.
+            left_multiply (bool): If True return other * self
+                                  If False return self * other [Default:False]
+
+        Returns:
+            QuantumChannel: The composition channel.
+
+        Raises:
+            QiskitError: if other is not a QuantumChannel subclass, or
+            has incompatible dimensions.
         """
         pass
 

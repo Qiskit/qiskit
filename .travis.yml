@@ -18,34 +18,32 @@ cache:
   directories:
     - .stestr
 
-stage_generic: &stage_generic
-  install:
-    # Install step for jobs that require compilation and qa.
-    - pip install -U -r requirements.txt -c constraints.txt
-    - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-    - pip install -c constraints.txt -e .
-    - pip install "qiskit-ibmq-provider" -c constraints.txt
-  script:
-    # Compile the executables and run the tests.
-    - python setup.py build_ext --inplace
-    - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
-    - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-    - stestr run
-  after_failure:
+os: linux
+dist: bionic
+language: python
+python: 3.7
+install:
+  # Install step for jobs that require compilation and qa.
+  - pip install -U -r requirements.txt -c constraints.txt
+  - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
+  - pip install -c constraints.txt -e .
+  - pip install "qiskit-ibmq-provider" -c constraints.txt
+script:
+  # Compile the executables and run the tests.
+  - python setup.py build_ext --inplace
+  - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
+  - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+  - stestr run
+after_failure:
     - python tools/report_ci_failure.py
 
-stage_linux: &stage_linux
-  <<: *stage_generic
-  os: linux
-  dist: bionic
-  language: python
-  python: 3.7
-
 jobs:
+  fast_finish: true
+  allow_failures:
+    - name: Randomized tests
+    - name: Benchmarks
   include:
-
     - name: Python 3.6 Tests and Coverage Linux
-      <<: *stage_linux
       python: 3.6
       env:
         - PYTHON="coverage run --source qiskit --parallel-mode"
@@ -58,7 +56,6 @@ jobs:
 
     # Randomized testing
     - name: Randomized tests
-      <<: *stage_linux
       cache:
         pip: true
         directories:
@@ -70,7 +67,6 @@ jobs:
       - make test_randomized
 
     - name: Benchmarks
-      <<: *stage_linux
       python: 3.5
       script:
       - python setup.py build_ext --inplace
@@ -85,10 +81,4 @@ jobs:
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
-
-matrix:
-  fast_finish: true
-  allow_failures:
-  - name: Randomized tests
-  - name: Benchmarks
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench 'converters.*(1|2|5|8|14|20|53)\,.8\)' --bench '^(transpiler_benchmarks|assembler|circuit_construction|isometry|import)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD

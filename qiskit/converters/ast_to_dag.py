@@ -25,15 +25,14 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-
 from qiskit.extensions.standard.ubase import UBase
 from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.cswap import FredkinGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cy import CyGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.x import ToffoliGate
+from qiskit.extensions.standard.swap import FredkinGate
+from qiskit.extensions.standard.x import CnotGate
+from qiskit.extensions.standard.y import CyGate
+from qiskit.extensions.standard.z import CzGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.iden import IdGate
@@ -41,7 +40,6 @@ from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
-from qiskit.extensions.standard.u0 import U0Gate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -51,10 +49,13 @@ from qiskit.extensions.standard.z import ZGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.cu1 import Cu1Gate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crz import CrzGate
-from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.u1 import Cu1Gate
+from qiskit.extensions.standard.h import CHGate
+from qiskit.extensions.standard.rx import CrxGate
+from qiskit.extensions.standard.ry import CryGate
+from qiskit.extensions.standard.rz import CrzGate
+from qiskit.extensions.standard.u3 import Cu3Gate
+from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
 
 
@@ -69,6 +70,26 @@ def ast_to_dag(ast):
 
     Raises:
         QiskitError: if the AST is malformed.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit.converters import ast_to_dag
+            from qiskit import qasm, QuantumCircuit, ClassicalRegister, QuantumRegister
+            from qiskit.visualization import dag_drawer
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            qasm_str = circ.qasm()
+            ast = qasm.Qasm(data=qasm_str).parse()
+            dag = ast_to_dag(ast)
+            dag_drawer(dag)
     """
     dag = DAGCircuit()
     AstInterpreter(dag)._process_node(ast)
@@ -79,8 +100,7 @@ def ast_to_dag(ast):
 class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
-    standard_extension = {"u0": U0Gate,
-                          "u1": U1Gate,
+    standard_extension = {"u1": U1Gate,
                           "u2": U2Gate,
                           "u3": U3Gate,
                           "x": XGate,
@@ -92,6 +112,7 @@ class AstInterpreter:
                           "sdg": SdgGate,
                           "swap": SwapGate,
                           "rx": RXGate,
+                          "rxx": RXXGate,
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
@@ -101,6 +122,8 @@ class AstInterpreter:
                           "cy": CyGate,
                           "cz": CzGate,
                           "ch": CHGate,
+                          "crx": CrxGate,
+                          "cry": CryGate,
                           "crz": CrzGate,
                           "cu1": Cu1Gate,
                           "cu3": Cu3Gate,
@@ -145,7 +168,7 @@ class AstInterpreter:
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                return [bit for bit in reg]
+                return list(reg)
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
@@ -219,11 +242,11 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[idx]], [], self.condition)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CXBase(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[0]], [], self.condition)
             else:
-                self.dag.apply_operation_back(CXBase(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CnotGate(), [id0[0], id1[idx]], [], self.condition)
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -293,7 +316,7 @@ class AstInterpreter:
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.dag.apply_operation_back(UBase(*args, element), self.condition)
+                self.dag.apply_operation_back(U3Gate(*args, element), self.condition)
 
         elif node.type == "cnot":
             self._process_cnot(node)
@@ -355,7 +378,7 @@ class AstInterpreter:
         Create a DAG node out of a parsed AST op node.
 
         Args:
-            name (str): operation name to apply to the dag.
+            name (str): operation name to apply to the DAG
             params (list): op parameters
             qargs (list(Qubit)): qubits to attach to
 

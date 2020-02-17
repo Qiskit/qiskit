@@ -38,6 +38,7 @@ Gates and Instructions
    :toctree: ../stubs/
 
    Gate
+   ControlledGate
    Measure
    Reset
    Instruction
@@ -58,6 +59,7 @@ from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit
 from .gate import Gate
+from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .measure import Measure

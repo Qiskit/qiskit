@@ -25,7 +25,7 @@ class InstructionSet:
     def __init__(self):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to),
+        The context (qargs and cargs that each instruction is attached to)
         is also stored separately for each instruction.
         """
         self.instructions = []
@@ -41,7 +41,7 @@ class InstructionSet:
         return self.instructions[i]
 
     def add(self, gate, qargs, cargs):
-        """Add an instruction and its context (where it's attached)."""
+        """Add an instruction and its context (where it is attached)."""
         if not isinstance(gate, Instruction):
             raise CircuitError("attempt to add non-Instruction" +
                                " to InstructionSet")
@@ -53,12 +53,6 @@ class InstructionSet:
         """Invert all instructions."""
         for index, instruction in enumerate(self.instructions):
             self.instructions[index] = instruction.inverse()
-        return self
-
-    def q_if(self, *qregs):
-        """Add controls to all instructions."""
-        for gate in self.instructions:
-            gate.q_if(*qregs)
         return self
 
     def c_if(self, classical, val):

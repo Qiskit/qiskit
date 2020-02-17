@@ -182,23 +182,48 @@ class BaseOperator(ABC):
 
     @abstractmethod
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the composed operator.
 
         Args:
             other (BaseOperator): an operator object.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            BaseOperator: The composed operator.
+            BaseOperator: The operator self @ other.
+
+        Raises:
+            QiskitError: if other cannot be converted to an operator, or has
+            incompatible dimensions for specified subsystems.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        pass
+
+    def dot(self, other, qargs=None):
+        """Return the right multiplied operator self * other.
+
+        Args:
+            other (BaseOperator): an operator object.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+
+        Returns:
+            BaseOperator: The operator self * other.
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
             incompatible dimensions for specified subsystems.
         """
-        pass
+        return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n):
         """Return the compose of a operator with itself n times.
@@ -214,7 +239,7 @@ class BaseOperator(ABC):
             are not equal, or the power is not a positive integer.
         """
         # NOTE: if a subclass can have negative or non-integer powers
-        # this method should be overriden in that class.
+        # this method should be overridden in that class.
         if not isinstance(n, (int, np.integer)) or n < 1:
             raise QiskitError("Can only power with positive integer powers.")
         if self._input_dim != self._output_dim:
@@ -355,20 +380,20 @@ class BaseOperator(ABC):
     def __matmul__(self, other):
         return self.compose(other)
 
+    def __mul__(self, other):
+        return self.dot(other)
+
+    def __rmul__(self, other):
+        return self.multiply(other)
+
     def __pow__(self, n):
         return self.power(n)
 
     def __xor__(self, other):
         return self.tensor(other)
 
-    def __mul__(self, other):
-        return self.multiply(other)
-
     def __truediv__(self, other):
         return self.multiply(1 / other)
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
 
     def __add__(self, other):
         return self.add(other)
