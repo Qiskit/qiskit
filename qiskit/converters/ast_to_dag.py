@@ -25,8 +25,6 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-from qiskit.extensions.standard.ubase import UBase
-from qiskit.extensions.standard.cxbase import CXBase
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.extensions.standard.x import ToffoliGate
 from qiskit.extensions.standard.swap import FredkinGate
