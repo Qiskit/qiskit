@@ -12,7 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The most straightforward scheduling methods: scheduling as early or as late as possible."""
+"""
+The most straightforward scheduling methods: scheduling **as early** or **as late** as possible.
+"""
 
 from collections import defaultdict, namedtuple
 from typing import List
@@ -38,16 +40,20 @@ def as_soon_as_possible(circuit: QuantumCircuit,
                         schedule_config: ScheduleConfig) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
-    (asap) scheduling policy. Circuit instructions are first each mapped to equivalent pulse
+    (asap) scheduling policy.
+
+    Circuit instructions are first each mapped to equivalent pulse
     Schedules according to the command definition given by the schedule_config. Then, this circuit
     instruction-equivalent Schedule is appended at the earliest time at which all qubits involved
     in the instruction are available.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
+
     Returns:
-        A schedule corresponding to the input `circuit` with pulses occurring as early as possible
+        A schedule corresponding to the input ``circuit`` with pulses occurring as early as
+        possible.
     """
     sched = Schedule(name=circuit.name)
 
@@ -73,7 +79,9 @@ def as_late_as_possible(circuit: QuantumCircuit,
                         schedule_config: ScheduleConfig) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"
-    (alap) scheduling policy. Circuit instructions are first each mapped to equivalent pulse
+    (alap) scheduling policy.
+
+    Circuit instructions are first each mapped to equivalent pulse
     Schedules according to the command definition given by the schedule_config. Then, this circuit
     instruction-equivalent Schedule is appended at the latest time that it can be without allowing
     unnecessary time between instructions or allowing instructions with common qubits to overlap.
@@ -82,10 +90,12 @@ def as_late_as_possible(circuit: QuantumCircuit,
     maximize the time that the qubit remains in the ground state.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
+
     Returns:
-        A schedule corresponding to the input `circuit` with pulses occurring as late as possible
+        A schedule corresponding to the input ``circuit`` with pulses occurring as late as
+        possible.
     """
     sched = Schedule(name=circuit.name)
     # Align channel end times.
@@ -123,20 +133,23 @@ def as_late_as_possible(circuit: QuantumCircuit,
 def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
                                   schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
     """
+    Return a list of Schedules and the qubits they operate on, for each element encountered in th
+    input circuit.
+
     Without concern for the final schedule, extract and return a list of Schedules and the qubits
     they operate on, for each element encountered in the input circuit. Measures are grouped when
-    possible, so qc.measure(q0, c0)/qc.measure(q1, c1) will generate a synchronous measurement
-    pulse.
+    possible, so ``qc.measure(q0, c0)`` or ``qc.measure(q1, c1)`` will generate a synchronous
+    measurement pulse.
 
     Args:
-        circuit: The quantum circuit to translate
-        schedule_config: Backend specific parameters used for building the Schedule
+        circuit: The quantum circuit to translate.
+        schedule_config: Backend specific parameters used for building the Schedule.
 
     Returns:
-        A list of CircuitPulseDefs: the pulse definition for each circuit element
+        A list of CircuitPulseDefs: the pulse definition for each circuit element.
 
     Raises:
-        QiskitError: If circuit uses a command that isn't defined in config.inst_map
+        QiskitError: If circuit uses a command that isn't defined in config.inst_map.
     """
     circ_pulse_defs = []
 
