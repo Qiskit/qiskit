@@ -621,6 +621,6 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc_sched = qc + QuantumCircuit(*qc.qregs)
+        qc_copy = qc.copy()
         schedule(qc_sched, self.backend, method="alap")
         self.assertEqual(qc, qc_sched)
