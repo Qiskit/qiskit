@@ -615,7 +615,7 @@ class TestCmdDefBasicSchedule(QiskitTestCase):
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
-    def test_alap_keeps_circuit_same(self):
+    def test_scheduling_keeps_circuit_same(self):
         """Test that scheduling does not change the input circuit."""
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
