@@ -39,8 +39,8 @@ class PassManager:
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
-            passes: A pass set (as defined in ``append()``) to be added to the pass manager
-                schedule.
+            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
+                to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
             callback: DEPRECATED - A callback function that will be called after each pass
@@ -105,8 +105,8 @@ class PassManager:
 
         Args:
             index: Pass index to replace, based on the position in passes().
-            passes: A pass set (as defined in ``append()``) to be added to the pass manager
-                    schedule.
+            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
+                to be added to the pass manager schedule.
             max_iteration: max number of iterations of passes.
             flow_controller_conditions: control flow plugins.
 
