@@ -106,7 +106,7 @@ class PassManager:
         Args:
             index: Pass index to replace, based on the position in passes().
             passes: A pass set (as defined in ``append()``) to be added to the pass manager
-                schedule.
+                    schedule.
             max_iteration: max number of iterations of passes.
             flow_controller_conditions: control flow plugins.
 
