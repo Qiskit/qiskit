@@ -334,8 +334,12 @@ class QuantumCircuit:
             if element not in self.cregs:
                 self.cregs.append(element)
 
+        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
+        # appended to both self and rhs resulting in an infinite loop
+        data = rhs.data.copy() if rhs is self else rhs.data
+
         # Add new gates
-        for instruction_context in rhs.data:
+        for instruction_context in data:
             self._append(*instruction_context)
         return self
 
