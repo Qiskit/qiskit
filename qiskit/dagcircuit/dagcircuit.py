@@ -603,7 +603,7 @@ class DAGCircuit:
         """Return the circuit depth.
 
         Returns:
-            Circuit depth
+            The circuit depth.
 
         Raises:
             DAGCircuitError: if not a directed acyclic graph
@@ -1056,7 +1056,7 @@ class DAGCircuit:
             node: The node to return predecessors of.
 
         Yields:
-            Predecessors of ``node`` that are connected by a quantum edge.
+            The predecessors of ``node`` that are connected by a quantum edge.
         """
         for predecessor in self.predecessors(node):
             if any(isinstance(x['wire'], Qubit) for x in
@@ -1064,12 +1064,26 @@ class DAGCircuit:
                 yield predecessor
 
     def ancestors(self, node: DAGNode) -> Set[DAGNode]:
-        """Returns set of the ancestors of a node as DAGNodes."""
+        """Returns set of the ancestors of a node as DAGNodes.
+
+        Args:
+            node: The node to return ancestors of.
+
+        Returns:
+            The ancestors of ``node``
+        """
         return set(self._id_to_node[idx]
                    for idx in _gls[self._gx].ancestors(self._multi_graph, node._node_id))
 
     def descendants(self, node: DAGNode) -> Set[DAGNode]:
-        """Returns set of the descendants of a node as DAGNodes."""
+        """Returns set of the descendants of a node as DAGNodes.
+
+        Args:
+            node: The node to return descendants of.
+
+        Returns:
+            The descendants of ``node``
+        """
         return set(self._id_to_node[idx]
                    for idx in _gls[self._gx].descendants(self._multi_graph, node._node_id))
 
@@ -1080,6 +1094,9 @@ class DAGCircuit:
 
         Args:
             node: Starting node for breadth-first search
+
+        Returns:
+            ``node`` and its successors in bredth-first search order.
         """
         raise NotImplementedError()
 
