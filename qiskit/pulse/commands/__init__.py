@@ -13,9 +13,7 @@
 # that they have been altered from the originals.
 
 """Command classes for pulse."""
-# In progress deprecations
-from qiskit.pulse.instructions import Instruction
-
+from .instruction import Instruction
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel
