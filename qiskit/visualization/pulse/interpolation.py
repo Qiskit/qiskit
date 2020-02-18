@@ -49,6 +49,7 @@ def interp1d(time, samples, nop, kind='linear'):
 
     return time_, cs_ry(time_), cs_iy(time_)
 
+
 def step_wise(time, samples, nop):
     """Scipy interpolation wrapper.
 ​
@@ -72,6 +73,7 @@ def step_wise(time, samples, nop):
     time_ = np.linspace(time[0], time[-1], nop)
 
     return time_, cs_ry_(time_), cs_iy_(time_)
+
 
 linear = partial(interp1d, kind='linear')
 
