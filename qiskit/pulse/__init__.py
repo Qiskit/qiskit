@@ -35,7 +35,7 @@ system.
 
 .. _pulse-commands:
 
-Commands (:mod:`~qiskit.pulse.commands.command`)
+Commands (:mod:`~qiskit.pulse.commands`)
 ================================================
 
 .. autosummary::
@@ -77,8 +77,8 @@ Schedules
 =========
 
 Schedules are Pulse programs. They describe instruction sequences for the control hardware.
-An :class:`~qiskit.pulse.Instruction` is a :class:`~qiskit.pulse.commands.Command` which has been
-assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
+An :class:`~qiskit.pulse.Instruction` is a :py:class:`~qiskit.pulse.commands.Command` which has
+been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
 
 .. autosummary::
    :toctree: ../stubs/
