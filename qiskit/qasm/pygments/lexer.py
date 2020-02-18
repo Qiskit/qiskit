@@ -32,6 +32,19 @@ class QasmTerminalStyle(Style):
         Name.Function:       'ansibrightyellow'}
 
 
+class QasmHTMLStyle(Style):
+    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)
+    """
+    styles = {
+        String:              'ansired',
+        Number:              'ansicyan',
+        Keyword.Reserved:    'ansigreen',
+        Keyword.Declaration: 'ansigreen',
+        Keyword.Type:        'ansimagenta',
+        Name.Builtin:        'ansiblue',
+        Name.Function:       'ansiyellow'}
+
+
 class OpenQASMLexer(RegexLexer):
     """A pygments lexer for OpenQasm
     """
