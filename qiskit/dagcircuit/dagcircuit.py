@@ -1158,7 +1158,6 @@ class DAGCircuit:
             if n.type == "op":
                 self.remove_op_node(n)
 
-
     def remove_nondescendants_of(self, node: DAGNode):
         """Remove all of the non-descendants operation nodes of node."""
         dec = _gls[self._gx].descendants(self._multi_graph, node)
