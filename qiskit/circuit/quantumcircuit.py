@@ -18,10 +18,10 @@ from copy import deepcopy
 import itertools
 import sys
 import warnings
-import pygments
-from pygments.formatters import Terminal256Formatter
 import multiprocessing as mp
 from collections import OrderedDict
+import pygments
+from pygments.formatters import Terminal256Formatter # pylint: disable=no-name-in-module
 import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
@@ -637,6 +637,9 @@ class QuantumCircuit:
         Parameters:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
+
+        Returns:
+            str: If formatted=False.
         """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -662,7 +665,7 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
-        
+
         if filename:
             with open(filename, 'w+') as file:
                 file.write(string_temp)
@@ -673,6 +676,7 @@ class QuantumCircuit:
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
             print(code)
+            return None
         else:
             return string_temp
 
