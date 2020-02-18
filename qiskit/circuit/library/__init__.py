@@ -14,4 +14,4 @@
 
 """Module for builtin library of circuits."""
 
-from .boolean_logic import permutation, shift, inner_product
+from .boolean_logic import Permutation, Shift, InnerProduct

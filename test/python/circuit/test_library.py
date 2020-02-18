@@ -16,7 +16,7 @@
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import permutation, shift, inner_product
+from qiskit.circuit.library import Permutation, Shift, InnerProduct
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
@@ -24,7 +24,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
     def test_permutation(self):
         """Test permutation circuit."""
-        circuit = permutation(n_qubits=4, pattern=[1, 0, 3, 2])
+        circuit = Permutation(n_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
@@ -32,14 +32,14 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
     def test_shift(self):
         """Test shift circuit."""
-        circuit = shift(n_qubits=3, amount=4)
+        circuit = Shift(n_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
 
     def test_inner_product(self):
         """Test inner product circuit."""
-        circuit = inner_product(n_qubits=3)
+        circuit = InnerProduct(n_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
         expected.cz(1, 4)
