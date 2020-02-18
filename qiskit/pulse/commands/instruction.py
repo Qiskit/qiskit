@@ -161,7 +161,8 @@ class Instruction(ScheduleComponent):
 
     def insert(self, start_time: int, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
-        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within ``self`` at ``start_time``.
+        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
+        ``self`` at ``start_time``.
 
         Args:
             start_time: Time to insert the schedule schedule
@@ -172,8 +173,8 @@ class Instruction(ScheduleComponent):
 
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
-        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the maximum time over
-        all channels shared between ``self`` and ``schedule``.
+        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
+        maximum time over all channels shared between ``self`` and ``schedule``.
 
         Args:
             schedule: schedule to be appended

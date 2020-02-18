@@ -123,7 +123,7 @@ class Schedule(ScheduleComponent):
         """Return the time of the end of the last instruction over the supplied channels.
 
         Args:
-            *channels: Channels within self to include.
+            *channels: Channels within ``self`` to include.
         """
         return self.timeslots.ch_duration(*channels)
 
@@ -131,7 +131,7 @@ class Schedule(ScheduleComponent):
         """Return the time of the start of the first instruction over the supplied channels.
 
         Args:
-            *channels: Channels within self to include.
+            *channels: Channels within ``self`` to include.
         """
         return self.timeslots.ch_start_time(*channels)
 
@@ -139,7 +139,7 @@ class Schedule(ScheduleComponent):
         """Return maximum start time over supplied channels.
 
         Args:
-            *channels: Channels within self to include.
+            *channels: Channels within ``self`` to include.
         """
         return self.timeslots.ch_stop_time(*channels)
 
@@ -150,8 +150,8 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent.
 
         Yields:
-            Tuple containing time :class:`~qiskit.pulse.Instruction` 
-            starts at and the flattened :class:`~qiskit.pulse.Instruction`.
+            Tuple containing the time each :class:`~qiskit.pulse.Instruction`
+            starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -241,10 +241,8 @@ class Schedule(ScheduleComponent):
                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """
-        Return a new ``Schedule`` with only the instructions from 
-        this ``Schedule`` which pass though the
-        provided filters; i.e. an instruction will be retained iff every function in
+        """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
+        though the provided filters; i.e. an instruction will be retained iff every function in
         ``filter_funcs`` returns ``True``, the instruction occurs on a channel type contained in
         ``channels``, the instruction type is contained in ``instruction_types``, and the period
         over which the instruction operates is *fully* contained in one specified in
@@ -273,9 +271,8 @@ class Schedule(ScheduleComponent):
                 instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """
-        Return a Schedule with only the instructions from this Schedule *failing* at least one of
-        the provided filters. This method is the complement of ``self.filter``, so that::
+        """Return a Schedule with only the instructions from this Schedule *failing* at least one
+        of the provided filters. This method is the complement of ``self.filter``, so that::
 
             self.filter(args) | self.exclude(args) == self
 
@@ -296,8 +293,7 @@ class Schedule(ScheduleComponent):
                                   new_sched_name="{name}-excluded".format(name=self.name))
 
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
-        """
-        Return a Schedule containing only the instructions from this Schedule for which
+        """Return a Schedule containing only the instructions from this Schedule for which
         ``filter_func`` returns ``True``.
 
         Args:
@@ -313,13 +309,12 @@ class Schedule(ScheduleComponent):
                           instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
-        """
-        Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
-        iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
-        function in filter_funcs returns True, the instruction occurs on a channel type contained
-        in channels, the instruction type is contained in instruction_types, and the period over
-        which the instruction operates is fully contained in one specified in time_ranges or
-        intervals.
+        """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
+        returns ``True`` iff the input satisfies all of the criteria specified by the arguments;
+        i.e. iff every function in ``filter_funcs`` returns ``True``, the instruction occurs on a
+        channel type contained in ``channels``, the instruction type is contained in
+        ``instruction_types``, and the period over which the instruction operates is fully
+        contained in one specified in ``time_ranges`` or ``intervals``.
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
@@ -497,7 +492,7 @@ class ParameterizedSchedule:
     a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
 
     # TODO: In the near future this will be replaced with proper incorporation of parameters
-        into the ``Schedule`` class.
+            into the ``Schedule`` class.
     """
 
     def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
