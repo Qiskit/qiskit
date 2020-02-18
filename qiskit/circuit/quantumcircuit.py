@@ -21,7 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import pygments
-from pygments.formatters import Terminal256Formatter # pylint: disable=no-name-in-module
+from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
 import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm

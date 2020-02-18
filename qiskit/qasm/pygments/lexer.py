@@ -43,8 +43,7 @@ class OpenQASMLexer(RegexLexer):
              't', 'tdg', 'ccx', 'rx', 'ry', 'rz',
              'cz', 'cy', 'ch', 'swap', 'cswap', 'crx',
              'cry', 'crz', 'cu1', 'cu3', 'rxx', 'rzz',
-             'rccx', 'rcccx', 'u1', 'u2', 'u3'
-            ]
+             'rccx', 'rcccx', 'u1', 'u2', 'u3']
 
     tokens = {
         'root': [
