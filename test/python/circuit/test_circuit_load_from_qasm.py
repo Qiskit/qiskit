@@ -187,8 +187,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
         self.assertEqual(q_circuit.qasm(), expected_qasm)
 
-    def test_from_qasm_str_custom_gate(self):
-        """ Test load custom gates"""
+    def test_from_qasm_str_custom_gate1(self):
+        """ Test load custom gates (simple case)"""
         qasm_string = """OPENQASM 2.0;
                         include "qelib1.inc";
                         gate rinv q {sdg q; h q; sdg q; h q; }
@@ -208,3 +208,46 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(rinv, [qr[0]])
 
         self.assertEqual(circuit, expected)
+
+    def test_from_qasm_str_custom_gate2(self):
+        """ Test load custom gates (no so simple case)
+        See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+                         gate swap2 a,b {
+                           cx a,b;
+                           cx b,a;  // issue: different bit order
+                           cx a,b;
+                         }
+                         gate cswap2 a,b,c
+                         {
+                           cx c,b;  // issue: different bit count
+                           ccx a,b,c;
+                           cx c,b;
+                         }
+                         qreg qr[3];
+                         swap2 qr[0], qr[1];
+                         cswap2 qr[1], qr[0], qr[2];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        ab_args = QuantumRegister(2, name='ab')
+        swap_gate = QuantumCircuit(ab_args, name='swap2')
+        swap_gate.cx(ab_args[0], ab_args[1])
+        swap_gate.cx(ab_args[1], ab_args[0])
+        swap_gate.cx(ab_args[0], ab_args[1])
+        swap = swap_gate.to_instruction()
+
+        abc_args = QuantumRegister(3, name='abc')
+        cswap_gate = QuantumCircuit(abc_args, name='cswap2')
+        cswap_gate.cx(abc_args[2], abc_args[1])
+        cswap_gate.ccx(abc_args[0], abc_args[1], abc_args[2])
+        cswap_gate.cx(abc_args[2], abc_args[1])
+        cswap = cswap_gate.to_instruction()
+
+        qr = QuantumRegister(3, name='qr')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.append(swap, [qr[0], qr[1]])
+        expected.append(cswap, [qr[1], qr[0], qr[2]])
+
+        self.assertEqual(expected, circuit)
