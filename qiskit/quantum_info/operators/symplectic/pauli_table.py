@@ -1,0 +1,842 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2020
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Symplectic Pauli Table Class
+"""
+# pylint: disable=invalid-name
+
+import numpy as np
+
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+
+
+class PauliTable:
+    r"""Symplectic representation of a list Pauli matrices.
+
+    Stored as an M x 2N boolean matrix:
+
+    .. math::
+
+        \left(\begin{array}{ccc|ccc}
+            x_{0,N-1} & ... & x_{0,0} & z_{0,N-1} & ... & z_{0,0}  \\
+            x_{1,N-1} & ... & x_{1,0} & z_{1,N-1} & ... & z_{1,0}  \\
+            \vdots & \ddots & \vdots & \vdots & \ddots & \vdots  \\
+            x_{M-1,N-1} & ... & x_{M-1,0} & z_{M-1,N-1} & ... & z_{M-1,0}
+        \end{array}\right)
+
+    Where each row is the symplectic representation of an N-qubit Pauli.
+    This representation is based on reference [1].
+
+    References:
+        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+           Phys. Rev. A 70, 052328 (2004).
+           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+    """
+
+    def __init__(self, data, copy=False):
+        """Initialize the PauliTable.
+
+        Args:
+            data (array or str): input data.
+            copy (bool): optionally store a copy input data array
+                         rather than a reference (Default: False).
+
+        Raises:
+            QiskitError: if input array is invalid shape.
+
+        Additional Information:
+            The input array is not copied so multiple Pauli tables
+            can share the same underlying array.
+        """
+        if isinstance(data, str):
+            # If input is a single Pauli string we convert to table
+            self._array = PauliTable._from_label(data)
+        elif isinstance(data, PauliTable):
+            # Share underlying array
+            self._array = data._array.copy() if copy else data._array
+        else:
+            # Convert to bool array avoiding copy if possible
+            self._array = np.array(data, copy=copy, dtype=np.bool)
+
+        # Input must be a (K, 2*N) shape matrix for M N-qubit Paulis.
+        if self._array.ndim == 1:
+            self._array = np.reshape(self._array, (1, self._array.size))
+        if self._array.ndim != 2 or self._array.shape[1] % 2 != 0:
+            raise QiskitError("Invalid shape for PauliTable.")
+
+        # Set size properties
+        self._num_paulis = self._array.shape[0]
+        self._n_qubits = self._array.shape[1] // 2
+
+    def __repr__(self):
+        """Display representation."""
+        return 'PauliTable(\n{})'.format(repr(self._array))
+
+    def __str__(self):
+        """String representation."""
+        return 'PauliTable: {}'.format(self.to_labels())
+
+    def __eq__(self, other):
+        """Test if two Pauli tables are equal."""
+        if isinstance(other, PauliTable):
+            return np.all(self._array == other._array)
+        return False
+
+    def copy(self):
+        """Return a PauliTable with a copy of the underlying boolean array."""
+        return PauliTable(self._array.copy())
+
+    # ---------------------------------------------------------------------
+    # Direct array access
+    # ---------------------------------------------------------------------
+
+    @property
+    def array(self):
+        """The underlying boolean array."""
+        return self._array
+
+    @property
+    def X(self):
+        """The X block of the :meth:`array`."""
+        return self._array[:, 0:self._n_qubits]
+
+    @X.setter
+    def X(self, val):
+        self._array[:, 0:self._n_qubits] = val
+
+    @property
+    def Z(self):
+        """The Z block of the :meth:`array`."""
+        return self._array[:, self._n_qubits:2*self._n_qubits]
+
+    @Z.setter
+    def Z(self, val):
+        self._array[:, self._n_qubits:2*self._n_qubits] = val
+
+    # ---------------------------------------------------------------------
+    # Size Properties
+    # ---------------------------------------------------------------------
+
+    @property
+    def shape(self):
+        """The full shape of the :meth:`array`"""
+        return self._array.shape
+
+    @property
+    def n_qubits(self):
+        """The number of qubits for each Pauli in the table."""
+        return self._n_qubits
+
+    @property
+    def size(self):
+        """The number of Pauli rows in the table."""
+        return self._num_paulis
+
+    def __len__(self):
+        """Return the number of Pauli rows in the table."""
+        return self.size
+
+    # ---------------------------------------------------------------------
+    # Pauli Array methods
+    # ---------------------------------------------------------------------
+
+    def __getitem__(self, key):
+        """Return a view of the PauliTable."""
+        # Returns a view of specified rows of the PauliTable
+        # This supports all slicing operations the underlying array supports.
+        return PauliTable(self._array[key])
+
+    def __setitem__(self, key, value):
+        """Update PauliTable."""
+        # Modify specified rows of the PauliTable
+        if not isinstance(value, PauliTable):
+            value = PauliTable(value)
+        self._array[key] = value.array
+
+    def __add__(self, other):
+        """Append a PauliTable to the table."""
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        return PauliTable(np.vstack((self._array, other._array)))
+
+    def delete(self, ind, qubit=False):
+        """Return a copy with Pauli rows deleted from table.
+
+        When deleting qubit columns, qubit-0 is the right-most
+        (largest index) column, and qubit-(N-1) is the left-most
+        (0 index) column of the underlying :meth:`X` and :meth:`Z`
+        arrays.
+
+        Args:
+            ind (int or list): index(es) to delete.
+            qubit (bool): if True delete qubit columns, otherwise delete
+                          Pauli rows (Default: False).
+
+        Returns:
+            PauliTable: the resulting table with the entries removed.
+
+        Raises:
+            QiskitError: if axis is not 0 or 1, or ind is invalid.
+        """
+        if isinstance(ind, int):
+            ind = [ind]
+
+        # Row deletion
+        if not qubit:
+            if max(ind) >= self.size:
+                raise QiskitError("Indices {} are not all less than the size"
+                                  " of the PauliTable ({})".format(ind, self.size))
+            return PauliTable(np.delete(self._array, ind, axis=0))
+
+        # Column (qubit) deletion
+        if max(ind) >= self.n_qubits:
+            raise QiskitError("Indices {} are not all less than the number of"
+                              " qubits in the PauliTable ({})".format(ind, self.n_qubits))
+        cols_x = [self._n_qubits - 1 - i for i in ind]
+        cols_z = [2 * self._n_qubits - 1 - i for i in ind]
+        return PauliTable(np.delete(self._array, cols_x + cols_z, axis=1))
+
+    def insert(self, ind, value, qubit=False):
+        """Insert Pauli's into the table.
+
+        When inserting qubit columns, qubit-0 is the right-most
+        (largest index) column, and qubit-(N-1) is the left-most
+        (0 index) column of the underlying :meth:`X` and :meth:`Z`
+        arrays.
+
+        Args:
+            ind (int): index to insert at.
+            value (PauliTable): values to insert.
+            qubit (bool): if True delete qubit columns, otherwise delete
+                          Pauli rows (Default: False).
+
+        Returns:
+            PauliTable: the resulting table with the entries inserted.
+
+        Raises:
+            QiskitError: if the insertion index is invalid.
+        """
+        if not isinstance(ind, int):
+            raise QiskitError("Insert index must be an integer.")
+
+        if not isinstance(value, PauliTable):
+            value = PauliTable(value)
+
+        # Row insertion
+        if not qubit:
+            if ind > self.size:
+                raise QiskitError("Index {} is larger than the number of rows in the"
+                                  " PauliTable ({}).".format(ind, self.n_qubits))
+            return PauliTable(np.insert(self.array, ind, value.array, axis=0))
+
+        # Column insertion
+        if ind > self.n_qubits:
+            raise QiskitError("Index {} is greater than number of qubits"
+                              " in the PauliTable ({})".format(ind, self.n_qubits))
+        if value.size == 1:
+            # Pad blocks to correct size
+            value_x = np.vstack(self.size * [value.X])
+            value_z = np.vstack(self.size * [value.Z])
+        elif value.size == self.size:
+            #  Blocks are already correct size
+            value_x = value.X
+            value_z = value.Z
+        else:
+            # Blocks are incorrect size
+            raise QiskitError("Input PauliTable must have a single row, or"
+                              " the same number of rows as the Pauli Table"
+                              " ({}).".format(self.size))
+        # Build new array by blocks
+        i = self.n_qubits - ind
+        return PauliTable(np.hstack((self.X[:, :i], value_x, self.X[:, i:],
+                                     self.Z[:, :i], value_z, self.Z[:, i:])))
+
+    def sort(self, weight=False):
+        """Sort the rows of the table.
+
+        The default sort method is lexicographic sorting by qubit number.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Consider sorting all a random ordering of all 2-qubit Paulis
+
+        .. jupyter-execute::
+
+            from numpy.random import shuffle
+            from qiskit.quantum_info.operators import PauliTable
+
+            # 2-qubit labels
+            labels = ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+                      'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
+            # Shuffle Labels
+            shuffle(labels)
+            pt = PauliTable.from_labels(labels)
+            print('Initial Ordering')
+            print(pt)
+
+            # Lexicographic Ordering
+            srt = pt.sort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = pt.sort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+
+        Returns:
+            PauliTable: a sorted copy of the original table.
+        """
+        x = self.X
+        z = self.Z
+        # Get order of each Pauli using
+        # I => 0, X => 1, Y => 2, Z => 3
+        order = (1 * np.logical_and(x, np.logical_not(z)) +
+                 2 * np.logical_and(x, z) +
+                 3 * np.logical_and(np.logical_not(x), z))
+        # Optionally get the weight of Pauli
+        # This is the number of non identity terms
+        if weight:
+            weights = np.sum(1 * np.logical_or(x, z), axis=1)
+
+        # Sort by order
+        # To preserve ordering between successive sorts we
+        # are use the 'stable' sort method
+        for i in range(self.n_qubits):
+            inds = order[:, -1 - i].argsort(kind='stable')
+            order = order[inds]
+            x = x[inds]
+            z = z[inds]
+            if weight:
+                weights = weights[inds]
+
+        # If using weights we implement a final sort by total number
+        # of non-identity Paulis
+        if weight:
+            inds = weights.argsort(kind='stable')
+            x = x[inds]
+            z = z[inds]
+        return PauliTable(np.hstack([x, z]))
+
+    def delete_duplicates(self):
+        """Delete duplicate Paulis from the table.
+
+        **Example**
+
+        .. jupyter-execute::
+
+            from qiskit.quantum_info.operators import PauliTable
+
+            pt = PauliTable.from_labels(['X', 'Y', 'X', 'I', 'I', 'Z', 'X', 'Z'])
+            unique = pt.delete_duplicates()
+            print(unique)
+        """
+        _, index = np.unique(self.array, return_index=True, axis=0)
+        # Sort the index so we return unique rows in the original array order
+        index.sort()
+        return PauliTable(self[index])
+
+    # ---------------------------------------------------------------------
+    # Utility methods
+    # ---------------------------------------------------------------------
+
+    def tensor(self, other):
+        """Return the tensor output product of two tables.
+
+        This returns the combination of the tensor product of all Paulis
+        in the current table with all Pauli's in the other table, with the
+        other tables qubits being the least-significant in the returned table.
+        This is the opposite tensor order to :meth:`expand`.
+
+        **Example**
+
+        .. jupyter-execute::
+
+            from qiskit.quantum_info.operators import PauliTable
+
+            current = PauliTable.from_labels(['I', 'X'])
+            other =  PauliTable.from_labels(['Y', 'Z'])
+            print(current.tensor(other))
+
+        Args:
+            other (PauliTable): another PauliTable.
+
+        Returns:
+            PauliTable: the tensor outer product table.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PauliTable.
+        """
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        size = self.size * other.size
+        return PauliTable(np.hstack([np.stack(other.size * [self.X],
+                                              axis=1).reshape(size, self.n_qubits),
+                                     np.vstack(self.size * [other.X]),
+                                     np.stack(other.size * [self.Z],
+                                              axis=1).reshape(size, self.n_qubits),
+                                     np.vstack(self.size * [other.Z])]))
+
+    def expand(self, other):
+        """Return the expand output product of two tables.
+
+        This returns the combination of the tensor product of all Paulis
+        in the other table with all Pauli's in the current table, with the
+        current tables qubits being the least-significant in the returned table.
+        This is the opposite tensor order to :meth:`tensor`.
+
+        **Example**
+
+        .. jupyter-execute::
+
+            from qiskit.quantum_info.operators import PauliTable
+
+            current = PauliTable.from_labels(['I', 'X'])
+            other =  PauliTable.from_labels(['Y', 'Z'])
+            print(current.expand(other))
+
+        Args:
+            other (PauliTable): another PauliTable.
+
+        Returns:
+            PauliTable: the expand outer product table.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PauliTable.
+        """
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        return other.tensor(self)
+
+    def dot(self, other, qargs=None):
+        """Return the dot output product of two tables.
+
+        This returns the combination of the dot product of all Paulis
+        in the current table with all Pauli's in the other table and
+        discards the complex phase from the product. Note that for
+        PauliTables this method is equivalent to :meth:`compose`.
+
+        **Example**
+
+        .. jupyter-execute::
+
+            from qiskit.quantum_info.operators import PauliTable
+
+            current = PauliTable.from_labels(['I', 'X'])
+            other =  PauliTable.from_labels(['Y', 'Z'])
+            print(current.dot(other))
+
+        Args:
+            other (PauliTable): another PauliTable.
+            qargs (None or list): qubits to apply dot product on (Default: None).
+
+        Returns:
+            PauliTable: the dot outer product table.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PauliTable.
+        """
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        if qargs is None and other.n_qubits != self.n_qubits:
+            raise QiskitError("other PauliTable must be on the same number of qubits.")
+        if qargs and other.n_qubits != len(qargs):
+            raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
+
+        size1 = self.size
+        size2 = other.size
+        if size2 > 1:
+            # Stack blocks for output table
+            x1 = np.reshape(np.stack(size2 * [self.X], axis=1),
+                            (size1 * size2, self.n_qubits))
+            z1 = np.reshape(np.stack(size2 * [self.Z], axis=1),
+                            (size1 * size2, self.n_qubits))
+        else:
+            # If we arent stacking we need to make copy of array so we
+            # don't change the array of the current object.
+            x1 = self.X.copy()
+            z1 = self.Z.copy()
+        x2 = other.X
+        z2 = other.Z
+        if size1 > 1:
+            x2 = np.vstack(size1 * [x2])
+            z2 = np.vstack(size1 * [z2])
+
+        if qargs is None:
+            return PauliTable(np.hstack((
+                                np.logical_xor(x1, x2),
+                                np.logical_xor(z1, z2))))
+        # Convert qubit positions to array index
+        index = [self.n_qubits - 1 - i for i in reversed(qargs)]
+        x1[:, index] = np.logical_xor(x1[:, index], x2)
+        z1[:, index] = np.logical_xor(z1[:, index], z2)
+        return PauliTable(np.hstack([x1, z1]))
+
+    def compose(self, other, qargs=None):
+        """Return the dot output product of two tables.
+
+        This returns the combination of the dot product of all Paulis
+        in the current table with all Pauli's in the other table and
+        discards the complex phase from the product. Note that for
+        PauliTables this method is equivalent to :meth:`dot`.
+
+        **Example**
+
+        .. jupyter-execute::
+
+            from qiskit.quantum_info.operators import PauliTable
+
+            current = PauliTable.from_labels(['I', 'X'])
+            other =  PauliTable.from_labels(['Y', 'Z'])
+            print(current.dot(other))
+
+        Args:
+            other (PauliTable): another PauliTable.
+            qargs (None or list): qubits to apply dot product on (Default: None).
+
+        Returns:
+            PauliTable: the dot outer product table.
+
+        Raises:
+            QiskitError: if other cannot be converted to a PauliTable.
+        """
+        return self.dot(other, qargs=qargs)
+
+    def commutes(self, pauli):
+        """Return list of commutation properties for each row with a Pauli.
+
+        The returned vector is the same length as the size of the table and
+        contains `True` for rows that commute with the Pauli, and `False`
+        for the rows that anti-commute.
+
+        Args:
+            pauli (PauliTable): a single Pauli row.
+
+        Returns:
+            array: The boolean vector of which rows commute or anti-commute.
+
+        Raises:
+            QiskitError: if input is not a single Pauli row.
+        """
+        if not isinstance(pauli, PauliTable):
+            pauli = PauliTable(pauli)
+        if pauli.size != 1:
+            raise QiskitError("Input is not a single Pauli.")
+        return self._commutes(self, pauli)
+
+    def commutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli table the returned vector indexes rows
+        of the current PauliTable that commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliTable): a single Pauli or multi-row
+                                                PauliTable.
+
+        Returns:
+            array: index array of the commuting rows.
+        """
+        return self._commutes_with_all(other)
+
+    def anticommutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli table the returned vector indexes rows
+        of the current PauliTable that anti-commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliTable): a single Pauli or multi-row
+                                                PauliTable.
+
+        Returns:
+            array: index array of the anti-commuting rows.
+        """
+        return self._commutes_with_all(other, anti=True)
+
+    def _commutes_with_all(self, other, anti=False):
+        """Return row indexes that commute with all rows in another PauliTable.
+
+        Args:
+            other (PauliTable): a PauliTable.
+            anti (bool): if True return rows that anti-commute, otherwise
+                         return rows taht commute (Default: False).
+
+        Returns:
+            array: index array of commuting or anti-commuting row.
+        """
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        comms = PauliTable._commutes(self, other[0])
+        inds, = np.where(comms == int(not anti))
+        for pauli in other[1:]:
+            comms = PauliTable._commutes(self[inds], pauli)
+            new_inds, = np.where(comms == int(not anti))
+            if new_inds.size == 0:
+                # No commuting rows
+                return new_inds
+            inds = inds[new_inds]
+        return inds
+
+    @staticmethod
+    def _commutes(pauli_table, pauli):
+        """Return row indexes of pauli_table that commute with pauli
+
+        Args:
+            pauli_table (PauliTable): a multi-row PauliTable.
+            pauli (PauliTable): a single-row PauliTable.
+
+        Returns:
+            array: boolean vector of which rows commute (True) or
+                   anti-commute (False).
+        """
+        def not_i(table):
+            return np.logical_or(table.X, table.Z)
+        # Find positions where self and pauli are not identities
+        non_iden = np.logical_and(not_i(pauli_table), not_i(pauli))
+        # Multiply array by Pauli, and set entries where inputs
+        # where I to I
+        tmp = PauliTable(np.logical_xor(pauli_table.array, pauli.array))
+        tmp.X = np.logical_and(tmp.X, non_iden)
+        tmp.Z = np.logical_and(tmp.Z, non_iden)
+        # Find total number of non I pauli's remaining in table
+        # if there are an even number the row commutes with the
+        # input Pauli, otherwise it anti-commutes
+        return np.logical_not(np.sum(not_i(tmp), axis=1) % 2)
+
+    # ---------------------------------------------------------------------
+    # Representation conversions
+    # ---------------------------------------------------------------------
+
+    @classmethod
+    def from_labels(cls, labels):
+        """Construct a PauliTable from a list of Pauli strings.
+
+        Args:
+            labels (list): Pauli string label(es).
+
+        Returns:
+            PauliTable: the constructed PauliTable.
+
+        Raises:
+            QiskitError: If the input list is empty or contains invalid
+            Pauli strings.
+        """
+        n_paulis = len(labels)
+        if n_paulis == 0:
+            raise QiskitError("Input Pauli list is empty.")
+        # Get size from first Pauli
+        first = cls._from_label(labels[0])
+        array = np.zeros((n_paulis, len(first)), dtype=np.bool)
+        array[0] = first
+        for i in range(1, n_paulis):
+            array[i] = cls._from_label(labels[i])
+        return cls(array)
+
+    def to_labels(self, array=False):
+        """Convert a PauliTable to a list Pauli string labels.
+
+        For large PauliTables converting using the ``array=True``
+        kwarg will be more efficient since it allocates memory for
+        the full Numpy array of labels in advance.
+
+        Args:
+            array (bool): return a Numpy array if True, otherwise
+                          return a list (Default: False).
+
+        Returns:
+            list or array: The rows of the PauliTable in label form.
+        """
+        ret = np.zeros(self.size, dtype='<U{}'.format(self._n_qubits))
+        for i in range(self.size):
+            ret[i] = self._to_label(self._array[i])
+        if array:
+            return ret
+        return ret.tolist()
+
+    def to_matrix(self, sparse=False, array=False):
+        """Convert to a list or array of Pauli matrices.
+
+        For large PauliTables converting using the ``array=True``
+        kwarg will be more efficient since it allocates memory a full
+        rank-3 Numpy array of matrices in advance.
+
+        Args:
+            sparse (bool): if True return sparse CSR matrices, otherwise
+                           return dense Numpy arrays (Default: False).
+            array (bool): return as rank-3 numpy array if True, otherwise
+                          return a list of Numpy arrays (Default: False).
+
+        Returns:
+            list: A list of dense Pauli matrices if `array=False` and `sparse=False`.
+            list: A list of sparse Pauli matrices if `array=False` and `sparse=True`.
+            array: A dense rank-3 array of Pauli matrices if `array=True`.
+        """
+        if not array:
+            # We return a list of Numpy array matrices
+            return [self._to_matrix(pauli, sparse=sparse) for pauli in self._array]
+        # For efficiency we also allow returning a single rank-3
+        # array where first index is the Pauli row, and second two
+        # indices are the matrix indices
+        dim = 2 ** self.n_qubits
+        ret = np.zeros((self.size, dim, dim), dtype=np.complex)
+        for i in range(self.size):
+            ret[i] = self._to_matrix(self._array[i])
+        return ret
+
+    @staticmethod
+    def _from_label(label):
+        """Return the symplectic representation of a Pauli string"""
+        if label[0] == '+':
+            # We allow +1 phase sign so we can convert back from positive
+            # stabilizer strings
+            label = label[1:]
+        n_qubits = len(label)
+        symp = np.zeros(2 * n_qubits, dtype=np.bool)
+        xs = symp[0:n_qubits]
+        zs = symp[n_qubits:2*n_qubits]
+        for i, char in enumerate(label):
+            if char not in ['I', 'X', 'Y', 'Z']:
+                raise QiskitError("Pauli string contains invalid character:"
+                                  " {} not in ['I', 'X', 'Y', 'Z'].".format(char))
+            if char in ['X', 'Y']:
+                xs[i] = True
+            if char in ['Z', 'Y']:
+                zs[i] = True
+        return symp
+
+    @staticmethod
+    def _to_label(pauli):
+        """Return the Pauli string from symplectic representation."""
+        # Cast in symplectic representation
+        # This should avoid a copy if the pauli is already a row
+        # in the symplectic table
+        symp = np.asarray(pauli, dtype=np.bool)
+        n_qubits = symp.size // 2
+        x = symp[0:n_qubits]
+        z = symp[n_qubits:2*n_qubits]
+        paulis = np.zeros(n_qubits, dtype='<U1')
+        for i in range(n_qubits):
+            if not z[i]:
+                if not x[i]:
+                    paulis[i] = 'I'
+                else:
+                    paulis[i] = 'X'
+            elif not x[i]:
+                paulis[i] = 'Z'
+            else:
+                paulis[i] = 'Y'
+        return str().join(paulis)
+
+    @staticmethod
+    def _to_matrix(pauli, sparse=False):
+        """Return the Pauli matrix from symplectic representation.
+
+        Args:
+            pauli (array): symplectic Pauli vector.
+            sparse (bool): if True return a sparse CSR matrix, otherwise
+                           return a dense Numpy array (Default: False).
+
+        Returns:
+            array: if sparse=False.
+            csr_matrix: if sparse=True.
+        """
+
+        def count1(i):
+            """Count number of set bits in int or array"""
+            i = i - ((i >> 1) & 0x55555555)
+            i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
+            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
+
+        symp = np.asarray(pauli, dtype=np.bool)
+        n_qubits = symp.size // 2
+        x = symp[0:n_qubits]
+        z = symp[n_qubits:2*n_qubits]
+
+        dim = 2 ** n_qubits
+        twos_array = list(reversed(1 << np.arange(n_qubits)))
+        x_indices = np.array(x).dot(twos_array)
+        z_indices = np.array(z).dot(twos_array)
+
+        indptr = np.arange(dim + 1, dtype=np.uint)
+        indices = indptr ^ x_indices
+        phase = (-1j) ** np.sum(np.logical_and(x, z))
+        data = phase * (-1) ** np.mod(count1(z_indices & indptr), 2)
+
+        if sparse:
+            # Return sparse matrix
+            from scipy.sparse import csr_matrix
+            return csr_matrix((data, indices, indptr), shape=(dim, dim))
+
+        # Build dense matrix using csr format
+        mat = np.zeros((dim, dim), dtype=complex)
+        for i in range(dim):
+            mat[i][indices[indptr[i]:indptr[i+1]]] = data[indptr[i]:indptr[i+1]]
+        return mat
+
+    # ---------------------------------------------------------------------
+    # Custom Iterators
+    # ---------------------------------------------------------------------
+
+    def label_iter(self):
+        """Return a label representation iterator.
+
+        This is a lazy iterator that converts each row into the string
+        label only as it is used. To convert the entire table to labels use
+        the :meth:`to_labels` method.
+
+        Returns:
+            LabelIterator: label iterator object for the PauliTable.
+        """
+        class LabelIterator(CustomIterator):
+            """Label representation iteration and item access."""
+            def __repr__(self):
+                return "<PauliTable_label_iterator at {}>".format(hex(id(self)))
+
+            def __getitem__(self, key):
+                return self.obj._to_label(self.obj.array[key])
+        return LabelIterator(self)
+
+    def matrix_iter(self, sparse=False):
+        """Return a matrix representation iterator.
+
+        This is a lazy iterator that converts each row into the Pauli matrix
+        representation only as it is used. To convert the entire table to
+        matrices use the :meth:`to_matrix` method.
+
+        Args:
+            sparse (bool): optionally return sparse CSR matrices if True,
+                           otherwise return Numpy array matrices
+                           (Default: False)
+
+        Returns:
+            MatrixIterator: matrix iterator object for the PauliTable.
+        """
+        class MatrixIterator(CustomIterator):
+            """Matrix representation iteration and item access."""
+            def __repr__(self):
+                return "<PauliTable_matrix_iterator at {}>".format(hex(id(self)))
+
+            def __getitem__(self, key):
+                return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
+        return MatrixIterator(self)
