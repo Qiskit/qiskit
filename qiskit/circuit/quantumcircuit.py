@@ -18,11 +18,14 @@ from copy import deepcopy
 import itertools
 import sys
 import warnings
+import pygments
+from pygments.formatters import Terminal256Formatter
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
+from qiskit.qasm.pygments import OpenQASMLexer, QasmTerminalStyle
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -628,7 +631,7 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def qasm(self):
+    def qasm(self, formatted=True):
         """Return OpenQASM string."""
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -654,7 +657,13 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
-        return string_temp
+        if formatted:
+            code = pygments.highlight(string_temp,
+                                      OpenQASMLexer(),
+                                      Terminal256Formatter(style=QasmTerminalStyle))
+            print(code)
+        else:
+            return string_temp
 
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
