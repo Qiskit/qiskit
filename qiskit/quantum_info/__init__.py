@@ -30,6 +30,7 @@ Operators
    pauli_group
    Quaternion
    PauliTable
+   StabilizerTable
    pauli_basis
 
 States
@@ -117,7 +118,7 @@ from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
 from .operators import average_gate_fidelity
 from .operators import gate_error
-from .operators.symplectic import PauliTable
+from .operators.symplectic import PauliTable, StabilizerTable
 from .operators.symplectic import pauli_basis
 
 from .states import Statevector, DensityMatrix
