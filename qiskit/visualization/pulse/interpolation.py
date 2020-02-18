@@ -49,15 +49,13 @@ def interp1d(time, samples, nop, kind='linear'):
 
     return time_, cs_ry(time_), cs_iy(time_)
 
-def step_wise(time, samples, nop, kind='nearest'):
+def step_wise(time, samples, nop):
     """Scipy interpolation wrapper.
 ​
     Args:
         time (ndarray): time.
         samples (ndarray): complex pulse envelope.
         nop (int): data points for interpolation.
-        kind (str): Scipy interpolation type. See `scipy.interpolate.interp1d` documentation
-            for more information.
     Returns:
         ndarray: interpolated waveform.
     """
@@ -68,8 +66,8 @@ def step_wise(time, samples, nop, kind='nearest'):
 
     time__ = np.concatenate(([time[0]], np.repeat(time[1:-1], 2), [time[-1]]))
 
-    cs_ry_ = interpolate.interp1d(time__, re_y_, bounds_error=False)
-    cs_iy_ = interpolate.interp1d(time__, im_y_, bounds_error=False)
+    cs_ry_ = interpolate.interp1d(time__, re_y_, kind='nearest', bounds_error=False)
+    cs_iy_ = interpolate.interp1d(time__, im_y_, kind='nearest', bounds_error=False)
 
     time_ = np.linspace(time[0], time[-1], nop)
 
@@ -78,5 +76,3 @@ def step_wise(time, samples, nop, kind='nearest'):
 linear = partial(interp1d, kind='linear')
 
 cubic_spline = partial(interp1d, kind='cubic')
-
-step_wise = partial(step_wise, kind='nearest')
