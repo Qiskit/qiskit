@@ -41,7 +41,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             *schedules: Child Schedules of this parent Schedule. May either be passed as
-                        the list of schedules, or a list of (start_time, schedule) pairs.
+                        the list of schedules, or a list of ``(start_time, schedule)`` pairs.
             name: Name of this schedule.
 
         Raises:
@@ -150,7 +150,8 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent.
 
         Yields:
-            Tuple containing time ``Instruction`` starts at and the flattened ``Instruction``.
+            Tuple containing time :class:`~qiskit.pulse.Instruction` 
+            starts at and the flattened :class:`~qiskit.pulse.Instruction`.
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -225,7 +226,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             schedule: Schedule to be appended.
-            name: Name of the new schedule. Defaults to name of self.
+            name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
@@ -241,7 +242,8 @@ class Schedule(ScheduleComponent):
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
-        Return a new Schedule with only the instructions from this Schedule which pass though the
+        Return a new ``Schedule`` with only the instructions from 
+        this ``Schedule`` which pass though the
         provided filters; i.e. an instruction will be retained iff every function in
         ``filter_funcs`` returns ``True``, the instruction occurs on a channel type contained in
         ``channels``, the instruction type is contained in ``instruction_types``, and the period
@@ -296,11 +298,11 @@ class Schedule(ScheduleComponent):
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """
         Return a Schedule containing only the instructions from this Schedule for which
-        ``filter_func`` returns True.
+        ``filter_func`` returns ``True``.
 
         Args:
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
-            new_sched_name: Name of the returned Schedule.
+            new_sched_name: Name of the returned ``Schedule``.
         """
         subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
@@ -433,7 +435,7 @@ class Schedule(ScheduleComponent):
         """Test if two ScheduleComponents are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
-        in ``other`` for every instruction in this Schedule.
+        in ``other`` for every instruction in this ``Schedule``.
 
         .. warning::
 
