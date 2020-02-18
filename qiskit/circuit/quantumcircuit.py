@@ -631,8 +631,13 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def qasm(self, formatted=True):
-        """Return OpenQASM string."""
+    def qasm(self, formatted=False, filename=None):
+        """Return OpenQASM string.
+
+        Parameters:
+            formatted (bool): Return formatted Qasm string.
+            filename (str): Save Qasm to file with name 'filename'.
+        """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -657,6 +662,12 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
+        
+        if filename:
+            with open(filename, 'w+') as file:
+                file.write(string_temp)
+            file.close()
+
         if formatted:
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
