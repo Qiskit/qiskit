@@ -47,7 +47,7 @@ class PassManager:
                 execution.
 
         .. deprecated ::
-            The `callback` parameter is deprecated in favor of
+            The ``callback`` parameter is deprecated in favor of
             ``PassManager.run(..., callback=callback, ...).
         """
         self.callback = None
