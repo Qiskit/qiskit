@@ -587,6 +587,19 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(qr, cr)
         self.assertEqual(_text_circuit_drawer(circuit)._repr_html_(), expected)
 
+    def test_text_repr(self):
+        """ The measure operator. repr. """
+        expected = '\n'.join(["        ┌─┐",
+                              "q_0: |0>┤M├",
+                              "        └╥┘",
+                              " c_0: 0 ═╩═",
+                              "           "])
+        qr = QuantumRegister(1, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        self.assertEqual(_text_circuit_drawer(circuit).__repr__(), expected)
+
     def test_text_justify_left(self):
         """ Drawing with left justify """
         expected = '\n'.join(['         ┌───┐   ',

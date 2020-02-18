@@ -234,8 +234,7 @@ class _SchemaBinder:
             do_validation = kwargs.pop('validate', True)
             if do_validation:
                 try:
-                    _ = self.shallow_schema._do_load(kwargs,
-                                                     postprocess=False)
+                    _ = self.shallow_schema._do_load(kwargs, postprocess=False)
                 except ValidationError as ex:
                     raise ModelValidationError(
                         ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
