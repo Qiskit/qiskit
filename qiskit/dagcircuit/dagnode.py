@@ -17,7 +17,6 @@
 """Object to represent the information at a node in the DAGCircuit."""
 import warnings
 from typing import Optional, List
-
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Instruction, Qubit
 from qiskit.circuit.bit import Bit
