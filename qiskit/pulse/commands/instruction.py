@@ -13,12 +13,6 @@
 # that they have been altered from the originals.
 
 """Instruction = Leaf node of schedule. Deprecated path."""
-import warnings
-
 # pylint: disable=unused-import
 
 from qiskit.pulse.instructions import Instruction
-
-
-warnings.warn("This import path has been deprecated. Please import ``Instruction`` from "
-              "``qiskit.pulse`` or ``qiskit.pulse.instructions``.", DeprecationWarning)
