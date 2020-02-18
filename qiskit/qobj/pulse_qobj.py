@@ -36,32 +36,9 @@ class QobjMeasurementOption:
             name (str): The name of the measurement option
             params (list): The parameters of the measurement option.
         """
-        self._data = {}
-        self._data['name'] = name
+        self.name = name
         if params is not None:
-            self._data['params'] = params
-
-    @property
-    def name(self):
-        """The name of the measurement option."""
-        if 'name' not in self._data:
-            raise AttributeError('Attribute name is not defined')
-        return self._data['name']
-
-    @name.setter
-    def name(self, value):
-        self._data['name'] = value
-
-    @property
-    def params(self):
-        """The parameters of the measurement option."""
-        if 'params' not in self._data:
-            raise AttributeError('Attribute name is not defined')
-        return self._data['params']
-
-    @params.setter
-    def params(self, value):
-        self._data['params'] = value
+            self.params = params
 
     def to_dict(self):
         """Return a dict format representation of the QobjMeasurementOption.
@@ -69,7 +46,10 @@ class QobjMeasurementOption:
         Returns:
             dict: The dictionary form of the QasmMeasurementOption.
         """
-        return self._data
+        out_dict = {'name': self.name}
+        if hasattr(self, 'params'):
+            out_dict['params'] = self.params
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
@@ -81,7 +61,8 @@ class QobjMeasurementOption:
         Returns:
             QobjMeasurementOption: The object from the input dictionary.
         """
-        return cls(**data)
+        name = data.pop('name')
+        return cls(name, **data)
 
     def __eq__(self, other):
         if isinstance(other, QobjMeasurementOption):
