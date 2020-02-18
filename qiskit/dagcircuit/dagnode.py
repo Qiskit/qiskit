@@ -15,16 +15,18 @@
 # pylint: disable=redefined-builtin
 
 """Object to represent the information at a node in the DAGCircuit."""
-
 import warnings
+from typing import Optional, List
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import Instruction, Qubit
+from qiskit.circuit.bit import Bit
 
 
 class DAGNode:
-    """Object to represent the information at a node in the DAGCircuit.
+    """Object to represent the information at a node in the ``DAGCircuit``.
 
-    It is used as the return value from `*_nodes()` functions and can
+    It is used as the return value from ``*_nodes()`` functions and can
     be supplied to functions that take a node.
     """
 
@@ -59,7 +61,7 @@ class DAGNode:
         self.sort_key = str(self._qargs)
 
     @property
-    def op(self):
+    def op(self) -> Optional[Instruction]:
         """Returns the Instruction object corresponding to the op for the node, else None"""
         if not self.type or self.type != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
@@ -70,22 +72,22 @@ class DAGNode:
         self._op = data
 
     @property
-    def qargs(self):
+    def qargs(self) -> List[Qubit]:
         """
         Returns list of Qubit, else an empty list.
         """
         return self._qargs
 
     @qargs.setter
-    def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
+    def qargs(self, new_qargs: List[Qubit]):
+        """Sets the qargs to be the given list of ``new_qargs``."""
         self._qargs = new_qargs
         self.sort_key = str(new_qargs)
 
     @property
-    def wire(self):
+    def wire(self) -> Optional[Bit]:
         """
-        Returns the Bit object, else None.
+        Returns the Bit object corresponding to this wire, else None.
         """
         if self.type not in ['in', 'out']:
             raise QiskitError('The node %s is not an input/output node' % str(self))
@@ -113,16 +115,20 @@ class DAGNode:
         return str(id(self))
 
     @staticmethod
-    def semantic_eq(node1, node2):
+    def semantic_eq(node1: 'DAGNode', node2: 'DAGNode') -> bool:
         """
-        Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
+        Check if nodes are considered equivalent. This method is checked
+        as a ``node_match`` for `nx.is_isomorphic()`_ in the ``networkx`` library.
 
         Args:
-            node1 (DAGNode): A node to compare.
-            node2 (DAGNode): The other node to compare.
+            node1: A node to compare.
+            node2: The other node to compare.
 
         Return:
-            Bool: If node1 == node2
+            If ``node1`` == ``node2``
+
+        .. _nx.is_isomorphic(): https://networkx.github.io/documentation/networkx-1.10/reference/\
+                                generated/networkx.algorithms.isomorphism.is_isomorphic.html
         """
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == node1.name == node2.name:
