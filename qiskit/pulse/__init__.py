@@ -22,7 +22,7 @@ Pulse (:mod:`qiskit.pulse`)
 Qiskit-Pulse is a pulse-level quantum programming kit. This lower level of programming offers the
 user more control than programming with :py:class:`~qiskit.circuit.QuantumCircuit` s.
 
-Extracting the greatest performance out from quantum hardware requires real-time pulse-level
+Extracting the greatest performance from quantum hardware requires real-time pulse-level
 instructions. Pulse answers that need: it enables the quantum physicist *user* to specify the
 exact time dynamics of an experiment. It is especially powerful for error mitigation techniques.
 
@@ -61,7 +61,7 @@ low-level control. Therefore, our signal channels are  *virtual* hardware channe
 which executes our programs is responsible for mapping these virtual channels to the proper
 physical channel within the quantum control hardware.
 
-Channels are characterized by their type and their index. See each of the below to learn more.
+Channels are characterized by their type and their index. See each channel type below to learn more.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -77,7 +77,8 @@ Schedules
 =========
 
 Schedules are Pulse programs. They describe instruction sequences for the control hardware.
-An ``Instruction`` is a ``Command`` which has been assigned to its ``Channel`` (s).
+An :class:`~qiskit.pulse.Instruction` is a :class:`~qiskit.pulse.Command` which has been 
+assigned to its :class:`~qiskit.pulse.Channel` (s).
 
 .. autosummary::
    :toctree: ../stubs/
@@ -96,7 +97,7 @@ Configuration
 Rescheduling Utilities
 ======================
 
-These utilities return modified ``Schedule`` s.
+These utilities return modified :class:`~qiskit.pulse.Schedule` s.
 
 .. autosummary::
    :toctree: ../stubs/
