@@ -24,6 +24,14 @@ Qasm (:mod:`qiskit.qasm`)
 
    Qasm
    QasmError
+
+Submodules
+==========
+
+.. autosummary::
+   :toctree:
+
+   pygments
 """
 
 from numpy import pi
