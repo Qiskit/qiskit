@@ -1,9 +1,10 @@
 ---
 upgrade:
   - |
-    Channel ``buffer`` option was deprecated in Terra 0.11.0 and has now been
-    removed. To add a delay on a channel, specify it explicitly in your
-    Schedule with a Delay::
+    The pulse ``buffer`` option found in :class:`qiskit.pulse.Channel` and
+    :class:`qiskit.pulse.Schedule` was deprecated in Terra 0.11.0 and has now
+    been removed. To add a delay on a channel or in a schedule, specify it
+    explicitly in your Schedule with a Delay::
 
         sched = Schedule()
         sched += Delay(5)(DriveChannel(0))

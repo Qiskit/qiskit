@@ -159,32 +159,27 @@ class Instruction(ScheduleComponent):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
+    def insert(self, start_time: int, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`.
+        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
+        ``self`` at ``start_time``.
 
         Args:
             start_time: Time to insert the schedule schedule
             schedule: Schedule to insert
-            buffer: Whether to obey buffer when inserting
             name: Name of the new schedule. Defaults to name of self
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         return self.union((start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent, buffer: bool = False,
+    def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted at the maximum time over
-        all channels shared between `self` and `schedule`.
+        """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
+        maximum time over all channels shared between ``self`` and ``schedule``.
 
         Args:
             schedule: schedule to be appended
-            buffer: Whether to obey buffer when appending
             name: Name of the new schedule. Defaults to name of self
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
