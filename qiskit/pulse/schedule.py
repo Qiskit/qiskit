@@ -220,7 +220,8 @@ class Schedule(ScheduleComponent):
 
         .. math::
 
-            t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})
+            t = \textrm{max}(\texttt{x.stop_time} |\texttt{x} \in
+                \texttt{self.channels} \cap \texttt{schedule.channels})
 
         Args:
             schedule: Schedule to be appended.
