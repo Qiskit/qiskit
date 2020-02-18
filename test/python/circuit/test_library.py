@@ -15,7 +15,7 @@
 """Test library of quantum circuits."""
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import Permutation, Shift, InnerProduct
 
 

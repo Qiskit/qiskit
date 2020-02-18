@@ -84,7 +84,7 @@ class Shift(QuantumCircuit):
 
         if amount is not None:
             if len(bin(amount)[2:]) > n_qubits:
-                raise Exception("Bits in 'amount' exceed circuit width")
+                raise CircuitError("Bits in 'amount' exceed circuit width")
         else:
             rng = np.random.RandomState(seed)
             amount = rng.randint(0, 2**n_qubits)
@@ -99,7 +99,7 @@ class Shift(QuantumCircuit):
 class InnerProduct(QuantumCircuit):
     """An n_qubit circuit that computes the inner product of two registers."""
 
-    def __init__(self, n_qubits: int) -> QuantumCircuit: 
+    def __init__(self, n_qubits: int) -> QuantumCircuit:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 
         Args:
