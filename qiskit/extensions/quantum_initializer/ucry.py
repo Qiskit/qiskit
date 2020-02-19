@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,7 +27,17 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRYGate(UCPauliRotGate):
+class UCRYMeta(type):
+    """A metaclass to ensure that UCRYGate and UCY are of the same type.
+
+    Can be removed when UCY gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {UCRYGate, UCY}  # pylint: disable=unidiomatic-typecheck
+
+
+class UCRYGate(UCPauliRotGate, metaclass=UCRYMeta):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -89,14 +99,24 @@ def ucry(self, angle_list, q_controls, q_target):
     return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 
 
+class UCY(UCRYGate, metaclass=UCRYMeta):
+    """The deprecated UCRYGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class UCY is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class UCRYGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
+
+
 def ucy(self, angle_list, q_controls, q_target):
-    """
-    Deprecated version of ucry.
-    """
+    """Deprecated version of ucry."""
     import warnings
-    warnings.warn('The QuantumCircuit. ucy() method is deprecated as of 0.14.0, and '
+    warnings.warn('The QuantumCircuit ucy() method is deprecated as of 0.14.0, and '
                   'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit. ucry() method instead.',
+                  'You should use the QuantumCircuit ucry() method instead.',
                   DeprecationWarning, stacklevel=2)
     return ucry(self, angle_list, q_controls, q_target)
 

@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -52,7 +52,17 @@ from qiskit.quantum_info.synthesis import euler_angles_1q
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class UCGate(Gate):
+class UCMeta(type):
+    """A metaclass to ensure that UCGate and UCG are of the same type.
+
+    Can be removed when UCGG gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {UCGate, UCG}  # pylint: disable=unidiomatic-typecheck
+
+
+class UCGate(Gate, metaclass=UCMeta):
     """Uniformly controlled gate (also called multiplexed gate).
     The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
     """
@@ -310,16 +320,27 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
+class UCG(UCGate, metaclass=UCG):
+    """The deprecated UCGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class UCG is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class UCGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
+
+
 def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
-    """
-    Deprecated version of uc.
-    """
+    """Deprecated version of uc."""
+
     import warnings
     warnings.warn('The QuantumCircuit.ucg() method is deprecated as of 0.14.0, and '
                   'will be removed no earlier than 3 months after that release date. '
                   'You should use the QuantumCircuit.uc() method instead.',
                   DeprecationWarning, stacklevel=2)
-    uc(self, angle_list, q_controls, q_target, up_to_diagonal)
+    return uc(self, angle_list, q_controls, q_target, up_to_diagonal)
 
 
 QuantumCircuit.uc = uc

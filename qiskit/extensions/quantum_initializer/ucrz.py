@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,7 +27,17 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRZGate(UCPauliRotGate):
+class UCRZMeta(type):
+    """A metaclass to ensure that UCRZGate and UCZ are of the same type.
+
+    Can be removed when UCZ gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {UCRZGate, UCZ}  # pylint: disable=unidiomatic-typecheck
+
+
+class UCRZGate(UCPauliRotGate, metaclass=UCRZMeta):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -90,14 +100,24 @@ def ucrz(self, angle_list, q_controls, q_target):
     return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
 
+class UCZ(UCRZGate, metaclass=UCRZMeta):
+    """The deprecated UCRZGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class UCZ is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class UCRZGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
+
+
 def ucz(self, angle_list, q_controls, q_target):
-    """
-    Deprecated version of ucrz.
-    """
+    """Deprecated version of ucrz."""
     import warnings
-    warnings.warn('The QuantumCircuit. ucz() method is deprecated as of 0.14.0, and '
+    warnings.warn('The QuantumCircuit.ucz() method is deprecated as of 0.14.0, and '
                   'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit. ucrz() method instead.',
+                  'You should use the QuantumCircuit.ucrz() method instead.',
                   DeprecationWarning, stacklevel=2)
     return ucrz(self, angle_list, q_controls, q_target)
 

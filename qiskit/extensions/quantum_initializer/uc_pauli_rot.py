@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,7 +34,17 @@ from qiskit.exceptions import QiskitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class UCPauliRotGate(Gate):
+class UCPauliRotMeta(type):
+    """A metaclass to ensure that UCPauliRotGate and UCRot are of the same type.
+
+    Can be removed when UCRot gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {UCPauliRotGate, UCRot}  # pylint: disable=unidiomatic-typecheck
+
+
+class UCPauliRotGate(Gate, metaclass=UCPauliRotMeta):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on 'Synthesis of Quantum Logic Circuits'
@@ -171,3 +181,15 @@ class UCPauliRotGate(Gate):
     def _update_angles(angle1, angle2):
         """Calculate the new rotation angles according to Shende's decomposition."""
         return (angle1 + angle2) / 2.0, (angle1 - angle2) / 2.0
+
+
+class UCRot(UCPauliRot, metaclass=UCPauliRotMeta):
+    """The deprecated DiagonalGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class UCRot is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class UCPauliRotGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
