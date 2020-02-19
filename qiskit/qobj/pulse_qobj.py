@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name,redefined-builtin,method-hidden,arguments-differ
+# pylint: disable=super-init-not-called
 
 """Module providing definitions of Pulse Qobj classes."""
 
@@ -21,6 +22,7 @@ import json
 
 import numpy
 
+from qiskit.qobj.qasm_qobj import QobjDictField
 from qiskit.qobj.qasm_qobj import QobjHeader
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentHeader
 from qiskit.qobj.qasm_qobj import validator
@@ -199,7 +201,7 @@ class PulseQobjInstruction:
         return False
 
 
-class PulseQobjConfig:
+class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
     def __init__(self, meas_level, meas_return, pulse_library,
@@ -329,18 +331,6 @@ class PulseQobjConfig:
             data['pulse_library'] = pulse_lib_obj
         return cls(**data)
 
-    def __getattr__(self, name):
-        try:
-            return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
-
-    def __eq__(self, other):
-        if isinstance(other, PulseQobjConfig):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
-
 
 class PulseQobjExperiment:
     """A Pulse Qobj Experiment.
@@ -408,10 +398,8 @@ class PulseQobjExperiment:
         return False
 
 
-class PulseQobjExperimentConfig:
+class PulseQobjExperimentConfig(QobjDictField):
     """A config for a single Pulse experiment in the qobj."""
-
-    _data = {}
 
     def __init__(self, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """Instantiate a PulseQobjExperimentConfig object.
@@ -431,32 +419,6 @@ class PulseQobjExperimentConfig:
             self._data['meas_lo_freq'] = meas_lo_freq
         if kwargs:
             self._data.update(kwargs)
-
-    def to_dict(self):
-        """Return a dictionary format representation of the experiment config.
-
-        Returns:
-            dict: The dictionary form of the PulseQobjExperimentConfig.
-        """
-        return self._data
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new PulseQobjExperimentConfig object from a dictionary.
-
-        Args:
-            data (dict): A dictionary for the experiment config
-
-        Returns:
-            PulseQobjExperimentConfig: The object from the input dictionary.
-        """
-        return cls(**data)
-
-    def __eq__(self, other):
-        if isinstance(other, PulseQobjExperimentConfig):
-            if self.to_dict() == other.to_dict():
-                return True
-        return False
 
 
 class PulseLibraryItem:
