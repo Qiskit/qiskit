@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,4 +14,4 @@
 
 """Module for builtin library of circuits."""
 
-from .boolean_logic import Permutation, Shift, InnerProduct
+from .boolean_logic import Permutation, XOR, InnerProduct

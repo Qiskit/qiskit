@@ -14,8 +14,7 @@
 
 # pylint: disable=no-member
 
-"""Implementations of boolean logic quantum circuits.
-"""
+"""Implementations of boolean logic quantum circuits."""
 
 from typing import List, Optional
 
@@ -31,7 +30,7 @@ class Permutation(QuantumCircuit):
                  n_qubits: int,
                  pattern: Optional[List[int]] = None,
                  seed: Optional[int] = None) -> QuantumCircuit:
-        """Return an n_qubit permutation circuit impelemented using SWAPs.
+        """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
             n_qubits: circuit width.
@@ -62,27 +61,32 @@ class Permutation(QuantumCircuit):
                 pattern[pattern[i]] = -1
 
 
-class Shift(QuantumCircuit):
-    """An n_qubit circuit that shifts inputs over Z2."""
+class XOR(QuantumCircuit):
+    """An n_qubit circuit for bitwise xor-ing the input with some integer ``amount``.
+
+    The ``amount`` is xor-ed in bitstring form with the input.
+
+    This circuit can also represent addition by ``amount`` over the finite field GF(2).
+    """
 
     def __init__(self,
                  n_qubits: int,
                  amount: Optional[int] = None,
                  seed: Optional[int] = None) -> QuantumCircuit:
-        """Return a circuit implementing bitwise xor (shift over Z_2).
+        """Return a circuit implementing bitwise xor.
 
         Args:
             n_qubits: the width of circuit.
-            amount: shift amount in decimal form.
-            seed: random seed in case a random shift amount is requested.
+            amount: the xor amount in decimal form.
+            seed: random seed in case a random xor is requested.
 
         Returns:
-            A boolean shift circuit.
+            A circuit for bitwise XOR.
 
         Raises:
-            CircuitError: if the shift amount exceeds available qubits.
+            CircuitError: if the xor bitstring exceeds available qubits.
         """
-        super().__init__(n_qubits, name="shift")
+        super().__init__(n_qubits, name="xor")
 
         if amount is not None:
             if len(bin(amount)[2:]) > n_qubits:
@@ -104,6 +108,8 @@ class InnerProduct(QuantumCircuit):
     def __init__(self, n_qubits: int) -> QuantumCircuit:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 
+        This implementation uses CZ gates.
+
         Args:
             n_qubits: width of top and bottom registers (half total circuit width)
 
@@ -115,4 +121,4 @@ class InnerProduct(QuantumCircuit):
         super().__init__(qr_a, qr_b, name="inner_product")
 
         for i in range(n_qubits):
-            self.cz(i, i + n_qubits)
+            self.cz(qr_a[i], qr_b[i])

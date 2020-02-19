@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,8 @@
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import Permutation, Shift, InnerProduct
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library import Permutation, XOR, InnerProduct
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
@@ -30,9 +31,13 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         expected.swap(2, 3)
         self.assertEqual(circuit, expected)
 
-    def test_shift(self):
-        """Test shift circuit."""
-        circuit = Shift(n_qubits=3, amount=4)
+    def test_permutation_bad(self):
+        """Test that [0,..,n-1] permutation is required (no -1 for last element)"""
+        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+    def test_xor(self):
+        """Test xor circuit."""
+        circuit = XOR(n_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
