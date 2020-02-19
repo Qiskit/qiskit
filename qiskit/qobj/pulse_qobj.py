@@ -399,7 +399,7 @@ class PulseQobjExperiment:
             instructions = [
                 PulseQobjInstruction.from_dict(
                     inst) for inst in data.pop('instructions')]
-        return cls(config, header, instructions)
+        return cls(instructions, config, header)
 
     def __eq__(self, other):
         if isinstance(other, PulseQobjExperiment):
@@ -421,6 +421,8 @@ class PulseQobjExperimentConfig:
                 driver LO's in GHz.
             meas_lo_freq (list): List of frequencies (as floats) for the'
                 measurement driver LO's in GHz.
+            kwargs: Additional free form key value fields to add to the
+                configuration
         """
         self._data = {}
         if qubit_lo_freq is not None:
