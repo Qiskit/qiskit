@@ -413,7 +413,7 @@ class PulseQobjExperimentConfig:
 
     _data = {}
 
-    def __init__(self, qubit_lo_freq=None, meas_lo_freq=None):
+    def __init__(self, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """Instantiate a PulseQobjExperimentConfig object.
 
         Args:
@@ -422,12 +422,13 @@ class PulseQobjExperimentConfig:
             meas_lo_freq (list): List of frequencies (as floats) for the'
                 measurement driver LO's in GHz.
         """
-        super(PulseQobjExperimentConfig, self).__init__()
         self._data = {}
         if qubit_lo_freq is not None:
             self._data['qubit_lo_freq'] = qubit_lo_freq
         if meas_lo_freq is not None:
             self._data['meas_lo_freq'] = meas_lo_freq
+        if kwargs:
+            self._data.update(kwargs)
 
     def to_dict(self):
         """Return a dictionary format representation of the experiment config.
