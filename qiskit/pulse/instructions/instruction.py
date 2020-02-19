@@ -277,5 +277,5 @@ class Instruction(ScheduleComponent):
 
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.operands,
+                               self.duration,
                                ', '.join(str(ch) for ch in self.channels))
