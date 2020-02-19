@@ -54,8 +54,9 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         if status.name == 'QUEUED':
             if HAS_IBMQ and isinstance(job, IBMQJob):
                 est_time = utc_to_local(job.queue_info().estimated_start_time)
-                msg += ' ({queue}) [Est. start time: {time}]'.format(queue=job.queue_position(), \
-                    time=est_time.strftime("%H:%M %Z (%m/%d)"))
+                msg += ' ({queue}) [Est. start time: {time}]'.format(queue=job.queue_position(),
+                                                                     time=est_time.strftime(
+                                                                         "%H:%M %Z (%m/%d)"))
             else:
                 msg += ' ({queue})'.format(queue=job.queue_position())
             if job.queue_position() is None:
