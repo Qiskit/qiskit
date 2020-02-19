@@ -102,13 +102,13 @@ def ucry(self, angle_list, q_controls, q_target):
 class UCY(UCRYGate, metaclass=UCRYMeta):
     """The deprecated UCRYGate class."""
 
-    def __init__(self):
+    def __init__(self, angle_list):
         import warnings
         warnings.warn('The class UCY is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class UCRYGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(angle_list)
 
 
 def ucy(self, angle_list, q_controls, q_target):

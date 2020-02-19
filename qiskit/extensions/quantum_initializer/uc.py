@@ -323,13 +323,13 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
 class UCG(UCGate, metaclass=UCMeta):
     """The deprecated UCGate class."""
 
-    def __init__(self):
+    def __init__(self, gate_list, up_to_diagonal=False):
         import warnings
         warnings.warn('The class UCG is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class UCGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(gate_list, up_to_diagonal)
 
 
 def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):

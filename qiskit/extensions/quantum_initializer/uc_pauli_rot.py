@@ -186,10 +186,10 @@ class UCPauliRotGate(Gate, metaclass=UCPauliRotMeta):
 class UCRot(UCPauliRotGate, metaclass=UCPauliRotMeta):
     """The deprecated DiagonalGate class."""
 
-    def __init__(self):
+    def __init__(self, angle_list, rot_axis):
         import warnings
         warnings.warn('The class UCRot is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class UCPauliRotGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(angle_list, rot_axis)

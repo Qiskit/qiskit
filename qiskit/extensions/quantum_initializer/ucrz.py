@@ -103,13 +103,13 @@ def ucrz(self, angle_list, q_controls, q_target):
 class UCZ(UCRZGate, metaclass=UCRZMeta):
     """The deprecated UCRZGate class."""
 
-    def __init__(self):
+    def __init__(self, angle_list):
         import warnings
         warnings.warn('The class UCZ is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class UCRZGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(angle_list)
 
 
 def ucz(self, angle_list, q_controls, q_target):

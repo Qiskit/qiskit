@@ -153,13 +153,13 @@ def diagonal(self, diag, qubit):
 class DiagGate(DiagonalGate, metaclass=DiagonalMeta):
     """The deprecated DiagonalGate class."""
 
-    def __init__(self):
+    def __init__(self, diag):
         import warnings
         warnings.warn('The class DiagGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class DiagonalGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(diag)
 
 
 def diag_gate(self, diag, qubit):

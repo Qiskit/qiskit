@@ -443,10 +443,10 @@ class TestControlledGate(QiskitTestCase):
                         (output_ctrl == input_ctrl) and
                         (output_target == cond_output))
                 else:
-                    self.assertTrue((
-                        (output_ctrl == input_ctrl) and
-                        (output_target != cond_output)) or
-                                    output_ctrl != input_ctrl)
+                    self.assertTrue(
+                        ((output_ctrl == input_ctrl) and
+                         (output_target != cond_output)) or
+                        output_ctrl != input_ctrl)
 
     def test_base_gate_setting(self):
         """
@@ -602,6 +602,58 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    def test_deprecated_gates(self):
+        """Test types of the deprecated gate classes."""
+
+        import qiskit.extensions.standard.i as i
+        import qiskit.extensions.standard.rx as rx
+        import qiskit.extensions.standard.ry as ry
+        import qiskit.extensions.standard.rz as rz
+        import qiskit.extensions.standard.swap as swap
+        import qiskit.extensions.standard.u1 as u1
+        import qiskit.extensions.standard.u3 as u3
+        import qiskit.extensions.standard.x as x
+        import qiskit.extensions.standard.y as y
+        import qiskit.extensions.standard.z as z
+
+        import qiskit.extensions.quantum_initializer.diagonal as diagonal
+        import qiskit.extensions.quantum_initializer.uc as uc
+        import qiskit.extensions.quantum_initializer.uc_pauli_rot as uc_pauli_rot
+        import qiskit.extensions.quantum_initializer.ucrx as ucrx
+        import qiskit.extensions.quantum_initializer.ucry as ucry
+        import qiskit.extensions.quantum_initializer.ucrz as ucrz
+
+        theta, phi, lam = 0.1, 0.2, 0.3
+        diag = [1, 1]
+        unitary = np.array([[1, 0], [0, 1]])
+        renamend_gates = [
+            (diagonal.DiagonalGate, diagonal.DiagGate, [diag]),
+            (i.IGate, i.IdGate, []),
+            (rx.CRXGate, rx.CrxGate, [theta]),
+            (ry.CRYGate, ry.CryGate, [theta]),
+            (rz.CRZGate, rz.CrzGate, [theta]),
+            (swap.CSwapGate, swap.FredkinGate, []),
+            (u1.CU1Gate, u1.Cu1Gate, [theta]),
+            (u3.CU3Gate, u3.Cu3Gate, [theta, phi, lam]),
+            (uc.UCGate, uc.UCG, [[unitary]]),
+            (uc_pauli_rot.UCPauliRotGate, uc_pauli_rot.UCRot, [[theta], 'X']),
+            (ucrx.UCRXGate, ucrx.UCX, [[theta]]),
+            (ucry.UCRYGate, ucry.UCY, [[theta]]),
+            (ucrz.UCRZGate, ucrz.UCZ, [[theta]]),
+            (x.CXGate, x.CnotGate, []),
+            (x.CCXGate, x.ToffoliGate, []),
+            (y.CYGate, y.CyGate, []),
+            (z.CZGate, z.CzGate, []),
+        ]
+        for new, old, params in renamend_gates:
+            with self.subTest(msg='comparing {} and {}'.format(new, old)):
+                # assert old gate class derives from new
+                self.assertTrue(issubclass(old, new))
+
+                # assert both are representatives of one another
+                self.assertTrue(isinstance(new(*params), old))
+                self.assertTrue(isinstance(old(*params), new))
 
 
 if __name__ == '__main__':
