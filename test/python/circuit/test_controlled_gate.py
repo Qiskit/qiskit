@@ -16,7 +16,6 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-import itertools
 from inspect import signature
 from test import combine
 import numpy as np
@@ -27,7 +26,6 @@ from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitErr
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
@@ -636,7 +634,7 @@ class TestControlledGate(QiskitTestCase):
         target_op = Operator(XGate())
         for i in range(num_target_qubits - 1):
             target_op = target_op.tensor(XGate())
-        print('')
+
         for i in range(2**num_qubits):
             input_bitstring = bin(i)[2:].zfill(num_qubits)
             input_target = input_bitstring[0:num_target_qubits]
@@ -661,9 +659,8 @@ class TestControlledGate(QiskitTestCase):
                         (output_ctrl == input_ctrl) and
                         (output_target == cond_output))
                 else:
-                    self.assertTrue((
-                        (output_ctrl == input_ctrl) and
-                        (output_target != cond_output)) or
+                    self.assertTrue(
+                        ((output_ctrl == input_ctrl) and (output_target != cond_output)) or
                         output_ctrl != input_ctrl)
 
     def test_base_gate_setting(self):
