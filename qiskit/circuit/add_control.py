@@ -29,11 +29,11 @@ def add_control(operation: Union[Gate, ControlledGate],
     library, it will be returned (e.g. XGate.control() = CnotGate().
 
     For more generic gates, this method implements the controlled
-    version by first decomposing into a ["u1", "u3", "cx"] basis, then
+    version by first decomposing into the ['u1', 'u3', 'cx'] basis, then
     controlling each gate in the decomposition.
 
     Open controls are implemented by conjugating the control line with
-    X gates.  Adds num_ctrl_qubits controls to operation.
+    X gates. Adds num_ctrl_qubits controls to operation.
 
     Args:
         operation: Operation for which control will be added.
@@ -97,17 +97,6 @@ def control(operation: Union[Gate, ControlledGate],
     q_ancillae = None  # TODO: add
     qc = QuantumCircuit(q_control, q_target)
 
-    if ctrl_state is not None:
-        if isinstance(ctrl_state, str):
-            try:
-                assert len(ctrl_state) == num_ctrl_qubits
-                ctrl_state = int(ctrl_state, 2)
-            except ValueError:
-                raise CircuitError('invalid control bit string: ' + ctrl_state)
-            except AssertionError:
-                raise CircuitError('invalid control bit string: length != '
-                                   'num_ctrl_qubits')
-        _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
             operation.base_gate.name == 'x'):
@@ -155,8 +144,6 @@ def control(operation: Union[Gate, ControlledGate],
                        mode='noancilla')
             else:
                 raise CircuitError('gate contains non-controllable instructions')
-    if ctrl_state is not None:
-        _toggle_ctrl_state(qc, num_ctrl_qubits, ctrl_state)
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
@@ -180,21 +167,10 @@ def control(operation: Union[Gate, ControlledGate],
                                           operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
-                                          definition=instr.definition)
+                                          definition=instr.definition,
+                                          ctrl_state=ctrl_state)
     cgate.base_gate = base_gate
     return cgate
-
-
-def _toggle_ctrl_state(qc: QuantumCircuit,
-                       num_qubits: int,
-                       ctrl_state: int) -> Gate:
-    if 0 <= ctrl_state < 2**num_qubits:
-        bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_qubits)
-    else:
-        raise CircuitError('invalid control state specified')
-    for ind, val in enumerate(bit_ctrl_state):
-        if val == '0':
-            qc.x(num_qubits - ind - 1)
 
 
 def _gate_to_circuit(operation):

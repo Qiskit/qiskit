@@ -113,8 +113,7 @@ class Gate(Instruction):
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
             label (str or None): optional gate label
             ctrl_state (int or str or None): The control state in decimal or as
-                a bitstring (e.g. '111'). If
-                None, use 2**num_ctrl_qubits-1.
+                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
         Returns:
             ControlledGate: controlled version of gate.

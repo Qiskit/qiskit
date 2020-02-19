@@ -19,7 +19,6 @@ import unittest
 from inspect import signature
 import numpy as np
 from numpy import pi
-import scipy
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
@@ -27,6 +26,8 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -38,7 +39,7 @@ from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
                                         RYGate, CryGate, CrxGate, FredkinGate,
                                         U3Gate, CHGate, CrzGate, Cu3Gate,
                                         MSGate, Barrier, RCCXGate, RCCCXGate)
-from qiskit.extensions.unitary import UnitaryGate, _compute_control_matrix
+from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
 
@@ -157,8 +158,8 @@ class TestControlledGate(QiskitTestCase):
         num_target = cgate.width()
         gate = cgate.to_gate()
         cont_gate = gate.control(num_ctrl_qubits=num_ctrl)
-        control = QuantumRegister(num_ctrl)
-        target = QuantumRegister(num_target)
+        control = QuantumRegister(num_ctrl, 'control')
+        target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:]+target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
@@ -401,12 +402,51 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""
         num_target = 2
-        base_gate = UnitaryGate(scipy.stats.unitary_group.rvs(num_target))
+        base_gate = random_unitary(2**num_target).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
+
+    @data(1, 2, 3)
+    def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
+        """test open controlled unitary matrix"""
+        # verify truth table
+        num_target_qubits = 2
+        num_qubits = num_ctrl_qubits + num_target_qubits
+        target_op = Operator(XGate())
+        for i in range(num_target_qubits - 1):
+            target_op = target_op.tensor(XGate())
+        print('')
+        for i in range(2**num_qubits):
+            input_bitstring = bin(i)[2:].zfill(num_qubits)
+            input_target = input_bitstring[0:num_target_qubits]
+            input_ctrl = input_bitstring[-num_ctrl_qubits:]
+            phi = Statevector.from_label(input_bitstring)
+            cop = Operator(_compute_control_matrix(target_op.data,
+                                                   num_ctrl_qubits,
+                                                   ctrl_state=input_ctrl))
+            for j in range(2**num_qubits):
+                output_bitstring = bin(j)[2:].zfill(num_qubits)
+                output_target = output_bitstring[0:num_target_qubits]
+                output_ctrl = output_bitstring[-num_ctrl_qubits:]
+                psi = Statevector.from_label(output_bitstring)
+                cxout = np.dot(phi.data, psi.evolve(cop).data)
+                if input_ctrl == output_ctrl:
+                    # flip the target bits
+                    cond_output = ''.join([str(int(not int(a))) for a in input_target])
+                else:
+                    cond_output = input_target
+                if cxout == 1:
+                    self.assertTrue(
+                        (output_ctrl == input_ctrl) and
+                        (output_target == cond_output))
+                else:
+                    self.assertTrue((
+                        (output_ctrl == input_ctrl) and
+                        (output_target != cond_output)) or
+                        output_ctrl != input_ctrl)
 
     def test_base_gate_setting(self):
         """

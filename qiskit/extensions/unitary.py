@@ -118,7 +118,7 @@ class UnitaryGate(Gate):
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
             label (str): optional gate label
-            ctrl_state (int or str or None): The control state in decimal or as a 
+            ctrl_state (int or str or None): The control state in decimal or as a
                 bit string (e.g. '1011'). If None, use 2**num_ctrl_qubits-1.
 
         Returns:
@@ -181,7 +181,7 @@ class UnitaryGate(Gate):
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
-    """
+    r"""
     Compute the controlled version of the input matrix with qiskit ordering.
     This function computes the controlled unitary with :math:`n` control qubits
     and :math:`m` target qubits,
