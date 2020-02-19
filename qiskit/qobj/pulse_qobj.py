@@ -524,6 +524,19 @@ class PulseQobj:
         self.type = 'PULSE'
         self.schema_version = '1.1.0'
 
+    def _validate_json_schema(self, out_dict):
+        class PulseQobjEncoder(json.JSONEncoder):
+            """A json encoder for pulse qobj"""
+            def default(self, obj):
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, complex):
+                    return (obj.real, obj.imag)
+                return json.JSONEncoder.default(self, obj)
+
+        json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
+        validator(json.loads(json_str))
+
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the Pulse Qobj.
 
@@ -564,18 +577,8 @@ class PulseQobj:
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
+            self._validate_json_schema(out_dict)
 
-            class PulseQobjEncoder(json.JSONEncoder):
-                """A json encoder for pulse qobj"""
-                def default(self, obj):
-                    if isinstance(obj, numpy.ndarray):
-                        return obj.tolist()
-                    if isinstance(obj, complex):
-                        return (obj.real, obj.imag)
-                    return json.JSONEncoder.default(self, obj)
-
-            json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
-            validator(json.loads(json_str))
         return out_dict
 
     @classmethod
