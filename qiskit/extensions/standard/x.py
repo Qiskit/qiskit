@@ -151,7 +151,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
 
     def inverse(self):
         """Invert this gate."""
-        return CnotGate()  # self-inverse
+        return CXGate()  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CX gate."""
