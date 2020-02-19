@@ -21,6 +21,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class YGate(Gate):
@@ -65,9 +66,34 @@ class YGate(Gate):
                             [1j, 0]], dtype=complex)
 
 
-def y(self, q):
-    """Apply Y to q."""
-    return self.append(YGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Y gate to a specified qubit (qubit).
+    A Y gate implements a pi rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.y(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.y import YGate
+            YGate().to_matrix()
+    """
+    return self.append(YGate(), [qubit], [])
 
 
 QuantumCircuit.y = y
@@ -79,8 +105,7 @@ class CyGate(ControlledGate):
     def __init__(self):
         """Create new CY gate."""
         super().__init__("cy", 2, [], num_ctrl_qubits=1)
-        self.base_gate = YGate
-        self.base_gate_name = "y"
+        self.base_gate = YGate()
 
     def _define(self):
         """
@@ -105,9 +130,29 @@ class CyGate(ControlledGate):
         return CyGate()  # self-inverse
 
 
-def cy(self, ctl, tgt):  # pylint: disable=invalid-name
-    """Apply CY to circuit."""
-    return self.append(CyGate(), [ctl, tgt], [])
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+    """Apply cY gate from a specified control (control_qubit) to target (target_qubit) qubit.
+    A cY gate implements a pi rotation of the qubit state vector about the y axis
+    of the Bloch sphere when the control qubit is in state |1>.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0> when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.cy(0,1)
+            circuit.draw()
+    """
+    return self.append(CyGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cy = cy
