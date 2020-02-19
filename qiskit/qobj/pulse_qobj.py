@@ -349,7 +349,7 @@ class PulseQobjExperiment:
     experiment as part of a larger Pulse Qobj.
     """
 
-    def __init__(self, config=None, header=None, instructions=None):
+    def __init__(self, instructions, config=None, header=None):
         """Instantiate a PulseQobjExperiment.
 
         Args:
@@ -361,7 +361,7 @@ class PulseQobjExperiment:
             self.config = config
         if header is not None:
             self.header = header
-        self.instructions = instructions or []
+        self.instructions = instructions
 
     def to_dict(self):
         """Return a dictionary format representation of the Experiment.
