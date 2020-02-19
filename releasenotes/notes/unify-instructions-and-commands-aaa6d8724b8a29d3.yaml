@@ -1,16 +1,22 @@
 ---
 prelude: >
-    Replace this text with content to appear at the top of the section for this
-    release. All of the prelude content is merged together and then rendered
-    separately from the items listed in other parts of the file, so the text
-    needs to be worded so that both the prelude and the other items make sense
-    when read independently. This may mean repeating some details. Not every
-    release note requires a prelude. Usually only notes describing major
-    features or adding release theme details should have a prelude.
-deprecations:
-  - |
-    List deprecations notes here, or remove this section.  All of the list
-    items in this section are combined when the release notes are rendered, so
-    the text needs to be worded so that it does not depend on any information
-    only available in another section, such as the prelude. This may mean
-    repeating some details.
+    There has been a significant simplification to the style in which Pulse
+    instructions are built.
+
+    With the previous style, ``Command`` s were called with channels to make
+    an ``Instruction``. The usage of both commands and instructions was a point
+    of confusion. This was the previous style::
+
+        sched += Delay(5)(DriveChannel(0))
+        sched += ShiftPhase(np.pi)(DriveChannel(0))
+
+    or, equivalently (though less used)::
+
+        sched += DelayInstruction(Delay(5), DriveChannel(0))
+        sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+
+    Now, rather than build a command *and* an instruction, each command has been
+    migrated into an instruction::
+
+        sched += Delay(5, DriveChannel(0))
+        sched += ShiftPhase(np.pi, DriveChannel(0))

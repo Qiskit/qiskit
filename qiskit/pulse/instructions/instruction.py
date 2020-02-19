@@ -13,11 +13,21 @@
 # that they have been altered from the originals.
 
 """
-Instruction = Leaf node of schedule. TODO
+``Instruction`` s are single events within a :py:class:`~qiskit.pulse.Schedule`, and can be
+used the same way as :py:class:`~qiskit.pulse.Schedule` s.
+
+Specific instructions should be instantiated rather than a generic ``Instruction``.
+
+For example::
+
+    duration = 10
+    channel = DriveChannel(0)
+    sched = Schedule()
+    sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
 
-from typing import Tuple, List, Iterable, Callable, Optional
+from typing import Any, Tuple, List, Iterable, Callable, Optional, Union
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
@@ -28,7 +38,9 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 
 
 class Instruction(ScheduleComponent):
-    """An abstract class for leaf nodes of schedule."""
+    """The smallest schedulable unit: a single instruction. It has a fixed duration and specified
+    channels.
+    """
 
     def __init__(self, duration: Union['Command', int],
                  *channels: List[Channel],
@@ -44,7 +56,7 @@ class Instruction(ScheduleComponent):
 
         self._command = None
         if not isinstance(duration, int):
-            warnings.warn("TODO", DeprecationWarning)
+            # TODO: Add deprecation warning once all instructions are migrated
             self._command = duration
             if name is None:
                 self._name = duration.name
@@ -249,7 +261,7 @@ class Instruction(ScheduleComponent):
         return (self.operands == other.operands) and (set(self.channels) == set(other.channels))
 
     def __hash__(self):
-        return hash((self.operands.__hash__(), self.channels.__hash__()))
+        return hash((hash(tuple(self.operands)), self.channels.__hash__()))
 
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
