@@ -39,7 +39,7 @@ class LayoutTransformation(TransformationPass):
 
         Args:
             coupling_map (CouplingMap):
-                Directed graph represented a coupling map.
+                Directed graph representing a coupling map.
 
             from_layout (Union[Layout, str]):
                 The starting layout of qubits onto physical qubits.
@@ -96,7 +96,7 @@ class LayoutTransformation(TransformationPass):
             except Exception:
                 raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
 
-        # Find the permutation that between the initial physical qubits and final physical qubits.
+        # Find the permutation between the initial physical qubits and final physical qubits.
         permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
                        for vqubit, pqubit in from_layout.get_virtual_bits().items()}
 
