@@ -302,101 +302,64 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
-        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni)
-                                            for ni in range(num_controls + 1)]))
-        for subset in allsubsets:
-            control_int = 0
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             lam = 0.3165354 * pi
-            qc = QuantumCircuit(q_target, q_controls)
-            for idx in subset:
-                control_int += 2 ** idx
-                qc.x(q_controls[idx])
+            qc = QuantumCircuit(q_controls, q_target)
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
 
-            qc.h(q_target[0])
             qc.mcu1(lam, q_controls, q_target[0])
-            qc.h(q_target[0])
 
-            for idx in subset:
-                qc.x(q_controls[idx])
+            # for idx in subset:
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
 
             backend = BasicAer.get_backend('unitary_simulator')
-            mat_mcu = execute(qc, backend).result().get_unitary(qc)
+            simulated = execute(qc, backend).result().get_unitary(qc)
 
-            dim = 2 ** (num_controls + 1)
-            pos = dim - 2 * (control_int + 1)
-            mat_groundtruth = np.eye(dim, dtype=complex)
-            fac = np.exp(1j * lam)
-            mat_groundtruth[pos:pos + 2, pos:pos + 2] = [[(1 + fac) / 2, (1 - fac) / 2],
-                                                         [(1 - fac) / 2, (1 + fac) / 2]]
-            self.assertTrue(matrix_equal(mat_mcu, mat_groundtruth, ignore_phase=False))
+            base = U1Gate(lam).to_matrix()
+            expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
+            self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(1, 2)
-    def test_multi_control_toffoli_matrix(self, num_controls):
+    @data(1, 2, 3, 4)
+    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with clean ancillas."""
-
         # set up circuit
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_target, q_controls)
+        qc = QuantumCircuit(q_controls, q_target)
+
+        if num_controls > 2:
+            num_ancillas = num_controls - 2
+            q_ancillas = QuantumRegister(num_controls)
+            qc.add_register(q_ancillas)
+        else:
+            num_ancillas = 0
 
         # apply hadamard on control qubits and toffoli gate
-        qc.h(q_controls)
         qc.mct(q_controls, q_target[0], None, mode='basic')
 
         # execute the circuit and obtain statevector result
-        backend = BasicAer.get_backend('statevector_simulator')
-        vec_mct = execute(qc, backend).result().get_statevector(qc)
+        backend = BasicAer.get_backend('unitary_simulator')
+        simulated = execute(qc, backend).result().get_unitary(qc)
 
         # compare to expectation
-        mat = np.eye(2 ** (num_controls + 1))
-        mat[-2:, -2:] = [[0, 1], [1, 0]]
+        if num_ancillas > 0:
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
 
-        vec_groundtruth = mat @ np.kron(np.kron(
-            np.array([1]),
-            [1 / 2 ** (num_controls / 2)] * 2 ** num_controls), [1, 0])
-
-        s_f = state_fidelity(vec_mct, vec_groundtruth)
-        self.assertAlmostEqual(s_f, 1)
-
-    @data(3, 4)
-    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with clean ancillas."""
-
-        # set up circuit
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_target, q_controls)
-
-        num_ancillas = num_controls - 2
-        q_ancillas = QuantumRegister(num_ancillas)
-        qc.add_register(q_ancillas)
-
-        # apply hadamard on control qubits and toffoli gate
-        qc.h(q_controls)
-        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic')
-
-        # execute the circuit and obtain statevector result
-        backend = BasicAer.get_backend('statevector_simulator')
-        vec_mct = execute(qc, backend).result().get_statevector(qc)
-
-        # compare to expectation
-        mat = np.eye(2 ** (num_controls + 1))
-        mat[-2:, -2:] = [[0, 1], [1, 0]]
-        mat = np.kron(np.eye(2 ** num_ancillas), mat)
-
-        vec_groundtruth = mat @ np.kron(np.kron(
-            np.array([1] + [0] * (2 ** num_ancillas - 1)),
-            [1 / 2 ** (num_controls / 2)] * 2 ** num_controls), [1, 0])
-
-        s_f = state_fidelity(vec_mct, vec_groundtruth)
-        self.assertAlmostEqual(s_f, 1)
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected))
 
     @data(1, 2, 3, 4, 5)
     def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla)."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_target, q_controls)
+        qc = QuantumCircuit(q_controls, q_target)
 
         q_ancillas = None
         if num_controls <= 2:
@@ -408,21 +371,20 @@ class TestControlledGate(QiskitTestCase):
 
         qc.mct(q_controls, q_target[0], q_ancillas, mode='basic-dirty-ancilla')
 
-        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
-
-        mat_groundtruth = np.eye(2 ** (num_controls + 1))
-        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
         if num_ancillas > 0:
-            mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
 
-        self.assertTrue(matrix_equal(mat_mct, mat_groundtruth, ignore_phase=False, atol=1e-8))
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
     @data(1, 2, 3, 4, 5)
     def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with dirty ancillas (advanced)."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_target, q_controls)
+        qc = QuantumCircuit(q_controls, q_target)
 
         q_ancillas = None
         if num_controls <= 4:
@@ -434,30 +396,28 @@ class TestControlledGate(QiskitTestCase):
 
         qc.mct(q_controls, q_target[0], q_ancillas, mode='advanced')
 
-        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
-
-        mat_groundtruth = np.eye(2 ** (num_controls + 1))
-        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
         if num_ancillas > 0:
-            mat_groundtruth = np.kron(np.eye(2 ** num_ancillas), mat_groundtruth)
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
 
-        self.assertTrue(matrix_equal(mat_mct, mat_groundtruth, atol=1e-8, ignore_phase=False))
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
-    @data(1, 2, 3, 4, 5)
+    @data(1, 2, 3)
     def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
         """Test the multi-control Toffoli gate with dirty ancillas (noancilla)."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_target, q_controls)
+        qc = QuantumCircuit(q_controls, q_target)
 
         qc.mct(q_controls, q_target[0], None, mode='noancilla')
 
-        mat_mct = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
 
-        mat_groundtruth = np.eye(2 ** (num_controls + 1))
-        mat_groundtruth[-2:, -2:] = [[0, 1], [1, 0]]
-
-        self.assertTrue(matrix_equal(mat_mct, mat_groundtruth, atol=1e-8, ignore_phase=False))
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
     def test_single_controlled_rotation_gates(self):
         """Test the controlled rotation gates controlled on one qubit."""
@@ -533,15 +493,15 @@ class TestControlledGate(QiskitTestCase):
         """Test the multi controlled rotation gates without ancillas."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
-                                            ni in range(num_controls + 1)]))
-        for subset in allsubsets:
-            control_int = 0
+
+        # iterate over all possible combinations of control qubits
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
-            qc = QuantumCircuit(q_target, q_controls)
-            for idx in subset:
-                control_int += 2 ** idx
-                qc.x(q_controls[idx])
+            qc = QuantumCircuit(q_controls, q_target)
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
 
             # call mcrx/mcry/mcrz
             if base_gate_name == 'y':
@@ -551,31 +511,22 @@ class TestControlledGate(QiskitTestCase):
                 getattr(qc, 'mcr' + base_gate_name)(theta, q_controls, q_target[0],
                                                     use_basis_gates=use_basis_gates)
 
-            for idx in subset:
-                qc.x(q_controls[idx])
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
 
             backend = BasicAer.get_backend('unitary_simulator')
-            mat_mcu = execute(qc, backend).result().get_unitary(qc)
-
-            dim = 2 ** (num_controls + 1)
-            pos = dim - 2 * (control_int + 1)
-            mat_groundtruth = np.eye(dim, dtype=complex)
+            simulated = execute(qc, backend).result().get_unitary(qc)
 
             if base_gate_name == 'x':
-                rot_mat = np.array([[np.cos(theta / 2), -1j * np.sin(theta / 2)],
-                                    [-1j * np.sin(theta / 2), np.cos(theta / 2)]],
-                                   dtype=complex)
+                rot_mat = RXGate(theta).to_matrix()
             elif base_gate_name == 'y':
-                rot_mat = np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
-                                    [np.sin(theta / 2), np.cos(theta / 2)]],
-                                   dtype=complex)
+                rot_mat = RYGate(theta).to_matrix()
             else:  # case 'z'
-                rot_mat = np.array([[1, 0],
-                                    [0, np.exp(1j * theta)]],
-                                   dtype=complex)
+                rot_mat = U1Gate(theta).to_matrix()
 
-            mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
-            self.assertTrue(matrix_equal(mat_mcu, mat_groundtruth, ignore_phase=False))
+            expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
+            self.assertTrue(matrix_equal(simulated, expected))
 
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
@@ -589,42 +540,38 @@ class TestControlledGate(QiskitTestCase):
 
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
-        allsubsets = list(itertools.chain(*[itertools.combinations(range(num_controls), ni) for
-                                            ni in range(num_controls + 1)]))
-        for subset in allsubsets:
-            control_int = 0
+
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
-            qc = QuantumCircuit(q_target, q_controls)
             if num_ancillas > 0:
                 q_ancillas = QuantumRegister(num_ancillas)
-                qc.add_register(q_ancillas)
+                qc = QuantumCircuit(q_controls, q_target, q_ancillas)
             else:
+                qc = QuantumCircuit(q_controls, q_target)
                 q_ancillas = None
 
-            for idx in subset:
-                control_int += 2 ** idx
-                qc.x(q_controls[idx])
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
 
             qc.mcry(theta, q_controls, q_target[0], q_ancillas, mode='basic',
                     use_basis_gates=use_basis_gates)
 
-            for idx in subset:
-                qc.x(q_controls[idx])
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            rot_mat = RYGate(theta).to_matrix()
 
             backend = BasicAer.get_backend('unitary_simulator')
-            mat_mcu = execute(qc, backend).result().get_unitary(qc)
+            simulated = execute(qc, backend).result().get_unitary(qc)
+            if num_ancillas > 0:
+                simulated = simulated[:2**(num_controls + 1), :2**(num_controls+1)]
 
-            dim = 2 ** (num_controls + 1)
-            mat_mcu = mat_mcu[:dim, :dim]
-            pos = dim - 2 * (control_int + 1)
-            mat_groundtruth = np.eye(dim, dtype=complex)
+            expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
 
-            rot_mat = np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
-                                [np.sin(theta / 2), np.cos(theta / 2)]],
-                               dtype=complex)
-
-            mat_groundtruth[pos:pos + 2, pos:pos + 2] = rot_mat
-            self.assertTrue(matrix_equal(mat_mcu, mat_groundtruth, ignore_phase=False))
+            self.assertTrue(matrix_equal(simulated, expected))
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
