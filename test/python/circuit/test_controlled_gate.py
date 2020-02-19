@@ -446,7 +446,7 @@ class TestControlledGate(QiskitTestCase):
                     self.assertTrue((
                         (output_ctrl == input_ctrl) and
                         (output_target != cond_output)) or
-                        output_ctrl != input_ctrl)
+                                    output_ctrl != input_ctrl)
 
     def test_base_gate_setting(self):
         """
