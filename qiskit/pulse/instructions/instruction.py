@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Instruction = Leaf node of schedule.
+Instruction = Leaf node of schedule. TODO
 """
 import warnings
 
@@ -30,33 +30,28 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, operands,  # what type??
+    def __init__(self, duration: Union['Command', int],
                  *channels: List[Channel],
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
-            operands: TODO
+            duration: Length of time taken by the instruction in terms of dt.
             *channels: List of pulse channels that this instruction operates on.
             name: Display name for this instruction.
         """
-        self._operands = operands
         self._name = name
 
         self._command = None
-        if not isinstance(operands, dict):
-            # TODO: raise a deprecation warning when the commands are all migrated
-            self._command = operands
+        if not isinstance(duration, int):
+            warnings.warn("TODO", DeprecationWarning)
+            self._command = duration
             if name is None:
-                self._name = operands.name
-            duration = operands.duration
-        else:
-            duration = operands['duration']
+                self._name = duration.name
+            duration = duration.duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
-
-        channels = self.channels
 
     @property
     def name(self) -> str:
@@ -64,9 +59,9 @@ class Instruction(ScheduleComponent):
         return self._name
 
     @property
-    def operands(self):  # TODO: type?
-        """TODO"""
-        return self._operands
+    def operands(self) -> List[Any]:
+        """Return the operands associated with ``self``."""
+        return [self.duration, self.channels]
 
     @property
     def command(self) -> 'Command':
