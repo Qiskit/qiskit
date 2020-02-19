@@ -46,19 +46,23 @@ class RXGate(Gate):
             definition.append(inst)
         self.definition = definition
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
             label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CRXGate(self.params[0])
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return CRXGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate.
