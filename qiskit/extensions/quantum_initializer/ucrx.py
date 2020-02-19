@@ -27,10 +27,10 @@ import math
 
 from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
 
 
-class UCRXMeta(type):
+class UCRXMeta(UCPauliRotMeta):
     """A metaclass to ensure that UCRXGate and UCX are of the same type.
 
     Can be removed when UCX gets removed.
@@ -102,7 +102,7 @@ def ucrx(self, angle_list, q_controls, q_target):
     return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
 
 
-class UCX(UCRXGate, metaclass=UCRX):
+class UCX(UCRXGate, metaclass=UCRXMeta):
     """The deprecated UCRXGate class."""
 
     def __init__(self):

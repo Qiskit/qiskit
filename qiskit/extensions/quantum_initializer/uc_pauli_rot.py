@@ -183,7 +183,7 @@ class UCPauliRotGate(Gate, metaclass=UCPauliRotMeta):
         return (angle1 + angle2) / 2.0, (angle1 - angle2) / 2.0
 
 
-class UCRot(UCPauliRot, metaclass=UCPauliRotMeta):
+class UCRot(UCPauliRotGate, metaclass=UCPauliRotMeta):
     """The deprecated DiagonalGate class."""
 
     def __init__(self):

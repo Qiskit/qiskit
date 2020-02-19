@@ -24,10 +24,10 @@ import math
 
 from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
 
 
-class UCRZMeta(type):
+class UCRZMeta(UCPauliRotMeta):
     """A metaclass to ensure that UCRZGate and UCZ are of the same type.
 
     Can be removed when UCZ gets removed.

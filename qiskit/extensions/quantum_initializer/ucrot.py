@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The uniformly controlled gate.
+"""The uniformly controlled Pauli rotation gate.
 
-This module is deprecated, see uc.py.
+This module is deprecated, see uc_pauli_rot.py
 """
 
 import warnings
 # pylint: disable=unused-import
-from qiskit.extensions.quantum_initializer.uc import UCG, ucg
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCRot
 
-warnings.warn('This module is deprecated. The UCGate/UCG can now be found in uc.py',
+warnings.warn('This module is deprecated. The UCPauliRotGate/UCRot is now in uc_pauli_rot.py',
               category=DeprecationWarning, stacklevel=2)

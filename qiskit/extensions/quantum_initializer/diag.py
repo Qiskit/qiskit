@@ -12,6 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The diagonal gate.
+
+This module is deprecated, see diagonal.py
+"""
+
 import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.quantum_initializer.diagonal import DiagGate, diag_gate

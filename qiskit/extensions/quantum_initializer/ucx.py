@@ -12,6 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The uniformly controlled RX gate.
+
+This module is deprecated, see ucrx.py
+"""
+
 import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.quantum_initializer.ucrx import UCX, ucx

@@ -320,7 +320,7 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
-class UCG(UCGate, metaclass=UCG):
+class UCG(UCGate, metaclass=UCMeta):
     """The deprecated UCGate class."""
 
     def __init__(self):

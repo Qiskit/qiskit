@@ -12,6 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The uniformly controlled RZ gate.
+
+This module is deprecated, see ucrz.py
+"""
+
 import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.quantum_initializer.ucrz import UCZ, ucz

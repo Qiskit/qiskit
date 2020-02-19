@@ -12,6 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The uniformly controlled RY gate.
+
+This module is deprecated, see ucry.py
+"""
+
 import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.quantum_initializer.ucry import UCY, ucy

@@ -22,7 +22,6 @@
 Decomposes a diagonal matrix into elementary gates using the method described in Theorem 7 in
 "Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 """
-import warnings
 import cmath
 import math
 
@@ -165,6 +164,7 @@ class DiagGate(DiagonalGate, metaclass=DiagonalMeta):
 
 def diag_gate(self, diag, qubit):
     """Deprecated version of QuantumCircuit.diagonal."""
+    import warnings
     warnings.warn('The QuantumCircuit.diag_gate() method is deprecated as of 0.14.0, and '
                   'will be removed no earlier than 3 months after that release date. '
                   'You should use the QuantumCircuit.diagonal() method instead.',
