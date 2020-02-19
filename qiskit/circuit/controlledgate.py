@@ -70,17 +70,14 @@ class ControlledGate(Gate):
         if not self._definition:
             self._define()
         # pylint: disable=cyclic-import
-        from qiskit.extensions.standard import XGate
+        from qiskit.extensions.standard import XGate, CnotGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:
             qreg = self._definition[0][1][0].register
-        else:
-            # CX
-            qreg = QuantumRegister(self.num_qubits, 'q')
-            self._definition = []
-            for i in range(self.num_qubits):
-                self._definition.append([self.base_gate, [qreg[i]], []])
+        elif isinstance(self, CnotGate):
+                qreg = QuantumRegister(self.num_qubits, 'q')
+                self._definition = [(self, [qreg[0], qreg[1]], [])]
         open_rules = []
         for qind, val in enumerate(bit_ctrl_state[::-1]):
             if val == '0':
@@ -131,8 +128,7 @@ class ControlledGate(Gate):
             return False
         else:
             return (other.num_ctrl_qubits == self.num_ctrl_qubits and
-                    self.base_gate == other.base_gate and
-                    super().__eq__(other))
+                    self.base_gate == other.base_gate)
 
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""
