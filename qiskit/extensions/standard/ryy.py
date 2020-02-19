@@ -38,6 +38,7 @@ class RYYGate(Gate):
         from qiskit.extensions.standard.u2 import U2Gate
         from qiskit.extensions.standard.u3 import U3Gate
         from qiskit.extensions.standard.h import HGate
+        from qiskit.extensions.standard.rx import RXGate
         definition = []
         q = QuantumRegister(2, 'q')
         theta = self.params[0]

@@ -23,6 +23,7 @@ from .rcccx import RCCCXGate
 from .rx import RXGate, CrxGate
 from .rxx import RXXGate
 from .ry import RYGate, CryGate
+from .ryy import RYYGate
 from .rz import RZGate, CrzGate
 from .rzz import RZZGate
 from .s import SGate, SdgGate
