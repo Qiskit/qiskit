@@ -400,6 +400,21 @@ class Bullet(DirectOnQuWire):
         self.bot_connect = '│' if conditional else bot_connect
         self.mid_bck = '─'
 
+class OpenBullet(DirectOnQuWire):
+    """ Draws an open bullet (usually with a connector). E.g. the top part of a CX gate.
+
+    ::
+
+        top:
+        mid: ─o─  ───o───
+        bot:  │      │
+    """
+
+    def __init__(self, top_connect="", bot_connect="", conditional=False):
+        super().__init__('o')
+        self.top_connect = top_connect
+        self.bot_connect = '│' if conditional else bot_connect
+        self.mid_bck = '─'
 
 class EmptyWire(DrawElement):
     """ This element is just the wire, with no instructions nor operations."""
@@ -790,13 +805,15 @@ class TextDrawing():
 
         Returns:
             Tuple(list, list, list):
-              - controlled arguments on top of the "instruction box"
-              - controlled arguments on bottom of the "instruction box"
-              - controlled arguments in the "instruction box"
+              - tuple: controlled arguments on top of the "instruction box", and its status
+              - tuple: controlled arguments on bottom of the "instruction box", and its status
+              - tuple: controlled arguments in the "instruction box", and its status
               - the rest of the arguments
         """
-        ctrl_qubits = instruction.qargs[:instruction.op.num_ctrl_qubits]
-        args_qubits = instruction.qargs[instruction.op.num_ctrl_qubits:]
+        num_ctrl_qubits = instruction.op.num_ctrl_qubits
+        ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
+        args_qubits = instruction.qargs[num_ctrl_qubits:]
+        ctrl_state = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
         in_box = list()
         top_box = list()
@@ -804,10 +821,10 @@ class TextDrawing():
 
         qubit_index = sorted([i for i, x in enumerate(layer.qregs) if x in args_qubits])
 
-        for ctrl_qubit in ctrl_qubits:
-            if min(qubit_index) > layer.qregs.index(ctrl_qubit):
+        for ctrl_qubit in zip(ctrl_qubits, ctrl_state):
+            if min(qubit_index) > layer.qregs.index(ctrl_qubit[0]):
                 top_box.append(ctrl_qubit)
-            elif max(qubit_index) < layer.qregs.index(ctrl_qubit):
+            elif max(qubit_index) < layer.qregs.index(ctrl_qubit[0]):
                 bot_box.append(ctrl_qubit)
             else:
                 in_box.append(ctrl_qubit)
@@ -928,8 +945,11 @@ class TextDrawing():
 
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            for _ in controlled_top + controlled_bot + controlled_edge:
-                gates.append(Bullet(conditional=conditional))
+            for i in controlled_top + controlled_bot + controlled_edge:
+                if i[1] == '1':
+                    gates.append(Bullet(conditional=conditional))
+                else:
+                    gates.append(OpenBullet(conditional=conditional))
             if len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
