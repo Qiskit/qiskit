@@ -43,7 +43,7 @@ class Instruction(ScheduleComponent):
     """
 
     def __init__(self, duration: Union['Command', int],
-                 *channels: List[Channel],
+                 *channels: Channel,
                  name: Optional[str] = None):
         """Instruction initializer.
 
