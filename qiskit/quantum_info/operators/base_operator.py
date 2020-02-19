@@ -182,40 +182,48 @@ class BaseOperator(ABC):
 
     @abstractmethod
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied operator other * self.
+        """Return the composed operator.
 
         Args:
             other (BaseOperator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply other on.
-            front (bool): DEPRECATED If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            BaseOperator: The composed operator.
+            BaseOperator: The operator self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
             incompatible dimensions for specified subsystems.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         pass
 
-    @abstractmethod
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
 
         Args:
             other (BaseOperator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply other on.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
 
         Returns:
-            BaseOperator: The composed operator.
+            BaseOperator: The operator self * other.
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
             incompatible dimensions for specified subsystems.
         """
-        pass
+        return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n):
         """Return the compose of a operator with itself n times.

@@ -22,6 +22,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
+from qiskit.util import deprecate_arguments
 
 
 class RXGate(Gate):
@@ -45,19 +46,23 @@ class RXGate(Gate):
             definition.append(inst)
         self.definition = definition
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
             label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CrxGate(self.params[0])
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return CrxGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate.
@@ -74,9 +79,34 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-def rx(self, theta, q):  # pylint: disable=invalid-name
-    """Apply Rx to q."""
-    return self.append(RXGate(theta), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply Rx gate with angle theta to a specified qubit (qubit).
+    An Rx gate implements a theta radian rotation of the qubit state vector about the
+    x axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(1)
+            circuit.rx(theta,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.rx import RXGate
+            RXGate(numpy.pi/2).to_matrix()
+    """
+    return self.append(RXGate(theta), [qubit], [])
 
 
 QuantumCircuit.rx = rx
@@ -88,8 +118,7 @@ class CrxGate(ControlledGate):
     def __init__(self, theta):
         """Create new crx gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RXGate
-        self.base_gate_name = 'rx'
+        self.base_gate = RXGate(theta)
 
     def _define(self):
         """
@@ -122,9 +151,12 @@ class CrxGate(ControlledGate):
         return CrxGate(-self.params[0])
 
 
-def crx(self, theta, ctl, tgt):
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def crx(self, theta, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply crx from ctl to tgt with angle theta."""
-    return self.append(CrxGate(theta), [ctl, tgt], [])
+    return self.append(CrxGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crx = crx

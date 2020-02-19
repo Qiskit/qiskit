@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Pulse utilities.
+Miscellaneous work useful for the Pulse module.
 """
 from collections import namedtuple
 from typing import List
