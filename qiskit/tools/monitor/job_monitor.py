@@ -18,6 +18,14 @@
 import sys
 import time
 
+HAS_IBMQ = False
+try:
+    from qiskit.providers.ibmq.job import IBMQJob
+    from qiskit.providers.ibmq.utils.converters import utc_to_local
+    HAS_IBMQ = True
+except ImportError:
+    pass
+
 
 def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout):
     """A text-based job status checker
@@ -44,7 +52,12 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         msg = status.value
 
         if status.name == 'QUEUED':
-            msg += ' (%s)' % job.queue_position()
+            if HAS_IBMQ and isinstance(job, IBMQJob):
+                est_time = utc_to_local(job.queue_info().estimated_start_time)
+                msg += ' ({queue}) [Est. start time: {time}]'.format(queue=job.queue_position(), \
+                    time=est_time.strftime("%H:%M %Z (%m/%d)"))
+            else:
+                msg += ' ({queue})'.format(queue=job.queue_position())
             if job.queue_position() is None:
                 interval = 2
             elif not _interval_set:
