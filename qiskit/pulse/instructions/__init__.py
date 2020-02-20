@@ -16,7 +16,7 @@
 Qiskit Pulse. Instructions each contain operands unique to that instruction, but all have an
 implicit or explicit duration, and a channel on which it is played.
 
-An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which itself is simply a
+An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
 from .instruction import Instruction
