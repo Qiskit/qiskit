@@ -436,7 +436,7 @@ class ScheduleDrawer:
             dt: Time interval
 
         Returns:
-            ax: Axis object for drawing pulses.
+            Axis object for drawing pulses.
         """
         # create table
         table_data = []
