@@ -27,6 +27,8 @@ For example::
 """
 import warnings
 
+from abc import ABC, abstractmethod
+
 from typing import Any, Tuple, List, Iterable, Callable, Optional, Union
 
 from qiskit.pulse.channels import Channel
@@ -37,7 +39,7 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 # pylint: disable=missing-return-doc
 
 
-class Instruction(ScheduleComponent):
+class Instruction(ScheduleComponent, ABC):
     """The smallest schedulable unit: a single instruction. It has a fixed duration and specified
     channels.
     """
@@ -71,9 +73,10 @@ class Instruction(ScheduleComponent):
         return self._name
 
     @property
+    @abstractmethod
     def operands(self) -> List[Any]:
         """Return the operands associated with ``self``."""
-        return [self.duration, self.channels]
+        raise NotImplementedError
 
     @property
     def command(self) -> 'Command':
