@@ -17,14 +17,29 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
+import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
 from qiskit.extensions.simulator import snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
     """QuantumCircuit properties tests."""
+
+    def test_qarg_numpy_int(self):
+        """Test castable to integer args for QuantumCircuit.
+        """
+        n = np.int64(12)
+        qc1 = QuantumCircuit(n)
+        self.assertEqual(qc1.n_qubits, 12)
+        self.assertEqual(type(qc1), QuantumCircuit)
+
+    def test_qarg_numpy_int_exception(self):
+        """Test attempt to pass non-castable arg to QuantumCircuit.
+        """
+        self.assertRaises(CircuitError, QuantumCircuit, 'string')
 
     def test_circuit_depth_empty(self):
         """Test depth of empty circuity

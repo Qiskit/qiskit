@@ -123,6 +123,13 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None):
+        if any([not (isinstance(reg, QuantumRegister)
+                     or isinstance(reg, ClassicalRegister)) for reg in regs]):
+            try:
+                regs = tuple(int(reg) for reg in regs)
+            except Exception:
+                raise CircuitError("Circuit args must be castable to an int (%s '%s' was provided)"
+                                   % (type(regs).__name__, regs))
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
