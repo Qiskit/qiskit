@@ -267,7 +267,7 @@ class Instruction(ScheduleComponent, ABC):
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return hash((hash(tuple(self.command)), self.channels.__hash__()))
-        return  hash((hash(tuple(self.duration)), self.channels.__hash__()))
+        return hash((hash(tuple(self.duration)), self.channels.__hash__()))
 
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
