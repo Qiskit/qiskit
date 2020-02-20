@@ -25,7 +25,9 @@ For example::
 """
 import warnings
 
-from typing import Any, Tuple, List, Iterable, Callable, Optional, Union
+from abc import ABC
+
+from typing import Tuple, List, Iterable, Callable, Optional, Union
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
@@ -38,7 +40,7 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 #       with abstract property ``operands``.
 
 
-class Instruction(ScheduleComponent):
+class Instruction(ScheduleComponent, ABC):
     """The smallest schedulable unit: a single instruction. It has a fixed duration and specified
     channels.
     """
@@ -254,10 +256,15 @@ class Instruction(ScheduleComponent):
 
         Equality is determined by the instruction sharing the same operands and channels.
         """
-        return (self.operands == other.operands) and (set(self.channels) == set(other.channels))
+        if self.command:
+            # Backwards compatibility for Instructions with Commands
+            return (self.command == other.command) and (set(self.channels) == set(other.channels))
+        return ((self.duration == other.duration) and
+                (set(self.channels) == set(other.channels)) and
+                (isinstance(other, type(self))))
 
     def __hash__(self):
-        return hash((hash(tuple(self.operands)), self.channels.__hash__()))
+        return hash((hash(tuple(self.command)), self.channels.__hash__()))
 
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
