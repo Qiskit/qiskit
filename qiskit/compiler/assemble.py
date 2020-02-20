@@ -52,10 +52,10 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
              parametric_pulses: Optional[List[str]] = None,
              **run_config: Dict) -> Qobj:
-    """Assemble a list of circuits or pulse schedules into a Qobj.
+    """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
-    to create Qobj "experiments". It further annotates the experiment payload with
+    to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
     Args:
@@ -68,13 +68,13 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             If any other options is set in the run_config, it will
             also override the backend's.
 
-        qobj_id: String identifier to annotate the Qobj
+        qobj_id: String identifier to annotate the ``Qobj``
 
-        qobj_header: User input that will be inserted in Qobj header, and will also be
+        qobj_header: User input that will be inserted in ``Qobj`` header, and will also be
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots: Number of repetitions of each circuit, for sampling. Default: 1024
-            or max_shots from the backend configuration, whichever is smaller
+            or ``max_shots`` from the backend configuration, whichever is smaller
 
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
@@ -111,7 +111,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         memory_slot_size: Size of each memory slot if the output is Level 0.
 
         rep_time: Repetition time of the experiment in s.
-            The delay between experiments will be rep_time.
+            The delay between experiments will be ``rep_time``.
             Must be from the list provided by the device.
 
         parameter_binds: List of Parameter bindings over which the set of experiments will be
@@ -131,7 +131,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             arguments.
 
     Returns:
-            A qobj that can be run on a backend. Depending on the type of input,
+            A ``Qobj`` that can be run on a backend. Depending on the type of input,
             this will be either a ``QasmQobj`` or a ``PulseQobj``.
 
     Raises:
