@@ -536,7 +536,7 @@ class ScheduleDrawer:
             channel: Type of channel.
 
         Return:
-            color: Color code or name of color.
+            Color code or name of color.
         """
         # choose color
         if isinstance(channel, DriveChannel):
