@@ -31,10 +31,10 @@ def interp1d(time: np.ndarray,
     """Scipy interpolation wrapper.
 
     Args:
-        time (ndarray): time.
-        samples (ndarray): complex pulse envelope.
-        nop (int): data points for interpolation.
-        kind (str): Scipy interpolation type.
+        time: time vector with length of ``samples`` + 1.
+        samples: complex pulse envelope.
+        nop: number of data points for interpolation.
+        kind: Scipy interpolation type.
             See ``scipy.interpolate.interp1d`` documentation for more information.
     Returns:
         interpolated time vector and real and imaginary part of waveform.
@@ -57,9 +57,9 @@ linear = partial(interp1d, kind='linear')
 linear.__doc__ = """Apply linear interpolation between sampling points.
 
 Args:
-    time (ndarray): time.
-    samples (ndarray): complex pulse envelope.
-    nop (int): data points for interpolation.
+    time: time vector with length of ``samples`` + 1.
+    samples: complex pulse envelope.
+    nop: number of data points for interpolation.
 Returns:
     interpolated time vector and real and imaginary part of waveform.
 """
@@ -68,9 +68,9 @@ cubic_spline = partial(interp1d, kind='cubic')
 cubic_spline.__doc__ = """Apply cubic interpolation between sampling points.
 
 Args:
-    time (ndarray): time.
-    samples (ndarray): complex pulse envelope.
-    nop (int): data points for interpolation.
+    time: time vector with length of ``samples`` + 1.
+    samples: complex pulse envelope.
+    nop: number of data points for interpolation.
 Returns:
     interpolated time vector and real and imaginary part of waveform.
 """
@@ -79,9 +79,9 @@ step_wise = partial(interp1d, kind='nearest')
 step_wise.__doc__ = """No interpolation.
 
 Args:
-    time (ndarray): time.
-    samples (ndarray): complex pulse envelope.
-    nop (int): data points for interpolation.
+    time: time vector with length of ``samples`` + 1.
+    samples: complex pulse envelope.
+    nop: number of data points for interpolation.
 Returns:
     interpolated time vector and real and imaginary part of waveform.
 """
