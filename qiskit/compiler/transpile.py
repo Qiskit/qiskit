@@ -141,7 +141,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
-            arguments\:
+            arguments,
 
                 | ``pass_``: the pass being run.
                 | ``dag``: the dag output of the pass.
