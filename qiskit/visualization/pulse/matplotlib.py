@@ -233,7 +233,8 @@ class SamplePulseDrawer:
     def draw(self, pulse: 'SamplePulse',
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None) -> 'matplotlib.Figure':
+             scale: float = 1, scaling: float = None) \
+            -> 'matplotlib.figure.Figure':
         """Draw figure.
 
         Args:
@@ -730,7 +731,6 @@ class ScheduleDrawer:
 
         Returns:
             A matplotlib figure object for the pulse envelope.
-                for the pulse envelope.
 
         Raises:
             VisualizationError: When schedule cannot be drawn
