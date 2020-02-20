@@ -1192,29 +1192,8 @@ class DAGCircuit:
 
     def multigraph_layers(self):
         """Yield layers of the multigraph."""
-        predecessor_count = dict()  # Dict[node, predecessors not visited]
-        cur_layer = self.input_map.values()
-        yield cur_layer
-        next_layer = []
-        while cur_layer:
-            for node in cur_layer:
-                # Count multiedges with multiplicity.
-                for successor in self._multi_graph.successors(node._node_id):
-                    multiplicity = len(self._multi_graph.get_all_edge_data(
-                        node._node_id, successor._node_id))
-                    if successor in predecessor_count:
-                        predecessor_count[successor] -= multiplicity
-                    else:
-                        predecessor_count[successor] = \
-                            self._multi_graph.in_degree(successor._node_id) - multiplicity
-
-                    if predecessor_count[successor] == 0:
-                        next_layer.append(successor)
-                        del predecessor_count[successor]
-
-            yield next_layer
-            cur_layer = next_layer
-            next_layer = []
+        first_layer = [x._node_id for x in self.input_map.values()]
+        return iter(rx.layers(self._multi_graph, first_layer))
 
     def collect_runs(self, namelist):
         """Return a set of non-conditional runs of "op" nodes with the given names.
