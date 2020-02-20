@@ -16,8 +16,6 @@
 ``Instruction`` s are single events within a :py:class:`~qiskit.pulse.Schedule`, and can be
 used the same way as :py:class:`~qiskit.pulse.Schedule` s.
 
-Specific instructions should be instantiated rather than a generic ``Instruction``.
-
 For example::
 
     duration = 10
