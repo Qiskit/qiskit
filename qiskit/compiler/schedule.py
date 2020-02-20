@@ -32,9 +32,8 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              meas_map: Optional[List[List[int]]] = None,
              method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
     """
-    Schedule a circuit to a pulse Schedule, using the backend, according to any specified methods.
-    Supported methods are documented in
-    :py:func:`qiskit.pulse.scheduler.schedule_circuit.schedule_circuit`.
+    Schedule a circuit to a pulse ``Schedule``, using the backend, according to any specified
+    methods. Supported methods are documented in :py:mod:`qiskit.scheduler.schedule_circuit`.
 
     Args:
         circuits: The quantum circuit or circuits to translate
