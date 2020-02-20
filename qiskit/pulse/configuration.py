@@ -21,6 +21,32 @@ from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 
+class Discriminator:
+    """TODO"""
+
+    def __init__(self, name: Optional[str] = None, **params):
+        """Create new discriminator.
+
+        Parameters:
+            name: Name of discriminator to be used
+        """
+        self.name = name
+        self.params = params
+
+
+class Kernel:
+    """TODO"""
+
+    def __init__(self, name: Optional[str] = None, **params):
+        """Create new kernel.
+
+        Parameters:
+            name: Name of kernel to be used
+        """
+        self.name = name
+        self.params = params
+
+
 class LoRange:
     """Range of LO frequency."""
 

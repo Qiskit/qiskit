@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,31 +12,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Acquire. Deprecated path."""
+"""TODO"""
 import warnings
 
-from typing import Optional, Union, List
-
-from ..channels import MemorySlot, RegisterSlot, AcquireChannel
-
-# pylint: disable=unused-import
-
-from ..instructions import Acquire
+from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
+from qiskit.pulse.configuration import Kernel, Discriminator
+from .instruction import Instruction
 
 
-class AcquireInstruction:
-    """Deprecated."""
+class Acquire(Instruction):
+    """TODO"""
 
     def __init__(self,
-                 command: Acquire,
-                 acquire: Union[AcquireChannel, List[AcquireChannel]],
+                 duration: int,
+                 channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
                  mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
                  reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
                  mem_slots: Optional[Union[List[MemorySlot]]] = None,
                  reg_slot: Optional[RegisterSlot] = None,
+                 kernel: Optional[Kernel] = None,
+                 discriminator: Optional[Discriminator] = None,
                  name: Optional[str] = None):
-
-        warnings.warn("TODO", DeprecationWarning)
+        """"""
 
         if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
             warnings.warn('The AcquireInstruction on multiple qubits, multiple '
@@ -77,6 +74,28 @@ class AcquireInstruction:
         self._acquires = acquire
         self._mem_slots = mem_slot
         self._reg_slots = reg_slot
+
+    @property
+    def channel(self):
+        """TODO"""
+        return self._channel
+
+    @property
+    def operands(self):
+        """TODO"""
+        return [self.duration, self.channel,
+                self.mem_slot, self.reg_slot,
+                self.kernel, self.discriminator]
+
+    @property
+    def kernel(self):
+        """Return kernel settings."""
+        return self._kernel
+
+    @property
+    def discriminator(self):
+        """Return discrimination settings."""
+        return self._discriminator
 
     @property
     def acquire(self):

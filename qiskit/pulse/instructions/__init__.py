@@ -21,4 +21,5 @@ whether implicitly or explicitly defined.
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
+from .acquire import Acquire
 from .instruction import Instruction
