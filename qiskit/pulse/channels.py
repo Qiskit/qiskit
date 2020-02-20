@@ -15,7 +15,7 @@
 """
 This module defines Pulse Channels. Channels include:
 
-  - transmit channels, which should subclass``PulseChannel``
+  - transmit channels, which should subclass ``PulseChannel``
   - receive channels, such as ``AcquireChannel``
   - non-signal "channels" such as ``SnapshotChannel``, ``MemorySlot`` and ``RegisterChannel``.
 
@@ -31,7 +31,7 @@ from qiskit.pulse.exceptions import PulseError
 class Channel(metaclass=ABCMeta):
     """Base class of channels. Channels provide a Qiskit-side label for typical quantum control
     hardware signal channels. The final label -> physical channel mapping is the responsibility
-    of the hardware backend. For instance,``DriveChannel(0)`` holds instructions which the backend
+    of the hardware backend. For instance, ``DriveChannel(0)`` holds instructions which the backend
     should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
     """
 
