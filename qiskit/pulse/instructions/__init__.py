@@ -18,7 +18,7 @@ instruction includes at least one :py:class:`~qiskit.pulse.channels.Channel` as 
 specifying where the instruction will be applied, and every instruction has either an explict
 duration as one of its operands or an implicit duration of ``0``.
 
-An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which itself is simply a
+An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
 from .instruction import Instruction
