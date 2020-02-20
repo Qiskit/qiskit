@@ -259,10 +259,10 @@ class BoxOnWireMid(MultiBox):
 class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
     """ Draws the middle part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length, order, wire_label='', control_label=False):
+    def __init__(self, label, input_length, order, wire_label='', control_label=None):
         super().__init__(label, input_length, order, wire_label=wire_label)
         if control_label:
-            self.mid_format = "■{} %s ├".format(self.wire_label)
+            self.mid_format = "{}{} %s ├".format(control_label, self.wire_label)
         else:
             self.mid_format = "┤{} %s ├".format(self.wire_label)
 
@@ -1110,12 +1110,12 @@ class Layer:
         else:
             raise VisualizationError("_set_multibox error!.")
 
+        control_index = {}
         if controlled_edge:
-            control_index = [i for i, x in enumerate(self.qregs) if
-                             x in [qubit for qubit, _ in controlled_edge]]
-        else:
-            control_index = []
-
+            for index, qubit in enumerate(self.qregs):
+                for qubit_in_edge, value in controlled_edge:
+                    if qubit == qubit_in_edge:
+                        control_index[index] = '■' if value == '1' else 'o'
         if len(bit_index) == 1:
             set_bit(bits[0], OnWire(label, top_connect=top_connect))
         else:
@@ -1128,8 +1128,12 @@ class Layer:
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
+
+                control_label = None
+                if bit_i in control_index:
+                    control_label = control_index[bit_i]
                 set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,
-                                             control_label=bit_i in control_index))
+                                             control_label=control_label))
             set_bit(bits.pop(0), OnWireBot(label, box_height, bot_connect=bot_connect,
                                            wire_label=qargs.pop(0), conditional=conditional))
         return bit_index
