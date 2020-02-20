@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels
+from qiskit.pulse import commands, channels, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -207,6 +207,24 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.ShiftPhase)
+    def convert_shift_phase(self, shift, instruction):
+        """Return converted `ShiftPhase`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (ShiftPhase): frame change instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'fc',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'phase': instruction.phase
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(commands.PersistentValueInstruction)
     def convert_persistent_value(self, shift, instruction):
         """Return converted `PersistentValueInstruction`.
@@ -391,10 +409,10 @@ class QobjToInstructionConverter:
 
     @bind_name('fc')
     def convert_frame_change(self, instruction):
-        """Return converted `FrameChangeInstruction`.
+        """Return converted `ShiftPhase`.
 
         Args:
-            instruction (PulseQobjInstruction): frame change qobj
+            instruction (PulseQobjInstruction): phase shift qobj instruction
         Returns:
             Schedule: Converted and scheduled Instruction
         """
@@ -409,11 +427,11 @@ class QobjToInstructionConverter:
             def gen_fc_sched(*args, **kwargs):
                 # this should be real value
                 _phase = phase_expr(*args, **kwargs)
-                return commands.FrameChange(_phase)(channel) << t0
+                return instructions.ShiftPhase(_phase, channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
-        return commands.FrameChange(phase)(channel) << t0
+        return instructions.ShiftPhase(phase, channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):

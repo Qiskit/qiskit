@@ -142,6 +142,6 @@ from .commands import (Acquire, AcquireInstruction, FrameChange,
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Instruction
+from .instructions import Instruction, ShiftPhase
 from .interfaces import ScheduleComponent
 from .schedule import Schedule

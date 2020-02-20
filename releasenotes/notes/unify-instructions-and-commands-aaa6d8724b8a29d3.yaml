@@ -22,3 +22,16 @@ features:
 
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
+upgrade:
+  - |
+    FrameChange and FrameChangeInstruction have been deprecated and replaced
+    by ShiftPhase. The changes are:
+
+        FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel)
+        FrameChangeInstruction(FrameChange(<phase>), <channel>)
+            -> ShiftPhase(<phase>, <channel)
+
+    Until the deprecation period is over, the previous FrameChange syntax of
+    calling a command on a channel will be supported:
+
+        ShiftPhase(<phase>)(<channel>)
