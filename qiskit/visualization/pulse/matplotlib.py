@@ -515,7 +515,7 @@ class ScheduleDrawer:
 
     def _draw_framechanges(self, ax: 'matplotlib.axes.Axes',
                            fcs: Dict[int, 'FrameChangeInstruction'],
-                           dt: float, y0: float) -> NoReturn:
+                           dt: float, y0: float) -> None:
         """Draw frame change of given channel to given mpl axis.
 
         Args:
