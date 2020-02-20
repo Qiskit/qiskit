@@ -627,7 +627,7 @@ class ScheduleDrawer:
             framechange: When set `True` draw frame change symbols.
 
         Return:
-            y0: Value of final vertical axis of canvas.
+            Value of final vertical axis of canvas.
         """
         y0 = 0
         prev_labels = []
