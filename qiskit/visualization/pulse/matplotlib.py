@@ -572,7 +572,7 @@ class ScheduleDrawer:
     def _draw_labels(self, ax: 'matplotlib.axes.Axes',
                      labels: Dict[int, Union['SamplePulse', 'Acquire']],
                      prev_labels: List[Dict[int, Union['SamplePulse', 'Acquire']]],
-                     dt: float, y0: float) -> NoReturn:
+                     dt: float, y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
         Args:
