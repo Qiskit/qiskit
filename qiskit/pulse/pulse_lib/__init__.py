@@ -15,3 +15,7 @@
 """Module for builtin ``pulse_lib``."""
 
 from .discrete import *
+from .parametric_pulses import (ParametricPulse, ParametricInstruction, Gaussian, GaussianSquare,
+                                Drag, ConstantPulse)
+from .pulse import Pulse
+from .sample_pulse import SamplePulse
