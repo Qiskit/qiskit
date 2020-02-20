@@ -400,6 +400,7 @@ class Bullet(DirectOnQuWire):
         self.bot_connect = '│' if conditional else bot_connect
         self.mid_bck = '─'
 
+
 class OpenBullet(DirectOnQuWire):
     """ Draws an open bullet (usually with a connector). E.g. the top part of a CX gate.
 
@@ -415,6 +416,7 @@ class OpenBullet(DirectOnQuWire):
         self.top_connect = top_connect
         self.bot_connect = '│' if conditional else bot_connect
         self.mid_bck = '─'
+
 
 class EmptyWire(DrawElement):
     """ This element is just the wire, with no instructions nor operations."""
@@ -1109,7 +1111,8 @@ class Layer:
             raise VisualizationError("_set_multibox error!.")
 
         if controlled_edge:
-            control_index = [i for i, x in enumerate(self.qregs) if x in controlled_edge]
+            control_index = [i for i, x in enumerate(self.qregs) if
+                             x in [qubit for qubit, _ in controlled_edge]]
         else:
             control_index = []
 
