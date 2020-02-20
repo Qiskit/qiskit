@@ -729,7 +729,7 @@ class ScheduleDrawer:
                 with only framechange instructions.
 
         Returns:
-            matplotlib.figure.Figure: A matplotlib figure object
+            A matplotlib figure object for the pulse envelope.
                 for the pulse envelope.
 
         Raises:
