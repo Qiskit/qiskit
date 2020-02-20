@@ -55,48 +55,41 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Transpilation is done in parallel using multiprocessing.
 
     Args:
-        circuits:
-            Circuit(s) to transpile
+        circuits: Circuit(s) to transpile
 
-        backend:
-            If set, transpiler options are automatically grabbed from
-            backend.configuration() and backend.properties().
-            If any other option is explicitly set (e.g., coupling_map), it
+        backend: If set, transpiler options are automatically grabbed from
+            ``backend.configuration()`` and ``backend.properties()``.
+            If any other option is explicitly set (e.g., ``coupling_map``), it
             will override the backend's.
 
             .. note::
                 The backend arg is purely for convenience. The resulting
                 circuit may be run on any backend as long as it is compatible.
 
-        basis_gates:
-            List of basis gate names to unroll to.
+        basis_gates: List of basis gate names to unroll to.
             e.g::
 
                 ['u1', 'u2', 'u3', 'cx']
 
-            If None, do not unroll.
+            If ``None``, do not unroll.
 
-        coupling_map:
-            Coupling map (perhaps custom) to target in mapping.
+        coupling_map: Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
 
-            1. CouplingMap instance
+            1. ``CouplingMap`` instance
 
-            2. list
+            2. List
                 Must be given as an adjacency matrix, where each entry
                 specifies all two-qubit interactions supported by backend,
                 e.g::
 
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
-        backend_properties:
-            properties returned by a backend, including information on gate
+        backend_properties: properties returned by a backend, including information on gate
             errors, readout errors, qubit coherence times, etc. Find a backend
-            that provides this information with:
-            ``backend.properties()``
+            that provides this information with: ``backend.properties()``
 
-        initial_layout:
-            Initial position of virtual qubits on physical qubits.
+        initial_layout: Initial position of virtual qubits on physical qubits.
             If this layout makes the circuit compatible with the coupling_map
             constraints, it will be used.
             The final layout is not guaranteed to be the same, as the transpiler
@@ -104,8 +97,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
             Multiple formats are supported:
 
-            1. Layout instance
-            2. dict
+            1. ``Layout`` instance
+
+            2. Dict
                 * virtual to physical::
 
                     {qr[0]: 0,
@@ -118,7 +112,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                      3: qr[1],
                      5: qr[2]}
 
-            3. list
+            3. List
                 * virtual to physical::
 
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
@@ -127,11 +121,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        seed_transpiler:
-            Sets random seed for the stochastic parts of the transpiler
+        seed_transpiler: Sets random seed for the stochastic parts of the transpiler
 
-        optimization_level:
-            How much optimization to perform on the circuits.
+        optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
 
@@ -140,23 +132,22 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                 * 2: heavy optimization
                 * 3: even heavier optimization
 
-            If None, level 1 will be chosen as default.
+            If ``None``, level 1 will be chosen as default.
 
-        pass_manager:
-            The pass manager to use for a custom pipeline of transpiler passes.
+        pass_manager: The pass manager to use for a custom pipeline of transpiler passes.
             If this arg is present, all other args will be ignored and the
             pass manager will be used directly (Qiskit will not attempt to
             auto-select a pass manager based on transpile options).
 
-        callback:
-            A callback function that will be called after each
+        callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
-            arguments::
-                pass_: the pass being run.
-                dag: the dag output of the pass.
-                time: the time to execute the pass.
-                property_set: the property set.
-                count: the index for the pass execution.
+            arguments\:
+
+                | ``pass_``: the pass being run.
+                | ``dag``: the dag output of the pass.
+                | ``time``: the time to execute the pass.
+                | ``property_set``: the property set.
+                | ``count``: the index for the pass execution.
 
             The exact arguments passed expose the internals of the pass manager,
             and are subject to change as the pass manager internals change. If
@@ -176,9 +167,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
                 transpile(circ, callback=callback_func)
 
-        output_name:
-            A list with strings to identify the output circuits. The length of
-            `list[str]` should be exactly the length of the `circuits` parameter.
+        output_name: A list with strings to identify the output circuits. The length of
+            the list should be exactly the length of the ``circuits`` parameter.
 
     Returns:
         The transpiled circuit(s).

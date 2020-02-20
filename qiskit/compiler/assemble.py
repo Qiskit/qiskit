@@ -59,94 +59,74 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
     header and configurations.
 
     Args:
-        experiments:
-            Circuit(s) or pulse schedule(s) to execute
+        experiments: Circuit(s) or pulse schedule(s) to execute
 
-        backend:
-            If set, some runtime options are automatically grabbed from
+        backend: If set, some runtime options are automatically grabbed from
             ``backend.configuration()`` and ``backend.defaults()``.
-            If any other option is explicitly set (e.g., rep_rate), it
+            If any other option is explicitly set (e.g., ``rep_time``), it
             will override the backend's.
             If any other options is set in the run_config, it will
             also override the backend's.
 
-        qobj_id:
-            String identifier to annotate the Qobj
+        qobj_id: String identifier to annotate the Qobj
 
-        qobj_header:
-            User input that will be inserted in Qobj header, and will also be
+        qobj_header: User input that will be inserted in Qobj header, and will also be
             copied to the corresponding Result header. Headers do not affect the run.
 
-        shots:
-            Number of repetitions of each circuit, for sampling. Default: 1024
+        shots: Number of repetitions of each circuit, for sampling. Default: 1024
             or max_shots from the backend configuration, whichever is smaller
 
-        memory:
-            If True, per-shot measurement bitstrings are returned as well
+        memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
-            measurement level 2 supports this option. Default: False
+            measurement level 2 supports this option.
 
-        max_credits:
-            Maximum credits to spend on job. Default: 10
+        max_credits: Maximum credits to spend on job. Default: 10
 
-        seed_simulator:
-            Random seed to control sampling, for when backend is a simulator
+        seed_simulator: Random seed to control sampling, for when backend is a simulator
 
-        qubit_lo_freq:
-            List of default qubit LO frequencies in Hz. Will be overridden by
+        qubit_lo_freq: List of default qubit LO frequencies in Hz. Will be overridden by
             ``schedule_los`` if set.
 
-        meas_lo_freq:
-            List of default measurement LO frequencies in Hz. Will be overridden
+        meas_lo_freq: List of default measurement LO frequencies in Hz. Will be overridden
             by ``schedule_los`` if set.
 
-        qubit_lo_range:
-            List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
+        qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
 
-        meas_lo_range:
-            List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
+        meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
 
-        schedule_los:
-            Experiment LO configurations, frequencies are given in Hz.
+        schedule_los: Experiment LO configurations, frequencies are given in Hz.
 
-        meas_level:
-            Set the appropriate level of the measurement output for pulse experiments.
+        meas_level: Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return:
-            Level of measurement data for the backend to return.
+        meas_return: Level of measurement data for the backend to return.
 
             For ``meas_level`` 0 and 1:
-                * "single" returns information from every shot.
-                * "avg" returns average measurement output (averaged over number of shots).
+                * ``single`` returns information from every shot.
+                * ``avg`` returns average measurement output (averaged over number of shots).
 
-        meas_map:
-            List of lists, containing qubits that must be measured together.
+        meas_map: List of lists, containing qubits that must be measured together.
 
-        memory_slot_size:
-            Size of each memory slot if the output is Level 0.
+        memory_slot_size: Size of each memory slot if the output is Level 0.
 
-        rep_time: repetition time of the experiment in s.
+        rep_time: Repetition time of the experiment in s.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
-        parameter_binds:
-            List of Parameter bindings over which the set of experiments will be
+        parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
             executed across all experiments; e.g., if parameter_binds is a
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        parametric_pulses:
-            A list of pulse shapes which are supported internally on the backend.
+        parametric_pulses: A list of pulse shapes which are supported internally on the backend.
             Example::
 
             ['gaussian', 'constant']
 
-        **run_config:
-            extra arguments used to configure the run (e.g., for Aer configurable
+        **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
 
