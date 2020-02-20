@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    ``qiskit.compiler.assemble()`` will now respect the configured max_shots for
-    a backend. If shots are specified that exceed the max shots set in the
-    backend configuration this will now raise a ``QiskitError`` exception.
-    Additionally, if no shots argument is provided the default value is either
-    1024 (the previous behavior) or ``max_shots``, whichever is lower.

@@ -17,10 +17,14 @@ Two-pulse single-qubit gate.
 """
 
 import numpy
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
+# pylint: disable=cyclic-import
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
@@ -34,6 +38,24 @@ class U3Gate(Gate):
         u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return Cu3Gate(*self.params)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
@@ -51,9 +73,107 @@ class U3Gate(Gate):
             dtype=complex)
 
 
-def u3(self, theta, phi, lam, q):  # pylint: disable=invalid-name
-    """Apply u3 to q."""
-    return self.append(U3Gate(theta, phi, lam), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def u3(self, theta, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply U3 gate with angle theta, phi, and lam to a specified qubit (qubit).
+    u3(θ, φ, λ) := U(θ, φ, λ) = Rz(φ + 3π)Rx(π/2)Rz(θ + π)Rx(π/2)Rz(λ)
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('theta')
+            phi = Parameter('φ')
+            lam = Parameter('λ')
+            circuit = QuantumCircuit(1)
+            circuit.u3(theta,phi,lam,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.u3 import U3Gate
+            U3Gate(numpy.pi/2,numpy.pi/2,numpy.pi/2).to_matrix()
+    """
+    return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
 
 QuantumCircuit.u3 = u3
+
+
+class Cu3Gate(ControlledGate):
+    """controlled-u3 gate."""
+
+    def __init__(self, theta, phi, lam):
+        """Create new cu3 gate."""
+        super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
+        self.base_gate = U3Gate(theta, phi, lam)
+
+    def _define(self):
+        """
+        gate cu3(theta,phi,lambda) c, t
+        { u1((lambda+phi)/2) c;
+          u1((lambda-phi)/2) t;
+          cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t;
+          cx c,t;
+          u3(theta/2,phi,0) t;
+        }
+        """
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.x import CnotGate
+        definition = []
+        q = QuantumRegister(2, "q")
+        rule = [
+            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+
+@deprecate_arguments({'ctl': 'control_qubit',
+                      'tgt': 'target_qubit'})
+def cu3(self, theta, phi, lam, control_qubit, target_qubit,
+        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+    """Apply cU3 gate from a specified control (control_qubit) to target (target_qubit) qubit
+    with angle theta, phi, and lam.
+    A cU3 gate implements a U3(theta,phi,lam) on the target qubit when the
+    control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            phi = Parameter('φ')
+            lam = Parameter('λ')
+            circuit = QuantumCircuit(2)
+            circuit.cu3(theta,phi,lam,0,1)
+            circuit.draw()
+    """
+    return self.append(Cu3Gate(theta, phi, lam),
+                       [control_qubit, target_qubit],
+                       [])
+
+
+QuantumCircuit.cu3 = cu3

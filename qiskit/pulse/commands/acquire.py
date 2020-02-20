@@ -18,7 +18,7 @@ Acquire.
 import warnings
 from typing import Optional, Union, List
 
-from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
+from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
@@ -119,18 +119,13 @@ class AcquireInstruction(Instruction):
                  name: Optional[str] = None):
 
         if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
-            warnings.warn('The AcquireInstruction no longer supports multiple qubits, '
-                          'multiple memory slots and multiple reg slots. '
-                          'This behavior has been deprecated. The parameter '
-                          '"mem_slots" has been replaced by "mem_slot" and '
+            warnings.warn('The AcquireInstruction on multiple qubits, multiple '
+                          'memory slots and multiple reg slots is deprecated. The '
+                          'parameter "mem_slots" has been replaced by "mem_slot" and '
                           '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
 
         if not isinstance(acquire, list):
             acquire = [acquire]
-
-        if isinstance(acquire[0], Qubit):
-            raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
-                             "which are deprecated.")
 
         if mem_slot and not isinstance(mem_slot, list):
             mem_slot = [mem_slot]
@@ -186,13 +181,9 @@ class AcquireInstruction(Instruction):
     @property
     def mem_slots(self):
         """MemorySlots."""
-        warnings.warn('"mem_slots" is deprecated and being replaced by "mem_slot"',
-                      DeprecationWarning, 3)
         return self._mem_slots
 
     @property
     def reg_slots(self):
         """RegisterSlots."""
-        warnings.warn('"reg_slots" is deprecated and being replaced by "reg_slot"',
-                      DeprecationWarning, 3)
         return self._reg_slots
