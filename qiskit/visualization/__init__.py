@@ -80,6 +80,14 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
+Single Qubit State Transition Visualizations
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   visualize_transition
+
 Exceptions
 ==========
 
@@ -100,6 +108,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_paulivec,
                                                       plot_state_qsphere)
 
+from qiskit.visualization.transition_visualization import visualize_transition
 from .pulse_visualization import pulse_drawer
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse.interpolation import step_wise, linear, cubic_spline
