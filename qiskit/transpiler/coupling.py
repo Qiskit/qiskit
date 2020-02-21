@@ -319,8 +319,10 @@ class CouplingMap:
     def draw(self):
         """Draws the coupling map.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
+        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
+        need to be installed.
 
         Returns:
             PIL.Image: Drawn coupling map.
