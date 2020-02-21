@@ -296,7 +296,7 @@ class Operator(BaseOperator):
         data = np.kron(other._data, self._data)
         return Operator(data, input_dims, output_dims)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the operator self + other.
 
         Args:
@@ -316,28 +316,8 @@ class Operator(BaseOperator):
         return Operator(self.data + other.data, self.input_dims(),
                         self.output_dims())
 
-    def subtract(self, other):
-        """Return the operator self - other.
-
-        Args:
-            other (Operator): an operator object.
-
-        Returns:
-            Operator: the operator self - other.
-
-        Raises:
-            QiskitError: if other is not an operator, or has incompatible
-            dimensions.
-        """
-        if not isinstance(other, Operator):
-            other = Operator(other)
-        if self.dim != other.dim:
-            raise QiskitError("other operator has different dimensions.")
-        return Operator(self.data - other.data, self.input_dims(),
-                        self.output_dims())
-
-    def multiply(self, other):
-        """Return the operator self + other.
+    def _multiply(self, other):
+        """Return the operator other * self.
 
         Args:
             other (complex): a complex number.
@@ -451,7 +431,7 @@ class Operator(BaseOperator):
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
         data = np.reshape(
-            self._einsum_matmul(tensor, mat, indices, shift, right_mul),
+            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
         return Operator(data, input_dims, output_dims)
 
@@ -481,9 +461,45 @@ class Operator(BaseOperator):
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
         data = np.reshape(
-            self._einsum_matmul(tensor, mat, indices, shift, right_mul),
+            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
         return Operator(data, input_dims, output_dims)
+
+    @classmethod
+    def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
+        """Perform a contraction using Numpy.einsum
+
+        Args:
+            tensor (np.array): a vector or matrix reshaped to a rank-N tensor.
+            mat (np.array): a matrix reshaped to a rank-2M tensor.
+            indices (list): tensor indices to contract with mat.
+            shift (int): shift for indices of tensor to contract [Default: 0].
+            right_mul (bool): if True right multiply tensor by mat
+                              (else left multiply) [Default: False].
+
+        Returns:
+            Numpy.ndarray: the matrix multiplied rank-N tensor.
+
+        Raises:
+            QiskitError: if mat is not an even rank tensor.
+        """
+        rank = tensor.ndim
+        rank_mat = mat.ndim
+        if rank_mat % 2 != 0:
+            raise QiskitError(
+                "Contracted matrix must have an even number of indices.")
+        # Get einsum indices for tensor
+        indices_tensor = list(range(rank))
+        for j, index in enumerate(indices):
+            indices_tensor[index + shift] = rank + j
+        # Get einsum indices for mat
+        mat_contract = list(reversed(range(rank, rank + len(indices))))
+        mat_free = [index + shift for index in reversed(indices)]
+        if right_mul:
+            indices_mat = mat_contract + mat_free
+        else:
+            indices_mat = mat_free + mat_contract
+        return np.einsum(tensor, indices_tensor, mat, indices_mat)
 
     @classmethod
     def _init_instruction(cls, instruction):

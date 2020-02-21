@@ -16,6 +16,8 @@
 Abstract BaseOperator class.
 """
 
+import copy
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -110,33 +112,40 @@ class BaseOperator(ABC):
                 "Invalid rtol: must be less than {}.".format(max_tol))
         self.__class__.RTOL = rtol
 
-    def _reshape(self, input_dims=None, output_dims=None):
-        """Reshape input and output dimensions of operator.
+    def reshape(self, input_dims=None, output_dims=None):
+        """Return a shallow copy with reshaped input and output subsystem dimensions.
 
         Arg:
-            input_dims (tuple): new subsystem input dimensions.
-            output_dims (tuple): new subsystem output dimensions.
+            input_dims (None or tuple): new subsystem input dimensions.
+                If None the original input dims will be preserved
+                [Default: None].
+            output_dims (None or tuple): new subsystem output dimensions.
+                If None the original output dims will be preserved
+                [Default: None].
 
         Returns:
-            Operator: returns self with reshaped input and output dimensions.
+            BaseOperator: returns self with reshaped input and output dimensions.
 
         Raises:
             QiskitError: if combined size of all subsystem input dimension or
             subsystem output dimensions is not constant.
         """
+        clone = copy.copy(self)
+        if output_dims is None and input_dims is None:
+            return clone
         if input_dims is not None:
             if np.product(input_dims) != self._input_dim:
                 raise QiskitError(
-                    "Reshaped input_dims are incompatible with combined input dimension."
-                )
-            self._input_dims = tuple(input_dims)
+                    "Reshaped input_dims ({}) are incompatible with combined"
+                    " input dimension ({}).".format(input_dims, self._input_dim))
+            clone._input_dims = tuple(input_dims)
         if output_dims is not None:
             if np.product(output_dims) != self._output_dim:
                 raise QiskitError(
-                    "Reshaped input_dims are incompatible with combined input dimension."
-                )
-            self._output_dims = tuple(output_dims)
-        return self
+                    "Reshaped output_dims ({}) are incompatible with combined"
+                    " output dimension ({}).".format(output_dims, self._output_dim))
+            clone._output_dims = tuple(output_dims)
+        return clone
 
     def input_dims(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
@@ -151,10 +160,8 @@ class BaseOperator(ABC):
         return tuple(self._output_dims[i] for i in qargs)
 
     def copy(self):
-        """Make a copy of current operator."""
-        # pylint: disable=no-value-for-parameter
-        # The constructor of subclasses from raw data should be a copy
-        return self.__class__(self.data, self.input_dims(), self.output_dims())
+        """Make a deep copy of current operator."""
+        return copy.deepcopy(self)
 
     def adjoint(self):
         """Return the adjoint of the operator."""
@@ -279,52 +286,86 @@ class BaseOperator(ABC):
         """
         pass
 
-    @abstractmethod
     def add(self, other):
         """Return the linear operator self + other.
 
+        DEPRECATED: use `+` or `_add` instead.
+
         Args:
             other (BaseOperator): an operator object.
 
         Returns:
-            LinearOperator: the linear operator self + other.
-
-        Raises:
-            QiskitError: if other is not an operator, or has incompatible
-            dimensions.
+            BaseOperator: the operator self + other.
         """
-        pass
+        warnings.warn("`BaseOperator.add` method is deprecated, use the `+`"
+                      " operator or `BaseOperator._add` instead",
+                      DeprecationWarning)
+        return self._add(other)
 
-    @abstractmethod
     def subtract(self, other):
         """Return the linear operator self - other.
 
+        DEPRECATED: use `-` instead.
+
         Args:
             other (BaseOperator): an operator object.
 
         Returns:
-            LinearOperator: the linear operator self - other.
-
-        Raises:
-            QiskitError: if other is not an operator, or has incompatible
-            dimensions.
+            BaseOperator: the operator self - other.
         """
-        pass
+        warnings.warn("`BaseOperator.subtract` method is deprecated, use the `-`"
+                      " operator or `BaseOperator._add(-other)` instead",
+                      DeprecationWarning)
+        return self._add(-other)
 
-    @abstractmethod
     def multiply(self, other):
-        """Return the linear operator self + other.
+        """Return the linear operator other * self.
+
+        DEPRECATED: use `*` of `_multiply` instead.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear operator other * self.
+            BaseOperator: the linear operator other * self.
 
         Raises:
-            QiskitError: if other is not a valid complex number.
+            NotImplementedError: if subclass does not support multiplication.
         """
-        pass
+        warnings.warn("`BaseOperator.multiply` method is deprecated, use the `*`"
+                      " operator or `BaseOperator._multiply` instead",
+                      DeprecationWarning)
+        return self._multiply(other)
+
+    def _add(self, other):
+        """Return the linear operator self + other.
+
+        Args:
+            other (BaseOperator): an operator object.
+
+        Returns:
+            BaseOperator: the operator self + other.
+
+        Raises:
+            NotImplementedError: if subclass does not support addition.
+        """
+        raise NotImplementedError(
+            "{} does not support addition".format(type(self)))
+
+    def _multiply(self, other):
+        """Return the linear operator other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            BaseOperator: the linear operator other * self.
+
+        Raises:
+            NotImplementedError: if subclass does not support multiplication.
+        """
+        raise NotImplementedError(
+            "{} does not support scalar multiplication".format(type(self)))
 
     @classmethod
     def _automatic_dims(cls, dims, size):
@@ -340,42 +381,6 @@ class BaseOperator(ABC):
             return (dims,)
         return tuple(dims)
 
-    @classmethod
-    def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
-        """Perform a contraction using Numpy.einsum
-
-        Args:
-            tensor (np.array): a vector or matrix reshaped to a rank-N tensor.
-            mat (np.array): a matrix reshaped to a rank-2M tensor.
-            indices (list): tensor indices to contract with mat.
-            shift (int): shift for indices of tensor to contract [Default: 0].
-            right_mul (bool): if True right multiply tensor by mat
-                              (else left multiply) [Default: False].
-
-        Returns:
-            Numpy.ndarray: the matrix multiplied rank-N tensor.
-
-        Raises:
-            QiskitError: if mat is not an even rank tensor.
-        """
-        rank = tensor.ndim
-        rank_mat = mat.ndim
-        if rank_mat % 2 != 0:
-            raise QiskitError(
-                "Contracted matrix must have an even number of indices.")
-        # Get einsum indices for tensor
-        indices_tensor = list(range(rank))
-        for j, index in enumerate(indices):
-            indices_tensor[index + shift] = rank + j
-        # Get einsum indices for mat
-        mat_contract = list(reversed(range(rank, rank + len(indices))))
-        mat_free = [index + shift for index in reversed(indices)]
-        if right_mul:
-            indices_mat = mat_contract + mat_free
-        else:
-            indices_mat = mat_free + mat_contract
-        return np.einsum(tensor, indices_tensor, mat, indices_mat)
-
     # Overloads
     def __matmul__(self, other):
         return self.compose(other)
@@ -384,7 +389,7 @@ class BaseOperator(ABC):
         return self.dot(other)
 
     def __rmul__(self, other):
-        return self.multiply(other)
+        return self._multiply(other)
 
     def __pow__(self, n):
         return self.power(n)
@@ -393,13 +398,13 @@ class BaseOperator(ABC):
         return self.tensor(other)
 
     def __truediv__(self, other):
-        return self.multiply(1 / other)
+        return self._multiply(1 / other)
 
     def __add__(self, other):
-        return self.add(other)
+        return self._add(other)
 
     def __sub__(self, other):
-        return self.subtract(other)
+        return self._add(-other)
 
     def __neg__(self):
-        return self.multiply(-1)
+        return self._multiply(-1)

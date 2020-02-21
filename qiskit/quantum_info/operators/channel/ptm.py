@@ -18,7 +18,6 @@
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 """
 
-from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -150,50 +149,6 @@ class PTM(QuantumChannel):
         # conjugate channel
         return PTM(SuperOp(self).transpose())
 
-    def compose(self, other, qargs=None, front=False):
-        """Return the composed quantum channel self @ other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            PTM: The quantum channel self @ other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a PTM or has
-            incompatible dimensions.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
-        return super().compose(other, qargs=qargs, front=front)
-
-    def dot(self, other, qargs=None):
-        """Return the right multiplied quantum channel self * other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-
-        Returns:
-            PTM: The quantum channel self * other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a PTM or has
-            incompatible dimensions.
-        """
-        return super().dot(other, qargs=qargs)
-
     def power(self, n):
         """The matrix power of the channel.
 
@@ -248,62 +203,6 @@ class PTM(QuantumChannel):
         output_dims = self.output_dims() + other.output_dims()
         data = np.kron(other.data, self._data)
         return PTM(data, input_dims, output_dims)
-
-    def add(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            PTM: the linear addition self + other as a PTM object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return PTM(self._data + other.data, self._input_dims,
-                   self._output_dims)
-
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            PTM: the linear subtraction self - other as PTM object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return PTM(self._data - other.data, self._input_dims,
-                   self._output_dims)
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            PTM: the scalar multiplication other * self as a PTM object.
-
-        Raises:
-            QiskitError: if other is not a valid scalar.
-        """
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
-        return PTM(other * self._data, self._input_dims, self._output_dims)
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.

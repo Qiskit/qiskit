@@ -281,15 +281,14 @@ class Stinespring(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
 
         Returns:
-            Stinespring: the linear addition self + other as a
-            Stinespring object.
+            Stinespring: the linear addition channel self + other.
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
@@ -299,33 +298,14 @@ class Stinespring(QuantumChannel):
         # representation we convert to the Choi representation
         return Stinespring(Choi(self).add(other))
 
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel subclass.
-
-        Returns:
-            Stinespring: the linear subtraction self - other as
-            Stinespring object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        # Since we cannot directly subtract two channels in the Stinespring
-        # representation we convert to the Choi representation
-        return Stinespring(Choi(self).subtract(other))
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
+    def _multiply(self, other):
+        """Return the QuantumChannel other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Stinespring: the scalar multiplication other * self as a
-            Stinespring object.
+            Stinespring: the scalar multiplication other * self.
 
         Raises:
             QiskitError: if other is not a valid scalar.
@@ -337,7 +317,7 @@ class Stinespring(QuantumChannel):
         # the Choi representation
         if isinstance(other, complex) or other < 1:
             # Convert to Choi-matrix
-            return Stinespring(Choi(self).multiply(other))
+            return Stinespring(Choi(self)._multiply(other))
         # If the number is real we can update the Kraus operators
         # directly
         num = np.sqrt(other)

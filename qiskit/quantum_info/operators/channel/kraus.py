@@ -303,14 +303,14 @@ class Kraus(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
 
         Returns:
-            Kraus: the linear addition self + other as a Kraus object.
+            Kraus: the linear addition channel self + other.
 
         Raises:
             QiskitError: if other cannot be converted to a channel, or
@@ -321,26 +321,8 @@ class Kraus(QuantumChannel):
         # or convert to the Choi representation
         return Kraus(Choi(self).add(other))
 
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel subclass.
-
-        Returns:
-            Kraus: the linear subtraction self - other as Kraus object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel, or
-            has incompatible dimensions.
-        """
-        # Since we cannot directly subtract two channels in the Kraus
-        # representation we try and use the other channels method
-        # or convert to the Choi representation
-        return Kraus(Choi(self).subtract(other))
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
+    def _multiply(self, other):
+        """Return the QuantumChannel other * self.
 
         Args:
             other (complex): a complex number.
@@ -357,7 +339,7 @@ class Kraus(QuantumChannel):
         # kraus channel so we multiply via Choi representation
         if isinstance(other, complex) or other < 0:
             # Convert to Choi-matrix
-            return Kraus(Choi(self).multiply(other))
+            return Kraus(Choi(self)._multiply(other))
         # If the number is real we can update the Kraus operators
         # directly
         val = np.sqrt(other)

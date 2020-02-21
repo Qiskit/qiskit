@@ -17,6 +17,7 @@ Abstract base class for Quantum Channels.
 """
 
 from abc import abstractmethod
+from numbers import Number
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -31,6 +32,22 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
+
+    @abstractmethod
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a quantum channel Superoperator operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+        """
+        pass
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed quantum channel self @ other.
@@ -60,23 +77,50 @@ class QuantumChannel(BaseOperator):
             return self._chanmul(other, qargs, left_multiply=False)
         return self._chanmul(other, qargs, left_multiply=True)
 
-    def dot(self, other, qargs=None):
-        """Return the right multiplied quantum channel self * other.
+    def _add(self, other):
+        """Return the QuantumChannel self + other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
 
         Returns:
-            QuantumChannel: The quantum channel self * other.
+            QuantumChannel: the linear addition channel self + other.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or has
-            incompatible dimensions.
+            QiskitError: if other cannot be converted to a channel or
+            has incompatible dimensions.
         """
-        return super().dot(other, qargs=qargs)
+        # NOTE: this method must be overriden for subclasses
+        # that don't have a linear matrix representation
+        # ie Kraus and Stinespring
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+        if self.dim != other.dim:
+            raise QiskitError("other QuantumChannel dimensions are not equal")
+        return self.__class__(self._data + other.data,
+                              self._input_dims,
+                              self._output_dims)
+
+    def _multiply(self, other):
+        """Return the QuantumChannel other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            QuantumChannel: the scalar multiplication other * self.
+
+        Raises:
+            QiskitError: if other is not a valid scalar.
+        """
+        # NOTE: this method must be overriden for subclasses
+        # that don't have a linear matrix representation
+        # ie Kraus and Stinespring
+        if not isinstance(other, Number):
+            raise QiskitError("other is not a number")
+        return self.__class__(other * self._data,
+                              self._input_dims,
+                              self._output_dims)
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
