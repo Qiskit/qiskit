@@ -200,10 +200,8 @@ def _assemble_instructions(
         qobj_instructions.append(instruction_converter(time, instruction))
 
     if acquire_instruction_map:
-        try:
+        if hasattr(run_config, 'meas_map'):
             _validate_meas_map(acquire_instruction_map, run_config.meas_map)
-        except AttributeError:
-            pass  # No need to validate meas map if it wasn't provided
         for (time, _), instructions in acquire_instruction_map.items():
             qubits, mem_slots, reg_slots = _bundle_channel_indices(instructions)
             qobj_instructions.append(
