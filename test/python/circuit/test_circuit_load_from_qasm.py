@@ -210,7 +210,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(rinv, [qr[0]])
 
-        self.assertEqual(circuit, expected)
+        self.assertEqualUnroll(['sdg', 'h'],circuit, expected)
 
     def test_from_qasm_str_custom_gate2(self):
         """ Test load custom gates (no so simple case, different bit order)
@@ -281,7 +281,7 @@ class LoadFromQasmTest(QiskitTestCase):
                          gate my_u2(phi,lambda) q {U(pi/2,phi,lambda) q;}
                          qreg qr[1];
                          my_u2(pi, pi) qr[0];"""
-        # circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         my_u2_circuit = QuantumCircuit(1, name='my_u2')
         phi = Parameter('phi')
@@ -293,8 +293,8 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(my_u2, [qr[0]])
         expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
-        print(expected)
-        # self.assertEqual(expected, circuit)
+
+        self.assertEqualUnroll('cx', expected, circuit)
 
     def assertEqualUnroll(self, basis, circuit, expected):
         circuit_dag = circuit_to_dag(circuit)
