@@ -251,11 +251,10 @@ class LoadFromQasmTest(QiskitTestCase):
                          gate cswap2 a,b,c
                          {
                            cx c,b;  // different bit count
-                           ccx a,b,c;
+                           ccx a,b,c; //previously defined gate
                            cx c,b;
                          }
                          qreg qr[3];
-                         swap2 qr[0], qr[1];
                          cswap2 qr[1], qr[0], qr[2];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
@@ -270,7 +269,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(cswap, [qr[1], qr[0], qr[2]])
 
-        self.assertEqualUnroll(['cx'], expected, circuit)
+        self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], expected, circuit)
 
     def test_from_qasm_str_custom_gate4(self):
         """ Test load custom gates (parametrized)
