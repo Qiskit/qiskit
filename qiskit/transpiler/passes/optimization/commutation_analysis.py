@@ -36,6 +36,7 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
+        self.cache = {}
         self.gates_on_wire = {}
 
     def run(self, dag):
@@ -79,7 +80,7 @@ class CommutationAnalysis(AnalysisPass):
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
                     try:
-                        does_commute = _commute(current_gate, prev_gate)
+                        does_commute = _commute(current_gate, prev_gate, self.cache)
                     except TranspilerError:
                         pass
                     if does_commute:
@@ -92,7 +93,7 @@ class CommutationAnalysis(AnalysisPass):
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
 
-def _commute(node1, node2):
+def _commute(node1, node2, cache):
 
     if node1.type != "op" or node2.type != "op":
         return False
@@ -115,8 +116,16 @@ def _commute(node1, node2):
 
     id_op = Operator(np.eye(2 ** qbit_num))
 
-    op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
-    op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
+    if ((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2))) in cache:
+        op12 = cache[((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2)))]
+    else:
+        op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
+        cache[((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2)))] = op12
+    if ((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1))) in cache:
+        op21 = cache[((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1)))]
+    else:
+        op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
+        cache[((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1)))] = op21
 
     if_commute = (op12 == op21)
 
