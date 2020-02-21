@@ -61,8 +61,8 @@ class Instruction(ScheduleComponent, ABC):
             # TODO: Add deprecation warning once all instructions are migrated
             self._command = duration
             if name is None:
-                self._name = duration.name
-            duration = duration.duration
+                self._name = self.command.name
+            duration = self.command.duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
