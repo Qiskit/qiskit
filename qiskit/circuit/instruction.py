@@ -291,13 +291,16 @@ class Instruction:
         self.condition = (classical, val)
         return self
 
-    def copy(self, name=None):
+    def copy(self, name=None, *, _memo=None):
         """
         Shallow copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
             if None then the name stays the same.
+          _memo (dict): Optional. Deep copy cache of previously copied objects.
+            Only to be provided when implementing a __deepcopy__ method. See
+            https://docs.python.org/3/library/copy.html#copy.deepcopy .
 
         Returns:
           qiskit.circuit.Instruction: a shallow copy of the current instruction, with the name
@@ -305,12 +308,14 @@ class Instruction:
         """
         cpy = copy.copy(self)
         cpy.params = copy.copy(self.params)
+        if self._definition:
+            cpy._definition = copy.deepcopy(self._definition, _memo)
         if name:
             cpy.name = name
         return cpy
 
     def __deepcopy__(self, memo=None):
-        return self.copy()
+        return self.copy(_memo=memo)
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
