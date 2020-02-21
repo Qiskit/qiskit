@@ -116,7 +116,7 @@ class Schedule(ScheduleComponent):
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
         Return 0 if none of the channels have been scheduled on.
-        
+
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -446,8 +446,9 @@ class Schedule(ScheduleComponent):
             for idx, interval in enumerate(schedule._timeslots[channel]):
                 if interval.start + time >= self._timeslots[channel][-1].stop:
                     # Can append the remaining intervals
-                    self._timeslots[channel].extend([Interval(start=i.start + time, stop=i.stop + time)
-                                                     for i in schedule._timeslots[channel][idx:]])
+                    self._timeslots[channel].extend(
+                        [Interval(start=i.start + time, stop=i.stop + time)
+                         for i in schedule._timeslots[channel][idx:]])
                     break
 
                 try:
