@@ -56,6 +56,9 @@ from qiskit.extensions.standard.u3 import Cu3Gate
 from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
 
+from qiskit.qasm.node.id import Id
+from qiskit.qasm.node.binaryop import BinaryOp
+
 
 def ast_to_dag(ast):
     """Build a ``DAGCircuit`` object from an AST ``Node`` object.
@@ -362,17 +365,22 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
-    def _gate_definition_to_definition(self, node):
+    def _gate_definition_to_definition(self, node, params):
         """ From a gate defintion in qasm, to a gate.definition format."""
         definition = []
         qreg = QuantumRegister(node['n_bits'])
-        bit_args = {node['bits'][i]: q for i,q in enumerate(qreg)}
+        bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
+        exp_args = {node['args'][i]: q for i, q in enumerate(params)}
 
-        for child in node['body'].children:
-            op = self._create_op(child.name, params=[])
+        for child_op in node['body'].children:
             qparams = []
-            for param in child.children[1].children:
-                qparams.append(bit_args[param.name])
+            eparams = []
+            for param_list in child_op.children[1:]:
+                if param_list.type == 'id_list':
+                    qparams = [bit_args[param.name] for param in param_list.children]
+                elif param_list.type == 'expression_list':
+                    eparams = [self._process_node(param) for param in param_list.children]
+            op = self._create_op(child_op.name, params=eparams)
             definition.append((op, qparams, []))
         return definition
 
@@ -404,7 +412,8 @@ class AstInterpreter:
                                  num_qubits=self.gates[name]['n_bits'],
                                  num_clbits=self.gates[name]['n_args'],
                                  params=params)
-                op.definition = self._gate_definition_to_definition(self.gates[name])
+                op.definition = self._gate_definition_to_definition(self.gates[name],
+                                                                    params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
         return op

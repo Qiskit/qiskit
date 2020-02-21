@@ -277,7 +277,7 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
-                         gate my_u2(phi,lambda) q {U(pi/2,phi,lambda) q;}
+                         gate my_u2(phi,lambda) q {u3(pi/2,phi,lambda) q;}
                          qreg qr[1];
                          my_u2(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
