@@ -365,10 +365,15 @@ class AstInterpreter:
     def _gate_definition_to_definition(self, node):
         """ From a gate defintion in qasm, to a gate.definition format."""
         definition = []
-        q = QuantumRegister(node['n_bits'], 'q')
+        qreg = QuantumRegister(node['n_bits'])
+        bit_args = {node['bits'][i]: q for i,q in enumerate(qreg)}
+
         for child in node['body'].children:
             op = self._create_op(child.name, params=[])
-            definition.append((op, q[:], []))
+            qparams = []
+            for param in child.children[1].children:
+                qparams.append(bit_args[param.name])
+            definition.append((op, qparams, []))
         return definition
 
     def _create_dag_op(self, name, params, qargs):
