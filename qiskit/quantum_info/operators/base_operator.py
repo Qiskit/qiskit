@@ -326,11 +326,16 @@ class BaseOperator(ABC):
                       "the `other * op` instead", DeprecationWarning)
         return self._multiply(other)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the linear operator self + other.
+
+        If ``qargs`` are specified the other operato will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
+            qargs (None or list): optional subsystems to subtract on
+                                  (Default: None)
 
         Returns:
             BaseOperator: the operator self + other.
@@ -433,21 +438,37 @@ class BaseOperator(ABC):
                     output_dims[qubit] = other._output_dims[i]
         return input_dims, output_dims
 
-    def _validate_add_dims(self, other):
+    def _validate_add_dims(self, other, qargs=None):
         """Check dimensions are compatible for addition.
 
         Args:
             other (BaseOperator): another operator object.
+            qargs (None or list): compose qargs kwarg value.
 
         Raises:
             QiskitError: if operators have incompatibile dimensions for addition.
         """
-        # For adding we only require that operators have the same total
-        # dimensions rather than each subsystem dimension matching.
-        if self.dim != other.dim:
-            raise QiskitError(
-                "Cannot add operators with different shapes"
-                " ({} != {}).".format(self.dim, other.dim))
+        if qargs is None:
+            # For adding without qargs we only require that operators have
+            # the same total dimensions rather than each subsystem dimension
+            # matching.
+            if self.dim != other.dim:
+                raise QiskitError(
+                    "Cannot add operators with different shapes"
+                    " ({} != {}).".format(self.dim, other.dim))
+        else:
+            # If adding on subsystems the operators must have equal
+            # shape on subsystems
+            if (self._input_dims != self._output_dims or
+                    other._input_dims != other._output_dims):
+                raise QiskitError(
+                    "Cannot add operators on subsystems for non-square"
+                    " operator.")
+            if self.input_dims(qargs) != other._input_dims:
+                raise QiskitError(
+                    "Cannot add operators on subsystems with different"
+                    " dimensions ({} != {}).".format(
+                        self.input_dims(qargs), other._input_dims))
 
     # Overloads
     def __matmul__(self, other):

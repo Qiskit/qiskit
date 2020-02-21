@@ -289,11 +289,16 @@ class Stinespring(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
+            qargs (None or list): optional subsystems to subtract on
+                                  (Default: None)
 
         Returns:
             Stinespring: the linear addition channel self + other.
@@ -304,7 +309,7 @@ class Stinespring(QuantumChannel):
         """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
-        return Stinespring(Choi(self).add(other))
+        return Stinespring(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
