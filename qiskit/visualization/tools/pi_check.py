@@ -45,7 +45,10 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         QiskitError: if output is not a valid option.
     """
     if isinstance(inpt, ParameterExpression):
-        return str(inpt)
+        try:
+            return pi_check(float(str(inpt)), eps=eps, output=output, ndigits=ndigits)
+        except ValueError:
+            return str(inpt)
     elif isinstance(inpt, str):
         return inpt
 
@@ -61,8 +64,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             pi = '$\\pi$'
         else:
             raise QiskitError('pi_check parameter output should be text, latex, or mpl')
-        if abs(val) >= 1:
-            if abs(val % 1) < eps:
+        if abs(val) >= 1 - eps:
+            if abs(abs(val) - abs(round(val))) < eps:
                 val = int(round(val))
                 if val == 1:
                     str_out = '{}'.format(pi)
