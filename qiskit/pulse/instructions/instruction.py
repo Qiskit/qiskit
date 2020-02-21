@@ -36,8 +36,7 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 
 # pylint: disable=missing-return-doc
 
-# TODO: After migrating instruction implementations, Instruction needs to be an ABC
-#       with abstract property ``operands``.
+# TODO: After migrating instruction implementations, add property+abstractmethod operands
 
 
 class Instruction(ScheduleComponent, ABC):
