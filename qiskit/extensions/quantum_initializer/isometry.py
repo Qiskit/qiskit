@@ -33,6 +33,7 @@ from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.extensions.quantum_initializer.ucg import UCG
 from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 
+
 class Isometry(Instruction):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
@@ -214,8 +215,8 @@ class Isometry(Instruction):
             i_start = _a(k, s + 1) + 1
         id_list = [np.eye(2, 2) for i in range(i_start)]
         squs = [_reverse_qubit_state([v[2 * l * 2 ** s + _b(k, s), k_prime],
-                                      v[(2 * l + 1) * 2 ** s + _b(k, s), k_prime]], _k_s(k, s), 
-                                      eps=self.eps)
+                                      v[(2 * l + 1) * 2 ** s + _b(k, s), k_prime]], _k_s(k, s),
+                                     eps=self.eps)
                 for l in range(i_start, 2 ** (n - s - 1))]
         return id_list + squs
 
