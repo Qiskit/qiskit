@@ -20,11 +20,13 @@ import warnings
 
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from copy import copy
 
 from .channels import Channel
 from .interfaces import ScheduleComponent
 from .exceptions import PulseError
 from .utils import Interval, insertion_index
+
 
 # pylint: disable=missing-return-doc
 
@@ -432,20 +434,24 @@ class Schedule(ScheduleComponent):
         self._duration = max(self._duration, time + schedule.duration)
 
         for channel in schedule.channels:
-            channel_intervals = [Interval(start=i.start + time, stop=i.stop + time)
-                                 for i in schedule._timeslots[channel]]
 
             if channel not in self._timeslots:
-                self._timeslots[channel] = channel_intervals
+                if time == 0:
+                    self._timeslots[channel] = copy(schedule._timeslots[channel])
+                else:
+                    self._timeslots[channel] = [Interval(start=i.start + time, stop=i.stop + time)
+                                                for i in schedule._timeslots[channel]]
                 continue
 
-            for idx, interval in enumerate(channel_intervals):
-                if interval.start >= self._timeslots[channel][-1].stop:
+            for idx, interval in enumerate(schedule._timeslots[channel]):
+                if interval.start + time >= self._timeslots[channel][-1].stop:
                     # Can append the remaining intervals
-                    self._timeslots[channel].extend(channel_intervals[idx:])
+                    self._timeslots[channel].extend([Interval(start=i.start + time, stop=i.stop + time)
+                                                     for i in schedule._timeslots[channel][idx:]])
                     break
 
                 try:
+                    interval = Interval(start=interval.start + time, stop=interval.stop + time)
                     index = insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
                 except PulseError:
