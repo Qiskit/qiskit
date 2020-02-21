@@ -14,22 +14,39 @@
 """
 Add control to operation if supported.
 """
-from qiskit import QiskitError
+from typing import Union, Optional
+
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
+from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
-def add_control(operation, num_ctrl_qubits, label):
-    """Add num_ctrl_qubits controls to operation
+def add_control(operation: Union[Gate, ControlledGate],
+                num_ctrl_qubits: int,
+                label: Union[str, None],
+                ctrl_state: Union[int, str, None]) -> ControlledGate:
+    """For standard gates, if the controlled version already exists in the
+    library, it will be returned (e.g. XGate.control() = CnotGate().
+
+    For more generic gates, this method implements the controlled
+    version by first decomposing into the ['u1', 'u3', 'cx'] basis, then
+    controlling each gate in the decomposition.
+
+    Open controls are implemented by conjugating the control line with
+    X gates. Adds num_ctrl_qubits controls to operation.
 
     Args:
-        operation (Gate or ControlledGate): operation to add control to.
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
+        operation: Operation for which control will be added.
+        num_ctrl_qubits: The number of controls to add to gate (default=1).
+        label: Optional gate label.
+        ctrl_state (int or str or None): The control state in decimal or as
+            a bitstring (e.g. '111'). If specified as a bitstring the length
+            must equal num_ctrl_qubits, MSB on left. If None, use
+            2**num_ctrl_qubits-1.
 
     Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+        Controlled version of gate.
+
     """
     import qiskit.extensions.standard as standard
     if isinstance(operation, standard.RZGate) or operation.name == 'rz':
@@ -42,29 +59,34 @@ def add_control(operation, num_ctrl_qubits, label):
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
+    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label,
+                   ctrl_state=ctrl_state)
 
 
-def control(operation, num_ctrl_qubits=1, label=None):
+def control(operation: Union[Gate, ControlledGate],
+            num_ctrl_qubits: Optional[int] = 1,
+            label: Optional[Union[None, str]] = None,
+            ctrl_state: Optional[Union[None, int, str]] = None) -> ControlledGate:
     """Return controlled version of gate using controlled rotations
 
     Args:
-        operation (Gate or Controlledgate): gate to create ControlledGate from
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
+        operation: gate to create ControlledGate from
+        num_ctrl_qubits: number of controls to add to gate (default=1)
+        label: optional gate label
+        ctrl_state: The control state in decimal or as
+            a bitstring (e.g. '111'). If specified as a bitstring the length
+            must equal num_ctrl_qubits, MSB on left. If None, use
+            2**num_ctrl_qubits-1.
+
     Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+        Controlled version of gate.
 
     Raises:
-        QiskitError: gate contains non-gate in definitionl
+        CircuitError: gate contains non-gate in definition
     """
     from math import pi
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
     # pylint: disable=unused-import
     import qiskit.extensions.standard.multi_control_rotation_gates
     import qiskit.extensions.standard.multi_control_toffoli_gate
@@ -73,7 +95,6 @@ def control(operation, num_ctrl_qubits=1, label=None):
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
-
     qc = QuantumCircuit(q_control, q_target)
 
     if operation.name == 'x' or (
@@ -122,7 +143,7 @@ def control(operation, num_ctrl_qubits=1, label=None):
                        None,
                        mode='noancilla')
             else:
-                raise QiskitError('gate contains non-controllable instructions')
+                raise CircuitError('gate contains non-controllable instructions')
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
@@ -146,20 +167,19 @@ def control(operation, num_ctrl_qubits=1, label=None):
                                           operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
-                                          definition=instr.definition)
+                                          definition=instr.definition,
+                                          ctrl_state=ctrl_state)
     cgate.base_gate = base_gate
     return cgate
 
 
 def _gate_to_circuit(operation):
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-    from qiskit.circuit.quantumregister import QuantumRegister
     qr = QuantumRegister(operation.num_qubits)
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:
         for rule in operation.definition:
             if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
-                raise QiskitError('Cannot make controlled gate with {} instruction'.format(
+                raise CircuitError('Cannot make controlled gate with {} instruction'.format(
                     rule[0].name))
             qc.append(rule[0], qargs=[qr[bit.index] for bit in rule[1]], cargs=[])
     else:

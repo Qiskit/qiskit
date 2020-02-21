@@ -323,8 +323,12 @@ class QuantumCircuit:
             if element not in self.cregs:
                 self.cregs.append(element)
 
+        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
+        # appended to both self and rhs resulting in an infinite loop
+        data = rhs.data.copy() if rhs is self else rhs.data
+
         # Add new gates
-        for instruction_context in rhs.data:
+        for instruction_context in data:
             self._append(*instruction_context)
         return self
 
@@ -1272,6 +1276,19 @@ class QuantumCircuit:
         """Assigns a parameter value to matching instructions in-place."""
         for (instr, param_index) in self._parameter_table[parameter]:
             instr.params[param_index] = instr.params[param_index].bind({parameter: value})
+
+            # For instructions which have already been defined (e.g. composite
+            # instructions), search the definition for instances of the
+            # parameter which also need to be bound.
+            self._rebind_definition(instr, parameter, value)
+
+    def _rebind_definition(self, instruction, parameter, value):
+        if instruction._definition:
+            for op, _, _ in instruction._definition:
+                for idx, param in enumerate(op.params):
+                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
+                        op.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(op, parameter, value)
 
     def _substitute_parameters(self, parameter_map):
         """For every {existing_parameter: replacement_parameter} pair in

@@ -42,26 +42,30 @@ class U1Gate(Gate):
             definition.append(inst)
         self.definition = definition
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
             label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return Cu1Gate(*self.params)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return Cu1Gate(*self.params)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate."""
         return U1Gate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a Numpy.array for the U1 gate."""
         lam = self.params[0]
         lam = float(lam)
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
@@ -69,7 +73,30 @@ class U1Gate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply u1 with angle theta to qubit."""
+    """Apply U1 gate with angle theta to a specified qubit (qubit).
+    u1(λ) := diag(1, eiλ) ∼ U(0, 0, λ) = Rz(λ) where ~ is equivalence up to a global phase.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(1)
+            circuit.u1(theta,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.u1 import U1Gate
+            U1Gate(numpy.pi/2).to_matrix()
+    """
     return self.append(U1Gate(theta), [qubit], [])
 
 
@@ -115,7 +142,23 @@ class Cu1Gate(ControlledGate):
                       'tgt': 'target_qubit'})
 def cu1(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cu1 from ctl to tgt with angle theta."""
+    """Apply cU1 gate from a specified control (control_qubit) to target (target_qubit) qubit
+    with angle theta. A cU1 gate implements a theta radian rotation of the qubit state vector
+    about the z axis of the Bloch sphere when the control qubit is in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(2)
+            circuit.cu1(theta,0,1)
+            circuit.draw()
+    """
     return self.append(Cu1Gate(theta), [control_qubit, target_qubit], [])
 
 

@@ -46,19 +46,23 @@ class RXGate(Gate):
             definition.append(inst)
         self.definition = definition
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
             label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            return CrxGate(self.params[0])
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return CrxGate(self.params[0])
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate.
@@ -77,7 +81,31 @@ class RXGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Rx to q."""
+    """Apply Rx gate with angle theta to a specified qubit (qubit).
+    An Rx gate implements a theta radian rotation of the qubit state vector about the
+    x axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            theta = Parameter('θ')
+            circuit = QuantumCircuit(1)
+            circuit.rx(theta,0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            import numpy
+            from qiskit.extensions.standard.rx import RXGate
+            RXGate(numpy.pi/2).to_matrix()
+    """
     return self.append(RXGate(theta), [qubit], [])
 
 
