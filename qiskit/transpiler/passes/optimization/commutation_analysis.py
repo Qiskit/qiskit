@@ -116,16 +116,18 @@ def _commute(node1, node2, cache):
 
     id_op = Operator(np.eye(2 ** qbit_num))
 
-    if ((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2))) in cache:
-        op12 = cache[((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2)))]
+    node1_key = (node1.op.name, str(node1.op.params), str(qarg1))
+    node2_key = (node2.op.name, str(node2.op.params), str(qarg2))
+    if (node1_key, node2_key) in cache:
+        op12 = cache[(node1_key, node2_key)]
     else:
         op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
-        cache[((id(node1.op), str(qarg1)), (id(node2.op), str(qarg2)))] = op12
-    if ((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1))) in cache:
-        op21 = cache[((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1)))]
+        cache[(node1_key, node2_key)] = op12
+    if (node2_key, node1_key) in cache:
+        op21 = cache[(node2_key, node1_key)]
     else:
         op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
-        cache[((id(node2.op), str(qarg2)), (id(node1.op), str(qarg1)))] = op21
+        cache[(node2_key, node1_key)] = op21
 
     if_commute = (op12 == op21)
 
