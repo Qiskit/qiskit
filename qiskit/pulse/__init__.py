@@ -36,7 +36,7 @@ system.
 .. _pulse-commands:
 
 Commands (:mod:`~qiskit.pulse.commands`)
-================================================
+========================================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -85,6 +85,13 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
 
    Schedule
    Instruction
+
+.. autosummary::
+   :hidden:
+   :toctree: ../stubs/
+
+   qiskit.pulse.commands
+   qiskit.pulse.channels
 
 Configuration
 =============
