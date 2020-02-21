@@ -90,7 +90,7 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
    :hidden:
    :toctree: ../stubs/
 
-   qiskit.pulse.commands.command
+   qiskit.pulse.commands
    qiskit.pulse.channels
 
 Configuration
