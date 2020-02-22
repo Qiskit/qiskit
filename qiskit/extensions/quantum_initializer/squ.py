@@ -94,12 +94,6 @@ class SingleQubitUnitary(Gate):
                 diag = [np.exp(-1j * c / 2.), np.exp(1j * c / 2.)]
             else:
                 circuit.rz(c, q[0])
-<<<<<<< HEAD
-                is_identity = False
-        if is_identity:
-            circuit.i(q[0])
-=======
->>>>>>> no id in isometry
         return circuit, diag
 
     def _zyz_dec(self):
