@@ -293,7 +293,11 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4)
     def test_multi_controlled_u1_matrix(self, num_controls):
-        """Test the matrix representation of the multi-controlled CU1 gate."""
+        """Test the matrix representation of the multi-controlled CU1 gate.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcu1.py
+        """
 
         # registers for the circuit
         q_controls = QuantumRegister(num_controls)
@@ -320,11 +324,16 @@ class TestControlledGate(QiskitTestCase):
 
             base = U1Gate(lam).to_matrix()
             expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
-            self.assertTrue(matrix_equal(simulated, expected))
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
 
     @data(1, 2, 3, 4)
     def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with clean ancillas."""
+        """Test the multi-control Toffoli gate with clean ancillas.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
         # set up circuit
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
@@ -354,7 +363,11 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla)."""
+        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
@@ -379,7 +392,11 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (advanced)."""
+        """Test the multi-control Toffoli gate with dirty ancillas (advanced).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
@@ -404,7 +421,11 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (noancilla)."""
+        """Test the multi-control Toffoli gate with dirty ancillas (noancilla).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
@@ -488,7 +509,11 @@ class TestControlledGate(QiskitTestCase):
              use_basis_gates=[True, False])
     def test_multi_controlled_rotation_gate_matrices(self, num_controls, base_gate_name,
                                                      use_basis_gates):
-        """Test the multi controlled rotation gates without ancillas."""
+        """Test the multi controlled rotation gates without ancillas.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcr.py
+        """
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
 
@@ -524,11 +549,16 @@ class TestControlledGate(QiskitTestCase):
                 rot_mat = U1Gate(theta).to_matrix()
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
-            self.assertTrue(matrix_equal(simulated, expected))
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
 
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
-        """Test the multi controlled Y rotation using the mode 'basic'."""
+        """Test the multi controlled Y rotation using the mode 'basic'.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcr.py
+        """
 
         # get the number of required ancilla qubits
         if num_controls <= 2:
@@ -569,7 +599,8 @@ class TestControlledGate(QiskitTestCase):
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
 
-            self.assertTrue(matrix_equal(simulated, expected))
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
