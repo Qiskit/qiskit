@@ -128,7 +128,7 @@ class QuantumCircuit:
             try:
                 regs = tuple(int(reg) for reg in regs)
             except Exception:
-                raise CircuitError("Circuit args must be castable to an int (%s '%s' was provided)"
+                raise CircuitError("Circuit args must be Registers or be castable to an int (%s '%s' was provided)"
                                    % (type(regs).__name__, regs))
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
