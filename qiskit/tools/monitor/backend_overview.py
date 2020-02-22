@@ -33,9 +33,9 @@ def get_unique_backends():
     try:
         from qiskit.providers.ibmq import IBMQ
     except ImportError:
-        raise ImportError("The IBMQ provider is necessary for this function "
-                          " to work. Please ensure it's installed before "
-                          "using this function")
+        raise ImportError("Could not import the IMBQ provider from the "
+                          "qiskit-ibmq-provider package. Install qiskit-"
+                          "ibmq-provider or check your installation")
     backends = []
     for provider in IBMQ.providers():
         for backend in provider.backends():
