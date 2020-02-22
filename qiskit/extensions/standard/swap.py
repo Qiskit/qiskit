@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-SWAP gate.
+Swap gate.
 """
 import numpy
 from qiskit.circuit import ControlledGate
@@ -28,19 +28,19 @@ class SwapGate(Gate):
 
     def __init__(self):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [])
+        super().__init__('swap', 2, [])
 
     def _define(self):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
-        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
-            (CnotGate(), [q[0], q[1]], []),
-            (CnotGate(), [q[1], q[0]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -60,7 +60,7 @@ class SwapGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return FredkinGate()
+                return CSwapGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -69,7 +69,7 @@ class SwapGate(Gate):
         return SwapGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Swap gate."""
+        """Return a numpy.array for the SWAP gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0],
@@ -105,12 +105,22 @@ def swap(self, qubit1, qubit2):
 QuantumCircuit.swap = swap
 
 
-class FredkinGate(ControlledGate):
-    """Fredkin gate."""
+class CSwapMeta(type):
+    """A Metaclass to ensure that CSwapGate and FredkinGate are of the same type.
+
+    Can be removed when FredkinGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CSwapGate, FredkinGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CSwapGate(ControlledGate, metaclass=CSwapMeta):
+    """The controlled-swap gate, also called Fredkin gate."""
 
     def __init__(self):
-        """Create new Fredkin gate."""
-        super().__init__("cswap", 3, [], num_ctrl_qubits=1)
+        """Create new CSWAP gate."""
+        super().__init__('cswap', 3, [], num_ctrl_qubits=1)
         self.base_gate = SwapGate()
 
     def _define(self):
@@ -121,13 +131,14 @@ class FredkinGate(ControlledGate):
           cx c,b;
         }
         """
-        from qiskit.extensions.standard.x import CnotGate, ToffoliGate
+        from qiskit.extensions.standard.x import CXGate
+        from qiskit.extensions.standard.x import CCXGate
         definition = []
-        q = QuantumRegister(3, "q")
+        q = QuantumRegister(3, 'q')
         rule = [
-            (CnotGate(), [q[2], q[1]], []),
-            (ToffoliGate(), [q[0], q[1], q[2]], []),
-            (CnotGate(), [q[2], q[1]], [])
+            (CXGate(), [q[2], q[1]], []),
+            (CCXGate(), [q[0], q[1], q[2]], []),
+            (CXGate(), [q[2], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -135,10 +146,10 @@ class FredkinGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return FredkinGate()  # self-inverse
+        return CSwapGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Fredkin (CSWAP) gate."""
+        """Return a numpy.array for the Fredkin (CSWAP) gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0],
@@ -147,6 +158,18 @@ class FredkinGate(ControlledGate):
                             [0, 0, 0, 1, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
                             [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+
+
+class FredkinGate(CSwapGate, metaclass=CSwapMeta):
+    """The deprecated CSwapGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class FredkinGate is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CSwapGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
@@ -175,13 +198,12 @@ def cswap(self, control_qubit, target_qubit1, target_qubit2,
 
         .. jupyter-execute::
 
-            from qiskit.extensions.standard.swap import FredkinGate
-            FredkinGate().to_matrix()
+            from qiskit.extensions.standard.swap import CSwapGate
+            CSwapGate().to_matrix()
     """
-    return self.append(FredkinGate(),
-                       [control_qubit, target_qubit1, target_qubit2],
-                       [])
+    return self.append(CSwapGate(), [control_qubit, target_qubit1, target_qubit2], [])
 
 
+# support both cswap and fredkin as methods of QuantumCircuit
 QuantumCircuit.cswap = cswap
 QuantumCircuit.fredkin = cswap
