@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    When :meth:`qiskit.circuit.QuantumCircuit.draw` or
+    :func:`qiskit.visualization.circuit_drawer` is called with the
+    ``with_layout`` kwarg set True (the default) the output visualization
+    will now display the physical qubits as integers to clearly
+    distinguish them from the virtual qubits.
+
+    For Example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit import transpile
+        from qiskit.test.mock import FakeVigo
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        transpiled_qc = transpile(qc, FakeVigo())
+        transpiled_qc.draw(output='mpl')

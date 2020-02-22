@@ -16,19 +16,6 @@
 
 """
 Chi-matrix representation of a Quantum Channel.
-
-
-This is the matrix χ such that:
-
-    E(ρ) = sum_{i, j} χ_{i,j} P_i.ρ.P_j^dagger
-
-where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -44,10 +31,28 @@ from qiskit.quantum_info.operators.channel.transformations import _to_chi
 
 
 class Chi(QuantumChannel):
-    """Pauli basis Chi-matrix representation of a quantum channel
+    r"""Pauli basis Chi-matrix representation of a quantum channel.
 
-    The Chi-matrix is the Pauli-basis representation of the Chi-Matrix.
+    The Chi-matrix representation of an :math:`n`-qubit quantum channel
+    :math:`\mathcal{E}` is a matrix :math:`\chi` such that the evolution of a
+    :class:`~qiskit.quantum_info.DensityMatrix` :math:`\rho` is given by
+
+    .. math::
+
+        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+
+    where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
+    lexicographic order. It is related to the :class:`Choi` representation by a change
+    of basis of the Choi-matrix into the Pauli basis.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Chi-matrix operator.
 
@@ -142,32 +147,40 @@ class Chi(QuantumChannel):
         return Chi(Choi(self).transpose())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied channel other * self.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Chi: The left multiplied quantum channel.
+            Chi: The quantum channel self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to a Chi or has
             incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
-        """Return the right multiplied channel self * other.
+        """Return the right multiplied quantum channel self * other.
 
         Args:
             other (QuantumChannel): a quantum channel.
             qargs (list): a list of subsystem positions to compose other on.
 
         Returns:
-            Chi: The right multiplied quantum channel.
+            Chi: The quantum channel self * other.
 
         Raises:
             QiskitError: if other cannot be converted to a Chi or has

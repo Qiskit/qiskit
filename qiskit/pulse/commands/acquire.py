@@ -15,9 +15,10 @@
 """
 Acquire.
 """
-from typing import Union, List, Optional
+import warnings
+from typing import Optional, Union, List
 
-from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
+from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
@@ -93,11 +94,15 @@ class Acquire(Command):
 
     # pylint: disable=arguments-differ
     def to_instruction(self,
-                       qubits: Union[Qubit, List[Qubit]],
-                       mem_slots: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                       qubit: Union[AcquireChannel, List[AcquireChannel]],
+                       mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
                        reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                       reg_slot: Optional[RegisterSlot] = None,
                        name: Optional[str] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
+
+        return AcquireInstruction(self, qubit, mem_slot=mem_slot, reg_slot=reg_slot,
+                                  mem_slots=mem_slots, reg_slots=reg_slots, name=name)
     # pylint: enable=arguments-differ
 
 
@@ -106,40 +111,67 @@ class AcquireInstruction(Instruction):
 
     def __init__(self,
                  command: Acquire,
-                 acquires: Union[AcquireChannel, List[AcquireChannel]],
-                 mem_slots: Union[MemorySlot, List[MemorySlot]],
+                 acquire: Union[AcquireChannel, List[AcquireChannel]],
+                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
                  reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
-        if not isinstance(acquires, list):
-            acquires = [acquires]
+        if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
+            warnings.warn('The AcquireInstruction on multiple qubits, multiple '
+                          'memory slots and multiple reg slots is deprecated. The '
+                          'parameter "mem_slots" has been replaced by "mem_slot" and '
+                          '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
 
-        if isinstance(acquires[0], Qubit):
-            raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
-                             "which are deprecated.")
+        if not isinstance(acquire, list):
+            acquire = [acquire]
 
-        if not (mem_slots or reg_slots):
+        if mem_slot and not isinstance(mem_slot, list):
+            mem_slot = [mem_slot]
+        elif mem_slots:
+            mem_slot = mem_slots
+
+        if reg_slot:
+            reg_slot = [reg_slot]
+        elif reg_slots and not isinstance(reg_slots, list):
+            reg_slot = [reg_slots]
+        else:
+            reg_slot = reg_slots
+
+        if not (mem_slot or reg_slot):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slots:
-            if isinstance(mem_slots, MemorySlot):
-                mem_slots = [mem_slots]
-            elif len(acquires) != len(mem_slots):
-                raise PulseError("#mem_slots must be equals to #acquires")
+        if mem_slot and len(acquire) != len(mem_slot):
+            raise PulseError("The number of mem_slots must be equals to the number of acquires")
 
-        if reg_slots:
-            if isinstance(reg_slots, RegisterSlot):
-                reg_slots = [reg_slots]
-            if len(acquires) != len(reg_slots):
-                raise PulseError("#reg_slots must be equals to #acquires")
+        if reg_slot:
+            if len(acquire) != len(reg_slot):
+                raise PulseError("The number of reg_slots must be equals "
+                                 "to the number of acquires")
         else:
-            reg_slots = []
+            reg_slot = []
 
-        super().__init__(command, *acquires, *mem_slots, *reg_slots, name=name)
+        super().__init__(command, *acquire, *mem_slot, *reg_slot, name=name)
 
-        self._acquires = acquires
-        self._mem_slots = mem_slots
-        self._reg_slots = reg_slots
+        self._acquires = acquire
+        self._mem_slots = mem_slot
+        self._reg_slots = reg_slot
+
+    @property
+    def acquire(self):
+        """Acquire channel to be acquired on."""
+        return self._acquires[0] if self._acquires else None
+
+    @property
+    def mem_slot(self):
+        """MemorySlot."""
+        return self._mem_slots[0] if self._mem_slots else None
+
+    @property
+    def reg_slot(self):
+        """RegisterSlot."""
+        return self._reg_slots[0] if self._reg_slots else None
 
     @property
     def acquires(self):

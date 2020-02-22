@@ -17,24 +17,35 @@ Matrix Operator class.
 """
 
 import re
-import warnings
 from numbers import Number
 
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate, HGate, SGate, TGate
+from qiskit.extensions.standard import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Operator(BaseOperator):
-    """Matrix operator class
+    r"""Matrix operator class
 
-    This represents a matrix operator `M` that acts on a statevector as: `M|v⟩`
-    or on a density matrix as M.ρ.M^dagger.
+    This represents a matrix operator :math:`M` that will
+    :meth:`~Statevector.evolve` a :class:`Statevector` :math:`|\psi\rangle`
+    by matrix-vector multiplication
+
+    .. math::
+
+        |\psi\rangle \mapsto M|\psi\rangle,
+
+    and will :meth:`~DensityMatrix.evolve` a :class:`DensityMatrix` :math:`\rho`
+    by left and right multiplication
+
+    .. math::
+
+        \rho \mapsto M \rho M^\dagger.
     """
 
     def __init__(self, data, input_dims=None, output_dims=None):
@@ -129,7 +140,7 @@ class Operator(BaseOperator):
         """
         # Check label is valid
         label_mats = {
-            'I': IdGate().to_matrix(),
+            'I': IGate().to_matrix(),
             'X': XGate().to_matrix(),
             'Y': YGate().to_matrix(),
             'Z': ZGate().to_matrix(),
@@ -183,43 +194,46 @@ class Operator(BaseOperator):
                         output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left matrix multipled operator other * self.
+        """Return the composed operator.
 
         Args:
             other (Operator): an operator object.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Operator: The composed operator.
+            Operator: The operator self @ other.
 
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         if front:
-            # DEPRECATED
-            warnings.warn('`compose(other, front=True)` is deprecated, use `dot(other)` instead.',
-                          DeprecationWarning)
             return self._matmul(other, qargs, left_multiply=False)
         return self._matmul(other, qargs, left_multiply=True)
 
     def dot(self, other, qargs=None):
-        """Return the right matrix multiplied operator self * other.
+        """Return the right multiplied operator self * other.
 
         Args:
             other (Operator): an operator object.
-            qargs (list): a list of subsystem positions to compose other on.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
 
         Returns:
-            Operator: The composed operator.
+            Operator: The operator self * other.
 
         Raises:
             QiskitError: if other cannot be converted to an Operator or has
             incompatible dimensions.
         """
-        return self._matmul(other, qargs, left_multiply=False)
+        return super().dot(other, qargs=qargs)
 
     def power(self, n):
         """Return the matrix power of the operator.

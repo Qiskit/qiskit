@@ -16,20 +16,6 @@
 
 """
 Choi-matrix representation of a Quantum Channel.
-
-
-For a quantum channel E, the Choi matrix Λ is defined by:
-Λ = sum_{i,j} |i⟩⟨j|⊗E(|i⟩⟨j|)
-
-Evolution of a density matrix with respect to the Choi-matrix is given by:
-
-    E(ρ) = Tr_{1}[Λ.(ρ^T⊗I)]
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
 
 from numbers import Number
@@ -45,7 +31,34 @@ from qiskit.quantum_info.operators.channel.transformations import _bipartite_ten
 
 
 class Choi(QuantumChannel):
-    """Choi-matrix representation of a quantum channel"""
+    r"""Choi-matrix representation of a Quantum Channel.
+
+    The Choi-matrix representation of a quantum channel :math:`\mathcal{E}`
+    is a matrix
+
+    .. math::
+
+        \Lambda = \sum_{i,j} |i\rangle\!\langle j|\otimes
+                    \mathcal{E}\left(|i\rangle\!\langle j|\right)
+
+    Evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
+    :math:`\rho` with respect to the Choi-matrix is given by
+
+    .. math::
+
+        \mathcal{E}(\rho) = \mbox{Tr}_{1}\left[\Lambda
+                            (\rho^T \otimes \mathbb{I})\right]
+
+    where :math:`\mbox{Tr}_1` is the :func:`partial_trace` over subsystem 1.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+    """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Choi matrix operator.
 
@@ -141,32 +154,42 @@ class Choi(QuantumChannel):
                     output_dims=self.input_dims())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the left multiplied channel other * self.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): DEPRECATED If True return self * other instead.
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Choi: The left multiplied quantum channel.
+            Choi: The quantum channel self @ other.
 
         Raises:
             QiskitError: if other cannot be converted to a Choi or has
             incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
-        """Return the right multiplied channel self * other.
+        """Return the right multiplied quantum channel self * other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
 
         Returns:
-            Choi: The right multiplied quantum channel.
+            Choi: The quantum channel self * other.
 
         Raises:
             QiskitError: if other cannot be converted to a Choi or has
