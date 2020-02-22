@@ -25,8 +25,7 @@ try:
     from matplotlib import pyplot as plt, gridspec
     HAS_MATPLOTLIB = True
 except ImportError:
-    raise ImportError('Pulse visualization needs matplot lib. To '
-                      'install, run "pip install matplotlib".')
+    HAS_MATPLOTLIB = False
 
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse import interpolation

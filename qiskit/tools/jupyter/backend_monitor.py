@@ -18,7 +18,6 @@
 import types
 import math
 import datetime
-import warnings
 from IPython.display import display                     # pylint: disable=import-error
 import matplotlib.pyplot as plt                         # pylint: disable=import-error
 from matplotlib.patches import Circle                   # pylint: disable=import-error
@@ -31,10 +30,7 @@ try:
     # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
-    warnings.warn("Could not import the IBMQ provider from the "
-                  "qiskit-ibmq-provider package. Install "
-                  "qiskit-ibmq-provider or check your installation.",
-                  RuntimeWarning)
+    pass
 
 MONTH_NAMES = {1: 'Jan.',
                2: 'Feb.',

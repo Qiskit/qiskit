@@ -103,8 +103,7 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             plot_state_hinton(job.get_statevector(qc), title="New Hinton Plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (8, 5)
@@ -204,8 +203,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To '
-                          'install, run "pip install matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -255,8 +253,7 @@ def plot_bloch_multivector(rho, title='', figsize=None):
             plot_bloch_multivector(job.get_statevector(qc), title="New Bloch Multivector")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     rho = _validate_input_state(rho)
     num = int(np.log2(len(rho)))
     width, height = plt.figaspect(1/num)
@@ -334,8 +331,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     rho = _validate_input_state(rho)
 
     num = int(np.log2(len(rho)))
@@ -529,8 +525,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None, ax=None):
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run'
-                          ' "pip install matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 5)
@@ -668,14 +663,12 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
            plot_state_qsphere(job.get_statevector(qc))
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run'
-                          ' "pip install matplotlib".')
+        raise ImportError('Must have Matplotlib installed.')
     try:
         import seaborn as sns
     except ImportError:
         raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip '
-                          'install seaborn".')
+                          'plot_state_qsphere')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 7)

@@ -120,8 +120,7 @@ def plot_gate_map(backend, figsize=None,
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To '
-                          'install, run "pip install matplotlib."')
+        raise ImportError('Must have Matplotlib installed.')
 
     if backend.configuration().simulator:
         raise QiskitError('Requires a device backend, not simulator.')
