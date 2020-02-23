@@ -724,7 +724,12 @@ class TextDrawing():
         else:
             label = instruction.name
         params = TextDrawing.params_for_label(instruction)
+
+        # generate correct label for the box
+        if label == 'id':
+            label = 'i'
         label = label.capitalize()
+
         if params:
             label += "(%s)" % ','.join(params)
         return label
