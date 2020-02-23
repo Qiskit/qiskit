@@ -56,9 +56,6 @@ from qiskit.extensions.standard.u3 import Cu3Gate
 from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
 
-from qiskit.qasm.node.id import Id
-from qiskit.qasm.node.binaryop import BinaryOp
-
 
 def ast_to_dag(ast):
     """Build a ``DAGCircuit`` object from an AST ``Node`` object.
