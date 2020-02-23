@@ -99,7 +99,7 @@ class SingleQubitUnitary(Gate):
                 circuit.rz(c, q[0])
                 is_identity = False
         if is_identity:
-            circuit.iden(q[0])
+            circuit.i(q[0])
         return circuit, diag
 
     def _zyz_dec(self):
