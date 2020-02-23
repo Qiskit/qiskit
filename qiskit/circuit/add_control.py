@@ -54,7 +54,7 @@ def add_control(operation: Union[Gate, ControlledGate],
         # the condition matching 'name' above is to catch a test case,
         # 'TestControlledGate.test_rotation_gates', where the rz gate
         # gets converted to a circuit before becoming a generic Gate object.
-        cgate = standard.CrzGate(*operation.params)
+        cgate = standard.CRZGate(*operation.params)
         return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
@@ -119,7 +119,7 @@ def control(operation: Union[Gate, ControlledGate],
         for rule in bgate.definition:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params
-                if phi == -pi/2 and lamb == pi/2:
+                if phi == -pi / 2 and lamb == pi / 2:
                     qc.mcrx(theta, q_control, q_target[rule[1][0].index],
                             use_basis_gates=True)
                 elif phi == 0 and lamb == 0:

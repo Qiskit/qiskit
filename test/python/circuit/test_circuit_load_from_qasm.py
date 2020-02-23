@@ -29,11 +29,11 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def setUp(self):
         self.qasm_file_name = 'entangled_registers.qasm'
-        self.qasm_file_path = self._get_resource_path(
-            'qasm/' + self.qasm_file_name, Path.EXAMPLES)
+        self.qasm_file_path = self._get_resource_path('qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
     def test_qasm_file(self):
-        """Test qasm_file and get_circuit.
+        """
+        Test qasm_file and get_circuit.
 
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
@@ -51,8 +51,54 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit_2.measure(qr_b, cr_d)
         self.assertEqual(q_circuit, q_circuit_2)
 
+    def test_loading_all_qelib1_gates(self):
+        """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
+        all_gates_qasm = self._get_resource_path('all_gates.qasm', Path.QASMS)
+        qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
+
+        # the hardware primitives
+        ref_circuit = QuantumCircuit(3, 3)
+        ref_circuit.u3(0.2, 0.1, 0.6, 0)
+        ref_circuit.u2(0.1, 0.6, 0)
+        ref_circuit.u1(0.6, 0)
+        ref_circuit.id(0)
+        ref_circuit.cx(0, 1)
+        # the standard single qubit gates
+        ref_circuit.x(0)
+        ref_circuit.y(0)
+        ref_circuit.z(0)
+        ref_circuit.h(0)
+        ref_circuit.s(0)
+        ref_circuit.t(0)
+        ref_circuit.sdg(0)
+        ref_circuit.tdg(0)
+        # the standard rotations
+        ref_circuit.rx(0.1, 0)
+        ref_circuit.ry(0.1, 0)
+        ref_circuit.rz(0.1, 0)
+        # the barrier
+        ref_circuit.barrier()
+        # the standard user-defined gates
+        ref_circuit.swap(0, 1)
+        ref_circuit.cswap(0, 1, 2)
+        ref_circuit.cy(0, 1)
+        ref_circuit.cz(0, 1)
+        ref_circuit.ch(0, 1)
+        ref_circuit.cu1(0.6, 0, 1)
+        ref_circuit.cu3(0.2, 0.1, 0.6, 0, 1)
+        ref_circuit.ccx(0, 1, 2)
+        ref_circuit.crx(0.6, 0, 1)
+        ref_circuit.cry(0.6, 0, 1)
+        ref_circuit.crz(0.6, 0, 1)
+        ref_circuit.rxx(0.2, 0, 1)
+        ref_circuit.rzz(0.2, 0, 1)
+        ref_circuit.measure([0, 1, 2], [0, 1, 2])
+
+        self.assertEqual(qasm_circuit, ref_circuit)
+
     def test_fail_qasm_file(self):
-        """Test fail_qasm_file.
+        """
+        Test fail_qasm_file.
 
         If all is correct we should get a QiskitError
         """
@@ -60,7 +106,8 @@ class LoadFromQasmTest(QiskitTestCase):
                           QuantumCircuit.from_qasm_file, "")
 
     def test_fail_qasm_string(self):
-        """Test fail_qasm_string.
+        """
+        Test fail_qasm_string.
 
         If all is correct we should get a QiskitError
         """
@@ -68,7 +115,8 @@ class LoadFromQasmTest(QiskitTestCase):
                           QuantumCircuit.from_qasm_str, "")
 
     def test_qasm_text(self):
-        """Test qasm_text and get_circuit.
+        """
+        Test qasm_text and get_circuit.
 
         If all is correct we should get the qasm file loaded from the string
         """
@@ -105,7 +153,8 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, ref)
 
     def test_qasm_text_conditional(self):
-        """Test qasm_text and get_circuit when conditionals are present.
+        """
+        Test qasm_text and get_circuit when conditionals are present.
         """
         qasm_string = '\n'.join(["OPENQASM 2.0;",
                                  "include \"qelib1.inc\";",
@@ -128,8 +177,11 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, ref)
 
     def test_opaque_gate(self):
-        """Test parse an opaque gate
-        See https://github.com/Qiskit/qiskit-terra/issues/1566"""
+        """
+        Test parse an opaque gate
+
+        See https://github.com/Qiskit/qiskit-terra/issues/1566.
+        """
 
         qasm_string = '\n'.join(["OPENQASM 2.0;",
                                  "include \"qelib1.inc\";",
@@ -140,13 +192,13 @@ class LoadFromQasmTest(QiskitTestCase):
 
         qr = QuantumRegister(3, 'q')
         expected = QuantumCircuit(qr)
-        expected.append(Gate(name='my_gate', num_qubits=2, params=[1, 2, 3]), [qr[1], qr[2]])
+        expected.append(Gate(name='my_gate', num_qubits=2,
+                             params=[1, 2, 3]), [qr[1], qr[2]])
 
         self.assertEqual(circuit, expected)
 
     def test_qasm_example_file(self):
-        """Loads qasm/example.qasm.
-        """
+        """Loads qasm/example.qasm."""
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
                                                                    "include \"qelib1.inc\";",
@@ -175,7 +227,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(len(q_circuit.qregs), 2)
 
     def test_qasm_qas_string_order(self):
-        """ Test that gates are returned in qasm in ascending order"""
+        """Test that gates are returned in qasm in ascending order."""
         expected_qasm = '\n'.join(["OPENQASM 2.0;",
                                    "include \"qelib1.inc\";",
                                    "qreg q[3];",
