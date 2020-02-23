@@ -379,10 +379,15 @@ class AstInterpreter:
                 if param_list.type == 'id_list':
                     qparams = [bit_args[param.name] for param in param_list.children]
                 elif param_list.type == 'expression_list':
-                    eparams = [self._process_node(param) for param in param_list.children]
+                    for param in param_list.children:
+                        if param.type == 'real':
+                            eparams.append(param.value)
+                        elif param.type == 'id':
+                            eparams.append(exp_args[param.name])
             op = self._create_op(child_op.name, params=eparams)
             definition.append((op, qparams, []))
         return definition
+
 
     def _create_dag_op(self, name, params, qargs):
         """
@@ -410,7 +415,7 @@ class AstInterpreter:
                 # call a custom gate
                 op = Instruction(name=name,
                                  num_qubits=self.gates[name]['n_bits'],
-                                 num_clbits=self.gates[name]['n_args'],
+                                 num_clbits=0,
                                  params=params)
                 op.definition = self._gate_definition_to_definition(self.gates[name],
                                                                     params=params)

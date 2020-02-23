@@ -210,7 +210,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(rinv, [qr[0]])
 
-        self.assertEqualUnroll(['sdg', 'h'],circuit, expected)
+        self.assertEqualUnroll(['sdg', 'h'], circuit, expected)
 
     def test_from_qasm_str_custom_gate2(self):
         """ Test load custom gates (no so simple case, different bit order)
@@ -269,7 +269,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(cswap, [qr[1], qr[0], qr[2]])
 
-        self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], expected, circuit)
+        self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], circuit, expected)
 
     def test_from_qasm_str_custom_gate4(self):
         """ Test load custom gates (parametrized)
@@ -277,7 +277,7 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
-                         gate my_u2(phi,lambda) q {u3(pi/2,phi,lambda) q;}
+                         gate my_u2(phi,lambda) q {u3(1.5707963267948966,phi,lambda) q;}
                          qreg qr[1];
                          my_u2(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -293,7 +293,31 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_u2, [qr[0]])
         expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll('cx', expected, circuit)
+        self.assertEqualUnroll('u3', circuit, expected)
+
+    def test_from_qasm_str_custom_gate5(self):
+        """ Test load custom gates (parametrized, with biop and constant)
+        See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+                         gate my_u2(phi,lambda) q {u3(pi/2,phi,lambda) q;} // biop with pi
+                         qreg qr[1];
+                         my_u2(pi, pi) qr[0];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        my_u2_circuit = QuantumCircuit(1, name='my_u2')
+        phi = Parameter('phi')
+        lam = Parameter('lambda')
+        my_u2_circuit.u3(1.5707963267948966, phi, lam, 0)
+        my_u2 = my_u2_circuit.to_gate()
+
+        qr = QuantumRegister(1, name='qr')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.append(my_u2, [qr[0]])
+        expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+
+        self.assertEqualUnroll('u3', circuit, expected)
 
     def assertEqualUnroll(self, basis, circuit, expected):
         circuit_dag = circuit_to_dag(circuit)
