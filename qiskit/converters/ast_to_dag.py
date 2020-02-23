@@ -390,7 +390,6 @@ class AstInterpreter:
             definition.append((op, qparams, []))
         return definition
 
-
     def _create_dag_op(self, name, params, qargs):
         """
         Create a DAG node out of a parsed AST op node.
