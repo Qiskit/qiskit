@@ -384,6 +384,8 @@ class AstInterpreter:
                             eparams.append(param.value)
                         elif param.type == 'id':
                             eparams.append(exp_args[param.name])
+                        else:
+                            eparams.append(param.sym())
             op = self._create_op(child_op.name, params=eparams)
             definition.append((op, qparams, []))
         return definition
