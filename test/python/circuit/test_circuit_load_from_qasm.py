@@ -21,7 +21,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase, Path
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.converters.dag_to_circuit import dag_to_circuit
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -372,6 +371,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqualUnroll('u3', circuit, expected)
 
     def assertEqualUnroll(self, basis, circuit, expected):
+        """ Compares the dags after unrolling to basis """
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
 
