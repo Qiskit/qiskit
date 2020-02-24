@@ -579,7 +579,7 @@ class TestDagOperations(QiskitTestCase):
         """Try to remove a non-op node with remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
-        in_node = next(iter(self.dag.topological_nodes()))
+        in_node = next(self.dag.topological_nodes())
         self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
 
     def test_dag_collect_runs(self):
