@@ -78,7 +78,7 @@ class TestPowerIntCX(QiskitTestCase):
 
         self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)
-        self.assertTrue(Operator(result), Operator(self.results[n]))
+        self.assertEqual(Operator(result), Operator(self.results[n]))
 
 
 class TestGateSqrt(QiskitTestCase):
