@@ -141,6 +141,70 @@ class SuperOp(QuantumChannel):
                        input_dims=self.output_dims(),
                        output_dims=self.input_dims())
 
+    def compose(self, other, qargs=None, front=False):
+        """Return the composed quantum channel self @ other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
+
+        Returns:
+            SuperOp: The quantum channel self @ other.
+
+        Raises:
+            QiskitError: if other has incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        # Convert other to SuperOp
+        if not isinstance(other, SuperOp):
+            other = SuperOp(other)
+        # Validate dimensions are compatible and return the composed
+        # operator dimensions
+        input_dims, output_dims = self._get_compose_dims(
+            other, qargs, front)
+
+        # Full composition of superoperators
+        if qargs is None:
+            if front:
+                data = np.dot(self._data, other.data)
+            else:
+                data = np.dot(other.data, self._data)
+            return SuperOp(data, input_dims, output_dims)
+
+        # Compute tensor contraction indices from qargs
+        if front:
+            num_indices = len(self._input_dims)
+            shift = 2 * len(self._output_dims)
+            right_mul = True
+        else:
+            num_indices = len(self._output_dims)
+            shift = 0
+            right_mul = False
+
+        # Reshape current matrix
+        # Note that we must reverse the subsystem dimension order as
+        # qubit 0 corresponds to the right-most position in the tensor
+        # product, which is the last tensor wire index.
+        tensor = np.reshape(self.data, self._shape)
+        mat = np.reshape(other.data, other._shape)
+        # Add first set of indices
+        indices = [2 * num_indices - 1 - qubit for qubit in qargs
+                   ] + [num_indices - 1 - qubit for qubit in qargs]
+        final_shape = [np.product(output_dims)**2, np.product(input_dims)**2]
+        data = np.reshape(
+            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
+            final_shape)
+        return SuperOp(data, input_dims, output_dims)
+
     def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
 
@@ -270,113 +334,6 @@ class SuperOp(QuantumChannel):
         # reshape tensor to density matrix
         tensor = np.reshape(tensor, (new_dim, new_dim))
         return DensityMatrix(tensor, dims=new_dims)
-
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            SuperOp: The composition channel as a SuperOp object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        # Convert other to SuperOp
-        if not isinstance(other, SuperOp):
-            other = SuperOp(other)
-        # Check dimensions are compatible
-        if left_multiply and self.output_dims(
-                qargs=qargs) != other.input_dims():
-            raise QiskitError(
-                'input_dims of other must match subsystem output_dims')
-        if not left_multiply and self.input_dims(
-                qargs=qargs) != other.output_dims():
-            raise QiskitError(
-                'output_dims of other must match subsystem input_dims')
-
-        # Full composition of superoperators
-        if qargs is None:
-            if left_multiply:
-                # other * self
-                return SuperOp(np.dot(other.data, self._data),
-                               input_dims=self.input_dims(),
-                               output_dims=other.output_dims())
-            # self * other
-            return SuperOp(np.dot(self._data, other.data),
-                           input_dims=other.input_dims(),
-                           output_dims=self.output_dims())
-        # Composition on subsystem
-        return self._chanmul_subsystem(other, qargs, left_multiply)
-
-    def _chanmul_subsystem(self, other, qargs, left_multiply=False):
-        """Matrix multiply on subsystem."""
-        # Compute tensor contraction indices from qargs
-        input_dims = list(self.input_dims())
-        output_dims = list(self.output_dims())
-        if left_multiply:
-            num_indices = len(self.output_dims())
-            shift = 0
-            right_mul = False
-            for pos, qubit in enumerate(qargs):
-                output_dims[qubit] = other._output_dims[pos]
-        else:
-            num_indices = len(self.input_dims())
-            shift = 2 * len(self.output_dims())
-            right_mul = True
-            for pos, qubit in enumerate(qargs):
-                input_dims[qubit] = other._input_dims[pos]
-        # Reshape current matrix
-        # Note that we must reverse the subsystem dimension order as
-        # qubit 0 corresponds to the right-most position in the tensor
-        # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
-        # Add first set of indices
-        indices = [2 * num_indices - 1 - qubit for qubit in qargs
-                   ] + [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims)**2, np.product(input_dims)**2]
-        data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
-            final_shape)
-        return SuperOp(data, input_dims, output_dims)
-
-    def _compose_subsystem(self, other, qargs, front=False):
-        """Return the composition channel."""
-        # Compute tensor contraction indices from qargs
-        input_dims = list(self.input_dims())
-        output_dims = list(self.output_dims())
-        if front:
-            num_indices = len(self.input_dims())
-            shift = 2 * len(self.output_dims())
-            right_mul = True
-            for pos, qubit in enumerate(qargs):
-                input_dims[qubit] = other._input_dims[pos]
-        else:
-            num_indices = len(self.output_dims())
-            shift = 0
-            right_mul = False
-            for pos, qubit in enumerate(qargs):
-                output_dims[qubit] = other._output_dims[pos]
-        # Reshape current matrix
-        # Note that we must reverse the subsystem dimension order as
-        # qubit 0 corresponds to the right-most position in the tensor
-        # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
-        # Add first set of indices
-        indices = [2 * num_indices - 1 - qubit for qubit in qargs
-                   ] + [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims)**2, np.product(input_dims)**2]
-        data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
-            final_shape)
-        return SuperOp(data, input_dims, output_dims)
 
     @classmethod
     def _init_instruction(cls, instruction):

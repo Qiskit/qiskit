@@ -37,14 +37,15 @@ class QuantumChannel(BaseOperator):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
+            rep (str): quantum channel representation name string.
+            data (array or list): quantum channel data array.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
+
+        Raises:
+            QiskitError: if arguments are invalid.
         """
         # Set channel representation string
         if not isinstance(rep, str):
@@ -71,6 +72,7 @@ class QuantumChannel(BaseOperator):
         """Return data."""
         return self._data
 
+    @abstractmethod
     def compose(self, other, qargs=None, front=False):
         """Return the composed quantum channel self @ other.
 
@@ -86,8 +88,7 @@ class QuantumChannel(BaseOperator):
             QuantumChannel: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or has
-            incompatible dimensions.
+            QiskitError: if other has incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -95,9 +96,7 @@ class QuantumChannel(BaseOperator):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        if front:
-            return self._chanmul(other, qargs, left_multiply=False)
-        return self._chanmul(other, qargs, left_multiply=True)
+        pass
 
     def _add(self, other):
         """Return the QuantumChannel self + other.
@@ -117,8 +116,7 @@ class QuantumChannel(BaseOperator):
         # ie Kraus and Stinespring
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
+        self._validate_add_dims(other)
         return self.__class__(self._data + other.data,
                               self._input_dims,
                               self._output_dims)
@@ -260,25 +258,6 @@ class QuantumChannel(BaseOperator):
         Raises:
             QiskitError: if the quantum channel dimension does not match the
             specified quantum state subsystem dimensions.
-        """
-        pass
-
-    @abstractmethod
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            QuantumChannel: The composition channel.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
         """
         pass
 

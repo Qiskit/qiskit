@@ -146,6 +146,36 @@ class Chi(QuantumChannel):
         # conjugate channel
         return Chi(Choi(self).transpose())
 
+    def compose(self, other, qargs=None, front=False):
+        """Return the composed quantum channel self @ other.
+
+        Args:
+            other (QuantumChannel): a quantum channel.
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
+
+        Returns:
+            Chi: The quantum channel self @ other.
+
+        Raises:
+            QiskitError: if other has incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
+        """
+        if qargs is not None:
+            return Chi(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+        # If no qargs we compose via Choi representation to avoid an additional
+        # representation conversion to SuperOp and then convert back to Chi
+        return Chi(Choi(self).compose(other, front=front))
+
     def power(self, n):
         """The matrix power of the channel.
 
@@ -217,39 +247,3 @@ class Chi(QuantumChannel):
             specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
-
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            Choi: The composition channel as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if qargs is not None:
-            return Chi(
-                SuperOp(self)._chanmul(other,
-                                       qargs=qargs,
-                                       left_multiply=left_multiply))
-
-        # Convert other to Choi since we convert via Choi
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        # Check dimensions match up
-        if not left_multiply and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if left_multiply and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        # Since we cannot directly multiply two channels in the Chi
-        # representation we convert to the Choi representation
-        return Chi(Choi(self)._chanmul(other, left_multiply=left_multiply))
