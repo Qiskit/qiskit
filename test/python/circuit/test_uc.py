@@ -26,7 +26,7 @@ import itertools
 import numpy as np
 from scipy.linalg import block_diag
 
-from qiskit.extensions.quantum_initializer.ucg import UCG
+from qiskit.extensions.quantum_initializer.uc import UCGate
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.test import QiskitTestCase
@@ -45,8 +45,8 @@ squs_list = [[_not], [_id], [_id, _id], [_id, 1j * _id], [_id, _not, _id, _not],
 up_to_diagonal_list = [True, False]
 
 
-class TestUCG(QiskitTestCase):
-    """Qiskit UCG tests."""
+class TestUCGate(QiskitTestCase):
+    """Qiskit UCGate tests."""
 
     def test_ucg(self):
         """Test uniformly controlled gates."""
@@ -55,7 +55,7 @@ class TestUCG(QiskitTestCase):
                 num_con = int(np.log2(len(squs)))
                 q = QuantumRegister(num_con + 1)
                 qc = QuantumCircuit(q)
-                qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
+                qc.uc(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
                 # Simulate the decomposed gate
@@ -63,7 +63,7 @@ class TestUCG(QiskitTestCase):
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 if up_to_diagonal:
-                    ucg = UCG(squs, up_to_diagonal=up_to_diagonal)
+                    ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
                     unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
                 unitary_desired = _get_ucg_matrix(squs)
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))

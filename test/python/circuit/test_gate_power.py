@@ -20,7 +20,7 @@ from ddt import ddt, data
 from numpy import array, eye
 
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CnotGate
+from qiskit.extensions import SGate, UnitaryGate, CXGate
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 
@@ -74,7 +74,7 @@ class TestPowerIntCX(QiskitTestCase):
     def test_cx_int(self, n):
         """Test CX.power(<int>) method.
         """
-        result = CnotGate().power(n)
+        result = CXGate().power(n)
 
         self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)

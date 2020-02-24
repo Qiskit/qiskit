@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Toffoli gate. Controlled-Controlled-X.
+Controlled-Controlled-X (or Toffoli) Gate.
 """
 
 import warnings
