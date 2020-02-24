@@ -27,15 +27,14 @@ from qiskit.extensions.standard import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-DEFAULT_SIMPLIFY_TOLERANCE = 1e-12
-DEFAULT_ATOL = 1e-7
+DEFAULT_ATOL = 1e-12
 
 
 class OneQubitEulerDecomposer:
     r"""A class for decomposing 1-qubit unitaries into Euler angle rotations.
 
     The resulting decomposition is parameterized by 3 Euler rotation angle
-    parameters :math:`(\theta, \phi\ lambda)`, and a phase parameter
+    parameters :math:`(\theta, \phi, \lambda)`, and a phase parameter
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
     shown in the following table. Note that for the non-Euler bases (U3, U1X,
@@ -62,9 +61,8 @@ class OneQubitEulerDecomposer:
           - :math:`e^{i\gamma}{2}\right)\right)} U_3(\theta,\phi,\lambda)`
         * - 'U1X'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i \gamma}{2}\right)\right)}
-            :math:`U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\theta+\pi).`
-            :math:`R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
+          - :math:`e^{i \gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
+            :math:`U_1(\theta+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
         * - 'RR'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
@@ -76,35 +74,24 @@ class OneQubitEulerDecomposer:
         Supported bases are: 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
-            basis (str): the decomposition basis [Default: 'U3]
+            basis (str): the decomposition basis [Default: 'U3']
 
         Raises:
             QiskitError: If input basis is not recognized.
         """
-        # Default values
-        self._basis = 'U3'
-        self._params = self._params_u3
-        self._circuit = self._circuit_u3
-        # Set basis
-        self.basis = basis
+        self.basis = basis  # sets: self._basis, self._params, self._circuit
 
     def __call__(self,
                  unitary,
                  simplify=True,
-                 simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE,
-                 phase_equal=False,
                  atol=DEFAULT_ATOL):
         """Decompose single qubit gate into a circuit.
 
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
             simplify (bool): reduce gate count in decomposition [Default: True].
-            simplify_tolerance (float): absolute tolerance for checking
-                                        angles in simplify [Default: 1e-12].
-            phase_equal (bool): verify the output circuit is phase equal
-                                to the input matrix [Default: False].
-            atol (bool): absolute tolerance for comparing synthesised circuit
-                         matrix to input [Default: 1e-7].
+            atol (bool): absolute tolerance for checking angles when simplifing
+                         returnd circuit [Default: 1e-12].
 
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
@@ -134,11 +121,7 @@ class OneQubitEulerDecomposer:
         theta, phi, lam, _ = self._params(unitary)
         circuit = self._circuit(theta, phi, lam,
                                 simplify=simplify,
-                                simplify_tolerance=simplify_tolerance)
-        # Check circuit is correct
-        self.check_equiv(unitary, circuit,
-                         phase_equal=phase_equal,
-                         atol=atol)
+                                atol=atol)
         return circuit
 
     @property
@@ -186,7 +169,7 @@ class OneQubitEulerDecomposer:
         return self._params(unitary)
 
     def circuit(self, theta, phi, lam, simplify=True,
-                simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                atol=DEFAULT_ATOL):
         """Return the basis circuit for the input parameters.
 
         Args:
@@ -194,43 +177,13 @@ class OneQubitEulerDecomposer:
             phi (float): euler angle parameter
             lam (float): euler angle parameter
             simplify (bool): simplify output circuit [Default: True]
-            simplify_tolerance (float): absolute tolerance for checking
-                                        angles zero [Default: 1e-12].
+            atol (float): absolute tolerance for checking
+                          angles for simplication [Default: 1e-12].
 
         Returns:
             QuantumCircuit: the basis circuits.
         """
-        return self._circuit(theta, phi, lam,
-                             simplify=simplify,
-                             simplify_tolerance=simplify_tolerance)
-
-    @staticmethod
-    def check_equiv(unitary, circuit, phase_equal=False, atol=DEFAULT_ATOL):
-        """Check a circuit is equivalent to a unitary.
-
-        Args:
-            unitary (Operator or Gate or array): unitary operator.
-            circuit (QuantumCircuit or Instruction): decomposition circuit.
-            phase_equal (bool): require the decomposition to be global phase
-                                equal [Default: False]
-            atol (float): absolute tolerance for checking matrix entries.
-                          [Default: 1e-7]
-
-        Raises:
-            QiskitError: if the input unitary and circuit are not equivalent.
-        """
-        # NOTE: this function isn't specific to this class so could be
-        # moved to another location for more general use.
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators import Operator
-        if phase_equal and not np.allclose(Operator(circuit).data, unitary, atol=atol):
-            raise QiskitError(
-                "Phase equal circuit synthesis failed within required accuracy."
-            )
-        if not phase_equal and not Operator(circuit).equiv(unitary, atol=atol):
-            raise QiskitError(
-                "Circuit synthesis failed within required accuracy.")
+        return self._circuit(theta, phi, lam, simplify=simplify, atol=atol)
 
     @staticmethod
     def _params_zyz(mat):
@@ -300,16 +253,16 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      simplify=True,
-                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                     atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1)
-        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
+        if simplify and np.isclose(theta, 0.0, atol=atol):
             circuit.append(RZGate(phi + lam), [0])
             return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(theta, 0.0, atol=atol):
             circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(phi, 0.0, atol=atol):
             circuit.append(RZGate(phi), [0])
         return circuit
 
@@ -318,17 +271,17 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      simplify=False,
-                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
-        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
+                     atol=DEFAULT_ATOL):
+        if simplify and np.isclose(theta, 0.0, atol=atol):
             circuit = QuantumCircuit(1)
             circuit.append(RZGate(phi + lam), [0])
             return circuit
         circuit = QuantumCircuit(1)
-        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(theta, 0.0, atol=atol):
             circuit.append(RXGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(phi, 0.0, atol=atol):
             circuit.append(RZGate(phi), [0])
         return circuit
 
@@ -337,16 +290,16 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      simplify=True,
-                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                     atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1)
-        if simplify and np.isclose(theta, 0.0, atol=simplify_tolerance):
+        if simplify and np.isclose(theta, 0.0, atol=atol):
             circuit.append(RXGate(phi + lam), [0])
             return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.append(RXGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(theta, 0.0, atol=atol):
             circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=simplify_tolerance):
+        if not simplify or not np.isclose(phi, 0.0, atol=atol):
             circuit.append(RXGate(phi), [0])
         return circuit
 
@@ -355,7 +308,7 @@ class OneQubitEulerDecomposer:
                     phi,
                     lam,
                     simplify=True,
-                    simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1)
         circuit.append(U3Gate(theta, phi, lam), [0])
@@ -366,18 +319,18 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      simplify=True,
-                     simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                     atol=DEFAULT_ATOL):
         # Shift theta and phi so decomposition is
         # U1(phi).X90.U1(theta).X90.U1(lam)
         theta += np.pi
         phi += np.pi
         # Check for decomposition into minimimal number required X90 pulses
-        if simplify and np.isclose(abs(theta), np.pi, atol=simplify_tolerance):
+        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             # Zero X90 gate decomposition
             circuit = QuantumCircuit(1)
             circuit.append(U1Gate(lam + phi + theta), [0])
             return circuit
-        if simplify and np.isclose(abs(theta), np.pi/2, atol=simplify_tolerance):
+        if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
             # Single X90 gate decomposition
             circuit = QuantumCircuit(1)
             circuit.append(U1Gate(lam + theta), [0])
@@ -398,9 +351,9 @@ class OneQubitEulerDecomposer:
                     phi,
                     lam,
                     simplify=True,
-                    simplify_tolerance=DEFAULT_SIMPLIFY_TOLERANCE):
+                    atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1)
-        if not simplify or not np.isclose(theta, -np.pi, atol=simplify_tolerance):
+        if not simplify or not np.isclose(theta, -np.pi, atol=atol):
             circuit.append(RGate(theta + np.pi, np.pi / 2 - lam), [0])
         circuit.append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [0])
         return circuit

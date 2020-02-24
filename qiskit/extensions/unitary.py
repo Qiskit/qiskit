@@ -34,6 +34,8 @@ from qiskit.extensions.exceptions import ExtensionError
 class UnitaryGate(Gate):
     """Class for representing unitary gates"""
 
+    _DECOMPOSER = OneQubitEulerDecomposer()
+
     def __init__(self, data, label=None):
         """Create a gate from a numeric unitary matrix.
 
@@ -104,7 +106,7 @@ class UnitaryGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
-            theta, phi, lam, _ = OneQubitEulerDecomposer._params_u3(self.to_matrix())
+            theta, phi, lam = self._DECOMPOSER.angles(self.to_matrix())
             self.definition = [(U3Gate(theta, phi, lam), [q[0]], [])]
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())

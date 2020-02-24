@@ -41,7 +41,7 @@ from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 _CUTOFF_PRECISION = 1e-12
-_DECOMP1Q = OneQubitEulerDecomposer('U3')
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
 def euler_angles_1q(unitary_matrix):
@@ -451,7 +451,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [_DECOMP1Q.angles(x) for x in decomposition]
+        decomposition_angles = [_DECOMPOSER1Q.angles(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)

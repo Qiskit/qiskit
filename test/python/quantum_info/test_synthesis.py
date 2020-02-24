@@ -101,11 +101,11 @@ class TestEulerAngles1Q(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_euler_angles_1q_random(self, nsamples=100):
+    def test_euler_angles_1q_random(self, nsamples=100, seed=9000):
         """Verify euler_angles_1q produces correct Euler angles for random unitaries.
         """
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
+        for i in range(nsamples):
+            unitary = random_unitary(2, seed=seed+i)
             self.check_one_qubit_euler_angles(unitary)
 
 
@@ -224,10 +224,8 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
 
     def test_one_qubit_hard_thetas_rr_basis(self):
         """Verify for r, r basis and close-to-degenerate theta."""
-        # We lower tolerance for this test since decomposition since it
-        # appears to be less numerically accurate.
         for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'RR', 1e-7)
+            self.check_one_qubit_euler_angles(Operator(gate), 'RR')
 
     def test_one_qubit_random_rr_basis(self, nsamples=50):
         """Verify for r, r basis and random unitaries."""

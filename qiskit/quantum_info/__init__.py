@@ -101,10 +101,10 @@ Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   euler_angles_1q
-   two_qubit_cnot_decompose
-   TwoQubitBasisDecomposer
    OneQubitEulerDecomposer
+   TwoQubitBasisDecomposer
+   two_qubit_cnot_decompose
+   euler_angles_1q
 """
 
 from .operators.operator import Operator
@@ -120,6 +120,6 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
                      mutual_information, shannon_entropy)
 from .states.states import basis_state, projector
 from .random import random_unitary, random_state, random_density_matrix
-from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
-                        two_qubit_cnot_decompose)
+from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
+                        two_qubit_cnot_decompose, euler_angles_1q)
 from .analysis import hellinger_fidelity
