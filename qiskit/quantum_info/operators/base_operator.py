@@ -35,6 +35,23 @@ class BaseOperator(ABC):
 
     def __init__(self, input_dims, output_dims):
         """Initialize an operator object."""
+        # Class attributes
+        self._input_dim = None
+        self._output_dim = None
+        self._input_dims = None
+        self._output_dims = None
+        # Set attributes
+        self._set_dims(input_dims, output_dims)
+
+    def __eq__(self, other):
+        """Check subsystem dimensions are equal"""
+        if not isinstance(other, self.__class__):
+            return False
+        return (self._input_dims == other._input_dims and
+                self._output_dims == other._output_dims)
+
+    def _set_dims(self, input_dims, output_dims):
+        """Set dimension attributes"""
         # Shape lists the dimension of each subsystem starting from
         # least significant through to most significant.
         self._input_dims = tuple(input_dims)
@@ -43,13 +60,6 @@ class BaseOperator(ABC):
         # of all subsystem dimension in the input_dims/output_dims.
         self._input_dim = np.product(input_dims)
         self._output_dim = np.product(output_dims)
-
-    def __eq__(self, other):
-        """Check subsystem dimensions are equal"""
-        if not isinstance(other, self.__class__):
-            return False
-        return (self._input_dims == other._input_dims and
-                self._output_dims == other._output_dims)
 
     @property
     def dim(self):
