@@ -155,16 +155,6 @@ class BaseOperator(ABC):
         return self.conjugate().transpose()
 
     @abstractmethod
-    def is_unitary(self, atol=None, rtol=None):
-        """Return True if operator is a unitary matrix."""
-        pass
-
-    @abstractmethod
-    def to_operator(self):
-        """Convert operator to matrix operator class"""
-        pass
-
-    @abstractmethod
     def conjugate(self):
         """Return the conjugate of the operator."""
         pass
