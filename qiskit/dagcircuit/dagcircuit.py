@@ -935,8 +935,17 @@ class DAGCircuit:
     def edges(self, nodes=None):
         """Iterator for edge values and source and dest node
 
+        This works by returning the output edges from the specified nodes. If
+        no nodes are specified all edges from the graph are returned.
+
+        Args:
+            nodes(DAGNode|list(DAGNode): Either a list of nodes or a single
+                input node. If none is specified all edges are returned from
+                the graph.
+
         Yield:
-            edge: the edge.
+            edge: the edge in the same format as out_edges the tuple
+                (source node, destination node, edge data)
         """
         if nodes is None:
             nodes = self._multi_graph.nodes()
@@ -944,7 +953,8 @@ class DAGCircuit:
         elif isinstance(nodes, DAGNode):
             nodes = [nodes]
         for node in nodes:
-            for source, dest, edge in self._multi_graph.in_edges(node._node_id):
+            raw_nodes = self._multi_graph.out_edges(node._node_id)
+            for source, dest, edge in raw_nodes:
                 yield self._id_to_node[source], self._id_to_node[dest], edge
 
     def op_nodes(self, op=None):

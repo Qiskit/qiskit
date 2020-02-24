@@ -203,6 +203,20 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
 
+    def test_edges(self):
+        """Test that DAGCircuit.edges() behaves as expected with ops."""
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [], condition=None)
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        out_edges = self.dag.edges(self.dag.output_map.values())
+        self.assertEqual(list(out_edges), [])
+        in_edges = self.dag.edges(self.dag.input_map.values())
+        # number of edges for input nodes should be the same as number of wires
+        self.assertEqual(len(list(in_edges)), 5)
+
     def test_apply_operation_back_conditional(self):
         """Test consistency of apply_operation_back with condition set."""
 
