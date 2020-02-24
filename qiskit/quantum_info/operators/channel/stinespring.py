@@ -88,13 +88,13 @@ class Stinespring(QuantumChannel):
         if isinstance(data, (list, tuple, np.ndarray)):
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
-                stine = (np.array(data, dtype=complex), None)
+                stine = (np.asarray(data, dtype=complex), None)
             if isinstance(data, tuple) and len(data) == 2:
                 if data[1] is None:
-                    stine = (np.array(data[0], dtype=complex), None)
+                    stine = (np.asarray(data[0], dtype=complex), None)
                 else:
-                    stine = (np.array(data[0], dtype=complex),
-                             np.array(data[1], dtype=complex))
+                    stine = (np.asarray(data[0], dtype=complex),
+                             np.asarray(data[1], dtype=complex))
 
             dim_left, dim_right = stine[0].shape
             # If two Stinespring matrices check they are same shape

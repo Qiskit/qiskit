@@ -89,7 +89,7 @@ class PTM(QuantumChannel):
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Should we force this to be real?
-            ptm = np.array(data, dtype=complex)
+            ptm = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dout, din = ptm.shape
             if input_dims:

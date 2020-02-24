@@ -87,7 +87,7 @@ class Choi(QuantumChannel):
         # already a Choi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
-            choi_mat = np.array(data, dtype=complex)
+            choi_mat = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = choi_mat.shape
             if dim_l != dim_r:

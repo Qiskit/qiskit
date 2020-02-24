@@ -94,18 +94,18 @@ class Kraus(QuantumChannel):
             # E(rho) = A * rho * A^\dagger
             if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
                 # Convert single Kraus op to general Kraus pair
-                kraus = ([np.array(data, dtype=complex)], None)
+                kraus = ([np.asarray(data, dtype=complex)], None)
                 shape = kraus[0][0].shape
 
             # Check if single Kraus set [A_i] for channel:
             # E(rho) = sum_i A_i * rho * A_i^dagger
             elif isinstance(data, list) and len(data) > 0:
                 # Get dimensions from first Kraus op
-                kraus = [np.array(data[0], dtype=complex)]
+                kraus = [np.asarray(data[0], dtype=complex)]
                 shape = kraus[0].shape
                 # Iterate over remaining ops and check they are same shape
                 for i in data[1:]:
-                    op = np.array(i, dtype=complex)
+                    op = np.asarray(i, dtype=complex)
                     if op.shape != shape:
                         raise QiskitError(
                             "Kraus operators are different dimensions.")
@@ -120,7 +120,7 @@ class Kraus(QuantumChannel):
                 kraus_left = [np.array(data[0][0], dtype=complex)]
                 shape = kraus_left[0].shape
                 for i in data[0][1:]:
-                    op = np.array(i, dtype=complex)
+                    op = np.asarray(i, dtype=complex)
                     if op.shape != shape:
                         raise QiskitError(
                             "Kraus operators are different dimensions.")
@@ -130,7 +130,7 @@ class Kraus(QuantumChannel):
                 else:
                     kraus_right = []
                     for i in data[1]:
-                        op = np.array(i, dtype=complex)
+                        op = np.asarray(i, dtype=complex)
                         if op.shape != shape:
                             raise QiskitError(
                                 "Kraus operators are different dimensions.")

@@ -79,7 +79,7 @@ class Chi(QuantumChannel):
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
-            chi_mat = np.array(data, dtype=complex)
+            chi_mat = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:

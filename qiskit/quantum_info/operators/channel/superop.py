@@ -80,7 +80,7 @@ class SuperOp(QuantumChannel):
         # already a superoperator.
         if isinstance(data, (list, np.ndarray)):
             # We initialize directly from superoperator matrix
-            super_mat = np.array(data, dtype=complex)
+            super_mat = np.asarray(data, dtype=complex)
             # Determine total input and output dimensions
             dout, din = super_mat.shape
             input_dim = int(np.sqrt(din))
