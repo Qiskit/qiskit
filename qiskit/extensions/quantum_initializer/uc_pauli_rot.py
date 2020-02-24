@@ -81,7 +81,6 @@ class UCPauliRotGate(Gate, metaclass=UCPauliRotMeta):
 
     def _define(self):
         ucr_circuit = self._dec_ucrot()
-        gate_num = len(ucr_circuit.data)
         gate = ucr_circuit.to_instruction()
         q = QuantumRegister(self.num_qubits)
         ucr_circuit = QuantumCircuit(q)
