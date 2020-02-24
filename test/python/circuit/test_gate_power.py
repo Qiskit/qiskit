@@ -142,7 +142,7 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result).power(degree),
-                        Operator(SGate()))
+                         Operator(SGate()))
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
     def test_float_gt_one(self, exponent):
