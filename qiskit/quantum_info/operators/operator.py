@@ -16,6 +16,7 @@
 Matrix Operator class.
 """
 
+import copy
 import re
 from numbers import Number
 
@@ -72,7 +73,10 @@ class Operator(BaseOperator):
         the input operator is not an N-qubit operator, it will assign a
         single subsystem with dimension specified by the shape of the input.
         """
-        if isinstance(data, (QuantumCircuit, Instruction)):
+        if isinstance(data, (list, np.ndarray)):
+            # Default initialization from list or numpy array matrix
+            self._data = np.asarray(data, dtype=complex)
+        elif isinstance(data, (QuantumCircuit, Instruction)):
             # If the input is a Terra QuantumCircuit or Instruction we
             # perform a simulation to construct the unitary operator.
             # This will only work if the circuit or instruction can be
@@ -95,11 +99,7 @@ class Operator(BaseOperator):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            self._array = np.array(data.to_matrix(), dtype=complex)
-        elif isinstance(data, (list, np.ndarray)):
-            # Finally we check if the input is a raw matrix in either a
-            # python list or numpy array format.
-            self._data = np.array(data, dtype=complex)
+            self._array = np.asarray(data.to_matrix(), dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
@@ -199,15 +199,19 @@ class Operator(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        return Operator(np.conj(self.data),
-                        input_dims=self.input_dims(),
-                        output_dims=self.output_dims())
+        # Make a shallow copy and update array
+        ret = copy.copy(self)
+        ret._data = np.conj(self._data)
+        return ret
 
     def transpose(self):
         """Return the transpose of the operator."""
-        return Operator(np.transpose(self.data),
-                        input_dims=self.output_dims(),
-                        output_dims=self.input_dims())
+        # Make a shallow copy and update array
+        ret = copy.copy(self)
+        ret._data = np.transpose(self._data)
+        # Swap input and output dimensions
+        ret._set_dims(self._output_dims, self._input_dims)
+        return ret
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
@@ -270,9 +274,9 @@ class Operator(BaseOperator):
             raise QiskitError("Can only power with input_dims = output_dims.")
         # Override base class power so we can implement more efficiently
         # using Numpy.matrix_power
-        return Operator(
-            np.linalg.matrix_power(self.data, n), self.input_dims(),
-            self.output_dims())
+        ret = copy.copy(self)
+        ret._data = np.linalg.matrix_power(self.data, n)
+        return ret
 
     def tensor(self, other):
         """Return the tensor product operator self ⊗ other.
@@ -329,8 +333,9 @@ class Operator(BaseOperator):
             other = Operator(other)
         if self.dim != other.dim:
             raise QiskitError("other operator has different dimensions.")
-        return Operator(self.data + other.data, self.input_dims(),
-                        self.output_dims())
+        ret = copy.copy(self)
+        ret._data = self.data + other.data
+        return ret
 
     def _multiply(self, other):
         """Return the operator other * self.
@@ -346,8 +351,9 @@ class Operator(BaseOperator):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        return Operator(other * self.data, self.input_dims(),
-                        self.output_dims())
+        ret = copy.copy(self)
+        ret._data = other * self._data
+        return ret
 
     def equiv(self, other, rtol=None, atol=None):
         """Return True if operators are equivalent up to global phase.
