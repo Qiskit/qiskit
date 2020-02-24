@@ -17,12 +17,12 @@
 from typing import List, Callable, Optional
 import logging
 import numpy as np
-from ..vqe import VQE
 from qiskit.aqua.operators import BaseOperator
 from qiskit.aqua.components.initial_states import InitialState
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.utils.validation import validate_min
 from .var_form import QAOAVarForm
+from ..vqe import VQE
 
 logger = logging.getLogger(__name__)
 
