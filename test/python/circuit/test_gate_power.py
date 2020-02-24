@@ -22,7 +22,7 @@ from numpy.testing import assert_allclose, assert_array_almost_equal
 from numpy.linalg import matrix_power
 
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CnotGate
+from qiskit.extensions import SGate, UnitaryGate, CXGate
 from qiskit.circuit import Gate
 from qiskit.quantum_info.operators import Operator
 
@@ -76,7 +76,7 @@ class TestPowerIntCX(QiskitTestCase):
     def test_cx_int(self, n):
         """Test CX.power(<int>) method.
         """
-        result = CnotGate().power(n)
+        result = CXGate().power(n)
 
         self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)

@@ -13,7 +13,15 @@
 # that they have been altered from the originals.
 
 """
-Channels.
+This module defines Pulse Channels. Channels include:
+
+  - transmit channels, which should subclass ``PulseChannel``
+  - receive channels, such as ``AcquireChannel``
+  - non-signal "channels" such as ``SnapshotChannel``, ``MemorySlot`` and ``RegisterChannel``.
+
+Novel channel types can often utilize the ``ControlChannel``, but if this is not sufficient, new
+channel types can be created. Then, they must be supported in the PulseQobj schema and the
+assembler.
 """
 from abc import ABCMeta
 
@@ -21,48 +29,54 @@ from qiskit.pulse.exceptions import PulseError
 
 
 class Channel(metaclass=ABCMeta):
-    """Base class of channels."""
+    """Base class of channels. Channels provide a Qiskit-side label for typical quantum control
+    hardware signal channels. The final label -> physical channel mapping is the responsibility
+    of the hardware backend. For instance, ``DriveChannel(0)`` holds instructions which the backend
+    should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
+    """
 
-    prefix = None
+    prefix = None  # type: str
+    """A shorthand string prefix for characterizing the channel type."""
 
     def __init__(self, index: int):
         """Channel class.
 
         Args:
-            index: Index of channel
+            index: Index of channel.
 
         Raises:
-            PulseError: If ``index`` is not an integer
+            PulseError: If ``index`` is not a nonnegative integer.
         """
-        if not isinstance(index, int):
-            raise PulseError('Channel index must be integer')
-
+        if not isinstance(index, int) or index < 0:
+            raise PulseError('Channel index must be a nonnegative integer')
         self._index = index
 
     @property
     def index(self) -> int:
-        """Return the index of this channel."""
+        """Return the index of this channel. The index is a label for a control signal line
+        typically mapped trivially to a qubit index. For instance, ``DriveChannel(0)`` labels
+        the signal line driving the qubit labeled with index 0.
+        """
         return self._index
 
     @property
     def name(self) -> str:
-        """Return the name of this channel."""
+        """Return the shorthand alias for this channel, which is based on its type and index."""
         return '%s%d' % (self.__class__.prefix, self._index)
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self._index)
 
     def __eq__(self, other: 'Channel') -> bool:
-        """
-        Channels are the same iff they are of the same type, and have the same index.
+        """Return True iff self and other are equal, specifically, iff they have the same type
+        and the same index.
 
         Args:
             other: The channel to compare to this channel.
 
         Returns:
-            bool: equality
+            True iff equal.
         """
-
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
@@ -70,32 +84,35 @@ class Channel(metaclass=ABCMeta):
 
 
 class PulseChannel(Channel, metaclass=ABCMeta):
-    """Base class of Channel supporting pulse output."""
+    """Base class of transmit Channels. Pulses can be played on these channels."""
     pass
 
 
 class DriveChannel(PulseChannel):
-    """Drive Channel."""
+    """Drive channels transmit signals to qubits which enact gate operations."""
     prefix = 'd'
 
 
 class MeasureChannel(PulseChannel):
-    """Measure Channel."""
+    """Measure channels transmit measurement stimulus pulses for readout."""
     prefix = 'm'
 
 
 class ControlChannel(PulseChannel):
-    """Control Channel."""
+    """Control channels provide supplementary control over the qubit to the drive channel.
+    These are often associated with multi-qubit gate operations. They may not map trivially
+    to a particular qubit index.
+    """
     prefix = 'u'
 
 
 class AcquireChannel(Channel):
-    """Acquire channel."""
+    """Acquire channels are used to collect data."""
     prefix = 'a'
 
 
 class SnapshotChannel(Channel):
-    """Snapshot channel."""
+    """Snapshot channels are used to specify commands for simulators."""
     prefix = 's'
 
     def __init__(self):
@@ -104,10 +121,12 @@ class SnapshotChannel(Channel):
 
 
 class MemorySlot(Channel):
-    """Memory slot channel."""
+    """Memory slot channels represent classical memory storage."""
     prefix = 'm'
 
 
 class RegisterSlot(Channel):
-    """Classical resister slot channel."""
+    """Classical resister slot channels represent classical registers (low-latency classical
+    memory).
+    """
     prefix = 'c'
