@@ -269,7 +269,7 @@ class DAGCircuit:
         # and adding new edges from the operation node to each output node
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
-            ie = list(self._multi_graph.predecessors(self.output_map[q]._node_id))
+            ie = self._multi_graph.predecessors(self.output_map[q]._node_id)
 
             if len(ie) != 1:
                 raise DAGCircuitError("output node has multiple in-edges")
@@ -312,7 +312,7 @@ class DAGCircuit:
         # and adding new edges to the operation node from each input node
         al = [qargs, all_cbits]
         for q in itertools.chain(*al):
-            ie = list(self._multi_graph.successors(self.input_map[q]._node_id))
+            ie = self._multi_graph.successors(self.input_map[q]._node_id)
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
             self._multi_graph.add_edge(node_index, ie[0]._node_id,
@@ -695,7 +695,7 @@ class DAGCircuit:
                 full_succ_map[w] = self.output_map[w]
                 full_pred_map[w] = self._multi_graph.predecessors(
                     self.output_map[w])[0]
-                if len(list(self._multi_graph.predecessors(self.output_map[w]))) != 1:
+                if len(self._multi_graph.predecessors(self.output_map[w])) != 1:
                     raise DAGCircuitError("too many predecessors for %s[%d] "
                                           "output node" % (w.register, w.index))
 
@@ -841,7 +841,7 @@ class DAGCircuit:
                                        full_succ_map[w],
                                        dict(name="%s[%s]" % (w.register.name, w.index),
                                             wire=w))
-            o_pred = list(self._multi_graph.predecessors(self.output_map[w]._node_id))
+            o_pred = self._multi_graph.predecessors(self.output_map[w]._node_id)
             if len(o_pred) > 1:
                 if len(o_pred) != 2:
                     raise DAGCircuitError("expected 2 predecessors here")
@@ -1236,7 +1236,7 @@ class DAGCircuit:
                         s[0].condition is None:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
-                    s = list(self._multi_graph.successors(s[0]._node_id))
+                    s = self._multi_graph.successors(s[0]._node_id)
                 if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
