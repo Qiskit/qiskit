@@ -81,17 +81,10 @@ class UCPauliRotGate(Gate, metaclass=UCPauliRotMeta):
 
     def _define(self):
         ucr_circuit = self._dec_ucrot()
-        gate_num = len(ucr_circuit.data)
         gate = ucr_circuit.to_instruction()
         q = QuantumRegister(self.num_qubits)
         ucr_circuit = QuantumCircuit(q)
-        if gate_num == 0:
-            # ToDo: if we would not add the identity here, this would lead to troubles
-            # ToDo: simulating the circuit afterwards.
-            # this should probably be fixed in the behavior of QuantumCircuit.
-            ucr_circuit.i(q[0])
-        else:
-            ucr_circuit.append(gate, q[:])
+        ucr_circuit.append(gate, q[:])
         self.definition = ucr_circuit.data
 
     def _dec_ucrot(self):
