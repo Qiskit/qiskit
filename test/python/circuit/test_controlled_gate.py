@@ -19,25 +19,27 @@ import unittest
 from inspect import signature
 import numpy as np
 from numpy import pi
-import scipy
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CnotGate, XGate, YGate, ZGate, U1Gate,
-                                        CyGate, CzGate, Cu1Gate, SwapGate,
-                                        ToffoliGate, HGate, RZGate, RXGate,
-                                        RYGate, CryGate, CrxGate, FredkinGate,
-                                        U3Gate, CHGate, CrzGate, Cu3Gate,
+from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
+                                        CYGate, CZGate, CU1Gate, SwapGate,
+                                        CCXGate, HGate, RZGate, RXGate,
+                                        RYGate, CRYGate, CRXGate, CSwapGate,
+                                        U3Gate, CHGate, CRZGate, CU3Gate,
                                         MSGate, Barrier, RCCXGate, RCCCXGate)
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
 
@@ -47,15 +49,15 @@ class TestControlledGate(QiskitTestCase):
 
     def test_controlled_x(self):
         """Test creation of controlled x gate"""
-        self.assertEqual(XGate().control(), CnotGate())
+        self.assertEqual(XGate().control(), CXGate())
 
     def test_controlled_y(self):
         """Test creation of controlled y gate"""
-        self.assertEqual(YGate().control(), CyGate())
+        self.assertEqual(YGate().control(), CYGate())
 
     def test_controlled_z(self):
         """Test creation of controlled z gate"""
-        self.assertEqual(ZGate().control(), CzGate())
+        self.assertEqual(ZGate().control(), CZGate())
 
     def test_controlled_h(self):
         """Test creation of controlled h gate"""
@@ -64,41 +66,41 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_u1(self):
         """Test creation of controlled u1 gate"""
         theta = 0.5
-        self.assertEqual(U1Gate(theta).control(), Cu1Gate(theta))
+        self.assertEqual(U1Gate(theta).control(), CU1Gate(theta))
 
     def test_controlled_rz(self):
         """Test creation of controlled rz gate"""
         theta = 0.5
-        self.assertEqual(RZGate(theta).control(), CrzGate(theta))
+        self.assertEqual(RZGate(theta).control(), CRZGate(theta))
 
     def test_controlled_ry(self):
         """Test creation of controlled ry gate"""
         theta = 0.5
-        self.assertEqual(RYGate(theta).control(), CryGate(theta))
+        self.assertEqual(RYGate(theta).control(), CRYGate(theta))
 
     def test_controlled_rx(self):
         """Test creation of controlled rx gate"""
         theta = 0.5
-        self.assertEqual(RXGate(theta).control(), CrxGate(theta))
+        self.assertEqual(RXGate(theta).control(), CRXGate(theta))
 
     def test_controlled_u3(self):
         """Test creation of controlled u3 gate"""
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(U3Gate(theta, phi, lamb).control(),
-                         Cu3Gate(theta, phi, lamb))
+                         CU3Gate(theta, phi, lamb))
 
     def test_controlled_cx(self):
         """Test creation of controlled cx gate"""
-        self.assertEqual(CnotGate().control(), ToffoliGate())
+        self.assertEqual(CXGate().control(), CCXGate())
 
     def test_controlled_swap(self):
         """Test creation of controlled swap gate"""
-        self.assertEqual(SwapGate().control(), FredkinGate())
+        self.assertEqual(SwapGate().control(), CSwapGate())
 
     def test_circuit_append(self):
         """Test appending controlled gate to quantum circuit"""
         circ = QuantumCircuit(5)
-        inst = CnotGate()
+        inst = CXGate()
         circ.append(inst.control(), qargs=[0, 2, 1])
         circ.append(inst.control(2), qargs=[0, 3, 1, 2])
         circ.append(inst.control().control(), qargs=[0, 3, 1, 2])  # should be same as above
@@ -156,8 +158,8 @@ class TestControlledGate(QiskitTestCase):
         num_target = cgate.width()
         gate = cgate.to_gate()
         cont_gate = gate.control(num_ctrl_qubits=num_ctrl)
-        control = QuantumRegister(num_ctrl)
-        target = QuantumRegister(num_target)
+        control = QuantumRegister(num_ctrl, 'control')
+        target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:]+target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
@@ -194,7 +196,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
-        cu3gate = u3.Cu3Gate(alpha, beta, gamma)
+        cu3gate = u3.CU3Gate(alpha, beta, gamma)
 
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
@@ -255,7 +257,7 @@ class TestControlledGate(QiskitTestCase):
         width = 3
         qr = QuantumRegister(width)
         qc_cu1 = QuantumCircuit(qr)
-        cu1gate = u1.Cu1Gate(theta)
+        cu1gate = u1.CU1Gate(theta)
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
@@ -400,12 +402,51 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """test controlled unitary"""
         num_target = 2
-        base_gate = UnitaryGate(scipy.stats.unitary_group.rvs(num_target))
+        base_gate = random_unitary(2**num_target).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
+
+    @data(1, 2, 3)
+    def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
+        """test open controlled unitary matrix"""
+        # verify truth table
+        num_target_qubits = 2
+        num_qubits = num_ctrl_qubits + num_target_qubits
+        target_op = Operator(XGate())
+        for i in range(num_target_qubits - 1):
+            target_op = target_op.tensor(XGate())
+        print('')
+        for i in range(2**num_qubits):
+            input_bitstring = bin(i)[2:].zfill(num_qubits)
+            input_target = input_bitstring[0:num_target_qubits]
+            input_ctrl = input_bitstring[-num_ctrl_qubits:]
+            phi = Statevector.from_label(input_bitstring)
+            cop = Operator(_compute_control_matrix(target_op.data,
+                                                   num_ctrl_qubits,
+                                                   ctrl_state=input_ctrl))
+            for j in range(2**num_qubits):
+                output_bitstring = bin(j)[2:].zfill(num_qubits)
+                output_target = output_bitstring[0:num_target_qubits]
+                output_ctrl = output_bitstring[-num_ctrl_qubits:]
+                psi = Statevector.from_label(output_bitstring)
+                cxout = np.dot(phi.data, psi.evolve(cop).data)
+                if input_ctrl == output_ctrl:
+                    # flip the target bits
+                    cond_output = ''.join([str(int(not int(a))) for a in input_target])
+                else:
+                    cond_output = input_target
+                if cxout == 1:
+                    self.assertTrue(
+                        (output_ctrl == input_ctrl) and
+                        (output_target == cond_output))
+                else:
+                    self.assertTrue(
+                        ((output_ctrl == input_ctrl) and
+                         (output_target != cond_output)) or
+                        output_ctrl != input_ctrl)
 
     def test_base_gate_setting(self):
         """
@@ -431,7 +472,7 @@ class TestControlledGate(QiskitTestCase):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             with self.subTest(i=cls):
-                if issubclass(cls, ControlledGate) or cls == allGates.IdGate:
+                if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                     continue
                 try:
                     sig = signature(cls)
@@ -516,28 +557,103 @@ class TestControlledGate(QiskitTestCase):
         # compare simulated matrix with the matrix representation provided by the class
         self.assertTrue(matrix_equal(simulated_mat, repr_mat))
 
+    def test_open_controlled_gate(self):
+        """
+        Test controlled gates with control on '0'
+        """
+        base_gate = XGate()
+        base_mat = base_gate.to_matrix()
+        num_ctrl_qubits = 3
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits):
-    """
-    Compute the controlled version of the input matrix with qiskit ordering.
+        ctrl_state = 5
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
-    Args:
-        base_mat (ndarray): unitary to be controlled
-        num_ctrl_qubits (int): number of controls for new unitary
+        ctrl_state = None
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertEqual(Operator(cgate), Operator(target_mat))
 
-    Returns:
-        ndarray: controlled version of base matrix.
-    """
-    num_target = int(np.log2(base_mat.shape[0]))
-    ctrl_dim = 2**num_ctrl_qubits
-    ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = np.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-    ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_dim - 1))
-    full_mat = (np.kron(np.eye(2**num_target),
-                        np.eye(ctrl_dim) - ctrl_proj)
-                + np.kron(base_mat, ctrl_proj))
-    return full_mat
+        ctrl_state = 0
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertEqual(Operator(cgate), Operator(target_mat))
+
+        ctrl_state = 7
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertEqual(Operator(cgate), Operator(target_mat))
+
+        ctrl_state = '110'
+        cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertEqual(Operator(cgate), Operator(target_mat))
+
+    def test_open_controlled_gate_raises(self):
+        """
+        Test controlled gates with open controls raises if ctrl_state isn't allowed.
+        """
+        base_gate = XGate()
+        num_ctrl_qubits = 3
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state=-1)
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    def test_deprecated_gates(self):
+        """Test types of the deprecated gate classes."""
+
+        import qiskit.extensions.standard.i as i
+        import qiskit.extensions.standard.rx as rx
+        import qiskit.extensions.standard.ry as ry
+        import qiskit.extensions.standard.rz as rz
+        import qiskit.extensions.standard.swap as swap
+        import qiskit.extensions.standard.u1 as u1
+        import qiskit.extensions.standard.u3 as u3
+        import qiskit.extensions.standard.x as x
+        import qiskit.extensions.standard.y as y
+        import qiskit.extensions.standard.z as z
+
+        import qiskit.extensions.quantum_initializer.diagonal as diagonal
+        import qiskit.extensions.quantum_initializer.uc as uc
+        import qiskit.extensions.quantum_initializer.uc_pauli_rot as uc_pauli_rot
+        import qiskit.extensions.quantum_initializer.ucrx as ucrx
+        import qiskit.extensions.quantum_initializer.ucry as ucry
+        import qiskit.extensions.quantum_initializer.ucrz as ucrz
+
+        theta, phi, lam = 0.1, 0.2, 0.3
+        diag = [1, 1]
+        unitary = np.array([[1, 0], [0, 1]])
+        renamend_gates = [
+            (diagonal.DiagonalGate, diagonal.DiagGate, [diag]),
+            (i.IGate, i.IdGate, []),
+            (rx.CRXGate, rx.CrxGate, [theta]),
+            (ry.CRYGate, ry.CryGate, [theta]),
+            (rz.CRZGate, rz.CrzGate, [theta]),
+            (swap.CSwapGate, swap.FredkinGate, []),
+            (u1.CU1Gate, u1.Cu1Gate, [theta]),
+            (u3.CU3Gate, u3.Cu3Gate, [theta, phi, lam]),
+            (uc.UCGate, uc.UCG, [[unitary]]),
+            (uc_pauli_rot.UCPauliRotGate, uc_pauli_rot.UCRot, [[theta], 'X']),
+            (ucrx.UCRXGate, ucrx.UCX, [[theta]]),
+            (ucry.UCRYGate, ucry.UCY, [[theta]]),
+            (ucrz.UCRZGate, ucrz.UCZ, [[theta]]),
+            (x.CXGate, x.CnotGate, []),
+            (x.CCXGate, x.ToffoliGate, []),
+            (y.CYGate, y.CyGate, []),
+            (z.CZGate, z.CzGate, []),
+        ]
+        for new, old, params in renamend_gates:
+            with self.subTest(msg='comparing {} and {}'.format(new, old)):
+                # assert old gate class derives from new
+                self.assertTrue(issubclass(old, new))
+
+                # assert both are representatives of one another
+                self.assertTrue(isinstance(new(*params), old))
+                self.assertTrue(isinstance(old(*params), new))
 
 
 if __name__ == '__main__':
