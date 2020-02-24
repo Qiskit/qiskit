@@ -127,8 +127,9 @@ class QuantumCircuit:
             try:
                 regs = tuple(int(reg) for reg in regs)
             except Exception:
-                raise CircuitError("Circuit args must be Registers or be castable to an int (%s '%s' was provided)"
-                                   % (type(regs).__name__, regs))
+                raise CircuitError("Circuit args must be Registers or be castable to an int" +
+                                   "(%s '%s' was provided)"
+                                   % ([type(reg).__name__ for reg in regs], regs))
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
