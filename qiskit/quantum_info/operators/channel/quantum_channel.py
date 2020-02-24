@@ -16,6 +16,7 @@
 Abstract base class for Quantum Channels.
 """
 
+import copy
 from abc import abstractmethod
 from numbers import Number
 import numpy as np
@@ -117,9 +118,9 @@ class QuantumChannel(BaseOperator):
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
         self._validate_add_dims(other)
-        return self.__class__(self._data + other.data,
-                              self._input_dims,
-                              self._output_dims)
+        ret = copy.copy(self)
+        ret._data = self._data + other._data
+        return ret
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
@@ -138,9 +139,9 @@ class QuantumChannel(BaseOperator):
         # ie Kraus and Stinespring
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        return self.__class__(other * self._data,
-                              self._input_dims,
-                              self._output_dims)
+        ret = copy.copy(self)
+        ret._data = other * self._data
+        return ret
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
