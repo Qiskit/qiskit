@@ -13,10 +13,10 @@
 # that they have been altered from the originals.
 
 """The ``instruction`` module holds the various ``Instruction`` s which are supported by
-Qiskit Pulse. Instructions accept a list of operands unique to instructions of that type. Every
-instruction includes at least one :py:class:`~qiskit.pulse.channels.Channel` as an operand
-specifying where the instruction will be applied, and every instruction has a duration, whether
-implicitly or explicitly defined.
+Qiskit Pulse. Instructions accept a list of operands unique to instructions of that type.
+Instructions typically include at least one :py:class:`~qiskit.pulse.channels.Channel` as an
+operand specifying where the instruction will be applied, and every instruction has a duration,
+whether implicitly or explicitly defined.
 
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
