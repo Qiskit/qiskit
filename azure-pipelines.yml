@@ -244,7 +244,7 @@ stages:
             set -e
             source activate qiskit-terra
             conda update --yes -n base conda
-            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy
+            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy scipy
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
@@ -423,7 +423,7 @@ stages:
             set -e
             source activate qiskit-terra
             conda update --yes -n base conda
-            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy
+            conda install --yes --quiet --name qiskit-terra python=$(python.version) numpy scipy
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
