@@ -50,17 +50,6 @@ class BaseOperator(ABC):
         return (self._input_dims == other._input_dims and
                 self._output_dims == other._output_dims)
 
-    def _set_dims(self, input_dims, output_dims):
-        """Set dimension attributes"""
-        # Shape lists the dimension of each subsystem starting from
-        # least significant through to most significant.
-        self._input_dims = tuple(input_dims)
-        self._output_dims = tuple(output_dims)
-        # The total input and output dimensions are given by the product
-        # of all subsystem dimension in the input_dims/output_dims.
-        self._input_dim = np.product(input_dims)
-        self._output_dim = np.product(output_dims)
-
     @property
     def dim(self):
         """Return tuple (input_shape, output_shape)."""
@@ -360,6 +349,85 @@ class BaseOperator(ABC):
                 return num_qubits * (2,)
             return (dims,)
         return tuple(dims)
+
+    def _set_dims(self, input_dims, output_dims):
+        """Set dimension attributes"""
+        # Shape lists the dimension of each subsystem starting from
+        # least significant through to most significant.
+        self._input_dims = tuple(input_dims)
+        self._output_dims = tuple(output_dims)
+        # The total input and output dimensions are given by the product
+        # of all subsystem dimension in the input_dims/output_dims.
+        self._input_dim = np.product(input_dims)
+        self._output_dim = np.product(output_dims)
+
+    def _get_compose_dims(self, other, qargs, front):
+        """Check dimensions are compatible for composition.
+
+        Args:
+            other (BaseOperator): another operator object.
+            qargs (None or list): compose qargs kwarg value.
+            front (bool): compose front kwarg value.
+
+        Returns:
+            tuple: the tuple (input_dims, output_dims) for the composed
+                   operator.
+        Raises:
+            QiskitError: if operator dimensions are invalid for compose.
+        """
+        if front:
+            output_dims = self._output_dims
+            if qargs is None:
+                if other._output_dim != self._input_dim:
+                    raise QiskitError(
+                        "Other operator combined output dimension ({}) does not"
+                        " match current combined input dimension ({}).".format(
+                            other._output_dim, self._input_dim))
+                input_dims = other._input_dims
+            else:
+                if other._output_dims != self.input_dims(qargs):
+                    raise QiskitError(
+                        "Other operator output dimensions ({}) does not"
+                        " match current subsystem input dimensions ({}).".format(
+                            other._output_dims, self.input_dims(qargs)))
+                input_dims = list(self._input_dims)
+                for i, qubit in enumerate(qargs):
+                    input_dims[qubit] = other._input_dims[i]
+        else:
+            input_dims = self._input_dims
+            if qargs is None:
+                if self._output_dim != other._input_dim:
+                    raise QiskitError(
+                        "Other operator combined input dimension ({}) does not"
+                        " match current combined output dimension ({}).".format(
+                            other._input_dim, self._output_dim))
+                output_dims = other._output_dims
+            else:
+                if self.output_dims(qargs) != other._input_dims:
+                    raise QiskitError(
+                        "Other operator input dimensions ({}) does not"
+                        " match current subsystem output dimension ({}).".format(
+                            other._input_dims, self.output_dims(qargs)))
+                output_dims = list(self._output_dims)
+                for i, qubit in enumerate(qargs):
+                    output_dims[qubit] = other._output_dims[i]
+        return input_dims, output_dims
+
+    def _validate_add_dims(self, other):
+        """Check dimensions are compatible for addition.
+
+        Args:
+            other (BaseOperator): another operator object.
+
+        Raises:
+            QiskitError: if operators have incompatibile dimensions for addition.
+        """
+        # For adding we only require that operators have the same total
+        # dimensions rather than each subsystem dimension matching.
+        if self.dim != other.dim:
+            raise QiskitError(
+                "Cannot add operators with different shapes"
+                " ({} != {}).".format(self.dim, other.dim))
 
     # Overloads
     def __matmul__(self, other):
