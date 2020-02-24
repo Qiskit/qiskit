@@ -141,7 +141,7 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.label, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        self.assertTrue(Operator(result).power(degree),
+        self.assertEqual(Operator(result).power(degree),
                         Operator(SGate()))
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
