@@ -38,7 +38,7 @@ class QuantumChannel(BaseOperator):
                  channel_rep=None):
         """Initialize a quantum channel Superoperator operator.
 
-        Args: 
+        Args:
             data (array or list): quantum channel data array.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
