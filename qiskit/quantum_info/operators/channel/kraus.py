@@ -151,7 +151,8 @@ class Kraus(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Kraus
-            kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
+            rep = getattr(data, '_channel_rep', 'Operator')
+            kraus = _to_kraus(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:

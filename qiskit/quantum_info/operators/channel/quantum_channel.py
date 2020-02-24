@@ -33,8 +33,7 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
-    @abstractmethod
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, rep, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
@@ -47,7 +46,17 @@ class QuantumChannel(BaseOperator):
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
         """
-        pass
+        # Set channel representation string
+        if not isinstance(rep, str):
+            raise QiskitError("rep must be a string not a {}".format(
+                rep.__class__))
+        self._channel_rep = rep
+        super().__init__(data, input_dims, output_dims)
+
+    def __repr__(self):
+        return '{}({}, input_dims={}, output_dims={})'.format(
+            self._channel_rep, self._data, self._input_dims,
+            self._output_dims)
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed quantum channel self @ other.
@@ -124,18 +133,18 @@ class QuantumChannel(BaseOperator):
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(
             choi, atol, rtol)
 
     def is_tp(self, atol=None, rtol=None):
         """Test if a channel is completely-positive (CP)"""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_tp_helper(choi, atol, rtol)
 
     def is_cp(self, atol=None, rtol=None):
         """Test if Choi-matrix is completely-positive (CP)"""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol)
 
     def is_unitary(self, atol=None, rtol=None):
@@ -148,7 +157,7 @@ class QuantumChannel(BaseOperator):
 
     def to_operator(self):
         """Try to convert channel to a unitary representation Operator."""
-        mat = _to_operator(self.rep, self._data, *self.dim)
+        mat = _to_operator(self._channel_rep, self._data, *self.dim)
         return Operator(mat, self.input_dims(), self.output_dims())
 
     def to_instruction(self):
@@ -176,7 +185,7 @@ class QuantumChannel(BaseOperator):
             )
         # Next we convert to the Kraus representation. Since channel is CPTP we know
         # that there is only a single set of Kraus operators
-        kraus, _ = _to_kraus(self.rep, self._data, *self.dim)
+        kraus, _ = _to_kraus(self._channel_rep, self._data, *self.dim)
         # If we only have a single Kraus operator then the channel is
         # a unitary channel so can be converted to a UnitaryGate. We do this by
         # converting to an Operator and using its to_instruction method

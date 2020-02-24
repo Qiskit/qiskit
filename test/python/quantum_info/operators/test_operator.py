@@ -201,11 +201,6 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(Operator(mat.tolist()),
                          Operator(mat))
 
-    def test_rep(self):
-        """Test Operator representation string property."""
-        op = Operator(self.rand_matrix(2, 2))
-        self.assertEqual(op.rep, 'Operator')
-
     def test_data(self):
         """Test Operator representation string property."""
         mat = self.rand_matrix(2, 2)

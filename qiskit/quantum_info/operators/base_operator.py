@@ -33,12 +33,8 @@ class BaseOperator(ABC):
     RTOL = RTOL_DEFAULT
     MAX_TOL = 1e-4
 
-    def __init__(self, rep, data, input_dims, output_dims):
+    def __init__(self, data, input_dims, output_dims):
         """Initialize an operator object."""
-        if not isinstance(rep, str):
-            raise QiskitError("rep must be a string not a {}".format(
-                rep.__class__))
-        self._rep = rep
         self._data = data
         # Shape lists the dimension of each subsystem starting from
         # least significant through to most significant.
@@ -56,15 +52,6 @@ class BaseOperator(ABC):
             return np.allclose(
                 self.data, other.data, rtol=self._rtol, atol=self._atol)
         return False
-
-    def __repr__(self):
-        return '{}({}, input_dims={}, output_dims={})'.format(
-            self.rep, self.data, self._input_dims, self._output_dims)
-
-    @property
-    def rep(self):
-        """Return operator representation string."""
-        return self._rep
 
     @property
     def dim(self):

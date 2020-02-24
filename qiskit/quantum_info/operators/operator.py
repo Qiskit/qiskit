@@ -106,7 +106,11 @@ class Operator(BaseOperator):
         dout, din = mat.shape
         output_dims = self._automatic_dims(output_dims, dout)
         input_dims = self._automatic_dims(input_dims, din)
-        super().__init__('Operator', mat, input_dims, output_dims)
+        super().__init__(mat, input_dims, output_dims)
+
+    def __repr__(self):
+        return 'Operator({}, input_dims={}, output_dims={})'.format(
+            self._data, self._input_dims, self._output_dims)
 
     @classmethod
     def from_label(cls, label):

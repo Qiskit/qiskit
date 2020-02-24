@@ -119,7 +119,8 @@ class Choi(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Choi object
-            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
+            rep = getattr(data, '_channel_rep', 'Operator')
+            choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
