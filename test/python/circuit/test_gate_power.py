@@ -55,7 +55,7 @@ class TestPowerSgate(QiskitTestCase):
         expected = self.results[n]
         self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
-        self.assertTrue(Operator(result), Operator(expected))
+        self.assertEqual(Operator(result), Operator(expected))
 
 
 @ddt
