@@ -33,9 +33,8 @@ class BaseOperator(ABC):
     RTOL = RTOL_DEFAULT
     MAX_TOL = 1e-4
 
-    def __init__(self, data, input_dims, output_dims):
+    def __init__(self, input_dims, output_dims):
         """Initialize an operator object."""
-        self._data = data
         # Shape lists the dimension of each subsystem starting from
         # least significant through to most significant.
         self._input_dims = tuple(input_dims)
@@ -46,22 +45,16 @@ class BaseOperator(ABC):
         self._output_dim = np.product(output_dims)
 
     def __eq__(self, other):
-        if (isinstance(other, self.__class__)
-                and self.input_dims() == other.input_dims()
-                and self.output_dims() == other.output_dims()):
-            return np.allclose(
-                self.data, other.data, rtol=self._rtol, atol=self._atol)
-        return False
+        """Check subsystem dimensions are equal"""
+        if not isinstance(other, self.__class__):
+            return False
+        return (self._input_dims == other._input_dims and
+                self._output_dims == other._output_dims)
 
     @property
     def dim(self):
         """Return tuple (input_shape, output_shape)."""
         return self._input_dim, self._output_dim
-
-    @property
-    def data(self):
-        """Return data."""
-        return self._data
 
     @property
     def _atol(self):

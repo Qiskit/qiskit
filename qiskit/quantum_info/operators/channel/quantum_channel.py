@@ -51,12 +51,25 @@ class QuantumChannel(BaseOperator):
             raise QiskitError("rep must be a string not a {}".format(
                 rep.__class__))
         self._channel_rep = rep
-        super().__init__(data, input_dims, output_dims)
+        self._data = data
+        super().__init__(input_dims, output_dims)
 
     def __repr__(self):
         return '{}({}, input_dims={}, output_dims={})'.format(
             self._channel_rep, self._data, self._input_dims,
             self._output_dims)
+
+    def __eq__(self, other):
+        """Test if two QuantumChannels are equal."""
+        if not super().__eq__(other):
+            return False
+        return np.allclose(
+            self.data, other.data, rtol=self._rtol, atol=self._atol)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed quantum channel self @ other.

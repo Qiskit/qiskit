@@ -80,13 +80,13 @@ class Operator(BaseOperator):
             # 'to_matrix' method defined. Any other instructions such as
             # conditional gates, measure, or reset will cause an
             # exception to be raised.
-            mat = self._init_instruction(data).data
+            self._data = self._init_instruction(data).data
         elif hasattr(data, 'to_operator'):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
             # an Operator object.
             data = data.to_operator()
-            mat = data.data
+            self._data = data.data
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
@@ -95,22 +95,34 @@ class Operator(BaseOperator):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            mat = np.array(data.to_matrix(), dtype=complex)
+            self._array = np.array(data.to_matrix(), dtype=complex)
         elif isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw matrix in either a
             # python list or numpy array format.
-            mat = np.array(data, dtype=complex)
+            self._data = np.array(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
-        dout, din = mat.shape
+        dout, din = self._data.shape
         output_dims = self._automatic_dims(output_dims, dout)
         input_dims = self._automatic_dims(input_dims, din)
-        super().__init__(mat, input_dims, output_dims)
+        super().__init__(input_dims, output_dims)
 
     def __repr__(self):
         return 'Operator({}, input_dims={}, output_dims={})'.format(
             self._data, self._input_dims, self._output_dims)
+
+    def __eq__(self, other):
+        """Test if two Operators are equal."""
+        if not super().__eq__(other):
+            return False
+        return np.allclose(
+            self.data, other.data, rtol=self._rtol, atol=self._atol)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
 
     @classmethod
     def from_label(cls, label):
