@@ -168,23 +168,6 @@ class OneQubitEulerDecomposer:
         """
         return self._params(unitary)
 
-    def circuit(self, theta, phi, lam, simplify=True,
-                atol=DEFAULT_ATOL):
-        """Return the basis circuit for the input parameters.
-
-        Args:
-            theta (float): euler angle parameter
-            phi (float): euler angle parameter
-            lam (float): euler angle parameter
-            simplify (bool): simplify output circuit [Default: True]
-            atol (float): absolute tolerance for checking
-                          angles for simplication [Default: 1e-12].
-
-        Returns:
-            QuantumCircuit: the basis circuits.
-        """
-        return self._circuit(theta, phi, lam, simplify=simplify, atol=atol)
-
     @staticmethod
     def _params_zyz(mat):
         """Return the euler angles and phase for the ZYZ basis."""
