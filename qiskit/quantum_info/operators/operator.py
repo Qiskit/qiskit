@@ -227,15 +227,55 @@ class Operator(BaseOperator):
         Returns:
             Operator: The operator self @ other.
 
+        Raise:
+            QiskitError: if operators have incompatible dimensions for
+                         composition.
+
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
             matrix operators. That is that ``A @ B`` is equal to ``B * A``.
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        # Validate dimensions are compatible and return the composed
+        # operator dimensions
+        input_dims, output_dims = self._get_compose_dims(
+            other, qargs, front)
+
+        # Full composition of operators
+        if qargs is None:
+            if front:
+                # Composition self * other
+                data = np.dot(self._data, other.data)
+            else:
+                # Composition other * self
+                data = np.dot(other.data, self._data)
+            return Operator(data, input_dims, output_dims)
+
+        # Compose with other on subsystem
         if front:
-            return self._matmul(other, qargs, left_multiply=False)
-        return self._matmul(other, qargs, left_multiply=True)
+            num_indices = len(self._input_dims)
+            shift = len(self._output_dims)
+            right_mul = True
+        else:
+            num_indices = len(self._output_dims)
+            shift = 0
+            right_mul = False
+
+        # Reshape current matrix
+        # Note that we must reverse the subsystem dimension order as
+        # qubit 0 corresponds to the right-most position in the tensor
+        # product, which is the last tensor wire index.
+        tensor = np.reshape(self.data, self._shape)
+        mat = np.reshape(other.data, other._shape)
+        indices = [num_indices - 1 - qubit for qubit in qargs]
+        final_shape = [np.product(output_dims), np.product(input_dims)]
+        data = np.reshape(
+            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
+            final_shape)
+        return Operator(data, input_dims, output_dims)
 
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
@@ -331,8 +371,7 @@ class Operator(BaseOperator):
         """
         if not isinstance(other, Operator):
             other = Operator(other)
-        if self.dim != other.dim:
-            raise QiskitError("other operator has different dimensions.")
+        self._validate_add_dims(other)
         ret = copy.copy(self)
         ret._data = self.data + other.data
         return ret
@@ -385,107 +424,6 @@ class Operator(BaseOperator):
         """Return the tensor shape of the matrix operator"""
         return tuple(reversed(self.output_dims())) + tuple(
             reversed(self.input_dims()))
-
-    def _matmul(self, other, qargs=None, left_multiply=False):
-        """Matrix multiply two operators
-
-        Args:
-            other (Operator): an operator object.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-        Returns:
-            Operator: The output operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
-        """
-        # Convert to Operator
-        if not isinstance(other, Operator):
-            other = Operator(other)
-        # Check dimensions are compatible
-        if not left_multiply and self.input_dims(qargs=qargs) != other.output_dims():
-            raise QiskitError(
-                'output_dims of other must match subsystem input_dims')
-        if left_multiply and self.output_dims(qargs=qargs) != other.input_dims():
-            raise QiskitError(
-                'input_dims of other must match subsystem output_dims')
-        # Full composition of operators
-        if qargs is None:
-            if left_multiply:
-                # Composition other * self
-                input_dims = self.input_dims()
-                output_dims = other.output_dims()
-                data = np.dot(other.data, self._data)
-            else:
-                # Composition self * other
-                input_dims = other.input_dims()
-                output_dims = self.output_dims()
-                data = np.dot(self._data, other.data)
-            return Operator(data, input_dims, output_dims)
-        # Compose with other on subsystem
-        return self._matmul_subsystem(other, qargs, left_multiply)
-
-    def _matmul_subsystem(self, other, qargs, left_multiply=False):
-        """Matrix multiply on subsystem."""
-        # Compute tensor contraction indices from qargs
-        input_dims = list(self.input_dims())
-        output_dims = list(self.output_dims())
-        if left_multiply:
-            num_indices = len(self.output_dims())
-            shift = 0
-            right_mul = False
-            for pos, qubit in enumerate(qargs):
-                output_dims[qubit] = other._output_dims[pos]
-        else:
-            num_indices = len(self.input_dims())
-            shift = len(self.output_dims())
-            right_mul = True
-            for pos, qubit in enumerate(qargs):
-                input_dims[qubit] = other._input_dims[pos]
-        # Reshape current matrix
-        # Note that we must reverse the subsystem dimension order as
-        # qubit 0 corresponds to the right-most position in the tensor
-        # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
-        indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims), np.product(input_dims)]
-        data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
-            final_shape)
-        return Operator(data, input_dims, output_dims)
-
-    def _compose_subsystem(self, other, qargs, front=False):
-        """Return the composition channel."""
-        # Compute tensor contraction indices from qargs
-        input_dims = list(self.input_dims())
-        output_dims = list(self.output_dims())
-        if front:
-            num_indices = len(self.input_dims())
-            shift = len(self.output_dims())
-            right_mul = True
-            for pos, qubit in enumerate(qargs):
-                input_dims[qubit] = other._input_dims[pos]
-        else:
-            num_indices = len(self.output_dims())
-            shift = 0
-            right_mul = False
-            for pos, qubit in enumerate(qargs):
-                output_dims[qubit] = other._output_dims[pos]
-        # Reshape current matrix
-        # Note that we must reverse the subsystem dimension order as
-        # qubit 0 corresponds to the right-most position in the tensor
-        # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
-        indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims), np.product(input_dims)]
-        data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
-            final_shape)
-        return Operator(data, input_dims, output_dims)
 
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
