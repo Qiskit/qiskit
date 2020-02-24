@@ -113,20 +113,20 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
     """Test OneQubitEulerDecomposer"""
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
-                                     tolerance=1e-12):
+                                     tolerance=1e-12,
+                                     phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):
             target_unitary = operator.data
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
+            decomp_unitary = Operator(decomposer(operator)).data
+            if not phase_equal:
+                target_unitary *= la.det(target_unitary)**(-0.5)
+                decomp_unitary *= la.det(decomp_unitary)**(-0.5)
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
+            if not phase_equal and maxdist > 0.1:
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Worst distance {}".format(maxdist))
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     # U3 basis
     def test_one_qubit_clifford_u3_basis(self):
