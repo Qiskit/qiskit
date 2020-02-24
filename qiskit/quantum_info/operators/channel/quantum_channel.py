@@ -34,25 +34,26 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
-    def __init__(self, rep, data, input_dims=None, output_dims=None):
+    def __init__(self, data, input_dims=None, output_dims=None,
+                 channel_rep=None):
         """Initialize a quantum channel Superoperator operator.
 
-        Args:
-            rep (str): quantum channel representation name string.
+        Args: 
             data (array or list): quantum channel data array.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
+            channel_rep (str): quantum channel representation name string.
 
         Raises:
             QiskitError: if arguments are invalid.
         """
         # Set channel representation string
-        if not isinstance(rep, str):
+        if not isinstance(channel_rep, str):
             raise QiskitError("rep must be a string not a {}".format(
-                rep.__class__))
-        self._channel_rep = rep
+                channel_rep.__class__))
+        self._channel_rep = channel_rep
         self._data = data
         super().__init__(input_dims, output_dims)
 

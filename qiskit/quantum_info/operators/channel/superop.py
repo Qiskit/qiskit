@@ -116,7 +116,7 @@ class SuperOp(QuantumChannel):
         # output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('SuperOp', super_mat, input_dims, output_dims)
+        super().__init__(super_mat, input_dims, output_dims, 'SuperOp')
 
     @property
     def _shape(self):

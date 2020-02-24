@@ -136,15 +136,16 @@ class Stinespring(QuantumChannel):
         # Initialize either single or general Stinespring
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
-            super().__init__('Stinespring', (stine[0], None),
+            super().__init__((stine[0], None),
                              input_dims=input_dims,
-                             output_dims=output_dims)
+                             output_dims=output_dims,
+                             channel_rep='Stinespring')
         else:
             # General (non-CPTP) Stinespring map
-            super().__init__('Stinespring',
-                             stine,
+            super().__init__(stine,
                              input_dims=input_dims,
-                             output_dims=output_dims)
+                             output_dims=output_dims,
+                             channel_rep='Stinespring')
 
     @property
     def data(self):

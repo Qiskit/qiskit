@@ -165,11 +165,11 @@ class Kraus(QuantumChannel):
         # Initialize either single or general Kraus
         if kraus[1] is None or np.allclose(kraus[0], kraus[1]):
             # Standard Kraus map
-            super().__init__('Kraus', (kraus[0], None), input_dims,
-                             output_dims)
+            super().__init__((kraus[0], None), input_dims,
+                             output_dims, 'Kraus')
         else:
             # General (non-CPTP) Kraus map
-            super().__init__('Kraus', kraus, input_dims, output_dims)
+            super().__init__(kraus, input_dims, output_dims, 'Kraus')
 
     @property
     def data(self):

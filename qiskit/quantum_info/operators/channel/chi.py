@@ -124,7 +124,7 @@ class Chi(QuantumChannel):
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('Chi', chi_mat, input_dims, output_dims)
+        super().__init__(chi_mat, input_dims, output_dims, 'Chi')
 
     @property
     def _bipartite_shape(self):

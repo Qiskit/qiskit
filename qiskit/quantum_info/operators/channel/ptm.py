@@ -128,7 +128,7 @@ class PTM(QuantumChannel):
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('PTM', ptm, input_dims, output_dims)
+        super().__init__(ptm, input_dims, output_dims, 'PTM')
 
     @property
     def _bipartite_shape(self):
