@@ -101,7 +101,7 @@ def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
                   'will be removed no earlier than 3 months after that release date. '
                   'You should use the QuantumCircuit.i() method instead.',
                   DeprecationWarning, stacklevel=2)
-    return self.append(IGate(), [q], [])
+    return self.append(IGate(), [qubit], [])
 
 
 # support both i and id as methods of QuantumCircuit
