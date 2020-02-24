@@ -453,11 +453,17 @@ class TestControlledGate(QiskitTestCase):
         Test all gates in standard extensions which are of type ControlledGate
         have a base gate setting.
         """
+        from qiskit.extensions.standard import MCU1Gate
         params = [0.1 * i for i in range(10)]
+        num_ctrl_qubits = 5
         for gate_class in ControlledGate.__subclasses__():
             sig = signature(gate_class.__init__)
             free_params = len(sig.parameters) - 1  # subtract "self"
-            base_gate = gate_class(*params[0:free_params])
+            if gate_class == MCU1Gate:
+                # the multi-controlled gates also take the number of control qubits
+                base_gate = gate_class(params[0], num_ctrl_qubits)
+            else:
+                base_gate = gate_class(*params[0:free_params])
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
@@ -494,17 +500,24 @@ class TestControlledGate(QiskitTestCase):
         """
         Test controlled versions of all standard gates.
         """
+        from qiskit.extensions.standard.u1 import MCU1Gate
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
         theta = pi/2
+        num_ctrl_qubits = 2
         for cls in gate_classes:
             with self.subTest(i=cls):
                 sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY
-                               or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                   and param.default is param.empty)])
-                args = [theta] * numargs
+                if cls == MCU1Gate:
+                    # treat multi-controlled gates in a special case, since they also
+                    # require the number of qubits
+                    args = [theta, num_ctrl_qubits]
+                else:
+                    numargs = len([param for param in sig.parameters.values()
+                                   if param.kind == param.POSITIONAL_ONLY
+                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                       and param.default is param.empty)])
+                    args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
                 gate = cls(*args)

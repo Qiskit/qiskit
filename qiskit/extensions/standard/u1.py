@@ -197,6 +197,8 @@ class MCU1Gate(ControlledGate):
             raise QiskitError('Global phase currently only supported for multiple controls.')
 
         self._global_phase = global_phase
+        print('num_qubits', num_ctrl_qubits + 1)
+        print('type', type(num_ctrl_qubits + 1))
         super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits)
         self.base_gate = U1Gate(lam)
 
@@ -304,7 +306,7 @@ def mcu1(self, lam, control_qubits, target_qubit):
             circuit.draw()
     """
     num_ctrl_qubits = len(control_qubits)
-    return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits + [target_qubit], [])
+    return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
 
 
 QuantumCircuit.mcu1 = mcu1
