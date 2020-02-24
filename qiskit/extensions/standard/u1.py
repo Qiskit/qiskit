@@ -16,6 +16,7 @@
 Diagonal single qubit gate.
 """
 import numpy
+from qiskit import QiskitError
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -185,3 +186,125 @@ def cu1(self, theta, control_qubit, target_qubit,
 
 
 QuantumCircuit.cu1 = cu1
+
+
+class MCU1Gate(ControlledGate):
+    """The multi-controlled U1 gate."""
+
+    def __init__(self, lam, num_ctrl_qubits, global_phase=0):
+        """Create a new MCU1s gate."""
+        if num_ctrl_qubits == 1 and global_phase != 0:
+            raise QiskitError('Global phase currently only supported for multiple controls.')
+
+        self._global_phase = global_phase
+        super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits)
+        self.base_gate = U1Gate(lam)
+
+    def _define(self):
+        """The gate definition of the multi-controlled U1 gate.
+
+        Ported from Aqua: https://github.com/Qiskit/qiskit-aqua/blame/769ca8d/qiskit/aqua/circuits/
+        gates/multi_control_u1_gate.py
+        """
+        definition = []
+        q = QuantumRegister(self.num_qubits, 'q')
+        q_controls = q[:self.num_ctrl_qubits]
+        q_target = q[self.num_ctrl_qubits]
+        lam = self.params[0]
+        if self.num_ctrl_qubits == 1:
+            definition.append(
+                (CU1Gate(lam), q_controls + [q_target], [])
+            )
+        else:
+            from qiskit.extensions.standard.x import CXGate
+            from sympy.combinatorics.graycode import GrayCode
+            gray_code = list(GrayCode(self.num_ctrl_qubits).generate_gray())
+            last_pattern = None
+
+            lam_angle = lam * (1 / (2**(self.num_ctrl_qubits - 1)))
+            gp_angle = numpy.angle(self._global_phase) * (1 / (2**(self.num_ctrl_qubits - 1)))
+
+            for pattern in gray_code:
+                if '1' not in pattern:
+                    continue
+                if last_pattern is None:
+                    last_pattern = pattern
+                # find left most set bit
+                lm_pos = list(pattern).index('1')
+
+                # find changed bit
+                comp = [i != j for i, j in zip(pattern, last_pattern)]
+                if True in comp:
+                    pos = comp.index(True)
+                else:
+                    pos = None
+                if pos is not None:
+                    if pos != lm_pos:
+                        definition.append(
+                            (CXGate(), [q_controls[pos], q_controls[lm_pos]], [])
+                        )
+                    else:
+                        indices = [i for i, x in enumerate(pattern) if x == '1']
+                        for idx in indices[1:]:
+                            definition.append(
+                                (CXGate(), [q_controls[idx], q_controls[lm_pos]], [])
+                            )
+                # check parity
+                if pattern.count('1') % 2 == 0:
+                    # inverse
+                    definition.append(
+                        (CU1Gate(-lam_angle), [q_controls[lm_pos], q_target], [])
+                    )
+                    if self._global_phase:
+                        definition.append(
+                            (U1Gate(-gp_angle), [q_controls[lm_pos]], [])
+                        )
+                else:
+                    definition.append(
+                        (CU1Gate(lam_angle), [q_controls[lm_pos], q_target], [])
+                    )
+                    if self._global_phase:
+                        # circuit.u1(gp_angle, ctls[lm_pos])
+                        definition.append(
+                            (U1Gate(gp_angle), [q_controls[lm_pos]], [])
+                        )
+                last_pattern = pattern
+
+        self.definition = definition
+
+    def to_matrix(self):
+        """Return a numpy.array for the multi-controlled U1 gate."""
+        lam = self.params[0]
+        if self.num_ctrl_qubits == 0:
+            return U1Gate(lam).to_matrix()
+        if self.num_ctrl_qubits == 1:
+            return CU1Gate(lam).to_matrix()
+
+        from qiskit.extensions.unitary import _compute_control_matrix
+        base_mat = U1Gate(lam).to_matrix()
+        return _compute_control_matrix(base_mat, self.num_ctrl_qubits)
+
+
+def mcu1(self, lam, control_qubits, target_qubit):
+    """Apply multi-cU1 gate from specified controls (control_qubits) to target (target_qubit) qubit
+    with angle ``lam``. A multi-cU1 gate implements a ``lam`` radian rotation of the qubit state
+    vector about the z axis of the Bloch sphere when the control qubits are all in state |1>.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+
+            lam = Parameter('λ')
+            circuit = QuantumCircuit(4)
+            circuit.mcu1(lam, [0, 1, 2], 3)
+            circuit.draw()
+    """
+    num_ctrl_qubits = len(control_qubits)
+    return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits + [target_qubit], [])
+
+
+QuantumCircuit.mcu1 = mcu1
