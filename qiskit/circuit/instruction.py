@@ -304,7 +304,7 @@ class Instruction:
             updated if it was provided
         """
         cpy = copy.copy(self)
-        cpy.params = copy.copy(self.params)
+        cpy._params = copy.copy(self._params)
         if name:
             cpy.name = name
         return cpy
