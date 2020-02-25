@@ -65,8 +65,12 @@ class XGate(Gate):
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
                 return CXGate()
-            elif num_ctrl_qubits == 2:
+            if num_ctrl_qubits == 2:
                 return CCXGate()
+            if num_ctrl_qubits == 3:
+                return CCCXGate()
+            if num_ctrl_qubits == 4:
+                return CCCCXGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -146,6 +150,10 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
                 return CCXGate()
+            if num_ctrl_qubits == 2:
+                return CCCXGate()
+            if num_ctrl_qubits == 3:
+                return CCCCXGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -260,6 +268,26 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             definition.append(inst)
         self.definition = definition
 
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1:
+                return CCCXGate()
+            if num_ctrl_qubits == 2:
+                return CCCCXGate()
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
+
     def inverse(self):
         """Invert this gate."""
         return CCXGate()  # self-inverse
@@ -324,3 +352,219 @@ def ccx(self, control_qubit1, control_qubit2, target_qubit,
 # support both ccx and toffoli as methods of QuantumCircuit
 QuantumCircuit.ccx = ccx
 QuantumCircuit.toffoli = ccx
+
+
+class CCCXGate(ControlledGate):
+    """The 3-qubit controlled X gate.
+
+    This implementation is based on Page 17 of [1].
+
+    References:
+        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+    """
+
+    def __init__(self, angle=numpy.pi/4):
+        """Create a new 3-qubit controlled X gate.
+
+        Args:
+            angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
+                3-qubit controlled X gate, an angle of π/8 the 3-qubit controlled sqrt(X) gate.
+        """
+        super().__init__('cccx', 4, [])
+        self.base_gate = XGate()
+        self._angle = angle
+
+    def _define(self):
+        """
+        gate cccx a,b,c,d
+        {
+            h d; cu1(-pi/4) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/4) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/4) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/4) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/4) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/4) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/4) c,d; h d;
+        }
+
+        gate cccsqrtx a,b,c,d
+        {
+            h d; cu1(-pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+        }
+        """
+        from qiskit.extensions.standard.u1 import CU1Gate
+        definition = []
+        q = QuantumRegister(4)
+        rule = [
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[0], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[1], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[1], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[2], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]]),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[2], q[3]]),
+            (HGate(), [q[3]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            if self._angle == numpy.pi / 4 and num_ctrl_qubits == 1:
+                return CCCCXGate()
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
+
+    def inverse(self):
+        """Invert this gate. The CCCX is its own inverse."""
+        return CCCXGate(angle=self._angle)
+
+
+def cccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
+    """Apply the 3-qubit controlled X (cccX) gate from four specified controls
+    (control_qubit1..3) to target (target_qubit) qubit. This gate is canonically used to rotate the
+    qubit state from |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1⟩.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(4)
+            circuit.cccx(0,1,2,3)
+            circuit.draw()
+    """
+
+    return self.append(CCCXGate(),
+                       [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+                       [])
+
+
+QuantumCircuit.cccx = cccx
+
+
+class CCCCXGate(ControlledGate):
+    """The 4-qubit controlled X gate.
+
+    This implementation is based on Page 21, Lemma 7.5, of [1].
+
+    References:
+        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+    """
+
+    def __init__(self):
+        """Create a new 4-qubit controlled X gate."""
+        super().__init__('ccccx', 5, [])
+        self.base_gate = XGate()
+
+    def _define(self):
+        """
+        gate ccccx a,b,c,d,e
+        {
+            h e; cu1(-pi/2) d,e; h e;
+            cccx a,b,c,d;
+            h d; cu1(pi/4) d,e; h d;
+            cccx a,b,c,d;
+            cccsqrtx a,b,c,e;
+        }
+        """
+        from qiskit.extensions.standard.u1 import CU1Gate
+        definition = []
+        q = QuantumRegister(4)
+        rule = [
+            (HGate(), [q[4]], []),
+            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (CCCXGate(), [q[0], q[1], q[2], q[3]], []),
+            (HGate(), [q[4]], []),
+            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (CCCXGate(), [q[0], q[1], q[2], q[3]], []),
+            (CCCXGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate. The CCCCX is its own inverse."""
+        return CCCCXGate()
+
+
+def ccccx(self, control_qubit1, control_qubit2, control_qubit3, control_qubit4, target_qubit):
+    """Apply the 4-qubit controlled X (ccccX) gate from four specified controls
+    (control_qubit1..4) to target (target_qubit) qubit. This gate is canonically used to rotate the
+    qubit state from |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1⟩.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(5)
+            circuit.ccccx(0,1,2,3,4)
+            circuit.draw()
+    """
+
+    return self.append(CCCCXGate(),
+                       [control_qubit1, control_qubit2, control_qubit3, control_qubit4,
+                        target_qubit],
+                       [])
+
+
+QuantumCircuit.ccccx = ccccx
