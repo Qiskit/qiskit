@@ -1,5 +1,6 @@
 ---
-feature: >
+features:
+  - |
     There has been a significant simplification to the style in which Pulse
     instructions are built.
 
