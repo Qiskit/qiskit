@@ -17,8 +17,8 @@ Rotation around the x-axis.
 """
 import math
 import numpy
-from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
@@ -26,11 +26,11 @@ from qiskit.util import deprecate_arguments
 
 
 class RXGate(Gate):
-    """rotation around the x-axis."""
+    """The rotation around the x-axis."""
 
     def __init__(self, theta):
         """Create new rx single qubit gate."""
-        super().__init__("rx", 1, [theta])
+        super().__init__('rx', 1, [theta])
 
     def _define(self):
         """
@@ -38,7 +38,7 @@ class RXGate(Gate):
         """
         from qiskit.extensions.standard.r import RGate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
@@ -60,7 +60,7 @@ class RXGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CrxGate(self.params[0])
+                return CRXGate(self.params[0])
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -72,7 +72,7 @@ class RXGate(Gate):
         return RXGate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the RX gate."""
+        """Return a numpy.array for the RX gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin],
@@ -112,8 +112,18 @@ def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-ar
 QuantumCircuit.rx = rx
 
 
-class CrxGate(ControlledGate):
-    """controlled-rx gate."""
+class CRXMeta(type):
+    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
+
+    Can be removed when CrxGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CRXGate, CrxGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CRXGate(ControlledGate, metaclass=CRXMeta):
+    """The controlled-rx gate."""
 
     def __init__(self, theta):
         """Create new crx gate."""
@@ -132,14 +142,14 @@ class CrxGate(ControlledGate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         from qiskit.extensions.standard.u3 import U3Gate
-        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
             (U1Gate(pi / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
         for inst in rule:
@@ -148,7 +158,19 @@ class CrxGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return CrxGate(-self.params[0])
+        return CRXGate(-self.params[0])
+
+
+class CrxGate(CRXGate, metaclass=CRXMeta):
+    """The deprecated CRXGate class."""
+
+    def __init__(self, theta):
+        import warnings
+        warnings.warn('The class CrxGate is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRXGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__(theta)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
@@ -156,7 +178,7 @@ class CrxGate(ControlledGate):
 def crx(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply crx from ctl to tgt with angle theta."""
-    return self.append(CrxGate(theta), [control_qubit, target_qubit], [])
+    return self.append(CRXGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crx = crx

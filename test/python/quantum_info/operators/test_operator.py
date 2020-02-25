@@ -24,7 +24,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate, CHGate, CnotGate
+from qiskit.extensions.standard import HGate, CHGate, CXGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -173,7 +173,7 @@ class TestOperator(OperatorTestCase):
 
     def test_instruction_init(self):
         """Test initialization from a circuit."""
-        gate = CnotGate()
+        gate = CXGate()
         op = Operator(gate).data
         target = gate.to_matrix()
         global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)
@@ -200,11 +200,6 @@ class TestOperator(OperatorTestCase):
         mat = self.rand_matrix(4, 4)
         self.assertEqual(Operator(mat.tolist()),
                          Operator(mat))
-
-    def test_rep(self):
-        """Test Operator representation string property."""
-        op = Operator(self.rand_matrix(2, 2))
-        self.assertEqual(op.rep, 'Operator')
 
     def test_data(self):
         """Test Operator representation string property."""
@@ -244,16 +239,16 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.output_dims(qargs=[2, 0]), (4, 2))
 
     def test_reshape(self):
-        """Test Operator _reshape method."""
+        """Test Operator reshape method."""
         op = Operator(self.rand_matrix(8, 8))
+        reshaped1 = op.reshape(input_dims=[8], output_dims=[8])
+        reshaped2 = op.reshape(input_dims=[4, 2], output_dims=[2, 4])
         self.assertEqual(op.output_dims(), (2, 2, 2))
         self.assertEqual(op.input_dims(), (2, 2, 2))
-        op._reshape(input_dims=[8], output_dims=[8])
-        self.assertEqual(op.output_dims(), (8,))
-        self.assertEqual(op.input_dims(), (8,))
-        op._reshape(input_dims=[4, 2], output_dims=[2, 4])
-        self.assertEqual(op.output_dims(), (2, 4))
-        self.assertEqual(op.input_dims(), (4, 2))
+        self.assertEqual(reshaped1.output_dims(), (8,))
+        self.assertEqual(reshaped1.input_dims(), (8,))
+        self.assertEqual(reshaped2.output_dims(), (2, 4))
+        self.assertEqual(reshaped2.input_dims(), (4, 2))
 
     def test_copy(self):
         """Test Operator copy method"""
@@ -510,44 +505,30 @@ class TestOperator(OperatorTestCase):
         mat2 = self.rand_matrix(4, 4)
         op1 = Operator(mat1)
         op2 = Operator(mat2)
-        self.assertEqual(op1.add(op2), Operator(mat1 + mat2))
+        self.assertEqual(op1._add(op2), Operator(mat1 + mat2))
         self.assertEqual(op1 + op2, Operator(mat1 + mat2))
+        self.assertEqual(op1 - op2, Operator(mat1 - mat2))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         op1 = Operator(self.rand_matrix(2, 2))
         op2 = Operator(self.rand_matrix(3, 3))
-        self.assertRaises(QiskitError, op1.add, op2)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = self.rand_matrix(4, 4)
-        mat2 = self.rand_matrix(4, 4)
-        op1 = Operator(mat1)
-        op2 = Operator(mat2)
-        self.assertEqual(op1.subtract(op2), Operator(mat1 - mat2))
-        self.assertEqual(op1 - op2, Operator(mat1 - mat2))
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        op1 = Operator(self.rand_matrix(2, 2))
-        op2 = Operator(self.rand_matrix(3, 3))
-        self.assertRaises(QiskitError, op1.subtract, op2)
+        self.assertRaises(QiskitError, op1._add, op2)
 
     def test_multiply(self):
         """Test multiply method."""
         mat = self.rand_matrix(4, 4)
         val = np.exp(5j)
         op = Operator(mat)
-        self.assertEqual(op.multiply(val), Operator(val * mat))
+        self.assertEqual(op._multiply(val), Operator(val * mat))
         self.assertEqual(val * op, Operator(val * mat))
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         op = Operator(self.rand_matrix(2, 2))
-        self.assertRaises(QiskitError, op.multiply, 's')
+        self.assertRaises(QiskitError, op._multiply, 's')
         self.assertRaises(QiskitError, op.__rmul__, 's')
-        self.assertRaises(QiskitError, op.multiply, op)
+        self.assertRaises(QiskitError, op._multiply, op)
         self.assertRaises(QiskitError, op.__rmul__, op)
 
     def test_negate(self):

@@ -325,7 +325,7 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) + (rho @ chan2)
-        chan = chan1.add(chan2)
+        chan = chan1._add(chan2)
         self.assertEqual(rho @ chan, targ)
         chan = chan1 + chan2
         self.assertEqual(rho @ chan, targ)
@@ -333,7 +333,7 @@ class TestKraus(ChannelTestCase):
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 2 * (rho @ chan)
-        chan = chan.add(chan)
+        chan = chan._add(chan)
         self.assertEqual(rho @ chan, targ)
 
     def test_subtract(self):
@@ -346,15 +346,13 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) - (rho @ chan2)
-        chan = chan1.subtract(chan2)
-        self.assertEqual(rho @ chan, targ)
         chan = chan1 - chan2
         self.assertEqual(rho @ chan, targ)
 
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 0 * (rho @ chan)
-        chan = chan.subtract(chan)
+        chan = chan - chan
         self.assertEqual(rho @ chan, targ)
 
     def test_multiply(self):
@@ -367,7 +365,7 @@ class TestKraus(ChannelTestCase):
         # Single Kraus set
         chan1 = Kraus(kraus1)
         targ = val * (rho @ chan1)
-        chan = chan1.multiply(val)
+        chan = chan1._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan1
         self.assertEqual(rho @ chan, targ)
@@ -375,7 +373,7 @@ class TestKraus(ChannelTestCase):
         # Double Kraus set
         chan2 = Kraus((kraus1, kraus2))
         targ = val * (rho @ chan2)
-        chan = chan2.multiply(val)
+        chan = chan2._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan2
         self.assertEqual(rho @ chan, targ)
@@ -383,9 +381,9 @@ class TestKraus(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Kraus(self.depol_kraus(1))
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
