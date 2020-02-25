@@ -17,6 +17,7 @@
 
 import unittest
 from inspect import signature
+from test import combine
 import numpy as np
 from numpy import pi
 from ddt import ddt, data
@@ -45,7 +46,7 @@ import qiskit.extensions.standard as allGates
 
 @ddt
 class TestControlledGate(QiskitTestCase):
-    """ControlledGate tests."""
+    """Tests for controlled gates and the ControlledGate class."""
 
     def test_controlled_x(self):
         """Test creation of controlled x gate"""
@@ -60,31 +61,31 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(ZGate().control(), CZGate())
 
     def test_controlled_h(self):
-        """Test creation of controlled h gate"""
+        """Test the creation of a controlled H gate."""
         self.assertEqual(HGate().control(), CHGate())
 
     def test_controlled_u1(self):
-        """Test creation of controlled u1 gate"""
+        """Test the creation of a controlled U1 gate."""
         theta = 0.5
         self.assertEqual(U1Gate(theta).control(), CU1Gate(theta))
 
     def test_controlled_rz(self):
-        """Test creation of controlled rz gate"""
+        """Test the creation of a controlled RZ gate."""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CRZGate(theta))
 
     def test_controlled_ry(self):
-        """Test creation of controlled ry gate"""
+        """Test the creation of a controlled RY gate."""
         theta = 0.5
         self.assertEqual(RYGate(theta).control(), CRYGate(theta))
 
     def test_controlled_rx(self):
-        """Test creation of controlled rx gate"""
+        """Test the creation of a controlled RX gate."""
         theta = 0.5
         self.assertEqual(RXGate(theta).control(), CRXGate(theta))
 
     def test_controlled_u3(self):
-        """Test creation of controlled u3 gate"""
+        """Test the creation of a controlled U3 gate."""
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(U3Gate(theta, phi, lamb).control(),
                          CU3Gate(theta, phi, lamb))
@@ -98,7 +99,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(SwapGate().control(), CSwapGate())
 
     def test_circuit_append(self):
-        """Test appending controlled gate to quantum circuit"""
+        """Test appending a controlled gate to a quantum circuit."""
         circ = QuantumCircuit(5)
         inst = CXGate()
         circ.append(inst.control(), qargs=[0, 2, 1])
@@ -116,21 +117,21 @@ class TestControlledGate(QiskitTestCase):
             gate = instr[0]
             self.assertTrue(isinstance(gate, ControlledGate))
 
-    def test_definition_specification(self):
-        """Test instantiation with explicit definition"""
+    def test_swap_definition_specification(self):
+        """Test the instantiation of a controlled swap gate with explicit definition."""
         swap = SwapGate()
         cswap = ControlledGate('cswap', 3, [], num_ctrl_qubits=1,
                                definition=swap.definition)
         self.assertEqual(swap.definition, cswap.definition)
 
     def test_multi_controlled_composite_gate(self):
-        """Test multi controlled composite gate"""
+        """Test a multi controlled composite gate. """
         num_ctrl = 3
         # create composite gate
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
         cgate.h(sub_q[0])
-        cgate.crz(pi/2, sub_q[0], sub_q[1])
+        cgate.crz(pi / 2, sub_q[0], sub_q[1])
         cgate.swap(sub_q[0], sub_q[1])
         cgate.u3(0.1, 0.2, 0.3, sub_q[1])
         cgate.t(sub_q[0])
@@ -140,7 +141,7 @@ class TestControlledGate(QiskitTestCase):
         control = QuantumRegister(num_ctrl)
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
-        qc.append(cont_gate, control[:]+target[:])
+        qc.append(cont_gate, control[:] + target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
@@ -148,7 +149,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
-        """Test singly controlled composite gate"""
+        """Test a singly controlled composite gate."""
         num_ctrl = 1
         # create composite gate
         sub_q = QuantumRegister(2)
@@ -161,7 +162,7 @@ class TestControlledGate(QiskitTestCase):
         control = QuantumRegister(num_ctrl, 'control')
         target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
-        qc.append(cont_gate, control[:]+target[:])
+        qc.append(cont_gate, control[:] + target[:])
         simulator = BasicAer.get_backend('unitary_simulator')
         op_mat = execute(cgate, simulator).result().get_unitary(0)
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
@@ -169,7 +170,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_multi_control_u3(self):
-        """test multi controlled u3 gate"""
+        """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
         import qiskit.extensions.standard.u3 as u3
 
         num_ctrl = 3
@@ -230,7 +231,7 @@ class TestControlledGate(QiskitTestCase):
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
     def test_multi_control_u1(self):
-        """Test multi controlled u1 gate"""
+        """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
         import qiskit.extensions.standard.u1 as u1
 
         num_ctrl = 3
@@ -290,12 +291,160 @@ class TestControlledGate(QiskitTestCase):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
-    def test_rotation_gates(self):
-        """Test controlled rotation gates"""
+    @data(1, 2, 3, 4)
+    def test_multi_controlled_u1_matrix(self, num_controls):
+        """Test the matrix representation of the multi-controlled CU1 gate.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcu1.py
+        """
+
+        # registers for the circuit
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+
+        # iterate over all possible combinations of control qubits
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
+            lam = 0.3165354 * pi
+            qc = QuantumCircuit(q_controls, q_target)
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            qc.mcu1(lam, q_controls, q_target[0])
+
+            # for idx in subset:
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            backend = BasicAer.get_backend('unitary_simulator')
+            simulated = execute(qc, backend).result().get_unitary(qc)
+
+            base = U1Gate(lam).to_matrix()
+            expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
+
+    @data(1, 2, 3, 4)
+    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with clean ancillas.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
+        # set up circuit
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_controls, q_target)
+
+        if num_controls > 2:
+            num_ancillas = num_controls - 2
+            q_ancillas = QuantumRegister(num_controls)
+            qc.add_register(q_ancillas)
+        else:
+            num_ancillas = 0
+
+        # apply hadamard on control qubits and toffoli gate
+        qc.mct(q_controls, q_target[0], None, mode='basic')
+
+        # execute the circuit and obtain statevector result
+        backend = BasicAer.get_backend('unitary_simulator')
+        simulated = execute(qc, backend).result().get_unitary(qc)
+
+        # compare to expectation
+        if num_ancillas > 0:
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected))
+
+    @data(1, 2, 3, 4, 5)
+    def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_controls, q_target)
+
+        q_ancillas = None
+        if num_controls <= 2:
+            num_ancillas = 0
+        else:
+            num_ancillas = num_controls - 2
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
+
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic-dirty-ancilla')
+
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+        if num_ancillas > 0:
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
+
+    @data(1, 2, 3, 4, 5)
+    def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (advanced).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_controls, q_target)
+
+        q_ancillas = None
+        if num_controls <= 4:
+            num_ancillas = 0
+        else:
+            num_ancillas = 1
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
+
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='advanced')
+
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+        if num_ancillas > 0:
+            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
+
+    @data(1, 2, 3)
+    def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
+        """Test the multi-control Toffoli gate with dirty ancillas (noancilla).
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
+        """
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+        qc = QuantumCircuit(q_controls, q_target)
+
+        qc.mct(q_controls, q_target[0], None, mode='noancilla')
+
+        simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
+
+        base = XGate().to_matrix()
+        expected = _compute_control_matrix(base, num_controls)
+        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
+
+    def test_single_controlled_rotation_gates(self):
+        """Test the controlled rotation gates controlled on one qubit."""
         import qiskit.extensions.standard.u1 as u1
         import qiskit.extensions.standard.rx as rx
         import qiskit.extensions.standard.ry as ry
         import qiskit.extensions.standard.rz as rz
+
         num_ctrl = 2
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
@@ -355,9 +504,107 @@ class TestControlledGate(QiskitTestCase):
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
+    @combine(num_controls=[1, 2, 4],
+             base_gate_name=['x', 'y', 'z'],
+             use_basis_gates=[True, False])
+    def test_multi_controlled_rotation_gate_matrices(self, num_controls, base_gate_name,
+                                                     use_basis_gates):
+        """Test the multi controlled rotation gates without ancillas.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcr.py
+        """
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+
+        # iterate over all possible combinations of control qubits
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
+            theta = 0.871236 * pi
+            qc = QuantumCircuit(q_controls, q_target)
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            # call mcrx/mcry/mcrz
+            if base_gate_name == 'y':
+                qc.mcry(theta, q_controls, q_target[0], None, mode='noancilla',
+                        use_basis_gates=use_basis_gates)
+            else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
+                getattr(qc, 'mcr' + base_gate_name)(theta, q_controls, q_target[0],
+                                                    use_basis_gates=use_basis_gates)
+
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            backend = BasicAer.get_backend('unitary_simulator')
+            simulated = execute(qc, backend).result().get_unitary(qc)
+
+            if base_gate_name == 'x':
+                rot_mat = RXGate(theta).to_matrix()
+            elif base_gate_name == 'y':
+                rot_mat = RYGate(theta).to_matrix()
+            else:  # case 'z'
+                rot_mat = U1Gate(theta).to_matrix()
+
+            expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
+
+    @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
+    def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
+        """Test the multi controlled Y rotation using the mode 'basic'.
+
+        Based on the test moved here from Aqua:
+        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mcr.py
+        """
+
+        # get the number of required ancilla qubits
+        if num_controls <= 2:
+            num_ancillas = 0
+        else:
+            num_ancillas = num_controls - 2
+
+        q_controls = QuantumRegister(num_controls)
+        q_target = QuantumRegister(1)
+
+        for ctrl_state in range(2**num_controls):
+            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
+            theta = 0.871236 * pi
+            if num_ancillas > 0:
+                q_ancillas = QuantumRegister(num_ancillas)
+                qc = QuantumCircuit(q_controls, q_target, q_ancillas)
+            else:
+                qc = QuantumCircuit(q_controls, q_target)
+                q_ancillas = None
+
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            qc.mcry(theta, q_controls, q_target[0], q_ancillas, mode='basic',
+                    use_basis_gates=use_basis_gates)
+
+            for idx, bit in enumerate(bitstr):
+                if bit == '0':
+                    qc.x(q_controls[idx])
+
+            rot_mat = RYGate(theta).to_matrix()
+
+            backend = BasicAer.get_backend('unitary_simulator')
+            simulated = execute(qc, backend).result().get_unitary(qc)
+            if num_ancillas > 0:
+                simulated = simulated[:2**(num_controls + 1), :2**(num_controls+1)]
+
+            expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
+
+            with self.subTest(msg='control state = {}'.format(ctrl_state)):
+                self.assertTrue(matrix_equal(simulated, expected))
+
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
-        """test inverting ControlledGate"""
+        """Test inverting the controlled X gate."""
         cnx = XGate().control(num_ctrl_qubits)
         inv_cnx = cnx.inverse()
         result = Operator(cnx).compose(Operator(inv_cnx))
@@ -366,12 +613,12 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_inverse_circuit(self, num_ctrl_qubits):
-        """test inverting ControlledGate"""
+        """Test inverting a controlled gate based on a circuit definition."""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(1, 2)
-        qc.rx(np.pi/4, [0, 1, 2])
+        qc.rx(np.pi / 4, [0, 1, 2])
         gate = qc.to_gate()
         cgate = gate.control(num_ctrl_qubits)
         inv_cgate = cgate.inverse()
@@ -381,7 +628,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_controlled_unitary(self, num_ctrl_qubits):
-        """test controlled unitary"""
+        """Test the matrix data of an Operator, which is based on a controlled gate."""
         num_target = 1
         q_target = QuantumRegister(num_target)
         qc1 = QuantumCircuit(q_target)
@@ -400,7 +647,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4, 5)
     def test_controlled_random_unitary(self, num_ctrl_qubits):
-        """test controlled unitary"""
+        """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2
         base_gate = random_unitary(2**num_target).to_instruction()
         base_mat = base_gate.to_matrix()
@@ -418,7 +665,7 @@ class TestControlledGate(QiskitTestCase):
         target_op = Operator(XGate())
         for i in range(num_target_qubits - 1):
             target_op = target_op.tensor(XGate())
-        print('')
+
         for i in range(2**num_qubits):
             input_bitstring = bin(i)[2:].zfill(num_qubits)
             input_target = input_bitstring[0:num_target_qubits]
@@ -450,8 +697,8 @@ class TestControlledGate(QiskitTestCase):
 
     def test_base_gate_setting(self):
         """
-        Test all gates in standard extensions which are of type ControlledGate
-        have a base gate setting.
+        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        setting.
         """
         from qiskit.extensions.standard import MCU1Gate
         params = [0.1 * i for i in range(10)]
@@ -469,8 +716,8 @@ class TestControlledGate(QiskitTestCase):
 
     def test_all_inverses(self):
         """
-        Test all gates in standard extensions except those that cannot be
-        controlled or are being deprecated.
+        Test all gates in standard extensions except those that cannot be controlled or are being
+        deprecated.
         """
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
@@ -497,26 +744,24 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
-        """
-        Test controlled versions of all standard gates.
-        """
+        """Test controlled versions of all standard gates."""
         from qiskit.extensions.standard.u1 import MCU1Gate
         gate_classes = [cls for name, cls in allGates.__dict__.items()
                         if isinstance(cls, type)]
-        theta = pi/2
+        theta = pi / 2
         num_ctrl_qubits = 2
         for cls in gate_classes:
             with self.subTest(i=cls):
                 sig = signature(cls)
                 if cls == MCU1Gate:
                     # treat multi-controlled gates in a special case, since they also
-                    # require the number of qubits
+                    # require the number of control qubits
                     args = [theta, num_ctrl_qubits]
                 else:
                     numargs = len([param for param in sig.parameters.values()
-                                   if param.kind == param.POSITIONAL_ONLY
-                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                       and param.default is param.empty)])
+                                   if param.kind == param.POSITIONAL_ONLY or
+                                   (param.kind == param.POSITIONAL_OR_KEYWORD and
+                                    param.default is param.empty)])
                     args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
