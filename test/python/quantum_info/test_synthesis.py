@@ -101,11 +101,11 @@ class TestEulerAngles1Q(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_euler_angles_1q_random(self, nsamples=100):
+    def test_euler_angles_1q_random(self, nsamples=100, seed=9000):
         """Verify euler_angles_1q produces correct Euler angles for random unitaries.
         """
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
+        for i in range(nsamples):
+            unitary = random_unitary(2, seed=seed+i)
             self.check_one_qubit_euler_angles(unitary)
 
 
@@ -113,20 +113,20 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
     """Test OneQubitEulerDecomposer"""
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
-                                     tolerance=1e-12):
+                                     tolerance=1e-12,
+                                     phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):
             target_unitary = operator.data
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
+            decomp_unitary = Operator(decomposer(operator)).data
+            if not phase_equal:
+                target_unitary *= la.det(target_unitary)**(-0.5)
+                decomp_unitary *= la.det(decomp_unitary)**(-0.5)
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
+            if not phase_equal and maxdist > 0.1:
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Worst distance {}".format(maxdist))
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     # U3 basis
     def test_one_qubit_clifford_u3_basis(self):
@@ -215,6 +215,23 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
         for _ in range(nsamples):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary, 'XYX')
+
+    # R, R basis
+    def test_one_qubit_clifford_rr_basis(self):
+        """Verify for r, r basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'RR')
+
+    def test_one_qubit_hard_thetas_rr_basis(self):
+        """Verify for r, r basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'RR')
+
+    def test_one_qubit_random_rr_basis(self, nsamples=50):
+        """Verify for r, r basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'RR')
 
 
 # FIXME: streamline the set of test cases

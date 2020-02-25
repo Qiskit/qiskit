@@ -31,6 +31,16 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                    conditional=False, reset=False, seed=None):
     """Generate random circuit of arbitrary size and form.
 
+    This function will generate a random circuit by randomly selecting gates
+    from the set of standard gates in :mod:`qiskit.extensions`. For example:
+
+    .. jupyter-execute::
+
+        from qiskit.circuit.random import random_circuit
+
+        circ = random_circuit(2, 2, measure=True)
+        circ.draw(output='mpl')
+
     Args:
         n_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length)

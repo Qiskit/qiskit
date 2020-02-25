@@ -84,22 +84,16 @@ class SingleQubitUnitary(Gate):
         circuit = QuantumCircuit(q)
         # First, we find the rotation angles (where we can ignore the global phase)
         (a, b, c, _) = self._zyz_dec()
-        # Add the gates to o the circuit
-        is_identity = True
+        # Add the gates to the circuit
         if abs(a) > _EPS:
             circuit.rz(a, q[0])
-            is_identity = False
         if abs(b) > _EPS:
             circuit.ry(b, q[0])
-            is_identity = False
         if abs(c) > _EPS:
             if self.up_to_diagonal:
                 diag = [np.exp(-1j * c / 2.), np.exp(1j * c / 2.)]
             else:
                 circuit.rz(c, q[0])
-                is_identity = False
-        if is_identity:
-            circuit.i(q[0])
         return circuit, diag
 
     def _zyz_dec(self):
