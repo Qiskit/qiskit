@@ -21,8 +21,8 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate, CnotGate)
+from qiskit.extensions.standard import (HGate, IGate, SdgGate, SGate, U3Gate,
+                                        XGate, YGate, ZGate, CXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.random import random_unitary
@@ -38,9 +38,9 @@ from qiskit.test import QiskitTestCase
 
 def make_oneq_cliffords():
     """Make as list of 1q Cliffords"""
-    ixyz_list = [g().to_matrix() for g in (IdGate, XGate, YGate, ZGate)]
-    ih_list = [g().to_matrix() for g in (IdGate, HGate)]
-    irs_list = [IdGate().to_matrix(),
+    ixyz_list = [g().to_matrix() for g in (IGate, XGate, YGate, ZGate)]
+    ih_list = [g().to_matrix() for g in (IGate, HGate)]
+    irs_list = [IGate().to_matrix(),
                 SdgGate().to_matrix() @ HGate().to_matrix(),
                 HGate().to_matrix() @ SGate().to_matrix()]
     oneq_cliffords = [Operator(ixyz @ ih @ irs) for ixyz in ixyz_list
@@ -401,7 +401,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
-        cnot = Operator(CnotGate())
+        cnot = Operator(CXGate())
         decomps = [cnot_rxx_decompose(),
                    cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
                    cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
