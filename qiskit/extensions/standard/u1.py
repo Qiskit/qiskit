@@ -16,11 +16,11 @@
 Diagonal single qubit gate.
 """
 import numpy
-from qiskit import QiskitError
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.exceptions import QiskitError
 from qiskit.util import deprecate_arguments
 
 
