@@ -263,6 +263,49 @@ class PauliTable:
         return PauliTable(np.hstack((self.X[:, :i], value_x, self.X[:, i:],
                                      self.Z[:, :i], value_z, self.Z[:, i:])))
 
+    def argsort(self, weight=False):
+        """Return indices for sorting the rows of the table.
+
+        The default sort method is lexicographic sorting by qubit number.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+
+        Returns:
+            array: the indices for sorting the table.
+        """
+        # Get order of each Pauli using
+        # I => 0, X => 1, Y => 2, Z => 3
+        x = self.X
+        z = self.Z
+        order = (1 * np.logical_and(x, np.logical_not(z)) +
+                 2 * np.logical_and(x, z) +
+                 3 * np.logical_and(np.logical_not(x), z))
+        # Optionally get the weight of Pauli
+        # This is the number of non identity terms
+        if weight:
+            weights = np.sum(1 * np.logical_or(x, z), axis=1)
+
+        # Sort by order
+        # To preserve ordering between successive sorts we
+        # are use the 'stable' sort method
+        indices = np.arange(self.size)
+        for i in range(self.n_qubits):
+            sort_inds = order[:, -1 - i].argsort(kind='stable')
+            order = order[sort_inds]
+            indices = indices[sort_inds]
+            if weight:
+                weights = weights[sort_inds]
+
+        # If using weights we implement a final sort by total number
+        # of non-identity Paulis
+        if weight:
+            indices = indices[weights.argsort(kind='stable')]
+        return indices
+
     def sort(self, weight=False):
         """Sort the rows of the table.
 
@@ -305,38 +348,9 @@ class PauliTable:
         Returns:
             PauliTable: a sorted copy of the original table.
         """
-        x = self.X
-        z = self.Z
-        # Get order of each Pauli using
-        # I => 0, X => 1, Y => 2, Z => 3
-        order = (1 * np.logical_and(x, np.logical_not(z)) +
-                 2 * np.logical_and(x, z) +
-                 3 * np.logical_and(np.logical_not(x), z))
-        # Optionally get the weight of Pauli
-        # This is the number of non identity terms
-        if weight:
-            weights = np.sum(1 * np.logical_or(x, z), axis=1)
+        return self[self.argsort(weight=weight)]
 
-        # Sort by order
-        # To preserve ordering between successive sorts we
-        # are use the 'stable' sort method
-        for i in range(self.n_qubits):
-            inds = order[:, -1 - i].argsort(kind='stable')
-            order = order[inds]
-            x = x[inds]
-            z = z[inds]
-            if weight:
-                weights = weights[inds]
-
-        # If using weights we implement a final sort by total number
-        # of non-identity Paulis
-        if weight:
-            inds = weights.argsort(kind='stable')
-            x = x[inds]
-            z = z[inds]
-        return PauliTable(np.hstack([x, z]))
-
-    def delete_duplicates(self):
+    def unique(self, return_index=False, return_counts=False):
         """Delete duplicate Paulis from the table.
 
         **Example**
@@ -348,11 +362,39 @@ class PauliTable:
             pt = PauliTable.from_labels(['X', 'Y', 'X', 'I', 'I', 'Z', 'X', 'Z'])
             unique = pt.delete_duplicates()
             print(unique)
+
+        Args:
+            return_index (bool): If True, also return the indices that
+                                 result in the unique array.
+                                 (Default: False)
+            return_counts (bool): If True, also return the number of times
+                                  each unique item appears in the table.
+
+        Returns:
+            PauliTable: the table of the unique rows.
+            array: optional index array for rows in original table if
+                   ``return_index=True`.
+            array: optional count array of unique elements if
+                   ``return_counts=True`.
         """
-        _, index = np.unique(self.array, return_index=True, axis=0)
+        if return_counts:
+            _, index, counts = np.unique(self.array, return_index=True,
+                                         return_counts=True, axis=0)
+        else:
+            _, index = np.unique(self.array, return_index=True, axis=0)
         # Sort the index so we return unique rows in the original array order
-        index.sort()
-        return PauliTable(self[index])
+        sort_inds = index.argsort()
+        index = index[sort_inds]
+        unique = self[index]
+        # Concatinate return tuples
+        ret = (unique, )
+        if return_index:
+            ret += (index, )
+        if return_counts:
+            ret += (counts[sort_inds], )
+        if len(ret) == 1:
+            return ret[0]
+        return ret
 
     # ---------------------------------------------------------------------
     # Utility methods
@@ -426,13 +468,14 @@ class PauliTable:
             other = PauliTable(other)
         return other.tensor(self)
 
-    def dot(self, other, qargs=None):
-        """Return the dot output product of two tables.
+    def compose(self, other, qargs=None, front=True):
+        """Return the compose output product of two tables.
 
         This returns the combination of the dot product of all Paulis
         in the current table with all Pauli's in the other table and
         discards the complex phase from the product. Note that for
-        PauliTables this method is equivalent to :meth:`compose`.
+        PauliTables this method is equivalent to :meth:`dot` and hence
+        the ``front`` kwarg does not change the output.
 
         **Example**
 
@@ -442,18 +485,20 @@ class PauliTable:
 
             current = PauliTable.from_labels(['I', 'X'])
             other =  PauliTable.from_labels(['Y', 'Z'])
-            print(current.dot(other))
+            print(current.compose(other))
 
         Args:
             other (PauliTable): another PauliTable.
             qargs (None or list): qubits to apply dot product on (Default: None).
+            front (bool): If True use `dot` composition method [default: False].
 
         Returns:
-            PauliTable: the dot outer product table.
+            PauliTable: the compose outer product table.
 
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
+        # pylint: disable=unused-argument
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
         if qargs is None and other.n_qubits != self.n_qubits:
@@ -490,13 +535,13 @@ class PauliTable:
         z1[:, index] = np.logical_xor(z1[:, index], z2)
         return PauliTable(np.hstack([x1, z1]))
 
-    def compose(self, other, qargs=None):
+    def dot(self, other, qargs=None):
         """Return the dot output product of two tables.
 
         This returns the combination of the dot product of all Paulis
         in the current table with all Pauli's in the other table and
         discards the complex phase from the product. Note that for
-        PauliTables this method is equivalent to :meth:`dot`.
+        PauliTables this method is equivalent to :meth:`compose`.
 
         **Example**
 
@@ -518,7 +563,7 @@ class PauliTable:
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        return self.dot(other, qargs=qargs)
+        return self.compose(other, qargs=qargs)
 
     def commutes(self, pauli):
         """Return list of commutation properties for each row with a Pauli.
@@ -550,8 +595,7 @@ class PauliTable:
         If no rows satisfy the condition the returned array will be empty.
 
         Args:
-            other (PauliTable): a single Pauli or multi-row
-                                                PauliTable.
+            other (PauliTable): a single Pauli or multi-row PauliTable.
 
         Returns:
             array: index array of the commuting rows.

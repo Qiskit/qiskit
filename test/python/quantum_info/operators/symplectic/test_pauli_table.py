@@ -515,27 +515,27 @@ class TestPauliTable(QiskitTestCase):
             value = PauliTable.from_labels(unsrt).sort(weight=True)
             self.assertEqual(target, value)
 
-    def test_delete_duplicates(self):
-        """Test delete_duplicates method."""
+    def test_unique(self):
+        """Test unique method."""
         with self.subTest(msg='1 qubit'):
             labels = ['X', 'Z', 'X', 'X', 'I', 'Y', 'I', 'X', 'Z', 'Z', 'X', 'I']
             unique = ['X', 'Z', 'I', 'Y']
             target = PauliTable.from_labels(unique)
-            value = PauliTable.from_labels(labels).delete_duplicates()
+            value = PauliTable.from_labels(labels).unique()
             self.assertEqual(target, value)
 
         with self.subTest(msg='2 qubit'):
             labels = ['XX', 'IX', 'XX', 'II', 'IZ', 'ZI', 'YX', 'YX', 'ZZ', 'IX', 'XI']
             unique = ['XX', 'IX', 'II', 'IZ', 'ZI', 'YX', 'ZZ', 'XI']
             target = PauliTable.from_labels(unique)
-            value = PauliTable.from_labels(labels).delete_duplicates()
+            value = PauliTable.from_labels(labels).unique()
             self.assertEqual(target, value)
 
         with self.subTest(msg='10 qubit'):
             labels = [10 * 'X', 10 * 'I', 10 * 'X']
             unique = [10 * 'X', 10 * 'I']
             target = PauliTable.from_labels(unique)
-            value = PauliTable.from_labels(labels).delete_duplicates()
+            value = PauliTable.from_labels(labels).unique()
             self.assertEqual(target, value)
 
     def test_delete(self):
