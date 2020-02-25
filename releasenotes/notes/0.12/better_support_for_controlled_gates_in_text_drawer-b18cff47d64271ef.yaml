@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    All the output types for the circuit drawers in
+    :meth:`qiskit.circuit.QuantumCircuit.draw` and
+    :func:`qiskit.visualization.circuit_drawer` have fixed and/or improved
+    support for drawing controlled custom gates. Fixes
+    `issue #3546 <https://github.com/Qiskit/qiskit-terra/issues/3546>`_,
+    `issue #3763 <https://github.com/Qiskit/qiskit-terra/issues/3763>`_,
+    and `issue #3764 <https://github.com/Qiskit/qiskit-terra/issues/3764>`_

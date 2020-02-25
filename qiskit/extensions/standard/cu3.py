@@ -13,58 +13,11 @@
 # that they have been altered from the originals.
 
 """
-controlled-u3 gate.
+Controlled-u3 gate.
 """
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.cx import CnotGate
+import warnings
+# pylint: disable=unused-import
+from qiskit.extensions.standard.u3 import Cu3Gate, cu3
 
-
-class Cu3Gate(ControlledGate):
-    """controlled-u3 gate."""
-
-    def __init__(self, theta, phi, lam):
-        """Create new cu3 gate."""
-        super().__init__("cu3", 2, [theta, phi, lam], num_ctrl_qubits=1)
-        self.base_gate = U3Gate
-        self.base_gate_name = "u3"
-
-    def _define(self):
-        """
-        gate cu3(theta,phi,lambda) c, t
-        { u1((lambda+phi)/2) c;
-          u1((lambda-phi)/2) t;
-          cx c,t;
-          u3(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u3(theta/2,phi,0) t;
-        }
-        """
-        definition = []
-        q = QuantumRegister(2, "q")
-        rule = [
-            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
-
-    def inverse(self):
-        """Invert this gate."""
-        return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
-
-
-def cu3(self, theta, phi, lam, ctl, tgt):
-    """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
-    return self.append(Cu3Gate(theta, phi, lam), [ctl, tgt], [])
-
-
-QuantumCircuit.cu3 = cu3
+warnings.warn('This module is deprecated. The Cu3Gate can now be found in u3.py',
+              category=DeprecationWarning, stacklevel=2)
