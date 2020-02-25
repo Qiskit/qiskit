@@ -25,7 +25,34 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 class PauliTable:
     r"""Symplectic representation of a list Pauli matrices.
 
-    Stored as an M x 2N boolean matrix:
+    **Symplectic Representation**
+
+    The symplectic representation of a single-qubit Pauli matrix
+    is a pair of boolean values :math:`[x, z]` such that the Pauli matrix
+    is given by :math:`P = (-i)^{z * x} \sigma_z^z.\sigma_x^x`.
+    The correspondence between labels, symplectic representation,
+    and matrices for single-qubit Paulis are shown in Table 1.
+
+    .. list-table:: Pauli Representations
+        :header-rows: 1
+
+        * - Label
+          - Symplectic
+          - Matrix
+        * - ``"I"``
+          - :math:`[0, 0]`
+          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
+        * - ``"X"``
+          - :math:`[1, 0]`
+          - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
+        * - ``"Y"``
+          - :math:`[1, 1]`
+          - :math:`\begin{bmatrix} 0 & -i \\ i & 0  \end{bmatrix}`
+        * - ``"Z"``
+          - :math:`[0, 1]`
+          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
+
+    The full Pauli table is a M x 2N boolean matrix:
 
     .. math::
 
@@ -36,8 +63,44 @@ class PauliTable:
             x_{M-1,N-1} & ... & x_{M-1,0} & z_{M-1,N-1} & ... & z_{M-1,0}
         \end{array}\right)
 
-    Where each row is the symplectic representation of an N-qubit Pauli.
+    where each row is a block vector :math:`[X_i, Z_i]` with
+    :math:`X = [x_{i,N-1}, ..., x_{i,0}]`, :math:`Z = [z_{i,N-1}, ..., z_{i,0}]`
+    is the symplectic representation of an `N`-qubit Pauli.
     This representation is based on reference [1].
+
+    PauliTable's can be created from a list of labels using :meth:`from_labels`,
+    and converted to a list of labels or a list of matrices using
+    :meth:`to_labels` and :meth:`to_matrix` respectively.
+
+    **Group Product**
+
+    The Pauli's in the Pauli table do not represent the full Pauli as they are
+    restricted to having `+1` phase. The dot-product for the Pauli's is defined
+    to discard any phase obtained from matrix multiplication so that we have
+    :math:`X.Z = Z.X = Y`, etc. This means that for the PauliTable class the
+    operator methods :meth:`compose` and :meth:`dot` are equivalent.
+
+    **Qubit Ordering**
+
+    The qubits are ordered in the table such the least significant qubit
+    `[x_{i, 0}, z_{i, 0}]` is the last element of each of the :math:`X_i, Z_i`
+    vector blocks. This ordering is true for the string label or a matrix
+    representation as well. For example Pauli ``"IX"`` has ``"X"`` on qubit-0
+    and ``"I"`` on qubit 1.
+
+    **Data Access**
+
+    Subsets of rows can be accessed using the list access ``[]`` operator and
+    will return a table view of part of the PauliTable. The underlying Numpy
+    array can be directly accessed using the :attr:`array` property, and the
+    sub-arrays for only the `X` or `Z` blocks can be accessed using the
+    :attr:`X` and :attr:`Z` properties respectively.
+
+    **Iteration**
+
+    Rows in the Pauli table can be iterated over like a list. Iteration can
+    also be done using the label or matrix representation of each row using the
+    :meth:`label_iter` and :meth:`matrix_iter` methods.
 
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
@@ -45,13 +108,11 @@ class PauliTable:
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data, copy=False):
+    def __init__(self, data):
         """Initialize the PauliTable.
 
         Args:
             data (array or str): input data.
-            copy (bool): optionally store a copy input data array
-                         rather than a reference (Default: False).
 
         Raises:
             QiskitError: if input array is invalid shape.
@@ -65,10 +126,10 @@ class PauliTable:
             self._array = PauliTable._from_label(data)
         elif isinstance(data, PauliTable):
             # Share underlying array
-            self._array = data._array.copy() if copy else data._array
+            self._array = data._array
         else:
             # Convert to bool array avoiding copy if possible
-            self._array = np.array(data, copy=copy, dtype=np.bool)
+            self._array = np.asarray(data, dtype=np.bool)
 
         # Input must be a (K, 2*N) shape matrix for M N-qubit Paulis.
         if self._array.ndim == 1:
@@ -156,6 +217,8 @@ class PauliTable:
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
+        if isinstance(key, (int, np.int)):
+            key = [key]
         return PauliTable(self._array[key])
 
     def __setitem__(self, key, value):
@@ -351,7 +414,7 @@ class PauliTable:
         return self[self.argsort(weight=weight)]
 
     def unique(self, return_index=False, return_counts=False):
-        """Delete duplicate Paulis from the table.
+        """Return unique Paulis from the table.
 
         **Example**
 
@@ -360,7 +423,7 @@ class PauliTable:
             from qiskit.quantum_info.operators import PauliTable
 
             pt = PauliTable.from_labels(['X', 'Y', 'X', 'I', 'I', 'Z', 'X', 'Z'])
-            unique = pt.delete_duplicates()
+            unique = pt.unique()
             print(unique)
 
         Args:
@@ -371,11 +434,16 @@ class PauliTable:
                                   each unique item appears in the table.
 
         Returns:
-            PauliTable: the table of the unique rows.
-            array: optional index array for rows in original table if
-                   ``return_index=True`.
-            array: optional count array of unique elements if
-                   ``return_counts=True`.
+            PauliTable: unique
+                the table of the unique rows.
+
+            unique_indices: np.ndarray, optional
+                The indices of the first occurrences of the unique values in
+                the original array. Only provided if ``return_index`` is True.\
+
+            unique_counts: np.array, optional
+                The number of times each of the unique values comes up in the
+                original array. Only provided if ``return_counts`` is True.
         """
         if return_counts:
             _, index, counts = np.unique(self.array, return_index=True,
@@ -563,7 +631,7 @@ class PauliTable:
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        return self.compose(other, qargs=qargs)
+        return self.compose(other, qargs=qargs, front=True)
 
     def commutes(self, pauli):
         """Return list of commutation properties for each row with a Pauli.
@@ -698,11 +766,30 @@ class PauliTable:
         return cls(array)
 
     def to_labels(self, array=False):
-        """Convert a PauliTable to a list Pauli string labels.
+        r"""Convert a PauliTable to a list Pauli string labels.
 
         For large PauliTables converting using the ``array=True``
         kwarg will be more efficient since it allocates memory for
         the full Numpy array of labels in advance.
+
+        .. list-table:: Pauli Representations
+            :header-rows: 1
+
+            * - Label
+              - Symplectic
+              - Matrix
+            * - ``"I"``
+              - :math:`[0, 0]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
+            * - ``"X"``
+              - :math:`[1, 0]`
+              - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
+            * - ``"Y"``
+              - :math:`[1, 1]`
+              - :math:`\begin{bmatrix} 0 & -i \\ i & 0  \end{bmatrix}`
+            * - ``"Z"``
+              - :math:`[0, 1]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
 
         Args:
             array (bool): return a Numpy array if True, otherwise
@@ -719,11 +806,30 @@ class PauliTable:
         return ret.tolist()
 
     def to_matrix(self, sparse=False, array=False):
-        """Convert to a list or array of Pauli matrices.
+        r"""Convert to a list or array of Pauli matrices.
 
         For large PauliTables converting using the ``array=True``
         kwarg will be more efficient since it allocates memory a full
         rank-3 Numpy array of matrices in advance.
+
+        .. list-table:: Pauli Representations
+            :header-rows: 1
+
+            * - Label
+              - Symplectic
+              - Matrix
+            * - ``"I"``
+              - :math:`[0, 0]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
+            * - ``"X"``
+              - :math:`[1, 0]`
+              - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
+            * - ``"Y"``
+              - :math:`[1, 1]`
+              - :math:`\begin{bmatrix} 0 & -i \\ i & 0  \end{bmatrix}`
+            * - ``"Z"``
+              - :math:`[0, 1]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
 
         Args:
             sparse (bool): if True return sparse CSR matrices, otherwise
@@ -793,14 +899,15 @@ class PauliTable:
         return str().join(paulis)
 
     @staticmethod
-    def _to_matrix(pauli, sparse=False):
+    def _to_matrix(pauli, sparse=False, real_valued=False):
         """Return the Pauli matrix from symplectic representation.
 
         Args:
             pauli (array): symplectic Pauli vector.
             sparse (bool): if True return a sparse CSR matrix, otherwise
                            return a dense Numpy array (Default: False).
-
+            real_valued (bool): if True return real Pauli matrices with
+                                Y returned as -iY (Default: False).
         Returns:
             array: if sparse=False.
             csr_matrix: if sparse=True.
@@ -824,16 +931,23 @@ class PauliTable:
 
         indptr = np.arange(dim + 1, dtype=np.uint)
         indices = indptr ^ x_indices
-        phase = (-1j) ** np.sum(np.logical_and(x, z))
-        data = phase * (-1) ** np.mod(count1(z_indices & indptr), 2)
+        data = (-1) ** np.mod(count1(z_indices & indptr), 2)
+        phase = (-1) * np.sum(np.logical_and(x, z))
+        if real_valued:
+            data *= phase
+            dtype = float
+        else:
+            data = 1j * phase * data
+            dtype = complex
 
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
-            return csr_matrix((data, indices, indptr), shape=(dim, dim))
+            return csr_matrix((data, indices, indptr), shape=(dim, dim),
+                              dtype=dtype)
 
         # Build dense matrix using csr format
-        mat = np.zeros((dim, dim), dtype=complex)
+        mat = np.zeros((dim, dim), dtype=dtype)
         for i in range(dim):
             mat[i][indices[indptr[i]:indptr[i+1]]] = data[indptr[i]:indptr[i+1]]
         return mat
