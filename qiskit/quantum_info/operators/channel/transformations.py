@@ -208,7 +208,10 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     # Check if hermitian matrix
     if is_hermitian_matrix(data, atol=atol):
         # Get eigen-decomposition of Choi-matrix
-        w, v = la.eigh(data)
+        # This should be a call to la.eigh, but there is an OpenBlas
+        # threading issue that is causing segfaults.
+        w, v = la.eig(data)
+        w = w.real
         # Check eigenvalues are non-negative
         if len(w[w < -atol]) == 0:
             # CP-map Kraus representation
