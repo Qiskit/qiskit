@@ -804,8 +804,10 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         # The Qobj IDs will be different
         n_qobj = assemble(new_style_schedule, backend)
         n_qobj.qobj_id = None
+        n_qobj.experiments[0].header.name = None
         d_qobj = assemble(deprecated_style_schedule, backend)
         d_qobj.qobj_id = None
+        d_qobj.experiments[0].header.name = None
         self.assertEqual(n_qobj, d_qobj)
 
         assembled_acquire = n_qobj.experiments[0].instructions[0]
