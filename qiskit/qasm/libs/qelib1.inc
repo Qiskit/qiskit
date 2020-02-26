@@ -140,3 +140,38 @@ gate rzz(theta) a,b
   u1(theta) b;
   cx a,b;
 }
+// relative-phase CCX
+gate rccx a,b,c
+{
+  u2(0,pi) c;
+  u1(pi/4) c;
+  cx b, c;
+  u1(-pi/4) c;
+  cx a, c;
+  u1(pi/4) c;
+  cx b, c;
+  u1(-pi/4) c;
+  u2(0,pi) c;
+}
+// relative-phase CCCX
+gate rcccx a,b,c,d
+{
+  u2(0,pi) d;
+  u1(pi/4) d;
+  cx c,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
+  cx a,d;
+  u1(pi/4) d;
+  cx b,d;
+  u1(-pi/4) d;
+  cx a,d;
+  u1(pi/4) d;
+  cx b,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
+  u1(pi/4) d;
+  cx c,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
+}

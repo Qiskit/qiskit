@@ -24,7 +24,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CXGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.test import QiskitTestCase
@@ -53,7 +53,7 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(uop1 == uop3)
 
         self.assertTrue(HGate() == HGate())
-        self.assertFalse(HGate() == CnotGate())
+        self.assertFalse(HGate() == CXGate())
         self.assertFalse(hop1 == HGate())
 
         eop1 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
@@ -117,7 +117,7 @@ class TestInstructions(QiskitTestCase):
         circ1 = QuantumCircuit(q, c, name='circuit1')
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
-        circ1.iden(q[1])
+        circ1.i(q[1])
         circ1.u3(0.1, 0.2, -0.2, q[0])
         circ1.barrier()
         circ1.measure(q, c)
@@ -165,13 +165,13 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, c, name='circ')
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
-        circ.iden(q[1])
+        circ.i(q[1])
         circ.u3(0.1, 0.2, -0.2, q[0])
         gate = circ.to_instruction()
 
         circ = QuantumCircuit(q, c, name='circ')
         circ.u3(0.1, 0.2, -0.2, q[0])
-        circ.iden(q[1])
+        circ.i(q[1])
         circ.crz(0.1, q[0], q[1])
         circ.h(q[0])
         gate_mirror = circ.to_instruction()
@@ -229,12 +229,12 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, name='circ')
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
-        circ.iden(q[1])
+        circ.i(q[1])
         circ.u3(0.1, 0.2, -0.2, q[0])
         gate = circ.to_instruction()
         circ = QuantumCircuit(q, name='circ')
         circ.u3(-0.1, 0.2, -0.2, q[0])
-        circ.iden(q[1])
+        circ.i(q[1])
         circ.crz(-0.1, q[0], q[1])
         circ.h(q[0])
         gate_inverse = circ.to_instruction()
@@ -252,12 +252,12 @@ class TestInstructions(QiskitTestCase):
         qr1 = QuantumRegister(4)
         circ1 = QuantumCircuit(qr1, name='circuit1')
         circ1.cu1(-0.1, qr1[0], qr1[2])
-        circ1.iden(qr1[1])
+        circ1.i(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
 
         circ_inv = QuantumCircuit(qr1, name='circ1_dg')
         circ_inv.append(little_gate.inverse(), [qr1[2], qr1[3]])
-        circ_inv.iden(qr1[1])
+        circ_inv.i(qr1[1])
         circ_inv.cu1(0.1, qr1[0], qr1[2])
 
         self.assertEqual(circ1.inverse(), circ_inv)

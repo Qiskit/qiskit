@@ -21,8 +21,10 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.pulse import Schedule
+from qiskit.exceptions import QiskitError
 
 
 def execute(experiments, backend,
@@ -35,6 +37,7 @@ def execute(experiments, backend,
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
+            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -179,6 +182,21 @@ def execute(experiments, backend,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
+        schedule_circuit (bool):
+            If ``True``, ``experiments`` will be converted to ``Schedule``s prior to
+            execution.
+
+        inst_map (InstructionScheduleMap):
+            Mapping of circuit operations to pulse schedules. If None, defaults to the
+            ``instruction_schedule_map`` of ``backend``.
+
+        meas_map (list(list(int))):
+            List of sets of qubits that must be measured together. If None, defaults to
+            the ``meas_map`` of ``backend``.
+
+        scheduling_method (str or list(str)):
+            Optionally specify a particular scheduling method.
+
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
             Refer to the backend documentation for details on these arguments.
@@ -219,6 +237,16 @@ def execute(experiments, backend,
                             backend=backend,
                             pass_manager=pass_manager,
                             )
+
+    if schedule_circuit:
+        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
+            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
+        experiments = schedule(circuits=experiments,
+                               backend=backend,
+                               inst_map=inst_map,
+                               meas_map=meas_map,
+                               method=scheduling_method
+                               )
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,

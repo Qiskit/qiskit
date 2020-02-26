@@ -20,7 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.util import deprecate_arguments
 
 
 class TGate(Gate):
@@ -28,16 +28,17 @@ class TGate(Gate):
 
     def __init__(self, label=None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label)
+        super().__init__('t', 1, [], label=label)
 
     def _define(self):
         """
         gate t a { u1(pi/4) a; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (U1Gate(pi/4), [q[0]], [])
+            (U1Gate(pi / 4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -48,26 +49,27 @@ class TGate(Gate):
         return TdgGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0],
-                            [0, (1+1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
 class TdgGate(Gate):
-    """T Gate: -pi/4 rotation around Z axis."""
+    """Tdg Gate: -pi/4 rotation around Z axis."""
 
     def __init__(self, label=None):
-        """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label)
+        """Create a new Tdg gate."""
+        super().__init__('tdg', 1, [], label=label)
 
     def _define(self):
         """
-        gate t a { u1(pi/4) a; }
+        gate tdg a { u1(pi/4) a; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (U1Gate(-pi/4), [q[0]], [])
+            (U1Gate(-pi / 4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -78,19 +80,65 @@ class TdgGate(Gate):
         return TGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0],
-                            [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-def t(self, q):  # pylint: disable=invalid-name
-    """Apply T to q."""
-    return self.append(TGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    """Apply T gate to a specified qubit (qubit).
+    A T gate implements a pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.t(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TGate
+            TGate().to_matrix()
+    """
+    return self.append(TGate(), [qubit], [])
 
 
-def tdg(self, q):
-    """Apply Tdg to q."""
-    return self.append(TdgGate(), [q], [])
+@deprecate_arguments({'q': 'qubit'})
+def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+    """Apply Tdg gate to a specified qubit (qubit).
+    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+    z axis of the Bloch sphere. It is the inverse of T-gate.
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.tdg(0)
+            circuit.draw()
+
+        Matrix Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.extensions.standard.t import TdgGate
+            TdgGate().to_matrix()
+    """
+    return self.append(TdgGate(), [qubit], [])
 
 
 QuantumCircuit.t = t

@@ -18,9 +18,9 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit import QiskitError
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Kraus
+from qiskit.quantum_info import Kraus, Operator
 from .channel_test_case import ChannelTestCase
 
 
@@ -62,10 +62,19 @@ class TestKraus(ChannelTestCase):
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
-        circuit, target = self.simple_circuit_no_measure()
-        op = Kraus(circuit)
-        target = Kraus(target)
-        self.assertEqual(op, target)
+        unitary_x = np.array([[0, 1], [1, 0]])
+        unitary_h = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+
+        target = Operator(np.kron(y90, np.kron(unitary_x, unitary_h)))
+        qr = QuantumRegister(3)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.x(qr[1])
+        circ.ry(np.pi / 2, qr[2])
+
+        ans = np.linalg.norm((Kraus(circ)-Kraus(target)).data)
+        self.assertAlmostEqual(ans, 0.0)
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""
@@ -316,7 +325,7 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) + (rho @ chan2)
-        chan = chan1.add(chan2)
+        chan = chan1._add(chan2)
         self.assertEqual(rho @ chan, targ)
         chan = chan1 + chan2
         self.assertEqual(rho @ chan, targ)
@@ -324,7 +333,7 @@ class TestKraus(ChannelTestCase):
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 2 * (rho @ chan)
-        chan = chan.add(chan)
+        chan = chan._add(chan)
         self.assertEqual(rho @ chan, targ)
 
     def test_subtract(self):
@@ -337,15 +346,13 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) - (rho @ chan2)
-        chan = chan1.subtract(chan2)
-        self.assertEqual(rho @ chan, targ)
         chan = chan1 - chan2
         self.assertEqual(rho @ chan, targ)
 
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 0 * (rho @ chan)
-        chan = chan.subtract(chan)
+        chan = chan - chan
         self.assertEqual(rho @ chan, targ)
 
     def test_multiply(self):
@@ -358,7 +365,7 @@ class TestKraus(ChannelTestCase):
         # Single Kraus set
         chan1 = Kraus(kraus1)
         targ = val * (rho @ chan1)
-        chan = chan1.multiply(val)
+        chan = chan1._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan1
         self.assertEqual(rho @ chan, targ)
@@ -366,7 +373,7 @@ class TestKraus(ChannelTestCase):
         # Double Kraus set
         chan2 = Kraus((kraus1, kraus2))
         targ = val * (rho @ chan2)
-        chan = chan2.multiply(val)
+        chan = chan2._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan2
         self.assertEqual(rho @ chan, targ)
@@ -374,9 +381,9 @@ class TestKraus(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Kraus(self.depol_kraus(1))
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):

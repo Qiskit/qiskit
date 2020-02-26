@@ -21,7 +21,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.util import deprecate_arguments
 
 
 class RGate(Gate):
@@ -29,14 +29,15 @@ class RGate(Gate):
 
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+        super().__init__('r', 1, [theta, phi])
 
     def _define(self):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
+        from qiskit.extensions.standard.u3 import U3Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         theta = self.params[0]
         phi = self.params[1]
         rule = [
@@ -54,7 +55,7 @@ class RGate(Gate):
         return RGate(-self.params[0], self.params[1])
 
     def to_matrix(self):
-        """Return a Numpy.array for the R gate."""
+        """Return a numpy.array for the R gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         exp_m = numpy.exp(-1j * self.params[1])
@@ -63,9 +64,10 @@ class RGate(Gate):
                             [-1j * exp_p * sin, cos]], dtype=complex)
 
 
-def r(self, theta, phi, q):  # pylint: disable=invalid-name
+@deprecate_arguments({'q': 'qubit'})
+def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply R to q."""
-    return self.append(RGate(theta, phi), [q], [])
+    return self.append(RGate(theta, phi), [qubit], [])
 
 
 QuantumCircuit.r = r

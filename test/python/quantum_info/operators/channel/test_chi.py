@@ -246,52 +246,37 @@ class TestChi(ChannelTestCase):
         """Test add method."""
         mat1 = 0.5 * self.chiI
         mat2 = 0.5 * self.depol_chi(1)
-        targ = Chi(mat1 + mat2)
-
         chan1 = Chi(mat1)
         chan2 = Chi(mat2)
-        self.assertEqual(chan1.add(chan2), targ)
+
+        targ = Chi(mat1 + mat2)
+        self.assertEqual(chan1._add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
+
+        targ = Chi(mat1 - mat2)
+        self.assertEqual(chan1 - chan2, targ)
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = Chi(self.chiI)
         chan2 = Chi(np.eye(16))
-        self.assertRaises(QiskitError, chan1.add, chan2)
-        self.assertRaises(QiskitError, chan1.add, 5)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = 0.5 * self.chiI
-        mat2 = 0.5 * self.depol_chi(1)
-        targ = Chi(mat1 - mat2)
-
-        chan1 = Chi(mat1)
-        chan2 = Chi(mat2)
-        self.assertEqual(chan1.subtract(chan2), targ)
-        self.assertEqual(chan1 - chan2, targ)
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        chan1 = Chi(self.chiI)
-        chan2 = Chi(np.eye(16))
-        self.assertRaises(QiskitError, chan1.subtract, chan2)
-        self.assertRaises(QiskitError, chan1.subtract, 5)
+        self.assertRaises(QiskitError, chan1._add, chan2)
+        self.assertRaises(QiskitError, chan1._add, 5)
 
     def test_multiply(self):
         """Test multiply method."""
         chan = Chi(self.chiI)
         val = 0.5
         targ = Chi(val * self.chiI)
-        self.assertEqual(chan.multiply(val), targ)
+        self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Chi(self.chiI)
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
