@@ -30,7 +30,6 @@ from qiskit.aqua.algorithms import QuantumAlgorithm
 from qiskit.aqua.components.initial_states import Custom
 from qiskit.aqua.components.oracles import Oracle
 from qiskit.aqua.components.initial_states import InitialState
-from qiskit.aqua.circuits.gates import mct  # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 

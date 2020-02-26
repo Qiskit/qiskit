@@ -29,7 +29,6 @@ from qiskit.aqua.utils.arithmetic import is_power
 from qiskit.aqua.utils import get_subsystem_density_matrix
 from qiskit.aqua.algorithms import QuantumAlgorithm
 from qiskit.aqua.circuits import FourierTransformCircuits as ftc
-from qiskit.aqua.circuits.gates import mcu1  # pylint: disable=unused-import
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.validation import validate_min
 
