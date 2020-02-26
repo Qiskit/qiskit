@@ -49,12 +49,12 @@ class TestContinuousPulses(QiskitTestCase):
     def test_square(self):
         """Test square wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         samples = 100
         times = np.linspace(0, 10, samples)
-        square_arr = continuous.square(times, amp=amp, period=period)
+        square_arr = continuous.square(times, amp=amp, freq=freq)
         # with new phase
-        square_arr_phased = continuous.square(times, amp=amp, period=period, phase=np.pi/2)
+        square_arr_phased = continuous.square(times, amp=amp, freq=freq, phase=np.pi/2)
 
         self.assertEqual(square_arr.dtype, np.complex_)
 
@@ -70,19 +70,19 @@ class TestContinuousPulses(QiskitTestCase):
     def test_sawtooth(self):
         """Test sawtooth wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         samples = 101
         times, dt = np.linspace(0, 10, samples, retstep=True)
-        sawtooth_arr = continuous.sawtooth(times, amp=amp, period=period)
+        sawtooth_arr = continuous.sawtooth(times, amp=amp, freq=freq)
         # with new phase
         sawtooth_arr_phased = continuous.sawtooth(times, amp=amp,
-                                                  period=period, phase=np.pi/2)
+                                                  freq=freq, phase=np.pi/2)
 
         self.assertEqual(sawtooth_arr.dtype, np.complex_)
 
         self.assertAlmostEqual(sawtooth_arr[0], 0.0)
         # test slope
-        self.assertAlmostEqual((sawtooth_arr[1]-sawtooth_arr[0])/dt, 2*amp/period)
+        self.assertAlmostEqual((sawtooth_arr[1]-sawtooth_arr[0])/dt, 2*amp*freq)
         self.assertAlmostEqual(sawtooth_arr[24], 0.48)
         self.assertAlmostEqual(sawtooth_arr[50], 0.)
         self.assertAlmostEqual(sawtooth_arr[75], -amp)
@@ -94,19 +94,19 @@ class TestContinuousPulses(QiskitTestCase):
     def test_triangle(self):
         """Test triangle wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         samples = 101
         times, dt = np.linspace(0, 10, samples, retstep=True)
-        triangle_arr = continuous.triangle(times, amp=amp, period=period)
+        triangle_arr = continuous.triangle(times, amp=amp, freq=freq)
         # with new phase
         triangle_arr_phased = continuous.triangle(times, amp=amp,
-                                                  period=period, phase=np.pi/2)
+                                                  freq=freq, phase=np.pi/2)
 
         self.assertEqual(triangle_arr.dtype, np.complex_)
 
         self.assertAlmostEqual(triangle_arr[0], 0.0)
         # test slope
-        self.assertAlmostEqual((triangle_arr[1]-triangle_arr[0])/dt, 4*amp/period)
+        self.assertAlmostEqual((triangle_arr[1]-triangle_arr[0])/dt, 4*amp*freq)
         self.assertAlmostEqual(triangle_arr[12], 0.48)
         self.assertAlmostEqual(triangle_arr[13], 0.48)
         self.assertAlmostEqual(triangle_arr[50], 0.)
@@ -284,3 +284,16 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertEqual(drag_arr.dtype, np.complex_)
 
         np.testing.assert_equal(drag_arr, gaussian_arr)
+
+    def test_period_deprecation_warning(self):
+        """Tests for DeprecationWarning"""
+        amp = 0.5
+        period = 5.
+        samples = 101
+        times, _ = np.linspace(0, 10, samples, retstep=True)
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.triangle(times, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.sawtooth(times, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: continuous.square(times, amp=amp, period=period))
