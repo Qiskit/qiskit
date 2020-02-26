@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Remove Jupyter tools that are now present in the IBMQ provider module.
+    `%qiskit_backend_overview` and `%%qiskit_job_status` have been replaced
+    by `%iqx_dashboard` that is automatically loaded when doing either
+    `import qiskit.tools.jupyter` or `import qiskit.providers.ibmq.jupyter`.
+    The `html_repr` used for showing detailed backend information is
+    replaced by the interactive one in the IBMQ provider.  This can also be
+    accessed using `import qiskit.tools.jupyter` or
+    `import qiskit.providers.ibmq.jupyter`.  Note that all of these routines
+    require having the IBMQ provider module installed.
