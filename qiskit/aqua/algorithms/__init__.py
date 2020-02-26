@@ -83,13 +83,14 @@ and its Python API to be installed. See the following for more information:
 .. toctree::
    :maxdepth: 1
 
-   qiskit.aqua.algorithms.classical.cplex
+   qiskit.aqua.algorithms.minimum_eigen_solvers.cplex
 
 .. autosummary::
    :toctree: ../stubs/
    :nosignatures:
 
    ExactEigensolver
+   ExactMinimumEigensolver
    ExactLSsolver
    SVM_Classical
    CPLEX_Ising
@@ -97,15 +98,19 @@ and its Python API to be installed. See the following for more information:
 """
 
 from .quantum_algorithm import QuantumAlgorithm
-from .adaptive import VQE, QAOA, VQC, QGAN
-from .classical import (ClassicalAlgorithm, ExactEigensolver, ExactLSsolver,
-                        SVM_Classical, CPLEX_Ising)
-from .many_sample import EOH, QSVM
-from .single_sample import (Grover, IQPE, QPE, AmplitudeEstimation,
-                            Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor,
-                            IterativeAmplitudeEstimation,
-                            MaximumLikelihoodAmplitudeEstimation)
-
+from .classical_algorithm import ClassicalAlgorithm
+from .vq_algorithm import VQAlgorithm
+from .amplitude_amplifiers import Grover
+from .amplitude_estimators import (AmplitudeEstimation,
+                                   IterativeAmplitudeEstimation,
+                                   MaximumLikelihoodAmplitudeEstimation)
+from .classifiers import VQC, QSVM, SVM_Classical
+from .distribution_learners import QGAN
+from .eigen_solvers import ExactEigensolver
+from .factorizers import Shor
+from .linear_solvers import HHL, ExactLSsolver
+from .minimum_eigen_solvers import VQE, QAOA, IQPE, QPE, CPLEX_Ising, ExactMinimumEigensolver
+from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
 __all__ = [
     'QuantumAlgorithm',
@@ -114,8 +119,10 @@ __all__ = [
     'VQC',
     'QGAN',
     'ClassicalAlgorithm',
+    'VQAlgorithm',
     'ExactEigensolver',
     'ExactLSsolver',
+    'ExactMinimumEigensolver',
     'SVM_Classical',
     'CPLEX_Ising',
     'EOH',
