@@ -15,5 +15,6 @@
 """Module containing transpiler mapping passes."""
 
 from .basic_swap import BasicSwap
+from .layout_transformation import LayoutTransformation
 from .lookahead_swap import LookaheadSwap
 from .stochastic_swap import StochasticSwap

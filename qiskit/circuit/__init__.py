@@ -54,6 +54,13 @@ Parametric Quantum Circuits
     ParameterVector
     ParameterExpression
 
+Random Circuits
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random.random_circuit
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
