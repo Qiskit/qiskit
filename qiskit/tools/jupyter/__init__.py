@@ -22,44 +22,6 @@ Jupyter Tools (:mod:`qiskit.tools.jupyter`)
 A Collection of Jupyter magic functions and tools
 that extend the functionality of Qiskit.
 
-Overview of all available backends
-==================================
-
-.. code-block::
-
-    from qiskit import IBMQ
-    import qiskit.tools.jupyter
-    %matplotlib inline
-
-    IBMQ.load_account()
-
-    %qiskit_backend_overview
-
-
-Detailed information on a single backend
-========================================
-
-.. code-block::
-
-    from qiskit import IBMQ
-    import qiskit.tools.jupyter
-    %matplotlib inline
-
-    IBMQ.load_account()
-    provider = IBMQ.get_provider(hub='ibm-q')
-    backend = provider.get_backend('ibmq_vigo')
-    backend
-
-
-Load Qiskit Job Watcher
-=======================
-
-.. code-block::
-
-    import qiskit.tools.jupyter
-    %qiskit_job_watcher
-
-
 HTMLProgressBar
 ===============
 
@@ -94,17 +56,10 @@ Qiskit copyright
 import warnings
 
 from IPython import get_ipython          # pylint: disable=import-error
-from qiskit.test.mock import FakeBackend
-from qiskit.tools.visualization import HAS_MATPLOTLIB
-from .jupyter_magics import (ProgressBarMagic, StatusMagic)
+from .jupyter_magics import ProgressBarMagic
 from .progressbar import HTMLProgressBar
 from .version_table import VersionTable
 from .copyright import Copyright
-from .job_watcher import JobWatcher, JobWatcherMagic
-
-if HAS_MATPLOTLIB:
-    from .backend_overview import BackendOverview
-    from .backend_monitor import _backend_monitor
 
 try:
     from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
@@ -112,23 +67,10 @@ try:
 except ImportError:
     HAS_IBMQ = False
 
-
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     _IP.register_magics(VersionTable)
     _IP.register_magics(Copyright)
-    _IP.register_magics(JobWatcherMagic)
-    if HAS_MATPLOTLIB:
-        _IP.register_magics(BackendOverview)
-        if HAS_IBMQ:
-            HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
-            # Make _backend_monitor the html repr for IBM Q backends
-            HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
-            HTML_FORMATTER.for_type(FakeBackend, _backend_monitor)
-    else:
-        warnings.warn(
-            "matplotlib can't be found, ensure you have matplotlib and other "
-            "visualization dependencies installed. You can run "
-            "'!pip install qiskit-terra[visualization]' to install it from "
-            "jupyter", RuntimeWarning)
+    if HAS_IBMQ:
+        import qiskit.providers.ibmq.jupyter
