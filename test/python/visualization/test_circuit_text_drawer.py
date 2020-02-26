@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CzGate
+from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -965,8 +965,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "           └───────────┘"])
         qr = QuantumRegister(2, 'q')
         circ = QuantumCircuit(qr)
-        circ.append(CzGate(), [qr[0], qr[1]])
-        circ.append(CzGate(label='cz label'), [qr[0], qr[1]])
+        circ.append(CZGate(), [qr[0], qr[1]])
+        circ.append(CZGate(label='cz label'), [qr[0], qr[1]])
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
