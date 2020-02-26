@@ -18,7 +18,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
