@@ -62,15 +62,12 @@ from .version_table import VersionTable
 from .copyright import Copyright
 
 try:
-    from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
-    HAS_IBMQ = True
+    import qiskit.providers.ibmq.jupyter
 except ImportError:
-    HAS_IBMQ = False
+    pass
 
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     _IP.register_magics(VersionTable)
     _IP.register_magics(Copyright)
-    if HAS_IBMQ:
-        import qiskit.providers.ibmq.jupyter
