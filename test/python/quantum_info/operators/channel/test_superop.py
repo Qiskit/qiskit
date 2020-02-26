@@ -522,51 +522,35 @@ class TestSuperOp(ChannelTestCase):
         """Test add method."""
         mat1 = 0.5 * self.sopI
         mat2 = 0.5 * self.depol_sop(1)
-        targ = SuperOp(mat1 + mat2)
-
         chan1 = SuperOp(mat1)
         chan2 = SuperOp(mat2)
-        self.assertEqual(chan1.add(chan2), targ)
+        targ = SuperOp(mat1 + mat2)
+        self.assertEqual(chan1._add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
+        targ = SuperOp(mat1 - mat2)
+        self.assertEqual(chan1 - chan2, targ)
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = SuperOp(self.sopI)
         chan2 = SuperOp(np.eye(16))
-        self.assertRaises(QiskitError, chan1.add, chan2)
-        self.assertRaises(QiskitError, chan1.add, 5)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = 0.5 * self.sopI
-        mat2 = 0.5 * self.depol_sop(1)
-        targ = SuperOp(mat1 - mat2)
-
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        self.assertEqual(chan1.subtract(chan2), targ)
-        self.assertEqual(chan1 - chan2, targ)
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(np.eye(16))
-        self.assertRaises(QiskitError, chan1.subtract, chan2)
-        self.assertRaises(QiskitError, chan1.subtract, 5)
+        self.assertRaises(QiskitError, chan1._add, chan2)
+        self.assertRaises(QiskitError, chan1._add, 5)
 
     def test_multiply(self):
         """Test multiply method."""
         chan = SuperOp(self.sopI)
         val = 0.5
         targ = SuperOp(val * self.sopI)
-        self.assertEqual(chan.multiply(val), targ)
+        self.assertEqual(chan._multiply(val), targ)
+        self.assertEqual(val * chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = SuperOp(self.sopI)
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
