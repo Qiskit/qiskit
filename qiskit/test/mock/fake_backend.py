@@ -22,6 +22,7 @@ import warnings
 
 from qiskit.providers.models import BackendProperties
 from qiskit.providers import BaseBackend
+from qiskit.exceptions import QiskitError
 
 try:
     from qiskit import Aer
@@ -105,11 +106,20 @@ class FakeBackend(BaseBackend):
     def run(self, qobj):
         """Main job in simulator"""
         if HAS_AER:
-            sim = Aer.get_backend('qasm_simulator')
-            from qiskit.providers.aer.noise import NoiseModel
-            noise_model = NoiseModel.from_backend(self)
-            job = sim.run(qobj, noise_model=noise_model)
+            if qobj.type == 'PULSE':
+                from qiskit.providers.aer.pulse import PulseSystemModel
+                system_model = PulseSystemModel.from_backend(self)
+                sim = Aer.get_backend('pulse_simulator')
+                job = sim.run(qobj, system_model)
+            else:
+                sim = Aer.get_backend('qasm_simulator')
+                from qiskit.providers.aer.noise import NoiseModel
+                noise_model = NoiseModel.from_backend(self)
+                job = sim.run(qobj, noise_model=noise_model)
         else:
+            if qobj.type == 'PULSE':
+                raise QiskitError("Unable to run pulse schedules without "
+                                  "qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise",
                           RuntimeWarning)
             sim = BasicAer.get_backend('qasm_simulator')
