@@ -59,7 +59,7 @@ class TestParallel(QiskitTestCase):
         names = [circ.name for circ in out_circs]
         self.assertEqual(len(names), len(set(names)))
 
-    def test_parellel_schedule_names(self):
+    def test_parallel_schedule_names(self):
         """Verify unique schedule names in parallel"""
         out_schedules = parallel_map(_build_simple_schedule, list(range(10)))
         names = [schedule.name for schedule in out_schedules]
