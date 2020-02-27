@@ -16,8 +16,8 @@
 ZeroOp class
 """
 
-import numpy as np
 from numbers import Number
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -30,7 +30,7 @@ class ZeroOp(BaseOperator):
     This is a symbolic representation of an empty (zero matrix) operator on
     multiple subsystems. It may be used to initialize an empty operator and
     then be implicitly converted to other classes of operators by using the
-    :meth:`add`, :meth:`subtract` methods.
+    addition (``+``) and subtraction (``-``) operators.
     """
 
     def __init__(self, input_dims, output_dims=None):
@@ -42,9 +42,9 @@ class ZeroOp(BaseOperator):
             if output_dims is None:
                 output_dims = input_dims
                 input_dims = self._automatic_dims(
-                                input_dims, np.product(input_dims))
+                    input_dims, np.product(input_dims))
                 output_dims = self._automatic_dims(
-                                output_dims, np.product(output_dims))
+                    output_dims, np.product(output_dims))
         super().__init__(input_dims, input_dims)
 
     def __repr__(self):

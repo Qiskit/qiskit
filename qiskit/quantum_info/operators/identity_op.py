@@ -17,8 +17,8 @@ IdentityOp class
 """
 
 import copy
-import numpy as np
 from numbers import Number
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -39,8 +39,8 @@ class IdentityOp(BaseOperator):
 
         Args:
             dims (int or tuple): subsystem dimensions.
-            coeffs (complex or None): an optional scalar coefficient for
-                the identity operator (Default: None).
+            coeff (complex or None): an optional scalar coefficient for
+                                     the identity operator (Default: None).
 
         Raises:
             QiskitError: If the optional coefficient is invalid.
