@@ -15,6 +15,7 @@
 """Assemble function for converting a list of circuits into a qobj."""
 from typing import Any, Dict, List, Tuple
 from collections import defaultdict
+from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
@@ -102,7 +103,8 @@ def _assemble_experiments(
         qobj_instructions, user_pulses, max_memory_slot = _assemble_instructions(
             schedule,
             instruction_converter,
-            run_config)
+            run_config,
+            user_pulselib)
         user_pulselib.update(user_pulses)
 
         # TODO: add other experimental header items (see circuit assembler)
@@ -144,7 +146,8 @@ def _assemble_experiments(
 def _assemble_instructions(
         schedule: Schedule,
         instruction_converter: InstructionToQobjConverter,
-        run_config: RunConfig
+        run_config: RunConfig,
+        user_pulselib: Dict[str, Command]
 ) -> Tuple[List[PulseQobjInstruction], Dict[str, Command], int]:
     """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
     related metadata that will be assembled into the Qobj configuration.
@@ -154,6 +157,7 @@ def _assemble_instructions(
         instruction_converter: A converter instance which can convert PulseInstructions to
                                PulseQobjInstructions.
         run_config: Configuration of the runtime environment.
+        user_pulselib: User pulse library from previous schedule.
 
     Returns:
         A list of converted instructions, the user pulse library dictionary (from pulse name to
@@ -161,7 +165,7 @@ def _assemble_instructions(
     """
     max_memory_slot = 0
     qobj_instructions = []
-    user_pulselib = {}
+    user_pulselib = deepcopy(user_pulselib)
 
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
