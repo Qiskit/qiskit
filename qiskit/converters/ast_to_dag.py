@@ -377,15 +377,23 @@ class AstInterpreter:
                     qparams = [bit_args[param.name] for param in param_list.children]
                 elif param_list.type == 'expression_list':
                     for param in param_list.children:
-                        if param.type == 'real':
-                            eparams.append(param.value)
-                        elif param.type == 'id':
-                            eparams.append(exp_args[param.name])
-                        else:
-                            eparams.append(param.sym())
+                        eparams.append(AstInterpreter.reduce_ids(param, exp_args))
             op = self._create_op(child_op.name, params=eparams)
             definition.append((op, qparams, []))
         return definition
+
+    @staticmethod
+    def reduce_ids(param, variables):
+        """Like param.sym, but without nested scope"""
+        if param.type == 'id':
+            return variables[param.name]
+        elif param.type == 'binop':
+            operation = param.children[0].operation()
+            lhs = AstInterpreter.reduce_ids(param.children[1], variables)
+            rhs = AstInterpreter.reduce_ids(param.children[2], variables)
+            return operation(lhs, rhs)
+        else:
+            return param.sym()
 
     def _create_dag_op(self, name, params, qargs):
         """
