@@ -13,13 +13,15 @@
 # that they have been altered from the originals.
 
 """Any command which implements a transmit signal on a channel."""
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, TYPE_CHECKING
 
 from abc import abstractmethod
 
 from qiskit.pulse.channels import Channel
 from .instruction import Instruction
 from .command import Command
+if TYPE_CHECKING:
+    from qiskit.visualization.pulse.qcstyle import PulseStyle
 
 
 class PulseCommand(Command):

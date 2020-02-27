@@ -38,7 +38,7 @@ by following the existing pattern:
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 import math
 
 import numpy as np
@@ -51,6 +51,8 @@ from qiskit.pulse.pulse_lib import continuous
 from .pulse_command import PulseCommand
 from .sample_pulse import SamplePulse
 from .instruction import Instruction
+if TYPE_CHECKING:
+    from qiskit.visualization.pulse.qcstyle import PulseStyle
 
 # pylint: disable=missing-docstring
 

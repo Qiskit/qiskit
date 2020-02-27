@@ -21,7 +21,7 @@ import abc
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type, TYPE_CHECKING
 import warnings
 
 from qiskit.util import is_main_process
@@ -30,6 +30,8 @@ from .channels import Channel
 from .interfaces import ScheduleComponent
 from .timeslots import TimeslotCollection
 from .exceptions import PulseError
+if TYPE_CHECKING:
+    from qiskit.visualization.pulse.qcstyle import SchedStyle
 
 # pylint: disable=missing-return-doc
 
