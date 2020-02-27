@@ -255,7 +255,13 @@
                                 "type": "array",
                                 "minItems": 0,
                                 "description": "A list of available parametric pulse shapes",
-                                "items": {"type": "string"}}
+                                "items": {"type": "string"}},
+                            "qubit_channel_map": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {"type": "array", "minItems": 0, "items": {"type": "string"}},
+                                "description": "An array of dimension n_qubits where each element <i> contains a list of channels mapping to qubit <i>."
+                                }
                             }},
         "gateconfig": {
             "type": "object",
