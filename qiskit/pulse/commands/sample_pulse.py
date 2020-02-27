@@ -15,7 +15,7 @@
 """
 Sample pulse.
 """
-from typing import Callable, Union, List, Optional
+from typing import Callable, Union, List, Optional, TYPE_CHECKING
 
 import warnings
 import numpy as np
@@ -25,6 +25,8 @@ from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
 from .pulse_command import PulseCommand
+if TYPE_CHECKING:
+    from qiskit.visualization.pulse.qcstyle import PulseStyle
 
 
 class SamplePulse(PulseCommand):

@@ -35,6 +35,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 if TYPE_CHECKING:
     from qiskit.pulse.commands import Command
+    from qiskit.visualization.pulse.qcstyle import SchedStyle
 
 # pylint: disable=missing-return-doc
 
