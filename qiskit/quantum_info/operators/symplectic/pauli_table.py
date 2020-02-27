@@ -80,6 +80,18 @@ class PauliTable:
     :math:`X.Z = Z.X = Y`, etc. This means that for the PauliTable class the
     operator methods :meth:`compose` and :meth:`dot` are equivalent.
 
+    +-------+---+---+---+---+
+    | A.B   | I | X | Y | Z |
+    +=======+===+===+===+===+
+    | **I** | I | X | Y | Z |
+    +-------+---+---+---+---+
+    | **X** | X | I | Z | Y |
+    +-------+---+---+---+---+
+    | **Y** | Y | Z | I | X |
+    +-------+---+---+---+---+
+    | **Z** | Z | Y | X | I |
+    +-------+---+---+---+---+
+
     **Qubit Ordering**
 
     The qubits are ordered in the table such the least significant qubit
@@ -156,7 +168,7 @@ class PauliTable:
         return False
 
     def copy(self):
-        """Return a PauliTable with a copy of the underlying boolean array."""
+        """Return a PauliTable with a copy of the underlying :attr:`array`."""
         return PauliTable(self._array.copy())
 
     # ---------------------------------------------------------------------
@@ -170,7 +182,7 @@ class PauliTable:
 
     @property
     def X(self):
-        """The X block of the :meth:`array`."""
+        """The X block of the :attr:`array`."""
         return self._array[:, 0:self._n_qubits]
 
     @X.setter
@@ -179,7 +191,7 @@ class PauliTable:
 
     @property
     def Z(self):
-        """The Z block of the :meth:`array`."""
+        """The Z block of the :attr:`array`."""
         return self._array[:, self._n_qubits:2*self._n_qubits]
 
     @Z.setter
@@ -239,7 +251,7 @@ class PauliTable:
 
         When deleting qubit columns, qubit-0 is the right-most
         (largest index) column, and qubit-(N-1) is the left-most
-        (0 index) column of the underlying :meth:`X` and :meth:`Z`
+        (0 index) column of the underlying :attr:`X` and :attr:`Z`
         arrays.
 
         Args:
@@ -251,7 +263,8 @@ class PauliTable:
             PauliTable: the resulting table with the entries removed.
 
         Raises:
-            QiskitError: if axis is not 0 or 1, or ind is invalid.
+            QiskitError: if ind is out of bounds for the array size or
+                         number of qubits.
         """
         if isinstance(ind, int):
             ind = [ind]
@@ -276,7 +289,7 @@ class PauliTable:
 
         When inserting qubit columns, qubit-0 is the right-most
         (largest index) column, and qubit-(N-1) is the left-most
-        (0 index) column of the underlying :meth:`X` and :meth:`Z`
+        (0 index) column of the underlying :attr:`X` and :attr:`Z`
         arrays.
 
         Args:
@@ -344,13 +357,11 @@ class PauliTable:
         # I => 0, X => 1, Y => 2, Z => 3
         x = self.X
         z = self.Z
-        order = (1 * np.logical_and(x, np.logical_not(z)) +
-                 2 * np.logical_and(x, z) +
-                 3 * np.logical_and(np.logical_not(x), z))
+        order = 1 * (x & ~z) + 2 * (x & z) + 3 * (~x & z)
         # Optionally get the weight of Pauli
         # This is the number of non identity terms
         if weight:
-            weights = np.sum(1 * np.logical_or(x, z), axis=1)
+            weights = np.sum(x | z, axis=1)
 
         # Sort by order
         # To preserve ordering between successive sorts we
@@ -497,13 +508,9 @@ class PauliTable:
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        size = self.size * other.size
-        return PauliTable(np.hstack([np.stack(other.size * [self.X],
-                                              axis=1).reshape(size, self.n_qubits),
-                                     np.vstack(self.size * [other.X]),
-                                     np.stack(other.size * [self.Z],
-                                              axis=1).reshape(size, self.n_qubits),
-                                     np.vstack(self.size * [other.Z])]))
+        x1, x2 = self._block_stack(self.X, other.X)
+        z1, z2 = self._block_stack(self.Z, other.Z)
+        return PauliTable(np.hstack([x1, x2, z1, z2]))
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -534,7 +541,9 @@ class PauliTable:
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        return other.tensor(self)
+        x1, x2 = self._block_stack(self.X, other.X)
+        z1, z2 = self._block_stack(self.Z, other.Z)
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -574,34 +583,21 @@ class PauliTable:
         if qargs and other.n_qubits != len(qargs):
             raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
 
-        size1 = self.size
-        size2 = other.size
-        if size2 > 1:
-            # Stack blocks for output table
-            x1 = np.reshape(np.stack(size2 * [self.X], axis=1),
-                            (size1 * size2, self.n_qubits))
-            z1 = np.reshape(np.stack(size2 * [self.Z], axis=1),
-                            (size1 * size2, self.n_qubits))
-        else:
-            # If we arent stacking we need to make copy of array so we
-            # don't change the array of the current object.
-            x1 = self.X.copy()
-            z1 = self.Z.copy()
-        x2 = other.X
-        z2 = other.Z
-        if size1 > 1:
-            x2 = np.vstack(size1 * [x2])
-            z2 = np.vstack(size1 * [z2])
+        # Stack X and Z blocks for output size
+        x1, x2 = self._block_stack(self.X, other.X)
+        z1, z2 = self._block_stack(self.Z, other.Z)
 
-        if qargs is None:
-            return PauliTable(np.hstack((
-                                np.logical_xor(x1, x2),
-                                np.logical_xor(z1, z2))))
-        # Convert qubit positions to array index
-        index = [self.n_qubits - 1 - i for i in reversed(qargs)]
-        x1[:, index] = np.logical_xor(x1[:, index], x2)
-        z1[:, index] = np.logical_xor(z1[:, index], z2)
-        return PauliTable(np.hstack([x1, z1]))
+        if qargs is not None:
+            index = [self.n_qubits - 1 - i for i in reversed(qargs)]
+            ret_x, ret_z = x1.copy(), z1.copy()
+            x1 = x1[:, index]
+            z1 = z1[:, index]
+            ret_x[:, index] = x1 ^ x2
+            ret_z[:, index] = z1 ^ z2
+            pauli = np.hstack([ret_x, ret_z])
+        else:
+            pauli = np.hstack((x1 ^ x2, z1 ^ z2))
+        return PauliTable(pauli)
 
     def dot(self, other, qargs=None):
         """Return the dot output product of two tables.
@@ -722,19 +718,37 @@ class PauliTable:
             array: boolean vector of which rows commute (True) or
                    anti-commute (False).
         """
-        def not_i(table):
-            return np.logical_or(table.X, table.Z)
         # Find positions where self and pauli are not identities
-        non_iden = np.logical_and(not_i(pauli_table), not_i(pauli))
+        non_iden = (pauli_table.X | pauli_table.Z) & (pauli.X | pauli.Z)
         # Multiply array by Pauli, and set entries where inputs
         # where I to I
-        tmp = PauliTable(np.logical_xor(pauli_table.array, pauli.array))
-        tmp.X = np.logical_and(tmp.X, non_iden)
-        tmp.Z = np.logical_and(tmp.Z, non_iden)
+        tmp = PauliTable(pauli_table.array ^ pauli.array)
+        tmp.X = (tmp.X & non_iden)
+        tmp.Z = (tmp.Z & non_iden)
         # Find total number of non I pauli's remaining in table
         # if there are an even number the row commutes with the
         # input Pauli, otherwise it anti-commutes
-        return np.logical_not(np.sum(not_i(tmp), axis=1) % 2)
+        return np.logical_not(np.sum((tmp.X | tmp.Z), axis=1) % 2)
+
+    @staticmethod
+    def _block_stack(array1, array2):
+        """Stack two arrays along their first axis."""
+        sz1 = len(array1)
+        sz2 = len(array2)
+        out_shape1 = (sz1 * sz2, ) + array1.shape[1:]
+        out_shape2 = (sz1 * sz2, ) + array2.shape[1:]
+        if sz2 > 1:
+            # Stack blocks for output table
+            ret1 = np.reshape(np.stack(sz2 * [array1], axis=1),
+                              out_shape1)
+        else:
+            ret1 = array1
+        if sz1 > 1:
+            # Stack blocks for output table
+            ret2 = np.reshape(np.vstack(sz1 * [array2]), out_shape2)
+        else:
+            ret2 = array2
+        return ret1, ret2
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -907,7 +921,7 @@ class PauliTable:
             sparse (bool): if True return a sparse CSR matrix, otherwise
                            return a dense Numpy array (Default: False).
             real_valued (bool): if True return real Pauli matrices with
-                                Y returned as -iY (Default: False).
+                                Y returned as iY (Default: False).
         Returns:
             array: if sparse=False.
             csr_matrix: if sparse=True.
@@ -932,13 +946,11 @@ class PauliTable:
         indptr = np.arange(dim + 1, dtype=np.uint)
         indices = indptr ^ x_indices
         data = (-1) ** np.mod(count1(z_indices & indptr), 2)
-        phase = (-1) * np.sum(np.logical_and(x, z))
         if real_valued:
-            data *= phase
             dtype = float
         else:
-            data = 1j * phase * data
             dtype = complex
+            data = (-1j) ** np.sum(x & z) * data
 
         if sparse:
             # Return sparse matrix

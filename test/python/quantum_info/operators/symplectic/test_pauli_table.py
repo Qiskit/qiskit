@@ -58,12 +58,6 @@ class TestPauliTable(QiskitTestCase):
             value[0, 0] = not value[0, 0]
             self.assertTrue(np.all(value == target))
 
-        with self.subTest(msg='bool array copy'):
-            target = np.array([[False, True], [True, True]])
-            value = PauliTable(target, copy=True)._array
-            value[0, 0] = not value[0, 0]
-            self.assertFalse(np.all(value == target))
-
         with self.subTest(msg='bool array raises'):
             array = np.array([[False, False, False],
                               [True, True, True]])
@@ -80,12 +74,6 @@ class TestPauliTable(QiskitTestCase):
             value = PauliTable(target)._array
             value[0, 0] = not value[0, 0]
             self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='bool vector copy'):
-            target = np.array([False, True, True, False])
-            value = PauliTable(target, copy=True)._array
-            value[0, 0] = not value[0, 0]
-            self.assertFalse(np.all(value == target))
 
         # String initialization
         with self.subTest(msg='str init "I"'):
@@ -145,13 +133,6 @@ class TestPauliTable(QiskitTestCase):
             value = PauliTable(target)
             value[0] = 'II'
             self.assertEqual(value, target)
-
-        with self.subTest(msg='PauliTable copy'):
-            label = 'XI'
-            target = PauliTable(label)
-            copy = PauliTable(target, copy=True)
-            copy[0] = 'II'
-            self.assertEqual(target, PauliTable(label))
 
     def test_properties(self):
         """Test class property methods"""
@@ -758,7 +739,7 @@ class TestPauliTable(QiskitTestCase):
             with self.subTest(msg='expand ({})'.format(j)):
                 value = pauli1.expand(pauli2)
                 target = PauliTable.from_labels(
-                    [i + j for i in labels2 for j in labels1])
+                    [j + i for i in labels1 for j in labels2])
                 self.assertEqual(value, target)
 
     def test_dot(self):
