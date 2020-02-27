@@ -27,12 +27,14 @@ import warnings
 
 from abc import ABC
 
-from typing import Tuple, List, Iterable, Callable, Optional, Union
+from typing import Tuple, List, Iterable, Callable, Optional, Union, TYPE_CHECKING
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
+if TYPE_CHECKING:
+    from qiskit.pulse.commands import Command
 
 # pylint: disable=missing-return-doc
 
