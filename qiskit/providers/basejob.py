@@ -62,11 +62,13 @@ class BaseJob(ABC):
             wait: seconds between queries. Default: 5.
             callback: callback function invoked after each query. Default: None.
                 The following positional arguments are provided to the callback function:
-                    * job_id: job ID
-                    * job_status: status of the job from the last query
-                    * job: this BaseJob instance
+
+                * job_id: job ID
+                * job_status: status of the job from the last query
+                * job: this BaseJob instance
+
                 Note: different subclass might provide different arguments to
-                    the callback function.
+                the callback function.
 
         Raises:
             JobTimeoutError: if the job does not reach a final state before the
