@@ -20,7 +20,7 @@ from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Stinespring
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
