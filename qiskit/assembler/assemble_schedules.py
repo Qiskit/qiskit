@@ -13,9 +13,9 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
-from typing import Any, Dict, List, Tuple
 from collections import defaultdict
 from copy import deepcopy
+from typing import Any, Dict, List, Tuple
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
