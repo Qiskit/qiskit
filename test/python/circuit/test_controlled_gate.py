@@ -345,9 +345,10 @@ class TestControlledGate(QiskitTestCase):
             qc.add_register(q_ancillas)
         else:
             num_ancillas = 0
+            q_ancillas = None
 
         # apply hadamard on control qubits and toffoli gate
-        qc.mct(q_controls, q_target[0], None, mode='basic')
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic')
 
         # execute the circuit and obtain statevector result
         backend = BasicAer.get_backend('unitary_simulator')
@@ -746,10 +747,8 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_standard_gates(self, num_ctrl_qubits):
         """Test controlled versions of all standard gates."""
         from qiskit.extensions.standard.u1 import MCU1Gate
-        gate_classes = [cls for name, cls in allGates.__dict__.items()
-                        if isinstance(cls, type)]
+        gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
         theta = pi / 2
-        num_ctrl_qubits = 2
         for cls in gate_classes:
             with self.subTest(i=cls):
                 sig = signature(cls)

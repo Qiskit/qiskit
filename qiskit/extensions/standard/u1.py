@@ -20,7 +20,6 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.exceptions import QiskitError
 from qiskit.util import deprecate_arguments
 
 
@@ -209,27 +208,27 @@ QuantumCircuit.cu1 = cu1
 class MCU1Gate(ControlledGate):
     """The multi-controlled U1 gate."""
 
-    def __init__(self, lam, num_ctrl_qubits, global_phase=0):
+    def __init__(self, lam, num_ctrl_qubits):
         """Create a new MCU1s gate."""
-        if num_ctrl_qubits == 1 and global_phase != 0:
-            raise QiskitError('Global phase currently only supported for multiple controls.')
-
-        self._global_phase = global_phase
         super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits)
         self.base_gate = U1Gate(lam)
 
     def _define(self):
         """The gate definition of the multi-controlled U1 gate.
 
-        Ported from Aqua: https://github.com/Qiskit/qiskit-aqua/blame/769ca8d/qiskit/aqua/circuits/
-        gates/multi_control_u1_gate.py
+        Ported from Aqua (github.com/Qiskit/qiskit-aqua),
+        commit 769ca8d, file qiskit/aqua/circuits/gates/multi_control_u1_gate.py.
         """
         definition = []
         q = QuantumRegister(self.num_qubits, 'q')
         q_controls = q[:self.num_ctrl_qubits]
         q_target = q[self.num_ctrl_qubits]
         lam = self.params[0]
-        if self.num_ctrl_qubits == 1:
+        if self.num_ctrl_qubits == 0:
+            definition.append(
+                (U1Gate(lam), [q_target], [])
+            )
+        elif self.num_ctrl_qubits == 1:
             definition.append(
                 (CU1Gate(lam), q_controls + [q_target], [])
             )
@@ -240,7 +239,6 @@ class MCU1Gate(ControlledGate):
             last_pattern = None
 
             lam_angle = lam * (1 / (2**(self.num_ctrl_qubits - 1)))
-            gp_angle = numpy.angle(self._global_phase) * (1 / (2**(self.num_ctrl_qubits - 1)))
 
             for pattern in gray_code:
                 if '1' not in pattern:
@@ -273,19 +271,10 @@ class MCU1Gate(ControlledGate):
                     definition.append(
                         (CU1Gate(-lam_angle), [q_controls[lm_pos], q_target], [])
                     )
-                    if self._global_phase:
-                        definition.append(
-                            (U1Gate(-gp_angle), [q_controls[lm_pos]], [])
-                        )
                 else:
                     definition.append(
                         (CU1Gate(lam_angle), [q_controls[lm_pos], q_target], [])
                     )
-                    if self._global_phase:
-                        # circuit.u1(gp_angle, ctls[lm_pos])
-                        definition.append(
-                            (U1Gate(gp_angle), [q_controls[lm_pos]], [])
-                        )
                 last_pattern = pattern
 
         self.definition = definition
@@ -310,7 +299,7 @@ class MCU1Gate(ControlledGate):
 
     def inverse(self):
         """Invert this gate."""
-        return MCU1Gate(-self.params[0], self.num_ctrl_qubits, self._global_phase)
+        return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
 
     def to_matrix(self):
         """Return a numpy.array for the multi-controlled U1 gate."""
