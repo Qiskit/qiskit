@@ -18,9 +18,9 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info import Stinespring, Operator
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
@@ -56,19 +56,10 @@ class TestStinespring(ChannelTestCase):
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
-        unitary_x = np.array([[0, 1], [1, 0]])
-        unitary_h = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
-
-        target = Operator(np.kron(y90, np.kron(unitary_x, unitary_h)))
-        qr = QuantumRegister(3)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
-        circ.x(qr[1])
-        circ.ry(np.pi / 2, qr[2])
-
-        ans = np.linalg.norm((Stinespring(circ)-Stinespring(target)).data)
-        self.assertAlmostEqual(ans, 0.0)
+        circuit, target = self.simple_circuit_no_measure()
+        op = Stinespring(circuit)
+        target = Stinespring(target)
+        self.assertEqual(op, target)
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""
