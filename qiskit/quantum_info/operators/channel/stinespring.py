@@ -76,7 +76,8 @@ class Stinespring(QuantumChannel):
             a list of Kraus matrices.
 
         Additional Information
-        ----------------------
+        ^^^^^^^^^^^^^^^^^^^^^^
+
         If the input or output dimensions are None, they will be
         automatically determined from the input data. This can fail for the
         Stinespring operator if the output dimension cannot be automatically

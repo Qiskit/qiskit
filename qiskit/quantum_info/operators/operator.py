@@ -66,7 +66,8 @@ class Operator(BaseOperator):
             QiskitError: if input data cannot be initialized as an operator.
 
         Additional Information
-        ----------------------
+        ^^^^^^^^^^^^^^^^^^^^^^
+
         If the input or output dimensions are None, they will be
         automatically determined from the input data. If the input data is
         a Numpy array of shape (2**N, 2**N) qubit systems will be used. If

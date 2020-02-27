@@ -69,7 +69,8 @@ class SuperOp(QuantumChannel):
             superoperator.
 
         Additional Information
-        ----------------------
+        ^^^^^^^^^^^^^^^^^^^^^^
+
         If the input or output dimensions are None, they will be
         automatically determined from the input data. If the input data is
         a Numpy array of shape (4**N, 4**N) qubit systems will be used. If

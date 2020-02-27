@@ -261,7 +261,7 @@ def Ud(a, b, c):
 
 
 def trace_to_fid(trace):
-    """Average gate fidelity is Fbar = (d + |Tr (Utarget.U^dag)|^2) / d(d+1)
+    """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \cdot U^dag)|^2) / d(d+1)`
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + np.abs(trace)**2)/20
 
@@ -350,7 +350,7 @@ class TwoQubitBasisDecomposer():
                                   self.decomp3_supercontrolled]
 
     def traces(self, target):
-        """Give the expected traces |Tr(U.Utarget^dag)| for different number of basis gates"""
+        """Give the expected traces :math:`|Tr(U \cdot Utarget^dag)|` for different number of basis gates"""
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
@@ -366,7 +366,7 @@ class TwoQubitBasisDecomposer():
     def decomp0(target):
         """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
         Result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|,
+        :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
         which is optimal for all targets and bases"""
 
         U0l = target.K1l.dot(target.K2l)
@@ -377,7 +377,10 @@ class TwoQubitBasisDecomposer():
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
         Result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|,
+        .. math::
+
+            |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
+
         which is optimal for all targets and bases with z==0 or c==0"""
         # FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
         U0l = target.K1l.dot(self.basis.K1l.T.conj())
@@ -389,14 +392,19 @@ class TwoQubitBasisDecomposer():
 
     def decomp2_supercontrolled(self, target):
         """Decompose target ~Ud(x, y, z) with 2 uses of the basis gate.
-        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4cos(z)
-        which is the optimal approximation for basis of CNOT-class ~Ud(pi/4, 0, 0)
-        or DCNOT-class ~Ud(pi/4, pi/4, 0) and any target.
+
+        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace
+        .. math::
+
+            |Tr(Ur.Utarget^dag)| = 4cos(z)
+
+        which is the optimal approximation for basis of CNOT-class ``~Ud(pi/4, 0, 0)``
+        or DCNOT-class ``~Ud(pi/4, pi/4, 0)`` and any target.
         May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-                B~Ud(pi/4, pi/8, 0), but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target ~Ud(x, y, 0).
-        No guarantees for non-supercontrolled basis."""
+        ``B~Ud(pi/4, pi/8, 0)``, but not this decomposition.)
+        This is an exact decomposition for supercontrolled basis and target ``~Ud(x, y, 0)``.
+        No guarantees for non-supercontrolled basis.
+        """
 
         U0l = target.K1l.dot(self.q0l)
         U0r = target.K1r.dot(self.q0r)

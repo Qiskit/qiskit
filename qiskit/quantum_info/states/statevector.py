@@ -268,7 +268,7 @@ class Statevector(QuantumState):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
 
         Args:
-            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+            label (string): a eigenstate string ket label ``0``,``1``,``+``,``-``,``r``,``l``.
 
         Returns:
             Statevector: The N-qubit basis state density matrix.
@@ -278,13 +278,14 @@ class Statevector(QuantumState):
             of the label is larger than an explicitly specified num_qubits.
 
         Additional Information:
-            The labels correspond to the single-qubit states:
-            '0': [1, 0]
-            '1': [0, 1]
-            '+': [1 / sqrt(2), 1 / sqrt(2)]
-            '-': [1 / sqrt(2), -1 / sqrt(2)]
-            'r': [1 / sqrt(2), 1j / sqrt(2)]
-            'l': [1 / sqrt(2), -1j / sqrt(2)]
+
+        The labels correspond to the single-qubit states:
+        '0': [1, 0]
+        '1': [0, 1]
+        '+': [1 / sqrt(2), 1 / sqrt(2)]
+        '-': [1 / sqrt(2), -1 / sqrt(2)]
+        'r': [1 / sqrt(2), 1j / sqrt(2)]
+        'l': [1 / sqrt(2), -1j / sqrt(2)]
         """
         # Check label is valid
         if re.match(r'^[01rl\-+]+$', label) is None:
@@ -325,8 +326,8 @@ class Statevector(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output statevector of an instruction.
 
-        The statevector is initialized in the state |0,...,0> of the same
-        number of qubits as the input instruction or circuit, evolved
+        The statevector is initialized in the state :math:\ket{0,\ldots,0} of the
+        same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
         Args:
