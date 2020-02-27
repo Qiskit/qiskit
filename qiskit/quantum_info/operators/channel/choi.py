@@ -18,7 +18,6 @@
 Choi-matrix representation of a Quantum Channel.
 """
 
-from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -88,7 +87,7 @@ class Choi(QuantumChannel):
         # already a Choi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
-            choi_mat = np.array(data, dtype=complex)
+            choi_mat = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = choi_mat.shape
             if dim_l != dim_r:
@@ -120,7 +119,8 @@ class Choi(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Choi object
-            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
+            rep = getattr(data, '_channel_rep', 'Operator')
+            choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
@@ -128,7 +128,7 @@ class Choi(QuantumChannel):
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('Choi', choi_mat, input_dims, output_dims)
+        super().__init__(choi_mat, input_dims, output_dims, 'Choi')
 
     @property
     def _bipartite_shape(self):
@@ -168,8 +168,7 @@ class Choi(QuantumChannel):
             Choi: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other cannot be converted to a Choi or has
-            incompatible dimensions.
+            QiskitError: if other has incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -177,25 +176,27 @@ class Choi(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        return super().compose(other, qargs=qargs, front=front)
+        if qargs is not None:
+            return Choi(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
-    def dot(self, other, qargs=None):
-        """Return the right multiplied quantum channel self * other.
+        if not isinstance(other, Choi):
+            other = Choi(other)
+        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
+        input_dim = np.product(input_dims)
+        output_dim = np.product(output_dims)
 
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
+        if front:
+            first = np.reshape(other._data, other._bipartite_shape)
+            second = np.reshape(self._data, self._bipartite_shape)
+        else:
+            first = np.reshape(self._data, self._bipartite_shape)
+            second = np.reshape(other._data, other._bipartite_shape)
 
-        Returns:
-            Choi: The quantum channel self * other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a Choi or has
-            incompatible dimensions.
-        """
-        return super().dot(other, qargs=qargs)
+        # Contract Choi matrices for composition
+        data = np.reshape(np.einsum('iAjB,AkBl->ikjl', first, second),
+                          (input_dim * output_dim, input_dim * output_dim))
+        return Choi(data, input_dims, output_dims)
 
     def power(self, n):
         """The matrix power of the channel.
@@ -262,62 +263,6 @@ class Choi(QuantumChannel):
                                  shape2=self._bipartite_shape)
         return Choi(data, input_dims, output_dims)
 
-    def add(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Choi: the linear addition self + other as a Choi object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Choi(self._data + other.data, self._input_dims,
-                    self._output_dims)
-
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Choi: the linear subtraction self - other as Choi object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Choi(self._data - other.data, self._input_dims,
-                    self._output_dims)
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            Choi: the scalar multiplication other * self as a Choi object.
-
-        Raises:
-            QiskitError: if other is not a valid scalar.
-        """
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
-        return Choi(other * self._data, self._input_dims, self._output_dims)
-
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
 
@@ -334,56 +279,3 @@ class Choi(QuantumChannel):
             specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
-
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            Choi: The composition channel as a Choi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if qargs is not None:
-            return Choi(
-                SuperOp(self)._chanmul(other,
-                                       qargs=qargs,
-                                       left_multiply=left_multiply))
-
-        # Convert to Choi matrix
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        # Check dimensions match up
-        if not left_multiply and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if left_multiply and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-
-        if left_multiply:
-            first = np.reshape(self._data, self._bipartite_shape)
-            second = np.reshape(other._data, other._bipartite_shape)
-            input_dim = self._input_dim
-            input_dims = self.input_dims()
-            output_dim = other._output_dim
-            output_dims = other.output_dims()
-        else:
-            first = np.reshape(other._data, other._bipartite_shape)
-            second = np.reshape(self._data, self._bipartite_shape)
-            input_dim = other._input_dim
-            input_dims = other.input_dims()
-            output_dim = self._output_dim
-            output_dims = self.output_dims()
-
-        # Contract Choi matrices for composition
-        data = np.reshape(np.einsum('iAjB,AkBl->ikjl', first, second),
-                          (input_dim * output_dim, input_dim * output_dim))
-        return Choi(data, input_dims, output_dims)
