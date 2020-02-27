@@ -50,7 +50,7 @@ Qiskit consists of four foundational elements:
   Qiskit Aer <apidoc/qiskit_aer>
   Qiskit Ignis <apidoc_legacy/ignis/ignis>
   Qiskit Aqua <apidoc/index>
-  Qiskit IBM Q Provider <apidoc/ibmq>
+  Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
