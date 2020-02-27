@@ -24,6 +24,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Discriminator, Kernel, Gaussian, GaussianSquare, ConstantPulse,
                                    Drag)
+from qiskit.pulse.instructions import ShiftPhase
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -113,6 +114,8 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             phase=0.1
         )
 
+        self.assertEqual(converter(0, instruction), valid_qobj)
+        instruction = ShiftPhase(0.1, DriveChannel(0))
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_persistent_value(self):
@@ -220,6 +223,9 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=0, phase=0.1)
         converted_instruction = self.converter(qobj)
 
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        instruction = ShiftPhase(0.1, MeasureChannel(0))
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
 

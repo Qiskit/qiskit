@@ -32,9 +32,8 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse)
-from qiskit.pulse.commands.frame_change import FrameChangeInstruction
+from qiskit.pulse import (SamplePulse, PersistentValue, Snapshot,
+                          Acquire, PulseError, ParametricPulse, ShiftPhase)
 
 
 class EventsOutputChannels:
@@ -165,7 +164,7 @@ class EventsOutputChannels:
                 break
             tmp_fc = 0
             for command in commands:
-                if isinstance(command, FrameChange):
+                if isinstance(command, ShiftPhase):
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, Snapshot):
@@ -302,7 +301,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, FrameChangeInstruction):
+                if not isinstance(instruction, ShiftPhase):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)

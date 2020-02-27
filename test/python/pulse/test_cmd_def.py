@@ -21,7 +21,7 @@ from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import (CmdDef, SamplePulse, Schedule,
-                          PulseError, PersistentValue, FrameChange)
+                          PulseError, PersistentValue, ShiftPhase)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -177,13 +177,13 @@ class TestCmdDef(QiskitTestCase):
             u1_phases = []
             for _, instr in cmd_def.get('u1', i, P0=np.pi).instructions:
                 cmd = instr.command
-                if isinstance(cmd, FrameChange):
+                if isinstance(cmd, ShiftPhase):
                     u1_phases.append(cmd.phase)
             self.assertEqual(u1_phases, [-np.pi])
 
             u2_phases = []
             for _, instr in cmd_def.get('u2', i, P0=0, P1=np.pi).instructions:
                 cmd = instr.command
-                if isinstance(cmd, FrameChange):
+                if isinstance(cmd, ShiftPhase):
                     u2_phases.append(cmd.phase)
             self.assertEqual(u2_phases, [-np.pi, 0])

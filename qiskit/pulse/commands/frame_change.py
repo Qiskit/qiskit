@@ -20,6 +20,8 @@ from typing import Optional
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions import ShiftPhase
 
+# pylint: disable=invalid-name,missing-function-docstring
+
 
 def FrameChange(phase: float, name: Optional[str] = None):
     warnings.warn("FrameChange is deprecated. Use ShiftPhase, instead, with channels specified. "

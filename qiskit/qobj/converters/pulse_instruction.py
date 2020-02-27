@@ -189,31 +189,13 @@ class InstructionToQobjConverter:
             res.register_slot = register_slot
         return res
 
-    @bind_instruction(commands.FrameChangeInstruction)
-    def convert_frame_change(self, shift, instruction):
-        """Return converted `FrameChangeInstruction`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (FrameChangeInstruction): frame change instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            'name': 'fc',
-            't0': shift + instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'phase': instruction.command.phase
-        }
-        return self._qobj_model(**command_dict)
-
     @bind_instruction(instructions.ShiftPhase)
     def convert_shift_phase(self, shift, instruction):
         """Return converted `ShiftPhase`.
 
         Args:
             shift(int): Offset time.
-            instruction (ShiftPhase): frame change instruction.
+            instruction (ShiftPhase): Shift phase instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
@@ -408,7 +390,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @bind_name('fc')
-    def convert_frame_change(self, instruction):
+    def convert_shift_phase(self, instruction):
         """Return converted `ShiftPhase`.
 
         Args:
