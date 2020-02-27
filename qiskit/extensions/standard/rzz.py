@@ -13,32 +13,32 @@
 # that they have been altered from the originals.
 
 """
-two-qubit ZZ-rotation gate.
+Two-qubit ZZ-rotation gate.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CnotGate
 
 
 class RZZGate(Gate):
-    """Two-qubit ZZ-rotation gate."""
+    """The two-qubit ZZ-rotation gate."""
 
     def __init__(self, theta):
         """Create new rzz gate."""
-        super().__init__("rzz", 2, [theta])
+        super().__init__('rzz', 2, [theta])
 
     def _define(self):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0]), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

@@ -62,7 +62,7 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.13'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -222,8 +222,8 @@ stages:
           inputs:
             pathtoPublish: 'docs/_build/html'
             artifactName: 'html_docs'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
@@ -386,8 +386,8 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:

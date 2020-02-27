@@ -21,6 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -125,20 +126,8 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None):
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
-            # pylint: disable=not-callable
-            # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32":
-                if isinstance(mp.current_process(),
-                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
-                    name += '-{}'.format(mp.current_process().pid)
-                elif sys.version_info[0] == 3 \
-                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
-                        and mp.current_process().name != 'MainProcess':
-                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
-                    # because processes created by "ProcessPoolExecutor" are not
-                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
-                    # "name" of the process is checked instead.
-                    name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32" and not is_main_process():
+                name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
@@ -334,8 +323,12 @@ class QuantumCircuit:
             if element not in self.cregs:
                 self.cregs.append(element)
 
+        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
+        # appended to both self and rhs resulting in an infinite loop
+        data = rhs.data.copy() if rhs is self else rhs.data
+
         # Add new gates
-        for instruction_context in rhs.data:
+        for instruction_context in data:
             self._append(*instruction_context)
         return self
 
@@ -1106,42 +1099,91 @@ class QuantumCircuit:
             new_creg = ClassicalRegister(length, name)
         return new_creg
 
-    def measure_active(self):
+    def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
+
+        Returns a new circuit with measurements if `inplace=False`.
+
+        Parameters:
+            inplace (bool): All measurements inplace or return new circuit.
+
+        Returns:
+            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
-        dag = circuit_to_dag(self)
-        qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
-        new_creg = self._create_creg(len(qubits_to_measure), 'measure')
-        self.add_register(new_creg)
-        self.barrier()
-        self.measure(qubits_to_measure, new_creg)
+        if inplace:
+            circ = self
+        else:
+            circ = self.copy()
+        dag = circuit_to_dag(circ)
+        qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
+        new_creg = circ._create_creg(len(qubits_to_measure), 'measure')
+        circ.add_register(new_creg)
+        circ.barrier()
+        circ.measure(qubits_to_measure, new_creg)
 
-    def measure_all(self):
+        if not inplace:
+            return circ
+        else:
+            return None
+
+    def measure_all(self, inplace=True):
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
-        """
-        new_creg = self._create_creg(len(self.qubits), 'measure')
-        self.add_register(new_creg)
-        self.barrier()
-        self.measure(self.qubits, new_creg)
 
-    def remove_final_measurements(self):
+        Returns a new circuit with measurements if `inplace=False`.
+
+        Parameters:
+            inplace (bool): All measurements inplace or return new circuit.
+
+        Returns:
+            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+        """
+        if inplace:
+            circ = self
+        else:
+            circ = self.copy()
+
+        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        circ.add_register(new_creg)
+        circ.barrier()
+        circ.measure(circ.qubits, new_creg)
+
+        if not inplace:
+            return circ
+        else:
+            return None
+
+    def remove_final_measurements(self, inplace=True):
         """Removes final measurement on all qubits if they are present.
         Deletes the ClassicalRegister that was used to store the values from these measurements
         if it is idle.
+
+        Returns a new circuit without measurements if `inplace=False`.
+
+        Parameters:
+            inplace (bool): All measurements removed inplace or return new circuit.
+
+        Returns:
+            QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements
         from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
+
+        if inplace:
+            circ = self
+        else:
+            circ = self.copy()
+
+        dag = circuit_to_dag(circ)
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
 
-        # Set self's cregs and instructions to match the new DAGCircuit's
-        self.data.clear()
-        self.cregs = list(new_dag.cregs.values())
+        # Set circ cregs and instructions to match the new DAGCircuit's
+        circ.data.clear()
+        circ.cregs = list(new_dag.cregs.values())
 
         for node in new_dag.topological_op_nodes():
             qubits = []
@@ -1155,7 +1197,12 @@ class QuantumCircuit:
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
             inst.condition = node.condition
-            self.append(inst, qubits, clbits)
+            circ.append(inst, qubits, clbits)
+
+        if not inplace:
+            return circ
+        else:
+            return None
 
     @staticmethod
     def from_qasm_file(path):
@@ -1229,6 +1276,19 @@ class QuantumCircuit:
         """Assigns a parameter value to matching instructions in-place."""
         for (instr, param_index) in self._parameter_table[parameter]:
             instr.params[param_index] = instr.params[param_index].bind({parameter: value})
+
+            # For instructions which have already been defined (e.g. composite
+            # instructions), search the definition for instances of the
+            # parameter which also need to be bound.
+            self._rebind_definition(instr, parameter, value)
+
+    def _rebind_definition(self, instruction, parameter, value):
+        if instruction._definition:
+            for op, _, _ in instruction._definition:
+                for idx, param in enumerate(op.params):
+                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
+                        op.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(op, parameter, value)
 
     def _substitute_parameters(self, parameter_map):
         """For every {existing_parameter: replacement_parameter} pair in

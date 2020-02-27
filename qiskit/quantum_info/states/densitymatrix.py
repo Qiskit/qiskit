@@ -328,11 +328,6 @@ class DensityMatrix(QuantumState):
         return DensityMatrix(np.reshape(tensor, (new_dim, new_dim)),
                              dims=new_dims)
 
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return 2 * tuple(reversed(self.dims()))
-
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
 

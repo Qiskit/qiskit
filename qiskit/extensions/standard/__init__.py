@@ -14,34 +14,41 @@
 
 """Standard gates."""
 from .barrier import Barrier
-from .ccx import ToffoliGate
-from .cswap import FredkinGate
-from .cx import CnotGate
-from .cy import CyGate
-from .cz import CzGate
-from .swap import SwapGate
-from .h import HGate
-from .iden import IdGate
-from .s import SGate
-from .s import SdgGate
-from .t import TGate
-from .t import TdgGate
-from .u1 import U1Gate
-from .u2 import U2Gate
-from .u3 import U3Gate
-from .x import XGate
-from .y import YGate
-from .z import ZGate
-from .r import RGate
-from .rx import RXGate
-from .ry import RYGate
-from .rz import RZGate
-from .cu1 import Cu1Gate
-from .ch import CHGate
-from .crx import CrxGate
-from .cry import CryGate
-from .crz import CrzGate
-from .cu3 import Cu3Gate
-from .rzz import RZZGate
-from .rxx import RXXGate
+from .h import HGate, CHGate
+from .i import IGate
 from .ms import MSGate
+from .r import RGate
+from .rccx import RCCXGate
+from .rcccx import RCCCXGate
+from .rx import RXGate, CRXGate
+from .rxx import RXXGate
+from .ry import RYGate, CRYGate
+from .rz import RZGate, CRZGate
+from .rzz import RZZGate
+from .s import SGate, SdgGate
+from .swap import SwapGate, CSwapGate
+from .t import TGate, TdgGate
+from .u1 import U1Gate, CU1Gate
+from .u2 import U2Gate
+from .u3 import U3Gate, CU3Gate
+from .x import XGate, CXGate, CCXGate
+from .y import YGate, CYGate
+from .z import ZGate, CZGate
+
+# to be converted to gates
+from .multi_control_u1_gate import mcu1
+from .multi_control_toffoli_gate import mct
+from .multi_control_rotation_gates import mcrx, mcry, mcrz
+
+# deprecated gates, to be removed
+from .i import IdGate
+from .x import ToffoliGate
+from .swap import FredkinGate
+from .x import CnotGate
+from .y import CyGate
+from .z import CzGate
+from .u1 import Cu1Gate
+from .u3 import Cu3Gate
+from .rx import CrxGate
+from .ry import CryGate
+from .rz import CrzGate
