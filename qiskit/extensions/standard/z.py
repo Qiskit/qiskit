@@ -166,11 +166,14 @@ class CzGate(CZGate, metaclass=CZMeta):
                       'tgt': 'target_qubit'})
 def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cZ gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    A cZ gate implements a pi rotation of the qubit state vector about the z axis
-    of the Bloch sphere when the control qubit is in state |1>.
-    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
-    or vice versa when the control qubit is in state |1>.
+    """Apply cZ gate
+
+    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+    A cZ gate implements a :math:`\pi` rotation of the qubit state vector about
+    the z axis of the Bloch sphere when the control qubit is in state :math:`\ket{1}`.
+    This gate is canonically used to implement a phase flip on the qubit state from
+    :math:`\ket{+}` to :math:`\ket{-}`, or vice versa when the control qubit is in
+    state :math:`\ket{1}`.
 
     Examples:
 

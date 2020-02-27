@@ -71,9 +71,11 @@ class RZGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Rz gate with angle phi to a specified qubit (qubit).
-    An Rz gate implemements a phi radian rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
+    """Apply Rz gate with angle :math:`\phi`
+
+    The gate is applied to a specified qubit `qubit`.
+    An Rz gate implemements a phi radian rotation of the qubit state vector
+    about the z axis of the Bloch sphere.
 
     Examples:
 

@@ -276,28 +276,23 @@ class PassManager:
         self.property_set = running_passmanager.property_set
         return result
 
-    def draw(
-            self,
-            filename: str = None,
-            style: Dict = None,
-            raw: bool = False
-    ) -> Union['PIL.Image', None]:
+    def draw(self, filename=None, style=None, raw=False):
         """Draw the pass manager.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
         Args:
-            filename: file path to save image to.
-            style: keys are the pass classes and the values are the colors to make them. An
+            filename (str): file path to save image to.
+            style (dict): keys are the pass classes and the values are the colors to make them. An
                 example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
                 a priority coloring when pass falls into multiple categories. Any values not
                 included in the provided dict will be filled in from the default dict.
-            raw: If ``True``, save the raw Dot output instead of the image.
+            raw (bool): If ``True``, save the raw Dot output instead of the image.
 
         Returns:
             an in-memory representation of the pass manager, or ``None`` if no image was generated
-            or PIL is not installed.
+            or `Pillow <https://pypi.org/project/Pillow/>`_ is not installed.
 
         Raises:
             ImportError: when nxpd or pydot not installed.
