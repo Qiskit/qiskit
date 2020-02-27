@@ -362,7 +362,7 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
-    def _gate_definition_to_definition(self, node, params):
+    def _gate_definition_to_qiskit_definition(self, node, params):
         """From a gate definition in qasm, to a gate.definition format."""
         definition = []
         qreg = QuantumRegister(node['n_bits'])
@@ -415,8 +415,8 @@ class AstInterpreter:
                                  num_qubits=self.gates[name]['n_bits'],
                                  num_clbits=0,
                                  params=params)
-                op.definition = self._gate_definition_to_definition(self.gates[name],
-                                                                    params=params)
+                op.definition = self._gate_definition_to_qiskit_definition(self.gates[name],
+                                                                           params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
         return op
