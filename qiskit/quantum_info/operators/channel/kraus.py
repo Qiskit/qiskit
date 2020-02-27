@@ -78,13 +78,13 @@ class Kraus(QuantumChannel):
             QiskitError: if input data cannot be initialized as a
             a list of Kraus matrices.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
-        the input does not correspond to an N-qubit channel, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be
+            used. If the input does not correspond to an N-qubit channel, it
+            will assign a single subsystem with dimension specified by the
+            shape of the input.
         """
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus

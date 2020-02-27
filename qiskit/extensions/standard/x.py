@@ -83,9 +83,10 @@ class XGate(Gate):
 @deprecate_arguments({'q': 'qubit'})
 def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply X gate to a specified qubit (qubit).
-    An X gate implements a pi rotation of the qubit state vector about the
-    x axis of the Bloch sphere.
-    This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
+
+    An X gate implements a :math:`\pi` rotation of the qubit state vector about
+    the x axis of the Bloch sphere. This gate is canonically used to implement
+    a bit flip on the qubit state from :math:`\ket{0}` to :math:`\ket{1}`,
     or vice versa.
 
     Examples:

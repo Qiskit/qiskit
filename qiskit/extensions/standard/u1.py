@@ -73,8 +73,11 @@ class U1Gate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply U1 gate with angle theta to a specified qubit (qubit).
-    u1(λ) := diag(1, eiλ) ∼ U(0, 0, λ) = Rz(λ) where ~ is equivalence up to a global phase.
+    """Apply U1 gate with angle theta
+
+    Applied to a specified qubit ``qubit``.
+    :math:`u1(\lambda) := diag(1, ei\lambda) ∼ U(0, 0, \lambda) = Rz(\lambda)`
+    where :math:`~` is equivalence up to a global phase.
 
     Examples:
 

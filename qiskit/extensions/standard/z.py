@@ -73,9 +73,10 @@ class ZGate(Gate):
 @deprecate_arguments({'q': 'qubit'})
 def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply Z gate to a specified qubit (qubit).
-    A Z gate implements a pi rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
-    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
+
+    A Z gate implements a :math:`\pi` rotation of the qubit state vector about
+    the z axis of the Bloch sphere. This gate is canonically used to implement
+    a phase flip on the qubit state from :math:`\ket{+}` to :math:`\ket{-}`,
     or vice versa.
 
     Examples:

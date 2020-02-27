@@ -79,12 +79,10 @@ class PTM(QuantumChannel):
             QiskitError: if input data is not an N-qubit channel or
             cannot be initialized as a PTM.
 
-        Additional Information
-        ^^^^^^^^^^^^^^^^^^^^^^
-
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. The PTM
-        representation is only valid for N-qubit channels.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. The PTM
+            representation is only valid for N-qubit channels.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.

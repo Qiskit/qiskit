@@ -42,7 +42,7 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 
 def measure(qubits: List[int],
-            backend: Optional['BaseBackend'] = None,
+            backend=None,
             inst_map: Optional[InstructionScheduleMap] = None,
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None,
@@ -113,7 +113,7 @@ def measure(qubits: List[int],
     return schedule
 
 
-def measure_all(backend: 'BaseBackend') -> Schedule:
+def measure_all(backend) -> Schedule:
     """
     Return a Schedule which measures all qubits of the given backend.
 

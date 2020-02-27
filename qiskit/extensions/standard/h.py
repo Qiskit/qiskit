@@ -78,11 +78,12 @@ class HGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Hadamard (H) gate.
+    r"""Apply Hadamard (H) gate.
 
     Applied to a specified qubit ``qubit``.
+
     An H gate implements a rotation of :math:`\pi` about the axis
-    :math:`\frac{(x + z)}{sqrt(2)}` on the Bloch sphere. This gate is
+    :math:`\frac{(x + z)}{\sqrt{2}}` on the Bloch sphere. This gate is
     canonically used to rotate the qubit state from :math:`\ket{0}` to
     :math:`\ket{+}` or :math:`\ket{1}` to :math:`\ket{-}`.
 
@@ -104,6 +105,7 @@ def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
 
             from qiskit.extensions.standard.h import HGate
             HGate().to_matrix()
+
     """
     return self.append(HGate(), [qubit], [])
 

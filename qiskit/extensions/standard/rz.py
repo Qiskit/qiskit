@@ -155,9 +155,12 @@ class CrzGate(CRZGate, metaclass=CRZMeta):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def crz(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cRz gate from a specified control (control_qubit) to target (target_qubit) qubit
-    with angle theta. A cRz gate implements a theta radian rotation of the qubit state vector
-    about the z axis of the Bloch sphere when the control qubit is in state |1>.
+    """Apply cRz gate
+
+    Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit
+    with angle :math:`\theta`. A cRz gate implements a :math:`\theta` radian rotation
+    of the qubit state vector about the z axis of the Bloch sphere when the control
+    qubit is in state :math:`\ket{1}`.
 
     Examples:
 

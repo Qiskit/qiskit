@@ -46,9 +46,9 @@ class PassManager:
             callback: DEPRECATED - A callback function that will be called after each pass
                 execution.
 
-        .. deprecated ::
+        .. deprecated:: 0.13.0
             The ``callback`` parameter is deprecated in favor of
-            ``PassManager.run(..., callback=callback, ...).
+            ``PassManager.run(..., callback=callback, ...)``.
         """
         self.callback = None
 

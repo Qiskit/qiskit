@@ -272,7 +272,7 @@ def choi_to_pauli(choi, order=1):
     Note that this function assumes that the Choi-matrix
     is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
-    is defined as: :math:`choi = (I \otimes E)(bell_state).
+    is defined as: :math:`choi = (I \otimes E)(bell_state)`.
 
     The resulting 'rauli' R acts on input states as .. math::
 
@@ -284,10 +284,10 @@ def choi_to_pauli(choi, order=1):
     Args:
         choi (matrix): the input Choi-matrix.
         order (int): ordering of the Pauli group vector.
-            order=1 (default) is standard lexicographic ordering.
-            Eg: ``[II, IX, IY, IZ, XI, XX, XY,...]``
-            order=0 is ordered by weights.
-            Eg. ``[II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]``
+            ``order=1`` (default) is standard lexicographic ordering
+            (e.g. ``[II, IX, IY, IZ, XI, XX, XY,...]``)
+            ``order=0`` is ordered by weights
+            (e.g. ``[II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]``)
 
     Returns:
         np.array: A superoperator in the Pauli basis.
@@ -337,8 +337,7 @@ def chop(array, epsilon=1e-10):
 
 
 def outer(vector1, vector2=None):
-    """
-    Construct the outer product of two vectors.
+    """Construct the outer product of two vectors.
 
     The second vector argument is optional, if absent the projector
     of the first vector will be returned.
@@ -348,7 +347,7 @@ def outer(vector1, vector2=None):
         vector2 (ndarray): the (optional) second vector.
 
     Returns:
-        np.array: The matrix |v1><v2|.
+        np.array: The matrix :math:`\ket{v1}\bra{v2}`.
 
     """
     warnings.warn(
