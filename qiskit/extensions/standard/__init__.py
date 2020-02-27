@@ -35,6 +35,11 @@ from .x import XGate, CXGate, CCXGate
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
+# to be converted to gates
+from .multi_control_u1_gate import mcu1
+from .multi_control_toffoli_gate import mct
+from .multi_control_rotation_gates import mcrx, mcry, mcrz
+
 # deprecated gates, to be removed
 from .i import IdGate
 from .x import ToffoliGate

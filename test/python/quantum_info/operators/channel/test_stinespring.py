@@ -20,7 +20,7 @@ from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Stinespring
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
@@ -309,7 +309,7 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         rho_targ = (rho_init @ chan1) + (rho_init @ chan2)
-        chan = chan1.add(chan2)
+        chan = chan1._add(chan2)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 + chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
@@ -317,7 +317,7 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
         rho_targ = 2 * (rho_init @ chan)
-        chan = chan.add(chan)
+        chan = chan._add(chan)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_subtract(self):
@@ -330,15 +330,13 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         rho_targ = (rho_init @ chan1) - (rho_init @ chan2)
-        chan = chan1.subtract(chan2)
-        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 - chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
         rho_targ = 0 * (rho_init @ chan)
-        chan = chan.subtract(chan)
+        chan = chan - chan
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply(self):
@@ -351,7 +349,7 @@ class TestStinespring(ChannelTestCase):
         # Single Stinespring set
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         rho_targ = val * (rho_init @ chan1)
-        chan = chan1.multiply(val)
+        chan = chan1._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan1
         self.assertEqual(rho_init.evolve(chan), rho_targ)
@@ -359,7 +357,7 @@ class TestStinespring(ChannelTestCase):
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
         rho_targ = val * (rho_init @ chan2)
-        chan = chan2.multiply(val)
+        chan = chan2._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
@@ -367,9 +365,9 @@ class TestStinespring(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Stinespring(self.depol_stine(1))
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
