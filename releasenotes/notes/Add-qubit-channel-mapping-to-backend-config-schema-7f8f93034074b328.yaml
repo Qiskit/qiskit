@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added `qubit_channel_map` to the Pulse enabled backend configuration schema.
+    The `qubit_channel_map` is a list which contains list of qubits and the corresponding
+    :class:`~qiskit.pulse.MeasureChannel` and :class:`~qiskit.pulse.ControlChannel`.
