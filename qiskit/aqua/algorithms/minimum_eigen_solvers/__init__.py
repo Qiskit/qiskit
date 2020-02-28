@@ -18,14 +18,17 @@ from .vqe import VQE
 from .qaoa import QAOA
 from .iqpe import IQPE
 from .qpe import QPE
-from .cplex import CPLEX_Ising
-from .exact_minimum_eigen_solver import ExactMinimumEigensolver
+from .cplex import ClassicalCPLEX, CPLEX_Ising
+from .classical_minimum_eigen_solver import ClassicalMinimumEigensolver
+from .minimum_eigen_solver_result import MinimumEigensolverResult
 
 __all__ = [
     'VQE',
     'QAOA',
     'IQPE',
     'QPE',
+    'ClassicalCPLEX',
     'CPLEX_Ising',
-    'ExactMinimumEigensolver'
+    'ClassicalMinimumEigensolver',
+    'MinimumEigensolverResult'
 ]

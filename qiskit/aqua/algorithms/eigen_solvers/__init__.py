@@ -14,6 +14,9 @@
 
 """ Eigen Solvers Package """
 
-from .exact_eigen_solver import ExactEigensolver
+from .classical_eigen_solver import ClassicalEigensolver, ExactEigensolver
+from .eigen_solver_result import EigensolverResult
 
-__all__ = ['ExactEigensolver']
+__all__ = ['ClassicalEigensolver',
+           'ExactEigensolver',
+           'EigensolverResult']

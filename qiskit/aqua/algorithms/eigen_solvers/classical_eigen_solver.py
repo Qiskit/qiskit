@@ -11,11 +11,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""The Exact Eigensolver algorithm."""
+
+"""The Eigensolver algorithm."""
 
 from typing import List, Optional
 import logging
-
+import pprint
+import warnings
 import numpy as np
 from scipy import sparse as scisparse
 
@@ -23,13 +25,15 @@ from qiskit.aqua.algorithms import ClassicalAlgorithm
 from qiskit.aqua.operators import op_converter
 from qiskit.aqua.operators import BaseOperator
 from qiskit.aqua.utils.validation import validate_min
+from .eigen_solver_result import EigensolverResult
 
 logger = logging.getLogger(__name__)
+
 
 # pylint: disable=invalid-name
 
 
-class ExactEigensolver(ClassicalAlgorithm):
+class ClassicalEigensolver(ClassicalAlgorithm):
     r"""
     The Exact Eigensolver algorithm.
 
@@ -125,4 +129,30 @@ class ExactEigensolver(ClassicalAlgorithm):
         self._solve()
         self._get_ground_state_energy()
         self._get_energies()
-        return self._ret
+
+        logger.debug('ClassicalEigensolver _run result:\n%s',
+                     pprint.pformat(self._ret, indent=4))
+        result = EigensolverResult()
+        if 'eigvals' in self._ret:
+            result.eigenvalues = self._ret['eigvals']
+        if 'eigvecs' in self._ret:
+            result.eigenstate = self._ret['eigvecs']
+        if 'aux_ops' in self._ret:
+            result.aux_operator_eigenvalues = self._ret['aux_ops']
+
+        logger.debug('EigensolverResult dict:\n%s',
+                     pprint.pformat(result.data, indent=4))
+        return result
+
+
+class ExactEigensolver(ClassicalEigensolver):
+    """
+    The deprecated Eigensolver algorithm.
+    """
+
+    def __init__(self, operator: BaseOperator, k: int = 1,
+                 aux_operators: Optional[List[BaseOperator]] = None) -> None:
+        warnings.warn('Deprecated class {}, use {}.'.format('ExactEigensolver',
+                                                            'ClassicalEigensolver'),
+                      DeprecationWarning)
+        super().__init__(operator, k, aux_operators)
