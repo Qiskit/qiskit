@@ -105,6 +105,21 @@ class DAGCircuit:
         # rx: edge enumeration through method get_all_edge_data
         return list(self._multi_graph[src][dest].values())
 
+    def _get_multi_graph_edges(self):
+        # nx: Includes edge data in return only when data kwarg = True
+        # rx: Always includes edge data in return
+        return self._multi_graph.edges(data=True)
+
+    def _get_multi_graph_in_edges(self, node):
+        # nx: Includes edge data in return only when data kwarg = True
+        # rx: Always includes edge data in return
+        return self._multi_graph.in_edges(node, data=True)
+
+    def _get_multi_graph_out_edges(self, node):
+        # nx: Includes edge data in return only when data kwarg = True
+        # rx: Always includes edge data in return
+        return self._multi_graph.out_edges(node, data=True)
+
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         return copy.deepcopy(self._multi_graph)
@@ -665,9 +680,9 @@ class DAGCircuit:
         """
 
         pred_map = {e[2]['wire']: e[0] for e in
-                    self._multi_graph.in_edges(node, data=True)}
+                    self._get_multi_graph_in_edges(node)}
         succ_map = {e[2]['wire']: e[1] for e in
-                    self._multi_graph.out_edges(node, data=True)}
+                    self._get_multi_graph_out_edges(node)}
         return pred_map, succ_map
 
     def _full_pred_succ_maps(self, pred_map, succ_map, input_circuit,
@@ -909,8 +924,8 @@ class DAGCircuit:
 
         node_index = self._add_multi_graph_node(new_node)
 
-        in_edges = self._multi_graph.in_edges(node, data=True)
-        out_edges = self._multi_graph.out_edges(node, data=True)
+        in_edges = self._get_multi_graph_in_edges(node)
+        out_edges = self._get_multi_graph_out_edges(node)
 
         for src, _, data in in_edges:
             self._add_multi_graph_edge(src, node_index, data)
@@ -953,7 +968,7 @@ class DAGCircuit:
             nodes = [nodes]
 
         for node in nodes:
-            raw_nodes = self._multi_graph.out_edges(node, data=True)
+            raw_nodes = self._get_multi_graph_out_edges(node)
             for source, dest, edge in raw_nodes:
                 yield source, dest, edge
 
@@ -1288,7 +1303,7 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            for _, node_index, __ in self._multi_graph.out_edges(current_node, data=True):
+            for _, node_index, __ in self._get_multi_graph_out_edges(current_node):
                 if self._multi_graph.has_edge(current_node, node_index):
                     edge_data = self._get_all_multi_graph_edges(
                         current_node, node_index)
