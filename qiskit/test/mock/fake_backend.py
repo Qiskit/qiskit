@@ -12,17 +12,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,import-error
+
 """
 Base class for dummy backends.
 """
 
-import uuid
-import time
+import warnings
 
 from qiskit.providers.models import BackendProperties
 from qiskit.providers import BaseBackend
-from qiskit.result import Result
-from .fake_job import FakeJob
+from qiskit.exceptions import QiskitError
+
+try:
+    from qiskit import Aer
+    HAS_AER = True
+except ImportError:
+    HAS_AER = False
+    from qiskit.providers.basicaer import BasicAer
 
 
 class FakeBackend(BaseBackend):
@@ -97,15 +104,24 @@ class FakeBackend(BaseBackend):
         return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
-        job_id = str(uuid.uuid4())
-        job = FakeJob(self, job_id, self.run_job, qobj)
-        job.submit()
+        """Main job in simulator"""
+        if HAS_AER:
+            if qobj.type == 'PULSE':
+                from qiskit.providers.aer.pulse import PulseSystemModel
+                system_model = PulseSystemModel.from_backend(self)
+                sim = Aer.get_backend('pulse_simulator')
+                job = sim.run(qobj, system_model)
+            else:
+                sim = Aer.get_backend('qasm_simulator')
+                from qiskit.providers.aer.noise import NoiseModel
+                noise_model = NoiseModel.from_backend(self)
+                job = sim.run(qobj, noise_model=noise_model)
+        else:
+            if qobj.type == 'PULSE':
+                raise QiskitError("Unable to run pulse schedules without "
+                                  "qiskit-aer installed")
+            warnings.warn("Aer not found using BasicAer and no noise",
+                          RuntimeWarning)
+            sim = BasicAer.get_backend('qasm_simulator')
+            job = sim.run(qobj)
         return job
-
-    def run_job(self, job_id, qobj):
-        """Main dummy run loop"""
-        del qobj  # unused
-        time.sleep(self.time_alive)
-
-        return Result.from_dict(
-            {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
