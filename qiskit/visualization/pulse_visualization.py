@@ -58,7 +58,7 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
             `matplot.Figure` object if not provided.
         interp_method: Interpolation function. See example.
             Interpolation is disabled in default.
-            See `qiskit.visualization.pulse.interpolation` for more information.
+            See :mod:`~qiskit.visualization.pulse.interpolation` for more information.
         scale: Scaling of waveform amplitude. Pulses are automatically
             scaled channel by channel if not provided.
         channel_scales: Dictionary of scale factor for specific channels.
