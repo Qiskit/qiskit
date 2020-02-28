@@ -412,6 +412,25 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.u3(-0.5235987755982988, 6.283185307179586, 1.5707963267948966, qr[0])
         self.assertEqualUnroll('u3', circuit, expected)
 
+    def test_from_qasm_str_nested_custom_gate(self):
+        """ Test chain of custom gates
+        See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-592261942
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+                         gate my_other_gate(phi,lambda) q
+                           {u3(asin(cos(phi)/2), phi+pi, lambda/2) q;}
+                         gate my_gate(phi) r
+                           {my_other_gate(phi, phi+pi) r;}
+                         qreg qr[1];
+                         my_gate(pi) qr[0];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(1, name='qr')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.u3(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
+        self.assertEqualUnroll('u3', circuit, expected)
+
     def assertEqualUnroll(self, basis, circuit, expected):
         """ Compares the dags after unrolling to basis """
         circuit_dag = circuit_to_dag(circuit)
