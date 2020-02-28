@@ -180,7 +180,6 @@ sep = wid.HTML("<div style='border-left: 3px solid #212121;height: 475px;'></div
                                  margin='40px 0px 0px 20px'))
 
 
-
 def circuit_library_widget(circuit: QuantumCircuit) -> None:
     """Create a circuit library widget.
 
