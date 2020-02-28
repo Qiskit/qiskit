@@ -46,6 +46,14 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(c_regs[0], c1)
         self.assertEqual(type(qc1), QuantumCircuit)
 
+    def test_carg_numpy_int_2(self):
+        """Test castable to integer cargs for QuantumCircuit.
+        """
+        qc1 = QuantumCircuit(12, np.int64(12))
+        c_regs = qc1.cregs
+        self.assertEqual(c_regs[0], ClassicalRegister(12, 'c'))
+        self.assertEqual(type(qc1), QuantumCircuit)
+
     def test_qarg_numpy_int_exception(self):
         """Test attempt to pass non-castable arg to QuantumCircuit.
         """
