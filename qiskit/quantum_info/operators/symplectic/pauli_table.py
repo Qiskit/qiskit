@@ -19,10 +19,11 @@ Symplectic Pauli Table Class
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
-class PauliTable:
+class PauliTable(BaseOperator):
     r"""Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
@@ -152,6 +153,8 @@ class PauliTable:
         # Set size properties
         self._num_paulis = self._array.shape[0]
         self._n_qubits = self._array.shape[1] // 2
+        dims = self._n_qubits * (2, )
+        super().__init__(dims, dims)
 
     def __repr__(self):
         """Display representation."""
@@ -166,10 +169,6 @@ class PauliTable:
         if isinstance(other, PauliTable):
             return np.all(self._array == other._array)
         return False
-
-    def copy(self):
-        """Return a PauliTable with a copy of the underlying :attr:`array`."""
-        return PauliTable(self._array.copy())
 
     # ---------------------------------------------------------------------
     # Direct array access
@@ -239,12 +238,6 @@ class PauliTable:
         if not isinstance(value, PauliTable):
             value = PauliTable(value)
         self._array[key] = value.array
-
-    def __add__(self, other):
-        """Append a PauliTable to the table."""
-        if not isinstance(other, PauliTable):
-            other = PauliTable(other)
-        return PauliTable(np.vstack((self._array, other._array)))
 
     def delete(self, ind, qubit=False):
         """Return a copy with Pauli rows deleted from table.
@@ -476,7 +469,7 @@ class PauliTable:
         return ret
 
     # ---------------------------------------------------------------------
-    # Utility methods
+    # BaseOperator methods
     # ---------------------------------------------------------------------
 
     def tensor(self, other):
@@ -628,6 +621,33 @@ class PauliTable:
             QiskitError: if other cannot be converted to a PauliTable.
         """
         return self.compose(other, qargs=qargs, front=True)
+
+    def _add(self, other):
+        """Append with another PauliTable.
+
+        Args:
+            other (PauliTable): another table.
+
+        Returns:
+            PauliTable: the concatinated table self + other.
+        """
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        return PauliTable(np.vstack((self._array, other._array)))
+
+      def conjugate(self):
+        """Not implemented."""
+        raise NotImplementedError(
+            "{} does not support conjugatge".format(type(self)))
+
+    def transpose(self):
+        """Not implemented."""
+        raise NotImplementedError(
+            "{} does not support transpose".format(type(self)))
+
+    # ---------------------------------------------------------------------
+    # Utility methods
+    # ---------------------------------------------------------------------
 
     def commutes(self, pauli):
         """Return list of commutation properties for each row with a Pauli.
