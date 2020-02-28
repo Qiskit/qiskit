@@ -18,23 +18,26 @@
 
 import collections
 import warnings
-from typing import Dict, List, Tuple, Callable, Union, Any, NoReturn
+from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
 try:
     from matplotlib import pyplot as plt, gridspec
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Axes
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
+from qiskit.visualization import PulseStyle, SchedStyle
 from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
-                                   SnapshotChannel)
+                                   SnapshotChannel, Channel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse)
+                          Acquire, PulseError, ParametricPulse, Instruction,
+                          ScheduleComponent)
 from qiskit.pulse.commands.frame_change import FrameChangeInstruction
 
 
@@ -61,7 +64,7 @@ class EventsOutputChannels:
         self._labels = None
         self.enable = False
 
-    def add_instruction(self, start_time: int, pulse: 'Instruction'):
+    def add_instruction(self, start_time: int, pulse: Instruction):
         """Add new pulse instruction to channel.
 
         Args:
@@ -83,7 +86,7 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def framechanges(self) -> Dict[int, 'FrameChangeInstruction']:
+    def framechanges(self) -> Dict[int, FrameChangeInstruction]:
         """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
@@ -99,7 +102,7 @@ class EventsOutputChannels:
         return self._trim(self._conditionals)
 
     @property
-    def snapshots(self) -> Dict[int, 'Snapshot']:
+    def snapshots(self) -> Dict[int, Snapshot]:
         """Get snapshots."""
         if self._snapshots is None:
             self._build_waveform()
@@ -107,7 +110,7 @@ class EventsOutputChannels:
         return self._trim(self._snapshots)
 
     @property
-    def labels(self) -> Dict[int, Union['SamplePulse', 'Acquire']]:
+    def labels(self) -> Dict[int, Union[SamplePulse, Acquire]]:
         """Get labels."""
         if self._labels is None:
             self._build_waveform()
@@ -222,7 +225,7 @@ class EventsOutputChannels:
 class SamplePulseDrawer:
     """A class to create figure for sample pulse."""
 
-    def __init__(self, style: 'PulseStyle'):
+    def __init__(self, style: PulseStyle):
         """Create new figure.
 
         Args:
@@ -230,11 +233,11 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse: 'SamplePulse',
+    def draw(self, pulse: SamplePulse,
              dt: float = 1.0,
              interp_method: Callable = None,
              scale: float = 1, scaling: float = None) \
-            -> 'matplotlib.figure.Figure':
+            -> Figure:
         """Draw figure.
 
         Args:
@@ -287,7 +290,7 @@ class SamplePulseDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, style: 'SchedStyle'):
+    def __init__(self, style: SchedStyle):
         """Create new figure.
 
         Args:
@@ -295,13 +298,13 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule: 'ScheduleComponent',
-                        channels: List['Channel'],
+    def _build_channels(self, schedule: ScheduleComponent,
+                        channels: List[Channel],
                         t0: int, tf: int,
                         show_framechange_channels: bool = True
-                        ) -> Tuple[Dict['Channel', EventsOutputChannels],
-                                   Dict['Channel', EventsOutputChannels],
-                                   Dict['Channel', EventsOutputChannels]]:
+                        ) -> Tuple[Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels]]:
         """Create event table of each pulse channels in the given schedule.
 
         Args:
@@ -377,11 +380,11 @@ class ScheduleDrawer:
         return channels, output_channels, snapshot_channels
 
     @staticmethod
-    def _scale_channels(output_channels: Dict['Channel', EventsOutputChannels],
+    def _scale_channels(output_channels: Dict[Channel, EventsOutputChannels],
                         scale: float,
-                        channel_scales: Dict['Channel', float] = None,
-                        channels: List['Channel'] = None,
-                        plot_all: bool = False) -> Dict['Channel', float]:
+                        channel_scales: Dict[Channel, float] = None,
+                        channels: List[Channel] = None,
+                        plot_all: bool = False) -> Dict[Channel, float]:
         """Count number of channels that contains any instruction to show
         and find scale factor of that channel.
 
@@ -426,9 +429,9 @@ class ScheduleDrawer:
 
         return scale_dict
 
-    def _draw_table(self, figure: 'matplotlib.figure.Figure',
-                    channels: Dict['Channel', EventsOutputChannels],
-                    dt: float) -> 'matplotlib.axes.Axes':
+    def _draw_table(self, figure: Figure,
+                    channels: Dict[Channel, EventsOutputChannels],
+                    dt: float) -> Axes:
         """Draw event table if events exist.
 
         Args:
@@ -496,9 +499,9 @@ class ScheduleDrawer:
         return ax
 
     @staticmethod
-    def _draw_snapshots(ax: 'matplotlib.axes.Axes',
-                        snapshot_channels: Dict['Channel', EventsOutputChannels],
-                        dt: float, y0: float) -> NoReturn:
+    def _draw_snapshots(ax: Axes,
+                        snapshot_channels: Dict[Channel, EventsOutputChannels],
+                        dt: float, y0: float) -> None:
         """Draw snapshots to given mpl axis.
 
         Args:
@@ -514,8 +517,8 @@ class ScheduleDrawer:
                     ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
-    def _draw_framechanges(self, ax: 'matplotlib.axes.Axes',
-                           fcs: Dict[int, 'FrameChangeInstruction'],
+    def _draw_framechanges(self, ax: Axes,
+                           fcs: Dict[int, FrameChangeInstruction],
                            dt: float, y0: float) -> None:
         """Draw frame change of given channel to given mpl axis.
 
@@ -530,7 +533,7 @@ class ScheduleDrawer:
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center')
 
-    def _get_channel_color(self, channel: 'Channel') -> str:
+    def _get_channel_color(self, channel: Channel) -> str:
         """Lookup table for waveform color.
 
         Args:
@@ -553,7 +556,7 @@ class ScheduleDrawer:
         return color
 
     @staticmethod
-    def _prev_label_at_time(prev_labels: List[Dict[int, Union['SamplePulse', 'Acquire']]],
+    def _prev_label_at_time(prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
                             time: int) -> bool:
         """Check overlap of pulses with pervious channels.
 
@@ -570,9 +573,9 @@ class ScheduleDrawer:
                     return True
         return False
 
-    def _draw_labels(self, ax: 'matplotlib.axes.Axes',
-                     labels: Dict[int, Union['SamplePulse', 'Acquire']],
-                     prev_labels: List[Dict[int, Union['SamplePulse', 'Acquire']]],
+    def _draw_labels(self, ax: Axes,
+                     labels: Dict[int, Union[SamplePulse, Acquire]],
+                     prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
                      dt: float, y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
@@ -608,11 +611,11 @@ class ScheduleDrawer:
                 ax.axvline(tf*dt, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax: 'matplotlib.axes.Axes',
-                       output_channels: Dict['Channel', EventsOutputChannels],
+    def _draw_channels(self, ax: Axes,
+                       output_channels: Dict[Channel, EventsOutputChannels],
                        interp_method: Callable,
                        t0: int, tf: int, dt: float,
-                       scale_dict: Dict['Chanenl', float],
+                       scale_dict: Dict[Channel, float],
                        label: bool = False, framechange: bool = True) -> float:
         """Draw pulse instructions on given mpl axis.
 
@@ -693,17 +696,16 @@ class ScheduleDrawer:
                 y0 -= 1
         return y0
 
-    def draw(self, schedule: 'ScheduleComponent',
+    def draw(self, schedule: ScheduleComponent,
              dt: float, interp_method: Callable,
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
-             channel_scales: Dict['Channel', float] = None,
-             channels_to_plot: List['Channel'] = None,
+             channel_scales: Dict[Channel, float] = None,
+             channels_to_plot: List[Channel] = None,
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List['Channel'] = None,
-             show_framechange_channels: bool = True
-             ) -> 'matplotlib.figure.Figure':
+             scaling: float = None, channels: List[Channel] = None,
+             show_framechange_channels: bool = True) -> Figure:
         """Draw figure.
 
         Args:

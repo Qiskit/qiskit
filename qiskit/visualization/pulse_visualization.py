@@ -20,7 +20,9 @@ matplotlib pulse visualization.
 import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse
+from qiskit.pulse import Schedule, Instruction, SamplePulse, ScheduleComponent
+from qiskit.pulse.channels import Channel
+from qiskit.visualization import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 
@@ -28,21 +30,21 @@ if _matplotlib.HAS_MATPLOTLIB:
     from matplotlib import get_backend
 
 
-def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
+def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                  dt: int = 1,
-                 style: Union['PulseStyle', 'SchedStyle'] = None,
+                 style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
                  interp_method: Callable = None,
                  scale: float = None,
-                 channel_scales: Dict['Channel', float] = None,
-                 channels_to_plot: List['Channel'] = None,
+                 channel_scales: Dict[Channel, float] = None,
+                 channels_to_plot: List[Channel] = None,
                  plot_all: bool = False,
                  plot_range: Tuple[Union[int, float], Union[int, float]] = None,
                  interactive: bool = False,
                  table: bool = True,
                  label: bool = False,
                  framechange: bool = True,
-                 channels: List['Channel'] = None,
+                 channels: List[Channel] = None,
                  scaling: float = None,
                  show_framechange_channels: bool = True
                  ) -> 'matplotlib.figure.Figure':
@@ -81,13 +83,12 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
         A matplotlib figure object for the pulse envelope.
 
     Example:
-        This example shows how to customize your schedule plot.
-        Custom style sheet is applied and pulse names are added to the plot.
-        Unimportant channels are removed and the schedule is truncated to
-        draw out important pulses.
+        This example shows how to visualize your pulse schedule.
+        Pulse names are added to the plot, unimportant channels are removed
+        and the time window is truncated to draw out U3 pulse sequence of interest.
 
         .. jupyter-execute::
-        
+
             import numpy as np
             import qiskit
             from qiskit import pulse
@@ -99,7 +100,40 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
             sched += inst_map.get('measure', list(range(20))) << sched.duration
 
-            my_style = qiskit.visualization.SchedStyle(bg_color='w')
+            channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
+            scales = {pulse.DriveChannel(0): 10}
+
+            qiskit.visualization.pulse_drawer(sched,
+                                              channels=channels,
+                                              plot_range=(0, 1000),
+                                              label=True,
+                                              channel_scales=scales)
+
+        You are also able to call visualization module from the instance method::
+            sched.draw(channels=channels, plot_range=(0, 1000), label=True, channel_scales=scales)
+
+        To customize the format of schedule plot, you can setup your style sheet.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            import qiskit
+            from qiskit import pulse
+            from qiskit.test.mock.backends.almaden import FakeAlmaden
+
+            inst_map = FakeAlmaden().defaults().instruction_schedule_map
+
+            sched = pulse.Schedule()
+            sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
+            sched += inst_map.get('measure', list(range(20))) << sched.duration
+
+            my_style = qiskit.visualization.SchedStyle(
+                figsize = (10, 5),
+                bg_color='w',
+                d_ch_color = ['#32cd32', '#556b2f'],
+                icon_font_size = 20
+                )
+
             channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
             scales = {pulse.DriveChannel(0): 10}
 
