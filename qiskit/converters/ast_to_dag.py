@@ -22,6 +22,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
+from qiskit.qasm.node.real import Real
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
@@ -367,7 +368,7 @@ class AstInterpreter:
         definition = []
         qreg = QuantumRegister(node['n_bits'])
         bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
-        exp_args = {node['args'][i]: q for i, q in enumerate(params)}
+        exp_args = {node['args'][i]: Real(q) for i, q in enumerate(params)}
 
         for child_op in node['body'].children:
             qparams = []
@@ -377,23 +378,10 @@ class AstInterpreter:
                     qparams = [bit_args[param.name] for param in param_list.children]
                 elif param_list.type == 'expression_list':
                     for param in param_list.children:
-                        eparams.append(AstInterpreter.reduce_ids(param, exp_args))
+                        eparams.append(param.sym(nested_scope=[exp_args]))
             op = self._create_op(child_op.name, params=eparams)
             definition.append((op, qparams, []))
         return definition
-
-    @staticmethod
-    def reduce_ids(param, variables):
-        """Like param.sym, but without nested scope"""
-        if param.type == 'id':
-            return variables[param.name]
-        elif param.type == 'binop':
-            operation = param.children[0].operation()
-            lhs = AstInterpreter.reduce_ids(param.children[1], variables)
-            rhs = AstInterpreter.reduce_ids(param.children[2], variables)
-            return operation(lhs, rhs)
-        else:
-            return param.sym()
 
     def _create_dag_op(self, name, params, qargs):
         """

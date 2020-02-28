@@ -395,6 +395,23 @@ class LoadFromQasmTest(QiskitTestCase):
 
         self.assertEqualUnroll('u2', circuit, expected)
 
+    def test_from_qasm_str_custom_gate7(self):
+        """ Test load custom gates (build in functions)
+        See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-592208951
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+                         gate my_u2(phi,lambda) q
+                           {u3(asin(cos(phi)/2), phi+pi, lambda/2) q;}  // build func
+                         qreg qr[1];
+                         my_u2(pi, pi) qr[0];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(1, name='qr')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.u3(-0.5235987755982988, 6.283185307179586, 1.5707963267948966, qr[0])
+        self.assertEqualUnroll('u3', circuit, expected)
+
     def assertEqualUnroll(self, basis, circuit, expected):
         """ Compares the dags after unrolling to basis """
         circuit_dag = circuit_to_dag(circuit)
