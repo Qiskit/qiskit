@@ -38,6 +38,11 @@ from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
+try:
+    import retworkx as rx
+except ImportError:
+    pass
+
 
 def raise_if_dagcircuit_invalid(dag):
     """Validates the internal consistency of a DAGCircuit._multi_graph.
@@ -49,8 +54,12 @@ def raise_if_dagcircuit_invalid(dag):
 
     multi_graph = dag._multi_graph
 
-    if not nx.is_directed_acyclic_graph(multi_graph):
-        raise DAGCircuitError('multi_graph is not a DAG.')
+    if dag._USE_RX:
+        if not rx.is_directed_acyclic_graph(multi_graph):
+            raise DAGCircuitError('multi_graph is not a DAG.')
+    else:
+        if not nx.is_directed_acyclic_graph(multi_graph):
+            raise DAGCircuitError('multi_graph is not a DAG.')
 
     # Every node should be of type in, out, or op.
     # All input/output nodes should be present in input_map/output_map.
@@ -204,6 +213,20 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
 
+    def test_edges(self):
+        """Test that DAGCircuit.edges() behaves as expected with ops."""
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [], condition=None)
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        out_edges = self.dag.edges(self.dag.output_map.values())
+        self.assertEqual(list(out_edges), [])
+        in_edges = self.dag.edges(self.dag.input_map.values())
+        # number of edges for input nodes should be the same as number of wires
+        self.assertEqual(len(list(in_edges)), 5)
+
     def test_apply_operation_back_conditional(self):
         """Test consistency of apply_operation_back with condition set."""
 
@@ -240,7 +263,10 @@ class TestDagOperations(QiskitTestCase):
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_back_conditional_measure(self):
         """Test consistency of apply_operation_back for conditional measure."""
@@ -282,7 +308,10 @@ class TestDagOperations(QiskitTestCase):
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_back_conditional_measure_to_self(self):
         """Test consistency of apply_operation_back for measure onto conditioning bit."""
@@ -321,7 +350,10 @@ class TestDagOperations(QiskitTestCase):
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_front(self):
         """The apply_operation_front() method"""
@@ -363,6 +395,15 @@ class TestDagOperations(QiskitTestCase):
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
+
+        # q_0: |0>─────■───|0>─
+        #         ┌─┐┌─┴─┐
+        # q_1: |0>┤M├┤ X ├─────
+        #         └╥┘└───┘
+        #  c_0: 0 ═╬═══════════
+        #          ║
+        #  c_1: 0 ═╩═══════════
+
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
@@ -376,13 +417,29 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
-        self.assertEqual(next(successor_cnot).type, 'out')
-        self.assertIsInstance(next(successor_cnot).op, Reset)
+        # Ordering between Reset and out[q1] is indeterminant.
+
+        successor1 = next(successor_cnot)
+        successor2 = next(successor_cnot)
         with self.assertRaises(StopIteration):
             next(successor_cnot)
 
+        self.assertTrue(
+            (successor1.type == 'out' and isinstance(successor2.op, Reset))
+            or (successor2.type == 'out' and isinstance(successor1.op, Reset))
+        )
+
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
+
+        # q_0: |0>─|0>───■─────
+        #              ┌─┴─┐┌─┐
+        # q_1: |0>─────┤ X ├┤M├
+        #              └───┘└╥┘
+        #  c_0: 0 ═══════════╬═
+        #                    ║
+        #  c_1: 0 ═══════════╩═
+
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
@@ -396,10 +453,17 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
-        self.assertIsInstance(next(predecessor_cnot).op, Reset)
-        self.assertEqual(next(predecessor_cnot).type, 'in')
+        # Ordering between Reset and in[q1] is indeterminant.
+
+        predecessor1 = next(predecessor_cnot)
+        predecessor2 = next(predecessor_cnot)
         with self.assertRaises(StopIteration):
             next(predecessor_cnot)
+
+        self.assertTrue(
+            (predecessor1.type == 'in' and isinstance(predecessor2.op, Reset))
+            or (predecessor2.type == 'in' and isinstance(predecessor1.op, Reset))
+        )
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
