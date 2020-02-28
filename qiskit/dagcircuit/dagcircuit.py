@@ -62,7 +62,7 @@ class DAGCircuit:
         self.output_map = OrderedDict()
 
         # Stores the max id of a node added to the DAG
-        self._max_node_id = 0
+        self._max_node_id = -1
 
         # Directed multigraph whose nodes are inputs, outputs, or operations.
         # Operation nodes have equal in- and out-degrees and carry
