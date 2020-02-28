@@ -87,6 +87,7 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
         draw out important pulses.
 
         .. jupyter-execute::
+        
             import numpy as np
             import qiskit
             from qiskit import pulse
