@@ -53,7 +53,7 @@ def pulse_drawer(data: Union['SamplePulse', 'ScheduleComponent'],
         dt: Time interval of samples. Pulses are visualized in the unit of
             cycle time if not provided.
         style: A style sheet to configure plot appearance.
-            See `qiskit.visualization.pulse.qcstyle` for more information.
+            See :mod:`~qiskit.visualization.pulse.qcstyle` for more information.
         filename: Name required to save pulse image. The drawer just returns
             `matplot.Figure` object if not provided.
         interp_method: Interpolation function. See example.
