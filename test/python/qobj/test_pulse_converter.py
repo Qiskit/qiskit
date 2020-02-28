@@ -217,14 +217,9 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
-        cmd = FrameChange(phase=0.1)
-        instruction = cmd(MeasureChannel(0))
-
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=0, phase=0.1)
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         instruction = ShiftPhase(0.1, MeasureChannel(0))
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
@@ -274,8 +269,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parameterized_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
-        cmd = FrameChange(phase=4.)
-        instruction = cmd(MeasureChannel(0))
+        instruction = ShiftPhase(4., MeasureChannel(0))
 
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1**2')
         converted_instruction = self.converter(qobj)
