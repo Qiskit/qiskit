@@ -54,7 +54,7 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Every node should be of type in, out, or op.
     # All input/output nodes should be present in input_map/output_map.
-    for node in multi_graph.nodes():
+    for node in dag._get_multi_graph_nodes():
         if node.type == 'in':
             assert node is dag.input_map[node.wire]
         elif node.type == 'out':
@@ -92,25 +92,25 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Every wire should be propagated by exactly one edge between nodes.
     for wire in dag.wires:
-        cur_node = dag.input_map[wire]
-        out_node = dag.output_map[wire]
+        cur_node_id = dag.input_map[wire]._node_id
+        out_node_id = dag.output_map[wire]._node_id
 
-        while cur_node != out_node:
-            out_edges = dag._get_multi_graph_out_edges(cur_node)
+        while cur_node_id != out_node_id:
+            out_edges = dag._get_multi_graph_out_edges(cur_node_id)
             edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges
                                if data['wire'] == wire]
 
             assert len(edges_to_follow) == 1
-            cur_node = edges_to_follow[0][1]
+            cur_node_id = edges_to_follow[0][1]
 
     # Wires can only terminate at input/output nodes.
     for op_node in dag.op_nodes():
-        assert multi_graph.in_degree(op_node) == multi_graph.out_degree(op_node)
+        assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
-        in_edges = dag._get_multi_graph_in_edges(node)
-        out_edges = dag._get_multi_graph_out_edges(node)
+        in_edges = dag._get_multi_graph_in_edges(node._node_id)
+        out_edges = dag._get_multi_graph_out_edges(node._node_id)
 
         in_wires = {data['wire'] for src, dest, data in in_edges}
         out_wires = {data['wire'] for src, dest, data in out_edges}
@@ -219,24 +219,24 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(h_node.condition, h_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_in_edges(h_node)),
+            sorted(self.dag._get_multi_graph_in_edges(h_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit2], h_node,
+                (self.dag.input_map[self.qubit2]._node_id, h_node._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (self.dag.input_map[self.clbit0], h_node,
+                (self.dag.input_map[self.clbit0]._node_id, h_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], h_node,
+                (self.dag.input_map[self.clbit1]._node_id, h_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_out_edges(h_node)),
+            sorted(self.dag._get_multi_graph_out_edges(h_node._node_id)),
             sorted([
-                (h_node, self.dag.output_map[self.qubit2],
+                (h_node._node_id, self.dag.output_map[self.qubit2]._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (h_node, self.dag.output_map[self.clbit0],
+                (h_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (h_node, self.dag.output_map[self.clbit1],
+                (h_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
@@ -261,24 +261,24 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_in_edges(meas_node)),
+            sorted(self.dag._get_multi_graph_in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit0], meas_node,
+                (self.dag.input_map[self.qubit0]._node_id, meas_node._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[new_creg[0]], meas_node,
+                (self.dag.input_map[new_creg[0]]._node_id, meas_node._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_out_edges(meas_node)),
+            sorted(self.dag._get_multi_graph_out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit0],
+                (meas_node._node_id, self.dag.output_map[self.qubit0]._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[new_creg[0]],
+                (meas_node._node_id, self.dag.output_map[new_creg[0]]._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
@@ -300,24 +300,24 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_in_edges(meas_node)),
+            sorted(self.dag._get_multi_graph_in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit1], meas_node,
+                (self.dag.input_map[self.qubit1]._node_id, meas_node._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], meas_node,
+                (self.dag.input_map[self.clbit1]._node_id, meas_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._get_multi_graph_out_edges(meas_node)),
+            sorted(self.dag._get_multi_graph_out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit1],
+                (meas_node._node_id, self.dag.output_map[self.qubit1]._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit1],
+                (meas_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
