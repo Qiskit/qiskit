@@ -80,6 +80,21 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
+Pulse Visualizations
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   pulse_drawer
+
+.. autosummary::
+   :hidden:
+   :toctree: ../stubs/
+
+   qiskit.visualization.pulse.qcstyle
+   qiskit.visualization.pulse.interpolation
+
 Single Qubit State Transition Visualizations
 ============================================
 

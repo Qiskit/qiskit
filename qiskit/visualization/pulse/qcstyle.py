@@ -14,10 +14,14 @@
 
 # pylint: disable=missing-docstring
 
+"""
+Style sheets for pulse visualization.
+"""
 from typing import Tuple, List
 
 
 class SchedStyle:
+    """Style sheet for Qiskit-Pulse schedule drawer."""
     def __init__(self, figsize: Tuple[float, float] = (10, 12),
                  fig_unit_h_table: float = 0.4,
                  use_table: bool = True,
@@ -41,7 +45,7 @@ class SchedStyle:
                  remove_spacing: bool = True,
                  max_table_ratio: float = 0.5,
                  vertical_span: float = 0.2):
-        """Set style sheet for Qiskit-Pulse schedule drawer.
+        """Create new style sheet.
 
         Args:
             figsize: Size of figure.
@@ -115,12 +119,13 @@ class SchedStyle:
 
 
 class PulseStyle:
+    """Style sheet for Qiskit-Pulse sample pulse drawer."""
     def __init__(self, figsize: Tuple[float, float] = (7, 5),
                  wave_color: List[str] = None,
                  bg_color: str = None,
                  num_points: int = None,
                  dpi: int = None):
-        """Set style sheet for Qiskit-Pulse sample pulse drawer.
+        """Create new style sheet.
 
         Args:
             figsize: Size of figure.

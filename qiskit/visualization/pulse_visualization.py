@@ -28,6 +28,7 @@ from qiskit.visualization.pulse import matplotlib as _matplotlib
 
 if _matplotlib.HAS_MATPLOTLIB:
     from matplotlib import get_backend
+    from matplotlib.figure import Figure
 
 
 def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
@@ -47,7 +48,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                  channels: List[Channel] = None,
                  scaling: float = None,
                  show_framechange_channels: bool = True
-                 ) -> 'matplotlib.figure.Figure':
+                 ) -> Figure:
     """Plot the interpolated envelope of pulse and schedule.
 
     Args:
@@ -58,8 +59,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
             See :mod:`~qiskit.visualization.pulse.qcstyle` for more information.
         filename: Name required to save pulse image. The drawer just returns
             `matplot.Figure` object if not provided.
-        interp_method: Interpolation function. See example.
-            Interpolation is disabled in default.
+        interp_method: Interpolation function. Interpolation is disabled in default.
             See :mod:`~qiskit.visualization.pulse.interpolation` for more information.
         scale: Scaling of waveform amplitude. Pulses are automatically
             scaled channel by channel if not provided.
@@ -110,9 +110,10 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                                               channel_scales=scales)
 
         You are also able to call visualization module from the instance method::
+
             sched.draw(channels=channels, plot_range=(0, 1000), label=True, channel_scales=scales)
 
-        To customize the format of schedule plot, you can setup your style sheet.
+        To customize the format of the schedule plot, you can setup your style sheet.
 
         .. jupyter-execute::
 
@@ -127,12 +128,11 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
             sched += inst_map.get('measure', list(range(20))) << sched.duration
 
+            # setup style sheet
             my_style = qiskit.visualization.SchedStyle(
                 figsize = (10, 5),
                 bg_color='w',
-                d_ch_color = ['#32cd32', '#556b2f'],
-                icon_font_size = 20
-                )
+                d_ch_color = ['#32cd32', '#556b2f'])
 
             channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
             scales = {pulse.DriveChannel(0): 10}
