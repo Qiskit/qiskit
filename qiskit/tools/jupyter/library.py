@@ -124,10 +124,11 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     <style>
      .highlight
                 {
-                    font-family:    monospace;
+                    font-family: monospace;
                     font-size: 14px;
                     line-height: 1.7em;
                 }
+     .highlight .err { color: #FFFFF; background-color: #FFFFFF }
     %s
     </style>
     """ % html_style
@@ -147,7 +148,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     return qasm
 
 
-def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.VBox:
+def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
     """Create a circuit diagram widget.
 
     Args:
@@ -156,9 +157,6 @@ def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.VBox:
     Returns:
         Output widget.
     """
-    top_label = wid.HTML("<p style='{}'>Circuit Diagram</p>".format(head_style),
-                         layout=wid.Layout(margin='0px 0px 10px 0px'))
-
     # The max circuit height corresponds to a 20Q circuit with flat
     # classical register.
     top_out = wid.Output(layout=wid.Layout(width='100%',
@@ -168,7 +166,7 @@ def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.VBox:
     with top_out:
         display(circuit.draw(output='mpl'))
 
-    top = wid.VBox(children=[top_label, top_out], layout=wid.Layout(width='100%', height='auto'))
+    top = wid.Box(children=[top_out], layout=wid.Layout(width='100%', height='auto'))
 
     return top
 
