@@ -12,6 +12,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for builtin library of circuits."""
+"""
+===============================================
+Circuit Library (:mod:`qiskit.circuit.library`)
+===============================================
+
+.. currentmodule:: qiskit.circuit.library
+
+Boolean Logic Circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   InnerProduct
+   Permutation
+   XOR
+"""
+
 
 from .boolean_logic import Permutation, XOR, InnerProduct
