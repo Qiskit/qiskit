@@ -128,7 +128,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
                     font-size: 14px;
                     line-height: 1.7em;
                 }
-     .highlight .err { color: #FFFFF; background-color: #FFFFFF }
+     .highlight .err { color: #000000; background-color: #FFFFFF }
     %s
     </style>
     """ % html_style
