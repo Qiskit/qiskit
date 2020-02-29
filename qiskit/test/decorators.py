@@ -90,7 +90,7 @@ def _get_credentials():
                                                        discover_credentials)
     except ImportError:
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
-                                'and is required for executing online tests.'
+                                'and is required for executing online tests. '
                                 'Install iskit-ibmq-provider or check your '
                                 'installation.')
 
