@@ -30,8 +30,7 @@ try:
     # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
-    raise ImportError('Could not import the IMBQ provider from the qiskit-ibmq-provider'
-                      'package. Install qiskit-ibmq-provider or check your installation.')
+    pass
 
 MONTH_NAMES = {1: 'Jan.',
                2: 'Feb.',
