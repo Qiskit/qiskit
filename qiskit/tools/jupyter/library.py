@@ -82,7 +82,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
 
 head_style = 'font-family: IBM Plex Sans, Arial, Helvetica, sans-serif;' \
-             ' font-size: 28px; font-weight: medium;'
+             ' font-size: 22px; font-weight: medium;'
 
 detail_label = wid.HTML("<p style='{}'>Circuit Details</p>".format(head_style),
                         layout=wid.Layout(margin='0px 0px 10px 0px'))
