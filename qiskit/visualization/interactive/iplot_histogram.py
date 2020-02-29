@@ -28,7 +28,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         from IPython.core.display import display, HTML
     except ImportError:
         print("Error importing IPython.core.display. To install, run "
-              '"pip install ipython".')
+              '"pip install ipython". ')
 
 
 def process_data(data, number_to_keep):
