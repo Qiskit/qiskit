@@ -207,8 +207,6 @@ def transpile(circuits,
             max_qubits = backend.configuration().n_qubits
 
         if max_qubits is not None and (n_qubits > max_qubits):
-            end_time = time()
-            _log_transpile_time(start_time, end_time)
             raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +

@@ -15,6 +15,8 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
 import copy
+import logging
+from time import time
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -25,6 +27,11 @@ from qiskit.qobj import QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 
+LOG = logging.getLogger(__name__)
+
+def _log_assembly_time(start_time, end_time):
+    log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    LOG.info(log_msg)
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
@@ -142,6 +149,7 @@ def assemble(experiments,
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
+    start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
                                                                       shots, memory, max_credits,
@@ -154,6 +162,8 @@ def assemble(experiments,
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(circuits=experiments,
                                                            run_config=run_config)
+        end_time = time()
+        _log_assembly_time(start_time, end_time)
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
@@ -165,6 +175,8 @@ def assemble(experiments,
                                        parametric_pulses,
                                        **run_config_common_dict)
 
+        end_time = time()
+        _log_assembly_time(start_time, end_time)
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 
