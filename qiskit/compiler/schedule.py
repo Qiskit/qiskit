@@ -16,6 +16,9 @@
 Convenience entry point into pulse scheduling, requiring only a circuit and a backend. For more
 control over pulse scheduling, look at `qiskit.scheduler.schedule_circuit`.
 """
+# import logging
+
+# from time import time
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -24,6 +27,11 @@ from qiskit.pulse import CmdDef, InstructionScheduleMap, Schedule
 
 from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
+# LOG = logging.getLogger(__name__)
+
+# def _log_schedule_time(start_time, end_time):
+#     log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+#     LOG.info(log_msg)
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              backend: Optional['BaseBackend'] = None,
@@ -50,6 +58,7 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Raises:
         QiskitError: If `inst_map` and `meas_map` are not passed and `backend` is not passed
     """
+    # start_time = time()
     if inst_map is None:
         if cmd_def is not None:
             inst_map = cmd_def
@@ -65,4 +74,6 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
+    # end_time = time()
+    # _log_schedule_time(start_time, end_time)
     return schedules[0] if len(schedules) == 1 else schedules
