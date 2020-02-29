@@ -33,7 +33,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         from IPython.core.display import display, HTML
     except ImportError:
         print("Error importing IPython.core.display. To install, run "
-              '"pip install ipython".')
+              '"pip install ipython". ')
 
 
 def iplot_state_qsphere(rho, figsize=None):
