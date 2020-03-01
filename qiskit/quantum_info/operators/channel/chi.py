@@ -12,24 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unpacking-non-sequence
+
 """
 Chi-matrix representation of a Quantum Channel.
-
-
-This is the matrix χ such that:
-
-    E(ρ) = sum_{i, j} χ_{i,j} P_i.ρ.P_j^dagger
-
-where [P_i, i=0,...4^{n-1}] is the n-qubit Pauli basis in lexicographic order.
-
-See [1] for further details.
-
-References:
-    [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
-        Open access: arXiv:1111.6950 [quant-ph]
 """
-
-from numbers import Number
 
 import numpy as np
 
@@ -43,9 +30,26 @@ from qiskit.quantum_info.operators.channel.transformations import _to_chi
 
 
 class Chi(QuantumChannel):
-    """Pauli basis Chi-matrix representation of a quantum channel
+    r"""Pauli basis Chi-matrix representation of a quantum channel.
 
-    The Chi-matrix is the Pauli-basis representation of the Chi-Matrix.
+    The Chi-matrix representation of an :math:`n`-qubit quantum channel
+    :math:`\mathcal{E}` is a matrix :math:`\chi` such that the evolution of a
+    :class:`~qiskit.quantum_info.DensityMatrix` :math:`\rho` is given by
+
+    .. math::
+
+        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+
+    where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
+    lexicographic order. It is related to the :class:`Choi` representation by a change
+    of basis of the Choi-matrix into the Pauli basis.
+
+    See reference [1] for further details.
+
+    References:
+        1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
+           for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
+           `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
     def __init__(self, data, input_dims=None, output_dims=None):
@@ -75,7 +79,7 @@ class Chi(QuantumChannel):
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
-            chi_mat = np.array(data, dtype=complex)
+            chi_mat = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:
@@ -107,7 +111,8 @@ class Chi(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Chi object
-            chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
+            rep = getattr(data, '_channel_rep', 'Operator')
+            chi_mat = _to_chi(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
@@ -119,7 +124,7 @@ class Chi(QuantumChannel):
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('Chi', chi_mat, input_dims, output_dims)
+        super().__init__(chi_mat, input_dims, output_dims, 'Chi')
 
     @property
     def _bipartite_shape(self):
@@ -142,38 +147,33 @@ class Chi(QuantumChannel):
         return Chi(Choi(self).transpose())
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
+        """Return the composed quantum channel self @ other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            front (bool): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
+            qargs (list or None): a list of subsystem positions to apply
+                                  other on. If None apply on all
+                                  subsystems [default: None].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
-            Chi: The composition channel as a Chi object.
+            Chi: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
+            QiskitError: if other has incompatible dimensions.
+
+        Additional Information:
+            Composition (``@``) is defined as `left` matrix multiplication for
+            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         if qargs is not None:
             return Chi(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
-
-        # Convert other to Choi since we convert via Choi
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        # Check dimensions match up
-        if front and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if not front and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        # Since we cannot directly add two channels in the Chi
-        # representation we convert to the Choi representation
+        # If no qargs we compose via Choi representation to avoid an additional
+        # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))
 
     def power(self, n):
@@ -230,62 +230,6 @@ class Chi(QuantumChannel):
         output_dims = self.output_dims() + other.output_dims()
         data = np.kron(other.data, self._data)
         return Chi(data, input_dims, output_dims)
-
-    def add(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Chi: the linear addition self + other as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Chi):
-            other = Chi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Chi(self._data + other.data, self._input_dims,
-                   self._output_dims)
-
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Chi: the linear subtraction self - other as Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Chi):
-            other = Chi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Chi(self._data - other.data, self._input_dims,
-                   self._output_dims)
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            Chi: the scalar multiplication other * self as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a valid scalar.
-        """
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
-        return Chi(other * self._data, self._input_dims, self._output_dims)
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.

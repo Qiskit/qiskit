@@ -67,7 +67,7 @@ def make_labels():
 
     labels = widgets.HBox(children=[labels0, labels1, labels2, labels3, labels4],
                           layout=widgets.Layout(width='600px',
-                                                margin='0px 0px 0px 35px'))
+                                                margin='0px 0px 0px 37px'))
     return labels
 
 
@@ -104,7 +104,7 @@ def create_job_widget(watcher, job, backend, status='', queue_pos=None, msg=''):
                              layout=widgets.Layout(overflow_x='scroll'))
 
     close_button = widgets.Button(button_style='', icon='close',
-                                  layout=widgets.Layout(width='30px',
+                                  layout=widgets.Layout(width='32px',
                                                         margin="0px 5px 0px 0px"))
     close_button.style.button_color = 'white'
 

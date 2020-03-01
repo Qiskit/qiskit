@@ -19,11 +19,6 @@ import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.h import HGate
 
 
 class RXXGate(Gate):
@@ -34,19 +29,24 @@ class RXXGate(Gate):
 
     def __init__(self, theta):
         """Create new rxx gate."""
-        super().__init__("rxx", 2, [theta])
+        super().__init__('rxx', 2, [theta])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
+        from qiskit.extensions.standard.x import CXGate
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.u2 import U2Gate
+        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.h import HGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         theta = self.params[0]
         rule = [
             (U3Gate(np.pi / 2, theta, 0), [q[0]], []),
             (HGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U1Gate(-theta), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
             (U2Gate(-np.pi, np.pi - theta), [q[0]], []),
         ]
@@ -76,5 +76,4 @@ def rxx(self, theta, qubit1, qubit2):
     return self.append(RXXGate(theta), [qubit1, qubit2], [])
 
 
-# Add to QuantumCircuit class
 QuantumCircuit.rxx = rxx

@@ -155,8 +155,8 @@ class Pauli:
 
     def __repr__(self):
         """Return the representation of self."""
-        z = [p for p in self._z]
-        x = [p for p in self._x]
+        z = list(self._z)
+        x = list(self._x)
 
         ret = self.__class__.__name__ + "(z={}, x={})".format(z, x)
         return ret
@@ -312,8 +312,8 @@ class Pauli:
     def to_instruction(self):
         """Convert to Pauli circuit instruction."""
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
-        gates = {'I': IdGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
+        from qiskit.extensions.standard import IGate, XGate, YGate, ZGate
+        gates = {'I': IGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
         label = self.to_label()
         n_qubits = self.numberofqubits
         qreg = QuantumRegister(n_qubits)

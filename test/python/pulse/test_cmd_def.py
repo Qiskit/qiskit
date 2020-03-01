@@ -21,7 +21,7 @@ from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import (CmdDef, SamplePulse, Schedule,
-                          PulseError, PersistentValue)
+                          PulseError, PersistentValue, FrameChange)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -162,8 +162,28 @@ class TestCmdDef(QiskitTestCase):
                 pv_found = True
         self.assertTrue(pv_found)
 
-        self.assertEqual(cmd_def.get_parameters('u1', 0), ('P1',))
+        self.assertEqual(cmd_def.get_parameters('u1', 0), ('P0',))
 
-        u1_minus_pi = cmd_def.get('u1', 0, P1=1)
+        u1_minus_pi = cmd_def.get('u1', 0, P0=np.pi)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, -np.pi)
+
+    def test_default_phases_parameters(self):
+        """Test parameters for phases."""
+        defaults = self.backend.defaults()
+        cmd_def = defaults.build_cmd_def()
+
+        for i in range(2):
+            u1_phases = []
+            for _, instr in cmd_def.get('u1', i, P0=np.pi).instructions:
+                cmd = instr.command
+                if isinstance(cmd, FrameChange):
+                    u1_phases.append(cmd.phase)
+            self.assertEqual(u1_phases, [-np.pi])
+
+            u2_phases = []
+            for _, instr in cmd_def.get('u2', i, P0=0, P1=np.pi).instructions:
+                cmd = instr.command
+                if isinstance(cmd, FrameChange):
+                    u2_phases.append(cmd.phase)
+            self.assertEqual(u2_phases, [-np.pi, 0])

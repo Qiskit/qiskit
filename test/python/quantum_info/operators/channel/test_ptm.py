@@ -114,8 +114,29 @@ class TestPTM(ChannelTestCase):
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho.evolve(chan), rho_targ)
 
+    def test_dot(self):
+        """Test dot method."""
+        # Random input test state
+        rho = DensityMatrix(self.rand_rho(2))
+
+        # UnitaryChannel evolution
+        chan1 = PTM(self.ptmX)
+        chan2 = PTM(self.ptmY)
+        rho_targ = rho.evolve(PTM(self.ptmZ))
+        self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
+        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
+
+        # Compose random
+        ptm1 = self.rand_matrix(4, 4, real=True)
+        ptm2 = self.rand_matrix(4, 4, real=True)
+        chan1 = PTM(ptm1, input_dims=2, output_dims=2)
+        chan2 = PTM(ptm2, input_dims=2, output_dims=2)
+        rho_targ = rho.evolve(chan1).evolve(chan2)
+        self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
+        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
+
     def test_compose_front(self):
-        """Test front compose method."""
+        """Test deprecated front compose method."""
         # Random input test state
         rho = DensityMatrix(self.rand_rho(2))
 
@@ -210,52 +231,38 @@ class TestPTM(ChannelTestCase):
         """Test add method."""
         mat1 = 0.5 * self.ptmI
         mat2 = 0.5 * self.depol_ptm(1)
-        targ = PTM(mat1 + mat2)
 
         chan1 = PTM(mat1)
         chan2 = PTM(mat2)
-        self.assertEqual(chan1.add(chan2), targ)
+
+        targ = PTM(mat1 + mat2)
+        self.assertEqual(chan1._add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
+        targ = PTM(mat1 - mat2)
+        self.assertEqual(chan1 - chan2, targ)
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = PTM(self.ptmI)
         chan2 = PTM(np.eye(16))
-        self.assertRaises(QiskitError, chan1.add, chan2)
-        self.assertRaises(QiskitError, chan1.add, 5)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = 0.5 * self.ptmI
-        mat2 = 0.5 * self.depol_ptm(1)
-        targ = PTM(mat1 - mat2)
-
-        chan1 = PTM(mat1)
-        chan2 = PTM(mat2)
-        self.assertEqual(chan1.subtract(chan2), targ)
-        self.assertEqual(chan1 - chan2, targ)
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        chan1 = PTM(self.ptmI)
-        chan2 = PTM(np.eye(16))
-        self.assertRaises(QiskitError, chan1.subtract, chan2)
-        self.assertRaises(QiskitError, chan1.subtract, 5)
+        self.assertRaises(QiskitError, chan1._add, chan2)
+        self.assertRaises(QiskitError, chan1._add, 5)
 
     def test_multiply(self):
         """Test multiply method."""
         chan = PTM(self.ptmI)
         val = 0.5
         targ = PTM(val * self.ptmI)
-        self.assertEqual(chan.multiply(val), targ)
+        self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
-        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = PTM(self.ptmI)
-        self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, 's')
+        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, chan)
+        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""
