@@ -81,14 +81,14 @@ class Result(BaseModel):
             the number of times this outcome was measured.
 
             Statevector backends return a dictionary with key 'statevector' and
-            values being a list[list[complex components]] list of 2^n_qubits
+            values being a list[list[complex components]] list of 2^num_qubits
             complex amplitudes. Where each complex number is represented as a 2
             entry list for each component. For example, a list of
             [0.5+1j, 0-1j] would be represented as [[0.5, 1], [0, -1]].
 
             Unitary backends return a dictionary with key 'unitary' and values
             being a list[list[list[complex components]]] list of
-            2^n_qubits x 2^n_qubits complex amplitudes in a two entry list for
+            2^num_qubits x 2^num_qubits complex amplitudes in a two entry list for
             each component. For example if the amplitude is
             [[0.5+0j, 0-1j], ...] the value returned will be
             [[[0.5, 0], [0, -1]], ...].
@@ -198,7 +198,7 @@ class Result(BaseModel):
                 If None, does not round.
 
         Returns:
-            list[complex]: list of 2^n_qubits complex amplitudes.
+            list[complex]: list of 2^num_qubits complex amplitudes.
 
         Raises:
             QiskitError: if there is no statevector for the experiment.
@@ -219,7 +219,7 @@ class Result(BaseModel):
                 If None, does not round.
 
         Returns:
-            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
+            list[list[complex]]: list of 2^num_qubits x 2^num_qubits complex
                 amplitudes.
 
         Raises:

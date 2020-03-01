@@ -140,7 +140,7 @@ def config_tab(backend):
 
     config_dict = {**status, **config}
 
-    upper_list = ['n_qubits']
+    upper_list = ['num_qubits']
 
     if 'quantum_volume' in config.keys():
         if config['quantum_volume']:

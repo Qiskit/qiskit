@@ -82,7 +82,7 @@ def backend_monitor(backend):
     print('-'*13)
     offset = '    '
 
-    upper_list = ['n_qubits', 'operational',
+    upper_list = ['num_qubits', 'operational',
                   'status_msg', 'pending_jobs',
                   'backend_version', 'basis_gates',
                   'local', 'simulator']
@@ -186,7 +186,7 @@ def backend_overview():
             offset = ' ' * 10 if idx else ''
             config = _backends[count].configuration().to_dict()
             props = _backends[count].properties().to_dict()
-            n_qubits = config['n_qubits']
+            num_qubits = config['num_qubits']
             str_list[0] += (' '*(max_len-len(str_list[0]))+offset)
             str_list[0] += _backends[count].name()
 
@@ -194,7 +194,7 @@ def backend_overview():
             str_list[1] += '-'*len(_backends[count].name())
 
             str_list[2] += (' '*(max_len-len(str_list[2]))+offset)
-            str_list[2] += 'Num. Qubits:  %s' % config['n_qubits']
+            str_list[2] += 'Num. Qubits:  %s' % config['num_qubits']
 
             str_list[3] += (' '*(max_len-len(str_list[3]))+offset)
             str_list[3] += 'Pending Jobs: %s' % stati[count].pending_jobs
@@ -207,10 +207,10 @@ def backend_overview():
 
             str_list[6] += (' '*(max_len-len(str_list[6]))+offset)
             str_list[6] += 'Avg. T1:      %s' % round(sum([q[0]['value']
-                                                           for q in props['qubits']])/n_qubits, 1)
+                                                           for q in props['qubits']])/num_qubits, 1)
             str_list[7] += (' '*(max_len-len(str_list[7]))+offset)
             str_list[7] += 'Avg. T2:      %s' % round(sum([q[1]['value']
-                                                           for q in props['qubits']])/n_qubits, 1)
+                                                           for q in props['qubits']])/num_qubits, 1)
             count += 1
             if count == num_backends:
                 break

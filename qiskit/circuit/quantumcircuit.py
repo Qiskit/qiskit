@@ -969,7 +969,7 @@ class QuantumCircuit:
 
     @property
     def n_qubits(self):
-        """Deprecated, use ``num_qubits`` instead. Return the number of qubits."""
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
         warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the QuantumCircuit.num_qubits method instead.',
