@@ -172,19 +172,19 @@ def plot_gate_map(backend, figsize=None,
                     [9, 2], [9, 6]]
 
     config = backend.configuration()
-    n_qubits = config.n_qubits
+    num_qubits = config.num_qubits
     cmap = config.coupling_map
 
     if qubit_labels is None:
-        qubit_labels = list(range(n_qubits))
+        qubit_labels = list(range(num_qubits))
     else:
-        if len(qubit_labels) != n_qubits:
+        if len(qubit_labels) != num_qubits:
             raise QiskitError('Length of qubit labels '
                               'does not equal number '
                               'of qubits.')
 
-    if n_qubits in mpl_data.keys():
-        grid_data = mpl_data[n_qubits]
+    if num_qubits in mpl_data.keys():
+        grid_data = mpl_data[num_qubits]
     else:
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))  # pylint: disable=invalid-name
@@ -196,7 +196,7 @@ def plot_gate_map(backend, figsize=None,
     max_dim = max(x_max, y_max)
 
     if figsize is None:
-        if n_qubits == 1 or (x_max / max_dim > 0.33 and y_max / max_dim > 0.33):
+        if num_qubits == 1 or (x_max / max_dim > 0.33 and y_max / max_dim > 0.33):
             figsize = (5, 5)
         else:
             figsize = (9, 3)
@@ -207,12 +207,12 @@ def plot_gate_map(backend, figsize=None,
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ['#648fff'] * config.n_qubits
+        qubit_color = ['#648fff'] * config.num_qubits
     if line_color is None:
         line_color = ['#648fff'] * len(cmap) if cmap else []
 
     # Add lines for couplings
-    if n_qubits != 1:
+    if num_qubits != 1:
         for ind, edge in enumerate(cmap):
             is_symmetric = False
             if edge[::-1] in cmap:
@@ -333,10 +333,10 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         raise QiskitError('Circuit has no layout. '
                           'Perhaps it has not been transpiled.')
 
-    n_qubits = backend.configuration().n_qubits
+    num_qubits = backend.configuration().num_qubits
 
     qubits = []
-    qubit_labels = [None] * n_qubits
+    qubit_labels = [None] * num_qubits
 
     if view == 'virtual':
         for key, val in circuit._layout.get_virtual_bits().items():
@@ -353,7 +353,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     else:
         raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
-    qcolors = ['#648fff'] * n_qubits
+    qcolors = ['#648fff'] * num_qubits
     for k in qubits:
         qcolors[k] = 'k'
 
@@ -416,10 +416,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
 
-    n_qubits = config['n_qubits']
+    num_qubits = config['num_qubits']
 
     # U2 error rates
-    single_gate_errors = [0]*n_qubits
+    single_gate_errors = [0]*num_qubits
     for gate in props['gates']:
         if gate['gate'] == 'u2':
             _qubit = gate['qubits'][0]
@@ -439,7 +439,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     line_colors = []
     if cmap:
         directed = False
-        if n_qubits < 20:
+        if num_qubits < 20:
             for edge in cmap:
                 if not [edge[1], edge[0]] in cmap:
                     directed = True
@@ -466,7 +466,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     read_err = []
 
-    for qubit in range(n_qubits):
+    for qubit in range(num_qubits):
         for item in props['qubits'][qubit]:
             if item['name'] == 'readout_error':
                 read_err.append(item['value'])
@@ -519,12 +519,12 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         cx_cb.update_ticks()
         bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
 
-    if n_qubits < 10:
-        num_left = n_qubits
+    if num_qubits < 10:
+        num_left = num_qubits
         num_right = 0
     else:
-        num_left = math.ceil(n_qubits / 2)
-        num_right = n_qubits - num_left
+        num_left = math.ceil(num_qubits / 2)
+        num_right = num_qubits - num_left
 
     left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#DDBBBA')
     left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
@@ -538,12 +538,12 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         spine.set_visible(False)
 
     if num_right:
-        right_ax.barh(range(num_left, n_qubits), read_err[num_left:],
+        right_ax.barh(range(num_left, num_qubits), read_err[num_left:],
                       align='center', color='#DDBBBA')
         right_ax.axvline(avg_read_err, linestyle='--', color='#212121')
-        right_ax.set_yticks(range(num_left, n_qubits))
+        right_ax.set_yticks(range(num_left, num_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
-        right_ax.set_yticklabels([str(kk) for kk in range(num_left, n_qubits)],
+        right_ax.set_yticklabels([str(kk) for kk in range(num_left, num_qubits)],
                                  fontsize=12)
         right_ax.invert_yaxis()
         right_ax.invert_xaxis()
