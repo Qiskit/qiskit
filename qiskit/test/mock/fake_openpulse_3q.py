@@ -29,7 +29,7 @@ class FakeOpenPulse3Q(FakeBackend):
         configuration = PulseBackendConfiguration(
             backend_name='fake_openpulse_3q',
             backend_version='0.0.0',
-            n_qubits=3,
+            num_qubits=3,
             meas_levels=[0, 1, 2],
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,

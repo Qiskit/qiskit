@@ -76,6 +76,7 @@ class QobjInstruction(BaseModel):
     Attributes:
         name (str): name of the instruction
     """
+
     def __init__(self, name, **kwargs):
         self.name = name
 
@@ -112,6 +113,7 @@ class QobjExperiment(BaseModel):
     Attributes:
         instructions (list[QobjInstruction]): list of instructions.
     """
+
     def __init__(self, instructions, **kwargs):
         self.instructions = instructions
 
