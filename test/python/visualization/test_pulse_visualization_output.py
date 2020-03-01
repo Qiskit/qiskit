@@ -19,13 +19,13 @@
 import os
 import unittest
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB
-from qiskit.visualization import pulse_drawer
+from qiskit.pulse import pulse_lib
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import FrameChange, Acquire, ConstantPulse, Snapshot, Delay, Gaussian
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse import pulse_lib
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.visualization import pulse_drawer
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 

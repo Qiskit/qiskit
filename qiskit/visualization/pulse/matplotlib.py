@@ -30,8 +30,8 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.visualization import PulseStyle, SchedStyle
-from qiskit.visualization.pulse import interpolation
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
+from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
@@ -256,7 +256,7 @@ class SamplePulseDrawer:
             scale = scaling
         figure = plt.figure()
 
-        interp_method = interp_method or interpolation.step_wise
+        interp_method = interp_method or step_wise
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
         ax = figure.add_subplot(111)
@@ -750,7 +750,7 @@ class ScheduleDrawer:
 
         if channels is None:
             channels = []
-        interp_method = interp_method or interpolation.step_wise
+        interp_method = interp_method or step_wise
 
         if channel_scales is None:
             channel_scales = {}

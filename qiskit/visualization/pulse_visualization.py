@@ -22,7 +22,7 @@ from typing import Union, Callable, List, Dict, Tuple
 
 from qiskit.pulse import Schedule, Instruction, SamplePulse, ScheduleComponent
 from qiskit.pulse.channels import Channel
-from qiskit.visualization import PulseStyle, SchedStyle
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 
