@@ -159,7 +159,6 @@ class TestEulerAngles1Q(CheckDecompositions):
 @ddt
 class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
-
     def check_one_qubit_euler_angles(self, operator, basis='U3',
                                      tolerance=1e-12,
                                      phase_equal=False):
