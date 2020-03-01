@@ -148,7 +148,10 @@ def _assemble_instructions(
         user_pulselib: Dict[str, Command]
 ) -> Tuple[List[PulseQobjInstruction], int]:
     """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
-    related metadata that will be assembled into the Qobj configuration.
+    related metadata that will be assembled into the Qobj configuration. Lookup table for
+    pulses defined in all experiments are registered in ``user_pulselib``. This object should be
+    mutable python dictionary so that items are properly updated after each instruction assemble.
+    The dictionary is not returned to avoid redundancy.
 
     Args:
         schedule: Schedule to assemble.
