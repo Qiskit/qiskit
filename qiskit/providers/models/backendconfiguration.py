@@ -99,23 +99,6 @@ class BackendConfigurationSchema(BaseSchema):
     description = fields.String()
     tags = fields.List(fields.String())
 
-    @pre_load
-    def map_n_qubits_to_num_qubits(self, in_data, **kwargs):  # pylint:disable=unused-argument
-        """Map n_qubits to num_qubits if existing in the input.
-
-        If the property "n_qubits" if is provided, map it to "num_qubits"
-        and delete "n_qubits".
-        """
-        if "n_qubits" in in_data.keys():
-            if "num_qubits" in in_data.keys():
-                raise TypeError("Both num_qubits and n_qubits (deprecated) are provided.")
-
-            warnings.warn("The attribute n_qubits is deprecated, use num_qubits instead.",
-                          DeprecationWarning, stacklevel=2)
-            in_data["num_qubits"] = in_data["n_qubits"]  # map n_qubits to num_qubits
-            del in_data["n_qubits"]  # delete the property n_qubits
-        return in_data
-
 
 class QasmBackendConfigurationSchema(BackendConfigurationSchema):
     """Schema for Qasm backend."""

@@ -30,11 +30,13 @@ together by using ``bind_schema``::
         pass
 """
 
+import warnings
+
 from functools import wraps
 from types import SimpleNamespace, MethodType
 
 from marshmallow import ValidationError
-from marshmallow import Schema, post_dump, post_load
+from marshmallow import Schema, post_dump, pre_load, post_load
 from marshmallow import fields as _fields
 from marshmallow.utils import is_collection, INCLUDE
 
@@ -123,6 +125,23 @@ class BaseSchema(Schema):
         unknown = INCLUDE
 
     model_cls = SimpleNamespace
+
+    @pre_load
+    def map_n_qubits_to_num_qubits(self, in_data, **kwargs):  # pylint:disable=unused-argument
+        """Map n_qubits to num_qubits if existing in the input.
+
+        If the property "n_qubits" if is provided, map it to "num_qubits"
+        and delete "n_qubits".
+        """
+        if "n_qubits" in in_data.keys():
+            if "num_qubits" in in_data.keys():
+                raise TypeError("Both num_qubits and n_qubits (deprecated) are provided.")
+
+            warnings.warn("The attribute n_qubits is deprecated, use num_qubits instead.",
+                          DeprecationWarning, stacklevel=2)
+            in_data["num_qubits"] = in_data["n_qubits"]  # map n_qubits to num_qubits
+            del in_data["n_qubits"]  # delete the property n_qubits
+        return in_data
 
     @post_dump(pass_original=True, pass_many=True)
     def dump_additional_data(self, valid_data, original_data, **kwargs):
@@ -356,6 +375,20 @@ class BaseModel(SimpleNamespace):
                 ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
+
+    @property
+    def n_qubits(self) -> int:
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        if not hasattr(self, 'num_qubits'):
+            raise TypeError('No attributes for the number of qubits in {} of type {}.'.format(
+                self, type(self)))
+
+        warnings.warn('The BaseModel.n_qubits method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the BaseModel.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+
+        return self.num_qubits
 
 
 class ObjSchema(BaseSchema):
