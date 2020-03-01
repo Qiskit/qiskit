@@ -331,7 +331,7 @@ class Statevector(QuantumState):
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             Statevector: The final statevector.

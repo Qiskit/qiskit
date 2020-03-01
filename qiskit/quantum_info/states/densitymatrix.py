@@ -264,7 +264,7 @@ class DensityMatrix(QuantumState):
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             DensityMatrix: the final density matrix.
