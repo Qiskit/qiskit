@@ -114,8 +114,8 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         Output widget.
 
     """
-
-    code = pygments.highlight(circuit.qasm(), OpenQASMLexer(),
+    qasm_code = circuit.qasm()
+    code = pygments.highlight(qasm_code, OpenQASMLexer(),
                               HtmlFormatter())
 
     html_style = HtmlFormatter(style=QasmHTMLStyle).get_style_defs('.highlight')
@@ -135,16 +135,17 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
 
     out = wid.HTML(code_style+code,
                    layout=wid.Layout(max_height='500px',
-                                     height='500px',
+                                     height='auto',
                                      overflow='hidden scroll'))
 
     out_label = wid.HTML("<p style='{}'>Circuit QASM</p>".format(head_style),
                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
     qasm = wid.VBox(children=[out_label, out],
-                    layout=wid.Layout(height='510px', max_height='510px', width='70%',
+                    layout=wid.Layout(height='auto', max_height='500px', width='70%',
                                       margin='0px 0px 0px 20px'))
 
+    qasm._code_length = len(qasm_code.split('\n'))
     return qasm
 
 
@@ -171,24 +172,26 @@ def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
     return top
 
 
-# The seperator widget
-sep = wid.HTML("<div style='border-left: 3px solid #212121;height: 475px;'></div>",
-               layout=wid.Layout(height='500px',
-                                 max_height='500px',
-                                 margin='40px 0px 0px 20px'))
-
-
 def circuit_library_widget(circuit: QuantumCircuit) -> None:
     """Create a circuit library widget.
 
     Args:
         circuit: Input quantum circuit.
     """
+    qasm_wid = qasm_widget(circuit)
+    sep_length = str(min(20*qasm_wid._code_length, 495))
+
+    # The seperator widget
+    sep = wid.HTML("<div style='border-left: 3px solid #212121;"
+                   "height: {}px;'></div>".format(sep_length),
+                   layout=wid.Layout(height='auto',
+                                     max_height='495px',
+                                     margin='40px 0px 0px 20px'))
     bottom = wid.HBox(children=[details_widget(circuit),
                                 sep,
                                 qasm_widget(circuit)],
-                      layout=wid.Layout(max_height='100%',
-                                        height='100%'))
+                      layout=wid.Layout(max_height='500px',
+                                        height='auto'))
 
     top = circuit_diagram_widget(circuit)
 
