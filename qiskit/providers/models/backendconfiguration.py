@@ -16,6 +16,7 @@
 from typing import Dict, List, Optional
 import warnings
 
+from marshmallow import pre_load
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
@@ -97,6 +98,23 @@ class BackendConfigurationSchema(BaseSchema):
     display_name = fields.String()
     description = fields.String()
     tags = fields.List(fields.String())
+
+    @pre_load
+    def map_n_qubits_to_num_qubits(self, in_data, **kwargs):  # pylint:disable=unused-argument
+        """Map n_qubits to num_qubits if existing in the input.
+
+        If the property "n_qubits" if is provided, map it to "num_qubits"
+        and delete "n_qubits".
+        """
+        if "n_qubits" in in_data.keys():
+            if "num_qubits" in in_data.keys():
+                raise TypeError("Both num_qubits and n_qubits (deprecated) are provided.")
+
+            warnings.warn("The attribute n_qubits is deprecated, use num_qubits instead.",
+                          DeprecationWarning, stacklevel=2)
+            in_data["num_qubits"] = in_data["n_qubits"]  # map n_qubits to num_qubits
+            del in_data["n_qubits"]  # delete the property n_qubits
+        return in_data
 
 
 class QasmBackendConfigurationSchema(BackendConfigurationSchema):
@@ -206,6 +224,7 @@ class BackendConfiguration(BaseModel):
                  open_pulse: bool,
                  memory: bool,
                  max_shots: int,
+                 *,
                  n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         self.backend_name = backend_name
@@ -221,6 +240,15 @@ class BackendConfiguration(BaseModel):
         self.max_shots = max_shots
 
         super().__init__(**kwargs)
+
+    @property
+    def n_qubits(self) -> int:
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
 
 
 @bind_schema(QasmBackendConfigurationSchema)
@@ -258,6 +286,7 @@ class QasmBackendConfiguration(BackendConfiguration):
                  open_pulse: bool,
                  memory: bool,
                  max_shots: int,
+                 *,
                  n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         super().__init__(backend_name=backend_name, backend_version=backend_version,
@@ -265,6 +294,15 @@ class QasmBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
+
+    @property
+    def n_qubits(self) -> int:
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
 
 
 @bind_schema(PulseBackendConfigurationSchema)
@@ -300,6 +338,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                  meas_kernels: List[str],
                  discriminators: List[str],
                  hamiltonian: Dict[str, str] = None,
+                 *,
                  n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         """
@@ -357,6 +396,15 @@ class PulseBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
+
+    @property
+    def n_qubits(self) -> int:
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
 
     @property
     def dt(self) -> float:  # pylint: disable=invalid-name
