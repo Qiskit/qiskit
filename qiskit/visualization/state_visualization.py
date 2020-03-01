@@ -77,7 +77,8 @@ def plot_state_hinton(
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None) -> Figure:
+        ax_imag: Optional[Axes] = None,
+        auto_scale: bool = True) -> Figure:
     """Plot a hinton diagram for the quantum state.
 
     Args:
@@ -101,6 +102,11 @@ def plot_state_hinton(
             If this is specified without an ``ax_real`` only the imaginary component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
+        auto_scale:
+            Use auto scale for real and imaginary plot. If ``True`` is specified,
+            the basis in plot windows are automatically truncated to draw out subspace
+            with non zero components. If ``False`` is specified, all basis are shown.
+            In default ``True`` is specified.
 
     Returns:
         The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
@@ -137,7 +143,7 @@ def plot_state_hinton(
 
     fig = _plot_matrix_hinton(mat=mat, row_names=row_names, column_names=column_names,
                               oper_name='$\\rho$', title=title, figsize=figsize,
-                              ax_real=ax_real, ax_imag=ax_imag)
+                              ax_real=ax_real, ax_imag=ax_imag, auto_scale=auto_scale)
 
     if ax_real is None and ax_imag is None:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -152,7 +158,8 @@ def plot_quantum_channel_hinton(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         ax_real: Optional[Axes] = None,
         ax_imag: Optional[Axes] = None,
-        basis: Optional[List[str]] = None) -> Figure:
+        basis: Optional[List[str]] = None,
+        auto_scale: bool = True) -> Figure:
     """Hinton diagram plot of the Chi-matrix representation of a quantum channel.
 
     Args:
@@ -179,6 +186,11 @@ def plot_quantum_channel_hinton(
         basis:
             A representation of basis operators of the channel. In default, Pauli basis
             ``[i, x, y, z]`` is specified.
+        auto_scale:
+            Use auto scale for real and imaginary plot. If ``True`` is specified,
+            the basis in plot windows are automatically truncated to draw out subspace
+            with non zero components. If ``False`` is specified, all basis are shown.
+            In default ``True`` is specified.
 
     Returns:
         The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
@@ -214,7 +226,7 @@ def plot_quantum_channel_hinton(
 
     fig = _plot_matrix_hinton(mat=mat, row_names=row_names, column_names=column_names,
                               oper_name='$\\chi$', title=title, figsize=figsize,
-                              ax_real=ax_real, ax_imag=ax_imag)
+                              ax_real=ax_real, ax_imag=ax_imag, auto_scale=auto_scale)
 
     if ax_real is None and ax_imag is None:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -231,7 +243,8 @@ def _plot_matrix_hinton(
         title: Optional[str] = "",
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None) -> Figure:
+        ax_imag: Optional[Axes] = None,
+        auto_scale: bool = True) -> Figure:
     """A common interface to generate Hinton diagram. This *private* function should be called by
     other visualization API with two dimensional numpy array to visualize,
     corresponding axis labels and matrix name.
@@ -261,6 +274,11 @@ def _plot_matrix_hinton(
             If this is specified without an ``ax_real`` only the imaginary component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
+        auto_scale:
+            Use auto scale for real and imaginary plot. If ``True`` is specified,
+            the basis in plot windows are automatically truncated to draw out subspace
+            with non zero components. If ``False`` is specified, all basis are shown.
+            In default ``True`` is specified.
 
     Returns:
          The matplotlib ``Figure`` of the visualization.
@@ -300,14 +318,19 @@ def _plot_matrix_hinton(
             color = 'white' if w > 0 else 'black'
             size = np.sqrt(np.abs(w) / max_weight)
             rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
-                                 facecolor=color, edgecolor=color)
+                                 facecolor=color, edgecolor='gray')
             ax1.add_patch(rect)
 
         ax1.set_xticks(np.arange(0, lx+0.5, 1))
         ax1.set_yticks(np.arange(0, ly+0.5, 1))
         ax1.set_yticklabels(row_names, fontsize=14)
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax1.autoscale_view()
+
+        if auto_scale:
+            ax1.autoscale_view()
+        else:
+            ax1.set_xlim(-0.9, lx - 0.1)
+            ax1.set_ylim(-0.9, ly - 0.1)
         ax1.invert_yaxis()
         ax1.set_title('Re[{}]'.format(oper_name), fontsize=14)
     # Imaginary
@@ -329,7 +352,11 @@ def _plot_matrix_hinton(
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
 
-        ax2.autoscale_view()
+        if auto_scale:
+            ax2.autoscale_view()
+        else:
+            ax2.set_xlim(-0.9, lx - 0.1)
+            ax2.set_ylim(-0.9, ly - 0.1)
         ax2.invert_yaxis()
         ax2.set_title('Im[{}]'.format(oper_name), fontsize=14)
 
