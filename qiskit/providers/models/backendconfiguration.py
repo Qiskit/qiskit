@@ -244,9 +244,9 @@ class BackendConfiguration(BaseModel):
     @property
     def n_qubits(self) -> int:
         """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
+        warnings.warn('The BackendConfiguration.n_qubits method is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      'You should use the BackendConfiguration.num_qubits method instead.',
                       DeprecationWarning, stacklevel=2)
         return self.num_qubits
 
@@ -294,15 +294,6 @@ class QasmBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
-
-    @property
-    def n_qubits(self) -> int:
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
 
 @bind_schema(PulseBackendConfigurationSchema)
@@ -396,15 +387,6 @@ class PulseBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
-
-    @property
-    def n_qubits(self) -> int:
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     @property
     def dt(self) -> float:  # pylint: disable=invalid-name
