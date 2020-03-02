@@ -14,6 +14,9 @@
 
 """Helper function for converting a circuit to a gate"""
 
+import sys
+from collections import OrderedDict
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
@@ -51,15 +54,21 @@ def circuit_to_gate(circuit, parameter_map=None):
             raise QiskitError('One or more instructions in this instruction '
                               'cannot be converted to a gate')
 
-    if parameter_map is None:
-        parameter_dict = {p: p for p in circuit.parameters}
+    if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
+        parameter_dict = {}
     else:
-        parameter_dict = circuit._unroll_param_dict(parameter_map)
+        parameter_dict = OrderedDict()
 
-    if parameter_dict.keys() != set(circuit.parameters):
-        raise QiskitError(('parameter_map should map all circuit parameters. '
-                           'Circuit parameters: {}, parameter_map: {}').format(
-                               circuit.parameters, parameter_dict))
+    if parameter_map is None:
+        parameter_dict.update(zip(circuit.parameters, circuit.parameters))
+    else:
+        unrolled_parameter_map = circuit._unroll_param_dict(parameter_map)
+        if unrolled_parameter_map.keys() != set(circuit.parameters):
+            raise QiskitError(('parameter_map should map all circuit parameters. '
+                               'Circuit parameters: {}, parameter_map: {}').format(
+                circuit.parameters, parameter_dict))
+        for parameter in circuit.parameters:
+            parameter_dict[parameter] = unrolled_parameter_map[parameter]
 
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),

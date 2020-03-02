@@ -1238,8 +1238,6 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        if len(set(self._parameter_table.keys())) != len(list(self._parameter_table.keys())):
-            raise ValueError('Some parameters existed twice!')
         return list(self._parameter_table.keys())
 
     def bind_parameters(self, value_dict):
@@ -1269,7 +1267,10 @@ class QuantumCircuit:
         return new_circuit
 
     def _unroll_param_dict(self, value_dict):
-        unrolled_value_dict = {}
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
+            unrolled_value_dict = {}
+        else:
+            unrolled_value_dict = OrderedDict()
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
