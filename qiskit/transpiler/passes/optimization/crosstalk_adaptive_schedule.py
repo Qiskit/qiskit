@@ -701,7 +701,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         if not HAS_Z3:
             raise TranspilerError('z3-solver is required to use CrosstalkAdaptiveSchedule. '
-                                  'To install, run "pip install z3-solver". ')
+                                  'To install, run "pip install z3-solver".')
 
         self.dag = dag
 
