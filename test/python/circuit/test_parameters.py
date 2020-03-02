@@ -122,7 +122,6 @@ class TestParameters(QiskitTestCase):
         else:
             raise ValueError('Unsupported target {}'.format(target))
 
-
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
         theta = Parameter('θ')
