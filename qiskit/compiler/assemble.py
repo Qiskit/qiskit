@@ -326,7 +326,7 @@ def _expand_parameters(circuits, run_config):
 
         all_bind_parameters = [bind.keys()
                                for bind in parameter_binds]
-        all_circuit_parameters = [circuit.parameters for circuit in circuits]
+        all_circuit_parameters = [set(circuit.parameters) for circuit in circuits]
 
         # Collect set of all unique parameters across all circuits and binds
         unique_parameters = {param

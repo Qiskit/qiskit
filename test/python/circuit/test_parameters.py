@@ -95,6 +95,34 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
         self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
 
+    @data('circuit', 'gate', 'instruction', 'nested')
+    def test_sorted_by_insertion(self, target):
+        """Test that parameters are sorted by insertion."""
+        params = [Parameter('2'), Parameter('13'), Parameter('0')]
+        qc = QuantumCircuit(2)
+        qc.rx(params[0], 0)
+        qc.rx(params[1], 1)
+        qc.rx(params[2], 0)
+
+        if target == 'circuit':
+            self.assertEqual(qc.parameters, params)
+        elif target == 'gate':
+            self.assertEqual(qc.to_gate().params, params)
+        elif target == 'instruction':
+            self.assertEqual(qc.to_gate().params, params)
+        elif target == 'nested':
+            gate = qc.to_gate()
+            qc2 = QuantumCircuit(2)
+            before, after = Parameter('before'), Parameter('after')
+            qc2.rz(before, 1)
+            qc2.append(gate, [0, 1])
+            qc2.rz(after, 0)
+
+            self.assertEqual(qc2.parameters, [before] + params + [after])
+        else:
+            raise ValueError('Unsupported target {}'.format(target))
+
+
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
         theta = Parameter('θ')
@@ -103,7 +131,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
-        self.assertEqual(qc.parameters, {theta, x})
+        self.assertEqual(qc.parameters, [theta, x])
 
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
@@ -116,7 +144,7 @@ class TestParameters(QiskitTestCase):
 
         pqc = qc.bind_parameters({theta: 2})
 
-        self.assertEqual(pqc.parameters, {x})
+        self.assertEqual(pqc.parameters, [x])
 
         self.assertEqual(float(pqc.data[0][0].params[0]), 2)
         self.assertEqual(float(pqc.data[1][0].params[1]), 2)
@@ -133,14 +161,14 @@ class TestParameters(QiskitTestCase):
 
         pqc = qc.bind_parameters({theta: 2})
 
-        self.assertEqual(pqc.parameters, {phi})
+        self.assertEqual(pqc.parameters, [phi])
 
         self.assertTrue(isinstance(pqc.data[0][0].params[0], ParameterExpression))
         self.assertEqual(str(pqc.data[0][0].params[0]), 'phi + 2')
 
         fbqc = pqc.bind_parameters({phi: 1})
 
-        self.assertEqual(fbqc.parameters, set())
+        self.assertEqual(fbqc.parameters, [])
         self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
         self.assertEqual(float(fbqc.data[0][0].params[0]), 3)
 
@@ -156,14 +184,14 @@ class TestParameters(QiskitTestCase):
 
         pqc = qc.bind_parameters({theta: 0})
 
-        self.assertEqual(pqc.parameters, {phi})
+        self.assertEqual(pqc.parameters, [phi])
 
         self.assertTrue(isinstance(pqc.data[0][0].params[0], ParameterExpression))
         self.assertEqual(str(pqc.data[0][0].params[0]), '0')
 
         fbqc = pqc.bind_parameters({phi: 1})
 
-        self.assertEqual(fbqc.parameters, set())
+        self.assertEqual(fbqc.parameters, [])
         self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
         self.assertEqual(float(fbqc.data[0][0].params[0]), 0)
 
@@ -227,7 +255,7 @@ class TestParameters(QiskitTestCase):
         qc2.measure(qr, cr)
 
         qc3 = qc1 + qc2
-        self.assertEqual(qc3.parameters, {theta, phi})
+        self.assertEqual(qc3.parameters, [theta, phi])
 
     def test_composite_instruction(self):
         """Test preservation of parameters via parameterized instructions."""
@@ -246,7 +274,7 @@ class TestParameters(QiskitTestCase):
         qc2.ry(phi, qr2[0])
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
-        self.assertEqual(qc2.parameters, {theta, phi})
+        self.assertEqual(qc2.parameters, [phi, theta])
 
     def test_parameter_name_conflicts_raises(self):
         """Verify attempting to add different parameters with matching names raises an error."""
@@ -456,15 +484,15 @@ class TestParameters(QiskitTestCase):
 
         bound_qc2 = qc2.bind_parameters({theta: 0.5})
 
-        self.assertEqual(qc2.parameters, {theta})
-        self.assertEqual(bound_qc2.parameters, set())
+        self.assertEqual(qc2.parameters, [theta])
+        self.assertEqual(bound_qc2.parameters, [])
 
         decomposed_qc2 = bound_qc2.decompose()
 
         expected_qc2 = QuantumCircuit(1)
         expected_qc2.rx(0.5, 0)
 
-        self.assertEqual(decomposed_qc2.parameters, set())
+        self.assertEqual(decomposed_qc2.parameters, [])
         self.assertEqual(decomposed_qc2, expected_qc2)
 
     @data('gate', 'instruction')
@@ -492,8 +520,8 @@ class TestParameters(QiskitTestCase):
 
         bound_qc3 = qc3.bind_parameters({theta: 0.5})
 
-        self.assertEqual(qc3.parameters, {theta})
-        self.assertEqual(bound_qc3.parameters, set())
+        self.assertEqual(qc3.parameters, [theta])
+        self.assertEqual(bound_qc3.parameters, [])
 
         decomposed_qc3 = bound_qc3.decompose()
         deep_decomposed_qc3 = decomposed_qc3.decompose()
@@ -501,7 +529,7 @@ class TestParameters(QiskitTestCase):
         expected_qc3 = QuantumCircuit(1)
         expected_qc3.rx(0.5, 0)
 
-        self.assertEqual(deep_decomposed_qc3.parameters, set())
+        self.assertEqual(deep_decomposed_qc3.parameters, [])
         self.assertEqual(deep_decomposed_qc3, expected_qc3)
 
     @data('gate', 'instruction')
@@ -751,7 +779,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction()
 
-        self.assertEqual(gate.params, [phi, theta])
+        self.assertEqual(gate.params, [theta, phi])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -759,7 +787,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, {delta, theta, phi})
+        self.assertEqual(qc2.parameters, [delta, theta, phi])
 
         binds = {delta: 1, theta: 2, phi: 3}
         expected_qc = QuantumCircuit(qr2)
@@ -773,7 +801,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif order == 'decompose-bind':
             decomp_bound_qc = qc2.decompose().bind_parameters(binds)
 
-        self.assertEqual(decomp_bound_qc.parameters, set())
+        self.assertEqual(decomp_bound_qc.parameters, [])
         self.assertEqual(decomp_bound_qc, expected_qc)
 
     @combine(target_type=['gate', 'instruction'],
@@ -798,7 +826,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [phi_p, theta_p])
+        self.assertEqual(gate.params, [theta_p, phi_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -806,7 +834,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, {delta, theta_p, phi_p})
+        self.assertEqual(qc2.parameters, [delta, theta_p, phi_p])
 
         binds = {delta: 1, theta_p: 2, phi_p: 3}
         expected_qc = QuantumCircuit(qr2)
@@ -820,7 +848,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif order == 'decompose-bind':
             decomp_bound_qc = qc2.decompose().bind_parameters(binds)
 
-        self.assertEqual(decomp_bound_qc.parameters, set())
+        self.assertEqual(decomp_bound_qc.parameters, [])
         self.assertEqual(decomp_bound_qc, expected_qc)
 
     def test_binding_across_broadcast_instruction(self):

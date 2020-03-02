@@ -1238,7 +1238,9 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return set(self._parameter_table.keys())
+        if len(set(self._parameter_table.keys())) != len(list(self._parameter_table.keys())):
+            raise ValueError('Some parameters existed twice!')
+        return list(self._parameter_table.keys())
 
     def bind_parameters(self, value_dict):
         """Assign parameters to values yielding a new circuit.
@@ -1255,7 +1257,7 @@ class QuantumCircuit:
         new_circuit = self.copy()
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
-        if unrolled_value_dict.keys() > self.parameters:
+        if unrolled_value_dict.keys() > set(self.parameters):
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 

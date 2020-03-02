@@ -61,7 +61,7 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         inst = circuit_to_instruction(qc)
 
-        self.assertEqual(inst.params, [phi, theta])
+        self.assertEqual(inst.params, [theta, phi])
         self.assertEqual(inst.definition[0][0].params, [theta])
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [theta, phi])

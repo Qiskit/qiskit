@@ -56,14 +56,14 @@ def circuit_to_gate(circuit, parameter_map=None):
     else:
         parameter_dict = circuit._unroll_param_dict(parameter_map)
 
-    if parameter_dict.keys() != circuit.parameters:
+    if parameter_dict.keys() != set(circuit.parameters):
         raise QiskitError(('parameter_map should map all circuit parameters. '
                            'Circuit parameters: {}, parameter_map: {}').format(
                                circuit.parameters, parameter_dict))
 
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name))
+                params=list(parameter_dict.values()))
     gate.condition = None
 
     def find_bit_position(bit):
