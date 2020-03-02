@@ -108,8 +108,7 @@ class MatplotlibDrawer:
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
-                              'To install, run "pip install matplotlib" '
-                              'before. ')
+                              'To install, run "pip install matplotlib".')
 
         self._ast = None
         self._scale = DEFAULT_SCALE * scale
