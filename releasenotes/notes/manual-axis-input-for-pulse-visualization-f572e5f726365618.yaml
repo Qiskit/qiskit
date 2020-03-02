@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Pulse visualization now includes capability for putting in axis dimensions.
+    Axis input comes in the form of a 2-element list, as [width, height] where
+    both quantities are in dimensions of fraction of figure size.
+
+    For example::
+            sine_pulse = SamplePulse(np.sin(np.linspace(0,4*np.pi, 20)), name='random_pulse')
+            ax = [0.5, 1]
+            sine_pulse.draw(ax=ax)
+
+    The sample pulse will then be drawn with the graph dimensions squeezed in the x-direction.

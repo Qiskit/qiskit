@@ -227,7 +227,7 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scale=1, scaling=None):
+    def draw(self, pulse, dt, interp_method, scale=1, scaling=None, ax=None):
         """Draw figure.
 
         Args:
@@ -237,6 +237,8 @@ class SamplePulseDrawer:
                 See `qiskit.visualization.interpolation` for more information
             scale (float): Relative visual scaling of waveform amplitudes
             scaling (float): Deprecated, see `scale`
+            ax (list[float]): A list of [width, height], in fractions of
+                figure size.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -250,7 +252,11 @@ class SamplePulseDrawer:
         interp_method = interp_method or interpolation.step_wise
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
-        ax = figure.add_subplot(111)
+        if ax is None:
+            ax = figure.add_subplot(111)
+        else:
+            width, height = ax
+            ax = figure.add_axes([0, 0, width, height])
         ax.set_facecolor(self.style.bg_color)
 
         samples = pulse.samples
@@ -576,7 +582,7 @@ class ScheduleDrawer:
              scale=None, channel_scales=None, channels_to_plot=None,
              plot_all=True, table=True, label=False, framechange=True,
              scaling=None, channels=None,
-             show_framechange_channels=True):
+             show_framechange_channels=True, ax=None):
         """Draw figure.
 
         Args:
@@ -596,6 +602,8 @@ class ScheduleDrawer:
             scaling (float): Deprecated, see `scale`
             channels (list[OutputChannel]): channels to draw
             show_framechange_channels (bool): Plot channels with only framechanges
+            ax (list[float]): A list of [width, height], with both quantities in
+                fractions of figure size
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -652,7 +660,11 @@ class ScheduleDrawer:
             ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
 
         else:
-            ax = figure.add_subplot(111)
+            if ax is None:
+                ax = figure.add_subplot(111)
+            else:
+                width, height = ax
+                ax = figure.add_axes([0, 0, width, height])
             figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)

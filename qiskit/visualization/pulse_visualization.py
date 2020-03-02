@@ -31,7 +31,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
                  channels_to_plot=None, plot_all=False, plot_range=None,
                  interactive=False, table=True, label=False, framechange=True,
                  channels=None, scaling=None,
-                 show_framechange_channels=True):
+                 show_framechange_channels=True, ax=None):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -56,6 +56,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         scaling (float): Deprecated, see `scale`
         channels (list): A list of channel names to plot
         show_framechange_channels (bool): Plot channels with only framechanges
+        ax (list[float]): A list of [width, height], in fractions of figure
+            size
 
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
@@ -77,14 +79,15 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
-        image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
+        image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale, ax=ax)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
                             channel_scales=channel_scales, plot_range=plot_range,
                             plot_all=plot_all, table=table, label=label,
                             framechange=framechange, channels=channels,
-                            show_framechange_channels=show_framechange_channels)
+                            show_framechange_channels=show_framechange_channels,
+                            ax=ax)
     else:
         raise VisualizationError('This data cannot be visualized.')
 

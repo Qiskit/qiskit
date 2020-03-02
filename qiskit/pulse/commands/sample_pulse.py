@@ -104,7 +104,7 @@ class SamplePulse(PulseCommand):
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scaling: float = None, ax: Optional[List[float]] = None):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -116,6 +116,7 @@ class SamplePulse(PulseCommand):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
+            ax: A list of [width, height], in fractions of figure size
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -131,7 +132,7 @@ class SamplePulse(PulseCommand):
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
                                           interp_method=interp_method, scale=scale,
-                                          interactive=interactive)
+                                          interactive=interactive, ax=ax)
 
     def __eq__(self, other: 'SamplePulse'):
         """Two SamplePulses are the same if they are of the same type
