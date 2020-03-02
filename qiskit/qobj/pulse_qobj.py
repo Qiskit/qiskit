@@ -24,7 +24,7 @@ import numpy
 
 from qiskit.qobj.qasm_qobj import QobjDictField
 from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QasmQobjExperimentHeader
+from qiskit.qobj.qasm_qobj import QobjExperimentHeader
 from qiskit.qobj.qasm_qobj import validator
 
 
@@ -229,78 +229,77 @@ class PulseQobjConfig(QobjDictField):
             kwargs: Additional free form key value fields to add to the
                 configuration
         """
-        self._data = {}
-        self._data['meas_level'] = meas_level
-        self._data['meas_return'] = meas_return
+        self.__dict__['meas_level'] = meas_level
+        self.__dict__['meas_return'] = meas_return
         self.pulse_library = pulse_library
-        self._data['qubit_lo_freq'] = qubit_lo_freq
-        self._data['meas_lo_freq'] = meas_lo_freq
+        self.__dict__['qubit_lo_freq'] = qubit_lo_freq
+        self.__dict__['meas_lo_freq'] = meas_lo_freq
         if memory_slot_size is not None:
-            self._data['memory_slot_size'] = memory_slot_size
+            self.__dict__['memory_slot_size'] = memory_slot_size
         if rep_time is not None:
-            self._data['rep_time'] = rep_time or []
+            self.__dict__['rep_time'] = rep_time or []
         if shots is not None:
-            self._data['shots'] = int(shots)
+            self.__dict__['shots'] = int(shots)
 
         if max_credits is not None:
-            self._data['max_credits'] = int(max_credits)
+            self.__dict__['max_credits'] = int(max_credits)
 
         if seed_simulator is not None:
-            self._data['seed_simulator'] = int(seed_simulator)
+            self.__dict__['seed_simulator'] = int(seed_simulator)
 
         if memory_slots is not None:
-            self._data['memory_slots'] = int(memory_slots)
+            self.__dict__['memory_slots'] = int(memory_slots)
 
         if kwargs:
-            self._data.update(kwargs)
+            self.__dict__.update(kwargs)
 
     @property
     def meas_level(self):
         """The measurement level to use."""
-        return self._data['meas_level']
+        return self._dict__['meas_level']
 
     @meas_level.setter
     def meas_level(self, data):
-        self._data['meas_level'] = data
+        self.__dict__['meas_level'] = data
 
     @property
     def meas_return(self):
         """The level of measurement information to return."""
-        return self._data['meas_return']
+        return self.__dict__['meas_return']
 
     @meas_return.setter
     def meas_return(self, data):
-        self._data['meas_return'] = data
+        self.__dict__['meas_return'] = data
 
     @property
     def shots(self):
         """The number of shots."""
-        return self._data.get('shots')
+        return self.__dict__.get('shots')
 
     @shots.setter
     def shots(self, value):
-        self._data['shots'] = value
+        self.__dict__['shots'] = value
 
     @property
     def max_credits(self):
         """The max_credits to use on the IBMQ public devices."""
-        return self._data.get('max_credits')
+        return self.__dict__.get('max_credits')
 
     @max_credits.setter
     def max_credits(self, value):
-        self._data['max_credits'] = value
+        self.__dict__['max_credits'] = value
 
     @property
     def memory_slots(self):
         """The number of memory slots on the device."""
-        mem_slots = self._data.get('memory_slots')
+        mem_slots = self.__dict__.get('memory_slots')
         if mem_slots is None:
             raise AttributeError('Attribute memory_slots is not defined')
         return mem_slots
 
     @memory_slots.setter
     def memory_slots(self, value):
-        self._data['memory_slots'] = value
+        self.__dict__['memory_slots'] = value
 
     def to_dict(self):
         """Return a dictionary format representation of the Pulse Qobj config.
@@ -308,7 +307,7 @@ class PulseQobjConfig(QobjDictField):
         Returns:
             dict: The dictionary form of the PulseQobjConfig.
         """
-        out_dict = copy.copy(self._data)
+        out_dict = copy.copy(self.__dict__)
         if hasattr(self, 'pulse_library'):
             out_dict['pulse_library'] = [
                 x.to_dict() for x in self.pulse_library]
@@ -383,7 +382,7 @@ class PulseQobjExperiment:
             config = PulseQobjExperimentConfig.from_dict(data.pop('config'))
         header = None
         if 'header' in data:
-            header = QasmQobjExperimentHeader.from_dict(data.pop('header'))
+            header = QobjExperimentHeader.from_dict(data.pop('header'))
         instructions = None
         if 'instructions' in data:
             instructions = [
@@ -412,13 +411,12 @@ class PulseQobjExperimentConfig(QobjDictField):
             kwargs: Additional free form key value fields to add to the
                 configuration
         """
-        self._data = {}
         if qubit_lo_freq is not None:
-            self._data['qubit_lo_freq'] = qubit_lo_freq
+            self.__dict__['qubit_lo_freq'] = qubit_lo_freq
         if meas_lo_freq is not None:
-            self._data['meas_lo_freq'] = meas_lo_freq
+            self.__dict__['meas_lo_freq'] = meas_lo_freq
         if kwargs:
-            self._data.update(kwargs)
+            self.__dict__.update(kwargs)
 
 
 class PulseLibraryItem:

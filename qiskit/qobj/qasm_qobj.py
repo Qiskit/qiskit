@@ -17,6 +17,7 @@
 """Module providing definitions of QASM Qobj classes."""
 
 import os
+from types import SimpleNamespace
 
 import json
 import fastjsonschema
@@ -187,10 +188,9 @@ class QasmQobjExperiment:
         return False
 
 
-class QasmQobjConfig:
+class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
-    _data = {}
 
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
@@ -208,87 +208,86 @@ class QasmQobjConfig:
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
-        self._data = {}
         if shots is not None:
-            self._data['shots'] = int(shots)
+            self.__dict__['shots'] = int(shots)
 
         if max_credits is not None:
-            self._data['max_credits'] = int(max_credits)
+            self.__dict__['max_credits'] = int(max_credits)
 
         if seed_simulator is not None:
-            self._data['seed_simulator'] = int(seed_simulator)
+            self.__dict__['seed_simulator'] = int(seed_simulator)
 
         if memory is not None:
-            self._data['memory'] = bool(memory)
+            self.__dict__['memory'] = bool(memory)
 
         if parameter_binds is not None:
-            self._data['parameter_binds'] = parameter_binds
+            self.__dict__['parameter_binds'] = parameter_binds
 
         if memory_slots is not None:
-            self._data['memory_slots'] = memory_slots
+            self.__dict__['memory_slots'] = memory_slots
 
         if n_qubits is not None:
-            self._data['n_qubits'] = n_qubits
+            self.__dict__['n_qubits'] = n_qubits
 
         if kwargs:
-            self._data.update(kwargs)
+            self.__dict__.update(kwargs)
 
     @property
     def shots(self):
         """The number of shots to run for each experiment."""
-        return self._data.get('shots')
+        return self.__dict__.get('shots')
 
     @shots.setter
     def shots(self, value):
-        self._data['shots'] = value
+        self.__dict__['shots'] = value
 
     @property
     def max_credits(self):
         """The max number of credits to use on the IBMQ public devices."""
-        return self._data.get('max_credits')
+        return self.__dict__.get('max_credits')
 
     @max_credits.setter
     def max_credits(self, value):
-        self._data['max_credits'] = value
+        self.__dict__['max_credits'] = value
 
     @property
     def memory(self):
         """Whether to request memory from backend (per-shot readouts)."""
-        return self._data.get('memory')
+        return self.__dict__.get('memory')
 
     @memory.setter
     def memory(self, value):
-        self._data['memory'] = value
+        self.__dict__['memory'] = value
 
     @property
     def parameter_binds(self):
         """List of parameter bindings."""
-        return self._data.get('parameter_binds')
+        return self.__dict__.get('parameter_binds')
 
     @parameter_binds.setter
     def parameter_binds(self, value):
-        self._data['parameter_binds'] = value
+        self.___dict___['parameter_binds'] = value
 
     @property
     def memory_slots(self):
         """The number of memory slots on the device."""
-        self._data.get('memory_slots')
+        self.__dict__.get('memory_slots')
 
     @memory_slots.setter
     def memory_slots(self, value):
-        self._data['memory_slots'] = value
+        self.__dict__['memory_slots'] = value
 
     @property
     def n_qubits(self):
         """The number of qubits on the device."""
-        nqubits = self._data.get('n_qubits')
+        nqubits = self.__dict__.get('n_qubits')
         if nqubits is None:
             raise AttributeError('Attribute n_qubits is not defined')
         return nqubits
 
     @n_qubits.setter
     def n_qubits(self, value):
-        self._data['n_qubits'] = value
+        self.__dict__['n_qubits'] = value
 
     def to_dict(self):
         """Return a dictionary format representation of the QASM Qobj config.
@@ -296,7 +295,7 @@ class QasmQobjConfig:
         Returns:
             dict: The dictionary form of the QasmQobjConfig.
         """
-        return self._data
+        return self.__dict__
 
     @classmethod
     def from_dict(cls, data):
@@ -310,11 +309,6 @@ class QasmQobjConfig:
         """
         return cls(**data)
 
-    def __getattr__(self, name):
-        try:
-            return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
 
     def __eq__(self, other):
         if isinstance(other, QasmQobjConfig):
@@ -323,14 +317,13 @@ class QasmQobjConfig:
         return False
 
 
-class QobjDictField:
+class QobjDictField(SimpleNamespace):
     """A class used to represent a dictionary field in Qobj
 
     Exists as a backwards compatibility shim around a dictionary for Qobjs
     previously constructed using marshmallow.
     """
 
-    _data = {}
 
     def __init__(self, **kwargs):
         """Instantiate a new Qobj dict field object.
@@ -339,25 +332,7 @@ class QobjDictField:
             kwargs: arbitrary keyword arguments that can be accessed as
                 attributes of the object.
         """
-        self._data = kwargs
-
-    def __getstate__(self):
-        return self._data
-
-    def __setstate__(self, state):
-        self._data = state
-
-    def __getattr__(self, attr):
-        try:
-            return self._data[attr]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % attr)
-
-    def __setattr__(self, name, value):
-        if not hasattr(self, name):
-            self._data[name] = value
-        else:
-            super().__setattr__(name, value)
+        self.__dict__.update(kwargs)
 
     def to_dict(self):
         """Return a dictionary format representation of the QASM Qobj.
@@ -366,7 +341,7 @@ class QobjDictField:
             dict: The dictionary form of the QobjHeader.
 
         """
-        return self._data
+        return self.__dict__
 
     @classmethod
     def from_dict(cls, data):
@@ -377,14 +352,14 @@ class QobjDictField:
                 will be in the same format as output by :func:`to_dict`.
 
         Returns:
-            QobjHeader: The QobjHeader from the input dictionary.
+            QobjDictFieldr: The QobjDictField from the input dictionary.
         """
 
         return cls(**data)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            if self.to_dict() == other.to_dict():
+            if self.__dict__ == other.__dict__:
                 return True
         return False
 
