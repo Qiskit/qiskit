@@ -227,7 +227,7 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scale=1, scaling=None):
+    def draw(self, pulse, dt, interp_method, scale=1, scaling=None, ax=None):
         """Draw figure.
 
         Args:
@@ -237,6 +237,9 @@ class SamplePulseDrawer:
                 See `qiskit.visualization.interpolation` for more information
             scale (float): Relative visual scaling of waveform amplitudes
             scaling (float): Deprecated, see `scale`
+            ax (list[float]): The dimensions [width, height] of new axes, in
+                fractions of figure width and height.
+
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -250,9 +253,13 @@ class SamplePulseDrawer:
         interp_method = interp_method or interpolation.step_wise
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
-        ax = figure.add_subplot(111)
+        if ax is None:
+            ax = figure.add_subplot(1, 1, 1)
+        else:
+            x, y = ax
+            ax = [0, 0, x, y]
+            ax = figure.add_axes(ax)
         ax.set_facecolor(self.style.bg_color)
-
         samples = pulse.samples
         time = np.arange(0, len(samples) + 1, dtype=float) * dt
 
@@ -274,7 +281,6 @@ class SamplePulseDrawer:
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
-
         return figure
 
 
@@ -576,7 +582,7 @@ class ScheduleDrawer:
              scale=None, channel_scales=None, channels_to_plot=None,
              plot_all=True, table=True, label=False, framechange=True,
              scaling=None, channels=None,
-             show_framechange_channels=True):
+             show_framechange_channels=True, ax=None):
         """Draw figure.
 
         Args:
@@ -596,6 +602,8 @@ class ScheduleDrawer:
             scaling (float): Deprecated, see `scale`
             channels (list[OutputChannel]): channels to draw
             show_framechange_channels (bool): Plot channels with only framechanges
+            ax (list[float]): The dimensions [width, height] of new axes, in
+                fractions of figure width and height.
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -648,13 +656,18 @@ class ScheduleDrawer:
                                                                    channels=channels,
                                                                    plot_all=plot_all)
 
+        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
+
         if table:
             ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
 
         else:
-            ax = figure.add_subplot(111)
-            figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
-
+            if ax is None:
+                ax = figure.add_subplot(1, 1, 1)
+            else:
+                x, y = ax
+                ax = [0, 0, x, y]
+                ax = figure.add_axes(ax)
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,

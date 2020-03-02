@@ -206,7 +206,7 @@ class Instruction(ScheduleComponent, ABC):
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None,
-             channels: Optional[List[Channel]] = None):
+             channels: Optional[List[Channel]] = None, ax: Optional[List[float]] = None):
         """Plot the instruction.
 
         Args:
@@ -225,6 +225,8 @@ class Instruction(ScheduleComponent, ABC):
             framechange: Add framechange indicators
             scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
+            ax: A list of [width, height] where both quantities are in fractions
+                of figure width and height
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
@@ -248,7 +250,7 @@ class Instruction(ScheduleComponent, ABC):
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange,
-                                          channels=channels)
+                                          channels=channels, ax=ax)
 
     def __eq__(self, other: 'Instruction'):
         """Check if this Instruction is equal to the `other` instruction.

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Pulse visualizations now support ability for user to manually input x and
+    y dimensions, in dimensions of fraction of grid size. For example::
+            sine_pulse = SamplePulse(np.sin(np.linspace(0,4*np.pi, 20)), name='random_pulse')
+            ax = [.5, 1]
+            sine_pulse.draw(ax = ax)
+    The function will now be visualized with a 2x squeeze in the x direction.

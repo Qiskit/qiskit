@@ -38,7 +38,7 @@ by following the existing pattern:
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, List
 import math
 
 import numpy as np
@@ -101,7 +101,7 @@ class ParametricPulse(PulseCommand):
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scaling: float = None, ax: Optional[List[float]] = None):
         """Plot the pulse.
 
         Args:
@@ -113,6 +113,8 @@ class ParametricPulse(PulseCommand):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
+            ax: List of [width, height]. Both quantities are in fractions of figure
+                width and height.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

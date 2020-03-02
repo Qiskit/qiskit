@@ -41,7 +41,7 @@ class PulseCommand(Command):
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scaling: float = None, ax: Optional[List[float]] = None):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -53,6 +53,8 @@ class PulseCommand(Command):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
+            ax: List of [width, height] where both quantities are in fractions of
+                figure width and height
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
