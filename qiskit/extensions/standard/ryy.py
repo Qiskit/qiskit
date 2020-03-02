@@ -24,7 +24,8 @@ from qiskit.circuit import QuantumRegister
 class RYYGate(Gate):
     """Two-qubit YY-rotation gate.
 
-    This gate corresponds to the rotation U(θ) = exp(-1j * θ * Y⊗Y / 2)
+    This gate corresponds to the rotation U(θ) = exp(-iθ/2 Y⊗Y), multiplied with
+    the phase exp(iθ/2).
     """
 
     def __init__(self, theta):
@@ -33,11 +34,8 @@ class RYYGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.x import CXGate
         from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.u2 import U2Gate
-        from qiskit.extensions.standard.u3 import U3Gate
-        from qiskit.extensions.standard.h import HGate
         from qiskit.extensions.standard.rx import RXGate
         definition = []
         q = QuantumRegister(2, 'q')
@@ -45,9 +43,9 @@ class RYYGate(Gate):
         rule = [
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U1Gate(theta), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (RXGate(-np.pi / 2), [q[0]], []),
             (RXGate(-np.pi / 2), [q[1]], []),
         ]
@@ -58,6 +56,16 @@ class RYYGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return RYYGate(-self.params[0])
+
+    def to_matrix(self):
+        """Return a numpy.arry for the RYY gate."""
+        theta = self.params[0]
+        return np.exp(0.5j * theta) * np.array([
+            [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
+            [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
+            [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+            [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
+        ], dtype=complex)
 
 
 def ryy(self, theta, qubit1, qubit2):
