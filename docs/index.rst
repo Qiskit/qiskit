@@ -6,7 +6,7 @@ Qiskit Terra documentation
   :maxdepth: 2
   :hidden:
 
-  API References <apidocs/qiskit>
+  API References <apidocs/terra>
   Release Notes <release_notes>
 
 .. Hiding - Indices and tables
