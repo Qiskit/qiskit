@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Since Python 3.6 dictionaries are insertion ordered, i.e. retrieving the keys of a
+    dictionary will return an iterable mirroring the order in which the keys are inserted.
+    In the QuantumCircuit, Parameters are stored in a dictionary so the information of
+    the insertion order is present.
+    Currently, we discard this information at two points:
+      1) if ``QuantumCircuit.parameters`` is called we return a set of the parameters,
+         which can change the order
+      2) if we create a ``Gate`` or ``Instruction`` out of a circuit, the parameters are
+         actively sorted by name
+    The new behaviour ensures that parameters are insertion-sorted by
+      1) returning a list, not set, of the parameter dictionary keys
+      2) not re-sorting the parameters of the circuit
+    This feature mirrors the behaviour some users might expect and is necessary for changes
+    in Aqua introduced by the Ansatz object.
