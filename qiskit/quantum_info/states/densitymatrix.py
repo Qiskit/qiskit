@@ -277,10 +277,10 @@ class DensityMatrix(QuantumState):
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
-        n_qubits = instruction.num_qubits
-        init = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
+        num_qubits = instruction.num_qubits
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
-        vec = DensityMatrix(init, dims=n_qubits * [2])
+        vec = DensityMatrix(init, dims=num_qubits * [2])
         vec._append_instruction(instruction)
         return vec
 

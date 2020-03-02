@@ -28,14 +28,16 @@ and is thus reduced to the RXXGate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.util import deprecate_arguments
 
 
 class MSGate(Gate):
     """Global Molmer-Sorensen gate."""
 
-    def __init__(self, n_qubits, theta):
+    @deprecate_arguments({'n_qubits': 'num_qubits'})
+    def __init__(self, num_qubits, theta, n_qubits=None):  # pylint:disable=unused-argument
         """Create new MS gate."""
-        super().__init__('ms', n_qubits, [theta])
+        super().__init__('ms', num_qubits, [theta])
 
     def _define(self):
         from qiskit.extensions.standard.rxx import RXXGate

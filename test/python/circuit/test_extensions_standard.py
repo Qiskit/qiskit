@@ -1359,6 +1359,7 @@ class TestStandardMethods(QiskitTestCase):
             sig = signature(gate_class.__init__)
             free_params = len(sig.parameters) - 1  # subtract "self"
             try:
+                print(gate_class)
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
                 self.log.info(

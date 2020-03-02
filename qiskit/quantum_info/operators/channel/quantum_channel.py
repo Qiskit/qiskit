@@ -187,8 +187,8 @@ class QuantumChannel(BaseOperator):
         """
         from qiskit.circuit.instruction import Instruction
         # Check if input is an N-qubit CPTP channel.
-        n_qubits = int(np.log2(self._input_dim))
-        if self._input_dim != self._output_dim or 2**n_qubits != self._input_dim:
+        num_qubits = int(np.log2(self._input_dim))
+        if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 'Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel.'
             )
@@ -204,7 +204,7 @@ class QuantumChannel(BaseOperator):
         # converting to an Operator and using its to_instruction method
         if len(kraus) == 1:
             return Operator(kraus[0]).to_instruction()
-        return Instruction('kraus', n_qubits, 0, kraus)
+        return Instruction('kraus', num_qubits, 0, kraus)
 
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""

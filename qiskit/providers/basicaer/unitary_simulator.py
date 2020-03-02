@@ -58,7 +58,7 @@ class UnitarySimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
         'backend_version': '1.0.0',
-        'n_qubits': min(24, MAX_QUBITS_MEMORY),
+        'num_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -303,7 +303,7 @@ class UnitarySimulatorPy(BaseBackend):
             Note that the practical qubit limit is much lower than 24.
         """
         start = time.time()
-        self._number_of_qubits = experiment.header.n_qubits
+        self._number_of_qubits = experiment.header.num_qubits
 
         # Validate the dimension of initial unitary if set
         self._validate_initial_unitary()
@@ -352,10 +352,10 @@ class UnitarySimulatorPy(BaseBackend):
         1. No shots
         2. No measurements in the middle
         """
-        n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
+        num_qubits = qobj.config.num_qubits
+        max_qubits = self.configuration().num_qubits
+        if num_qubits > max_qubits:
+            raise BasicAerError('Number of qubits {} '.format(num_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
         if hasattr(qobj.config, 'shots') and qobj.config.shots != 1:
