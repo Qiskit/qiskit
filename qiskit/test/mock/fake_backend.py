@@ -135,3 +135,7 @@ class FakeBackend(BaseBackend):
             sim = BasicAer.get_backend('qasm_simulator')
             job = sim.run(qobj)
         return job
+
+    def jobs(self, **kwargs):  # pylint: disable=unused-argument
+        """Fake a job history"""
+        return []
