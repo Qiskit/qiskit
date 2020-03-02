@@ -191,7 +191,6 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
-
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
                  n_qubits=None, **kwargs):
@@ -309,7 +308,6 @@ class QasmQobjConfig(SimpleNamespace):
         """
         return cls(**data)
 
-
     def __eq__(self, other):
         if isinstance(other, QasmQobjConfig):
             if self.to_dict() == other.to_dict():
@@ -323,7 +321,6 @@ class QobjDictField(SimpleNamespace):
     Exists as a backwards compatibility shim around a dictionary for Qobjs
     previously constructed using marshmallow.
     """
-
 
     def __init__(self, **kwargs):
         """Instantiate a new Qobj dict field object.
