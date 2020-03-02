@@ -32,15 +32,6 @@ except ImportError:
     from qiskit.providers.basicaer import BasicAer
 
 
-class _Credentials():
-    def __init__(self, token='123456', url='https://'):
-        self.token = token
-        self.url = url
-        self.hub = 'hub'
-        self.group = 'group'
-        self.project = 'project'
-
-
 class FakeBackend(BaseBackend):
     """This is a dummy backend just for testing purposes."""
 
@@ -53,7 +44,6 @@ class FakeBackend(BaseBackend):
         """
         super().__init__(configuration)
         self.time_alive = time_alive
-        self._credentials = _Credentials()
 
     def properties(self):
         """Return backend properties"""
