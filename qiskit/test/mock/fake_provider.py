@@ -27,15 +27,6 @@ from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
-class _Credentials():
-    def __init__(self, token='123456', url='https://'):
-        self.token = token
-        self.url = url
-        self.hub = 'hub'
-        self.group = 'group'
-        self.project = 'project'
-
-
 class FakeProvider(BaseProvider):
     """Dummy provider just for testing purposes.
 
@@ -77,5 +68,3 @@ class FakeProvider(BaseProvider):
                           FakeRochester()]
 
         super().__init__()
-
-        self._credentials = _Credentials()
