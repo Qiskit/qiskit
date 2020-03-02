@@ -172,18 +172,18 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in
                               transpile_args)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
-        # If coupling_map is not None or n_qubits == 1
-        n_qubits = len(circuit.qubits)
+        # If coupling_map is not None or num_qubits == 1
+        num_qubits = len(circuit.qubits)
         max_qubits = None
         if isinstance(parsed_coupling_map, CouplingMap):
             max_qubits = parsed_coupling_map.size()
 
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
         elif backend is not None and not backend.configuration().simulator:
-            max_qubits = backend.configuration().n_qubits
+            max_qubits = backend.configuration().num_qubits
 
-        if max_qubits is not None and (n_qubits > max_qubits):
-            raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+        if max_qubits is not None and (num_qubits > max_qubits):
+            raise TranspilerError('Number of qubits ({}) '.format(num_qubits) +
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
