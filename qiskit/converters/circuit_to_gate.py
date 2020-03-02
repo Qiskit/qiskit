@@ -66,7 +66,7 @@ def circuit_to_gate(circuit, parameter_map=None):
         if unrolled_parameter_map.keys() != set(circuit.parameters):
             raise QiskitError(('parameter_map should map all circuit parameters. '
                                'Circuit parameters: {}, parameter_map: {}').format(
-                circuit.parameters, parameter_dict))
+                                   circuit.parameters, parameter_dict))
         for parameter in circuit.parameters:
             parameter_dict[parameter] = unrolled_parameter_map[parameter]
 
