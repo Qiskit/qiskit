@@ -13,15 +13,13 @@
 # that they have been altered from the originals.
 
 """Any command which implements a transmit signal on a channel."""
-from typing import Callable, List, Optional, TYPE_CHECKING
+from typing import Callable, List, Optional
 
 from abc import abstractmethod
 
 from qiskit.pulse.channels import Channel
 from .instruction import Instruction
 from .command import Command
-if TYPE_CHECKING:
-    from qiskit.visualization.pulse.qcstyle import PulseStyle
 
 
 class PulseCommand(Command):
@@ -39,7 +37,7 @@ class PulseCommand(Command):
 
     @abstractmethod
     def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
+             style = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
@@ -48,7 +46,7 @@ class PulseCommand(Command):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes

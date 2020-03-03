@@ -122,8 +122,12 @@ class Schedule(ScheduleComponent):
         return self.__children
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction'], ...]:
-        """Get the time-ordered instructions from self."""
+    def instructions(self):
+        """Get the time-ordered instructions from self.
+
+        ReturnType:
+            Tuple[Tuple[int, Instruction], ...]
+        """
 
         def key(time_inst_pair):
             inst = time_inst_pair[1]
@@ -156,7 +160,7 @@ class Schedule(ScheduleComponent):
         """
         return self.timeslots.ch_stop_time(*channels)
 
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+    def _instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
 
         Args:
@@ -165,6 +169,9 @@ class Schedule(ScheduleComponent):
         Yields:
             Tuple containing the time each :class:`~qiskit.pulse.Instruction`
             starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
+
+        ReturnType:
+            Iterable[Tuple[int, Instruction]]
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -251,7 +258,7 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+               instruction_types = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
@@ -267,7 +274,8 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
+            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
+                ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
         """
@@ -281,7 +289,7 @@ class Schedule(ScheduleComponent):
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
-                instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                instruction_types = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
@@ -293,7 +301,8 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
+            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
+                ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
         """
@@ -319,7 +328,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                          instruction_types = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -333,22 +342,38 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
+            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
+                ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
         """
         def only_channels(channels: Set[Channel]) -> Callable:
-            def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def channel_filter(time_inst) -> bool:
+                """Filter channel.
+
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
-            def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def instruction_filter(time_inst) -> bool:
+                """Filter instruction.
+
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
-            def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def interval_filter(time_inst) -> bool:
+                """Filter interval.
+
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 for i in ranges:
                     if all([(i.start <= ts.interval.shift(time_inst[0]).start
                              and ts.interval.shift(time_inst[0]).stop <= i.stop)
@@ -371,7 +396,7 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+    def draw(self, dt: float = 1, style = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
              channel_scales: Optional[Dict[Channel, float]] = None,
@@ -385,7 +410,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance.
+            style (Optional[SchedStyle]): A style sheet to configure plot appearance.
             filename: Name required to save pulse image.
             interp_method: A function for interpolation.
             scale: Relative visual scaling of waveform amplitudes, see Additional Information.

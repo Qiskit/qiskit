@@ -200,7 +200,7 @@ class Instruction(ScheduleComponent, ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
-    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+    def draw(self, dt: float = 1, style = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: float = 1, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
@@ -212,7 +212,7 @@ class Instruction(ScheduleComponent, ABC):
 
         Args:
             dt: Time interval of samples
-            style: A style sheet to configure plot appearance
+            style (Optional[SchedStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
