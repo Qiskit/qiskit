@@ -14,6 +14,7 @@
 
 """Tests for SuperOp quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -90,10 +91,24 @@ class TestSuperOp(ChannelTestCase):
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
+        with self.subTest("Deep copy"):
+            orig = SuperOp(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = SuperOp(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
+        mat = np.eye(4)
         orig = SuperOp(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_evolve(self):
         """Test evolve method."""
@@ -329,34 +344,41 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), SuperOp(targ))
+        self.assertEqual(op @ op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op @ op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), SuperOp(targ))
+        self.assertEqual(op @ op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), SuperOp(targ))
+        self.assertEqual(op @ op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[0]), SuperOp(targ))
+        self.assertEqual(op @ op1([0]), SuperOp(targ))
 
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[1]), SuperOp(targ))
+        self.assertEqual(op @ op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[2]), SuperOp(targ))
+        self.assertEqual(op @ op1([2]), SuperOp(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""
@@ -375,34 +397,40 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[0, 1, 2]), SuperOp(targ))
+        self.assertEqual(op * op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op * op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[0, 1]), SuperOp(targ))
+        self.assertEqual(op * op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[2, 0]), SuperOp(targ))
+        self.assertEqual(op * op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[0]), SuperOp(targ))
-
+        self.assertEqual(op * op1([0]), SuperOp(targ))
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[1]), SuperOp(targ))
+        self.assertEqual(op * op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[2]), SuperOp(targ))
+        self.assertEqual(op * op1([2]), SuperOp(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
