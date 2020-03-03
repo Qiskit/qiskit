@@ -18,7 +18,6 @@
 Chi-matrix representation of a Quantum Channel.
 """
 
-from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -80,7 +79,7 @@ class Chi(QuantumChannel):
         # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
-            chi_mat = np.array(data, dtype=complex)
+            chi_mat = np.asarray(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:
@@ -112,7 +111,8 @@ class Chi(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Chi object
-            chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
+            rep = getattr(data, '_channel_rep', 'Operator')
+            chi_mat = _to_chi(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
@@ -124,7 +124,7 @@ class Chi(QuantumChannel):
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__('Chi', chi_mat, input_dims, output_dims)
+        super().__init__(chi_mat, input_dims, output_dims, 'Chi')
 
     @property
     def _bipartite_shape(self):
@@ -161,8 +161,7 @@ class Chi(QuantumChannel):
             Chi: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other cannot be converted to a Chi or has
-            incompatible dimensions.
+            QiskitError: if other has incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -170,23 +169,14 @@ class Chi(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        return super().compose(other, qargs=qargs, front=front)
-
-    def dot(self, other, qargs=None):
-        """Return the right multiplied quantum channel self * other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-
-        Returns:
-            Chi: The quantum channel self * other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a Chi or has
-            incompatible dimensions.
-        """
-        return super().dot(other, qargs=qargs)
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+        if qargs is not None:
+            return Chi(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+        # If no qargs we compose via Choi representation to avoid an additional
+        # representation conversion to SuperOp and then convert back to Chi
+        return Chi(Choi(self).compose(other, front=front))
 
     def power(self, n):
         """The matrix power of the channel.
@@ -243,62 +233,6 @@ class Chi(QuantumChannel):
         data = np.kron(other.data, self._data)
         return Chi(data, input_dims, output_dims)
 
-    def add(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Chi: the linear addition self + other as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Chi):
-            other = Chi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Chi(self._data + other.data, self._input_dims,
-                   self._output_dims)
-
-    def subtract(self, other):
-        """Return the QuantumChannel self - other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            Chi: the linear subtraction self - other as Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if not isinstance(other, Chi):
-            other = Chi(other)
-        if self.dim != other.dim:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
-        return Chi(self._data - other.data, self._input_dims,
-                   self._output_dims)
-
-    def multiply(self, other):
-        """Return the QuantumChannel self + other.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            Chi: the scalar multiplication other * self as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a valid scalar.
-        """
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
-        return Chi(other * self._data, self._input_dims, self._output_dims)
-
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
 
@@ -315,39 +249,3 @@ class Chi(QuantumChannel):
             specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
-
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            Choi: The composition channel as a Chi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
-        """
-        if qargs is not None:
-            return Chi(
-                SuperOp(self)._chanmul(other,
-                                       qargs=qargs,
-                                       left_multiply=left_multiply))
-
-        # Convert other to Choi since we convert via Choi
-        if not isinstance(other, Choi):
-            other = Choi(other)
-        # Check dimensions match up
-        if not left_multiply and self._input_dim != other._output_dim:
-            raise QiskitError(
-                'input_dim of self must match output_dim of other')
-        if left_multiply and self._output_dim != other._input_dim:
-            raise QiskitError(
-                'input_dim of other must match output_dim of self')
-        # Since we cannot directly multiply two channels in the Chi
-        # representation we convert to the Choi representation
-        return Chi(Choi(self)._chanmul(other, left_multiply=left_multiply))

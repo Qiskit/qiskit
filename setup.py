@@ -37,6 +37,7 @@ REQUIREMENTS = [
     "scipy>=1.0",
     "sympy>=1.3",
     "dill>=0.3",
+    "python-constraint>=1.4",
 ]
 
 # Add Cython extensions here
@@ -78,7 +79,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.12.0",
+    version="0.13.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',

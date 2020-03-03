@@ -21,6 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -123,22 +124,17 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None):
+        if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
+            try:
+                regs = tuple(int(reg) for reg in regs)
+            except Exception:
+                raise CircuitError("Circuit args must be Registers or be castable to an int" +
+                                   "(%s '%s' was provided)"
+                                   % ([type(reg).__name__ for reg in regs], regs))
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
-            # pylint: disable=not-callable
-            # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32":
-                if isinstance(mp.current_process(),
-                              (mp.context.ForkProcess, mp.context.SpawnProcess)):
-                    name += '-{}'.format(mp.current_process().pid)
-                elif sys.version_info[0] == 3 \
-                    and (sys.version_info[1] == 5 or sys.version_info[1] == 6) \
-                        and mp.current_process().name != 'MainProcess':
-                    # It seems condition of if-statement doesn't work in python 3.5 and 3.6
-                    # because processes created by "ProcessPoolExecutor" are not
-                    # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
-                    # "name" of the process is checked instead.
-                    name += '-{}'.format(mp.current_process().pid)
+            if sys.platform != "win32" and not is_main_process():
+                name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
         if not isinstance(name, str):
@@ -334,8 +330,12 @@ class QuantumCircuit:
             if element not in self.cregs:
                 self.cregs.append(element)
 
+        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
+        # appended to both self and rhs resulting in an infinite loop
+        data = rhs.data.copy() if rhs is self else rhs.data
+
         # Add new gates
-        for instruction_context in rhs.data:
+        for instruction_context in data:
             self._append(*instruction_context)
         return self
 
@@ -1284,6 +1284,22 @@ class QuantumCircuit:
         for (instr, param_index) in self._parameter_table[parameter]:
             instr.params[param_index] = instr.params[param_index].bind({parameter: value})
 
+            # For instructions which have already been defined (e.g. composite
+            # instructions), search the definition for instances of the
+            # parameter which also need to be bound.
+            self._rebind_definition(instr, parameter, value)
+
+    def _rebind_definition(self, instruction, parameter, value):
+        if instruction._definition:
+            for op, _, _ in instruction._definition:
+                for idx, param in enumerate(op.params):
+                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
+                        if isinstance(value, ParameterExpression):
+                            op.params[idx] = param.subs({parameter: value})
+                        else:
+                            op.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(op, parameter, value)
+
     def _substitute_parameters(self, parameter_map):
         """For every {existing_parameter: replacement_parameter} pair in
         parameter_map, substitute replacement for existing in all
@@ -1293,6 +1309,7 @@ class QuantumCircuit:
             for (instr, param_index) in self._parameter_table[old_parameter]:
                 new_param = instr.params[param_index].subs({old_parameter: new_parameter})
                 instr.params[param_index] = new_param
+                self._rebind_definition(instr, old_parameter, new_parameter)
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 
