@@ -14,15 +14,14 @@
 
 """Test for the CmdDef object."""
 
-from inspect import Signature
 import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
-from qiskit.pulse import (pulse_lib, CmdDef, SamplePulse, Schedule, FrameChange,
-                          PulseError, PersistentValue, DriveChannel)
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule,
+                          PulseError, PersistentValue, FrameChange)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -188,27 +187,3 @@ class TestCmdDef(QiskitTestCase):
                 if isinstance(cmd, FrameChange):
                     u2_phases.append(cmd.phase)
             self.assertEqual(u2_phases, [-np.pi, 0])
-
-    def test_schedule_generator(self):
-        """Test schedule generator functionalty."""
-
-        x_test = 10
-        amp_test = 1.0
-
-        def test_func(x):
-            sched = Schedule()
-            sched += pulse_lib.constant(int(x), amp_test)(DriveChannel(0))
-            return sched
-
-        ref_sched = Schedule()
-        ref_sched += pulse_lib.constant(x_test, amp_test)(DriveChannel(0))
-
-        cmd_def = CmdDef()
-        cmd_def.add('f', (0,), test_func)
-        self.assertEqual(cmd_def.get('f', (0,), x_test), ref_sched)
-
-        self.assertIsInstance(cmd_def.get_signature('f', (0,)), Signature)
-
-        self.assertEqual(cmd_def.get_parameters('f', (0,)), ('x',))
-
-        self.assertEqual(cmd_def.get_unevaluated('f', (0,)), test_func)

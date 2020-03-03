@@ -18,9 +18,8 @@ Deprecated. Use InstructionScheduleMap instead.
 Command definition module. Relates circuit gates to pulse commands.
 """
 import warnings
-import inspect
-from typing import List, Tuple, Iterable, Union, Dict, Optional, Callable
 
+from typing import List, Tuple, Iterable, Union, Dict, Optional
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -56,11 +55,11 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
 class CmdDef:
     """Command definition class. Relates `Gate`s to `Schedule`s."""
 
-    def __init__(self, schedule_generators: Optional[Dict[str, Callable[..., Schedule]]] = None):
+    def __init__(self, schedules: Optional[Dict] = None):
         """Create command definition from backend.
 
         Args:
-            schedule_generators: Keys are tuples of (cmd_name, *qubits) and values are
+            schedules: Keys are tuples of (cmd_name, *qubits) and values are
                 `Schedule` or `ParameterizedSchedule`
         """
         warnings.warn("The CmdDef is being deprecated. All CmdDef methods are now supported by "
@@ -69,9 +68,9 @@ class CmdDef:
                       DeprecationWarning)
         self._cmd_dict = {}
 
-        if schedule_generators:
-            for key, schedule_generator in schedule_generators.items():
-                self.add(key[0], key[1:], schedule_generator)
+        if schedules:
+            for key, schedule in schedules.items():
+                self.add(key[0], key[1:], schedule)
 
     @classmethod
     def from_defaults(cls, flat_cmd_def: List[PulseQobjInstruction],
@@ -101,23 +100,19 @@ class CmdDef:
         return cmd_def
 
     def add(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            schedule_generator: Union[Schedule, Callable[..., Schedule]]):
+            schedule: Union[ParameterizedSchedule, Schedule]):
         """Add a command to the `CommandDefinition`
 
         Args:
             cmd_name: Name of the command
             qubits: Qubits command applies to
-            schedule_generator: Schedule or callable that produces Schedule to be added
-
-        Raises:
-            PulseError: If `schedule_generator` is not a `Schedule` or `Callable`.
+            schedule: Schedule to be added
         """
         qubits = _to_qubit_tuple(qubits)
         cmd_dict = self._cmd_dict.setdefault(cmd_name, {})
-        if not (isinstance(schedule_generator, Schedule) or callable(schedule_generator)):
-            raise PulseError('Supplied schedule must be either a Schedule, or a '
-                             'callable that outputs a schedule.')
-        cmd_dict[qubits] = schedule_generator
+        if isinstance(schedule, Schedule):
+            schedule = ParameterizedSchedule(schedule, name=schedule.name)
+        cmd_dict[qubits] = schedule
 
     def has(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> bool:
         """Has command of name with qubits.
@@ -150,55 +145,12 @@ class CmdDef:
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has(cmd_name, qubits):
-            schedule_generator = self._cmd_dict[cmd_name][qubits]
+            schedule = self._cmd_dict[cmd_name][qubits]
 
-            if callable(schedule_generator):
-                return schedule_generator(*params, **kwparams)
+            if isinstance(schedule, ParameterizedSchedule):
+                return schedule.bind_parameters(*params, **kwparams)
 
-            return schedule_generator
-
-        else:
-            raise PulseError('Command {0} for qubits {1} is not present '
-                             'in CmdDef'.format(cmd_name, qubits))
-
-    def get_unevaluated(self, cmd_name: str, qubits: Union[int, Iterable[int]]) \
-            -> Union[Schedule, Callable[..., Schedule]]:
-        """Get raw unevaluated command from command definition.
-
-        Args:
-            cmd_name: Name of the command
-            qubits: Ordered list of qubits command applies to
-
-        Raises:
-            PulseError: If command for qubits is not available
-        """
-        qubits = _to_qubit_tuple(qubits)
-        if self.has(cmd_name, qubits):
-            return self._cmd_dict[cmd_name][qubits]
-
-        else:
-            raise PulseError('Command {0} for qubits {1} is not present '
-                             'in CmdDef'.format(cmd_name, qubits))
-
-    def get_signature(self,
-                      cmd_name: str,
-                      qubits: Union[int, Iterable[int]]) -> Optional[inspect.Signature]:
-        """Get signature for command and a set of qubits from the command definition if it
-        is not a schedule. If it is a schedule, `None` is returned.
-
-        Args:
-            cmd_name: Name of the command
-            qubits: Ordered list of qubits command applies to
-
-        Raises:
-            PulseError: If command for qubits is not available
-        """
-        qubits = _to_qubit_tuple(qubits)
-        if self.has(cmd_name, qubits):
-            schedule_generator = self._cmd_dict[cmd_name][qubits]
-            if callable(schedule_generator):
-                return inspect.signature(schedule_generator)
-            return None
+            return schedule.flatten()
 
         else:
             raise PulseError('Command {0} for qubits {1} is not present '
@@ -216,13 +168,8 @@ class CmdDef:
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has(cmd_name, qubits):
-            schedule_generator = self._cmd_dict[cmd_name][qubits]
-            if isinstance(schedule_generator, ParameterizedSchedule):
-                return schedule_generator.parameters
-            elif callable(schedule_generator):
-                return tuple(inspect.signature(schedule_generator).parameters.keys())
-            else:
-                return ()
+            schedule = self._cmd_dict[cmd_name][qubits]
+            return schedule.parameters
 
         else:
             raise PulseError('Command {0} for qubits {1} is not present '
@@ -236,21 +183,25 @@ class CmdDef:
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
-            *params: Command parameters to be used to generate schedule_generator
-            **kwparams: Keyworded command parameters to be used to generate schedule_generator
+            *params: Command parameters to be used to generate schedule
+            **kwparams: Keyworded command parameters to be used to generate schedule
 
         Raises:
             PulseError: If command for qubits is not available
         """
         qubits = _to_qubit_tuple(qubits)
-        schedule = self.get(cmd_name, qubits, *params, **kwparams)
-        if schedule:
+        if self.has(cmd_name, qubits):
             cmd_dict = self._cmd_dict[cmd_name]
-            del cmd_dict[qubits]
-            if not cmd_dict:
-                del self._cmd_dict[cmd_name]
+            schedule = cmd_dict.pop(qubits)
 
-        return schedule
+            if isinstance(schedule, ParameterizedSchedule):
+                return schedule.bind_parameters(*params, **kwparams)
+
+            return schedule
+
+        else:
+            raise PulseError('Command {0} for qubits {1} is not present '
+                             'in CmdDef'.format(cmd_name, qubits))
 
     def cmds(self) -> List[str]:
         """Return all command names available in CmdDef."""
