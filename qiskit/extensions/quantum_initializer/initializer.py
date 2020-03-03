@@ -18,13 +18,12 @@ Initialize qubit registers to desired arbitrary state.
 
 import math
 import numpy as np
-import scipy
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.x import CXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 from qiskit.circuit.reset import Reset
@@ -38,6 +37,8 @@ class Initialize(Instruction):
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
+    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
+    which is not unitary.
     """
 
     def __init__(self, params):
@@ -156,7 +157,7 @@ class Initialize(Instruction):
     @staticmethod
     def _bloch_angles(pair_of_complex):
         """
-        Static internal method to work out rotation to create the passed in
+        Static internal method to work out rotation to create the passed-in
         qubit from the zero vector.
         """
         [a_complex, b_complex] = pair_of_complex
@@ -211,8 +212,8 @@ class Initialize(Instruction):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = scipy.kron([[0.5, 0.5], [0.5, -0.5]],
-                                  np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]],
+                               np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
@@ -222,7 +223,7 @@ class Initialize(Instruction):
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
@@ -234,7 +235,7 @@ class Initialize(Instruction):
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         return circuit
 

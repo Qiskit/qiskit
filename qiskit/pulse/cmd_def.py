@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """
+Deprecated. Use InstructionScheduleMap instead.
+
 Command definition module. Relates circuit gates to pulse commands.
 """
 import warnings
@@ -61,6 +63,10 @@ class CmdDef:
             schedule_generators: Keys are tuples of (cmd_name, *qubits) and values are
                 `Schedule` or `ParameterizedSchedule`
         """
+        warnings.warn("The CmdDef is being deprecated. All CmdDef methods are now supported by "
+                      "`InstructionScheduleMap` accessible as "
+                      "`backend.defaults().instruction_schedule_map` for any Pulse enabled system.",
+                      DeprecationWarning)
         self._cmd_dict = {}
 
         if schedule_generators:

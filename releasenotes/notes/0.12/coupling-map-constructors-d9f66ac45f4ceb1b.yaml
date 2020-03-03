@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Several new constructor methods were added to the
+    :class:`qiskit.transpiler.CouplingMap` class for building objects
+    with basic qubit coupling graphs. The new constructor methods are:
+
+      - :meth:`qiskit.transpiler.CouplingMap.from_full`
+      - :meth:`qiskit.transpiler.CouplingMap.from_line`
+      - :meth:`qiskit.transpiler.CouplingMap.from_ring`
+      - :meth:`qiskit.transpiler.CouplingMap.from_grid`
+
+    For example, to use the new constructors to get a coupling map of 5
+    qubits connected in a linear chain you can now run:
+
+    .. jupyter-execute::
+
+        from qiskit.transpiler import CouplingMap
+
+        coupling_map = CouplingMap.from_line(5)
+        coupling_map.draw()

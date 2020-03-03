@@ -25,7 +25,7 @@ from qiskit.circuit import Parameter
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.extensions.standard import CnotGate
+from qiskit.extensions.standard import CXGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler import Layout, CouplingMap
@@ -118,7 +118,7 @@ class TestTranspile(QiskitTestCase):
                                 initial_layout=initial_layout)
 
         for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CnotGate):
+            if isinstance(gate, CXGate):
                 self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_transpile_qft_grid(self):
@@ -138,7 +138,7 @@ class TestTranspile(QiskitTestCase):
                                 coupling_map=coupling_map)
 
         for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CnotGate):
+            if isinstance(gate, CXGate):
                 self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_already_mapped_1(self):
@@ -452,7 +452,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
-        """Verify that a circuit including epxressions of parameters can be
+        """Verify that a circuit including expressions of parameters can be
         transpiled for a device backend."""
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)

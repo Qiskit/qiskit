@@ -18,9 +18,10 @@ from marshmallow.validate import Length, OneOf, Regexp, Range
 
 from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
 from qiskit.validation.fields import Complex, ByType
-from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, Raw, String
+from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested
+from qiskit.validation.fields import Raw, String, NumpyArray
 from qiskit.validation.validate import PatternProperties
-from qiskit.qobj.utils import MeasReturnType
+from qiskit.qobj.utils import MeasReturnType, MeasLevel
 
 
 class ExperimentResultDataSchema(BaseSchema):
@@ -32,11 +33,11 @@ class ExperimentResultDataSchema(BaseSchema):
     snapshots = Nested(ObjSchema)
     memory = List(Raw(),
                   validate=Length(min=1))
-    statevector = List(Complex(),
-                       validate=Length(min=1))
-    unitary = List(List(Complex(),
-                        validate=Length(min=1)),
-                   validate=Length(min=1))
+    statevector = NumpyArray(Complex(),
+                             validate=Length(min=1))
+    unitary = NumpyArray(NumpyArray(Complex(),
+                                    validate=Length(min=1)),
+                         validate=Length(min=1))
 
 
 class ExperimentResultSchema(BaseSchema):
@@ -52,7 +53,9 @@ class ExperimentResultSchema(BaseSchema):
     # Optional fields.
     status = String()
     seed = Integer()
-    meas_level = Integer(validate=Range(min=0, max=2))
+    meas_level = Integer(validate=OneOf(choices=(MeasLevel.RAW,
+                                                 MeasLevel.KERNELED,
+                                                 MeasLevel.CLASSIFIED)))
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
     header = Nested(ObjSchema)
@@ -101,7 +104,7 @@ class ExperimentResult(BaseModel):
         meas_level (int): Measurement result level.
     """
 
-    def __init__(self, shots, success, data, meas_level=2, **kwargs):
+    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED, **kwargs):
         self.shots = shots
         self.success = success
         self.data = data

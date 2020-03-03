@@ -21,7 +21,10 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile, assemble, schedule
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.pulse import Schedule
+from qiskit.exceptions import QiskitError
 
 
 def execute(experiments, backend,
@@ -31,8 +34,10 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=2, meas_return='avg',
+            schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
+            meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
+            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -69,8 +74,8 @@ def execute(experiments, backend,
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. For a backend
-            that provides this information, it can be obtained with:
+            errors, readout errors, qubit coherence times, etc. Find a backend
+            that provides this information with:
             ``backend.properties()``
 
         initial_layout (Layout or dict or list):
@@ -141,19 +146,19 @@ def execute(experiments, backend,
             Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (list):
-            List of default qubit lo frequencies
+            List of default qubit LO frequencies in Hz
 
         default_meas_los (list):
-            List of default meas lo frequencies
+            List of default meas LO frequencies in Hz
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
-        meas_level (int):
+        meas_level (int or MeasLevel):
             Set the appropriate level of the measurement output for pulse experiments.
 
-        meas_return (str):
+        meas_return (str or MeasReturn):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
                 "single" returns information from every shot.
@@ -177,9 +182,24 @@ def execute(experiments, backend,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
+        schedule_circuit (bool):
+            If ``True``, ``experiments`` will be converted to ``Schedule``s prior to
+            execution.
+
+        inst_map (InstructionScheduleMap):
+            Mapping of circuit operations to pulse schedules. If None, defaults to the
+            ``instruction_schedule_map`` of ``backend``.
+
+        meas_map (list(list(int))):
+            List of sets of qubits that must be measured together. If None, defaults to
+            the ``meas_map`` of ``backend``.
+
+        scheduling_method (str or list(str)):
+            Optionally specify a particular scheduling method.
+
         run_config (dict):
-            Extra arguments used to configure the run (e.g. for Aer configurable backends)
-            Refer to the backend documentation for details on these arguments
+            Extra arguments used to configure the run (e.g. for Aer configurable backends).
+            Refer to the backend documentation for details on these arguments.
             Note: for now, these keyword arguments will both be copied to the
             Qobj config, and passed to backend.run()
 
@@ -190,7 +210,7 @@ def execute(experiments, backend,
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
 
     Example:
-        Construct a 5 qubit GHZ circuit and execute 4321 shots on a backend.
+        Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
         .. jupyter-execute::
 
@@ -205,6 +225,7 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
+
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,
@@ -216,6 +237,16 @@ def execute(experiments, backend,
                             backend=backend,
                             pass_manager=pass_manager,
                             )
+
+    if schedule_circuit:
+        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
+            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
+        experiments = schedule(circuits=experiments,
+                               backend=backend,
+                               inst_map=inst_map,
+                               meas_map=meas_map,
+                               method=scheduling_method
+                               )
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,

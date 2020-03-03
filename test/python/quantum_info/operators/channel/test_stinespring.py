@@ -14,13 +14,14 @@
 
 """Tests for Stinespring quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Stinespring
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
@@ -74,10 +75,24 @@ class TestStinespring(ChannelTestCase):
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
+        with self.subTest("Deep copy"):
+            orig = Stinespring(mat)
+            cpy = orig.copy()
+            cpy._data[0][0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Stinespring(mat)
+            clone = copy.copy(orig)
+            clone._data[0][0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
+        mat = np.eye(4)
         orig = Stinespring(mat)
-        cpy = orig.copy()
-        cpy._data[0][0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0][0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -173,8 +188,34 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
+    def test_dot(self):
+        """Test deprecated front compose method."""
+        # Random input test state
+        rho_init = DensityMatrix(self.rand_rho(2))
+
+        # UnitaryChannel evolution
+        chan1 = Stinespring(self.UX)
+        chan2 = Stinespring(self.UY)
+        rho_targ = rho_init.evolve(Stinespring(self.UZ))
+        self.assertEqual(rho_init.evolve(chan1.dot(chan2)), rho_targ)
+        self.assertEqual(rho_init.evolve(chan1 * chan2), rho_targ)
+
+        # 50% depolarizing channel
+        chan1 = Stinespring(self.depol_stine(0.5))
+        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        self.assertEqual(rho_init.evolve(chan1.dot(chan1)), rho_targ)
+        self.assertEqual(rho_init.evolve(chan1 * chan1), rho_targ)
+
+        # Compose different dimensions
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
+        chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
+        rho_targ = rho_init @ chan1 @ chan2
+        self.assertEqual(rho_init.evolve(chan2.dot(chan1)), rho_targ)
+        self.assertEqual(rho_init.evolve(chan2 * chan1), rho_targ)
+
     def test_compose_front(self):
-        """Test front compose method."""
+        """Test deprecated front compose method."""
         # Random input test state
         rho_init = DensityMatrix(self.rand_rho(2))
 
@@ -283,7 +324,7 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         rho_targ = (rho_init @ chan1) + (rho_init @ chan2)
-        chan = chan1.add(chan2)
+        chan = chan1._add(chan2)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 + chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
@@ -291,7 +332,7 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
         rho_targ = 2 * (rho_init @ chan)
-        chan = chan.add(chan)
+        chan = chan._add(chan)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_subtract(self):
@@ -304,15 +345,13 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         rho_targ = (rho_init @ chan1) - (rho_init @ chan2)
-        chan = chan1.subtract(chan2)
-        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 - chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
         rho_targ = 0 * (rho_init @ chan)
-        chan = chan.subtract(chan)
+        chan = chan - chan
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply(self):
@@ -325,28 +364,26 @@ class TestStinespring(ChannelTestCase):
         # Single Stinespring set
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         rho_targ = val * (rho_init @ chan1)
-        chan = chan1.multiply(val)
+        chan = chan1._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan1
-        self.assertEqual(rho_init.evolve(chan), rho_targ)
-        chan = chan1 * val
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
         rho_targ = val * (rho_init @ chan2)
-        chan = chan2.multiply(val)
+        chan = chan2._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan2
-        self.assertEqual(rho_init.evolve(chan), rho_targ)
-        chan = chan2 * val
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Stinespring(self.depol_stine(1))
-        self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, 's')
+        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, chan)
+        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""
