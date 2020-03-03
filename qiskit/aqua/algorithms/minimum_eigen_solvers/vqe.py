@@ -305,10 +305,18 @@ class VQE(VQAlgorithm):
         self._quantum_instance.circuit_summary = True
 
         self._eval_count = 0
-        self._ret = self.find_minimum(initial_point=self.initial_point,
-                                      var_form=self.var_form,
-                                      cost_fn=self._energy_evaluation,
-                                      optimizer=self.optimizer)
+        result = self.find_minimum(initial_point=self.initial_point,
+                                   var_form=self.var_form,
+                                   cost_fn=self._energy_evaluation,
+                                   optimizer=self.optimizer)
+
+        # TODO remove - mimics former VQAlgorithm result dict so it can be extended
+        self._ret = {}
+        self._ret['num_optimizer_evals'] = result.optimizer_evals
+        self._ret['min_val'] = result.optimal_value
+        self._ret['opt_params'] = result.optimal_point
+        self._ret['eval_time'] = result.optimizer_time
+
         if self._ret['num_optimizer_evals'] is not None and \
                 self._eval_count >= self._ret['num_optimizer_evals']:
             self._eval_count = self._ret['num_optimizer_evals']

@@ -100,7 +100,7 @@ and its Python API to be installed. See the following for more information:
 from .algorithm_result import AlgorithmResult
 from .quantum_algorithm import QuantumAlgorithm
 from .classical_algorithm import ClassicalAlgorithm
-from .vq_algorithm import VQAlgorithm
+from .vq_algorithm import VQAlgorithm, VQResult
 from .amplitude_amplifiers import Grover
 from .amplitude_estimators import (AmplitudeEstimation,
                                    IterativeAmplitudeEstimation,
@@ -123,6 +123,7 @@ __all__ = [
     'QGAN',
     'ClassicalAlgorithm',
     'VQAlgorithm',
+    'VQResult',
     'ClassicalEigensolver',
     'ExactEigensolver',
     'ClassicalLSsolver',
