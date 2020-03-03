@@ -21,17 +21,14 @@ import abc
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type, TYPE_CHECKING
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
 from qiskit.util import is_main_process
-from .timeslots import Interval
+from .timeslots import Interval, TimeslotCollection
 from .channels import Channel
 from .interfaces import ScheduleComponent
-from .timeslots import TimeslotCollection
 from .exceptions import PulseError
-if TYPE_CHECKING:
-    from qiskit.visualization.pulse.qcstyle import SchedStyle
 
 # pylint: disable=missing-return-doc
 
@@ -384,26 +381,26 @@ class Schedule(ScheduleComponent):
              framechange: bool = True, scaling: float = None,
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
-        """Plot the schedule.
+        r"""Plot the schedule.
 
         Args:
-            dt: Time interval of samples
-            style: A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
+            dt: Time interval of samples.
+            style: A style sheet to configure plot appearance.
+            filename: Name required to save pulse image.
+            interp_method: A function for interpolation.
             scale: Relative visual scaling of waveform amplitudes, see Additional Information.
             channel_scales: Channel independent scaling as a dictionary of ``Channel`` object.
-            channels_to_plot: Deprecated, see ``channels``
-            plot_all: Plot empty channels
-            plot_range: A tuple of time range to plot
+            channels_to_plot: Deprecated, see ``channels``.
+            plot_all: Plot empty channels.
+            plot_range: A tuple of time range to plot.
             interactive: When set true show the circuit in a new window
-                         (this depends on the matplotlib backend being used supporting this)
-            table: Draw event table for supported commands
-            label: Label individual instructions
-            framechange: Add framechange indicators
-            scaling: Deprecated, see ``scale``
-            channels: A list of channel names to plot
-            show_framechange_channels: Plot channels with only framechanges
+                         (this depends on the matplotlib backend being used supporting this).
+            table: Draw event table for supported commands.
+            label: Label individual instructions.
+            framechange: Add framechange indicators.
+            scaling: Deprecated, see ``scale``.
+            channels: A list of channel names to plot.
+            show_framechange_channels: Plot channels with only framechanges.
 
         Additional Information:
             If you want to manually rescale the waveform amplitude of channels one by one,
@@ -419,7 +416,7 @@ class Schedule(ScheduleComponent):
             The scaling factor is displayed under the channel name alias.
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+            A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
         if scaling is not None:

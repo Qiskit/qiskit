@@ -38,21 +38,18 @@ by following the existing pattern:
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional
 import math
 
 import numpy as np
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
-from qiskit.pulse.pulse_lib import continuous
-
-from .pulse_command import PulseCommand
+from qiskit.pulse.pulse_lib import gaussian, gaussian_square, drag, constant, continuous
 from .sample_pulse import SamplePulse
 from .instruction import Instruction
-if TYPE_CHECKING:
-    from qiskit.visualization.pulse.qcstyle import PulseStyle
+from ..channels import PulseChannel
+from ..exceptions import PulseError
+
+from .pulse_command import PulseCommand
 
 # pylint: disable=missing-docstring
 
@@ -255,11 +252,10 @@ class GaussianSquare(ParametricPulse):
 
 
 class Drag(ParametricPulse):
-    """
-    The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the |1>-|2> transition, reducing the chance of
-    leakage to the |2> state.
+    spectrum of a normal gaussian pulse near the :math:`|1>` - :math:`|2>` transition,
+    reducing the chance of leakage to the :math:`|2>` state.
 
     .. math::
 
@@ -272,12 +268,21 @@ class Drag(ParametricPulse):
 
         Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
 
-    Ref:
-        [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
-        Analytic control methods for high-fidelity unitary operations
-        in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
-        [2] F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
-        Phys. Rev. Lett. 103, 110501 – Published 8 September 2009
+    References:
+        1. |citation1|_
+
+        .. _citation1: https://link.aps.org/doi/10.1103/PhysRevA.83.012308
+
+        .. |citation1| replace:: *Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
+           Analytic control methods for high-fidelity unitary operations
+           in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).*
+
+        2. |citation2|_
+
+        .. _citation2: https://link.aps.org/doi/10.1103/PhysRevLett.103.110501
+
+        .. |citation2| replace:: *F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
+           Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
     def __init__(self,
