@@ -46,6 +46,7 @@ class FakeVigo(FakeBackend):
             open_pulse=False,
             memory=False,
             max_shots=65536,
+            max_experiments=75,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=cmap,
         )

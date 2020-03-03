@@ -1294,7 +1294,10 @@ class QuantumCircuit:
             for op, _, _ in instruction._definition:
                 for idx, param in enumerate(op.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:
-                        op.params[idx] = param.bind({parameter: value})
+                        if isinstance(value, ParameterExpression):
+                            op.params[idx] = param.subs({parameter: value})
+                        else:
+                            op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
     def _substitute_parameters(self, parameter_map):
@@ -1306,6 +1309,7 @@ class QuantumCircuit:
             for (instr, param_index) in self._parameter_table[old_parameter]:
                 new_param = instr.params[param_index].subs({old_parameter: new_parameter})
                 instr.params[param_index] = new_param
+                self._rebind_definition(instr, old_parameter, new_parameter)
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 

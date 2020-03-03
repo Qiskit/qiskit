@@ -163,6 +163,8 @@ class SuperOp(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         # Convert other to SuperOp
         if not isinstance(other, SuperOp):
             other = SuperOp(other)

@@ -213,6 +213,8 @@ class Stinespring(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Stinespring(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
