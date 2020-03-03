@@ -21,7 +21,7 @@ from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Kraus
+from qiskit.quantum_info import Kraus
 from .channel_test_case import ChannelTestCase
 
 
