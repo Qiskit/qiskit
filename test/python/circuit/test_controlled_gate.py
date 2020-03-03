@@ -168,13 +168,19 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = execute(qc, simulator).result().get_unitary(0)
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
-    def test_multi_control_u3(self):
+    @data(
+        [0.2, -pi/2, pi/2],  # handle as rx
+        [0.2, 0, 0],  # handle as ry
+        [0, 0, 0.4],  # handle as rz
+        [0.2, 0.3, 0.4],
+    )
+    def test_multi_control_u3(self, params):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
 
         num_ctrl = 3
         # U3 gate params
-        alpha, beta, gamma = 0.2, 0.3, 0.4
+        [alpha, beta, gamma] = params
 
         # cnu3 gate
         u3gate = u3.U3Gate(alpha, beta, gamma)

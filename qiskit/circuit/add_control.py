@@ -18,7 +18,7 @@ from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import XGate, RXGate, RYGate, RZGate
+from qiskit.extensions.standard import XGate, RXGate, RYGate, RZGate, U1Gate, U3Gate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
@@ -85,7 +85,6 @@ def control(operation: Union[Gate, ControlledGate],
     Raises:
         CircuitError: gate contains non-gate in definition
     """
-    from math import pi
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
@@ -114,28 +113,19 @@ def control(operation: Union[Gate, ControlledGate],
     elif isinstance(operation, RZGate):
         qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
+    elif isinstance(operation, U1Gate):
+        qc.mcu1(operation.definition[0][0].params[2], q_control, q_target[0])
+    elif isinstance(operation, U3Gate):
+        theta, phi, lamb = operation.params
+        _apply_mcu3(qc, theta, phi, lamb, q_control, q_target[0], q_ancillae)
     else:
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
         for rule in bgate.definition:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params
-                if phi == -pi/2 and lamb == pi/2:
-                    qc.mcrx(theta, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                elif phi == 0 and lamb == 0:
-                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
-                            q_ancillae, mode='noancilla', use_basis_gates=True)
-                elif theta == 0 and phi == 0:
-                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                else:
-                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
-                            q_ancillae, use_basis_gates=True)
-                    qc.mcrz(phi, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
+                _apply_mcu3(qc, theta, phi, lamb, q_control, q_target[rule[1][0].index],
+                            q_ancillae)
             elif rule[0].name == 'u1':
                 qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
             elif rule[0].name == 'cx':
@@ -196,3 +186,20 @@ def _unroll_gate(operation, basis_gates):
     dag = circuit_to_dag(_gate_to_circuit(operation))
     qc = dag_to_circuit(unroller.run(dag))
     return qc.to_gate()
+
+
+def _apply_mcu3(circuit, theta, phi, lamb, q_controls, q_target, q_ancillae):
+    from math import pi
+
+    if phi == -pi/2 and lamb == pi/2:
+        circuit.mcrx(theta, q_controls, q_target, use_basis_gates=True)
+    elif phi == 0 and lamb == 0:
+        circuit.mcry(theta, q_controls, q_target,
+                     q_ancillae, mode='noancilla', use_basis_gates=True)
+    elif theta == 0 and phi == 0:
+        circuit.mcrz(lamb, q_controls, q_target, use_basis_gates=True)
+    else:
+        circuit.mcrz(lamb, q_controls, q_target, use_basis_gates=True)
+        circuit.mcry(theta, q_controls, q_target,
+                     q_ancillae, mode='noancilla', use_basis_gates=True)
+        circuit.mcrz(phi, q_controls, q_target, use_basis_gates=True)
