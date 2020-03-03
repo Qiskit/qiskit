@@ -111,7 +111,8 @@ from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverRe
 from .factorizers import Shor
 from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
 from .minimum_eigen_solvers import (VQE, QAOA, IQPE, QPE, ClassicalCPLEX, CPLEX_Ising,
-                                    ClassicalMinimumEigensolver, MinimumEigensolverResult)
+                                    ClassicalMinimumEigensolver, MinimumEigensolver,
+                                    MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
 __all__ = [
@@ -130,6 +131,7 @@ __all__ = [
     'EigensolverResult',
     'ExactLSsolver',
     'ClassicalMinimumEigensolver',
+    'MinimumEigensolver',
     'MinimumEigensolverResult',
     'ClassicalSVM',
     'SVM_Classical',

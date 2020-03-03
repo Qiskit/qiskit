@@ -20,6 +20,7 @@ from .iqpe import IQPE
 from .qpe import QPE
 from .cplex import ClassicalCPLEX, CPLEX_Ising
 from .classical_minimum_eigen_solver import ClassicalMinimumEigensolver
+from .minimum_eigen_solver import MinimumEigensolver
 from .minimum_eigen_solver_result import MinimumEigensolverResult
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     'ClassicalCPLEX',
     'CPLEX_Ising',
     'ClassicalMinimumEigensolver',
+    'MinimumEigensolver',
     'MinimumEigensolverResult'
 ]
