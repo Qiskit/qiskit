@@ -170,8 +170,11 @@ class InstructionScheduleMap():
         """Get raw unevaluated command.
 
         Args:
-            cmd_name: Name of the command
+            instruction: The name of the instruction to get.
             qubits: The qubits for the instruction.
+
+        Returns:
+            The unevaluated ``Callable`` or ``Schedule`` stored internally.
 
         Raises:
             PulseError: If command for qubits is not available
@@ -279,6 +282,9 @@ class InstructionScheduleMap():
         Args:
             instruction: Name of the instruction.
             qubits: The qubits for the instruction.
+
+        Returns:
+            The signature of the requested instruction.
 
         Raises:
             PulseError: If command for qubits is not available
