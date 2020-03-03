@@ -78,6 +78,8 @@ class ControlledGate(Gate):
         elif isinstance(self, CnotGate):
             qreg = QuantumRegister(self.num_qubits, 'q')
             self._definition = [(self, [qreg[0], qreg[1]], [])]
+        else:
+            return self._definition
         open_rules = []
         for qind, val in enumerate(bit_ctrl_state[::-1]):
             if val == '0':
