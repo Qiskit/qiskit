@@ -258,7 +258,7 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types = None,
+               instruction_types=None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
@@ -289,7 +289,7 @@ class Schedule(ScheduleComponent):
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
-                instruction_types = None,
+                instruction_types=None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
@@ -328,7 +328,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types = None,
+                          instruction_types=None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -396,7 +396,7 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def draw(self, dt: float = 1, style = None,
+    def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
              channel_scales: Optional[Dict[Channel, float]] = None,
@@ -436,7 +436,7 @@ class Schedule(ScheduleComponent):
                                   pulse.MeasureChannels(0): 5.0}
 
             When the channel to plot is not included in the ``channel_scales`` dictionary,
-            scaling factor of that channel is overwritten by the value of ``scale` argument.
+            scaling factor of that channel is overwritten by the value of ``scale`` argument.
             In default, waveform amplitude is normalized by the maximum amplitude of the channel.
             The scaling factor is displayed under the channel name alias.
 
