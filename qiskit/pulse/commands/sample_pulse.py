@@ -15,7 +15,7 @@
 """
 Sample pulse.
 """
-from typing import Callable, Union, List, Optional, TYPE_CHECKING
+from typing import Callable, Union, List, Optional
 
 import warnings
 import numpy as np
@@ -25,8 +25,6 @@ from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
 from .pulse_command import PulseCommand
-if TYPE_CHECKING:
-    from qiskit.visualization.pulse.qcstyle import PulseStyle
 
 
 class SamplePulse(PulseCommand):
@@ -102,7 +100,7 @@ class SamplePulse(PulseCommand):
         return samples
 
     def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
+             style = None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
@@ -111,7 +109,7 @@ class SamplePulse(PulseCommand):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
