@@ -18,14 +18,18 @@ Quantum bit and Classical bit objects.
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Bit:
+class Bit():
     """Implement a generic bit."""
 
-    __slots__ = {'register', 'index'}
+    __slots__ = {'_register', '_index'}
 
-    def __init__(self, register, index):
-        """Create a new generic bit.
-        """
+    _instances = dict()
+
+    def __new__(cls, register, index):
+        key = (cls, register, index)
+        if key in cls._instances:
+            return cls._instances[key]
+
         try:
             index = int(index)
         except Exception:
@@ -39,17 +43,37 @@ class Bit:
             raise CircuitError("index must be under the size of the register: %s was provided" %
                                index)
 
-        self.register = register
-        self.index = index
+        key = (cls, register, index)
+        if key in cls._instances:
+            return cls._instances[key]
+
+        obj = super().__new__(cls)
+
+        obj._register = register
+        obj._index = index
+
+        cls._instances[key] = obj
+        return obj
+
+    def __getnewargs__(self):
+        return (self._register, self._index)  # pylint: disable=no-member
+
+    @property
+    def register(self):
+        """Returns the register containing the bit."""
+        return self._register  # pylint: disable=no-member
+
+    @property
+    def index(self):
+        """Returns the index of the bit in its containing register."""
+        return self._index  # pylint: disable=no-member
 
     def __repr__(self):
         """Return the official string representing the bit."""
         return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
-    def __hash__(self):
-        return hash((self.register, self.index))
+    def __copy__(self):
+        return self
 
-    def __eq__(self, other):
-        if isinstance(other, Bit):
-            return other.index == self.index and other.register == self.register
-        return False
+    def __deepcopy__(self, memo=None):
+        return self

@@ -23,7 +23,7 @@ import itertools
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Register:
+class Register():
     """Implement a generic register."""
 
     # Counter for the number of instances in this class.
@@ -32,9 +32,18 @@ class Register:
     prefix = 'reg'
     bit_type = None
 
-    def __init__(self, size, name=None):
-        """Create a new generic register.
-        """
+    _instances = dict()
+
+    def __new__(cls, size, name=None):
+        if name is None:
+            name = '%s%i' % (cls.prefix, next(cls.instances_counter))
+
+        key = (cls, size, name)
+
+        if key in cls._instances:
+            return cls._instances[key]
+
+        obj = super().__new__(cls)
 
         # validate (or cast) size
         try:
@@ -47,22 +56,40 @@ class Register:
                                % (type(size).__name__, size))
 
         # validate (or cast) name
-        if name is None:
-            name = '%s%i' % (self.prefix, next(self.instances_counter))
-        else:
-            try:
-                name = str(name)
-            except Exception:
-                raise CircuitError("The circuit name should be castable to a string "
-                                   "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
-            if name_format.match(name) is None:
-                raise CircuitError("%s is an invalid OPENQASM register name." % name)
+        try:
+            name = str(name)
+        except Exception:
+            raise CircuitError("The circuit name should be castable to a string "
+                               "(or None for autogenerate a name).")
+        name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+        if name_format.match(name) is None:
+            raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
-        self.name = name
-        self.size = size
+        key = (cls, size, name)
 
-        self._bits = [self.bit_type(self, idx) for idx in range(size)]
+        if key in cls._instances:
+            return cls._instances[key]
+
+        obj._name = name
+        obj._size = size
+
+        obj._bits = [cls.bit_type(obj, idx) for idx in range(size)]
+
+        cls._instances[key] = obj
+        return obj
+
+    def __getnewargs__(self):
+        return (self._size, self._name)  # pylint: disable=no-member
+
+    @property
+    def name(self):
+        """Returns the name of the register."""
+        return self._name  # pylint: disable=no-member
+
+    @property
+    def size(self):
+        """Returns the number of bits in the register."""
+        return self._size  # pylint: disable=no-member
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -89,36 +116,21 @@ class Register:
         if not isinstance(key, (int, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
-            return self._bits[key]
+            return self._bits[key]  # pylint: disable=no-member
         elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
-                return [self._bits[idx] for idx in key]
+                return [self._bits[idx] for idx in key]  # pylint: disable=no-member
             else:
                 raise CircuitError('register index out of range')
         else:
-            return self._bits[key]
+            return self._bits[key]  # pylint: disable=no-member
 
     def __iter__(self):
         for bit in range(self.size):
             yield self[bit]
 
-    def __eq__(self, other):
-        """Two Registers are the same if they are of the same type
-        (i.e. quantum/classical), and have the same name and size.
+    def __copy__(self):
+        return self
 
-        Args:
-            other (Register): other Register
-
-        Returns:
-            bool: `self` and `other` are equal.
-        """
-        res = False
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                self.size == other.size:
-            res = True
-        return res
-
-    def __hash__(self):
-        """Make object hashable, based on the name and size to hash."""
-        return hash((type(self), self.name, self.size))
+    def __deepcopy__(self, memo=None):
+        return self

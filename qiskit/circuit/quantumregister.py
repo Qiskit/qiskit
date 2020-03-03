@@ -25,7 +25,7 @@ from .bit import Bit
 class Qubit(Bit):
     """Implement a quantum bit."""
 
-    def __init__(self, register, index):
+    def __new__(cls, register, index):
         """Creates a qubit.
 
         Args:
@@ -34,10 +34,13 @@ class Qubit(Bit):
 
         Raises:
             CircuitError: if the provided register is not a valid :class:`QuantumRegister`
+
+        Returns:
+            Qubit: The newly created Qubit object.
         """
 
         if isinstance(register, QuantumRegister):
-            super().__init__(register, index)
+            return super().__new__(cls, register, index)
         else:
             raise CircuitError('Qubit needs a QuantumRegister and %s was provided' %
                                type(register).__name__)
