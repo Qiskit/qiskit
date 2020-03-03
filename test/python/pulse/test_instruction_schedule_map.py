@@ -15,8 +15,9 @@
 # pylint: disable=missing-docstring
 
 """Test the InstructionScheduleMap."""
-import numpy as np
 from inspect import Signature
+
+import numpy as np
 
 import qiskit.pulse.pulse_lib as pulse_lib
 from qiskit.test import QiskitTestCase
