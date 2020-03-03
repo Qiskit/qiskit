@@ -229,9 +229,6 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
-
         if name is None:
             name = self.name
         new_sched = Schedule(name=name)

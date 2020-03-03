@@ -15,5 +15,4 @@
 """Instruction = Leaf node of schedule. Deprecated path."""
 # pylint: disable=unused-import
 
-
 from qiskit.pulse.instructions import Instruction
