@@ -438,8 +438,8 @@ class TestParameters(QiskitTestCase):
         bound_test_qc = test_qc.bind_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
-    @data('gate', 'instruction')
-    def test_decompose_propagates_bound_parameters(self, target_type):
+    @combine(target_type=['gate', 'instruction'], parameter_type=['numbers', 'parameters'])
+    def test_decompose_propagates_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves bound values."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2482
         theta = Parameter('th')
@@ -454,21 +454,35 @@ class TestParameters(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.append(inst, [0])
 
-        bound_qc2 = qc2.bind_parameters({theta: 0.5})
-
-        self.assertEqual(qc2.parameters, {theta})
-        self.assertEqual(bound_qc2.parameters, set())
+        if parameter_type == 'numbers':
+            bound_qc2 = qc2.bind_parameters({theta: 0.5})
+            expected_parameters = set()
+            expected_qc2 = QuantumCircuit(1)
+            expected_qc2.rx(0.5, 0)
+        else:
+            phi = Parameter('ph')
+            bound_qc2 = qc2.copy()
+            bound_qc2._substitute_parameters({theta: phi})
+            expected_parameters = {phi}
+            expected_qc2 = QuantumCircuit(1)
+            expected_qc2.rx(phi, 0)
 
         decomposed_qc2 = bound_qc2.decompose()
 
-        expected_qc2 = QuantumCircuit(1)
-        expected_qc2.rx(0.5, 0)
+        with self.subTest(msg='testing parameters of initial circuit'):
+            self.assertEqual(qc2.parameters, {theta})
 
-        self.assertEqual(decomposed_qc2.parameters, set())
-        self.assertEqual(decomposed_qc2, expected_qc2)
+        with self.subTest(msg='testing parameters of bound circuit'):
+            self.assertEqual(bound_qc2.parameters, expected_parameters)
 
-    @data('gate', 'instruction')
-    def test_decompose_propagates_deeply_bound_parameters(self, target_type):
+        with self.subTest(msg='testing parameters of deep decomposed bound circuit'):
+            self.assertEqual(decomposed_qc2.parameters, expected_parameters)
+
+        with self.subTest(msg='testing deep decomposed circuit'):
+            self.assertEqual(decomposed_qc2, expected_qc2)
+
+    @combine(target_type=['gate', 'instruction'], parameter_type=['numbers', 'parameters'])
+    def test_decompose_propagates_deeply_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves deeply bound values."""
         theta = Parameter('th')
         qc1 = QuantumCircuit(1)
@@ -490,19 +504,32 @@ class TestParameters(QiskitTestCase):
         qc3 = QuantumCircuit(1)
         qc3.append(inst, [0])
 
-        bound_qc3 = qc3.bind_parameters({theta: 0.5})
+        if parameter_type == 'numbers':
+            bound_qc3 = qc3.bind_parameters({theta: 0.5})
+            expected_parameters = set()
+            expected_qc3 = QuantumCircuit(1)
+            expected_qc3.rx(0.5, 0)
+        else:
+            phi = Parameter('ph')
+            bound_qc3 = qc3.copy()
+            bound_qc3._substitute_parameters({theta: phi})
+            expected_parameters = {phi}
+            expected_qc3 = QuantumCircuit(1)
+            expected_qc3.rx(phi, 0)
 
-        self.assertEqual(qc3.parameters, {theta})
-        self.assertEqual(bound_qc3.parameters, set())
+        deep_decomposed_qc3 = bound_qc3.decompose().decompose()
 
-        decomposed_qc3 = bound_qc3.decompose()
-        deep_decomposed_qc3 = decomposed_qc3.decompose()
+        with self.subTest(msg='testing parameters of initial circuit'):
+            self.assertEqual(qc3.parameters, {theta})
 
-        expected_qc3 = QuantumCircuit(1)
-        expected_qc3.rx(0.5, 0)
+        with self.subTest(msg='testing parameters of bound circuit'):
+            self.assertEqual(bound_qc3.parameters, expected_parameters)
 
-        self.assertEqual(deep_decomposed_qc3.parameters, set())
-        self.assertEqual(deep_decomposed_qc3, expected_qc3)
+        with self.subTest(msg='testing parameters of deep decomposed bound circuit'):
+            self.assertEqual(deep_decomposed_qc3.parameters, expected_parameters)
+
+        with self.subTest(msg='testing deep decomposed circuit'):
+            self.assertEqual(deep_decomposed_qc3, expected_qc3)
 
     @data('gate', 'instruction')
     def test_executing_parameterized_instruction_bound_early(self, target_type):
