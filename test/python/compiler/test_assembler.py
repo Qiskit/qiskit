@@ -815,11 +815,13 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
         self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
 
+
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
 
     def handleError(self, record):
         raise sys.exc_info()
+
 
 class TestLogAssembler(QiskitTestCase):
     """Testing the log_assembly option."""

@@ -696,11 +696,13 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(qc, out)
 
+
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
 
     def handleError(self, record):
         raise sys.exc_info()
+
 
 class TestLogTranspile(QiskitTestCase):
     """Testing the log_transpile option."""

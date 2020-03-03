@@ -31,6 +31,7 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
 
 LOG = logging.getLogger(__name__)
 
+
 def transpile(circuits,
               backend=None,
               basis_gates=None, coupling_map=None, backend_properties=None,
@@ -222,9 +223,11 @@ def transpile(circuits,
     _log_transpile_time(start_time, end_time)
     return circuits
 
+
 def _log_transpile_time(start_time, end_time):
     log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
     LOG.info(log_msg)
+
 
 def _transpile_circuit(circuit_config_tuple):
     """Select a PassManager and run a single circuit through it.

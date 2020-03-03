@@ -29,9 +29,11 @@ from qiskit.validation.jsonschema import SchemaValidationError
 
 LOG = logging.getLogger(__name__)
 
+
 def _log_assembly_time(start_time, end_time):
     log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
     LOG.info(log_msg)
+
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,

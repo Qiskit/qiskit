@@ -15,6 +15,9 @@
 """Test QASM simulator."""
 
 import unittest
+import io
+from logging import StreamHandler, getLogger
+import sys
 
 import numpy as np
 
@@ -24,6 +27,13 @@ from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test import providers
+
+
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+
+    def handleError(self, record):
+        raise sys.exc_info()
 
 
 class TestBasicAerQasmSimulator(providers.BackendTestCase):
@@ -40,6 +50,31 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         transpiled_circuit.name = 'test'
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
         self.qobj = assemble(transpiled_circuit, shots=1000)
+        logger = getLogger()
+        logger.setLevel('DEBUG')
+        self.output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.output))
+
+    def assertExecuteLog(self, log_msg):
+        """ Runs execute and check for logs containing specified message"""
+        shots = 100
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        self.output.seek(0)
+        # Filter unrelated log lines
+        output_lines = self.output.readlines()
+        execute_log_lines = [x for x in output_lines if x.__contains__(log_msg)]
+        self.assertTrue(len(execute_log_lines) > 0)
+
+    def test_execute_log_time(self):
+        """Check Total Transpile Time is logged"""
+        self.assertExecuteLog('Total Execution Time')
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""

@@ -21,10 +21,20 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
+import logging
+from time import time
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
+
+LOG = logging.getLogger(__name__)
+
+
+def _log_execution_time(start_time, end_time):
+    log_msg = ("Total Execution Time - %.5f (ms),"
+               " job has been submitted to backend" % ((end_time - start_time) * 1000))
+    LOG.info(log_msg)
 
 
 def execute(experiments, backend,
@@ -225,7 +235,7 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-
+    start_time = time()
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,
@@ -269,5 +279,7 @@ def execute(experiments, backend,
                     **run_config
                     )
 
+    end_time = time()
+    _log_execution_time(start_time, end_time)
     # executing the circuits on the backend and returning the job
     return backend.run(qobj, **run_config)
