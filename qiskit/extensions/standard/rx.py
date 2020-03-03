@@ -60,7 +60,9 @@ class RXGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CRXGate(self.params[0])
+                cgate = CRXGate(self.params[0])
+                cgate._params = self._params
+                return cgate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -129,6 +131,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
         """Create new crx gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RXGate(theta)
+        self._params = self.base_gate._params
 
     def _define(self):
         """

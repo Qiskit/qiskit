@@ -53,7 +53,9 @@ class U3Gate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CU3Gate(*self.params)
+                cgate = CU3Gate(*self.params)
+                cgate._params = self._params
+                return cgate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -124,6 +126,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         """Create new cu3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
+        self._params = self.base_gate._params
 
     def _define(self):
         """

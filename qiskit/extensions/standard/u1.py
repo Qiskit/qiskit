@@ -56,7 +56,9 @@ class U1Gate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CU1Gate(*self.params)
+                cgate = CU1Gate(*self.params)
+                cgate._params = self._params
+                return cgate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -120,6 +122,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         """Create new cu1 gate."""
         super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = U1Gate(theta)
+        self._params = self.base_gate._params
 
     def _define(self):
         """

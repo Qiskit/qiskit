@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -707,6 +707,28 @@ class TestControlledGate(QiskitTestCase):
             base_gate = gate_class(*params[0:free_params])
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
+
+    @data(1, 2, 3)
+    def test_base_gate_params_reference(self, num_ctrl_qubits):
+        """
+        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        setting have params which reference the one in their base gate.
+        """
+        params1 = [0.1] * 10
+        theta = Parameter('theta')
+        for gate_class in ControlledGate.__subclasses__():
+            sig = signature(gate_class.__init__)
+            free_params = len([param for param in sig.parameters.values()
+                               if param.name != 'self' and (
+                                   param.kind == param.POSITIONAL_ONLY
+                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
+                                       and param.default is param.empty))])
+            base_gate = gate_class(*params1[0:free_params])
+            if base_gate.params:
+                cgate = base_gate.control(num_ctrl_qubits)
+                self.assertIs(cgate.params, base_gate.params)
+                base_gate.params[0] = theta
+                self.assertEqual(cgate.params[0], theta)
 
     def test_all_inverses(self):
         """

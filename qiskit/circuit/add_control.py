@@ -170,6 +170,7 @@ def control(operation: Union[Gate, ControlledGate],
                                           definition=instr.definition,
                                           ctrl_state=ctrl_state)
     cgate.base_gate = base_gate
+    cgate._params = base_gate._params
     return cgate
 
 
