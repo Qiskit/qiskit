@@ -92,9 +92,9 @@ class Operator(BaseOperator):
             data = data.to_operator()
             self._data = data.data
             if input_dims is None:
-                input_dims = data.input_dims()
+                input_dims = data._input_dims
             if output_dims is None:
-                output_dims = data.output_dims()
+                output_dims = data._output_dims
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -238,6 +238,8 @@ class Operator(BaseOperator):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Operator):
             other = Operator(other)
         # Validate dimensions are compatible and return the composed

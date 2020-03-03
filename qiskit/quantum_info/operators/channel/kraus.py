@@ -117,7 +117,7 @@ class Kraus(QuantumChannel):
             # E(rho) = sum_i A_i * rho * B_i^dagger
             elif isinstance(data,
                             tuple) and len(data) == 2 and len(data[0]) > 0:
-                kraus_left = [np.array(data[0][0], dtype=complex)]
+                kraus_left = [np.asarray(data[0][0], dtype=complex)]
                 shape = kraus_left[0].shape
                 for i in data[0][1:]:
                     op = np.asarray(i, dtype=complex)
@@ -237,6 +237,8 @@ class Kraus(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Kraus(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
