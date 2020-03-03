@@ -14,7 +14,6 @@
 
 """Helper function for converting a circuit to an instruction."""
 
-import sys
 from collections import OrderedDict
 
 from qiskit.exceptions import QiskitError
@@ -62,11 +61,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
             circuit_to_instruction(circ)
     """
 
-    if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-        parameter_dict = {}
-    else:
-        parameter_dict = OrderedDict()
-
+    parameter_dict = OrderedDict()  # replace by dict() when Python 3.5 reaches EOL
     if parameter_map is None:
         parameter_dict.update(zip(circuit.parameters, circuit.parameters))
     else:

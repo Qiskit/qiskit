@@ -14,7 +14,6 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
-import sys
 from collections import OrderedDict
 from collections.abc import MutableMapping
 
@@ -29,10 +28,7 @@ class ParameterTable(MutableMapping):
         the structure of _table is,
            {var_object: [(instruction_object, parameter_index), ...]}
         """
-        if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-            self._table = dict(*args, **kwargs)  # since 3.6 dicts are insertion-ordered
-        else:
-            self._table = OrderedDict(*args, **kwargs)  # otherwise use OrderedDict
+        self._table = OrderedDict(*args, **kwargs)  # replace by dict() when Python 3.5 reaches EOL
 
     def __getitem__(self, key):
         return self._table[key]

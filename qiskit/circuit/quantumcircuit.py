@@ -1267,10 +1267,7 @@ class QuantumCircuit:
         return new_circuit
 
     def _unroll_param_dict(self, value_dict):
-        if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-            unrolled_value_dict = {}
-        else:
-            unrolled_value_dict = OrderedDict()
+        unrolled_value_dict = OrderedDict()  # replace by dict() when Python 3.5 reaches EOL
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value

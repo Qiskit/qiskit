@@ -14,7 +14,6 @@
 
 """Helper function for converting a circuit to a gate"""
 
-import sys
 from collections import OrderedDict
 
 from qiskit.circuit.gate import Gate
@@ -54,11 +53,7 @@ def circuit_to_gate(circuit, parameter_map=None):
             raise QiskitError('One or more instructions in this instruction '
                               'cannot be converted to a gate')
 
-    if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
-        parameter_dict = {}
-    else:
-        parameter_dict = OrderedDict()
-
+    parameter_dict = OrderedDict()  # replace by dict() when Python 3.5 reaches EOL
     if parameter_map is None:
         parameter_dict.update(zip(circuit.parameters, circuit.parameters))
     else:
