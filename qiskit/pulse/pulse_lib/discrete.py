@@ -134,11 +134,13 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
 
             import matplotlib.pyplot as plt
             from qiskit.pulse.pulse_lib import sawtooth
+            import numpy as np
 
             duration = 100
             amp = 1
             period = duration
-            plt.plot(range(duration), sawtooth(duration, amp, period).samples)
+            sawtooth_wave = np.real(sawtooth(duration, amp, period).samples)
+            plt.plot(range(duration), sawtooth_wave)
     """
     if (freq is None) and (period is None):
         freq = 1./duration
@@ -181,11 +183,13 @@ def triangle(duration: int, amp: complex, freq: float = None, period: float = No
 
             import matplotlib.pyplot as plt
             from qiskit.pulse.pulse_lib import triangle
+            import numpy as np
 
             duration = 100
             amp = 1
             period = duration
-            plt.plot(range(duration), triangle(duration, amp, period).samples)
+            triangle_wave = np.real(triangle(duration, amp, period).samples)
+            plt.plot(range(duration), triangle_wave)
     """
     if (freq is None) and (period is None):
         freq = 1./duration

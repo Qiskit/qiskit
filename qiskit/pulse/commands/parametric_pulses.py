@@ -254,8 +254,8 @@ class GaussianSquare(ParametricPulse):
 class Drag(ParametricPulse):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the :math:`|1>` - :math:`|2>` transition,
-    reducing the chance of leakage to the :math:`|2>` state.
+    spectrum of a normal gaussian pulse near the :math:`\ket{1}` - :math:`\ket{2}` transition,
+    reducing the chance of leakage to the :math:`\ket{2}` state.
 
     .. math::
 

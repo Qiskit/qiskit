@@ -449,7 +449,7 @@ class QuantumCircuit:
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            qiskit.circuit.Instruction: a handle to the instruction that was just added
         """
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):

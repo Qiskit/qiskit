@@ -274,7 +274,7 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
+            instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
@@ -301,7 +301,7 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
+            instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
@@ -436,7 +436,7 @@ class Schedule(ScheduleComponent):
                                   pulse.MeasureChannels(0): 5.0}
 
             When the channel to plot is not included in the ``channel_scales`` dictionary,
-            scaling factor of that channel is overwritten by the value of ``scale` argument.
+            scaling factor of that channel is overwritten by the value of ``scale`` argument.
             In default, waveform amplitude is normalized by the maximum amplitude of the channel.
             The scaling factor is displayed under the channel name alias.
 
