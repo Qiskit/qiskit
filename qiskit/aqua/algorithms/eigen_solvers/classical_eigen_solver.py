@@ -117,6 +117,10 @@ class ClassicalEigensolver(ClassicalAlgorithm):
         self._in_k = k
         self._check_set_k()
 
+    def supports_aux_operators(self) -> bool:
+        """ If will process auxiliary operators or not """
+        return True
+
     def _check_set_k(self):
         if self._operator is not None:
             if self._in_k > self._operator.matrix.shape[0]:
@@ -180,6 +184,8 @@ class ClassicalEigensolver(ClassicalAlgorithm):
         Run the algorithm to compute up to the requested k number of eigenvalues.
         Returns:
             dict: Dictionary of results
+        Raises:
+             AquaError: if no operator has been provided
         """
         if self._operator is None:
             raise AquaError("Operator was never provided")
@@ -195,7 +201,7 @@ class ClassicalEigensolver(ClassicalAlgorithm):
         if 'eigvals' in self._ret:
             result.eigenvalues = self._ret['eigvals']
         if 'eigvecs' in self._ret:
-            result.eigenstate = self._ret['eigvecs']
+            result.eigenstates = self._ret['eigvecs']
         if 'aux_ops' in self._ret:
             result.aux_operator_eigenvalues = self._ret['aux_ops']
 

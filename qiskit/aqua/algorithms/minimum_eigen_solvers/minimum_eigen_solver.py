@@ -18,8 +18,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from .minimum_eigen_solver_result import MinimumEigensolverResult
 from qiskit.aqua.operators import BaseOperator
+from .minimum_eigen_solver_result import MinimumEigensolverResult
 
 
 class MinimumEigensolver(ABC):

@@ -35,14 +35,14 @@ class EigensolverResult(AlgorithmResult):
         self.data['eigenvalues'] = value
 
     @property
-    def eigenstate(self) -> Union[None, np.ndarray]:
+    def eigenstates(self) -> Union[None, np.ndarray]:
         """ return eigen states """
-        return self.get('eigenstate')
+        return self.get('eigenstates')
 
-    @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
+    @eigenstates.setter
+    def eigenstates(self, value: np.ndarray) -> None:
         """ set eigen states """
-        self.data['eigenstate'] = value
+        self.data['eigenstates'] = value
 
     @property
     def aux_operator_eigenvalues(self) -> Union[None, np.ndarray]:
