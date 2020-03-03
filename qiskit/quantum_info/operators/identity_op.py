@@ -52,10 +52,10 @@ class IdentityOp(BaseOperator):
         super().__init__(input_dims, input_dims)
 
     def __repr__(self):
-        if self._coeff is None:
+        if self.coeff is None:
             return 'IdentityOp({})'.format(self._input_dims)
         return 'IdentityOp({}, coeff={})'.format(
-            self._input_dims, self._coeff)
+            self._input_dims, self.coeff)
 
     @property
     def coeff(self):
@@ -64,10 +64,10 @@ class IdentityOp(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        if self._coeff is None:
+        if self.coeff is None:
             return self
-        ret = copy.copy(self)
-        ret._coeff = np.conjugate(self._coeff)
+        ret = self.copy()
+        ret._coeff = np.conjugate(self.coeff)
         return ret
 
     def transpose(self):
@@ -76,21 +76,21 @@ class IdentityOp(BaseOperator):
 
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
-        if self._coeff is None:
+        if self.coeff is None:
             return True
         if atol is None:
             atol = self._atol
         if rtol is None:
             rtol = self._rtol
-        return np.isclose(np.abs(self._coeff), 1, atol=atol, rtol=rtol)
+        return np.isclose(np.abs(self.coeff), 1, atol=atol, rtol=rtol)
 
     def to_matrix(self):
         """Convert to a Numpy identity matrix."""
         dim, _ = self.dim
         iden = np.eye(dim, dtype=complex)
-        if self._coeff is None:
+        if self.coeff is None:
             return iden
-        return self._coeff * iden
+        return self.coeff * iden
 
     def to_operator(self):
         """Convert to an Operator object."""
@@ -111,12 +111,12 @@ class IdentityOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, IdentityOp):
-            if self._coeff is None:
-                coeff = other.data
-            elif other.data is None:
-                coeff = self._coeff
+            if self.coeff is None:
+                coeff = other.coeff
+            elif other.coeff is None:
+                coeff = self.coeff
             else:
-                coeff = self._coeff * other.data
+                coeff = self.coeff * other.coeff
             dims = other._input_dims + self._input_dims
             return IdentityOp(dims, coeff=coeff)
         return other.expand(self)
@@ -134,12 +134,12 @@ class IdentityOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, IdentityOp):
-            if self._coeff is None:
-                coeff = other.data
-            elif other.data is None:
-                coeff = self._coeff
+            if self.coeff is None:
+                coeff = other.coeff
+            elif other.coeff is None:
+                coeff = self.coeff
             else:
-                coeff = self._coeff * other.data
+                coeff = self.coeff * other.coeff
             dims = self._input_dims + other._input_dims
             return IdentityOp(dims, coeff=coeff)
         return other.tensor(self)
@@ -168,30 +168,32 @@ class IdentityOp(BaseOperator):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
+
+        if not isinstance(other, BaseOperator):
+            other = Operator(other)
+
         input_dims, output_dims = self._get_compose_dims(other, qargs, front)
 
         # If other is also an IdentityOp we only need to possibly
         # update the coefficient and dimensions
         if isinstance(other, IdentityOp):
-            if self._coeff is None:
-                coeff = other._coeff
-            elif other._coeff is None:
-                coeff = self._coeff
+            if self.coeff is None:
+                coeff = other.coeff
+            elif other.coeff is None:
+                coeff = self.coeff
             else:
-                coeff = self._coeff * other._coeff
+                coeff = self.coeff * other.coeff
             return IdentityOp(input_dims, coeff=coeff)
 
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
         if qargs is None:
             ret = other.reshape(input_dims, output_dims)
-            if self._coeff is None or self._coeff == 1:
+            if self.coeff is None or self.coeff == 1:
                 return ret
-            return self._coeff * ret
+            return self.coeff * ret
         # Otherwise compose using other operators method
         # Note that in this case that operator must know how to initalize
         # from an IdentityOp either using its to_operator method or having
@@ -212,9 +214,12 @@ class IdentityOp(BaseOperator):
             QiskitError: if the input and output dimensions of the operator
             are not equal, or the power is not a positive integer.
         """
-        if self._coeff is None:
+        if self.coeff is None:
             return self
-        coeff = self._coeff ** n
+        if n == 0:
+            # Raising to zero power returns identity
+            return IdentityOp(self._input_dims)
+        coeff = self.coeff ** n
         return IdentityOp(self._input_dims, coeff=coeff)
 
     def _add(self, other):
@@ -234,8 +239,8 @@ class IdentityOp(BaseOperator):
             other = Operator(other)
         self._validate_add_dims(other)
         if isinstance(other, IdentityOp):
-            coeff1 = 1 if self._coeff is None else self._coeff
-            coeff2 = 1 if other.data is None else other.data
+            coeff1 = 1 if self.coeff is None else self.coeff
+            coeff2 = 1 if other.coeff is None else other.coeff
             return IdentityOp(self._input_dims, coeff=coeff1+coeff2)
         return other._add(self).reshape(self._input_dims, self._output_dims)
 
@@ -255,5 +260,5 @@ class IdentityOp(BaseOperator):
             raise QiskitError("other is not a number")
         if other == 1:
             return self
-        coeff = other if self._coeff is None else other * self._coeff
-        return IdentityOp(self._input_dim, coeff=coeff)
+        coeff = other if self.coeff is None else other * self.coeff
+        return IdentityOp(self._input_dims, coeff=coeff)
