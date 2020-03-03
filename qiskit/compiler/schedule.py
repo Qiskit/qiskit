@@ -24,7 +24,7 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import CmdDef, InstructionScheduleMap, Schedule
-
+from qiskit.providers import BaseBackend
 from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
 LOG = logging.getLogger(__name__)
@@ -36,29 +36,30 @@ def _log_schedule_time(start_time, end_time):
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-             backend: Optional['BaseBackend'] = None,
+             backend: Optional[BaseBackend] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              cmd_def: Optional[CmdDef] = None,
              meas_map: Optional[List[List[int]]] = None,
              method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
     """
-    Schedule a circuit to a pulse Schedule, using the backend, according to any specified methods.
-    Supported methods are documented in
-    :py:func:`qiskit.pulse.scheduler.schedule_circuit.schedule_circuit`.
+    Schedule a circuit to a pulse ``Schedule``, using the backend, according to any specified
+    methods. Supported methods are documented in :py:mod:`qiskit.scheduler.schedule_circuit`.
 
     Args:
         circuits: The quantum circuit or circuits to translate
         backend: A backend instance, which contains hardware-specific data required for scheduling
-        inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
-                  `backend` `instruction_schedule_map`
+        inst_map: Mapping of circuit operations to pulse schedules. If ``None``, defaults to the
+                  ``backend``\'s ``instruction_schedule_map``
         cmd_def: Deprecated
-        meas_map: List of sets of qubits that must be measured together. If `None`, defaults to
-                  the `backend` `meas_map`
+        meas_map: List of sets of qubits that must be measured together. If ``None``, defaults to
+                  the ``backend``\'s ``meas_map``
         method: Optionally specify a particular scheduling method
+
     Returns:
-        A pulse `Schedule` that implements the input circuit
+        A pulse ``Schedule`` that implements the input circuit
+
     Raises:
-        QiskitError: If `inst_map` and `meas_map` are not passed and `backend` is not passed
+        QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
     start_time = time()
     if inst_map is None:

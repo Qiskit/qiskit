@@ -36,7 +36,7 @@ system.
 .. _pulse-commands:
 
 Commands (:mod:`~qiskit.pulse.commands`)
-================================================
+========================================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -86,6 +86,13 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
    Schedule
    Instruction
 
+.. autosummary::
+   :hidden:
+   :toctree: ../stubs/
+
+   qiskit.pulse.commands
+   qiskit.pulse.channels
+
 Configuration
 =============
 
@@ -127,7 +134,7 @@ Exceptions
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
+from .commands import (Acquire, AcquireInstruction, FrameChange,
                        PersistentValue, SamplePulse, Snapshot, Kernel,
                        Discriminator, Delay, ParametricPulse,
                        ParametricInstruction, Gaussian,
@@ -135,5 +142,6 @@ from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
+from .instructions import Instruction
 from .interfaces import ScheduleComponent
 from .schedule import Schedule

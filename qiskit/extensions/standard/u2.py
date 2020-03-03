@@ -28,12 +28,12 @@ class U2Gate(Gate):
 
     def __init__(self, phi, lam, label=None):
         """Create new one-pulse single-qubit gate."""
-        super().__init__("u2", 1, [phi, lam], label=label)
+        super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
         for inst in rule:
             definition.append(inst)
@@ -51,12 +51,16 @@ class U2Gate(Gate):
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
-        return numpy.array([[isqrt2, -numpy.exp(1j * lam) * isqrt2],
-                            [
-                                numpy.exp(1j * phi) * isqrt2,
-                                numpy.exp(1j * (phi + lam)) * isqrt2
-                            ]],
-                           dtype=complex)
+        return numpy.array([
+            [
+                isqrt2,
+                -numpy.exp(1j * lam) * isqrt2
+            ],
+            [
+                numpy.exp(1j * phi) * isqrt2,
+                numpy.exp(1j * (phi + lam)) * isqrt2
+            ]
+        ], dtype=complex)
 
 
 @deprecate_arguments({'q': 'qubit'})

@@ -1,0 +1,5 @@
+deprecations:
+  - |
+    The argument `period` in functions `square`, `sawtooth`, and `triangle` in
+    `pulse.pulse_lib.continuous` and `pulse.pulse_lib.discrete` is deprecated.
+    Use frequency (`freq`) instead.
