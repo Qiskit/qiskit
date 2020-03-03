@@ -38,6 +38,7 @@ REQUIREMENTS = [
     "scipy>=1.0",
     "sympy>=1.3",
     "dill>=0.3",
+    "python-constraint>=1.4",
 ]
 
 # Add Cython extensions here
