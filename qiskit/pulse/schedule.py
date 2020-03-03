@@ -194,8 +194,8 @@ class Schedule(ScheduleComponent):
         """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
-            start_time: Time to insert the second schedule
-            schedule: Schedule to mutably insert
+            start_time: Time to insert the second schedule.
+            schedule: Schedule to mutably insert.
         """
         if isinstance(schedule, Schedule):
             shifted_children = schedule._children
