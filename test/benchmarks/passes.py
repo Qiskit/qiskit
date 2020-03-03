@@ -24,8 +24,8 @@ from .utils import random_circuit
 
 
 class Collect2QPassBenchmarks:
-    params = ([1, 2, 5, 8, 14, 20],
-              [8, 128, 1024])
+    params = ([5, 14, 20],
+              [1024])
 
     param_names = ['n_qubits', 'depth']
     timeout = 300
@@ -56,8 +56,8 @@ class Collect2QPassBenchmarks:
 
 
 class CommutativeAnalysisPassBenchmarks:
-    params = ([1, 2, 5, 8, 14, 20],
-              [8, 128, 1024])
+    params = ([5, 14, 20],
+              [1024])
 
     param_names = ['n_qubits', 'depth']
     timeout = 300
@@ -90,8 +90,8 @@ class CommutativeAnalysisPassBenchmarks:
 
 
 class UnrolledPassBenchmarks:
-    params = ([1, 2, 5, 8, 14, 20],
-              [8, 128, 1024])
+    params = ([5, 14, 20],
+              [1024])
 
     param_names = ['n_qubits', 'depth']
     timeout = 300
@@ -115,8 +115,8 @@ class UnrolledPassBenchmarks:
 
 
 class PassBenchmarks:
-    params = ([1, 2, 5, 8, 14, 20],
-              [8, 128, 1024])
+    params = ([5, 14, 20],
+              [1024])
 
     param_names = ['n_qubits', 'depth']
     timeout = 300
