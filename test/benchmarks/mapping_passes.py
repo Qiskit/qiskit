@@ -26,8 +26,8 @@ from .utils import random_circuit
 
 class PassBenchmarks:
 
-    params = ([1, 2, 5, 8, 14, 20],
-              [8, 128, 1024])
+    params = ([5, 14, 20],
+              [1024])
 
     param_names = ['n_qubits', 'depth']
     timeout = 300
