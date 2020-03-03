@@ -76,7 +76,7 @@ def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-ar
     """Apply U1 gate with angle theta
 
     Applied to a specified qubit ``qubit``.
-    :math:`u1(\lambda) := diag(1, ei\lambda) ∼ U(0, 0, \lambda) = Rz(\lambda)`
+    :math:`u1(\\lambda) := diag(1, ei\\lambda) ∼ U(0, 0, \\lambda) = Rz(\\lambda)`
     where :math:`~` is equivalence up to a global phase.
 
     Examples:

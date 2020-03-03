@@ -74,9 +74,9 @@ class ZGate(Gate):
 def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply Z gate to a specified qubit (qubit).
 
-    A Z gate implements a :math:`\pi` rotation of the qubit state vector about
+    A Z gate implements a :math:`\\pi` rotation of the qubit state vector about
     the z axis of the Bloch sphere. This gate is canonically used to implement
-    a phase flip on the qubit state from :math:`\ket{+}` to :math:`\ket{-}`,
+    a phase flip on the qubit state from :math:`|+\\rangle` to :math:`|-\\rangle`,
     or vice versa.
 
     Examples:
@@ -170,11 +170,11 @@ def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
     """Apply cZ gate
 
     From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
-    A cZ gate implements a :math:`\pi` rotation of the qubit state vector about
-    the z axis of the Bloch sphere when the control qubit is in state :math:`\ket{1}`.
+    A cZ gate implements a :math:`\\pi` rotation of the qubit state vector about
+    the z axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
     This gate is canonically used to implement a phase flip on the qubit state from
-    :math:`\ket{+}` to :math:`\ket{-}`, or vice versa when the control qubit is in
-    state :math:`\ket{1}`.
+    :math:`|+\\rangle` to :math:`|-\\rangle`, or vice versa when the control qubit is in
+    state :math:`|1\\rangle`.
 
     Examples:
 

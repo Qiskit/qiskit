@@ -84,9 +84,9 @@ class XGate(Gate):
 def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply X gate to a specified qubit (qubit).
 
-    An X gate implements a :math:`\pi` rotation of the qubit state vector about
+    An X gate implements a :math:`\\pi` rotation of the qubit state vector about
     the x axis of the Bloch sphere. This gate is canonically used to implement
-    a bit flip on the qubit state from :math:`\ket{0}` to :math:`\ket{1}`,
+    a bit flip on the qubit state from :math:`|0\\rangle` to :math:`|1\\rangle`,
     or vice versa.
 
     Examples:
@@ -181,11 +181,11 @@ def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
     """Apply CX gate
 
     From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
-    A CX gate implements a :math:`\pi` rotation of the qubit state vector about
-    the x axis of the Bloch sphere when the control qubit is in state :math:`\ket{1}`
+    A CX gate implements a :math:`\\pi` rotation of the qubit state vector about
+    the x axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`
     This gate is canonically used to implement a bit flip on the qubit state from
-    :math:`\ket{0}` to :math:`\ket{1}`, or vice versa when the control qubit is in
-    :math:`\ket{1}`.
+    :math:`|0\\rangle` to :math:`|1\\rangle`, or vice versa when the control qubit is in
+    :math:`|1\\rangle`.
 
     Examples:
 
@@ -300,8 +300,8 @@ def ccx(self, control_qubit1, control_qubit2, target_qubit,
     """Apply Toffoli (ccX) gate
 
     From two specified controls ``(control_qubit1 and control_qubit2)`` to target ``target_qubit``
-    qubit. This gate is canonically used to rotate the qubit state from :math:`\ket{0}` to
-    :math:`\ket{1}`, or vice versa when both the control qubits are in state :math:`\ket{1}`.
+    qubit. This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+    :math:`|1\\rangle`, or vice versa when both the control qubits are in state :math:`|1\\rangle`.
 
     Examples:
 

@@ -168,9 +168,9 @@ def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
     """Apply cH gate
 
     From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
-    This gate is canonically used to rotate the qubit state from :math:`\ket{0}` to
-    :math:`\ket{+}` and :math:`\ket{1} to :math:`\ket{−}` when the control qubit is
-    in state :math:`\ket{1}`.
+    This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+    :math:`|+\\rangle` and :math:`|1\\rangle to :math:`|−\\rangle` when the control qubit is
+    in state :math:`|1\\rangle`.
 
     Examples:
 

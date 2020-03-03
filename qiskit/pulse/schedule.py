@@ -21,7 +21,7 @@ import abc
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 import warnings
 
 from qiskit.util import is_main_process
@@ -167,11 +167,9 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent.
 
         Yields:
-            Tuple containing the time each :class:`~qiskit.pulse.Instruction`
-            starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
-
-        ReturnType:
-            Iterable[Tuple[int, Instruction]]
+            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
+                :class:`~qiskit.pulse.Instruction`
+                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -441,7 +439,7 @@ class Schedule(ScheduleComponent):
             The scaling factor is displayed under the channel name alias.
 
         Returns:
-            A matplotlib figure object of the pulse schedule.
+            matplotlib.Figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
         if scaling is not None:

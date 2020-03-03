@@ -182,7 +182,7 @@ def cswap(self, control_qubit, target_qubit1, target_qubit2,
     From a specified control ``control_qubit`` to target1 ``target_qubit1`` and
     target2 ``target_qubit2`` qubits. The CSWAP gate is canonically
     used to swap the qubit states of target1 and target2 when the control qubit
-    is in state :math:`\ket{1}`.
+    is in state :math:`|1\\rangle`.
 
     Examples:
 

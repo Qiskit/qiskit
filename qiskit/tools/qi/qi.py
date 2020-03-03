@@ -272,14 +272,16 @@ def choi_to_pauli(choi, order=1):
     Note that this function assumes that the Choi-matrix
     is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
-    is defined as: :math:`choi = (I \otimes E)(bell_state)`.
+    is defined as: :math:`choi = (I \\otimes E)(bell_state)`.
 
-    The resulting 'rauli' R acts on input states as .. math::
+    The resulting 'rauli' R acts on input states as
 
-        \ket{rho_out}_p = R \cdot \ket{rho_in}_p
+    .. math::
 
-    where :math:`\ket{rho} =` ``vectorize(rho, method='pauli')`` for order=1
-    and :math:`\ket{rho} =` ``vectorize(rho, method='pauli_weights')`` for order=0.
+        |{\\rho_{out}}_p\\rangle = R \\cdot |{\\rho_{in}}_p\\rangle.
+
+    where :math:`|{\\rho}\\rangle =` ``vectorize(rho, method='pauli')`` for order=1
+    and :math:`|{\\rho}\\rangle =` ``vectorize(rho, method='pauli_weights')`` for order=0.
 
     Args:
         choi (matrix): the input Choi-matrix.
@@ -347,7 +349,7 @@ def outer(vector1, vector2=None):
         vector2 (ndarray): the (optional) second vector.
 
     Returns:
-        np.array: The matrix :math:`\ket{v1}\bra{v2}`.
+        np.array: The matrix :math:`|v1\\rangle\\langle{v2}|`.
 
     """
     warnings.warn(
