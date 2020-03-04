@@ -35,18 +35,18 @@ class MSGate(Gate):
 
     def __init__(self, n_qubits, theta, phase=0, label=None):
         """Create new MS gate."""
-        super().__init__("ms", n_qubits, [theta],
+        super().__init__('ms', n_qubits, [theta],
                          phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.rxx import RXXGate
-        q = QuantumRegister(self.num_qubits, "q")
+        q = QuantumRegister(self.num_qubits, 'q')
         definition = []
         for i in range(self.num_qubits):
             phase = self.phase if i == 0 else 0
-            for j in range(i+1, self.num_qubits):
-                definition += [(RXXGate(self.params[0], phase=phase),
-                               [q[i], q[j]], [])]
+            for j in range(i + 1, self.num_qubits):
+                definition += [(RXXGate(self.params[0],
+                                phase=phase), [q[i], q[j]], [])]
         self.definition = definition
 
     def inverse(self):

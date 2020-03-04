@@ -18,6 +18,7 @@ import time
 
 from qiskit.tools.parallel import parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.pulse import Schedule
 from qiskit.test import QiskitTestCase
 
 
@@ -28,11 +29,15 @@ def _parfunc(x):
     return x
 
 
-def _build_simple(_):
+def _build_simple_circuit(_):
     qreg = QuantumRegister(2)
     creg = ClassicalRegister(2)
     qc = QuantumCircuit(qreg, creg)
     return qc
+
+
+def _build_simple_schedule(_):
+    return Schedule()
 
 
 class TestParallel(QiskitTestCase):
@@ -50,6 +55,12 @@ class TestParallel(QiskitTestCase):
 
     def test_parallel_circuit_names(self):
         """Verify unique circuit names in parallel"""
-        out_circs = parallel_map(_build_simple, list(range(10)))
+        out_circs = parallel_map(_build_simple_circuit, list(range(10)))
         names = [circ.name for circ in out_circs]
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_parallel_schedule_names(self):
+        """Verify unique schedule names in parallel"""
+        out_schedules = parallel_map(_build_simple_schedule, list(range(10)))
+        names = [schedule.name for schedule in out_schedules]
         self.assertEqual(len(names), len(set(names)))

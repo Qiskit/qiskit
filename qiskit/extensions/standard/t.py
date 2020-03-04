@@ -41,14 +41,14 @@ class TGate(Gate):
 
     def __init__(self, phase=0, label=None):
         """Create new T gate."""
-        super().__init__("t", 1, [], phase=phase, label=label)
+        super().__init__('t', 1, [], phase=phase, label=label)
 
     def _define(self):
         """
         gate t a { u1(pi/4) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
             (U1Gate(pi/4, phase=self.phase), [q[0]], [])
         ]
@@ -58,13 +58,13 @@ class TGate(Gate):
         return TdgGate(phase=-self.phase)
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0],
-                            [0, (1+1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
 class TdgGate(Gate):
-    r"""T Gate: -pi/4 rotation around Z axis
+    r"""T dagger gate: -pi/4 rotation around Z axis
 
     **Matrix Definition**
 
@@ -85,12 +85,12 @@ class TdgGate(Gate):
 
     def _define(self):
         """
-        gate t a { u1(pi/4) a; }
+        gate tdg a { u1(pi/4) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
-            (U1Gate(-pi/4, phase=self.phase), [q[0]], [])
+            (U1Gate(-pi / 4, phase=self.phase), [q[0]], [])
         ]
 
     def inverse(self):
@@ -98,9 +98,9 @@ class TdgGate(Gate):
         return TGate(phase=-self.phase)
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0],
-                            [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
 
 
 @deprecate_arguments({'q': 'qubit'})

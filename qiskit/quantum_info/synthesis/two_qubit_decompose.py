@@ -34,14 +34,14 @@ import scipy.linalg as la
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.x import CnotGate
+from qiskit.extensions.standard.x import CXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 _CUTOFF_PRECISION = 1e-12
-_DECOMP1Q = OneQubitEulerDecomposer('U3')
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
 def euler_angles_1q(unitary_matrix):
@@ -451,7 +451,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [_DECOMP1Q.angles(x) for x in decomposition]
+        decomposition_angles = [_DECOMPOSER1Q.angles(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
@@ -482,4 +482,4 @@ class TwoQubitBasisDecomposer():
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
-two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
+two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())

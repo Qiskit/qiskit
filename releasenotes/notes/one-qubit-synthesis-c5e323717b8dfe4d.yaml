@@ -2,7 +2,7 @@
 features:
   - |
     Improves the `quantum_info.synthesis.OneQubitEulerDecomposer` class by
-    adding methods `angles`, `angles_and_phase`, `circuits` methods for 
+    adding methods `angles`, `angles_and_phase` methods for 
     returning relevant parameters without validation, and the `__call__` 
     method which performs full synthesis with validation.
   - |

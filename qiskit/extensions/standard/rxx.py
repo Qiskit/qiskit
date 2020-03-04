@@ -16,6 +16,7 @@
 Two-qubit XX-rotation gate.
 """
 import numpy as np
+
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -24,7 +25,9 @@ from qiskit.circuit import QuantumRegister
 class RXXGate(Gate):
     r"""Two-qubit XX-rotation gate.
 
-    **Matrix Definition**
+    This gate corresponds to the rotation U(θ) = exp(-1j * θ * X⊗X / 2).
+
+    ** Matrix Definition**
 
     The matrix for this gate is given by:
 
@@ -43,26 +46,21 @@ class RXXGate(Gate):
 
     def __init__(self, theta, phase=0, label=None):
         """Create new rxx gate."""
-        super().__init__("rxx", 2, [theta],
+        super().__init__('rxx', 2, [theta],
                          phase=phase, label=label)
 
     def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
-        from qiskit.extensions.standard.x import CnotGate
+        """
+        gate rzz(theta) a, b { cx a, b; rz(theta) b; cx a, b; }
+        """
+        from qiskit.extensions.standard.x import CXGate
         from qiskit.extensions.standard.rz import RZGate
-        from qiskit.extensions.standard.u2 import U2Gate
-        from qiskit.extensions.standard.u3 import U3Gate
-        from qiskit.extensions.standard.h import HGate
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
+        q = QuantumRegister(2, 'q')
         self.definition = [
-            (U3Gate(np.pi / 2, theta, 0), [q[0]], []),
-            (HGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (RZGate(-theta, phase=self.phase), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-            (U2Gate(-np.pi, np.pi - theta), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RZGate(self.params[0], phase=self.phase),
+             [q[1]], []),
+            (CXGate(), [q[0], q[1]], [])
         ]
 
     def inverse(self):
@@ -84,5 +82,4 @@ def rxx(self, theta, qubit1, qubit2):
     return self.append(RXXGate(theta), [qubit1, qubit2], [])
 
 
-# Add to QuantumCircuit class
 QuantumCircuit.rxx = rxx
