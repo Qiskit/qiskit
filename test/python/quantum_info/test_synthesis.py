@@ -139,15 +139,15 @@ class CheckDecompositions(QiskitTestCase):
 class TestEulerAngles1Q(CheckDecompositions):
     """Test euler_angles_1q()"""
 
-    def test_euler_angles_1q_clifford(self):
+    @combine(clifford=ONEQ_CLIFFORDS)
+    def test_euler_angles_1q_clifford(self, clifford):
         """Verify euler_angles_1q produces correct Euler angles for all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford)
+        self.check_one_qubit_euler_angles(clifford)
 
-    def test_euler_angles_1q_hard_thetas(self):
+    @combine(gate=HARD_THETA_ONEQS)
+    def test_euler_angles_1q_hard_thetas(self, gate):
         """Verify euler_angles_1q for close-to-degenerate theta"""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate))
+        self.check_one_qubit_euler_angles(Operator(gate))
 
     @combine(seed=range(5), name='test_euler_angles_1q_random_{seed}')
     def test_euler_angles_1q_random(self, seed):
