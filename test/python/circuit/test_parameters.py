@@ -107,11 +107,11 @@ class TestParameters(QiskitTestCase):
         if target == 'circuit':
             self.assertEqual(qc.parameters, params)
         elif target == 'gate':
-            self.assertEqual(qc.to_gate().params, params)
+            self.assertEqual(qc.to_gate(sort_parameters_by_name=False).params, params)
         elif target == 'instruction':
-            self.assertEqual(qc.to_gate().params, params)
+            self.assertEqual(qc.to_gate(sort_parameters_by_name=False).params, params)
         elif target == 'nested':
-            gate = qc.to_gate()
+            gate = qc.to_gate(sort_parameters_by_name=False)
             qc2 = QuantumCircuit(2)
             before, after = Parameter('before'), Parameter('after')
             qc2.rz(before, 1)
@@ -130,7 +130,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
-        self.assertEqual(qc.parameters, [theta, x])
+        self.assertEqual(set(qc.parameters), {theta, x})
 
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
@@ -254,7 +254,7 @@ class TestParameters(QiskitTestCase):
         qc2.measure(qr, cr)
 
         qc3 = qc1 + qc2
-        self.assertEqual(qc3.parameters, [theta, phi])
+        self.assertEqual(set(qc3.parameters), {theta, phi})
 
     def test_composite_instruction(self):
         """Test preservation of parameters via parameterized instructions."""
@@ -273,7 +273,7 @@ class TestParameters(QiskitTestCase):
         qc2.ry(phi, qr2[0])
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
-        self.assertEqual(qc2.parameters, [phi, theta])
+        self.assertEqual(set(qc2.parameters), {phi, theta})
 
     def test_parameter_name_conflicts_raises(self):
         """Verify attempting to add different parameters with matching names raises an error."""
@@ -778,7 +778,8 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction()
 
-        self.assertEqual(gate.params, [theta, phi])
+        # parameters are name sorted by default, thus [phi, θ]
+        self.assertEqual(gate.params, [phi, theta])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -786,7 +787,17 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, [delta, theta, phi])
+        with self.subTest(msg='test contained parameters'):
+            self.assertEqual(set(qc2.parameters), {delta, theta, phi})
+
+        with self.subTest(msg='test order of the parameters'):
+            # Within the circuit the parameters are insertion ordered.
+            # Since first ry(delta) is applied, this is the first parameter. Then `gate` is
+            # appended which has the parameters [phi, theta]. Note that the conversion to
+            # a gate assumes sorting of the parameters by name, which can be turned off
+            # using `QuantumCircuit.to_gate(sort_parameters_by_name=False)`. Then the insertion
+            # ordering of the circuit is also used in the gate.
+            self.assertEqual(qc2.parameters, [delta, phi, theta])
 
         binds = {delta: 1, theta: 2, phi: 3}
         expected_qc = QuantumCircuit(qr2)
@@ -825,7 +836,8 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [theta_p, phi_p])
+        # parameters are name sorted by default, thus [phi, theta]
+        self.assertEqual(gate.params, [phi_p, theta_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -833,7 +845,17 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, [delta, theta_p, phi_p])
+        with self.subTest(msg='test contained parameters'):
+            self.assertEqual(set(qc2.parameters), {delta, theta_p, phi_p})
+
+        with self.subTest(msg='test order of the parameters'):
+            # Within the circuit the parameters are insertion ordered.
+            # Since first ry(delta) is applied, this is the first parameter. Then `gate` is
+            # appended which has the parameters [phi, theta]. Note that the conversion to
+            # a gate assumes sorting of the parameters by name, which can be turned off
+            # using `QuantumCircuit.to_gate(sort_parameters_by_name=False)`. Then the insertion
+            # ordering of the circuit is also used in the gate.
+            self.assertEqual(qc2.parameters, [delta, phi_p, theta_p])
 
         binds = {delta: 1, theta_p: 2, phi_p: 3}
         expected_qc = QuantumCircuit(qr2)

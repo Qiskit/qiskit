@@ -21,7 +21,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 
 
-def circuit_to_gate(circuit, parameter_map=None):
+def circuit_to_gate(circuit, parameter_map=None, sort_parameters_by_name=True):
     """Build a ``Gate`` object from a ``QuantumCircuit``.
 
     The gate is anonymous (not tied to a named quantum register),
@@ -34,6 +34,9 @@ def circuit_to_gate(circuit, parameter_map=None):
            parameters in the circuit to parameters to be used in the gate.
            If None, existing circuit parameters will also parameterize the
            Gate.
+        sort_parameters_by_name (bool): If True, the parameters in the circuit are sorted by name
+            before being added to the gate. Otherwise, the order of the circuit is used, i.e.
+            insertion-ordered by default.
 
     Raises:
         QiskitError: if circuit is non-unitary or if
@@ -65,9 +68,14 @@ def circuit_to_gate(circuit, parameter_map=None):
         for parameter in circuit.parameters:
             parameter_dict[parameter] = unrolled_parameter_map[parameter]
 
+    if sort_parameters_by_name:
+        gate_parameters = sorted(parameter_dict.values(), key=lambda p: p.name)
+    else:
+        gate_parameters = list(parameter_dict.values())
+
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=list(parameter_dict.values()))
+                params=gate_parameters)
     gate.condition = None
 
     def find_bit_position(bit):
