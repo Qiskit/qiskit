@@ -311,7 +311,8 @@ class MCU1Gate(ControlledGate):
 
         from qiskit.extensions.unitary import _compute_control_matrix
         base_mat = U1Gate(lam).to_matrix()
-        return _compute_control_matrix(base_mat, self.num_ctrl_qubits)
+        return _compute_control_matrix(base_mat, self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 def mcu1(self, lam, control_qubits, target_qubit):

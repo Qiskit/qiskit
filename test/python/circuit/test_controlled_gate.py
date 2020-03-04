@@ -706,12 +706,11 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl_qubits = 5
         for gate_class in ControlledGate.__subclasses__():
             sig = signature(gate_class.__init__)
-            free_params = len(sig.parameters) - 1  # subtract "self"
-            if gate_class == MCU1Gate:
-                # the multi-controlled gates also take the number of control qubits
-                base_gate = gate_class(params[0], num_ctrl_qubits)
-            else:
-                base_gate = gate_class(*params[0:free_params])
+            free_params = params[0:len(sig.parameters) - 1]  # subtract "self"
+            if gate_class in [MCU1Gate]:  # last argument is the number of control qubits
+                free_params[-1] = num_ctrl_qubits
+
+            base_gate = gate_class(*free_params)
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
@@ -752,18 +751,16 @@ class TestControlledGate(QiskitTestCase):
         for cls in gate_classes:
             with self.subTest(i=cls):
                 sig = signature(cls)
-                if cls == MCU1Gate:
-                    # treat multi-controlled gates in a special case, since they also
-                    # require the number of control qubits
-                    args = [theta, num_ctrl_qubits]
-                else:
-                    numargs = len([param for param in sig.parameters.values()
-                                   if param.kind == param.POSITIONAL_ONLY or
-                                   (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                    param.default is param.empty)])
-                    args = [theta] * numargs
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY or
+                               (param.kind == param.POSITIONAL_OR_KEYWORD and
+                                param.default is param.empty)])
+                args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
+                elif cls in [MCU1Gate]:  # add the other multi controlled gates later on
+                    args[-1] = num_ctrl_qubits
+
                 gate = cls(*args)
                 try:
                     cgate = gate.control(num_ctrl_qubits)
