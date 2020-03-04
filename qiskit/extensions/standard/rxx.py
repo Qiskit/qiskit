@@ -15,7 +15,6 @@
 """
 Two-qubit XX-rotation gate.
 """
-import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -25,6 +24,7 @@ class RXXGate(Gate):
     """Two-qubit XX-rotation gate.
 
     This gate corresponds to the rotation U(θ) = exp(-1j * θ * X⊗X / 2)
+    up to the phase exp(-1j * θ/2).
     """
 
     def __init__(self, theta):
@@ -35,20 +35,18 @@ class RXXGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         from qiskit.extensions.standard.x import CXGate
         from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.u2 import U2Gate
-        from qiskit.extensions.standard.u3 import U3Gate
         from qiskit.extensions.standard.h import HGate
         definition = []
         q = QuantumRegister(2, 'q')
         theta = self.params[0]
         rule = [
-            (U3Gate(np.pi / 2, theta, 0), [q[0]], []),
+            (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-theta), [q[1]], []),
+            (U1Gate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
-            (U2Gate(-np.pi, np.pi - theta), [q[0]], []),
+            (HGate(), [q[0]], []),
         ]
         for inst in rule:
             definition.append(inst)
