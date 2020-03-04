@@ -33,23 +33,23 @@ class ZeroOp(BaseOperator):
     addition (``+``) and subtraction (``-``) operators.
     """
 
-    def __init__(self, input_dims, output_dims=None):
+    def __init__(self, output_dims=None, input_dims=None):
         """Initialize an operator object."""
-        if isinstance(input_dims, BaseOperator):
-            output_dims = input_dims.output_dims()
-            input_dims = input_dims.input_dims()
-        else:
-            if output_dims is None:
-                output_dims = input_dims
-                input_dims = self._automatic_dims(
-                    input_dims, np.product(input_dims))
-                output_dims = self._automatic_dims(
-                    output_dims, np.product(output_dims))
-        super().__init__(input_dims, input_dims)
+        if output_dims is None and input_dims is None:
+            raise QiskitError(
+                "input_dims and output_dims can't both be None.")
+        if input_dims is None:
+            input_dims = output_dims
+        elif output_dims is None:
+            output_dims = input_dims
+
+        input_dims = self._automatic_dims(input_dims, np.product(input_dims))
+        output_dims = self._automatic_dims(output_dims, np.product(output_dims))
+        super().__init__(input_dims, output_dims)
 
     def __repr__(self):
-        return 'ZeroOp(input_dims={}, output_dims={})'.format(
-            self._input_dims, self._output_dims)
+        return 'ZeroOp(output_dims={}, input_dims={})'.format(
+            self._output_dims, self._input_dims)
 
     def conjugate(self):
         """Return the conjugate of the operator."""
@@ -57,7 +57,8 @@ class ZeroOp(BaseOperator):
 
     def transpose(self):
         """Return the transpose of the operator."""
-        return self
+        return ZeroOp(output_dims=self._input_dims,
+                      input_dims=self._output_dims)
 
     def to_matrix(self):
         """Convert to a Numpy zero matrix."""
@@ -85,8 +86,8 @@ class ZeroOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         input_dims = other._input_dims + self._input_dims
-        output_dims = other._output_dim + self._input_dims
-        return ZeroOp(input_dims, output_dims)
+        output_dims = other._output_dims + self._output_dims
+        return ZeroOp(output_dims=output_dims, input_dims=input_dims)
 
     def expand(self, other):
         """Return the tensor product operator other ⊗ self.
@@ -103,8 +104,8 @@ class ZeroOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         input_dims = self._input_dims + other._input_dims
-        output_dims = self._input_dims + other._output_dim
-        return ZeroOp(input_dims, output_dims)
+        output_dims = self._output_dims + other._output_dims
+        return ZeroOp(output_dims=output_dims, input_dims=input_dims)
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
@@ -136,10 +137,12 @@ class ZeroOp(BaseOperator):
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, BaseOperator):
             other = Operator(other)
+
         input_dims, output_dims = self._get_compose_dims(other, qargs, front)
-        return ZeroOp(input_dims, output_dims)
+        return ZeroOp(output_dims=output_dims, input_dims=input_dims)
 
     def power(self, n):
         """Return the compose of a operator with itself n times.

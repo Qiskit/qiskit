@@ -16,7 +16,6 @@
 IdentityOp class
 """
 
-import copy
 from numbers import Number
 import numpy as np
 
