@@ -22,7 +22,7 @@ import warnings
 from typing import Optional
 
 from qiskit.pulse.exceptions import PulseError
-from ..commands import SamplePulse
+from ..commands.sample_pulse import SamplePulse
 from . import continuous
 
 from . import samplers
