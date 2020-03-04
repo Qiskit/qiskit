@@ -24,15 +24,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
 
-try:
-    import constraint  # pylint: disable=unused-import, import-error
 
-    HAS_CONSTRAINT = True
-except Exception:  # pylint: disable=broad-except
-    HAS_CONSTRAINT = False
-
-
-@unittest.skipIf(not HAS_CONSTRAINT, 'python-constraint not installed.')
 class TestCSPLayout(QiskitTestCase):
     """Tests the CSPLayout pass"""
     seed = 42

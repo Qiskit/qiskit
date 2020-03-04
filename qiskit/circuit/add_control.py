@@ -55,7 +55,7 @@ def add_control(operation: Union[Gate, ControlledGate],
         # the condition matching 'name' above is to catch a test case,
         # 'TestControlledGate.test_rotation_gates', where the rz gate
         # gets converted to a circuit before becoming a generic Gate object.
-        cgate = standard.CrzGate(*operation.params)
+        cgate = standard.CRZGate(*operation.params)
         return cgate.control(num_ctrl_qubits - 1)
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
@@ -191,7 +191,7 @@ def _unroll_gate(operation, basis_gates):
 def _apply_mcu3(circuit, theta, phi, lamb, q_controls, q_target, q_ancillae):
     from math import pi
 
-    if phi == -pi/2 and lamb == pi/2:
+    if phi == -pi / 2 and lamb == pi / 2:
         circuit.mcrx(theta, q_controls, q_target, use_basis_gates=True)
     elif phi == 0 and lamb == 0:
         circuit.mcry(theta, q_controls, q_target,

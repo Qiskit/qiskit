@@ -910,7 +910,7 @@ class MatplotlibDrawer:
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
-                    elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
+                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
 
                         color = None
@@ -937,6 +937,16 @@ class MatplotlibDrawer:
 
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
+
+                    # cu1 gate
+                    elif op.name == 'cu1':
+                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, text='U1 ({})'.format(param))
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+
                     # swap gate
                     elif op.name == 'swap':
                         self._swap(q_xy[0])
