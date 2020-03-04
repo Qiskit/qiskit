@@ -569,6 +569,8 @@ class PauliTable(BaseOperator):
             QiskitError: if other cannot be converted to a PauliTable.
         """
         # pylint: disable=unused-argument
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
         if qargs is None and other.n_qubits != self.n_qubits:
@@ -635,7 +637,7 @@ class PauliTable(BaseOperator):
             other = PauliTable(other)
         return PauliTable(np.vstack((self._array, other._array)))
 
-      def conjugate(self):
+    def conjugate(self):
         """Not implemented."""
         raise NotImplementedError(
             "{} does not support conjugatge".format(type(self)))
