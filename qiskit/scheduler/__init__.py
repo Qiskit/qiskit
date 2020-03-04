@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import
-
 """
 ===========================================
 Circuit Scheduler (:mod:`qiskit.scheduler`)
