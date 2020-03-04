@@ -45,7 +45,7 @@ import numpy as np
 
 from qiskit.pulse.pulse_lib import gaussian, gaussian_square, drag, constant, continuous
 from .sample_pulse import SamplePulse
-from .instruction import Instruction
+from ..instructions import Instruction
 from ..channels import PulseChannel
 from ..exceptions import PulseError
 

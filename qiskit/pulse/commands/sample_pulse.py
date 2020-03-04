@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 
-from .instruction import Instruction
+from ..instructions import Instruction
 from .pulse_command import PulseCommand
 
 

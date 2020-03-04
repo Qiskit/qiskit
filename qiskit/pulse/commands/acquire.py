@@ -20,7 +20,7 @@ from typing import Optional, Union, List
 
 from qiskit.pulse.exceptions import PulseError
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .meas_opts import Discriminator, Kernel
 from .command import Command
 
