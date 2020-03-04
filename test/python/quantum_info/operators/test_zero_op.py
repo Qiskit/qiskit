@@ -20,7 +20,7 @@ import unittest
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators import ZeroOp, IdentityOp, Operator
+from qiskit.quantum_info.operators import ZeroOp, ScalarOp, Operator
 
 
 class TestZeroOp(QiskitTestCase):
@@ -142,13 +142,13 @@ class TestZeroOp(QiskitTestCase):
                     value = op1 + op2
                     self.assertEqual(value, op1)
 
-    def test_add_identity(self):
-        """Test add and subtract operations with IdentityOp."""
+    def test_add_scalar(self):
+        """Test add and subtract operations with ScalarOp."""
 
         for dims in [2, 3, (2, 3), (3, 2)]:
             for coeff in [None, 1, -3.3, 4.5j]:
                 zero = ZeroOp(dims)
-                iden = IdentityOp(dims, coeff=coeff)
+                iden = ScalarOp(dims, coeff=coeff)
 
                 with self.subTest(msg='{} + {}'.format(zero, iden)):
                     value = zero + iden
@@ -229,8 +229,8 @@ class TestZeroOp(QiskitTestCase):
                                             input_dims=input_dims2 + input_dims1)
                             self.assertEqual(value, target)
 
-    def test_tensor_identity(self):
-        """Test tensor and expand methods with ZeroOp and IdentityOp."""
+    def test_tensor_scalar(self):
+        """Test tensor and expand methods with ZeroOp and ScalarOp."""
 
         dims = [(2, 3), (3, 2)]
         coeffs = [None, 1, -3.1, 1 + 3j]
@@ -240,7 +240,7 @@ class TestZeroOp(QiskitTestCase):
                     for coeff in coeffs:
                         op1 = ZeroOp(output_dims=output_dims,
                                      input_dims=input_dims)
-                        op2 = IdentityOp(iden_dims, coeff=coeff)
+                        op2 = ScalarOp(iden_dims, coeff=coeff)
 
                         with self.subTest(msg='{}.expand({})'.format(op1, op2)):
                             value = op1.expand(op2)
@@ -347,15 +347,15 @@ class TestZeroOp(QiskitTestCase):
                     target = ZeroOp(output_dims)
                     self.assertEqual(value, target)
 
-    def test_compose_identity(self):
-        """Test compose and dot methods with ZeroOp and IdentityOp."""
+    def test_compose_scalar(self):
+        """Test compose and dot methods with ZeroOp and ScalarOp."""
         dims = [2, 3, (2, 3), (3, 2)]
         for input_dims in dims:
             for output_dims in dims:
                 op1 = ZeroOp(output_dims=output_dims,
                              input_dims=input_dims)
 
-                op2 = IdentityOp(output_dims)
+                op2 = ScalarOp(output_dims)
                 with self.subTest(msg='{}.compose({})'.format(op1, op2)):
                     value = op1.compose(op2)
                     target = op1
@@ -366,7 +366,7 @@ class TestZeroOp(QiskitTestCase):
                     target = op1
                     self.assertEqual(value, target)
 
-                op2 = IdentityOp(input_dims)
+                op2 = ScalarOp(input_dims)
                 with self.subTest(msg='{}.dot({})'.format(op1, op2)):
                     value = op1.dot(op2)
                     target = op1
@@ -468,8 +468,8 @@ class TestZeroOp(QiskitTestCase):
                                         input_dims=target_input_dims)
                         self.assertEqual(value, target)
 
-    def test_compose_qargs_identity(self):
-        """Test qargs compose and dot methods with ZeroOp and IdentityOp."""
+    def test_compose_qargs_scalar(self):
+        """Test qargs compose and dot methods with ZeroOp and ScalarOp."""
         dims = [(2, 3), (3, 2)]
         for input_dims in dims:
             for output_dims in dims:
@@ -477,7 +477,7 @@ class TestZeroOp(QiskitTestCase):
                     op1 = ZeroOp(output_dims=output_dims,
                                  input_dims=input_dims)
 
-                    op2 = IdentityOp(output_dims[i])
+                    op2 = ScalarOp(output_dims[i])
                     with self.subTest(msg='{}.compose({}, qargs=[{}])'
                                           ''.format(op1, op2, i)):
                         value = op1.compose(op2, qargs=[i])
@@ -489,7 +489,7 @@ class TestZeroOp(QiskitTestCase):
                         target = op1
                         self.assertEqual(value, target)
 
-                    op2 = IdentityOp(input_dims[i])
+                    op2 = ScalarOp(input_dims[i])
                     with self.subTest(msg='{}.dot({}, qargs=[{}])'
                                           ''.format(op1, op2, i)):
                         value = op1.dot(op2, qargs=[i])

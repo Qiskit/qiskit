@@ -25,7 +25,7 @@ Operators
    :toctree: ../stubs/
 
    Operator
-   IdentityOp
+   ScalarOp
    ZeroOp
    Pauli
    pauli_group
@@ -109,7 +109,7 @@ Synthesis
    euler_angles_1q
 """
 
-from .operators import Operator, IdentityOp, ZeroOp
+from .operators import Operator, ScalarOp, ZeroOp
 from .operators.pauli import Pauli, pauli_group
 from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM

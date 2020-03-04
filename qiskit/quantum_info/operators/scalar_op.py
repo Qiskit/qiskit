@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-IdentityOp class
+ScalarOp class
 """
 
 from numbers import Number
@@ -24,13 +24,14 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 
 
-class IdentityOp(BaseOperator):
-    """Identity operator class.
+class ScalarOp(BaseOperator):
+    """Scalar identity operator class.
 
-    This is a symbolic representation of an identity operator on multiple
-    subsystems. It may be used to initialize a symbolic identity and then be
-    implicitly converted to other kinds of operator subclasses by using the
-    :meth:`compose`, :meth:`dot`, :meth:`tensor`, :meth:`expand` methods.
+    This is a symbolic representation of an scalar identity operator on
+    multiple subsystems. It may be used to initialize a symbolic scalar
+    multiplication of an identity and then be implicitly converted to other
+    kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
+    :meth:`tensor`, :meth:`expand` methods.
     """
 
     def __init__(self, dims, coeff=None):
@@ -52,8 +53,8 @@ class IdentityOp(BaseOperator):
 
     def __repr__(self):
         if self.coeff is None:
-            return 'IdentityOp({})'.format(self._input_dims)
-        return 'IdentityOp({}, coeff={})'.format(
+            return 'ScalarOp({})'.format(self._input_dims)
+        return 'ScalarOp({}, coeff={})'.format(
             self._input_dims, self.coeff)
 
     @property
@@ -84,7 +85,7 @@ class IdentityOp(BaseOperator):
         return np.isclose(np.abs(self.coeff), 1, atol=atol, rtol=rtol)
 
     def to_matrix(self):
-        """Convert to a Numpy identity matrix."""
+        """Convert to a Numpy matrix."""
         dim, _ = self.dim
         iden = np.eye(dim, dtype=complex)
         if self.coeff is None:
@@ -104,12 +105,12 @@ class IdentityOp(BaseOperator):
             other (BaseOperator): an operator object.
 
         Returns:
-            IdentityOp: if other is an IdentityOp.
-            BaseOperator: if other is not an IdentityOp.
+            ScalarOp: if other is an ScalarOp.
+            BaseOperator: if other is not an ScalarOp.
         """
         if not isinstance(other, BaseOperator):
             other = Operator(other)
-        if isinstance(other, IdentityOp):
+        if isinstance(other, ScalarOp):
             if self.coeff is None:
                 coeff = other.coeff
             elif other.coeff is None:
@@ -117,22 +118,22 @@ class IdentityOp(BaseOperator):
             else:
                 coeff = self.coeff * other.coeff
             dims = other._input_dims + self._input_dims
-            return IdentityOp(dims, coeff=coeff)
+            return ScalarOp(dims, coeff=coeff)
         return other.expand(self)
 
     def expand(self, other):
         """Return the tensor product operator other ⊗ self.
 
         Args:
-            other (IdentityOp or Operator): an operator object.
+            other (ScalarOp or Operator): an operator object.
 
         Returns:
-            IdentityOp: if other is an IdentityOp.
-            BaseOperator: if other is not an IdentityOp.
+            ScalarOp: if other is an ScalarOp.
+            BaseOperator: if other is not an ScalarOp.
         """
         if not isinstance(other, BaseOperator):
             other = Operator(other)
-        if isinstance(other, IdentityOp):
+        if isinstance(other, ScalarOp):
             if self.coeff is None:
                 coeff = other.coeff
             elif other.coeff is None:
@@ -140,7 +141,7 @@ class IdentityOp(BaseOperator):
             else:
                 coeff = self.coeff * other.coeff
             dims = self._input_dims + other._input_dims
-            return IdentityOp(dims, coeff=coeff)
+            return ScalarOp(dims, coeff=coeff)
         return other.tensor(self)
 
     def compose(self, other, qargs=None, front=False):
@@ -175,16 +176,16 @@ class IdentityOp(BaseOperator):
 
         input_dims, output_dims = self._get_compose_dims(other, qargs, front)
 
-        # If other is also an IdentityOp we only need to possibly
+        # If other is also an ScalarOp we only need to possibly
         # update the coefficient and dimensions
-        if isinstance(other, IdentityOp):
+        if isinstance(other, ScalarOp):
             if self.coeff is None:
                 coeff = other.coeff
             elif other.coeff is None:
                 coeff = self.coeff
             else:
                 coeff = self.coeff * other.coeff
-            return IdentityOp(input_dims, coeff=coeff)
+            return ScalarOp(input_dims, coeff=coeff)
 
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
@@ -195,7 +196,7 @@ class IdentityOp(BaseOperator):
             return self.coeff * ret
         # Otherwise compose using other operators method
         # Note that in this case that operator must know how to initalize
-        # from an IdentityOp either using its to_operator method or having
+        # from an ScalarOp either using its to_operator method or having
         # a specific initialization case.
         return other.__class__(self).compose(
             other, qargs=qargs, front=not front)
@@ -217,9 +218,9 @@ class IdentityOp(BaseOperator):
             return self
         if n == 0:
             # Raising to zero power returns identity
-            return IdentityOp(self._input_dims)
+            return ScalarOp(self._input_dims)
         coeff = self.coeff ** n
-        return IdentityOp(self._input_dims, coeff=coeff)
+        return ScalarOp(self._input_dims, coeff=coeff)
 
     def _add(self, other):
         """Return the operator self + other.
@@ -228,8 +229,8 @@ class IdentityOp(BaseOperator):
             other (BaseOperator): an operator object.
 
         Returns:
-            IdentityOp: if other is an IdentityOp.
-            BaseOperator: if other is not an IdentityOp.
+            ScalarOp: if other is an ScalarOp.
+            BaseOperator: if other is not an ScalarOp.
 
         Raises:
             QiskitError: if other has incompatible dimensions.
@@ -237,20 +238,20 @@ class IdentityOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         self._validate_add_dims(other)
-        if isinstance(other, IdentityOp):
+        if isinstance(other, ScalarOp):
             coeff1 = 1 if self.coeff is None else self.coeff
             coeff2 = 1 if other.coeff is None else other.coeff
-            return IdentityOp(self._input_dims, coeff=coeff1+coeff2)
+            return ScalarOp(self._input_dims, coeff=coeff1+coeff2)
         return other._add(self).reshape(self._input_dims, self._output_dims)
 
     def _multiply(self, other):
-        """Return the IdentityOp other * self.
+        """Return the ScalarOp other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            IdentityOp: the scaled identity operator other * self.
+            ScalarOp: the scaled identity operator other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
@@ -260,4 +261,4 @@ class IdentityOp(BaseOperator):
         if other == 1:
             return self
         coeff = other if self.coeff is None else other * self.coeff
-        return IdentityOp(self._input_dims, coeff=coeff)
+        return ScalarOp(self._input_dims, coeff=coeff)

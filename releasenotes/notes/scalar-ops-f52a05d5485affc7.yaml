@@ -1,22 +1,22 @@
 ---
 features:
   - |
-    Adds ``IdentityOp`` operator class that represents a symbolic identity
-    operator. This can be used to initialize a scalar multiple of an identity
-    on arbitrary dimension subsystems and it will be implicitly converted to
-    other BaseOperator subclasses (such as an ``Operator`` or ``QuantumChannel``)
+    Adds ``ScalarOp`` operator class that represents a scalar multiple of an
+    identity operator. This can be used to initialize an identity on arbitrary
+    dimension subsystems and it will be implicitly converted to other
+    BaseOperator subclasses (such as an ``Operator`` or ``QuantumChannel``)
     when it is composed with, or added too, them.
 
     Example
 
     .. code-block::
 
-        from qiskit.quantum_info import IdentityOp, Operator
+        from qiskit.quantum_info import ScalarOp, Operator
 
         X = Operator.from_label('X')
         Z = Operator.from_label('Z')
 
-        init = IdentityOperator(2 ** 3)  # 3-qubit identity
+        init = ScalarOp(2 ** 3)  # 3-qubit identity
         op = init @ X([0]) @ Z([1]) @ X([2])  # Op XZX
   - |
     Adds ``ZeroOp`` operator class that represents a symbolic empty (zero)
