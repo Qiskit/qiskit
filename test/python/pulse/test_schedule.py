@@ -14,6 +14,7 @@
 
 """Test cases for the pulse schedule."""
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -265,6 +266,23 @@ class TestScheduleBuilding(BaseTestSchedule):
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
+    @patch('qiskit.util.is_main_process', return_value=True)
+    def test_auto_naming(self, is_main_process_mock):
+        """Test that a schedule gets a default name, incremented per instance"""
+
+        del is_main_process_mock
+
+        sched_0 = Schedule()
+        sched_0_name_count = int(sched_0.name[len('sched'):])
+
+        sched_1 = Schedule()
+        sched_1_name_count = int(sched_1.name[len('sched'):])
+        self.assertEqual(sched_1_name_count, sched_0_name_count + 1)
+
+        sched_2 = Schedule()
+        sched_2_name_count = int(sched_2.name[len('sched'):])
+        self.assertEqual(sched_2_name_count, sched_1_name_count + 1)
+
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
         acquire = Acquire(10)
@@ -294,26 +312,6 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, 'snapshot_label')
-
-    def test_buffering(self):
-        """Test channel buffering."""
-        buffer_chan = DriveChannel(0, buffer=5)
-        gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
-        fc_pi_2 = FrameChange(phase=1.57)
-
-        # no initial buffer
-        sched = Schedule()
-        sched += gp0(buffer_chan)
-        self.assertEqual(sched.duration, 10)
-        # this pulse should not be buffered
-        sched += gp0(buffer_chan)
-        self.assertEqual(sched.duration, 20)
-        # should not be buffered as framechange
-        sched += fc_pi_2(buffer_chan)
-        self.assertEqual(sched.duration, 20)
-        # use buffer with insert
-        sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
-        self.assertEqual(sched.duration, 30)
 
     def test_multiple_parameters_not_returned(self):
         """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
