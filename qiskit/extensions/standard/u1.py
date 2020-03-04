@@ -172,7 +172,7 @@ def cu1(self, theta, control_qubit, target_qubit,
     Applied from a specified control ``control_qubit`` to target
     ``target_qubit`` qubit  with angle theta. A cU1 gate implements a
     :math:`\theta` radian rotation of the qubit state vector about the z axis
-    of the Bloch sphere when the control qubit is in state :math:`\ket{1}`.
+    of the Bloch sphere when the control qubit is in state :math:`|1\rangle`.
 
     Examples:
 

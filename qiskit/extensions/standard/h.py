@@ -84,8 +84,8 @@ def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
 
     An H gate implements a rotation of :math:`\pi` about the axis
     :math:`\frac{(x + z)}{\sqrt{2}}` on the Bloch sphere. This gate is
-    canonically used to rotate the qubit state from :math:`\ket{0}` to
-    :math:`\ket{+}` or :math:`\ket{1}` to :math:`\ket{-}`.
+    canonically used to rotate the qubit state from :math:`|0\rangle` to
+    :math:`|+\rangle` or :math:`|1\rangle` to :math:`|-\rangle`.
 
     Examples:
 
