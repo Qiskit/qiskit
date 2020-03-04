@@ -58,9 +58,9 @@ class BaseJob(ABC):
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 
         Args:
-            timeout: seconds to wait for the job. If ``None``, wait indefinitely. Default: None.
-            wait: seconds between queries. Default: 5.
-            callback: callback function invoked after each query. Default: None.
+            timeout: seconds to wait for the job. If ``None``, wait indefinitely.
+            wait: seconds between queries.
+            callback: callback function invoked after each query.
                 The following positional arguments are provided to the callback function:
 
                 * job_id: job ID
