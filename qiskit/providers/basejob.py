@@ -49,6 +49,22 @@ class BaseJob(ABC):
         """Return the backend where this job was executed."""
         return self._backend
 
+    def done(self) -> bool:
+        """Return whether the job has successfully run."""
+        return self.status() == JobStatus.DONE
+
+    def running(self) -> bool:
+        """Return whether the job is actively running."""
+        return self.status() == JobStatus.RUNNING
+
+    def cancelled(self) -> bool:
+        """Return whether the job has been cancelled."""
+        return self.status() == JobStatus.CANCELLED
+
+    def in_final_state(self) -> bool:
+        """Return whether the job is in a final job state."""
+        return self.status() in JOB_FINAL_STATES
+
     def wait_for_final_state(
             self,
             timeout: Optional[float] = None,
@@ -85,22 +101,6 @@ class BaseJob(ABC):
                 callback(self.job_id(), status, self)
             time.sleep(wait)
             status = self.status()
-
-    def done(self) -> bool:
-        """Return whether the job has successfully run."""
-        return self.status() == JobStatus.DONE
-
-    def running(self) -> bool:
-        """Return whether the job is actively running."""
-        return self.status() == JobStatus.RUNNING
-
-    def cancelled(self) -> bool:
-        """Return whether the job has been cancelled."""
-        return self.status() == JobStatus.CANCELLED
-
-    def in_final_state(self) -> bool:
-        """Return whether the job is in a final job state."""
-        return self.status() in JOB_FINAL_STATES
 
     @abstractmethod
     def submit(self):
