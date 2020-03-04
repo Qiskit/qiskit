@@ -54,7 +54,6 @@ class Instruction(ScheduleComponent, ABC):
             *channels: List of pulse channels that this instruction operates on.
             name: Display name for this instruction.
         """
-
         self._name = name
 
         self._command = None
