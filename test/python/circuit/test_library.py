@@ -25,7 +25,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
     def test_permutation(self):
         """Test permutation circuit."""
-        circuit = Permutation(n_qubits=4, pattern=[1, 0, 3, 2])
+        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
@@ -37,14 +37,14 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
     def test_xor(self):
         """Test xor circuit."""
-        circuit = XOR(n_qubits=3, amount=4)
+        circuit = XOR(num_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
 
     def test_inner_product(self):
         """Test inner product circuit."""
-        circuit = InnerProduct(n_qubits=3)
+        circuit = InnerProduct(num_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
         expected.cz(1, 4)

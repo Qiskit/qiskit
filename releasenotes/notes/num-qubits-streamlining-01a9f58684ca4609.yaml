@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The ``n_qubits`` and ``numberofqubits`` keywords are deprecated throughout 
+    Terra and replaced by ``num_qubits``.

@@ -32,7 +32,7 @@ class Permutation(QuantumCircuit):
                  num_qubits: int,
                  pattern: Optional[List[int]] = None,
                  seed: Optional[int] = None,
-                 n_qubits: Optional[int] = None  # pylint:disable=unused-argument
+                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
                  ) -> QuantumCircuit:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
@@ -79,7 +79,7 @@ class XOR(QuantumCircuit):
                  num_qubits: int,
                  amount: Optional[int] = None,
                  seed: Optional[int] = None,
-                 n_qubits: Optional[int] = None  # pylint:disable=unused-argument
+                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
                  ) -> QuantumCircuit:
         """Return a circuit implementing bitwise xor.
 
@@ -87,6 +87,7 @@ class XOR(QuantumCircuit):
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.
+            n_qubits: deprecated, use num_qubits instead.
 
         Returns:
             A circuit for bitwise XOR.
@@ -115,7 +116,7 @@ class InnerProduct(QuantumCircuit):
 
     @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self, num_qubits: int,
-                 n_qubits: Optional[int] = None  # pylint:disable=unused-argument
+                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
                  ) -> QuantumCircuit:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 

@@ -177,27 +177,27 @@ class TestCircuitRegisters(QiskitTestCase):
 
     def test_apply_barrier_to_slice(self):
         """test applying barrier to register slice"""
-        n_qubits = 10
-        qr = QuantumRegister(n_qubits)
-        cr = ClassicalRegister(n_qubits)
+        num_qubits = 10
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(num_qubits)
         qc = QuantumCircuit(qr, cr)
         qc.barrier(qr)
         # barrier works a little different than normal gates for expansion
         # test full register
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0][0].name, 'barrier')
-        self.assertEqual(len(qc.data[0][1]), n_qubits)
+        self.assertEqual(len(qc.data[0][1]), num_qubits)
         for i, bit in enumerate(qc.data[0][1]):
             self.assertEqual(bit.index, i)
         # test slice
-        n_qubits = 2
+        num_qubits = 2
         qc = QuantumCircuit(qr, cr)
-        qc.barrier(qr[0:n_qubits])
+        qc.barrier(qr[0:num_qubits])
         self.log.info(qc.qasm())
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0][0].name, 'barrier')
-        self.assertEqual(len(qc.data[0][1]), n_qubits)
-        for i in range(n_qubits):
+        self.assertEqual(len(qc.data[0][1]), num_qubits)
+        for i in range(num_qubits):
             self.assertEqual(qc.data[0][1][i].index, i)
 
     def test_apply_ccx_to_slice(self):

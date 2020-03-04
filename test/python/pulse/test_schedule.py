@@ -350,7 +350,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test schedule with acquire on single qubit."""
         acquire = Acquire(10)
         sched_single = Schedule()
-        for i in range(self.config.n_qubits):
+        for i in range(self.config.num_qubits):
             sched_single = sched_single.insert(10, acquire(self.config.acquire(i),
                                                            MemorySlot(i),
                                                            RegisterSlot(i)))
@@ -362,9 +362,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test schedule with acquire on multiple qubits."""
         acquire = Acquire(10)
         sched_multiple = Schedule()
-        qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
-        mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
-        reg_slots = [RegisterSlot(i) for i in range(self.config.n_qubits)]
+        qubits = [self.config.acquire(i) for i in range(self.config.num_qubits)]
+        mem_slots = [MemorySlot(i) for i in range(self.config.num_qubits)]
+        reg_slots = [RegisterSlot(i) for i in range(self.config.num_qubits)]
         sched_multiple = sched_multiple.insert(10, acquire(qubits, mem_slots, reg_slots))
 
         self.assertEqual(len(sched_multiple.instructions), 1)

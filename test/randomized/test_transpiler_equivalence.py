@@ -77,7 +77,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     clbits = Bundle('clbits')
 
     backend = Aer.get_backend('qasm_simulator')
-    max_qubits = int(backend.configuration().n_qubits / 2)
+    max_qubits = int(backend.configuration().num_qubits / 2)
 
     def __init__(self):
         super().__init__()
@@ -217,7 +217,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         print('Evaluating circuit at level {} on {}:\n{}'.format(
             opt_level, backend, self.qc.qasm()))
 
-        assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
+        assume(backend is None or backend.configuration().num_qubits >= len(self.qc.qubits))
 
         shots = 4096
 

@@ -1356,10 +1356,9 @@ class TestStandardMethods(QiskitTestCase):
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
-            sig = signature(gate_class.__init__)
-            free_params = len(sig.parameters) - 1  # subtract "self"
+            sig = signature(gate_class)
+            free_params = len([p for p in sig.parameters.values() if p.kind != p.KEYWORD_ONLY])
             try:
-                print(gate_class)
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
                 self.log.info(
@@ -1430,9 +1429,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
     # pylint: enable=bad-whitespace
     def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):
         # Verify providing *args is unchanged
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 
@@ -1445,9 +1444,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
         self.assertEqual(cargs, [])
 
         # Verify providing old_arg raises a DeprecationWarning
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 
@@ -1464,9 +1463,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
         self.assertEqual(cargs, [])
 
         # Verify providing new_arg does not raise a DeprecationWarning
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 

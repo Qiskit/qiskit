@@ -78,7 +78,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.seed_simulator, 6)
         self.assertEqual(len(qobj.experiments), 2)
-        self.assertEqual(qobj.experiments[1].config.n_qubits, 3)
+        self.assertEqual(qobj.experiments[1].config.num_qubits, 3)
         self.assertEqual(len(qobj.experiments), 2)
         self.assertEqual(len(qobj.experiments[1].instructions), 6)
 
@@ -356,7 +356,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         self.schedule = pulse.Schedule(name='fake_experiment')
         self.schedule = self.schedule.insert(0, test_pulse(self.backend_config.drive(0)))
-        for i in range(self.backend_config.n_qubits):
+        for i in range(self.backend_config.num_qubits):
             self.schedule = self.schedule.insert(5, acquire(self.backend_config.acquire(i),
                                                             MemorySlot(i)))
 
@@ -673,7 +673,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                              pulse.MeasureChannel(0): self.meas_lo_freq[0],
                              pulse.MeasureChannel(1): self.meas_lo_freq[1]}
         self.meas_map = self.config.meas_map
-        self.memory_slots = self.config.n_qubits
+        self.memory_slots = self.config.num_qubits
         self.rep_time = self.config.rep_times[0]
 
     def test_defaults(self):

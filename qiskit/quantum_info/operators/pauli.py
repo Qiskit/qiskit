@@ -326,8 +326,8 @@ class Pauli:
         from qiskit.extensions.standard import IGate, XGate, YGate, ZGate
         gates = {'I': IGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
         label = self.to_label()
-        n_qubits = self.numberofqubits
-        qreg = QuantumRegister(n_qubits)
+        num_qubits = self.num_qubits
+        qreg = QuantumRegister(num_qubits)
         circuit = QuantumCircuit(qreg, name='Pauli:{}'.format(label))
         for i, pauli in enumerate(reversed(label)):
             circuit.append(gates[pauli], [qreg[i]])
