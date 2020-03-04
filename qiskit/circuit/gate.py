@@ -14,6 +14,8 @@
 
 """Unitary gate."""
 
+import math
+import cmath
 import numpy as np
 from scipy.linalg import schur
 
@@ -24,18 +26,42 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, num_qubits, params, label=None):
+    def __init__(self, name, num_qubits, params, phase=0, label=None):
         """Create a new gate.
 
         Args:
             name (str): the Qobj name of the gate
             num_qubits (int): the number of qubits the gate acts on.
             params (list): a list of parameters.
-            label (str or None): An optional label for the gate [Default: None]
+            phase (float): set the gate phase (Default: 0).
+            label (str or None): An optional label for the gate (Default: None).
         """
         self._label = label
         self.definition = None
+        self._phase = phase
         super().__init__(name, num_qubits, 0, params)
+
+    @property
+    def phase(self):
+        """Return the phase of the gate."""
+        return self._phase
+
+    @phase.setter
+    def phase(self, angle):
+        """Set the phase of the gate."""
+        # Set the phase to the [-2 * pi, 2 * pi] interval
+        angle = float(angle)
+        if not angle:
+            self._phase = 0
+        elif angle < 0:
+            self._phase = angle % (-2 * math.pi)
+        else:
+            self._phase = angle % (2 * math.pi)
+
+    def _matrix_definition(self):
+        """Return the Numpy.array matrix definition of the gate."""
+        # This should be set in classes that derive from Gate.
+        return None
 
     def to_matrix(self):
         """Return a Numpy.array for the gate unitary matrix.
@@ -44,7 +70,10 @@ class Gate(Instruction):
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
-        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        mat = self._matrix_definition()
+        if mat is None:
+            raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        return cmath.exp(1j * self._phase) * mat if self._phase else mat
 
     def power(self, exponent):
         """Creates a unitary gate as `gate^exponent`.
@@ -58,9 +87,10 @@ class Gate(Instruction):
         Raises:
             CircuitError: If Gate is not unitary
         """
+        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
-        decomposition, unitary = schur(self.to_matrix(), output='complex')
+        decomposition, unitary = schur(Operator(self).data, output='complex')
         # Raise the diagonal entries to the specified power
         decomposition_power = list()
 
@@ -84,6 +114,8 @@ class Gate(Instruction):
         instruction = super().assemble()
         if self.label:
             instruction.label = self.label
+        if self._phase:
+            instruction.phase = self._phase
         return instruction
 
     @property
@@ -106,24 +138,24 @@ class Gate(Instruction):
         else:
             raise TypeError('label expects a string or None')
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return controlled version of gate
 
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
-            label (str): optional gate label
+            label (str or None): optional gate label
+            ctrl_state (int or str or None): The control state in decimal or as
+                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
         Returns:
-            ControlledGate: controlled version of gate. This default algorithm
-                uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-                num_qubits + 2*num_ctrl_qubits - 1.
+            ControlledGate: controlled version of gate.
 
         Raises:
-            QiskitError: unrecognized mode
+            QiskitError: unrecognized mode or invalid ctrl_state
         """
         # pylint: disable=cyclic-import
         from .add_control import add_control
-        return add_control(self, num_ctrl_qubits, label)
+        return add_control(self, num_ctrl_qubits, label, ctrl_state)
 
     @staticmethod
     def _broadcast_single_argument(qarg):
