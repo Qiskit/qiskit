@@ -35,7 +35,7 @@ class FrameChange(Command):
             name: Name of this framechange command.
         """
         warnings.warn("FrameChange is deprecated. Use ShiftPhase, instead, with channels"
-                      "specified. For example: ShiftPhase(3.14)(DriveChannel(0)) -> "
+                      "specified. For example: FrameChange(3.14)(DriveChannel(0)) -> "
                       "ShiftPhase(3.14, DriveChannel(0)). This can be called to add a channel: "
                       "ShiftPhase(3.14)(DriveChannel(0)).",
                       DeprecationWarning)
@@ -79,7 +79,7 @@ class FrameChangeInstruction(Instruction):
     def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
         warnings.warn("The FrameChangeInstruction is deprecated. Use ShiftPhase, instead, with "
                       "channels specified. For example: "
-                      "ShiftPhaseInstruction(ShiftPhase(3.14), DriveChannel(0)) -> "
+                      "FrameChangeInstruction(FrameChange(3.14), DriveChannel(0)) -> "
                       "ShiftPhase(3.14, DriveChannel(0)).",
                       DeprecationWarning)
         super().__init__(command, channel, name=name)

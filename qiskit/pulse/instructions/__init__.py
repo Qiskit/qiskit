@@ -24,7 +24,7 @@ with operands *phase* and *channel*, for some float ``phase`` and a
 
     ShiftPhase(phase, channel)
 
-The implicit duration for this instruction is zero.
+The duration of this instruction is implicitly zero.
 
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
