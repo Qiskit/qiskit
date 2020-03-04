@@ -178,7 +178,7 @@ def cu3(self, theta, phi, lam, control_qubit, target_qubit,
     Applied from a specified control ``control_qubit`` to target
     ``target_qubit`` qubit with angle ``theta``, ``phi``, and ``lam``.
     A cU3 gate implements a ``U3(theta,phi,lam)`` on the target qubit when the
-    control qubit is in state :math:`\ket{1}`.
+    control qubit is in state :math:`|1\\rangle`.
 
     Examples:
 

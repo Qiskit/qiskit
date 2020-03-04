@@ -96,7 +96,7 @@ class ParametricPulse(PulseCommand):
         return ParametricInstruction(self, channel, name=name)
 
     def draw(self, dt: float = 1,
-             style = None,
+             style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,

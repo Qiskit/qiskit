@@ -291,8 +291,9 @@ class PassManager:
             raw (bool): If ``True``, save the raw Dot output instead of the image.
 
         Returns:
-            an in-memory representation of the pass manager, or ``None`` if no image was generated
-            or `Pillow <https://pypi.org/project/Pillow/>`_ is not installed.
+            Optional[PassManager]: an in-memory representation of the pass manager, or ``None``
+            if no image was generated or `Pillow <https://pypi.org/project/Pillow/>`__
+            is not installed.
 
         Raises:
             ImportError: when nxpd or pydot not installed.

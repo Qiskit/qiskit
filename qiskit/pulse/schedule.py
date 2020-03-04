@@ -21,7 +21,7 @@ import abc
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 import warnings
 
 from qiskit.util import is_main_process
@@ -167,11 +167,9 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent.
 
         Yields:
-            Tuple containing the time each :class:`~qiskit.pulse.Instruction`
-            starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
-
-        ReturnType:
-            Iterable[Tuple[int, Instruction]]
+            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
+                :class:`~qiskit.pulse.Instruction`
+                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -258,7 +256,7 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types = None,
+               instruction_types=None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
@@ -289,7 +287,7 @@ class Schedule(ScheduleComponent):
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
-                instruction_types = None,
+                instruction_types=None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
@@ -328,7 +326,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types = None,
+                          instruction_types=None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -396,7 +394,7 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def draw(self, dt: float = 1, style = None,
+    def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
              channel_scales: Optional[Dict[Channel, float]] = None,
@@ -441,7 +439,7 @@ class Schedule(ScheduleComponent):
             The scaling factor is displayed under the channel name alias.
 
         Returns:
-            A matplotlib figure object of the pulse schedule.
+            matplotlib.Figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
         if scaling is not None:

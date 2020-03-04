@@ -326,7 +326,7 @@ class Statevector(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output statevector of an instruction.
 
-        The statevector is initialized in the state :math:\ket{0,\ldots,0} of the
+        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
         same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
