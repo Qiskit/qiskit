@@ -74,20 +74,20 @@ class BaseJob(ABC):
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 
         Args:
-            timeout: seconds to wait for the job. If ``None``, wait indefinitely.
-            wait: seconds between queries.
-            callback: callback function invoked after each query.
+            timeout: Seconds to wait for the job. If ``None``, wait indefinitely.
+            wait: Seconds between queries.
+            callback: Callback function invoked after each query.
                 The following positional arguments are provided to the callback function:
 
-                * job_id: job ID
-                * job_status: status of the job from the last query
-                * job: this BaseJob instance
+                * job_id: Job ID
+                * job_status: Status of the job from the last query
+                * job: This BaseJob instance
 
                 Note: different subclass might provide different arguments to
                 the callback function.
 
         Raises:
-            JobTimeoutError: if the job does not reach a final state before the
+            JobTimeoutError: If the job does not reach a final state before the
                 specified timeout.
         """
         start_time = time.time()
