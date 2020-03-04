@@ -143,13 +143,19 @@ class TestPauliTable(QiskitTestCase):
             self.assertTrue(np.all(pauli.array == array))
 
         with self.subTest(msg='set array'):
+            pauli = PauliTable('XX')
+            array = np.zeros([1, 4], dtype=np.bool)
+            pauli.array = array
+            self.assertTrue(np.all(pauli.array == array))
 
-            def set_array():
+        with self.subTest(msg='set array raises'):
+
+            def set_array_raise():
                 pauli = PauliTable('XXX')
                 pauli.array = np.eye(4)
                 return pauli
 
-            self.assertRaises(Exception, set_array)
+            self.assertRaises(ValueError, set_array_raise)
 
         with self.subTest(msg='X'):
             pauli = PauliTable.from_labels(['XI', 'IZ', 'YY'])

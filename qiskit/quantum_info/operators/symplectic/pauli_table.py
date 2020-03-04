@@ -179,6 +179,13 @@ class PauliTable(BaseOperator):
         """The underlying boolean array."""
         return self._array
 
+    @array.setter
+    def array(self, value):
+        """Set the underlying boolean array."""
+        # We use [:, :] array view so that setting the array cannot
+        # change the arrays shape.
+        self._array[:, :] = value
+
     @property
     def X(self):
         """The X block of the :attr:`array`."""
