@@ -56,7 +56,7 @@ class Delay(Instruction):
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
         self._duration = duration
         self._channel = channel
-        super().__init__({'duration': duration}, channel, name)
+        super().__init__(duration, channel, name=name)
 
     @property
     def operands(self) -> List[Union[int, PulseChannel]]:

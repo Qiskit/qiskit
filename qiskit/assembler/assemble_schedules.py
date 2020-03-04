@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Tuple
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, Delay
 from qiskit.pulse.commands import (Command, PulseInstruction, Acquire, AcquireInstruction,
                                    DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
@@ -193,7 +193,7 @@ def _assemble_instructions(
             acquire_instruction_map[(time, instruction.command)].append(instruction)
             continue
 
-        if isinstance(instruction, DelayInstruction):
+        if isinstance(instruction, (DelayInstruction, Delay)):
             # delay instructions are ignored as timing is explicit within qobj
             continue
 
