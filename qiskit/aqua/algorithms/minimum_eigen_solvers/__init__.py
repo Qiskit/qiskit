@@ -20,8 +20,7 @@ from .iqpe import IQPE
 from .qpe import QPE
 from .cplex import ClassicalCPLEX, CPLEX_Ising
 from .classical_minimum_eigen_solver import ClassicalMinimumEigensolver
-from .minimum_eigen_solver import MinimumEigensolver
-from .minimum_eigen_solver_result import MinimumEigensolverResult
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 __all__ = [
     'VQE',

@@ -13,13 +13,13 @@
 # that they have been altered from the originals.
 
 """The Minimum Eigensolver interface"""
-
-
+import warnings
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 
+import numpy as np
+from qiskit.aqua.algorithms import AlgorithmResult
 from qiskit.aqua.operators import BaseOperator
-from .minimum_eigen_solver_result import MinimumEigensolverResult
 
 
 class MinimumEigensolver(ABC):
@@ -34,7 +34,7 @@ class MinimumEigensolver(ABC):
     @abstractmethod
     def compute_minimum_eigenvalue(
             self, operator: Optional[BaseOperator] = None,
-            aux_operators: Optional[List[BaseOperator]] = None) -> MinimumEigensolverResult:
+            aux_operators: Optional[List[BaseOperator]] = None) -> 'MinimumEigensolverResult':
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with
@@ -88,3 +88,67 @@ class MinimumEigensolver(ABC):
     def aux_operators(self, aux_operators: List[BaseOperator]) -> None:
         """ set aux operators """
         pass
+
+
+class MinimumEigensolverResult(AlgorithmResult):
+    """ Minimum Eigensolver Result."""
+
+    @property
+    def eigenvalue(self) -> Union[None, float]:
+        """ returns eigen value """
+        return self.get('eigenvalue')
+
+    @eigenvalue.setter
+    def eigenvalue(self, value: float) -> None:
+        """ set eigen value """
+        self.data['eigenvalue'] = value
+
+    @property
+    def eigenstate(self) -> Union[None, np.ndarray]:
+        """ return eigen state """
+        return self.get('eigenstate')
+
+    @eigenstate.setter
+    def eigenstate(self, value: np.ndarray) -> None:
+        """ set eigen state """
+        self.data['eigenstate'] = value
+
+    @property
+    def aux_operator_eigenvalues(self) -> Union[None, np.ndarray]:
+        """ return aux operator eigen values """
+        return self.get('aux_operator_eigenvalues')
+
+    @aux_operator_eigenvalues.setter
+    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
+        """ set aux operator eigen values """
+        self.data['aux_operator_eigenvalues'] = value
+
+    @staticmethod
+    def from_dict(a_dict: Dict) -> 'MinimumEigensolverResult':
+        """ create new object from a dictionary """
+        return MinimumEigensolverResult(a_dict)
+
+    def __getitem__(self, key: object) -> object:
+        if key == 'energy':
+            warnings.warn('energy deprecated, use eigenvalue property.', DeprecationWarning)
+            value = super().__getitem__('eigenvalue')
+            return None if value is None else value.real
+        elif key == 'energies':
+            warnings.warn('energies deprecated, use eigenvalue property.', DeprecationWarning)
+            value = super().__getitem__('eigenvalue')
+            return None if value is None else [value.real]
+        elif key == 'eigvals':
+            warnings.warn('eigvals deprecated, use eigenvalue property.', DeprecationWarning)
+            value = super().__getitem__('eigenvalue')
+            return None if value is None else [value]
+        elif key == 'eigvecs':
+            warnings.warn('eigvecs deprecated, use eigenstate property.', DeprecationWarning)
+            value = super().__getitem__('eigenstate')
+            return None if value is None else [value]
+        elif key == 'aux_ops':
+            warnings.warn('aux_ops deprecated, use aux_operator_eigenvalues property.',
+                          DeprecationWarning)
+            value = super().__getitem__('aux_operator_eigenvalues')
+            return None if value is None else [value]
+
+        return super().__getitem__(key)

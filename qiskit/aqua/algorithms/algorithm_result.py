@@ -19,6 +19,7 @@ This module implements the abstract base class for algorithm results.
 from typing import Optional, Dict, Tuple
 from abc import ABC
 import collections
+import inspect
 
 
 class AlgorithmResult(ABC, collections.UserDict):
@@ -46,6 +47,33 @@ class AlgorithmResult(ABC, collections.UserDict):
 
     def update(self, *args, **kwargs) -> None:
         raise TypeError("'update' invalid for this object.")
+
+    def combine(self, result: 'AlgorithmResult') -> None:
+        """
+        Any property from the argument that exists in the receiver is
+        updated.
+        Args:
+            result: Argument result with properties to be set.
+        Raises:
+            TypeError: Argument is None
+        """
+        if result is None:
+            raise TypeError('Argument result expected.')
+        if result == self:
+            return
+
+        # find any result public property that exists in the receiver
+        for name, value in inspect.getmembers(result):
+            if not name.startswith('_') and name != 'data' and \
+                    not inspect.ismethod(value) and not inspect.isfunction(value) and \
+                    hasattr(self, name):
+                if value is None:
+                    # Just remove from receiver if it exists
+                    # since None is the default value in derived classes for non existent name.
+                    if name in self.data:
+                        del self.data[name]
+                else:
+                    self.data[name] = value
 
     def __contains__(self, key: object) -> bool:
         # subclasses have special __getitem__
