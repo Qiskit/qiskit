@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    Adds ``PauliTable`` class. This is an efficient symplectic representation
+    of a list of N-qubit Pauli operators. Some features of this class are:
+      
+      * PauliTables may be composed, and tensored which will return a PauliTable
+        with the combination of the operation (``PauliTable.compose``,
+        ``PauliTable.dot``, ``PauliTable.expand``, ``PauliTable.tensor``) between
+        each element of the first table, with each element of the second table.
+        
+      * Addition of two tables acts as list concatination of the terms in each
+        table (``+``).
+      
+      * Pauli tables can be sorted by lexicographic (tensor product) order or
+        by Pauli weights (``PauliTable.sort``).
+
+      * Duplicate elements can be counted and deleted (``PauliTable.unique``).
+
+      * The PauliTable may be iterated over in either its native symplectic
+        boolean array representation, as Pauli string labels
+        (``PauliTable.label_iter``), or as dense Numpy array or sparse CSR
+        matrices (``PauliTable.matrix_iter``).
+
+      * Checking commutation between elements of the Pauli table and another
+        Pauli (``PauliTable.commutes``) or Pauli table
+        (``PauliTable.commutes_with_all``)
+    
+    See the class API documentation for additional details. 
+  - |
+    Adds ``pauli_basis`` function which returns an N-qubit Pauli basis as a
+    ``PauliTable`` object. The ordering of this basis can either be by 
+    standard lexicographic (tensor product) order, or by the number of
+    non-identity Pauli terms (weight).
