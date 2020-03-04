@@ -143,7 +143,7 @@ def execute(experiments, backend,
         default_meas_los (list): List of default meas LO frequencies in Hz
 
         schedule_los (None or list or dict or LoConfig): Experiment LO
-        configurations, if specified the list is in the format::
+            configurations, if specified the list is in the format::
 
                 list[Union[Dict[PulseChannel, float], LoConfig]] or
                      Union[Dict[PulseChannel, float], LoConfig]
