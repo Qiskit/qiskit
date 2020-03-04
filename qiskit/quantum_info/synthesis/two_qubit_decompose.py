@@ -350,8 +350,8 @@ class TwoQubitBasisDecomposer():
                                   self.decomp3_supercontrolled]
 
     def traces(self, target):
-        """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|`for different number of
-        basis gates"""
+        """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
+        basis gates."""
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
