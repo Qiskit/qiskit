@@ -267,6 +267,24 @@ class Statevector(QuantumState):
     def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
 
+        .. list-table:: Single-qubit state labels
+           :header-rows: 1
+
+           * - Label
+             - Statevector
+           * - ``"0"``
+             - :math:`[1, 0]`
+           * - ``"1"``
+             - :math:`[0, 1]`
+           * - ``"+"``
+             - :math:`[1 / \\sqrt{2},  1 / \\sqrt{2}]`
+           * - ``"-"``
+             - :math:`[1 / \\sqrt{2},  -1 / \\sqrt{2}]`
+           * - ``"r"``
+             - :math:`[1 / \\sqrt{2},  i / \\sqrt{2}]`
+           * - ``"l"``
+             - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
+
         Args:
             label (string): a eigenstate string ket label ``0``,``1``,``+``,``-``,``r``,``l``.
 
@@ -277,15 +295,6 @@ class Statevector(QuantumState):
             QiskitError: if the label contains invalid characters, or the length
             of the label is larger than an explicitly specified num_qubits.
 
-        Additional Information:
-
-        The labels correspond to the single-qubit states:
-        '0': [1, 0]
-        '1': [0, 1]
-        '+': [1 / sqrt(2), 1 / sqrt(2)]
-        '-': [1 / sqrt(2), -1 / sqrt(2)]
-        'r': [1 / sqrt(2), 1j / sqrt(2)]
-        'l': [1 / sqrt(2), -1j / sqrt(2)]
         """
         # Check label is valid
         if re.match(r'^[01rl\-+]+$', label) is None:
