@@ -37,6 +37,7 @@ Abstract Classes
    Command
 
  """
+from .instruction import Instruction
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel

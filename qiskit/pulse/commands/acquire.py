@@ -18,8 +18,8 @@ Acquire.
 import warnings
 from typing import Optional, Union, List
 
+from qiskit.pulse import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
-from ..channels import MemorySlot, RegisterSlot, AcquireChannel
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
 from .command import Command
