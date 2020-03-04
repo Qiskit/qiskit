@@ -23,6 +23,14 @@ from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
                                               _format_state, _funm_svd)
 
 
+def _sqrt_positive_semidefinite_matrix(mat):
+    """Square root of a positive semidefinite matrix."""
+    eigs, vecs = la.eigh(mat)
+    # Zero out small negative entries
+    eigs = np.maximum(eigs, np.zeros(eigs.shape, dtype=eigs.dtype))
+    return vecs @ (np.sqrt(eigs) * vecs).T.conj()
+
+
 def state_fidelity(state1, state2, validate=True):
     r"""Return the state fidelity between two quantum states.
 
@@ -67,9 +75,12 @@ def state_fidelity(state1, state2, validate=True):
         fid = arr2.conj().dot(arr1).dot(arr2)
     else:
         # Fidelity of two DensityMatrices
-        s1sq = _funm_svd(arr1, np.sqrt)
-        s2sq = _funm_svd(arr2, np.sqrt)
-        fid = np.linalg.norm(s1sq.dot(s2sq), ord='nuc')**2
+        s1sqrt = _sqrt_positive_semidefinite_matrix(arr1)
+        eigs = la.eigvalsh(s1sqrt.dot(arr2.dot(s1sqrt)))
+        # Zero out small negative entries
+        eigs = np.maximum(eigs, np.zeros(eigs.shape, dtype=eigs.dtype))
+        trace = np.sum(np.sqrt(eigs))
+        fid = trace**2
     # Convert to py float rather than return np.float
     return float(np.real(fid))
 
