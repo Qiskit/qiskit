@@ -178,32 +178,35 @@ class Schedule(ScheduleComponent):
             *schedules: Schedules to be take the union with this ``Schedule``.
             name: Name of the new schedule. Defaults to the name of self.
         """
+        warnings.warn("The union method is deprecated. Use insert with start_time=0.",
+                      DeprecationWarning)
         if name is None:
             name = self.name
         new_sched = Schedule(name=name)
-        new_sched._union((0, self))
+        new_sched._insert(0, self)
         for sched_pair in schedules:
             if not isinstance(sched_pair, tuple):
                 sched_pair = (0, sched_pair)
-            new_sched._union(sched_pair)
+            new_sched._insert(sched_pair[0], sched_pair[1])
         return new_sched
 
-    def _union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
-        """Mutably union ``self`` and ``other`` with shift time.
+    def _insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
+        """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
-            other: Schedule with shift time to be take the union with this ``Schedule``.
+            start_time: Time to insert the second schedule.
+            schedule: Schedule to mutably insert.
         """
-        shift_time, sched = other
-        if isinstance(sched, Schedule):
-            shifted_children = sched._children
-            if shift_time != 0:
-                shifted_children = tuple((t + shift_time, child) for t, child in shifted_children)
+        if isinstance(schedule, Schedule):
+            shifted_children = schedule._children
+            if start_time != 0:
+                shifted_children = tuple((t + start_time, child) for t, child in shifted_children)
             self.__children += shifted_children
-        else:  # isinstance(sched, Instruction)
-            self.__children += (other,)
+        else:  # isinstance(schedule, Instruction)
+            self.__children += ((start_time, schedule),)
 
-        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
+        sched_timeslots = (schedule.timeslots if start_time == 0
+                           else schedule.timeslots.shift(start_time))
         self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
@@ -226,7 +229,12 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
         """
-        return self.union((start_time, schedule), name=name)
+        if name is None:
+            name = self.name
+        new_sched = Schedule(name=name)
+        new_sched._insert(0, self)
+        new_sched._insert(start_time, schedule)
+        return new_sched
 
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
@@ -482,8 +490,8 @@ class Schedule(ScheduleComponent):
         return self.append(other)
 
     def __or__(self, other: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of ``self`` and ``other``."""
-        return self.union(other)
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.insert(0, other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by ``time``."""
@@ -570,7 +578,10 @@ class ParameterizedSchedule:
 
         # construct evaluated schedules
         for sched in schedules:
-            bound_schedule |= sched
+            if isinstance(sched, tuple):
+                bound_schedule.insert(sched[0], sched[1])
+            else:
+                bound_schedule |= sched
 
         return bound_schedule
 
