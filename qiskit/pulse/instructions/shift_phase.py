@@ -28,8 +28,8 @@ class ShiftPhase(Instruction):
     same :py:class:`~qiskit.pulse.channels.Channel`. It is a relative increase in phase determined
     by the ``phase`` operand.
 
-    The qubit phase is tracked in software, enabling instantaneous, error-free Z-rotations by using
-    a ShiftPhase to update the frame tracking the qubit state.
+    The qubit phase is tracked in software, enabling instantaneous, nearly error-free Z-rotations
+    by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
     def __init__(self, phase: float,
