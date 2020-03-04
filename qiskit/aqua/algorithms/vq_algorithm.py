@@ -49,7 +49,7 @@ class VQAlgorithm(QuantumAlgorithm):
                  initial_point: Optional[np.ndarray] = None) -> None:
         """
         Args:
-            var_form: A parameterized variational form (ansatz).
+            var_form: An optional parameterized variational form (ansatz).
             optimizer: A classical optimizer.
             cost_fn: An optional cost function for optimizer. If not supplied here must be
                 supplied on :meth:`find_minimum`.
@@ -130,10 +130,10 @@ class VQAlgorithm(QuantumAlgorithm):
         Raises:
             ValueError: invalid input
         """
-        initial_point = initial_point if initial_point is not None else self._initial_point
-        var_form = var_form if var_form is not None else self._var_form
+        initial_point = initial_point if initial_point is not None else self.initial_point
+        var_form = var_form if var_form is not None else self.var_form
         cost_fn = cost_fn if cost_fn is not None else self._cost_fn
-        optimizer = optimizer if optimizer is not None else self._optimizer
+        optimizer = optimizer if optimizer is not None else self.optimizer
 
         if var_form is None:
             raise ValueError('Variational form neither supplied to constructor nor find minimum.')
