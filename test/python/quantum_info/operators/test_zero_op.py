@@ -363,7 +363,7 @@ class TestZeroOp(QiskitTestCase):
                 with self.subTest(msg='{} @ {}'.format(op1, op2)):
                     value = op1 @ op2
                     target = op1
-                    self.assertEqual(value, target)         
+                    self.assertEqual(value, target)
 
                 op2 = IdentityOp(input_dims)
                 with self.subTest(msg='{}.dot({})'.format(op1, op2)):
