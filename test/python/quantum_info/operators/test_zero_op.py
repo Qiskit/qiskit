@@ -131,15 +131,16 @@ class TestZeroOp(QiskitTestCase):
         """Test add and subtract operations with two ZeroOp."""
         for input_dims in [2, 4, 5, (2, 3), (3, 2)]:
             for output_dims in [2, 4, 5, (2, 3), (3, 2)]:
-                op = ZeroOp(output_dims=output_dims,
-                            input_dims=input_dims)
-                with self.subTest(msg='{} + {}'.format(op, op)):
-                    value = op + op
-                    self.assertEqual(value, op)
+                op1 = ZeroOp(output_dims=output_dims,
+                             input_dims=input_dims)
+                op2 = op1.copy()
+                with self.subTest(msg='{} + {}'.format(op1, op2)):
+                    value = op1 + op2
+                    self.assertEqual(value, op1)
 
-                with self.subTest(msg='{} - {}'.format(op, op)):
-                    value = op + op
-                    self.assertEqual(value, op)
+                with self.subTest(msg='{} - {}'.format(op1, op2)):
+                    value = op1 + op2
+                    self.assertEqual(value, op1)
 
     def test_add_identity(self):
         """Test add and subtract operations with IdentityOp."""
