@@ -40,15 +40,15 @@ class U2Gate(Gate):
 
     def __init__(self, phi, lam, phase=0, label=None):
         """Create new one-pulse single-qubit gate."""
-        super().__init__("u2", 1, [phi, lam],
+        super().__init__('u2', 1, [phi, lam],
                          phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
-            (U3Gate(pi / 2, self.params[0], self.params[1], phase=self.phase),
-             [q[0]], [])
+            (U3Gate(pi / 2, self.params[0], self.params[1],
+             phase=self.phase), [q[0]], [])
         ]
 
     def inverse(self):
@@ -60,16 +60,20 @@ class U2Gate(Gate):
                       phase=-self.phase)
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
-        return numpy.array([[isqrt2, -numpy.exp(1j * lam) * isqrt2],
-                            [
-                                numpy.exp(1j * phi) * isqrt2,
-                                numpy.exp(1j * (phi + lam)) * isqrt2
-                            ]],
-                           dtype=complex)
+        return numpy.array([
+            [
+                isqrt2,
+                -numpy.exp(1j * lam) * isqrt2
+            ],
+            [
+                numpy.exp(1j * phi) * isqrt2,
+                numpy.exp(1j * (phi + lam)) * isqrt2
+            ]
+        ], dtype=complex)
 
 
 @deprecate_arguments({'q': 'qubit'})

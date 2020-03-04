@@ -22,42 +22,42 @@ Operators
 =========
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   Operator
-   Pauli
-   pauli_group
-   Quaternion
+    Operator
+    Pauli
+    pauli_group
+    Quaternion
 
 States
 ======
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   Statevector
-   DensityMatrix
+    Statevector
+    DensityMatrix
 
 Channels
 ========
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   Choi
-   SuperOp
-   Kraus
-   Stinespring
-   Chi
-   PTM
+    Choi
+    SuperOp
+    Kraus
+    Stinespring
+    Chi
+    PTM
 
 Measures
 ========
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   state_fidelity
+    state_fidelity
    purity
    average_gate_fidelity
    process_fidelity
@@ -81,30 +81,30 @@ Random
 ======
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   random_unitary
-   random_state
-   random_density_matrix
+    random_unitary
+    random_state
+    random_density_matrix
 
 Analysis
 =========
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   hellinger_fidelity
+    hellinger_fidelity
 
 Synthesis
 =========
 
 .. autosummary::
-   :toctree: ../stubs/
+    :toctree: ../stubs/
 
-   euler_angles_1q
-   two_qubit_cnot_decompose
-   TwoQubitBasisDecomposer
-   OneQubitEulerDecomposer
+    OneQubitEulerDecomposer
+    TwoQubitBasisDecomposer
+    two_qubit_cnot_decompose
+    euler_angles_1q
 """
 
 from .operators.operator import Operator
@@ -120,6 +120,6 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
                      mutual_information, shannon_entropy)
 from .states.states import basis_state, projector
 from .random import random_unitary, random_state, random_density_matrix
-from .synthesis import (TwoQubitBasisDecomposer, euler_angles_1q,
-                        two_qubit_cnot_decompose)
+from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
+                        two_qubit_cnot_decompose, euler_angles_1q)
 from .analysis import hellinger_fidelity

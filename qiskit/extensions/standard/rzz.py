@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-two-qubit ZZ-rotation gate.
+Two-qubit ZZ-rotation gate.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumRegister
 
 
 class RZZGate(Gate):
-    r"""Two-qubit ZZ-rotation gate.
+    r"""The two-qubit ZZ-rotation gate.
 
     **Matrix Definition**
 
@@ -43,7 +43,7 @@ class RZZGate(Gate):
 
     def __init__(self, theta, phase=0, label=None):
         """Create new rzz gate."""
-        super().__init__("rzz", 2, [theta],
+        super().__init__('rzz', 2, [theta],
                          phase=phase, label=label)
 
     def _define(self):
@@ -51,13 +51,13 @@ class RZZGate(Gate):
         gate rzz(theta) a, b { cx a, b; rz(theta) b; cx a, b; }
         """
         from qiskit.extensions.standard.rz import RZGate
-        from qiskit.extensions.standard.x import CnotGate
-        q = QuantumRegister(2, "q")
+        from qiskit.extensions.standard.x import CXGate
+        q = QuantumRegister(2, 'q')
         self.definition = [
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (RZGate(self.params[0], phase=self.phase),
              [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
 
     def inverse(self):

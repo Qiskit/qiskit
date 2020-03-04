@@ -42,35 +42,39 @@ class YGate(Gate):
 
     def __init__(self, phase=0, label=None):
         """Create new Y gate."""
-        super().__init__("y", 1, [], phase=phase, label=label)
+        super().__init__('y', 1, [], phase=phase, label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
             (U3Gate(pi, pi/2, pi/2, phase=self.phase), [q[0]], [])
         ]
 
-    def control(self, num_ctrl_qubits=1, label=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
             label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1 and not self.phase:
-            return CyGate(label=label)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label)
+        if ctrl_state is None:
+            if num_ctrl_qubits == 1 and not self.phase:
+                return CYGate()
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate."""
         return YGate(phase=-self.phase)  # self-inverse
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the Z gate."""
+        """Return a numpy.array for the Y gate."""
         return numpy.array([[0, -1j],
                             [1j, 0]], dtype=complex)
 
@@ -108,8 +112,18 @@ def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
 QuantumCircuit.y = y
 
 
-class CyGate(ControlledGate):
-    r"""Controlled-Y gate.
+class CYMeta(type):
+    """A metaclass to ensure that CyGate and CYGate are of the same type.
+
+    Can be removed when CyGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CYGate, CyGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CYGate(ControlledGate, metaclass=CYMeta):
+    r"""The controlled-Y gate.
 
     **Matrix Definition**
 
@@ -131,7 +145,7 @@ class CyGate(ControlledGate):
 
     def __init__(self, phase=0, label=None):
         """Create new CY gate."""
-        super().__init__("cy", 2, [], phase=phase, label=label,
+        super().__init__('cy', 2, [],  phase=0, label=None,
                          num_ctrl_qubits=1)
         self.base_gate = YGate()
 
@@ -141,24 +155,36 @@ class CyGate(ControlledGate):
         """
         from qiskit.extensions.standard.s import SGate
         from qiskit.extensions.standard.s import SdgGate
-        from qiskit.extensions.standard.x import CnotGate
-        q = QuantumRegister(2, "q")
+        from qiskit.extensions.standard.x import CXGate
+        q = QuantumRegister(2, 'q')
         self.definition = [
             (SdgGate(phase=self.phase), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
 
     def inverse(self):
         """Invert this gate."""
-        return CyGate(phase=-self.phase)  # self-inverse
+        return CYGate(phase=-self.phase)  # self-inverse
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the Cy gate."""
+        """Return a numpy.array for the CY gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 0, -1j],
                             [0, 0, 1, 0],
                             [0, 1j, 0, 0]], dtype=complex)
+
+
+class CyGate(CYGate, metaclass=CYMeta):
+    """A deprecated CYGate class."""
+
+    def __init__(self):
+        import warnings
+        warnings.warn('The class CyGate is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CYGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__()
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
@@ -183,7 +209,7 @@ def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
             circuit.cy(0,1)
             circuit.draw()
     """
-    return self.append(CyGate(), [control_qubit, target_qubit], [])
+    return self.append(CYGate(), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cy = cy

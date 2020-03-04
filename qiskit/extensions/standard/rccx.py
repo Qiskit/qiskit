@@ -19,7 +19,7 @@ import numpy
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.x import CnotGate
+from qiskit.extensions.standard.x import CXGate
 from qiskit.qasm import pi
 
 
@@ -59,11 +59,11 @@ class RCCXGate(Gate):
         rule = [
             (U2Gate(0, pi), [q[2]], []),  # H gate
             (U1Gate(pi / 4), [q[2]], []),  # T gate
-            (CnotGate(), [q[1], q[2]], []),
+            (CXGate(), [q[1], q[2]], []),
             (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
-            (CnotGate(), [q[0], q[2]], []),
+            (CXGate(), [q[0], q[2]], []),
             (U1Gate(pi / 4), [q[2]], []),
-            (CnotGate(), [q[1], q[2]], []),
+            (CXGate(), [q[1], q[2]], []),
             (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
             (U2Gate(0, pi), [q[2]], []),  # H gate
         ]

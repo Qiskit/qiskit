@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-S=diag(1,i) Clifford phase gate or its inverse.
+The S gate (Clifford phase gate) and its inverse.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -24,7 +24,7 @@ from qiskit.util import deprecate_arguments
 
 
 class SGate(Gate):
-    r"""S Clifford phase gate.
+    r"""The S gate, also called Clifford phase gate.
 
     **Matrix Definition**
 
@@ -41,14 +41,14 @@ class SGate(Gate):
 
     def __init__(self, phase=0, label=None):
         """Create new S gate."""
-        super().__init__("s", 1, [], phase=phase, label=label)
+        super().__init__('s', 1, [], phase=phase, label=label)
 
     def _define(self):
         """
         gate s a { u1(pi/2) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
             (U1Gate(pi / 2, phase=self.phase), [q[0]], [])
         ]
@@ -58,7 +58,7 @@ class SGate(Gate):
         return SdgGate(phase=-self.phase)
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 
@@ -88,7 +88,7 @@ class SdgGate(Gate):
         gate sdg a { u1(-pi/2) a; }
         """
         from qiskit.extensions.standard.u1 import U1Gate
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         self.definition = [
             (U1Gate(-pi / 2, phase=self.phase), [q[0]], [])
         ]
@@ -98,7 +98,7 @@ class SdgGate(Gate):
         return SGate(phase=-self.phase)
 
     def _matrix_definition(self):
-        """Return a Numpy.array for the Sdg gate."""
+        """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)
 
