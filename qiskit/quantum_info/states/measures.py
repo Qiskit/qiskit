@@ -25,10 +25,11 @@ from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
 
 def _sqrt_positive_semidefinite_matrix(mat):
     """Square root of a positive semidefinite matrix."""
-    eigs, vecs = la.eigh(mat)
+    T, Z = la.schur(mat, output='complex')
+    eigs = np.real(T.diagonal())
     # Zero out small negative entries
     eigs = np.maximum(eigs, np.zeros(eigs.shape, dtype=eigs.dtype))
-    return vecs @ (np.sqrt(eigs) * vecs).T.conj()
+    return Z @ (np.sqrt(eigs) * Z).T.conj()
 
 
 def state_fidelity(state1, state2, validate=True):
@@ -76,7 +77,8 @@ def state_fidelity(state1, state2, validate=True):
     else:
         # Fidelity of two DensityMatrices
         s1sqrt = _sqrt_positive_semidefinite_matrix(arr1)
-        eigs = la.eigvalsh(s1sqrt.dot(arr2.dot(s1sqrt)))
+        T, _ = la.schur(s1sqrt.dot(arr2.dot(s1sqrt)), output='complex')
+        eigs = np.real(T.diagonal())
         # Zero out small negative entries
         eigs = np.maximum(eigs, np.zeros(eigs.shape, dtype=eigs.dtype))
         trace = np.sum(np.sqrt(eigs))
