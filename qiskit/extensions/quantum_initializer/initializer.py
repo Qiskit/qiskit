@@ -87,12 +87,10 @@ class Initialize(Instruction):
         self.definition = initialize_circuit.data
 
     def gates_to_uncompute(self):
-        """
-        Call to create a circuit with gates that take the
-        desired vector to zero.
+        """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
-            QuantumCircuit: circuit to take self.params vector to |00..0>
+            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
         """
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q, name='disentangler')

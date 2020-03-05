@@ -78,9 +78,14 @@ class HGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Hadamard (H) gate to a specified qubit (qubit).
-    An H gate implements a rotation of pi about the axis (x + z)/sqrt(2) on the Bloch sphere.
-    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ or |1⟩ to |-⟩.
+    r"""Apply Hadamard (H) gate.
+
+    Applied to a specified qubit ``qubit``.
+
+    An H gate implements a rotation of :math:`\pi` about the axis
+    :math:`\frac{(x + z)}{\sqrt{2}}` on the Bloch sphere. This gate is
+    canonically used to rotate the qubit state from :math:`|0\rangle` to
+    :math:`|+\rangle` or :math:`|1\rangle` to :math:`|-\rangle`.
 
     Examples:
 
@@ -100,6 +105,7 @@ def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
 
             from qiskit.extensions.standard.h import HGate
             HGate().to_matrix()
+
     """
     return self.append(HGate(), [qubit], [])
 
@@ -159,9 +165,12 @@ class CHGate(ControlledGate):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cH gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ and and |1⟩ to |−⟩
-    when the control qubit is in state |1>.
+    """Apply cH gate
+
+    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+    This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+    :math:`|+\\rangle` and :math:`|1\\rangle to :math:`|−\\rangle` when the control qubit is
+    in state :math:`|1\\rangle`.
 
     Examples:
 
