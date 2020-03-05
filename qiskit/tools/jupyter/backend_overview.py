@@ -111,7 +111,6 @@ class BackendOverview(Magics):
 class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
     """A GridBox that will close an attached thread
     """
-
     def __del__(self):
         """Object disposal"""
         if hasattr(self, '_thread'):
@@ -132,7 +131,7 @@ def backend_widget(backend):
     name = widgets.HTML(value="<h4>{name}</h4>".format(name=backend.name()),
                         layout=widgets.Layout())
 
-    num_qubits = config['num_qubits']
+    num_qubits = config['n_qubits']
 
     qv_val = '-'
     if 'quantum_volume' in config.keys():

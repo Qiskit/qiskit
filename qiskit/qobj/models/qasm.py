@@ -40,7 +40,7 @@ class QasmQobjExperimentConfigSchema(QobjExperimentConfigSchema):
 
     # Optional properties.
     memory_slots = Integer(validate=Range(min=0))
-    num_qubits = Integer(validate=Range(min=1))
+    n_qubits = Integer(validate=Range(min=1))
 
 
 class QasmQobjExperimentSchema(QobjExperimentSchema):
@@ -57,7 +57,7 @@ class QasmQobjConfigSchema(QobjConfigSchema):
     """Schema for QasmQobjConfig."""
 
     # Optional properties.
-    num_qubits = Integer(validate=Range(min=1))
+    n_qubits = Integer(validate=Range(min=1))
 
 
 @bind_schema(QasmQobjInstructionSchema)
@@ -70,7 +70,6 @@ class QasmQobjInstruction(QobjInstruction):
     Attributes:
         name (str): name of the instruction
     """
-
     def __init__(self, name, **kwargs):
         super().__init__(name=name,
                          **kwargs)
@@ -96,7 +95,6 @@ class QasmQobjExperiment(QobjExperiment):
     Attributes:
         instructions (list[QasmQobjInstruction]): list of instructions.
     """
-
     def __init__(self, instructions, **kwargs):
         super().__init__(instructions=instructions,
                          **kwargs)

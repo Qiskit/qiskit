@@ -1357,7 +1357,7 @@ class TestStandardMethods(QiskitTestCase):
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
             sig = signature(gate_class)
-            free_params = len([p for p in sig.parameters.values() if p.kind != p.KEYWORD_ONLY])
+            free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):

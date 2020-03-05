@@ -82,7 +82,7 @@ def backend_monitor(backend):
     print('-'*13)
     offset = '    '
 
-    upper_list = ['num_qubits', 'operational',
+    upper_list = ['n_qubits', 'operational',
                   'status_msg', 'pending_jobs',
                   'backend_version', 'basis_gates',
                   'local', 'simulator']
@@ -186,7 +186,7 @@ def backend_overview():
             offset = ' ' * 10 if idx else ''
             config = _backends[count].configuration().to_dict()
             props = _backends[count].properties().to_dict()
-            num_qubits = config['num_qubits']
+            num_qubits = config['n_qubits']
             str_list[0] += (' '*(max_len-len(str_list[0]))+offset)
             str_list[0] += _backends[count].name()
 
@@ -194,7 +194,7 @@ def backend_overview():
             str_list[1] += '-'*len(_backends[count].name())
 
             str_list[2] += (' '*(max_len-len(str_list[2]))+offset)
-            str_list[2] += 'Num. Qubits:  %s' % config['num_qubits']
+            str_list[2] += 'Num. Qubits:  %s' % config['n_qubits']
 
             str_list[3] += (' '*(max_len-len(str_list[3]))+offset)
             str_list[3] += 'Pending Jobs: %s' % stati[count].pending_jobs

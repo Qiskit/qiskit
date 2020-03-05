@@ -59,7 +59,7 @@ class QasmSimulatorPy(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
         'backend_version': '2.0.0',
-        'num_qubits': min(24, MAX_QUBITS_MEMORY),
+        'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
         'local': True,
@@ -452,7 +452,7 @@ class QasmSimulatorPy(BaseBackend):
             BasicAerError: if an error occurred.
         """
         start = time.time()
-        self._number_of_qubits = experiment.config.num_qubits
+        self._number_of_qubits = experiment.config.n_qubits
         self._number_of_cmembits = experiment.config.memory_slots
         self._statevector = 0
         self._classical_memory = 0
@@ -617,10 +617,10 @@ class QasmSimulatorPy(BaseBackend):
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
-        num_qubits = qobj.config.num_qubits
-        max_qubits = self.configuration().num_qubits
-        if num_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(num_qubits) +
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
         for experiment in qobj.experiments:

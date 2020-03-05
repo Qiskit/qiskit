@@ -13,10 +13,9 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
-from typing import Dict, List, Optional
+from typing import Dict, List
 import warnings
 
-from marshmallow import pre_load
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
@@ -24,8 +23,6 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation import fields
 from qiskit.validation.validate import PatternProperties
 from qiskit.providers.exceptions import BackendConfigurationError
-
-from qiskit.util import deprecate_arguments
 
 
 class GateConfigSchema(BaseSchema):
@@ -73,7 +70,7 @@ class BackendConfigurationSchema(BaseSchema):
     backend_name = fields.String(required=True)
     backend_version = fields.String(required=True,
                                     validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    num_qubits = fields.Integer(required=True, validate=Range(min=1))
+    n_qubits = fields.Integer(required=True, validate=Range(min=1))
     basis_gates = fields.List(fields.String(), required=True)
     gates = fields.Nested(GateConfigSchema, required=True, many=True)
     local = fields.Boolean(required=True)
@@ -181,7 +178,7 @@ class BackendConfiguration(BaseModel):
     Attributes:
         backend_name: backend name.
         backend_version: backend version in the form X.Y.Z.
-        num_qubits: number of qubits.
+        n_qubits: number of qubits.
         basis_gates: list of basis gates names on the backend.
         gates: list of basis gates on the backend.
         local: backend is local or remote.
@@ -190,15 +187,13 @@ class BackendConfiguration(BaseModel):
         open_pulse: backend supports open pulse.
         memory: backend supports memory.
         max_shots: maximum number of shots supported.
-        n_qubits: deprecated number of qubits, use num_qubits instead.
         **kwargs: Optional fields.
     """
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
-                 num_qubits: int,
+                 n_qubits: int,
                  basis_gates: List[str],
                  gates: GateConfig,
                  local: bool,
@@ -207,12 +202,10 @@ class BackendConfiguration(BaseModel):
                  open_pulse: bool,
                  memory: bool,
                  max_shots: int,
-                 *,
-                 n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         self.backend_name = backend_name
         self.backend_version = backend_version
-        self.num_qubits = num_qubits
+        self.n_qubits = n_qubits
         self.basis_gates = basis_gates
         self.gates = gates
         self.local = local
@@ -224,15 +217,6 @@ class BackendConfiguration(BaseModel):
 
         super().__init__(**kwargs)
 
-    @property
-    def n_qubits(self) -> int:
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The BackendConfiguration.n_qubits method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the BackendConfiguration.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
-
 
 @bind_schema(QasmBackendConfigurationSchema)
 class QasmBackendConfiguration(BackendConfiguration):
@@ -243,7 +227,7 @@ class QasmBackendConfiguration(BackendConfiguration):
     Attributes:
         backend_name: backend name.
         backend_version: backend version in the form X.Y.Z.
-        num_qubits: number of qubits.
+        n_qubits: number of qubits.
         basis_gates: list of basis gates names on the backend.
         gates: list of basis gates on the backend.
         local: backend is local or remote.
@@ -252,15 +236,13 @@ class QasmBackendConfiguration(BackendConfiguration):
         open_pulse: backend supports open pulse.
         memory: backend supports memory.
         max_shots: maximum number of shots supported.
-        n_qubits: deprecated number of qubits, use num_qubits instead.
         **kwargs: Optional fields.
     """
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
-                 num_qubits: int,
+                 n_qubits: int,
                  basis_gates: List[str],
                  gates: GateConfig,
                  local: bool,
@@ -269,11 +251,9 @@ class QasmBackendConfiguration(BackendConfiguration):
                  open_pulse: bool,
                  memory: bool,
                  max_shots: int,
-                 *,
-                 n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         super().__init__(backend_name=backend_name, backend_version=backend_version,
-                         num_qubits=num_qubits, basis_gates=basis_gates, gates=gates,
+                         n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
@@ -288,11 +268,10 @@ class PulseBackendConfiguration(BackendConfiguration):
     _dt_warning_done = False
     _rep_time_warning_done = False
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self,
                  backend_name: str,
                  backend_version: str,
-                 num_qubits: int,
+                 n_qubits: int,
                  basis_gates: List[str],
                  gates: GateConfig,
                  local: bool,
@@ -312,8 +291,6 @@ class PulseBackendConfiguration(BackendConfiguration):
                  meas_kernels: List[str],
                  discriminators: List[str],
                  hamiltonian: Dict[str, str] = None,
-                 *,
-                 n_qubits: Optional[int] = None,  # pylint: disable=unused-argument
                  **kwargs):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
@@ -322,7 +299,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         Args:
             backend_name: backend name.
             backend_version: backend version in the form X.Y.Z.
-            num_qubits: number of qubits.
+            n_qubits: number of qubits.
             basis_gates: list of basis gates names on the backend.
             gates: list of basis gates on the backend.
             local: backend is local or remote.
@@ -342,7 +319,6 @@ class PulseBackendConfiguration(BackendConfiguration):
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
-            n_qubits: deprecated number of qubits, use num_qubits instead.
             **kwargs: Optional fields.
         """
         self.n_uchannels = n_uchannels
@@ -366,7 +342,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                                       (min_range, max_range) in channel_bandwidth]
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
-                         num_qubits=num_qubits, basis_gates=basis_gates, gates=gates,
+                         n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
@@ -418,7 +394,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit drive channel.
         """
-        if not 0 <= qubit < self.num_qubits:
+        if not 0 <= qubit < self.n_qubits:
             raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return DriveChannel(qubit)
 
@@ -431,7 +407,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement stimulus line.
         """
-        if not 0 <= qubit < self.num_qubits:
+        if not 0 <= qubit < self.n_qubits:
             raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return MeasureChannel(qubit)
 
@@ -444,7 +420,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit measurement acquisition line.
         """
-        if not 0 <= qubit < self.num_qubits:
+        if not 0 <= qubit < self.n_qubits:
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 

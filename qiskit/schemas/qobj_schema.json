@@ -739,7 +739,7 @@
                             "minimum": 0,
                             "type": "integer"
                         },
-                        "num_qubits": {
+                        "n_qubits": {
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
@@ -760,7 +760,7 @@
                             "minimum": 0,
                             "type": "integer"
                         },
-                        "num_qubits": {
+                        "n_qubits": {
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
@@ -877,7 +877,7 @@
                     },
                     "type": "object",
                     "_constraints": [
-                        "sum(x[1] for x in qreg_sizes) == num_qubits",
+                        "sum(x[1] for x in qreg_sizes) == n_qubits",
                         "sum(x[1] for x in creg_sizes) == memory_slots"
                     ]
                 },
@@ -914,8 +914,8 @@
                             "minimum": 0,
                             "type": "integer"
                         },
-                        "num_qubits": {
-                            "description": "The number of qubits requested on the backend, equivalent to the max of num_qubits requested by individual experiments.",
+                        "n_qubits": {
+                            "description": "The number of qubits requested on the backend, equivalent to the max of n_qubits requested by individual experiments.",
                             "minimum": 1,
                             "type": "integer"
                         },

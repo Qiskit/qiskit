@@ -123,5 +123,5 @@ def measure_all(backend: 'BaseBackend') -> Schedule:
     Returns:
         A schedule corresponding to the inputs provided.
     """
-    return measure(qubits=list(range(backend.configuration().num_qubits)),
+    return measure(qubits=list(range(backend.configuration().n_qubits)),
                    backend=backend)

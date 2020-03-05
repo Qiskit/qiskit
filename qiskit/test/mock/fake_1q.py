@@ -33,7 +33,7 @@ class Fake1Q(FakeBackend):
         configuration = BackendProperties(
             backend_name='fake_1q',
             backend_version='0.0.0',
-            num_qubits=1,
+            n_qubits=1,
             basis_gates=['u1', 'u2', 'u3', 'cx'],
             simulator=False,
             local=True,

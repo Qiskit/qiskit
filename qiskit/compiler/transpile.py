@@ -180,7 +180,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
         elif backend is not None and not backend.configuration().simulator:
-            max_qubits = backend.configuration().num_qubits
+            max_qubits = backend.configuration().n_qubits
 
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError('Number of qubits ({}) '.format(num_qubits) +

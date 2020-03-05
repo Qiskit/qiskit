@@ -33,14 +33,14 @@ if HAS_MATPLOTLIB:
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
     backends = list(filter(lambda x:
-                           not (x.configuration().simulator or x.configuration().num_qubits <= 5),
+                           not (x.configuration().simulator or x.configuration().n_qubits <= 5),
                            FakeProvider().backends()))
 
     @data(*backends)
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     def test_plot_gate_map(self, backend):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        n = backend.configuration().num_qubits
+        n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
         filename = "temp.png"
         fig = plot_gate_map(backend)
@@ -52,11 +52,11 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device"""
-        layout_length = int(backend._configuration.num_qubits / 2)
+        layout_length = int(backend._configuration.n_qubits / 2)
         qr = QuantumRegister(layout_length, 'qr')
         circuit = QuantumCircuit(qr)
         circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
-        n = backend.configuration().num_qubits
+        n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         filename = str(n) + "_plot_circuit_layout_result.png"
         fig = plot_circuit_layout(circuit, backend)
