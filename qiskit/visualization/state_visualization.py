@@ -79,7 +79,10 @@ def plot_state_hinton(
         ax_real: Optional[Axes] = None,
         ax_imag: Optional[Axes] = None,
         auto_scale: bool = True) -> Figure:
-    """Plot a hinton diagram for the quantum state.
+    """Plot a hinton diagram for the quantum state. This function visualizes a quantum state
+    as a two dimensional diagram of density matrix in computational basis.
+    The color of a box indicates the sign of matrix element and the size of the box
+    represents its magnitude. A while (black) color shows positive (negative) sign.
 
     Args:
         rho:
@@ -124,7 +127,6 @@ def plot_state_hinton(
             qc = QuantumCircuit(2, 2)
             qc.h(0)
             qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
 
             backend = BasicAer.get_backend('statevector_simulator')
             job = execute(qc, backend).result()
@@ -160,7 +162,10 @@ def plot_quantum_channel_hinton(
         ax_imag: Optional[Axes] = None,
         basis: Optional[List[str]] = None,
         auto_scale: bool = True) -> Figure:
-    """Hinton diagram plot of the Chi-matrix representation of a quantum channel.
+    """Hinton diagram plot of the quantum channel. The function visualizes a quantum channel
+    as a two dimensional diagram of Chi-matrix. The color of a box indicates
+    the sign of matrix element and the size of the box represents its magnitude. A while (black)
+    color shows positive (negative) sign.
 
     Args:
         channel:
@@ -436,7 +441,6 @@ def plot_bloch_multivector(rho, title='', figsize=None):
             qc = QuantumCircuit(2, 2)
             qc.h(0)
             qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
 
             backend = BasicAer.get_backend('statevector_simulator')
             job = execute(qc, backend).result()
