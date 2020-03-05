@@ -18,7 +18,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
 from qiskit.converters import circuit_to_dag
-from qiskit.extensions.standard import U3Gate, CnotGate
+from qiskit.extensions.standard import U3Gate, CXGate
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -28,7 +28,7 @@ from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 class MSBasisDecomposer(TransformationPass):
     """Convert a circuit in ``U3, CX`` to ``Rx, Ry, Rxx`` without unrolling or simplification."""
 
-    supported_input_gates = (U3Gate, CnotGate)
+    supported_input_gates = (U3Gate, CXGate)
 
     def __init__(self, basis_gates):
         """MSBasisDecomposer initializer.
@@ -79,7 +79,7 @@ class MSBasisDecomposer(TransformationPass):
 
             if isinstance(node.op, U3Gate):
                 replacement_circuit = one_q_decomposer(node.op)
-            elif isinstance(node.op, CnotGate):
+            elif isinstance(node.op, CXGate):
                 # N.B. We can't circuit_to_dag once outside the loop because
                 # substitute_node_with_dag will modify the input DAG if the
                 # node to be replaced is conditional.

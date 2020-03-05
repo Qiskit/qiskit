@@ -315,14 +315,7 @@ class TestDensityMatrix(QiskitTestCase):
             rho1 = self.rand_rho(4)
             state0 = DensityMatrix(rho0)
             state1 = DensityMatrix(rho1)
-            self.assertEqual(state0.subtract(state1), DensityMatrix(rho0 - rho1))
             self.assertEqual(state0 - state1, DensityMatrix(rho0 - rho1))
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        state1 = DensityMatrix(self.rand_rho(2))
-        state2 = DensityMatrix(self.rand_rho(3))
-        self.assertRaises(QiskitError, state1.subtract, state2)
 
     def test_multiply(self):
         """Test multiply method."""

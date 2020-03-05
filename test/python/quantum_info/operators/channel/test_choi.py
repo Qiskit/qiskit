@@ -16,6 +16,7 @@
 
 """Tests for Choi quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -73,11 +74,25 @@ class TestChoi(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
+        mat = np.eye(2)
+        with self.subTest("Deep copy"):
+            orig = Choi(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Choi(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
         mat = np.eye(4)
         orig = Choi(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -328,52 +343,35 @@ class TestChoi(ChannelTestCase):
         """Test add method."""
         mat1 = 0.5 * self.choiI
         mat2 = 0.5 * self.depol_choi(1)
-        targ = Choi(mat1 + mat2)
-
         chan1 = Choi(mat1)
         chan2 = Choi(mat2)
-        self.assertEqual(chan1.add(chan2), targ)
+        targ = Choi(mat1 + mat2)
+        self.assertEqual(chan1._add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
+        targ = Choi(mat1 - mat2)
+        self.assertEqual(chan1 - chan2, targ)
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = Choi(self.choiI)
         chan2 = Choi(np.eye(8))
-        self.assertRaises(QiskitError, chan1.add, chan2)
-        self.assertRaises(QiskitError, chan1.add, 5)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = 0.5 * self.choiI
-        mat2 = 0.5 * self.depol_choi(1)
-        targ = Choi(mat1 - mat2)
-
-        chan1 = Choi(mat1)
-        chan2 = Choi(mat2)
-        self.assertEqual(chan1.subtract(chan2), targ)
-        self.assertEqual(chan1 - chan2, targ)
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(np.eye(8))
-        self.assertRaises(QiskitError, chan1.subtract, chan2)
-        self.assertRaises(QiskitError, chan1.subtract, 5)
+        self.assertRaises(QiskitError, chan1._add, chan2)
+        self.assertRaises(QiskitError, chan1._add, 5)
 
     def test_multiply(self):
         """Test multiply method."""
         chan = Choi(self.choiI)
         val = 0.5
         targ = Choi(val * self.choiI)
-        self.assertEqual(chan.multiply(val), targ)
+        self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Choi(self.choiI)
-        self.assertRaises(QiskitError, chan.multiply, 's')
+        self.assertRaises(QiskitError, chan._multiply, 's')
         self.assertRaises(QiskitError, chan.__rmul__, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
