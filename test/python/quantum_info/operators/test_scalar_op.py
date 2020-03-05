@@ -25,8 +25,25 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import ScalarOp, Operator
 
 
+class ScalarOpTestCase(QiskitTestCase):
+    """ScalarOp test case base class"""
+
+    def assertOperator(self, operator, dims, target):
+        """Checks operator has dims as input_dims and output_dims and matches the target"""
+        self.assertTrue(isinstance(operator, Operator))
+        self.assertEqual(operator.input_dims(), dims)
+        self.assertEqual(operator.output_dims(), dims)
+        self.assertEqual(operator, target)
+
+    def assertScalarOp(self, scalarop, dims, target):
+        """Checks ScalarOp has dims as input_dims and output_dims and matches the target coeff"""
+        self.assertTrue(isinstance(scalarop, ScalarOp))
+        self.assertEqual(scalarop.input_dims(), dims)
+        self.assertEqual(scalarop.output_dims(), dims)
+        self.assertAlmostEqual(scalarop.coeff, target)
+
 @ddt
-class TestScalarOpInit(QiskitTestCase):
+class TestScalarOpInit(ScalarOpTestCase):
     """Test initialization."""
 
     @combine(j=range(5))
@@ -61,22 +78,8 @@ class TestScalarOpInit(QiskitTestCase):
 
 
 @ddt
-class TestScalarOpMethods(QiskitTestCase):
+class TestScalarOpMethods(ScalarOpTestCase):
     """Test ScalarOp methods"""
-
-    def assertOperator(self, operator, dims, target):
-        """Checks operator has dims as input_dims and output_dims and matches the target"""
-        self.assertTrue(isinstance(operator, Operator))
-        self.assertEqual(operator.input_dims(), dims)
-        self.assertEqual(operator.output_dims(), dims)
-        self.assertEqual(operator, target)
-
-    def assertScalarOp(self, scalarop, dims, target):
-        """Checks ScalarOp has dims as input_dims and output_dims and matches the target coeff"""
-        self.assertTrue(isinstance(scalarop, ScalarOp))
-        self.assertEqual(scalarop.input_dims(), dims)
-        self.assertEqual(scalarop.output_dims(), dims)
-        self.assertAlmostEqual(scalarop.coeff, target)
 
     @combine(dims=[2, 4, 5, (2, 3), (3, 2)], coeff=[0, 1, 2.1 - 3.1j])
     def test_to_operator(self, dims, coeff):
@@ -130,6 +133,11 @@ class TestScalarOpMethods(QiskitTestCase):
         target = coeff ** exp
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
+
+
+@ddt
+class TestScalarOpLinearMethods(ScalarOpTestCase):
+    """Test ScalarOp linear add, sub, mul methods"""
 
     @combine(coeff=[0, 1, -3.1, 1 + 3j])
     def test_multiply_negate(self, coeff):
@@ -196,6 +204,11 @@ class TestScalarOpMethods(QiskitTestCase):
             target = op - coeff * Operator.from_label('II')
             self.assertOperator(val, dims, target)
 
+
+@ddt
+class TestScalarOpTensor(ScalarOpTestCase):
+    """Test ScalarOp tensor and expand methods."""
+
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_expand_scalar(self, coeff1, coeff2):
         """Test expand method with two ScalarOp ({coeff1}, {coeff2})"""
@@ -246,6 +259,11 @@ class TestScalarOpMethods(QiskitTestCase):
             val = op.tensor(iden)
             target = op.tensor(iden.to_operator())
             self.assertOperator(val, (3, 2), target)
+
+
+@ddt
+class TestScalarOpCompose(ScalarOpTestCase):
+    """Test ScalarOp compose and dot methods with another ScalarOp."""
 
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_compose_scalar(self, coeff1, coeff2):
@@ -354,6 +372,11 @@ class TestScalarOpMethods(QiskitTestCase):
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
+
+
+@ddt
+class TestScalarOpComposeOperator(ScalarOpTestCase):
+    """Test ScalarOp compose and dot methods with an Operator."""
 
     @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
     def test_compose_operator(self, coeff, label):
