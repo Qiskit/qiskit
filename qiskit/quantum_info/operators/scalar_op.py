@@ -181,7 +181,7 @@ class ScalarOp(BaseOperator):
         # subclasses compose method.
         # Note that this will raise an error if the other operator does
         # not support initialization from a ScalarOp or the ScalarOps
-        # `to_operator` method). 
+        # `to_operator` method).
         return other.__class__(self).compose(
             other, qargs=qargs, front=front)
 
