@@ -172,7 +172,7 @@ def plot_gate_map(backend, figsize=None,
                     [9, 2], [9, 6]]
 
     config = backend.configuration()
-    num_qubits = config.num_qubits
+    num_qubits = config.n_qubits
     cmap = config.coupling_map
 
     if qubit_labels is None:
@@ -207,7 +207,7 @@ def plot_gate_map(backend, figsize=None,
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ['#648fff'] * config.num_qubits
+        qubit_color = ['#648fff'] * config.n_qubits
     if line_color is None:
         line_color = ['#648fff'] * len(cmap) if cmap else []
 
@@ -333,7 +333,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         raise QiskitError('Circuit has no layout. '
                           'Perhaps it has not been transpiled.')
 
-    num_qubits = backend.configuration().num_qubits
+    num_qubits = backend.configuration().n_qubits
 
     qubits = []
     qubit_labels = [None] * num_qubits
@@ -416,7 +416,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
 
-    num_qubits = config['num_qubits']
+    num_qubits = config['n_qubits']
 
     # U2 error rates
     single_gate_errors = [0]*num_qubits
