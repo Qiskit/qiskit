@@ -87,13 +87,8 @@ Pulse Visualizations
    :toctree: ../stubs/
 
    pulse_drawer
-
-.. autosummary::
-   :hidden:
-   :toctree: ../stubs/
-
-   qiskit.visualization.pulse.qcstyle
-   qiskit.visualization.pulse.interpolation
+   ~qiskit.visualization.pulse.qcstyle
+   ~qiskit.visualization.pulse.interpolation
 
 Single Qubit State Transition Visualizations
 ============================================
