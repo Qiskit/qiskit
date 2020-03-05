@@ -53,7 +53,7 @@ class DAGCircuit:
         self.name = None
 
         # Set of wires (Register,idx) in the dag
-        self.wires = []
+        self.wires = set()
 
         # Map from wire (Register,idx) to input nodes of the graph
         self.input_map = OrderedDict()
@@ -137,7 +137,7 @@ class DAGCircuit:
             DAGCircuitError: if trying to add duplicate wire
         """
         if wire not in self.wires:
-            self.wires.append(wire)
+            self.wires.add(wire)
             self._max_node_id += 1
             input_map_wire = self.input_map[wire] = self._max_node_id
 
