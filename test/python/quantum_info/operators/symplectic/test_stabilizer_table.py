@@ -785,13 +785,13 @@ class TestStabilizerTable(QiskitTestCase):
 
         with self.subTest(msg='tensor'):
             target = StabilizerTable.from_labels(
-                        ['-XXIII', 'XXZZZ', 'YYIII', '-YYZZZ'])
+                ['-XXIII', 'XXZZZ', 'YYIII', '-YYZZZ'])
             value = stab1.tensor(stab2)
             self.assertEqual(value, target)
 
         with self.subTest(msg='expand'):
             target = StabilizerTable.from_labels(
-                        ['-IIIXX', 'ZZZXX', 'IIIYY', '-ZZZYY'])
+                ['-IIIXX', 'ZZZXX', 'IIIYY', '-ZZZYY'])
             value = stab1.expand(stab2)
             self.assertEqual(value, target)
 
@@ -803,7 +803,7 @@ class TestStabilizerTable(QiskitTestCase):
 
         # Test single qubit Pauli dot products
         stab = StabilizerTable.from_labels(
-                ['I', 'X', 'Y', 'Z', '-I', '-X', '-Y', '-Z'])
+            ['I', 'X', 'Y', 'Z', '-I', '-X', '-Y', '-Z'])
 
         with self.subTest(msg='dot single I'):
             value = stab.compose('I')

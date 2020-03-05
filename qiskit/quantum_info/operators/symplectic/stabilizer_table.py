@@ -14,11 +14,11 @@
 """
 Symplectic Stabilizer Table Class
 """
+# pylint: disable=invalid-name
 
 import numpy as np
 
-from qiskit import QiskitError
-
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 
@@ -206,7 +206,7 @@ class StabilizerTable(PauliTable):
 
     def __repr__(self):
         return 'StabilizerTable(\n{},\nphase={})'.format(
-                    repr(self._array), repr(self._phase))
+            repr(self._array), repr(self._phase))
 
     def __str__(self):
         """String representation"""
@@ -665,8 +665,8 @@ class StabilizerTable(PauliTable):
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         return StabilizerTable(
-                    np.vstack((self._array, other._array)),
-                    np.hstack((self._phase, other._phase)))
+            np.vstack((self._array, other._array)),
+            np.hstack((self._phase, other._phase)))
 
     def _multiply(self, other):
         """Multiply (XOR) phase vector of the StabilizerTable.
@@ -685,9 +685,9 @@ class StabilizerTable(PauliTable):
             QiskitError: if other is not in (False, True, 1, -1).
         """
         # Numeric (integer) value case
-        if not isinstance(other, (bool, np.bool)) and not (
-                other == 1 or other == -1):
-            raise QiskitError("Can only multiply a Stabilizer value by +1 or -1 phase.")
+        if not isinstance(other, (bool, np.bool)) and other not in [1, -1]:
+            raise QiskitError(
+                "Can only multiply a Stabilizer value by +1 or -1 phase.")
 
         # We have to be careful we don't cast True <-> +1 when
         # we store -1 phase as boolen True value
@@ -945,6 +945,7 @@ class StabilizerTable(PauliTable):
     @staticmethod
     def _to_label(pauli, phase):
         """Return the Pauli stabilizer string from symplectic representation."""
+        # pylint: disable=arguments-differ
         # Cast in symplectic representation
         # This should avoid a copy if the pauli is already a row
         # in the symplectic table
@@ -967,6 +968,7 @@ class StabilizerTable(PauliTable):
             array: if sparse=False.
             csr_matrix: if sparse=True.
         """
+        # pylint: disable=arguments-differ
         mat = PauliTable._to_matrix(pauli, sparse=sparse, real_valued=True)
         if phase:
             mat *= -1
