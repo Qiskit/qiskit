@@ -44,7 +44,7 @@ class RYYGate(Gate):
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(theta), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (RXGate(-np.pi / 2), [q[0]], []),
             (RXGate(-np.pi / 2), [q[1]], []),
