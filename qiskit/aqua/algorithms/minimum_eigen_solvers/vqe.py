@@ -28,7 +28,6 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from qiskit.aqua.algorithms import VQAlgorithm, VQResult
 from qiskit.aqua import AquaError
 from qiskit.aqua.operators import (TPBGroupedWeightedPauliOperator, WeightedPauliOperator,
                                    MatrixOperator, op_converter)
@@ -38,6 +37,7 @@ from qiskit.aqua.operators import BaseOperator
 from qiskit.aqua.components.optimizers import Optimizer, SLSQP
 from qiskit.aqua.components.variational_forms import VariationalForm, RY
 from qiskit.aqua.utils.validation import validate_min
+from ..vq_algorithm import VQAlgorithm, VQResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -189,14 +189,19 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """ Set aux operators """
         self._in_aux_operators = aux_operators
 
+    # disable check for now because of pylint bug
+    # pylint: disable=no-member
     @VQAlgorithm.var_form.setter
     def var_form(self, var_form: VariationalForm):
         """ Sets variational form """
         super().var_form = var_form
         self._check_operator_varform()
+    # pylint: enable=no-member
 
     def _check_operator_varform(self):
         if self.operator is not None and self.var_form is not None:
+            # disable check for now because of pylint bug
+            # pylint: disable=no-member
             if self.operator.num_qubits != self.var_form.num_qubits:
                 # TODO After Ansatz update we should be able to set in the
                 #      number of qubits to var form. Important since use by
@@ -208,12 +213,15 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                 #      the specific problem and hence to the operator
                 raise AquaError("Variational form num qubits does not match operator")
 
+    # disable check for now because of pylint bug
+    # pylint: disable=no-member
     @VQAlgorithm.optimizer.setter
     def optimizer(self, optimizer: Optimizer):
         """ Sets optimizer """
         super().optimizer = optimizer
         if optimizer is not None:
             optimizer.set_max_evals_grouped(self._max_evals_grouped)
+    # pylint: enable=no-member
 
     @property
     def setting(self):
@@ -462,6 +470,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
 
                 self._parameterized_circuits = \
                     self._quantum_instance.transpile(parameterized_circuits)
+
         _build_parameterized_circuits()
         circuits = []
         # binding parameters here since the circuits had been transpiled
