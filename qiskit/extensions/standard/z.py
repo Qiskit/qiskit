@@ -73,9 +73,10 @@ class ZGate(Gate):
 @deprecate_arguments({'q': 'qubit'})
 def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply Z gate to a specified qubit (qubit).
-    A Z gate implements a pi rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
-    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
+
+    A Z gate implements a :math:`\\pi` rotation of the qubit state vector about
+    the z axis of the Bloch sphere. This gate is canonically used to implement
+    a phase flip on the qubit state from :math:`|+\\rangle` to :math:`|-\\rangle`,
     or vice versa.
 
     Examples:
@@ -166,11 +167,14 @@ class CzGate(CZGate, metaclass=CZMeta):
                       'tgt': 'target_qubit'})
 def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cZ gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    A cZ gate implements a pi rotation of the qubit state vector about the z axis
-    of the Bloch sphere when the control qubit is in state |1>.
-    This gate is canonically used to implement a phase flip on the qubit state from |+⟩ to |-⟩,
-    or vice versa when the control qubit is in state |1>.
+    """Apply cZ gate
+
+    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+    A cZ gate implements a :math:`\\pi` rotation of the qubit state vector about
+    the z axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
+    This gate is canonically used to implement a phase flip on the qubit state from
+    :math:`|+\\rangle` to :math:`|-\\rangle`, or vice versa when the control qubit is in
+    state :math:`|1\\rangle`.
 
     Examples:
 
