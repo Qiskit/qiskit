@@ -18,7 +18,7 @@ Frame change pulse.
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
