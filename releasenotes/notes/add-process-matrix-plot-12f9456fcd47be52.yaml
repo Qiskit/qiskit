@@ -7,7 +7,7 @@ features:
 
         from qiskit import QuantumCircuit
         from qiskit import quantum_info as qi
-        from qiskit.visualization import plot_process_city
+        from qiskit.visualization import plot_quantum_channel_city
 
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
@@ -20,7 +20,7 @@ features:
 
         from qiskit import QuantumCircuit
         from qiskit import quantum_info as qi
-        from qiskit.visualization import plot_process_city
+        from qiskit.visualization import plot_quantum_channel_hinton
 
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
