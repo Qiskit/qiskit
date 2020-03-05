@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumRegister
 class RYYGate(Gate):
     r"""Two-qubit YY-rotation gate.
 
-    This gate corresponds to the rotation :math:`U(\theta) = e^{-i\theta / 2 Y \otimes Y)`, 
+    This gate corresponds to the rotation :math:`U(\theta) = e^{-i\theta / 2 Y \otimes Y)`,
     multiplied by the phase :math:`e^{i \theta / 2}`.
     """
 
