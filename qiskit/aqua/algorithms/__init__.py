@@ -110,15 +110,16 @@ from .distribution_learners import QGAN
 from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
 from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
-from .minimum_eigen_solvers import (VQE, QAOA, IQPE, QPE, ClassicalCPLEX, CPLEX_Ising,
-                                    ClassicalMinimumEigensolver, MinimumEigensolver,
-                                    MinimumEigensolverResult)
+from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, QPE, ClassicalCPLEX, CPLEX_Ising,
+                                    ClassicalMinimumEigensolver,
+                                    MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
 __all__ = [
     'AlgorithmResult',
     'QuantumAlgorithm',
     'VQE',
+    'VQEResult',
     'QAOA',
     'VQC',
     'QGAN',

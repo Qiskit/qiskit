@@ -14,7 +14,7 @@
 
 """ Minimum Eigen Solvers Package """
 
-from .vqe import VQE
+from .vqe import VQE, VQEResult
 from .qaoa import QAOA
 from .iqpe import IQPE
 from .qpe import QPE
@@ -24,6 +24,7 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 __all__ = [
     'VQE',
+    'VQEResult',
     'QAOA',
     'IQPE',
     'QPE',

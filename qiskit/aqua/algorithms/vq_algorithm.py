@@ -60,31 +60,25 @@ class VQAlgorithm(QuantumAlgorithm):
         """
         super().__init__()
 
-        if var_form is None:
-            raise ValueError('Missing variational form.')
         self._var_form = var_form
-
-        if optimizer is None:
-            raise ValueError('Missing optimizer.')
         self._optimizer = optimizer
-
         self._cost_fn = cost_fn
         self._initial_point = initial_point
 
         self._parameterized_circuits = None
 
     @property
-    def var_form(self) -> VariationalForm:
+    def var_form(self) -> Optional[VariationalForm]:
         """ Returns variational form """
         return self._var_form
 
     @var_form.setter
     def var_form(self, var_form: VariationalForm):
-        """ Sets variational forms """
+        """ Sets variational form """
         self._var_form = var_form
 
     @property
-    def optimizer(self) -> Optimizer:
+    def optimizer(self) -> Optional[Optimizer]:
         """ Returns optimizer """
         return self._optimizer
 
@@ -94,7 +88,7 @@ class VQAlgorithm(QuantumAlgorithm):
         self._optimizer = optimizer
 
     @property
-    def initial_point(self) -> np.ndarray:
+    def initial_point(self) -> Optional[np.ndarray]:
         """ Returns initial point """
         return self._initial_point
 
