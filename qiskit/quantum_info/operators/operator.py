@@ -376,7 +376,7 @@ class Operator(BaseOperator):
             QiskitError: if other is not an operator, or has incompatible
             dimensions.
         """
-        # pylint: disable=import-outside-toplevel
+        # pylint: disable=import-outside-toplevel, cyclic-import
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
         if qargs is None:
