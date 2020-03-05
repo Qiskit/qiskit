@@ -28,7 +28,7 @@ from typing import Union, Tuple, Optional, List
 import numpy as np
 from scipy import linalg
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.chi import Chi
