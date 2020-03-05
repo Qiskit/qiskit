@@ -208,7 +208,7 @@ def plot_quantum_channel_hinton(
 
            from qiskit import QuantumCircuit
            from qiskit import quantum_info as qi
-           from qiskit.visualization import plot_process_city
+           from qiskit.visualization import plot_quantum_channel_hinton
            %matplotlib inline
 
            qc = QuantumCircuit(2)
@@ -605,7 +605,7 @@ def plot_quantum_channel_city(
 
            from qiskit import QuantumCircuit
            from qiskit import quantum_info as qi
-           from qiskit.visualization import plot_process_city
+           from qiskit.visualization import plot_quantum_channel_city
            %matplotlib inline
 
            qc = QuantumCircuit(2)
