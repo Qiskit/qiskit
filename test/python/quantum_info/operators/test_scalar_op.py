@@ -37,7 +37,7 @@ class TestScalarOpInit(QiskitTestCase):
         self.assertEqual(op.dim, (dim, dim))
         self.assertEqual(op.input_dims(), j * (2,))
         self.assertEqual(op.output_dims(), j * (2,))
-        self.assertEqual(op.coeff, None)
+        self.assertEqual(op.coeff, 1)
 
     def test_custom_dims(self):
         """Test custom dims."""
@@ -47,7 +47,7 @@ class TestScalarOpInit(QiskitTestCase):
         self.assertEqual(op.dim, (dim, dim))
         self.assertEqual(op.input_dims(), dims)
         self.assertEqual(op.output_dims(), dims)
-        self.assertEqual(op.coeff, None)
+        self.assertEqual(op.coeff, 1)
 
     def test_real_coeff(self):
         """Test real coeff."""
@@ -92,67 +92,62 @@ class TestScalarOpMethods(QiskitTestCase):
         with self.subTest(msg='to_matrix'):
             self.assertTrue(np.allclose(iden.to_matrix(), target.data))
 
-    @combine(coeff=[None, 1, 5, -1j, 2.3 - 5.2j])
+    @combine(coeff=[0, 1, 5, -1j, 2.3 - 5.2j])
     def test_base_operator_conjugate(self, coeff):
         """Test basic class conjugate method (coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).conjugate()
-        target = None if coeff is None else np.conjugate(coeff)
+        target = np.conjugate(coeff)
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertEqual(op.coeff, target)
 
-    @combine(coeff=[None, 1, 5, -1j, 2.3 - 5.2j])
+    @combine(coeff=[0, 1, 5, -1j, 2.3 - 5.2j])
     def test_base_operator_transpose(self, coeff):
         """Test basic class transpose method (coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).transpose()
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertEqual(op.coeff, coeff)
 
-    @combine(coeff=[None, 1, 5, -1j, 2.3 - 5.2j])
+    @combine(coeff=[0, 1, 5, -1j, 2.3 - 5.2j])
     def test_base_operator_adjoint(self, coeff):
         """Test basic class adjoint method (coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).adjoint()
-        target = None if coeff is None else np.conjugate(coeff)
+        target = np.conjugate(coeff)
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertEqual(op.coeff, target)
 
-    @combine(coeff=[None, 1, 5, -1j, 2.3 - 5.2j])
+    @combine(coeff=[0, 1, 5, -1j, 2.3 - 5.2j])
     def test_base_operator_power_0(self, coeff):
         """Test basic class power method (** 0, coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).power(0)
-        target = None
+        target = 1
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
 
-    @combine(coeff=[None, 1, 5, -1j, 2.3 - 5.2j], exp=[1, 3.3, -2])
+    @combine(coeff=[1, 5, -1j, 2.3 - 5.2j], exp=[1, 3.3, -2])
     def test_base_operator_power_exp(self, coeff, exp):
         """Test basic class power method (** {exp}, coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).power(exp)
-        target = None if coeff is None else coeff ** exp
+        target = coeff ** exp
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
 
-    @combine(coeff=[None, 1, -3.1, 1 + 3j])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j])
     def test_multiply_negate(self, coeff):
         """Test scalar multiplication. Negate. (coeff={coeff})"""
         dims = (3, 2)
         val = -ScalarOp(dims, coeff=coeff)
-        target = -1 if coeff is None else -1 * coeff
+        target = -1 * coeff
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[1, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[1, -1, -5.1 - 2j])
     def test_multiply(self, coeff1, coeff2):
         """Test scalar multiplication. ({coeff1}, {coeff2}) """
         dims = (3, 2)
         val = coeff2 * ScalarOp(dims, coeff=coeff1)
-        if coeff2 == 1:
-            target = coeff1
-        elif coeff1 is None:
-            target = coeff2
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_add(self, coeff1, coeff2):
         """Test add operation with ScalarOp. ({coeff1} + {coeff2})"""
         # Add two ScalarOps
@@ -161,17 +156,10 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(6, coeff=coeff2)
 
         val = op1 + op2
-        if coeff1 is None and coeff2 is None:
-            target = 2
-        elif coeff1 is None:
-            target = 1 + coeff2
-        elif coeff2 is None:
-            target = 1 + coeff1
-        else:
-            target = coeff1 + coeff2
+        target = coeff1 + coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_subtract(self, coeff1, coeff2):
         """Test add operation with ScalarOp. ({coeff1} - {coeff2})"""
         dims = (3, 2)
@@ -179,17 +167,10 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(6, coeff=coeff2)
 
         val = op1 - op2
-        if coeff1 is None and coeff2 is None:
-            target = 0
-        elif coeff1 is None:
-            target = 1 - coeff2
-        elif coeff2 is None:
-            target = coeff1 - 1
-        else:
-            target = coeff1 - coeff2
+        target = coeff1 - coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff=[None, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
     def test_add_operator(self, coeff, label):
         """Test add and subtract operations with Operator (coeff={coeff}, label={label})"""
         dims = (2, 2)
@@ -197,37 +178,25 @@ class TestScalarOpMethods(QiskitTestCase):
         op = Operator.from_label(label)
         with self.subTest(msg='{} + Operator({})'.format(iden, label)):
             val = iden + op
-            if coeff is None:
-                target = Operator.from_label('II') + op
-            else:
-                target = coeff * Operator.from_label('II') + op
+            target = coeff * Operator.from_label('II') + op
             self.assertOperator(val, dims, target)
 
         with self.subTest(msg='Operator({}) + {}'.format(label, iden)):
             val = op + iden
-            if coeff is None:
-                target = Operator.from_label('II') + op
-            else:
-                target = coeff * Operator.from_label('II') + op
+            target = coeff * Operator.from_label('II') + op
             self.assertOperator(val, dims, target)
 
         with self.subTest(msg='{} - Operator({})'.format(iden, label)):
             val = iden - op
-            if coeff is None:
-                target = Operator.from_label('II') - op
-            else:
-                target = coeff * Operator.from_label('II') - op
+            target = coeff * Operator.from_label('II') - op
             self.assertOperator(val, dims, target)
 
         with self.subTest(msg='Operator({}) - {}'.format(label, iden)):
             val = op - iden
-            if coeff is None:
-                target = op - Operator.from_label('II')
-            else:
-                target = op - coeff * Operator.from_label('II')
+            target = op - coeff * Operator.from_label('II')
             self.assertOperator(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_expand_scalar(self, coeff1, coeff2):
         """Test expand method with two ScalarOp ({coeff1}, {coeff2})"""
         dims1 = (3, 2)
@@ -236,15 +205,10 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(dims2, coeff=coeff2)
 
         val = op1.expand(op2)
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims1 + dims2, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_tensor_scalar(self, coeff1, coeff2):
         """Test tensor method with two ScalarOp. {coeff1}, {coeff2})"""
         dims1 = (3, 2)
@@ -253,15 +217,10 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(dims2, coeff=coeff2)
 
         val = op1.tensor(op2)
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims2 + dims1, target)
 
-    @combine(coeff=[None, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
     def test_tensor_operator(self, coeff, label):
         """Test tensor and expand methods with ScalarOp and Operator. ({coeff}, {label})"""
         dim = 3
@@ -288,7 +247,7 @@ class TestScalarOpMethods(QiskitTestCase):
             target = op.tensor(iden.to_operator())
             self.assertOperator(val, (3, 2), target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_compose_scalar(self, coeff1, coeff2):
         """Test compose method with two ScalarOp. ({coeff1}, {coeff2})"""
         dims = (3, 2)
@@ -296,15 +255,10 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(dims, coeff=coeff2)
 
         val = op1.compose(op2)
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_dot_scalar(self, coeff1, coeff2):
         """Test dot method with two ScalarOp. ({coeff1}, {coeff2})"""
         dims = (3, 2)
@@ -312,45 +266,30 @@ class TestScalarOpMethods(QiskitTestCase):
         op2 = ScalarOp(dims, coeff=coeff2)
 
         val = op1.dot(op2)
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[0, -1, -5.1 - 2j])
     def test_matmul_scalar(self, coeff1, coeff2):
         """Test matmul method with two ScalarOp. ({coeff1}, {coeff2})"""
         dims = (3, 2)
         op1 = ScalarOp(dims, coeff=coeff1)
         op2 = ScalarOp(dims, coeff=coeff2)
         val = op1 @ op2
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_mul_scalar(self, coeff1, coeff2):
         """Test mul method with two ScalarOp. ({coeff1}, {coeff2})"""
         dims = (3, 2)
         op1 = ScalarOp(dims, coeff=coeff1)
         op2 = ScalarOp(dims, coeff=coeff2)
         val = op1 * op2
-        if coeff1 is None:
-            target = coeff2
-        elif coeff2 is None:
-            target = coeff1
-        else:
-            target = coeff1 * coeff2
+        target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[None, 1, -3.1, 1 + 3j], coeff2=[None, -1, -5.1 - 2j])
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_compose_qargs_scalar(self, coeff1, coeff2):
         """Test qargs compose and dot methods with two ScalarOp. ({coeff1}, {coeff2})"""
         dims = (2, 3)
@@ -360,32 +299,17 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{}.compose({}, qargs=[0])'.format(op1, op2)):
             val = op1.compose(op2, qargs=[0])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertScalarOp(val, dims, target)
 
         with self.subTest(msg='{}.compose({}, qargs=[1])'.format(op1, op3)):
             val = op1.compose(op3, qargs=[1])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertScalarOp(val, dims, target)
 
         with self.subTest(msg='{}.dot({}, qargs=[0])'.format(op1, op2)):
             val = op1.dot(op2, qargs=[0])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
@@ -393,12 +317,7 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{}.dot({}, qargs=[1])'.format(op1, op3)):
             val = op1.dot(op3, qargs=[1])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
@@ -406,12 +325,7 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{} @ {}([0])'.format(op1, op2)):
             val = op1 @ op2([0])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
@@ -419,12 +333,7 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{} @ {}([1])'.format(op1, op3)):
             val = op1 @ op3([1])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
@@ -432,12 +341,7 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{} * {}([0])'.format(op1, op2)):
             val = op1 * op2([0])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
@@ -445,18 +349,13 @@ class TestScalarOpMethods(QiskitTestCase):
 
         with self.subTest(msg='{} * {}([1])'.format(op1, op3)):
             val = op1 * op3([1])
-            if coeff1 is None:
-                target = coeff2
-            elif coeff2 is None:
-                target = coeff1
-            else:
-                target = coeff1 * coeff2
+            target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-    @combine(coeff=[None, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
     def test_compose_operator(self, coeff, label):
         """Test compose and dot methods with ScalarOp and Operator."""
         dim = 4
@@ -527,7 +426,7 @@ class TestScalarOpMethods(QiskitTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-    @combine(coeff=[None, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
     def test_compose_qargs_operator(self, coeff, label):
         """Test qargs compose and dot methods with ScalarOp and Operator."""
         iden = ScalarOp((2, 2), coeff=coeff)

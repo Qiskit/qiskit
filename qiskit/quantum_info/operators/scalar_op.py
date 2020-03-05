@@ -34,26 +34,24 @@ class ScalarOp(BaseOperator):
     :meth:`tensor`, :meth:`expand` methods.
     """
 
-    def __init__(self, dims, coeff=None):
+    def __init__(self, dims, coeff=1):
         """Initialize an operator object.
 
         Args:
             dims (int or tuple): subsystem dimensions.
-            coeff (complex or None): an optional scalar coefficient for
-                                     the identity operator (Default: None).
+            coeff (Number): scalar coefficient for the identity
+                            operator (Default: 1).
 
         Raises:
             QiskitError: If the optional coefficient is invalid.
         """
-        input_dims = self._automatic_dims(dims, np.product(dims))
-        if coeff is not None and not isinstance(coeff, Number):
-            raise QiskitError("Coeff {} must be None or a number.".format(coeff))
+        if not isinstance(coeff, Number):
+            QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
+        input_dims = self._automatic_dims(dims, np.product(dims))
         super().__init__(input_dims, input_dims)
 
     def __repr__(self):
-        if self.coeff is None:
-            return 'ScalarOp({})'.format(self._input_dims)
         return 'ScalarOp({}, coeff={})'.format(
             self._input_dims, self.coeff)
 
@@ -64,20 +62,16 @@ class ScalarOp(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        if self.coeff is None:
-            return self
         ret = self.copy()
         ret._coeff = np.conjugate(self.coeff)
         return ret
 
     def transpose(self):
         """Return the transpose of the operator."""
-        return self
+        return self.copy()
 
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
-        if self.coeff is None:
-            return True
         if atol is None:
             atol = self._atol
         if rtol is None:
@@ -88,8 +82,6 @@ class ScalarOp(BaseOperator):
         """Convert to a Numpy matrix."""
         dim, _ = self.dim
         iden = np.eye(dim, dtype=complex)
-        if self.coeff is None:
-            return iden
         return self.coeff * iden
 
     def to_operator(self):
@@ -111,12 +103,7 @@ class ScalarOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
-            if self.coeff is None:
-                coeff = other.coeff
-            elif other.coeff is None:
-                coeff = self.coeff
-            else:
-                coeff = self.coeff * other.coeff
+            coeff = self.coeff * other.coeff
             dims = other._input_dims + self._input_dims
             return ScalarOp(dims, coeff=coeff)
         return other.expand(self)
@@ -125,7 +112,7 @@ class ScalarOp(BaseOperator):
         """Return the tensor product operator other ⊗ self.
 
         Args:
-            other (ScalarOp or Operator): an operator object.
+            other (BaseOperator): an operator object.
 
         Returns:
             ScalarOp: if other is an ScalarOp.
@@ -134,12 +121,7 @@ class ScalarOp(BaseOperator):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
-            if self.coeff is None:
-                coeff = other.coeff
-            elif other.coeff is None:
-                coeff = self.coeff
-            else:
-                coeff = self.coeff * other.coeff
+            coeff = self.coeff * other.coeff
             dims = self._input_dims + other._input_dims
             return ScalarOp(dims, coeff=coeff)
         return other.tensor(self)
@@ -176,51 +158,49 @@ class ScalarOp(BaseOperator):
 
         input_dims, output_dims = self._get_compose_dims(other, qargs, front)
 
-        # If other is also an ScalarOp we only need to possibly
+        # If other is also an ScalarOp we only need to
         # update the coefficient and dimensions
         if isinstance(other, ScalarOp):
-            if self.coeff is None:
-                coeff = other.coeff
-            elif other.coeff is None:
-                coeff = self.coeff
-            else:
-                coeff = self.coeff * other.coeff
+            coeff = self.coeff * other.coeff
             return ScalarOp(input_dims, coeff=coeff)
 
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
         if qargs is None:
             ret = other.reshape(input_dims, output_dims)
-            if self.coeff is None or self.coeff == 1:
+            # Other operator might not support scalar multiplication
+            # so we treat the identity as a special case to avoid a
+            # possible error
+            if self.coeff == 1:
                 return ret
             return self.coeff * ret
-        # Otherwise compose using other operators method
-        # Note that in this case that operator must know how to initalize
-        # from an ScalarOp either using its to_operator method or having
-        # a specific initialization case.
+
+        # For qargs composition we initialize the scalar operator
+        # as an instance of the other BaseOperators subclass. We then
+        # perform subsystem qargs composition using the BaseOperator
+        # subclasses compose method.
+        # Note that this will raise an error if the other operator does
+        # not support initialization from a ScalarOp or the ScalarOps
+        # `to_operator` method). 
         return other.__class__(self).compose(
-            other, qargs=qargs, front=not front)
+            other, qargs=qargs, front=front)
 
     def power(self, n):
-        """Return the compose of a operator with itself n times.
+        """Return the power of the ScalarOp.
 
         Args:
-            n (int): the number of times to compose with self (n>0).
+            n (Number): the exponent for the scalar op.
 
         Returns:
-            BaseOperator: the n-times composed operator.
+            ScalarOp: the ``coeff ** n`` ScalarOp.
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
             are not equal, or the power is not a positive integer.
         """
-        if self.coeff is None:
-            return self
-        if n == 0:
-            # Raising to zero power returns identity
-            return ScalarOp(self._input_dims)
-        coeff = self.coeff ** n
-        return ScalarOp(self._input_dims, coeff=coeff)
+        ret = self.copy()
+        ret._coeff = self.coeff ** n
+        return ret
 
     def _add(self, other):
         """Return the operator self + other.
@@ -237,18 +217,32 @@ class ScalarOp(BaseOperator):
         """
         if not isinstance(other, BaseOperator):
             other = Operator(other)
+
         self._validate_add_dims(other)
+
+        # First we check the special case where coeff=0. In this case
+        # we simply return the other operator reshaped so that its
+        # subsystem dimensions are equal to the current operator for the
+        # case where total dimensions agree but subsystem dimensions differ.
+        if self.coeff == 0:
+            return other.reshape(self._input_dims, self._output_dims)
+
+        # Next if we are adding two ScalarOps we return a ScalarOp
         if isinstance(other, ScalarOp):
             coeff1 = 1 if self.coeff is None else self.coeff
             coeff2 = 1 if other.coeff is None else other.coeff
             return ScalarOp(self._input_dims, coeff=coeff1+coeff2)
+
+        # Finally if we are adding another BaseOperator subclass
+        # we use that subclasses `_add` method and reshape the
+        # final dimensions.
         return other._add(self).reshape(self._input_dims, self._output_dims)
 
     def _multiply(self, other):
         """Return the ScalarOp other * self.
 
         Args:
-            other (complex): a complex number.
+            other (Number): a complex number.
 
         Returns:
             ScalarOp: the scaled identity operator other * self.
@@ -257,8 +251,7 @@ class ScalarOp(BaseOperator):
             QiskitError: if other is not a valid complex number.
         """
         if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
-        if other == 1:
-            return self
-        coeff = other if self.coeff is None else other * self.coeff
-        return ScalarOp(self._input_dims, coeff=coeff)
+            raise QiskitError("other ({}) is not a number".format(other))
+        ret = self.copy()
+        ret._coeff = other * self.coeff
+        return ret
