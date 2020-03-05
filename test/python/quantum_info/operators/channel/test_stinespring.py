@@ -14,13 +14,14 @@
 
 """Tests for Stinespring quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Stinespring
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
@@ -74,10 +75,24 @@ class TestStinespring(ChannelTestCase):
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
+        with self.subTest("Deep copy"):
+            orig = Stinespring(mat)
+            cpy = orig.copy()
+            cpy._data[0][0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Stinespring(mat)
+            clone = copy.copy(orig)
+            clone._data[0][0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
+        mat = np.eye(4)
         orig = Stinespring(mat)
-        cpy = orig.copy()
-        cpy._data[0][0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0][0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
