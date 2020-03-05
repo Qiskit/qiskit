@@ -117,3 +117,14 @@ class BaseOperator(ABC):
     def chop(self, threshold, copy=False):
         """ chop """
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def num_qubits(self):
+        """ Returns number of qubits for operator """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_empty(self):
+        """ Check Operator is empty or not """
+        raise NotImplementedError
