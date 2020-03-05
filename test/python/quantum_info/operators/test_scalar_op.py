@@ -17,9 +17,9 @@
 """Tests for ScalarOp class."""
 
 import unittest
-import numpy as np
-from ddt import ddt
 from test import combine
+from ddt import ddt
+import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import ScalarOp, Operator
@@ -40,6 +40,7 @@ class TestScalarOpInit(QiskitTestCase):
         self.assertEqual(op.coeff, None)
 
     def test_custom_dims(self):
+        """Test custom dims."""
         dims = (2, 3, 4, 5)
         dim = np.product(dims)
         op = ScalarOp(dims)
@@ -49,10 +50,12 @@ class TestScalarOpInit(QiskitTestCase):
         self.assertEqual(op.coeff, None)
 
     def test_real_coeff(self):
+        """Test real coeff."""
         op = ScalarOp(5, coeff=5.2)
         self.assertEqual(op.coeff, 5.2)
 
     def test_complex_coeff(self):
+        """Test complex coeff."""
         op = ScalarOp(5, coeff=3j)
         self.assertEqual(op.coeff, 3j)
 
@@ -60,6 +63,20 @@ class TestScalarOpInit(QiskitTestCase):
 @ddt
 class TestScalarOpMethods(QiskitTestCase):
     """Test ScalarOp methods"""
+
+    def assertOperator(self, operator, dims, target):
+        """Checks operator has dims as input_dims and output_dims and matches the target"""
+        self.assertTrue(isinstance(operator, Operator))
+        self.assertEqual(operator.input_dims(), dims)
+        self.assertEqual(operator.output_dims(), dims)
+        self.assertEqual(operator, target)
+
+    def assertScalarOp(self, scalarop, dims, target):
+        """Checks ScalarOp has dims as input_dims and output_dims and matches the target coeff"""
+        self.assertTrue(isinstance(scalarop, ScalarOp))
+        self.assertEqual(scalarop.input_dims(), dims)
+        self.assertEqual(scalarop.output_dims(), dims)
+        self.assertAlmostEqual(scalarop.coeff, target)
 
     @combine(dims=[2, 4, 5, (2, 3), (3, 2)], coeff=[0, 1, 2.1 - 3.1j])
     def test_to_operator(self, dims, coeff):
@@ -113,18 +130,6 @@ class TestScalarOpMethods(QiskitTestCase):
         target = None if coeff is None else coeff ** exp
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
-
-    def assertOperator(self, operator, dims, target):
-        self.assertTrue(isinstance(operator, Operator))
-        self.assertEqual(operator.input_dims(), dims)
-        self.assertEqual(operator.output_dims(), dims)
-        self.assertEqual(operator, target)
-
-    def assertScalarOp(self, scalarop, dims, target):
-        self.assertTrue(isinstance(scalarop, ScalarOp))
-        self.assertEqual(scalarop.input_dims(), dims)
-        self.assertEqual(scalarop.output_dims(), dims)
-        self.assertAlmostEqual(scalarop.coeff, target)
 
     @combine(coeff=[None, 1, -3.1, 1 + 3j])
     def test_multiply_negate(self, coeff):
