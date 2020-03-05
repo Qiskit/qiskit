@@ -15,7 +15,6 @@
 """Circuit transpile function"""
 import logging
 from time import time
-from qiskit.transpiler import Layout, CouplingMap
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers import BaseBackend
