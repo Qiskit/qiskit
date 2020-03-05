@@ -264,14 +264,6 @@ class StabilizerTable(PauliTable):
         self._array[key] = value.array
         self._phase[key] = value.phase
 
-    def __add__(self, other):
-        """Append a StabilizerTable to the table"""
-        if not isinstance(other, StabilizerTable):
-            other = StabilizerTable(other)
-        return StabilizerTable(
-                    np.vstack((self._array, other._array)),
-                    np.hstack((self._phase, other._phase)))
-
     def delete(self, ind, qubit=False):
         """Return a copy with Stabilizer rows deleted from table.
 
@@ -660,6 +652,50 @@ class StabilizerTable(PauliTable):
             QiskitError: if other cannot be converted to a PauliTable.
         """
         return super().dot(other, qargs=qargs)
+
+    def _add(self, other):
+        """Append with another StabilizerTable.
+
+        Args:
+            other (StabilizerTable): another table.
+
+        Returns:
+            StabilizerTable: the concatinated table self + other.
+        """
+        if not isinstance(other, StabilizerTable):
+            other = StabilizerTable(other)
+        return StabilizerTable(
+                    np.vstack((self._array, other._array)),
+                    np.hstack((self._phase, other._phase)))
+
+    def _multiply(self, other):
+        """Multiply (XOR) phase vector of the StabilizerTable.
+
+        This updates the phase vector of the table. Allowed values for
+        multiplication are ``False``, ``True``, 1 or -1. Multiplying by
+        -1 or ``False`` is equivalent. As is multiplying by 1 or ``True``.
+
+        Args:
+            other (bool or int): a Boolean value.
+
+        Returns:
+           StabilizerTable: the updated stabilizer table.
+
+        Raises:
+            QiskitError: if other is not in (False, True, 1, -1).
+        """
+        # Numeric (integer) value case
+        if not isinstance(other, (bool, np.bool)) and not (
+                other == 1 or other == -1):
+            raise QiskitError("Can only multiply a Stabilizer value by +1 or -1 phase.")
+
+        # We have to be careful we don't cast True <-> +1 when
+        # we store -1 phase as boolen True value
+        if (isinstance(other, (bool, np.bool)) and other) or other == -1:
+            ret = self.copy()
+            ret._phase ^= True
+            return ret
+        return self
 
     # ---------------------------------------------------------------------
     # Representation conversions
