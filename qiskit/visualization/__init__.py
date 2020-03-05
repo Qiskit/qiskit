@@ -28,9 +28,10 @@ Counts and State Visualizations
    plot_histogram
    plot_bloch_vector
    plot_bloch_multivector
-   plot_process_city
    plot_state_city
+   plot_quantum_channel_city
    plot_state_hinton
+   plot_quantum_channel_hinton
    plot_state_paulivec
    plot_state_qsphere
 

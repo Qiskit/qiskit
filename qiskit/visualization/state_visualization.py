@@ -81,7 +81,7 @@ def plot_state_hinton(
         auto_scale: bool = True) -> Figure:
     """Plot a hinton diagram for the quantum state. This function visualizes a quantum state
     as a two dimensional diagram of density matrix in computational basis.
-    The color of a box indicates the sign of matrix element and the size of the box
+    The color of a box indicates the sign of matrix element and the size
     represents its magnitude. A while (black) color shows positive (negative) sign.
 
     Args:
@@ -164,7 +164,7 @@ def plot_quantum_channel_hinton(
         auto_scale: bool = True) -> Figure:
     """Hinton diagram plot of the quantum channel. The function visualizes a quantum channel
     as a two dimensional diagram of Chi-matrix. The color of a box indicates
-    the sign of matrix element and the size of the box represents its magnitude. A while (black)
+    the sign of matrix element and the size represents its magnitude. A while (black)
     color shows positive (negative) sign.
 
     Args:
