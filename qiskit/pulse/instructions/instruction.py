@@ -159,6 +159,8 @@ class Instruction(ScheduleComponent, ABC):
             *schedules: Schedules to be take the union with this Instruction.
             name: Name of the new schedule. Defaults to name of self
         """
+        warnings.warn("The union method is deprecated. Use insert with start_time=0.",
+                      DeprecationWarning)
         if name is None:
             name = self.name
         return Schedule(self, *schedules, name=name)
@@ -184,7 +186,9 @@ class Instruction(ScheduleComponent, ABC):
             schedule: Schedule to insert
             name: Name of the new schedule. Defaults to name of self
         """
-        return self.union((start_time, schedule), name=name)
+        if name is None:
+            name = self.name
+        return Schedule(self, (start_time, schedule), name=name)
 
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
@@ -274,7 +278,7 @@ class Instruction(ScheduleComponent, ABC):
 
     def __or__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
-        return self.union(other)
+        return self.insert(0, other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""
