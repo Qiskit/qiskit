@@ -42,6 +42,7 @@ class ScalarOpTestCase(QiskitTestCase):
         self.assertEqual(scalarop.output_dims(), dims)
         self.assertAlmostEqual(scalarop.coeff, target)
 
+
 @ddt
 class TestScalarOpInit(ScalarOpTestCase):
     """Test initialization."""
