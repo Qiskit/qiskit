@@ -213,7 +213,7 @@ class DAGCircuit:
         """Add a new operation node to the graph and assign properties.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -240,7 +240,7 @@ class DAGCircuit:
         """Apply an operation to the output of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -289,7 +289,7 @@ class DAGCircuit:
         """Apply an operation to the input of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
@@ -860,7 +860,8 @@ class DAGCircuit:
 
         Args:
             node (DAGNode): Node to be replaced
-            op (Instruction): The Instruction instance to be added to the DAG
+            op (qiskit.circuit.Instruction): The :class:`qiskit.circuit.Instruction`
+                instance to be added to the DAG
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
@@ -961,8 +962,8 @@ class DAGCircuit:
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Type): Instruction subclass op nodes to return. if op=None, return
-                all op nodes.
+            op (Type): :class:`qiskit.circuit.Instruction` subclass op nodes to return.
+                if op=None, return all op nodes.
         Returns:
             list[DAGNode]: the list of node ids containing the given op.
         """
