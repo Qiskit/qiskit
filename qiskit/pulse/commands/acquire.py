@@ -18,6 +18,7 @@ import warnings
 from typing import Optional, Union, List
 
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..exceptions import PulseError
 
 # pylint: disable=unused-import
 

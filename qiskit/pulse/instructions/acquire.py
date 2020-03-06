@@ -15,8 +15,11 @@
 """TODO"""
 import warnings
 
-from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
-from qiskit.pulse.configuration import Kernel, Discriminator
+from typing import List, Optional, Union
+
+from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..configuration import Kernel, Discriminator
+from ..exceptions import PulseError
 from .instruction import Instruction
 
 
@@ -69,11 +72,13 @@ class Acquire(Instruction):
         else:
             reg_slot = []
 
-        super().__init__(command, *acquire, *mem_slot, *reg_slot, name=name)
+        super().__init__(duration, *acquire, *mem_slot, *reg_slot, name=name)
 
         self._acquires = acquire
         self._mem_slots = mem_slot
         self._reg_slots = reg_slot
+        self._kernel = kernel
+        self._discriminator = discriminator
 
     @property
     def channel(self):
@@ -126,3 +131,35 @@ class Acquire(Instruction):
     def reg_slots(self):
         """RegisterSlots."""
         return self._reg_slots
+
+    def __call__(self,
+                 channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
+                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 reg_slot: Optional[RegisterSlot] = None,
+                 kernel: Optional[Kernel] = None,
+                 discriminator: Optional[Discriminator] = None) -> 'Acquire':
+        """Return new ``Acquire`` that is fully instantiated with its channels.
+
+        Args:
+            channel: The channel that will have the delay.
+
+        Return:
+            Complete and ready to schedule ``Delay``.
+
+        Raises:
+            PulseError: If ``channel`` has already been set.
+        """
+        warnings.warn("Calling Acquire with a channel is deprecated. Instantiate the acquire with "
+                      "a channel instead.", DeprecationWarning)
+        if self._channel is not None:
+            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
+        return Acquire(self.duration,
+                       channel=channel,
+                       mem_slot=mem_slot,
+                       reg_slots=reg_slots,
+                       mem_slots=mem_slots,
+                       reg_slot=reg_slot,
+                       kernel=kernel,
+                       discriminator=discriminator)

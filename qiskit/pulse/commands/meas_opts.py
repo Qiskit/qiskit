@@ -12,8 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-param-doc,useless-super-delegation
-
 """Measurement options. Deprecated path."""
+
+# pylint: disable=unused-import
+
 
 from qiskit.pulse.configuration import Kernel, Discriminator
