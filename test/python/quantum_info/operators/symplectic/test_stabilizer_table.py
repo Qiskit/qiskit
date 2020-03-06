@@ -26,32 +26,33 @@ from qiskit.quantum_info.operators.symplectic import StabilizerTable
 from qiskit.quantum_info.operators.symplectic import PauliTable
 
 
-class TestStabilizerTable(QiskitTestCase):
-    """Tests for StabilizerTable class."""
+def stab_mat(label):
+    """Return stabilizer matrix from a stabilizer label"""
+    mat = np.eye(1, dtype=complex)
+    if label[0] == '-':
+        mat *= -1
+    if label[0] in ['-', '+']:
+        label = label[1:]
+    for i in label:
+        if i == 'I':
+            mat = np.kron(mat, np.eye(2))
+        elif i == 'X':
+            mat = np.kron(mat, np.array([[0, 1], [1, 0]]))
+        elif i == 'Y':
+            mat = np.kron(mat, np.array([[0, 1], [-1, 0]]))
+        elif i == 'Z':
+            mat = np.kron(mat, np.array([[1, 0], [0, -1]]))
+        else:
+            raise QiskitError('Invalid stabilizer string {}'.format(i))
+    return mat
 
-    def stab_mat(self, label):
-        """Return stabilizer matrix from a stabilizer label"""
-        mat = np.eye(1, dtype=complex)
-        if label[0] == '-':
-            mat *= -1
-        if label[0] in ['-', '+']:
-            label = label[1:]
-        for i in label:
-            if i == 'I':
-                mat = np.kron(mat, np.eye(2))
-            elif i == 'X':
-                mat = np.kron(mat, np.array([[0, 1], [1, 0]]))
-            elif i == 'Y':
-                mat = np.kron(mat, np.array([[0, 1], [-1, 0]]))
-            elif i == 'Z':
-                mat = np.kron(mat, np.array([[1, 0], [0, -1]]))
-            else:
-                raise QiskitError('Invalid stabilizer string {}'.format(i))
-        return mat
 
-    def test_init(self):
-        """Test initialization."""
-        # Matrix array initialization
+class TestStabilizerTableInit(QiskitTestCase):
+    """Tests for StabilizerTable initialization."""
+
+    def test_array_init(self):
+        """Test array initialization."""
+
         with self.subTest(msg='bool array'):
             target = np.array([[False, False], [True, True]])
             value = StabilizerTable(target)._array
@@ -68,7 +69,9 @@ class TestStabilizerTable(QiskitTestCase):
                               [True, True, True]])
             self.assertRaises(QiskitError, StabilizerTable, array)
 
-        # Vector array initialization
+    def test_vector_init(self):
+        """Test vector initialization."""
+
         with self.subTest(msg='bool vector'):
             target = np.array([False, False, False, False])
             value = StabilizerTable(target)._array
@@ -80,7 +83,9 @@ class TestStabilizerTable(QiskitTestCase):
             value[0, 0] = not value[0, 0]
             self.assertTrue(np.all(value == target))
 
-        # String initialization
+    def test_string_init(self):
+        """Test string initialization."""
+
         with self.subTest(msg='str init "I"'):
             value = StabilizerTable('I')._array
             target = np.array([[False, False]], dtype=np.bool)
@@ -108,26 +113,28 @@ class TestStabilizerTable(QiskitTestCase):
 
         with self.subTest(msg='str init "IX"'):
             value = StabilizerTable('IX')._array
-            target = np.array([[False, True, False, False]], dtype=np.bool)
+            target = np.array([[True, False, False, False]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XI"'):
             value = StabilizerTable('XI')._array
-            target = np.array([[True, False, False, False]], dtype=np.bool)
+            target = np.array([[False, True, False, False]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "YZ"'):
             value = StabilizerTable('YZ')._array
-            target = np.array([[True, False, True, True]], dtype=np.bool)
+            target = np.array([[False, True, True, True]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XIZ"'):
             value = StabilizerTable('XIZ')._array
-            target = np.array([[True, False, False, False, False, True]],
+            target = np.array([[False, False, True, True, False, False]],
                               dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
-        # Pauli Table initialization
+    def test_table_init(self):
+        """Test StabilizerTable initialization."""
+
         with self.subTest(msg='StabilizerTable'):
             target = StabilizerTable.from_labels(['XI', 'IX', 'IZ'])
             value = StabilizerTable(target)
@@ -139,8 +146,12 @@ class TestStabilizerTable(QiskitTestCase):
             value[0] = 'II'
             self.assertEqual(value, target)
 
-    def test_properties(self):
-        """Test class property methods"""
+
+class TestStabilizerTableProperties(QiskitTestCase):
+    """Tests for StabilizerTable properties."""
+
+    def test_array_property(self):
+        """Test array property"""
 
         with self.subTest(msg='array'):
             stab = StabilizerTable('II')
@@ -156,9 +167,12 @@ class TestStabilizerTable(QiskitTestCase):
 
             self.assertRaises(Exception, set_array)
 
+    def test_x_property(self):
+        """Test X property"""
+
         with self.subTest(msg='X'):
             stab = StabilizerTable.from_labels(['XI', 'IZ', 'YY'])
-            array = np.array([[True, False], [False, False], [True, True]],
+            array = np.array([[False, True], [False, False], [True, True]],
                              dtype=np.bool)
             self.assertTrue(np.all(stab.X == array))
 
@@ -179,9 +193,11 @@ class TestStabilizerTable(QiskitTestCase):
 
             self.assertRaises(Exception, set_x)
 
+    def test_z_property(self):
+        """Test Z property"""
         with self.subTest(msg='Z'):
             stab = StabilizerTable.from_labels(['XI', 'IZ', 'YY'])
-            array = np.array([[False, False], [False, True], [True, True]],
+            array = np.array([[False, False], [True, False], [True, True]],
                              dtype=np.bool)
             self.assertTrue(np.all(stab.Z == array))
 
@@ -202,23 +218,30 @@ class TestStabilizerTable(QiskitTestCase):
 
             self.assertRaises(Exception, set_z)
 
-        with self.subTest(msg='shape'):
-            shape = (3, 8)
-            stab = StabilizerTable(np.zeros(shape))
-            self.assertEqual(stab.shape, shape)
+    def test_shape_property(self):
+        """Test shape property"""
+        shape = (3, 8)
+        stab = StabilizerTable(np.zeros(shape))
+        self.assertEqual(stab.shape, shape)
 
+    def test_size_property(self):
+        """Test size property"""
         with self.subTest(msg='size'):
             for j in range(1, 10):
                 shape = (j, 8)
                 stab = StabilizerTable(np.zeros(shape))
                 self.assertEqual(stab.size, j)
 
+    def test_n_qubits_property(self):
+        """Test n_qubits property"""
         with self.subTest(msg='n_qubits'):
             for j in range(1, 10):
                 shape = (5, 2 * j)
                 stab = StabilizerTable(np.zeros(shape))
                 self.assertEqual(stab.n_qubits, j)
 
+    def test_phase_property(self):
+        """Test phase property"""
         with self.subTest(msg='phase'):
             phase = np.array([False, True, True, False])
             array = np.eye(4, dtype=np.bool)
@@ -243,6 +266,8 @@ class TestStabilizerTable(QiskitTestCase):
 
             self.assertRaises(ValueError, set_phase_raise)
 
+    def test_pauli_property(self):
+        """Test pauli property"""
         with self.subTest(msg='pauli'):
             phase = np.array([False, True, True, False])
             array = np.eye(4, dtype=np.bool)
@@ -271,171 +296,31 @@ class TestStabilizerTable(QiskitTestCase):
 
             self.assertRaises(ValueError, set_pauli_raise)
 
-    def test_from_labels(self):
-        """Test from_labels method."""
-        with self.subTest(msg='1-qubit'):
-            labels = ['I', 'X', 'Y', 'Z',
-                      '+I', '+X', '+Y', '+Z',
-                      '-I', '-X', '-Y', '-Z']
-            array = np.vstack(3 * [np.array([[False, False],
-                                             [True, False],
-                                             [True, True],
-                                             [False, True]],
-                                            dtype=np.bool)])
-            phase = np.array(8 * [False] + 4 * [True], dtype=np.bool)
-            target = StabilizerTable(array, phase)
-            value = StabilizerTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_eq(self):
+        """Test __eq__ method."""
+        stab1 = StabilizerTable.from_labels(['II', 'XI'])
+        stab2 = StabilizerTable.from_labels(['XI', 'II'])
+        self.assertEqual(stab1, stab1)
+        self.assertNotEqual(stab1, stab2)
 
-        with self.subTest(msg='2-qubit'):
-            labels = ['II', '-YY', '+XZ']
-            array = np.array([[False, False, False, False],
-                              [True, True, True, True],
-                              [True, False, False, True]],
-                             dtype=np.bool)
-            phase = np.array([False, True, False])
-            target = StabilizerTable(array, phase)
-            value = StabilizerTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_len_methods(self):
+        """Test __len__ method."""
+        for j in range(1, 10):
+            labels = j * ['XX']
+            stab = StabilizerTable.from_labels(labels)
+            self.assertEqual(len(stab), j)
 
-        with self.subTest(msg='5-qubit'):
-            labels = ['IIIII', '-XXXXX', 'YYYYY', 'ZZZZZ']
-            array = np.array([10 * [False],
-                              5 * [True] + 5 * [False],
-                              10 * [True],
-                              5 * [False] + 5 * [True]],
-                             dtype=np.bool)
-            phase = np.array([False, True, False, False])
-            target = StabilizerTable(array, phase)
-            value = StabilizerTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_add_methods(self):
+        """Test __add__ method."""
+        labels1 = ['+XXI', '-IXX']
+        labels2 = ['+XXI', '-ZZI', '+ZYZ']
+        stab1 = StabilizerTable.from_labels(labels1)
+        stab2 = StabilizerTable.from_labels(labels2)
+        target = StabilizerTable.from_labels(labels1 + labels2)
+        self.assertEqual(target, stab1 + stab2)
 
-    def test_to_labels(self):
-        """Test to_labels method."""
-        with self.subTest(msg='1-qubit'):
-            array = np.vstack(2 * [np.array([[False, False],
-                                             [True, False],
-                                             [True, True],
-                                             [False, True]],
-                                            dtype=np.bool)])
-            phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
-            value = StabilizerTable(array, phase).to_labels()
-            target = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='1-qubit array=True'):
-            array = np.vstack(2 * [np.array([[False, False],
-                                             [True, False],
-                                             [True, True],
-                                             [False, True]],
-                                            dtype=np.bool)])
-            phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
-            value = StabilizerTable(array, phase).to_labels(array=True)
-            target = np.array(['+I', '+X', '+Y', '+Z',
-                               '-I', '-X', '-Y', '-Z'])
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='labels round-trip'):
-            target = ['+III', '-IXZ', '-XYI', '+ZZZ']
-            value = StabilizerTable.from_labels(target).to_labels()
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='array=True'):
-            labels = ['+III', '-IXZ', '-XYI', '+ZZZ']
-            target = np.array(labels)
-            value = StabilizerTable.from_labels(labels).to_labels(array=True)
-            self.assertTrue(np.all(value == target))
-
-    def test_to_matrix(self):
-        """Test to_matrix method."""
-        with self.subTest(msg='dense matrix 1-qubit'):
-            labels = ['+I', '+X', '+Y', '+Z',
-                      '-I', '-X', '-Y', '-Z']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='dense matrix 1-qubit, array=True'):
-            labels = ['+I', '+X', '+Y', '+Z',
-                      '-I', '-X', '-Y', '-Z']
-            target = np.array([self.stab_mat(i) for i in labels])
-            value = StabilizerTable.from_labels(labels).to_matrix(array=True)
-            self.assertTrue(isinstance(value, np.ndarray))
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 1-qubit'):
-            labels = ['+I', '+X', '+Y', '+Z',
-                      '-I', '-X', '-Y', '-Z']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-        with self.subTest(msg='dense matrix 2-qubit'):
-            labels = ['+IX', '-YI', '-II', '+ZZ']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='dense matrix 2-qubit, array=True'):
-            labels = ['-ZZ', '-XY', '+YX', '-IZ']
-            target = np.array([self.stab_mat(i) for i in labels])
-            value = StabilizerTable.from_labels(labels).to_matrix(array=True)
-            self.assertTrue(isinstance(value, np.ndarray))
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 2-qubit'):
-            labels = ['+IX', '+II', '-ZY', '-YZ']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-        with self.subTest(msg='dense matrix 5-qubit'):
-            labels = ['IXIXI', 'YZIXI', 'IIXYZ']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 5-qubit'):
-            labels = ['-XXXYY', 'IXIZY', '-ZYXIX', '+ZXIYZ']
-            targets = [self.stab_mat(i) for i in labels]
-            values = StabilizerTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-    def test_magic_methods(self):
-        """Test class magic method."""
-
-        with self.subTest(msg='__eq__'):
-            stab1 = StabilizerTable.from_labels(['II', 'XI'])
-            stab2 = StabilizerTable.from_labels(['XI', 'II'])
-            self.assertEqual(stab1, stab1)
-            self.assertNotEqual(stab1, stab2)
-
-        with self.subTest(msg='__len__'):
-            for j in range(1, 10):
-                labels = j * ['XX']
-                stab = StabilizerTable.from_labels(labels)
-                self.assertEqual(len(stab), j)
-
-        with self.subTest(msg='__add__'):
-            labels1 = ['+XXI', '-IXX']
-            labels2 = ['+XXI', '-ZZI', '+ZYZ']
-            stab1 = StabilizerTable.from_labels(labels1)
-            stab2 = StabilizerTable.from_labels(labels2)
-            target = StabilizerTable.from_labels(labels1 + labels2)
-            self.assertEqual(target, stab1 + stab2)
-
+    def test_getitem_methods(self):
+        """Test __getitem__ method."""
         with self.subTest(msg='__getitem__ single'):
             labels = ['+XI', '-IY']
             stab = StabilizerTable.from_labels(labels)
@@ -459,6 +344,8 @@ class TestStabilizerTable(QiskitTestCase):
             self.assertEqual(stab[1:3],
                              StabilizerTable.from_labels(labels[1:3]))
 
+    def test_setitem_methods(self):
+        """Test __setitem__ method."""
         with self.subTest(msg='__setitem__ single'):
             labels = ['+XI', 'IY']
             stab = StabilizerTable.from_labels(['+XI', 'IY'])
@@ -494,6 +381,172 @@ class TestStabilizerTable(QiskitTestCase):
             target = StabilizerTable.from_labels(2 * ['+ZZZ'])
             stab[1:3] = target
             self.assertEqual(stab[1:3], target)
+
+
+class TestStabilizerTableLabels(QiskitTestCase):
+    """Tests for StabilizerTable label converions."""
+
+    def test_from_labels_1q(self):
+        """Test 1-qubit from_labels method."""
+        labels = ['I', 'X', 'Y', 'Z',
+                  '+I', '+X', '+Y', '+Z',
+                  '-I', '-X', '-Y', '-Z']
+        array = np.vstack(3 * [np.array([[False, False],
+                                         [True, False],
+                                         [True, True],
+                                         [False, True]],
+                                        dtype=np.bool)])
+        phase = np.array(8 * [False] + 4 * [True], dtype=np.bool)
+        target = StabilizerTable(array, phase)
+        value = StabilizerTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_from_labels_2q(self):
+        """Test 2-qubit from_labels method."""
+        labels = ['II', '-YY', '+XZ']
+        array = np.array([[False, False, False, False],
+                          [True, True, True, True],
+                          [False, True, True, False]],
+                         dtype=np.bool)
+        phase = np.array([False, True, False])
+        target = StabilizerTable(array, phase)
+        value = StabilizerTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_from_labels_5q(self):
+        """Test 5-qubit from_labels method."""
+        labels = ['IIIII', '-XXXXX', 'YYYYY', 'ZZZZZ']
+        array = np.array([10 * [False],
+                          5 * [True] + 5 * [False],
+                          10 * [True],
+                          5 * [False] + 5 * [True]],
+                         dtype=np.bool)
+        phase = np.array([False, True, False, False])
+        target = StabilizerTable(array, phase)
+        value = StabilizerTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_to_labels_1q(self):
+        """Test 1-qubit to_labels method."""
+        array = np.vstack(2 * [np.array([[False, False],
+                                         [True, False],
+                                         [True, True],
+                                         [False, True]],
+                                        dtype=np.bool)])
+        phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
+        value = StabilizerTable(array, phase).to_labels()
+        target = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
+        self.assertEqual(value, target)
+
+    def test_to_labels_1q_array(self):
+        """Test 1-qubit to_labels method w/ array=True."""
+        array = np.vstack(2 * [np.array([[False, False],
+                                         [True, False],
+                                         [True, True],
+                                         [False, True]],
+                                        dtype=np.bool)])
+        phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
+        value = StabilizerTable(array, phase).to_labels(array=True)
+        target = np.array(['+I', '+X', '+Y', '+Z',
+                           '-I', '-X', '-Y', '-Z'])
+        self.assertTrue(np.all(value == target))
+
+    def test_labels_round_trip(self):
+        """Test from_labels and to_labels round trip."""
+        target = ['+III', '-IXZ', '-XYI', '+ZZZ']
+        value = StabilizerTable.from_labels(target).to_labels()
+        self.assertEqual(value, target)
+
+    def test_labels_round_trip_array(self):
+        """Test from_labels and to_labels round trip w/ array=True."""
+        labels = ['+III', '-IXZ', '-XYI', '+ZZZ']
+        target = np.array(labels)
+        value = StabilizerTable.from_labels(
+            labels).to_labels(array=True)
+        self.assertTrue(np.all(value == target))
+
+
+class TestStabilizerTableMatrix(QiskitTestCase):
+    """Tests for StabilizerTable matrix converions."""
+
+    def test_to_matrix_1q(self):
+        """Test 1-qubit to_matrix method."""
+        labels = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_1q_array(self):
+        """Test 1-qubit to_matrix method w/ array=True."""
+        labels = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
+        target = np.array([stab_mat(i) for i in labels])
+        value = StabilizerTable.from_labels(
+            labels).to_matrix(array=True)
+        self.assertTrue(isinstance(value, np.ndarray))
+        self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_1q_sparse(self):
+        """Test 1-qubit to_matrix method w/ sparse=True."""
+        labels = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(
+            labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+    def test_to_matrix_2q(self):
+        """Test 2-qubit to_matrix method."""
+        labels = ['+IX', '-YI', '-II', '+ZZ']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_2q_array(self):
+        """Test 2-qubit to_matrix method w/ array=True."""
+        labels = ['-ZZ', '-XY', '+YX', '-IZ']
+        target = np.array([stab_mat(i) for i in labels])
+        value = StabilizerTable.from_labels(
+            labels).to_matrix(array=True)
+        self.assertTrue(isinstance(value, np.ndarray))
+        self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_2q_sparse(self):
+        """Test 2-qubit to_matrix method w/ sparse=True."""
+        labels = ['+IX', '+II', '-ZY', '-YZ']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(
+            labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+    def test_to_matrix_5q(self):
+        """Test 5-qubit to_matrix method."""
+        labels = ['IXIXI', 'YZIXI', 'IIXYZ']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_5q_sparse(self):
+        """Test 5-qubit to_matrix method w/ sparse=True."""
+        labels = ['-XXXYY', 'IXIZY', '-ZYXIX', '+ZXIYZ']
+        targets = [stab_mat(i) for i in labels]
+        values = StabilizerTable.from_labels(
+            labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+
+class TestStabilizerTableMethods(QiskitTestCase):
+    """Tests for StabilizerTable methods."""
 
     def test_sort(self):
         """Test sort method."""
@@ -769,12 +822,12 @@ class TestStabilizerTable(QiskitTestCase):
 
         with self.subTest(msg='matrix_iter (dense)'):
             for idx, i in enumerate(stab.matrix_iter()):
-                self.assertTrue(np.all(i == self.stab_mat(labels[idx])))
+                self.assertTrue(np.all(i == stab_mat(labels[idx])))
 
         with self.subTest(msg='matrix_iter (sparse)'):
             for idx, i in enumerate(stab.matrix_iter(sparse=True)):
                 self.assertTrue(isinstance(i, csr_matrix))
-                self.assertTrue(np.all(i.toarray() == self.stab_mat(labels[idx])))
+                self.assertTrue(np.all(i.toarray() == stab_mat(labels[idx])))
 
     def test_tensor(self):
         """Test tensor and expand methods."""

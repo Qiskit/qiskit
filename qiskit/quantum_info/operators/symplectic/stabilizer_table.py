@@ -14,7 +14,7 @@
 """
 Symplectic Stabilizer Table Class
 """
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, abstract-method
 
 import numpy as np
 
@@ -92,14 +92,14 @@ class StabilizerTable(PauliTable):
     .. math::
 
         \left(\begin{array}{ccc|ccc}
-            x_{0,N-1} & ... & x_{0,0} & z_{0,N-1} & ... & z_{0,0}  \\
-            x_{1,N-1} & ... & x_{1,0} & z_{1,N-1} & ... & z_{1,0}  \\
+            x_{0,0} & ... & x_{0,N-1} & z_{0,0} & ... & z_{0,N-1}  \\
+            x_{1,0} & ... & x_{1,N-1} & z_{1,0} & ... & z_{1,N-1}  \\
             \vdots & \ddots & \vdots & \vdots & \ddots & \vdots  \\
-            x_{M-1,N-1} & ... & x_{M-1,0} & z_{M-1,N-1} & ... & z_{M-1,0}
+            x_{M-1,0} & ... & x_{M-1,N-1} & z_{M-1,0} & ... & z_{M-1,N-1}
         \end{array}\right)
 
     where each row is a block vector :math:`[X_i, Z_i]` with
-    :math:`X = [x_{i,N-1}, ..., x_{i,0}]`, :math:`Z = [z_{i,N-1}, ..., z_{i,0}]`
+    :math:`X = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z = [z_{i,0}, ..., z_{i,N-1}]`
     is the symplectic representation of an `N`-qubit Pauli.
     This representation is based on reference [1].
 
@@ -137,10 +137,12 @@ class StabilizerTable(PauliTable):
     **Qubit Ordering**
 
     The qubits are ordered in the table such the least significant qubit
-    `[x_{i, 0}, z_{i, 0}]` is the last element of each of the :math:`X_i, Z_i`
-    vector blocks. This ordering is true for the string label or a matrix
-    representation as well. For example Pauli ``"IX"`` has ``"X"`` on qubit-0
-    and ``"I"`` on qubit 1.
+    `[x_{i, 0}, z_{i, 0}]` is the first element of each of the :math:`X_i, Z_i`
+    vector blocks. This is the opposite order to position in string labels or
+    matrix tensor products where the least significant qubit is the right-most
+    string character. For example Pauli ``"ZX"`` has ``"X"`` on qubit-0
+    and ``"Z"`` on qubit 1, and would have symplectic vectors :math:`x=[1, 0]`,
+    :math:`z=[0, 1]`.
 
     **Data Access**
 
@@ -589,12 +591,11 @@ class StabilizerTable(PauliTable):
         phase1, phase2 = self._block_stack(self.phase, other.phase)
 
         if qargs is not None:
-            index = [self.n_qubits - 1 - i for i in reversed(qargs)]
             ret_x, ret_z = x1.copy(), z1.copy()
-            x1 = x1[:, index]
-            z1 = z1[:, index]
-            ret_x[:, index] = x1 ^ x2
-            ret_z[:, index] = z1 ^ z2
+            x1 = x1[:, qargs]
+            z1 = z1[:, qargs]
+            ret_x[:, qargs] = x1 ^ x2
+            ret_z[:, qargs] = z1 ^ z2
             pauli = np.hstack([ret_x, ret_z])
         else:
             pauli = np.hstack((x1 ^ x2, z1 ^ z2))
@@ -727,8 +728,8 @@ class StabilizerTable(PauliTable):
               - :math:`[0, 0]`
               - :math:`\begin{bmatrix} -1 & 0 \\ 0 & -1 \end{bmatrix}`
               - :math:`-I`
-              * - ``"X"``
-            - 0
+            * - ``"X"``
+              - 0
               - :math:`[1, 0]`
               - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
               - :math:`X`
