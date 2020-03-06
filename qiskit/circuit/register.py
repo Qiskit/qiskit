@@ -26,6 +26,9 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
+    __slots__ = ['instances_counter', 'prefix', 'bit_type', 'name', 'size',
+                 '_bits', '_hash']
+
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
@@ -63,6 +66,7 @@ class Register:
         self.size = size
 
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
+        self._hash = hash((type(self), self.name, self.size))
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -121,4 +125,4 @@ class Register:
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash((type(self), self.name, self.size))
+        return self._hash
