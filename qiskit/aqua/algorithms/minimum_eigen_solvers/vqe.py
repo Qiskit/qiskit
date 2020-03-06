@@ -308,6 +308,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         Returns:
             list[QuantumCircuit]: the generated circuits with Hamiltonian.
         """
+        if self.operator is None:
+            raise AquaError("Operator was never provided")
+
         wave_function = self._var_form.construct_circuit(parameter)
         circuits = self._operator.construct_evaluation_circuit(
             wave_function, statevector_mode,
