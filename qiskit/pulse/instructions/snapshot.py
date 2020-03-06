@@ -12,7 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""TODO"""
+"""A simulator instruction to capture output within a simulation. The types of snapshot
+instructions available are determined by the simulator being used.
+"""
 import warnings
 
 from typing import List, Optional
@@ -22,10 +24,10 @@ from .instruction import Instruction
 
 
 class Snapshot(Instruction):
-    """TODO"""
+    """An instruction targeted for simulators, to capture a moment in the simulation."""
 
     def __init__(self, label: str, snapshot_type: str = 'statevector', name: Optional[str] = None):
-        """Create new snapshot command.
+        """Create new snapshot.
 
         Args:
             label: Snapshot label which is used to identify the snapshot in the output.
@@ -58,7 +60,7 @@ class Snapshot(Instruction):
         return self.channels[0]
 
     @property
-    def operands(self) -> List[str, str]:
+    def operands(self) -> List[str]:
         """Return a list of instruction operands."""
         return [self.label, self.type]
 
