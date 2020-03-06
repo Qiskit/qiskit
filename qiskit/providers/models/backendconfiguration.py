@@ -439,12 +439,15 @@ class PulseBackendConfiguration(BackendConfiguration):
         """
         Return a basic description of the channel dependency. Derived channels are given weights
         which describe how their frames are linked to other frames.
-        For instance, the backend could be configured with this setting:
+        For instance, the backend could be configured with this setting::
+
             u_channel_lo = [
                 [UchannelLO(q=0, scale=1. + 0.j)],
                 [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
             ]
-        Then, this method can be used as follows:
+
+        Then, this method can be used as follows::
+
             backend.configuration().describe(ControlChannel(1))
             >>> {DriveChannel(0): -1, DriveChannel(1): 1}
 
