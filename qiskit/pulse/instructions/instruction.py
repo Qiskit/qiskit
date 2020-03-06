@@ -30,9 +30,10 @@ from abc import ABC
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
+from ..interfaces import ScheduleComponent
+from ..schedule import Schedule
+from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
 
@@ -44,7 +45,7 @@ class Instruction(ScheduleComponent, ABC):
     channels.
     """
 
-    def __init__(self, duration: Union['Command', int],
+    def __init__(self, duration: Union['commands.Command', int],
                  *channels: Channel,
                  name: Optional[str] = None):
         """Instruction initializer.
@@ -73,7 +74,7 @@ class Instruction(ScheduleComponent, ABC):
         return self._name
 
     @property
-    def command(self) -> 'Command':
+    def command(self) -> 'commands.Command':
         """The associated command."""
         return self._command
 
@@ -152,7 +153,7 @@ class Instruction(ScheduleComponent, ABC):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: Optional[str] = None) -> 'Schedule':
+    def union(self, *schedules: List[ScheduleComponent], name: Optional[str] = None) -> Schedule:
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
@@ -165,7 +166,7 @@ class Instruction(ScheduleComponent, ABC):
             name = self.name
         return Schedule(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> 'Schedule':
+    def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -177,7 +178,7 @@ class Instruction(ScheduleComponent, ABC):
         return Schedule((time, self), name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent,
-               name: Optional[str] = None) -> 'Schedule':
+               name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
 
@@ -191,7 +192,7 @@ class Instruction(ScheduleComponent, ABC):
         return Schedule(self, (start_time, schedule), name=name)
 
     def append(self, schedule: ScheduleComponent,
-               name: Optional[str] = None) -> 'Schedule':
+               name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
 
@@ -203,7 +204,7 @@ class Instruction(ScheduleComponent, ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
-    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+    def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: float = 1, channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
@@ -215,7 +216,7 @@ class Instruction(ScheduleComponent, ABC):
 
         Args:
             dt: Time interval of samples
-            style: A style sheet to configure plot appearance
+            style (Optional[SchedStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
@@ -272,15 +273,15 @@ class Instruction(ScheduleComponent, ABC):
             return hash((hash(tuple(self.command)), self.channels.__hash__()))
         return hash((hash(tuple(self.duration)), self.channels.__hash__()))
 
-    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+    def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+    def __or__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
-    def __lshift__(self, time: int) -> 'Schedule':
+    def __lshift__(self, time: int) -> Schedule:
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
