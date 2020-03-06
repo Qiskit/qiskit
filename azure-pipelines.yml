@@ -215,7 +215,7 @@ stages:
             sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
-            tox -edocs -- -j auto
+            tox -edocs
           displayName: 'Run Docs build'
         - task: PublishBuildArtifacts@1
           displayName: 'Publish docs'
