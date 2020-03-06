@@ -26,8 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['instances_counter', 'prefix', 'bit_type', 'name', 'size',
-                 '_bits', '_hash']
+    __slots__ = ['name', 'size', '_bits', '_hash']
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
