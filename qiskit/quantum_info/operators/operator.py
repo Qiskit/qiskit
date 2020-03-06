@@ -65,12 +65,13 @@ class Operator(BaseOperator):
         Raises:
             QiskitError: if input data cannot be initialized as an operator.
 
-        Additional Information:
-            If the input or output dimensions are None, they will be
-            automatically determined from the input data. If the input data is
-            a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
-            the input operator is not an N-qubit operator, it will assign a
-            single subsystem with dimension specified by the shape of the input.
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
+        the input operator is not an N-qubit operator, it will assign a
+        single subsystem with dimension specified by the shape of the input.
         """
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix

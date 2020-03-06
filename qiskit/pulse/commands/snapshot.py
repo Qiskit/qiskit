@@ -16,7 +16,7 @@
 Snapshot.
 """
 from qiskit.pulse.channels import SnapshotChannel
-from ..instructions import Instruction
+from .instruction import Instruction
 from .command import Command
 
 

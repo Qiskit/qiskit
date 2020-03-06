@@ -444,12 +444,12 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
+            instruction (Instruction or Operation): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
-            qiskit.circuit.Instruction: a handle to the instruction that was just added
+            Instruction: a handle to the instruction that was just added
         """
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
@@ -578,7 +578,7 @@ class QuantumCircuit:
                parameterize the instruction.
 
         Returns:
-            qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
+            Instruction: a composite instruction encapsulating this circuit
             (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction

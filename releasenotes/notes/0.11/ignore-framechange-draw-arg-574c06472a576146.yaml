@@ -10,7 +10,7 @@ features:
 
     For example:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from qiskit.pulse import *
         from qiskit.pulse import pulse_lib

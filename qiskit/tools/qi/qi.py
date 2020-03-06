@@ -185,13 +185,11 @@ def vectorize(density_matrix, method='col'):
 
     Args:
         density_matrix (ndarray): a density matrix.
-        method (str): the method of vectorization.
-            Allowed values are:
-
-            * 'col' (default) flattens to column-major vector.
-            * 'row' flattens to row-major vector.
-            * 'pauli' flattens in the n-qubit Pauli basis.
-            * 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
+        method (str): the method of vectorization. Allowed values are
+            - 'col' (default) flattens to column-major vector.
+            - 'row' flattens to row-major vector.
+            - 'pauli' flattens in the n-qubit Pauli basis.
+            - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
                weight.
 
     Returns:
@@ -227,14 +225,12 @@ def devectorize(vectorized_mat, method='col'):
 
     Args:
         vectorized_mat (ndarray): a vectorized density matrix.
-        method (str): the method of devectorization.
-            Allowed values are
-
-            * 'col' (default): flattens to column-major vector.
-            * 'row': flattens to row-major vector.
-            * 'pauli': flattens in the n-qubit Pauli basis.
-            * 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
-              weight.
+        method (str): the method of devectorization. Allowed values are
+            - 'col' (default): flattens to column-major vector.
+            - 'row': flattens to row-major vector.
+            - 'pauli': flattens in the n-qubit Pauli basis.
+            - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
+               weight.
 
     Returns:
         ndarray: the resulting matrix.
@@ -267,29 +263,26 @@ def devectorize(vectorized_mat, method='col'):
 
 
 def choi_to_pauli(choi, order=1):
-    """Convert a Choi-matrix to a Pauli-basis superoperator.
+    """
+    Convert a Choi-matrix to a Pauli-basis superoperator.
 
     Note that this function assumes that the Choi-matrix
     is defined in the standard column-stacking convention
     and is normalized to have trace 1. For a channel E this
-    is defined as: :math:`choi = (I \\otimes E)(bell_state)`.
+    is defined as: choi = (I \\otimes E)(bell_state).
 
     The resulting 'rauli' R acts on input states as
-
-    .. math::
-
-        |{\\rho_{out}}_p\\rangle = R \\cdot |{\\rho_{in}}_p\\rangle.
-
-    where :math:`|{\\rho}\\rangle =` ``vectorize(rho, method='pauli')`` for order=1
-    and :math:`|{\\rho}\\rangle =` ``vectorize(rho, method='pauli_weights')`` for order=0.
+    |rho_out>_p = R.|rho_in>_p
+    where |rho> = vectorize(rho, method='pauli') for order=1
+    and |rho> = vectorize(rho, method='pauli_weights') for order=0.
 
     Args:
         choi (matrix): the input Choi-matrix.
         order (int): ordering of the Pauli group vector.
-            ``order=1`` (default) is standard lexicographic ordering
-            (e.g. ``[II, IX, IY, IZ, XI, XX, XY,...]``)
-            ``order=0`` is ordered by weights
-            (e.g. ``[II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]``)
+            order=1 (default) is standard lexicographic ordering.
+                Eg: [II, IX, IY, IZ, XI, XX, XY,...]
+            order=0 is ordered by weights.
+                Eg. [II, IX, IY, IZ, XI, XY, XZ, XX, XY,...]
 
     Returns:
         np.array: A superoperator in the Pauli basis.
@@ -339,7 +332,8 @@ def chop(array, epsilon=1e-10):
 
 
 def outer(vector1, vector2=None):
-    """Construct the outer product of two vectors.
+    """
+    Construct the outer product of two vectors.
 
     The second vector argument is optional, if absent the projector
     of the first vector will be returned.
@@ -349,7 +343,7 @@ def outer(vector1, vector2=None):
         vector2 (ndarray): the (optional) second vector.
 
     Returns:
-        np.array: The matrix :math:`|v1\\rangle\\langle{v2}|`.
+        np.array: The matrix |v1><v2|.
 
     """
     warnings.warn(

@@ -21,9 +21,8 @@ Note the sampling strategy use for all discrete pulses is `midpoint`.
 import warnings
 from typing import Optional
 
+from qiskit.pulse.pulse_lib import continuous
 from qiskit.pulse.exceptions import PulseError
-from ..commands.sample_pulse import SamplePulse
-from . import continuous
 
 from . import samplers
 
@@ -31,7 +30,7 @@ from . import samplers
 _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 
 
-def constant(duration: int, amp: complex, name: Optional[str] = None) -> SamplePulse:
+def constant(duration: int, amp: complex, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates constant-sampled :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, samples from the function:
@@ -51,7 +50,7 @@ def constant(duration: int, amp: complex, name: Optional[str] = None) -> SampleP
 _sampled_zero_pulse = samplers.midpoint(continuous.zero)
 
 
-def zero(duration: int, name: Optional[str] = None) -> SamplePulse:
+def zero(duration: int, name: Optional[str] = None) -> 'SamplePulse':
     """Generates zero-sampled :class:`~qiskit.pulse.SamplePulse`.
 
     Samples from the function:
@@ -71,7 +70,7 @@ _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
 def square(duration: int, amp: complex, freq: float = None, period: float = None,
-           phase: float = 0, name: Optional[str] = None) -> SamplePulse:
+           phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates square wave :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -108,7 +107,7 @@ _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
 def sawtooth(duration: int, amp: complex, freq: float = None, period: float = None,
-             phase: float = 0, name: Optional[str] = None) -> SamplePulse:
+             phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates sawtooth wave :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -134,13 +133,11 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
 
             import matplotlib.pyplot as plt
             from qiskit.pulse.pulse_lib import sawtooth
-            import numpy as np
 
             duration = 100
             amp = 1
             period = duration
-            sawtooth_wave = np.real(sawtooth(duration, amp, period).samples)
-            plt.plot(range(duration), sawtooth_wave)
+            plt.plot(range(duration), sawtooth(duration, amp, period).samples)
     """
     if (freq is None) and (period is None):
         freq = 1./duration
@@ -157,7 +154,7 @@ _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
 def triangle(duration: int, amp: complex, freq: float = None, period: float = None,
-             phase: float = 0, name: Optional[str] = None) -> SamplePulse:
+             phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates triangle wave :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -183,13 +180,11 @@ def triangle(duration: int, amp: complex, freq: float = None, period: float = No
 
             import matplotlib.pyplot as plt
             from qiskit.pulse.pulse_lib import triangle
-            import numpy as np
 
             duration = 100
             amp = 1
             period = duration
-            triangle_wave = np.real(triangle(duration, amp, period).samples)
-            plt.plot(range(duration), triangle_wave)
+            plt.plot(range(duration), triangle(duration, amp, period).samples)
     """
     if (freq is None) and (period is None):
         freq = 1./duration
@@ -206,7 +201,7 @@ _sampled_cos_pulse = samplers.midpoint(continuous.cos)
 
 
 def cos(duration: int, amp: complex, freq: float = None,
-        phase: float = 0, name: Optional[str] = None) -> SamplePulse:
+        phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates cosine wave :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
@@ -234,7 +229,7 @@ _sampled_sin_pulse = samplers.midpoint(continuous.sin)
 
 
 def sin(duration: int, amp: complex, freq: float = None,
-        phase: float = 0, name: Optional[str] = None) -> SamplePulse:
+        phase: float = 0, name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates sine wave :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
@@ -262,7 +257,7 @@ _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
 def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None,
-             zero_ends: bool = True) -> SamplePulse:
+             zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates unnormalized gaussian :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
@@ -305,7 +300,7 @@ _sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
 
 
 def gaussian_deriv(duration: int, amp: complex, sigma: float,
-                   name: Optional[str] = None) -> SamplePulse:
+                   name: Optional[str] = None) -> 'SamplePulse':
     r"""Generates unnormalized gaussian derivative :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma`` applies the `midpoint` sampling strategy
@@ -331,7 +326,7 @@ _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
 def sech(duration: int, amp: complex, sigma: float, name: str = None,
-         zero_ends: bool = True) -> SamplePulse:
+         zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates unnormalized sech :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
@@ -371,7 +366,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
 _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
 
 
-def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
+def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> 'SamplePulse':
     r"""Generates unnormalized sech derivative :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`A=` ``amp``, :math:`\sigma=` ``sigma``, and center :math:`\mu=` ``duration/2``,
@@ -398,7 +393,7 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 def gaussian_square(duration: int, amp: complex, sigma: float,
                     risefall: Optional[float] = None, width: Optional[float] = None,
-                    name: Optional[str] = None, zero_ends: bool = True) -> SamplePulse:
+                    name: Optional[str] = None, zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates gaussian square :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`d=` ``duration``, :math:`A=` ``amp``, :math:`\sigma=` ``sigma``,
@@ -453,7 +448,7 @@ _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float,
-         name: Optional[str] = None, zero_ends: bool = True) -> SamplePulse:
+         name: Optional[str] = None, zero_ends: bool = True) -> 'SamplePulse':
     r"""Generates Y-only correction DRAG :class:`~qiskit.pulse.SamplePulse` for standard nonlinear
     oscillator (SNO) [1].
 

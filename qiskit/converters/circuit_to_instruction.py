@@ -38,7 +38,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
         QiskitError: if parameter_map is not compatible with circuit
 
     Return:
-        qiskit.circuit.Instruction: an instruction equivalent to the action of the
+        Instruction: an instruction equivalent to the action of the
         input circuit. Upon decomposition, this instruction will
         yield the components comprising the original circuit.
 
