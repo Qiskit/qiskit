@@ -21,8 +21,8 @@ import numpy as np
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer
 
-from qiskit.aqua import QuantumInstance, aqua_globals
-from qiskit.aqua.operators import WeightedPauliOperator
+from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
+from qiskit.aqua.operators import WeightedPauliOperator, MatrixOperator
 from qiskit.aqua.components.variational_forms import RY, RYRZ
 from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.aqua.components.initial_states import Zero
@@ -206,6 +206,40 @@ class TestVQE(QiskitAquaTestCase):
         finally:
             if is_file_exist:
                 os.remove(self.get_resource_path(tmp_filename))
+
+    def test_vqe_reuse(self):
+        vqe = VQE()
+        with self.assertRaises(AquaError):
+           _ = vqe.run()
+
+        num_qubits = self.qubit_op.num_qubits
+        var_form = RY(num_qubits, 3)
+        vqe.var_form = var_form
+        with self.assertRaises(AquaError):
+           _ = vqe.run()
+
+        vqe.operator = self.qubit_op
+        with self.assertRaises(AquaError):
+            _ = vqe.run()
+
+        qinst = QuantumInstance(BasicAer.get_backend('statevector_simulator'))
+        vqe.quantum_instance = qinst
+        result = vqe.run()
+        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
+
+        operator = MatrixOperator(np.array([[1, 0, 0, 0],
+                                            [0, -1, 0, 0],
+                                            [0, 0, 2, 0],
+                                            [0, 0, 0, 3]]))
+        vqe.operator = operator
+        result = vqe.run()
+        self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
+
+    def test_vqe_mes(self):
+        vqe = VQE(var_form=RY(self.qubit_op.num_qubits, 3), optimizer=COBYLA())
+        vqe.set_backend(BasicAer.get_backend('statevector_simulator'))
+        result = vqe.compute_minimum_eigenvalue(self.qubit_op)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
 
 
 if __name__ == '__main__':

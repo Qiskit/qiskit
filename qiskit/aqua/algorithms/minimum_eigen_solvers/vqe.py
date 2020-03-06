@@ -136,7 +136,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         if optimizer is None:
             optimizer = SLSQP()
 
-        if initial_point is None:
+        # TODO after ansatz refactor we may still not be able to do this
+        #      if num qubits is not set on var form
+        if initial_point is None and var_form is not None:
             initial_point = var_form.preferred_init_points
 
         self._max_evals_grouped = max_evals_grouped
@@ -199,6 +201,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """ Sets variational form """
         VQAlgorithm.var_form.fset(self, var_form)
         self._var_form_params = ParameterVector('θ', var_form.num_parameters)
+        if self.initial_point is None:
+            self.initial_point = var_form.preferred_init_points
         self._check_operator_varform()
 
     def _check_operator_varform(self):
@@ -374,8 +378,6 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """
         if self.operator is None:
             raise AquaError("Operator was never provided")
-        if self.quantum_instance is None:
-            raise AquaError("Quantum Instance was never provided")
 
         self._operator = self.operator
         self._aux_operators = self.aux_operators

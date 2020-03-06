@@ -53,14 +53,14 @@ class QuantumAlgorithm(ABC):
         Returns:
             dict: results of an algorithm.
         """
-
         if quantum_instance is None and self.quantum_instance is None:
-            AquaError("Quantum device or backend "
-                      "is needed since you are running quantum algorithm.")
+            raise AquaError("Quantum device or backend "
+                            "is needed since you are running quantum algorithm.")
         if isinstance(quantum_instance, BaseBackend):
             self.set_backend(quantum_instance, **kwargs)
         else:
-            self.quantum_instance = quantum_instance
+            if quantum_instance is not None:
+                self.quantum_instance = quantum_instance
 
         return self._run()
 
