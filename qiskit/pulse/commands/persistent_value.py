@@ -21,7 +21,7 @@ from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from ..instructions import Instruction
+from .instruction import Instruction
 from .command import Command
 
 

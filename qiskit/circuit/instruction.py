@@ -247,7 +247,7 @@ class Instruction:
         It does not invert any gate.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh gate with sub-gates reversed
+            Instruction: a fresh gate with sub-gates reversed
         """
         if not self._definition:
             return self.copy()
@@ -268,7 +268,7 @@ class Instruction:
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            Instruction: a fresh instruction for the inverse
 
         Raises:
             CircuitError: if the instruction is not composite
@@ -300,7 +300,7 @@ class Instruction:
             if None then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a shallow copy of the current instruction, with the name
+          Instruction: a shallow copy of the current instruction, with the name
             updated if it was provided
         """
         cpy = copy.copy(self)
@@ -366,7 +366,7 @@ class Instruction:
             n (int): Number of times to repeat the instruction
 
         Returns:
-            qiskit.circuit.Instruction: Containing the definition.
+            Instruction: Containing the definition.
 
         Raises:
             CircuitError: If n < 1.

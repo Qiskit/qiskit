@@ -46,9 +46,9 @@ class PassManager:
             callback: DEPRECATED - A callback function that will be called after each pass
                 execution.
 
-        .. deprecated:: 0.13.0
+        .. deprecated ::
             The ``callback`` parameter is deprecated in favor of
-            ``PassManager.run(..., callback=callback, ...)``.
+            ``PassManager.run(..., callback=callback, ...).
         """
         self.callback = None
 
@@ -276,24 +276,28 @@ class PassManager:
         self.property_set = running_passmanager.property_set
         return result
 
-    def draw(self, filename=None, style=None, raw=False):
+    def draw(
+            self,
+            filename: str = None,
+            style: Dict = None,
+            raw: bool = False
+    ) -> Union['PIL.Image', None]:
         """Draw the pass manager.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
         Args:
-            filename (str): file path to save image to.
-            style (dict): keys are the pass classes and the values are the colors to make them. An
+            filename: file path to save image to.
+            style: keys are the pass classes and the values are the colors to make them. An
                 example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
                 a priority coloring when pass falls into multiple categories. Any values not
                 included in the provided dict will be filled in from the default dict.
-            raw (bool): If ``True``, save the raw Dot output instead of the image.
+            raw: If ``True``, save the raw Dot output instead of the image.
 
         Returns:
-            Optional[PassManager]: an in-memory representation of the pass manager, or ``None``
-            if no image was generated or `Pillow <https://pypi.org/project/Pillow/>`__
-            is not installed.
+            an in-memory representation of the pass manager, or ``None`` if no image was generated
+            or PIL is not installed.
 
         Raises:
             ImportError: when nxpd or pydot not installed.

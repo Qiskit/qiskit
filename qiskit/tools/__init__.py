@@ -48,8 +48,7 @@ Quantum Information
    vectorize
    devectorize
    choi_to_pauli
-   chop
-   outer
+   chop, outer
    entropy
    shannon_entropy
    concurrence

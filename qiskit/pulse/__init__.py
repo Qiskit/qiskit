@@ -87,6 +87,7 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
    Instruction
 
 .. autosummary::
+   :hidden:
    :toctree: ../stubs/
 
    qiskit.pulse.commands

@@ -68,20 +68,20 @@ class CustomSolver(RecursiveBacktrackingSolver):
 
 
 class CSPLayout(AnalysisPass):
-    """If possible, chooses a Layout as a CSP, using backtracking."""
+    """
+    If possible, chooses a Layout as a CSP, using backtracking.
+    """
 
     def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000,
                  time_limit=10):
-        """If possible, chooses a Layout as a CSP, using backtracking.
-
-        If not possible, does not set the layout property. In all the cases, the property
-        :meth:`qiskit.transpiler.passes.CSPLayout_stop_reason` will be added with one of the
-        following values:
-
-        * solution found: If a perfect layout was found.
-        * nonexistent solution: If no perfect layout was found and every combination was checked.
-        * call limit reached: If no perfect layout was found and the call limit was reached.
-        * time limit reached: If no perfect layout was found and the time limit was reached.
+        """
+        If possible, chooses a Layout as a CSP, using backtracking. If not possible,
+        does not set the layout property. In all the cases, the property ``CSPLayout_stop_reason``
+        will be added with one of the following values:
+         - solution found: If a perfect layout was found.
+         - nonexistent solution: If no perfect layout was found and every combination was checked.
+         - call limit reached: If no perfect layout was found and the call limit was reached.
+         - time limit reached: If no perfect layout was found and the time limit was reached.
 
         Args:
             coupling_map (Coupling): Directed graph representing a coupling map.

@@ -83,10 +83,9 @@ class XGate(Gate):
 @deprecate_arguments({'q': 'qubit'})
 def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply X gate to a specified qubit (qubit).
-
-    An X gate implements a :math:`\\pi` rotation of the qubit state vector about
-    the x axis of the Bloch sphere. This gate is canonically used to implement
-    a bit flip on the qubit state from :math:`|0\\rangle` to :math:`|1\\rangle`,
+    An X gate implements a pi rotation of the qubit state vector about the
+    x axis of the Bloch sphere.
+    This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
     or vice versa.
 
     Examples:
@@ -178,14 +177,11 @@ class CnotGate(CXGate, metaclass=CXMeta):
                       'tgt': 'target_qubit'})
 def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply CX gate
-
-    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
-    A CX gate implements a :math:`\\pi` rotation of the qubit state vector about
-    the x axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`
-    This gate is canonically used to implement a bit flip on the qubit state from
-    :math:`|0\\rangle` to :math:`|1\\rangle`, or vice versa when the control qubit is in
-    :math:`|1\\rangle`.
+    """Apply CX gate from a specified control (control_qubit) to target (target_qubit) qubit.
+    A CX gate implements a pi rotation of the qubit state vector about the x axis
+    of the Bloch sphere when the control qubit is in state |1>.
+    This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
+    or vice versa when the control qubit is in state |1>.
 
     Examples:
 
@@ -297,11 +293,9 @@ class ToffoliGate(CCXGate, metaclass=CCXMeta):
                       'tgt': 'target_qubit'})
 def ccx(self, control_qubit1, control_qubit2, target_qubit,
         *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply Toffoli (ccX) gate
-
-    From two specified controls ``(control_qubit1 and control_qubit2)`` to target ``target_qubit``
-    qubit. This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
-    :math:`|1\\rangle`, or vice versa when both the control qubits are in state :math:`|1\\rangle`.
+    """Apply Toffoli (ccX) gate from two specified controls (control_qubit1 and control_qubit2)
+    to target (target_qubit) qubit. This gate is canonically used to rotate the qubit state from
+    |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1>.
 
     Examples:
 

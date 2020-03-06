@@ -73,11 +73,10 @@ class YGate(Gate):
 @deprecate_arguments({'q': 'qubit'})
 def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
     """Apply Y gate to a specified qubit (qubit).
-
-    A Y gate implements a :math:`\\pi` rotation of the qubit state vector about
-    the y axis of the Bloch sphere. This gate is canonically used to implement
-    a bit flip and phase flip on the qubit state from :math:`|0\\rangle` to
-    :math:`i|1\\rangle`, or from :math:`|1\\rangle` to :math:`-i|0\\rangle`.
+    A Y gate implements a pi rotation of the qubit state vector about the
+    y axis of the Bloch sphere.
+    This gate is canonically used to implement a bit flip and phase flip on the qubit state
+    from |0⟩ to i|1⟩, or from |1> to -i|0>.
 
     Examples:
 
@@ -168,14 +167,11 @@ class CyGate(CYGate, metaclass=CYMeta):
                       'tgt': 'target_qubit'})
 def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cY gate
-
-    Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+    """Apply cY gate from a specified control (control_qubit) to target (target_qubit) qubit.
     A cY gate implements a pi rotation of the qubit state vector about the y axis
-    of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
+    of the Bloch sphere when the control qubit is in state |1>.
     This gate is canonically used to implement a bit flip and phase flip on the qubit state
-    from :math:`|0\\rangle` to :math:`i|1\\rangle`, or from :math:`|1\\rangle` to
-    :math:`-i|0\\rangle` when the control qubit is in state :math:`|1\\rangle`.
+    from |0⟩ to i|1⟩, or from |1> to -i|0> when the control qubit is in state |1>.
 
     Examples:
 

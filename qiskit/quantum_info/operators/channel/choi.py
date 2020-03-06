@@ -75,12 +75,13 @@ class Choi(QuantumChannel):
             QiskitError: if input data cannot be initialized as a
             Choi matrix.
 
-        Additional Information:
-            If the input or output dimensions are None, they will be
-            automatically determined from the input data. If the input data is
-            a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
-            the input operator is not an N-qubit operator, it will assign a
-            single subsystem with dimension specified by the shape of the input.
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
+        the input operator is not an N-qubit operator, it will assign a
+        single subsystem with dimension specified by the shape of the input.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Choi matrix.

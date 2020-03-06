@@ -66,12 +66,11 @@ class IdGate(IGate, metaclass=IMeta):
 
 @deprecate_arguments({'q': 'qubit'})
 def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Identity to to a specified qubit ``qubit``.
+    """Apply Identity to to a specified qubit (qubit).
 
     The Identity gate ensures that nothing is applied to a qubit for one unit
-    of gate time. It leaves the quantum states :math:`|0\\rangle` and
-    :math:`|1\\rangle` unchanged. The Identity gate should not be optimized or
-    unrolled (it is an opaque gate).
+    of gate time. It leaves the quantum states |0> and |1> unchanged.
+    The Identity gate should not be optimized or unrolled (it is an opaque gate).
 
     Examples:
 
