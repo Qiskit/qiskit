@@ -26,9 +26,12 @@ from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 
-if _matplotlib.HAS_MATPLOTLIB:
+try:
     from matplotlib import get_backend
     from matplotlib.figure import Figure
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 
 def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
@@ -156,7 +159,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                       DeprecationWarning, 3)
         channels = channels_to_plot
 
-    if not _matplotlib.HAS_MATPLOTLIB:
+    if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
