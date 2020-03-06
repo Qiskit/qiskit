@@ -27,6 +27,8 @@ import copy
 import itertools
 import networkx as nx
 
+from ordered_set import OrderedSet
+
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -53,7 +55,7 @@ class DAGCircuit:
         self.name = None
 
         # Set of wires (Register,idx) in the dag
-        self.wires = set()
+        self.wires = OrderedSet()
 
         # Map from wire (Register,idx) to input nodes of the graph
         self.input_map = OrderedDict()
