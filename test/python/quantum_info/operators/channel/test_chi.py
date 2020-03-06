@@ -14,6 +14,7 @@
 
 """Tests for Chi quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -65,11 +66,17 @@ class TestChi(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
-        mat = np.eye(4)
-        orig = Chi(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        mat = np.eye(2)
+        with self.subTest("Deep copy"):
+            orig = Chi(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Chi(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""

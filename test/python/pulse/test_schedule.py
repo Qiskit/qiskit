@@ -21,10 +21,10 @@ import numpy as np
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
-                                   functional_pulse, Instruction, AcquireInstruction,
+                                   functional_pulse, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction, Gaussian, Drag,
                                    GaussianSquare, ConstantPulse)
-from qiskit.pulse import pulse_lib, SamplePulse
+from qiskit.pulse import pulse_lib, SamplePulse, Instruction
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule

@@ -69,11 +69,10 @@ class Chi(QuantumChannel):
             QiskitError: if input data is not an N-qubit channel or
             cannot be initialized as a Chi-matrix.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. The Chi matrix
-        representation is only valid for N-qubit channels.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. The Chi matrix
+            representation is only valid for N-qubit channels.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.
@@ -169,6 +168,8 @@ class Chi(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Chi(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
