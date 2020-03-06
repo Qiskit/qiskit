@@ -42,6 +42,9 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
 
+# disable check for var_forms, optimizer setter because of pylint bug
+# pylint: disable=no-member
+
 
 class VQE(VQAlgorithm, MinimumEigensolver):
     r"""
@@ -191,20 +194,15 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """ Set aux operators """
         self._in_aux_operators = aux_operators
 
-    # disable check for now because of pylint bug
-    # pylint: disable=no-member
     @VQAlgorithm.var_form.setter
     def var_form(self, var_form: VariationalForm):
         """ Sets variational form """
         VQAlgorithm.var_form.fset(self, var_form)
         self._var_form_params = ParameterVector('θ', var_form.num_parameters)
         self._check_operator_varform()
-    # pylint: enable=no-member
 
     def _check_operator_varform(self):
         if self.operator is not None and self.var_form is not None:
-            # disable check for now because of pylint bug
-            # pylint: disable=no-member
             if self.operator.num_qubits != self.var_form.num_qubits:
                 # TODO After Ansatz update we should be able to set in the
                 #      number of qubits to var form. Important since use by
@@ -216,15 +214,12 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                 #      the specific problem and hence to the operator
                 raise AquaError("Variational form num qubits does not match operator")
 
-    # disable check for now because of pylint bug
-    # pylint: disable=no-member
     @VQAlgorithm.optimizer.setter
     def optimizer(self, optimizer: Optimizer):
         """ Sets optimizer """
         super().optimizer = optimizer
         if optimizer is not None:
             optimizer.set_max_evals_grouped(self._max_evals_grouped)
-    # pylint: enable=no-member
 
     @property
     def setting(self):

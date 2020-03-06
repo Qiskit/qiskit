@@ -110,8 +110,8 @@ from .distribution_learners import QGAN
 from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
 from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
-from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, QPE, ClassicalCPLEX, CPLEX_Ising,
-                                    ClassicalMinimumEigensolver,
+from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEResult, QPE, QPEResult,
+                                    ClassicalCPLEX, CPLEX_Ising, ClassicalMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
@@ -142,7 +142,9 @@ __all__ = [
     'QSVM',
     'Grover',
     'IQPE',
+    'IQPEResult',
     'QPE',
+    'QPEResult',
     'AmplitudeEstimation',
     'IterativeAmplitudeEstimation',
     'MaximumLikelihoodAmplitudeEstimation',
