@@ -17,6 +17,8 @@
 """Tests for PauliTable class."""
 
 import unittest
+from test import combine
+from ddt import ddt
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -25,27 +27,28 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.symplectic import PauliTable
 
 
-class TestPauliTable(QiskitTestCase):
-    """Tests for PauliTable class."""
+def pauli_mat(label):
+    """Return Pauli matrix from a Pauli label"""
+    mat = np.eye(1, dtype=complex)
+    for i in label:
+        if i == 'I':
+            mat = np.kron(mat, np.eye(2, dtype=complex))
+        elif i == 'X':
+            mat = np.kron(mat, np.array([[0, 1], [1, 0]], dtype=complex))
+        elif i == 'Y':
+            mat = np.kron(mat, np.array([[0, -1j], [1j, 0]], dtype=complex))
+        elif i == 'Z':
+            mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
+        else:
+            raise QiskitError('Invalid Pauli string {}'.format(i))
+    return mat
 
-    def pauli_mat(self, label):
-        """Return Pauli matrix from a Pauli label"""
-        mat = np.eye(1, dtype=complex)
-        for i in label:
-            if i == 'I':
-                mat = np.kron(mat, np.eye(2, dtype=complex))
-            elif i == 'X':
-                mat = np.kron(mat, np.array([[0, 1], [1, 0]], dtype=complex))
-            elif i == 'Y':
-                mat = np.kron(mat, np.array([[0, -1j], [1j, 0]], dtype=complex))
-            elif i == 'Z':
-                mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
-            else:
-                raise QiskitError('Invalid Pauli string {}'.format(i))
-        return mat
 
-    def test_init(self):
-        """Test initialization."""
+class TestPauliTableInit(QiskitTestCase):
+    """Tests for PauliTable initialization."""
+
+    def test_array_init(self):
+        """Test array initialization."""
         # Matrix array initialization
         with self.subTest(msg='bool array'):
             target = np.array([[False, False], [True, True]])
@@ -63,6 +66,8 @@ class TestPauliTable(QiskitTestCase):
                               [True, True, True]])
             self.assertRaises(QiskitError, PauliTable, array)
 
+    def test_vector_init(self):
+        """Test vector initialization."""
         # Vector array initialization
         with self.subTest(msg='bool vector'):
             target = np.array([False, False, False, False])
@@ -75,6 +80,8 @@ class TestPauliTable(QiskitTestCase):
             value[0, 0] = not value[0, 0]
             self.assertTrue(np.all(value == target))
 
+    def test_string_init(self):
+        """Test string initialization."""
         # String initialization
         with self.subTest(msg='str init "I"'):
             value = PauliTable('I')._array
@@ -122,6 +129,8 @@ class TestPauliTable(QiskitTestCase):
                               dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
+    def test_table_init(self):
+        """Test table initialization."""
         # Pauli Table initialization
         with self.subTest(msg='PauliTable'):
             target = PauliTable.from_labels(['XI', 'IX', 'IZ'])
@@ -134,8 +143,12 @@ class TestPauliTable(QiskitTestCase):
             value[0] = 'II'
             self.assertEqual(value, target)
 
-    def test_properties(self):
-        """Test class property methods"""
+
+class TestPauliTableProperties(QiskitTestCase):
+    """Tests for PauliTable properties."""
+
+    def test_array_propertiy(self):
+        """Test array property"""
 
         with self.subTest(msg='array'):
             pauli = PauliTable('II')
@@ -157,6 +170,8 @@ class TestPauliTable(QiskitTestCase):
 
             self.assertRaises(ValueError, set_array_raise)
 
+    def test_x_propertiy(self):
+        """Test X property"""
         with self.subTest(msg='X'):
             pauli = PauliTable.from_labels(['XI', 'IZ', 'YY'])
             array = np.array([[False, True], [False, False], [True, True]],
@@ -180,6 +195,8 @@ class TestPauliTable(QiskitTestCase):
 
             self.assertRaises(Exception, set_x)
 
+    def test_z_propertiy(self):
+        """Test Z property"""
         with self.subTest(msg='Z'):
             pauli = PauliTable.from_labels(['XI', 'IZ', 'YY'])
             array = np.array([[False, False], [True, False], [True, True]],
@@ -203,180 +220,53 @@ class TestPauliTable(QiskitTestCase):
 
             self.assertRaises(Exception, set_z)
 
-        with self.subTest(msg='shape'):
-            shape = (3, 8)
-            pauli = PauliTable(np.zeros(shape))
-            self.assertEqual(pauli.shape, shape)
+    def test_shape_propertiy(self):
+        """Test shape property"""
+        shape = (3, 8)
+        pauli = PauliTable(np.zeros(shape))
+        self.assertEqual(pauli.shape, shape)
 
+    def test_size_propertiy(self):
+        """Test size property"""
         with self.subTest(msg='size'):
             for j in range(1, 10):
                 shape = (j, 8)
                 pauli = PauliTable(np.zeros(shape))
                 self.assertEqual(pauli.size, j)
 
+    def test_n_qubit_propertiy(self):
+        """Test n_qubit property"""
         with self.subTest(msg='n_qubits'):
             for j in range(1, 10):
                 shape = (5, 2 * j)
                 pauli = PauliTable(np.zeros(shape))
                 self.assertEqual(pauli.n_qubits, j)
 
-    def test_from_labels(self):
-        """Test from_labels method."""
-        with self.subTest(msg='1-qubit'):
-            labels = ['I', 'Z', 'Z', 'X', 'Y']
-            array = np.array([[False, False],
-                              [False, True],
-                              [False, True],
-                              [True, False],
-                              [True, True]],
-                             dtype=np.bool)
-            target = PauliTable(array)
-            value = PauliTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_eq(self):
+        """Test __eq__ method."""
+        pauli1 = PauliTable.from_labels(['II', 'XI'])
+        pauli2 = PauliTable.from_labels(['XI', 'II'])
+        self.assertEqual(pauli1, pauli1)
+        self.assertNotEqual(pauli1, pauli2)
 
-        with self.subTest(msg='2-qubit'):
-            labels = ['II', 'YY', 'XZ']
-            array = np.array([[False, False, False, False],
-                              [True, True, True, True],
-                              [False, True, True, False]],
-                             dtype=np.bool)
-            target = PauliTable(array)
-            value = PauliTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_len_methods(self):
+        """Test __len__ method."""
+        for j in range(1, 10):
+            labels = j * ['XX']
+            pauli = PauliTable.from_labels(labels)
+            self.assertEqual(len(pauli), j)
 
-        with self.subTest(msg='5-qubit'):
-            labels = [5 * 'I', 5 * 'X', 5 * 'Y', 5 * 'Z']
-            array = np.array([10 * [False],
-                              5 * [True] + 5 * [False],
-                              10 * [True],
-                              5 * [False] + 5 * [True]],
-                             dtype=np.bool)
-            target = PauliTable(array)
-            value = PauliTable.from_labels(labels)
-            self.assertEqual(target, value)
+    def test_add_methods(self):
+        """Test __add__ method."""
+        labels1 = ['XXI', 'IXX']
+        labels2 = ['XXI', 'ZZI', 'ZYZ']
+        pauli1 = PauliTable.from_labels(labels1)
+        pauli2 = PauliTable.from_labels(labels2)
+        target = PauliTable.from_labels(labels1 + labels2)
+        self.assertEqual(target, pauli1 + pauli2)
 
-    def test_to_labels(self):
-        """Test to_labels method."""
-        with self.subTest(msg='1-qubit'):
-            pauli = PauliTable(np.array([[False, False],
-                                         [False, True],
-                                         [False, True],
-                                         [True, False],
-                                         [True, True]],
-                                        dtype=np.bool))
-            target = ['I', 'Z', 'Z', 'X', 'Y']
-            value = pauli.to_labels()
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='1-qubit array=True'):
-            pauli = PauliTable(np.array([[False, False],
-                                         [False, True],
-                                         [False, True],
-                                         [True, False],
-                                         [True, True]],
-                                        dtype=np.bool))
-            target = np.array(['I', 'Z', 'Z', 'X', 'Y'])
-            value = pauli.to_labels(array=True)
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='labels round-trip'):
-            target = ['III', 'IXZ', 'XYI', 'ZZZ']
-            value = PauliTable.from_labels(target).to_labels()
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='array=True'):
-            labels = ['III', 'IXZ', 'XYI', 'ZZZ']
-            target = np.array(labels)
-            value = PauliTable.from_labels(labels).to_labels(array=True)
-            self.assertTrue(np.all(value == target))
-
-    def test_to_matrix(self):
-        """Test to_matrix method."""
-        with self.subTest(msg='dense matrix 1-qubit'):
-            labels = ['X', 'I', 'Z', 'Y']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='dense matrix 1-qubit, array=True'):
-            labels = ['Z', 'I', 'Y', 'X']
-            target = np.array([self.pauli_mat(i) for i in labels])
-            value = PauliTable.from_labels(labels).to_matrix(array=True)
-            self.assertTrue(isinstance(value, np.ndarray))
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 1-qubit'):
-            labels = ['X', 'I', 'Z', 'Y']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-        with self.subTest(msg='dense matrix 2-qubit'):
-            labels = ['IX', 'YI', 'II', 'ZZ']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='dense matrix 2-qubit, array=True'):
-            labels = ['ZZ', 'XY', 'YX', 'IZ']
-            target = np.array([self.pauli_mat(i) for i in labels])
-            value = PauliTable.from_labels(labels).to_matrix(array=True)
-            self.assertTrue(isinstance(value, np.ndarray))
-            self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 2-qubit'):
-            labels = ['IX', 'II', 'ZY', 'YZ']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-        with self.subTest(msg='dense matrix 5-qubit'):
-            labels = ['IXIXI', 'YZIXI', 'IIXYZ']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix()
-            self.assertTrue(isinstance(values, list))
-            for target, value in zip(targets, values):
-                self.assertTrue(np.all(value == target))
-
-        with self.subTest(msg='sparse matrix 5-qubit'):
-            labels = ['XXXYY', 'IXIZY', 'ZYXIX']
-            targets = [self.pauli_mat(i) for i in labels]
-            values = PauliTable.from_labels(labels).to_matrix(sparse=True)
-            for mat, targ in zip(values, targets):
-                self.assertTrue(isinstance(mat, csr_matrix))
-                self.assertTrue(np.all(targ == mat.toarray()))
-
-    def test_magic_methods(self):
-        """Test class magic method."""
-
-        with self.subTest(msg='__eq__'):
-            pauli1 = PauliTable.from_labels(['II', 'XI'])
-            pauli2 = PauliTable.from_labels(['XI', 'II'])
-            self.assertEqual(pauli1, pauli1)
-            self.assertNotEqual(pauli1, pauli2)
-
-        with self.subTest(msg='__len__'):
-            for j in range(1, 10):
-                labels = j * ['XX']
-                pauli = PauliTable.from_labels(labels)
-                self.assertEqual(len(pauli), j)
-
-        with self.subTest(msg='__add__'):
-            labels1 = ['XXI', 'IXX']
-            labels2 = ['XXI', 'ZZI', 'ZYZ']
-            pauli1 = PauliTable.from_labels(labels1)
-            pauli2 = PauliTable.from_labels(labels2)
-            target = PauliTable.from_labels(labels1 + labels2)
-            self.assertEqual(target, pauli1 + pauli2)
-
+    def test_getitem_methods(self):
+        """Test __getitem__ method."""
         with self.subTest(msg='__getitem__ single'):
             labels = ['XI', 'IY']
             pauli = PauliTable.from_labels(labels)
@@ -400,6 +290,8 @@ class TestPauliTable(QiskitTestCase):
             self.assertEqual(pauli[1:3],
                              PauliTable.from_labels(labels[1:3]))
 
+    def test_setitem_methods(self):
+        """Test __setitem__ method."""
         with self.subTest(msg='__setitem__ single'):
             labels = ['XI', 'IY']
             pauli = PauliTable.from_labels(['XI', 'IY'])
@@ -435,6 +327,435 @@ class TestPauliTable(QiskitTestCase):
             target = PauliTable.from_labels(2 * ['ZZZ'])
             pauli[1:3] = target
             self.assertEqual(pauli[1:3], target)
+
+
+class TestPauliTableLabels(QiskitTestCase):
+    """Tests PauliTable label representation conversions."""
+
+    def test_from_labels_1q(self):
+        """Test 1-qubit from_labels method."""
+        labels = ['I', 'Z', 'Z', 'X', 'Y']
+        array = np.array([[False, False],
+                          [False, True],
+                          [False, True],
+                          [True, False],
+                          [True, True]],
+                         dtype=np.bool)
+        target = PauliTable(array)
+        value = PauliTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_from_labels_2q(self):
+        """Test 2-qubit from_labels method."""
+        labels = ['II', 'YY', 'XZ']
+        array = np.array([[False, False, False, False],
+                          [True, True, True, True],
+                          [False, True, True, False]],
+                         dtype=np.bool)
+        target = PauliTable(array)
+        value = PauliTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_from_labels_5q(self):
+        """Test 5-qubit from_labels method."""
+        labels = [5 * 'I', 5 * 'X', 5 * 'Y', 5 * 'Z']
+        array = np.array([10 * [False],
+                          5 * [True] + 5 * [False],
+                          10 * [True],
+                          5 * [False] + 5 * [True]],
+                         dtype=np.bool)
+        target = PauliTable(array)
+        value = PauliTable.from_labels(labels)
+        self.assertEqual(target, value)
+
+    def test_to_labels_1q(self):
+        """Test 1-qubit to_labels method."""
+        pauli = PauliTable(np.array([[False, False],
+                                     [False, True],
+                                     [False, True],
+                                     [True, False],
+                                     [True, True]],
+                                    dtype=np.bool))
+        target = ['I', 'Z', 'Z', 'X', 'Y']
+        value = pauli.to_labels()
+        self.assertEqual(value, target)
+
+    def test_to_labels_1q_array(self):
+        """Test 1-qubit to_labels method w/ array=True."""
+        pauli = PauliTable(np.array([[False, False],
+                                     [False, True],
+                                     [False, True],
+                                     [True, False],
+                                     [True, True]],
+                                    dtype=np.bool))
+        target = np.array(['I', 'Z', 'Z', 'X', 'Y'])
+        value = pauli.to_labels(array=True)
+        self.assertTrue(np.all(value == target))
+
+    def test_labels_round_trip(self):
+        """Test from_labels and to_labels round trip."""
+        target = ['III', 'IXZ', 'XYI', 'ZZZ']
+        value = PauliTable.from_labels(target).to_labels()
+        self.assertEqual(value, target)
+
+    def test_labels_round_trip_array(self):
+        """Test from_labels and to_labels round trip w/ array=True."""
+        labels = ['III', 'IXZ', 'XYI', 'ZZZ']
+        target = np.array(labels)
+        value = PauliTable.from_labels(labels).to_labels(array=True)
+        self.assertTrue(np.all(value == target))
+
+
+class TestPauliTableMatrix(QiskitTestCase):
+    """Tests PauliTable matrix representation conversions."""
+
+    def test_to_matrix_1q(self):
+        """Test 1-qubit to_matrix method."""
+        labels = ['X', 'I', 'Z', 'Y']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_1q_array(self):
+        """Test 1-qubit to_matrix method w/ array=True."""
+        labels = ['Z', 'I', 'Y', 'X']
+        target = np.array([pauli_mat(i) for i in labels])
+        value = PauliTable.from_labels(labels).to_matrix(array=True)
+        self.assertTrue(isinstance(value, np.ndarray))
+        self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_1q_sparse(self):
+        """Test 1-qubit to_matrix method w/ sparse=True."""
+        labels = ['X', 'I', 'Z', 'Y']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+    def test_to_matrix_2q(self):
+        """Test 2-qubit to_matrix method."""
+        labels = ['IX', 'YI', 'II', 'ZZ']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_2q_array(self):
+        """Test 2-qubit to_matrix method w/ array=True."""
+        labels = ['ZZ', 'XY', 'YX', 'IZ']
+        target = np.array([pauli_mat(i) for i in labels])
+        value = PauliTable.from_labels(labels).to_matrix(array=True)
+        self.assertTrue(isinstance(value, np.ndarray))
+        self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_2q_sparse(self):
+        """Test 2-qubit to_matrix method w/ sparse=True."""
+        labels = ['IX', 'II', 'ZY', 'YZ']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+    def test_to_matrix_5q(self):
+        """Test 5-qubit to_matrix method."""
+        labels = ['IXIXI', 'YZIXI', 'IIXYZ']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix()
+        self.assertTrue(isinstance(values, list))
+        for target, value in zip(targets, values):
+            self.assertTrue(np.all(value == target))
+
+    def test_to_matrix_5q_sparse(self):
+        """Test 5-qubit to_matrix method w/ sparse=True."""
+        labels = ['XXXYY', 'IXIZY', 'ZYXIX']
+        targets = [pauli_mat(i) for i in labels]
+        values = PauliTable.from_labels(labels).to_matrix(sparse=True)
+        for mat, targ in zip(values, targets):
+            self.assertTrue(isinstance(mat, csr_matrix))
+            self.assertTrue(np.all(targ == mat.toarray()))
+
+
+class TestPauliTableIteration(QiskitTestCase):
+    """Tests for PauliTable iterators class."""
+
+    def test_enumerate(self):
+        """Test enumerate with PauliTable."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for idx, i in enumerate(pauli):
+            self.assertEqual(i, PauliTable(labels[idx]))
+
+    def test_iter(self):
+        """Test iter with PauliTable."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for idx, i in enumerate(iter(pauli)):
+            self.assertEqual(i, PauliTable(labels[idx]))
+
+    def test_zip(self):
+        """Test zip with PauliTable."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for label, i in zip(labels, pauli):
+            self.assertEqual(i, PauliTable(label))
+
+    def test_label_iter(self):
+        """Test PauliTable label_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for idx, i in enumerate(pauli.label_iter()):
+            self.assertEqual(i, labels[idx])
+
+    def test_matrix_iter(self):
+        """Test PauliTable dense matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for idx, i in enumerate(pauli.matrix_iter()):
+            self.assertTrue(np.all(i == pauli_mat(labels[idx])))
+
+    def test_matrix_iter_sparse(self):
+        """Test PauliTable sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        pauli = PauliTable.from_labels(labels)
+        for idx, i in enumerate(pauli.matrix_iter(sparse=True)):
+            self.assertTrue(isinstance(i, csr_matrix))
+            self.assertTrue(np.all(i.toarray() == pauli_mat(labels[idx])))
+
+
+@ddt
+class TestPauliTableOperator(QiskitTestCase):
+    """Tests for PauliTable base operator methods."""
+
+    @combine(j=range(1, 10))
+    def test_tensor(self, j):
+        """Test tensor method j={j}."""
+        labels1 = ['XX', 'YY']
+        labels2 = [j * 'I', j * 'Z']
+        pauli1 = PauliTable.from_labels(labels1)
+        pauli2 = PauliTable.from_labels(labels2)
+
+        value = pauli1.tensor(pauli2)
+        target = PauliTable.from_labels(
+            [i + j for i in labels1 for j in labels2])
+        self.assertEqual(value, target)
+
+    @combine(j=range(1, 10))
+    def test_expand(self, j):
+        """Test expand method j={j}."""
+        labels1 = ['XX', 'YY']
+        labels2 = [j * 'I', j * 'Z']
+        pauli1 = PauliTable.from_labels(labels1)
+        pauli2 = PauliTable.from_labels(labels2)
+
+        value = pauli1.expand(pauli2)
+        target = PauliTable.from_labels(
+            [j + i for i in labels1 for j in labels2])
+        self.assertEqual(value, target)
+
+    def test_compose_1q(self):
+        """Test 1-qubit compose methods."""
+        # Test single qubit Pauli dot products
+        pauli = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
+
+        with self.subTest(msg='compose single I'):
+            target = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
+            value = pauli.compose('I')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='compose single X'):
+            target = PauliTable.from_labels(['X', 'I', 'Z', 'Y'])
+            value = pauli.compose('X')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='compose single Y'):
+            target = PauliTable.from_labels(['Y', 'Z', 'I', 'X'])
+            value = pauli.compose('Y')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='compose single Z'):
+            target = PauliTable.from_labels(['Z', 'Y', 'X', 'I'])
+            value = pauli.compose('Z')
+            self.assertEqual(target, value)
+
+    def test_dot_1q(self):
+        """Test 1-qubit dot method."""
+        # Test single qubit Pauli dot products
+        pauli = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
+
+        with self.subTest(msg='dot single I'):
+            target = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
+            value = pauli.dot('I')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='dot single X'):
+            target = PauliTable.from_labels(['X', 'I', 'Z', 'Y'])
+            value = pauli.dot('X')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='dot single Y'):
+            target = PauliTable.from_labels(['Y', 'Z', 'I', 'X'])
+            value = pauli.dot('Y')
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='dot single Z'):
+            target = PauliTable.from_labels(['Z', 'Y', 'X', 'I'])
+            value = pauli.dot('Z')
+            self.assertEqual(target, value)
+
+    def test_qargs_compose_1q(self):
+        """Test 1-qubit compose method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('Z')
+
+        with self.subTest(msg='compose 1-qubit qargs=[0]'):
+            target = PauliTable.from_labels(['IIZ', 'XXY'])
+            value = pauli1.compose(pauli2, qargs=[0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 1-qubit qargs=[1]'):
+            target = PauliTable.from_labels(['IZI', 'XYX'])
+            value = pauli1.compose(pauli2, qargs=[1])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 1-qubit qargs=[2]'):
+            target = PauliTable.from_labels(['ZII', 'YXX'])
+            value = pauli1.compose(pauli2, qargs=[2])
+            self.assertEqual(value, target)
+
+    def test_qargs_dot_1q(self):
+        """Test 1-qubit dot method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('Z')
+
+        with self.subTest(msg='dot 1-qubit qargs=[0]'):
+            target = PauliTable.from_labels(['IIZ', 'XXY'])
+            value = pauli1.dot(pauli2, qargs=[0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 1-qubit qargs=[1]'):
+            target = PauliTable.from_labels(['IZI', 'XYX'])
+            value = pauli1.dot(pauli2, qargs=[1])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 1-qubit qargs=[2]'):
+            target = PauliTable.from_labels(['ZII', 'YXX'])
+            value = pauli1.dot(pauli2, qargs=[2])
+            self.assertEqual(value, target)
+
+    def test_qargs_compose_2q(self):
+        """Test 2-qubit compose method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('ZY')
+
+        with self.subTest(msg='compose 2-qubit qargs=[0, 1]'):
+            target = PauliTable.from_labels(['IZY', 'XYZ'])
+            value = pauli1.compose(pauli2, qargs=[0, 1])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 2-qubit qargs=[1, 0]'):
+            target = PauliTable.from_labels(['IYZ', 'XZY'])
+            value = pauli1.compose(pauli2, qargs=[1, 0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 2-qubit qargs=[0, 2]'):
+            target = PauliTable.from_labels(['ZIY', 'YXZ'])
+            value = pauli1.compose(pauli2, qargs=[0, 2])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 2-qubit qargs=[2, 0]'):
+            target = PauliTable.from_labels(['YIZ', 'ZXY'])
+            value = pauli1.compose(pauli2, qargs=[2, 0])
+            self.assertEqual(value, target)
+
+    def test_qargs_dot_2q(self):
+        """Test 2-qubit dot method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('ZY')
+
+        with self.subTest(msg='dot 2-qubit qargs=[0, 1]'):
+            target = PauliTable.from_labels(['IZY', 'XYZ'])
+            value = pauli1.dot(pauli2, qargs=[0, 1])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 2-qubit qargs=[1, 0]'):
+            target = PauliTable.from_labels(['IYZ', 'XZY'])
+            value = pauli1.dot(pauli2, qargs=[1, 0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 2-qubit qargs=[0, 2]'):
+            target = PauliTable.from_labels(['ZIY', 'YXZ'])
+            value = pauli1.dot(pauli2, qargs=[0, 2])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 2-qubit qargs=[2, 0]'):
+            target = PauliTable.from_labels(['YIZ', 'ZXY'])
+            value = pauli1.dot(pauli2, qargs=[2, 0])
+            self.assertEqual(value, target)
+
+    def test_qargs_compose_3q(self):
+        """Test 3-qubit compose method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('XYZ')
+
+        with self.subTest(msg='compose 3-qubit qargs=None'):
+            target = PauliTable.from_labels(['XYZ', 'IZY'])
+            value = pauli1.compose(pauli2)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 3-qubit qargs=[0, 1, 2]'):
+            target = PauliTable.from_labels(['XYZ', 'IZY'])
+            value = pauli1.compose(pauli2, qargs=[0, 1, 2])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 3-qubit qargs=[2, 1, 0]'):
+            target = PauliTable.from_labels(['ZYX', 'YZI'])
+            value = pauli1.compose(pauli2, qargs=[2, 1, 0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='compose 3-qubit qargs=[1, 0, 2]'):
+            target = PauliTable.from_labels(['XZY', 'IYZ'])
+            value = pauli1.compose(pauli2, qargs=[1, 0, 2])
+            self.assertEqual(value, target)
+
+    def test_qargs_dot_3q(self):
+        """Test 3-qubit dot method with qargs."""
+
+        pauli1 = PauliTable.from_labels(['III', 'XXX'])
+        pauli2 = PauliTable('XYZ')
+
+        with self.subTest(msg='dot 3-qubit qargs=None'):
+            target = PauliTable.from_labels(['XYZ', 'IZY'])
+            value = pauli1.dot(pauli2, qargs=[0, 1, 2])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 3-qubit qargs=[0, 1, 2]'):
+            target = PauliTable.from_labels(['XYZ', 'IZY'])
+            value = pauli1.dot(pauli2, qargs=[0, 1, 2])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 3-qubit qargs=[2, 1, 0]'):
+            target = PauliTable.from_labels(['ZYX', 'YZI'])
+            value = pauli1.dot(pauli2, qargs=[2, 1, 0])
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='dot 3-qubit qargs=[1, 0, 2]'):
+            target = PauliTable.from_labels(['XZY', 'IYZ'])
+            value = pauli1.dot(pauli2, qargs=[1, 0, 2])
+            self.assertEqual(value, target)
+
+
+class TestPauliTableMethods(QiskitTestCase):
+    """Tests for PauliTable utility methods class."""
 
     def test_sort(self):
         """Test sort method."""
@@ -696,209 +1017,6 @@ class TestPauliTable(QiskitTestCase):
                     self.assertEqual(value, target0)
                     value = pauli.insert(1, PauliTable.from_labels(i).array, qubit=True)
                     self.assertEqual(value, target1)
-
-    def test_iteration(self):
-        """Test iteration methods."""
-
-        labels = ['III', 'IXI', 'IYY', 'YIZ', 'ZIZ', 'XYZ', 'III']
-        pauli = PauliTable.from_labels(labels)
-
-        with self.subTest(msg='enumerate'):
-            for idx, i in enumerate(pauli):
-                self.assertEqual(i, PauliTable(labels[idx]))
-
-        with self.subTest(msg='iter'):
-            for idx, i in enumerate(iter(pauli)):
-                self.assertEqual(i, PauliTable(labels[idx]))
-
-        with self.subTest(msg='zip'):
-            for label, i in zip(labels, pauli):
-                self.assertEqual(i, PauliTable(label))
-
-        with self.subTest(msg='label_iter'):
-            for idx, i in enumerate(pauli.label_iter()):
-                self.assertEqual(i, labels[idx])
-
-        with self.subTest(msg='matrix_iter (dense)'):
-            for idx, i in enumerate(pauli.matrix_iter()):
-                self.assertTrue(np.all(i == self.pauli_mat(labels[idx])))
-
-        with self.subTest(msg='matrix_iter (sparse)'):
-            for idx, i in enumerate(pauli.matrix_iter(sparse=True)):
-                self.assertTrue(isinstance(i, csr_matrix))
-                self.assertTrue(np.all(i.toarray() == self.pauli_mat(labels[idx])))
-
-    def test_tensor(self):
-        """Test tensor and expand methods."""
-        for j in range(1, 10):
-            labels1 = ['XX', 'YY']
-            labels2 = [j * 'I', j * 'Z']
-            pauli1 = PauliTable.from_labels(labels1)
-            pauli2 = PauliTable.from_labels(labels2)
-
-            with self.subTest(msg='tensor ({})'.format(j)):
-                value = pauli1.tensor(pauli2)
-                target = PauliTable.from_labels(
-                    [i + j for i in labels1 for j in labels2])
-                self.assertEqual(value, target)
-
-            with self.subTest(msg='expand ({})'.format(j)):
-                value = pauli1.expand(pauli2)
-                target = PauliTable.from_labels(
-                    [j + i for i in labels1 for j in labels2])
-                self.assertEqual(value, target)
-
-    def test_dot(self):
-        """Test dot and compose methods."""
-
-        # Test single qubit Pauli dot products
-        pauli = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
-
-        target = PauliTable.from_labels(['I', 'X', 'Y', 'Z'])
-        with self.subTest(msg='dot single I'):
-            value = pauli.dot('I')
-            self.assertEqual(target, value)
-
-        with self.subTest(msg='compose single I'):
-            value = pauli.compose('I')
-            self.assertEqual(target, value)
-
-        target = PauliTable.from_labels(['X', 'I', 'Z', 'Y'])
-        with self.subTest(msg='dot single X'):
-            value = pauli.dot('X')
-            self.assertEqual(target, value)
-
-        with self.subTest(msg='compose single X'):
-            value = pauli.compose('X')
-            self.assertEqual(target, value)
-
-        target = PauliTable.from_labels(['Y', 'Z', 'I', 'X'])
-        with self.subTest(msg='dot single Y'):
-            value = pauli.dot('Y')
-            self.assertEqual(target, value)
-
-        with self.subTest(msg='compose single Y'):
-            value = pauli.compose('Y')
-            self.assertEqual(target, value)
-
-        target = PauliTable.from_labels(['Z', 'Y', 'X', 'I'])
-        with self.subTest(msg='dot single Z'):
-            value = pauli.dot('Z')
-            self.assertEqual(target, value)
-
-        with self.subTest(msg='compose single Z'):
-            value = pauli.compose('Z')
-            self.assertEqual(target, value)
-
-        # Dot product with qargs
-        pauli1 = PauliTable.from_labels(['III', 'XXX'])
-
-        # 1-qubit qargs
-        pauli2 = PauliTable('Z')
-
-        target = PauliTable.from_labels(['IIZ', 'XXY'])
-        with self.subTest(msg='dot 1-qubit qargs=[0]'):
-            value = pauli1.dot(pauli2, qargs=[0])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 1-qubit qargs=[0]'):
-            value = pauli1.compose(pauli2, qargs=[0])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['IZI', 'XYX'])
-        with self.subTest(msg='dot 1-qubit qargs=[1]'):
-            value = pauli1.dot(pauli2, qargs=[1])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 1-qubit qargs=[1]'):
-            value = pauli1.compose(pauli2, qargs=[1])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['ZII', 'YXX'])
-        with self.subTest(msg='dot 1-qubit qargs=[2]'):
-            value = pauli1.dot(pauli2, qargs=[2])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 1-qubit qargs=[2]'):
-            value = pauli1.compose(pauli2, qargs=[2])
-            self.assertEqual(value, target)
-
-        # 2-qubit qargs
-        pauli2 = PauliTable('ZY')
-
-        target = PauliTable.from_labels(['IZY', 'XYZ'])
-        with self.subTest(msg='dot 2-qubit qargs=[0, 1]'):
-            value = pauli1.dot(pauli2, qargs=[0, 1])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 2-qubit qargs=[0, 1]'):
-            value = pauli1.compose(pauli2, qargs=[0, 1])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['IYZ', 'XZY'])
-        with self.subTest(msg='dot 2-qubit qargs=[1, 0]'):
-            value = pauli1.dot(pauli2, qargs=[1, 0])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 2-qubit qargs=[1, 0]'):
-            value = pauli1.compose(pauli2, qargs=[1, 0])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['ZIY', 'YXZ'])
-        with self.subTest(msg='dot 2-qubit qargs=[0, 2]'):
-            value = pauli1.dot(pauli2, qargs=[0, 2])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 2-qubit qargs=[0, 2]'):
-            value = pauli1.compose(pauli2, qargs=[0, 2])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['YIZ', 'ZXY'])
-        with self.subTest(msg='dot 2-qubit qargs=[2, 0]'):
-            value = pauli1.dot(pauli2, qargs=[2, 0])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 2-qubit qargs=[2, 0]'):
-            value = pauli1.compose(pauli2, qargs=[2, 0])
-            self.assertEqual(value, target)
-
-        # 3-qubit qargs
-        pauli2 = PauliTable('XYZ')
-
-        target = PauliTable.from_labels(['XYZ', 'IZY'])
-        with self.subTest(msg='dot 3-qubit qargs=None'):
-            value = pauli1.dot(pauli2, qargs=[0, 1, 2])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 3-qubit qargs=None'):
-            value = pauli1.compose(pauli2)
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='dot 3-qubit qargs=[0, 1, 2]'):
-            value = pauli1.dot(pauli2, qargs=[0, 1, 2])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 3-qubit qargs=[0, 1, 2]'):
-            value = pauli1.compose(pauli2, qargs=[0, 1, 2])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['ZYX', 'YZI'])
-        with self.subTest(msg='dot 3-qubit qargs=[2, 1, 0]'):
-            value = pauli1.dot(pauli2, qargs=[2, 1, 0])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 3-qubit qargs=[2, 1, 0]'):
-            value = pauli1.compose(pauli2, qargs=[2, 1, 0])
-            self.assertEqual(value, target)
-
-        target = PauliTable.from_labels(['XZY', 'IYZ'])
-        with self.subTest(msg='dot 3-qubit qargs=[1, 0, 2]'):
-            value = pauli1.dot(pauli2, qargs=[1, 0, 2])
-            self.assertEqual(value, target)
-
-        with self.subTest(msg='compose 3-qubit qargs=[1, 0, 2]'):
-            value = pauli1.compose(pauli2, qargs=[1, 0, 2])
-            self.assertEqual(value, target)
 
     def test_commutes(self):
         """Test commutes method."""
