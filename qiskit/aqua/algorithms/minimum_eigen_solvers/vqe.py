@@ -156,7 +156,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         self._eval_count = 0
 
         logger.info(self.print_settings())
-        self._var_form_params = ParameterVector('θ', self._var_form.num_parameters)
+        self._var_form_params = None
+        if self.var_form is not None:
+            self._var_form_params = ParameterVector('θ', self.var_form.num_parameters)
         self._parameterized_circuits = None
 
         self.operator = operator
@@ -194,7 +196,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     @VQAlgorithm.var_form.setter
     def var_form(self, var_form: VariationalForm):
         """ Sets variational form """
-        super().var_form = var_form
+        VQAlgorithm.var_form.fset(self, var_form)
+        self._var_form_params = ParameterVector('θ', var_form.num_parameters)
         self._check_operator_varform()
     # pylint: enable=no-member
 
@@ -439,7 +442,6 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         if 'aux_ops' in self._ret:
             result.aux_operator_eigenvalues = self._ret['aux_ops']
         result.cost_function_evals = self._eval_count
-        print(result)
 
         self.cleanup_parameterized_circuits()
         return result
