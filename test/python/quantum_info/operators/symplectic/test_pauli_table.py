@@ -103,22 +103,22 @@ class TestPauliTable(QiskitTestCase):
 
         with self.subTest(msg='str init "IX"'):
             value = PauliTable('IX')._array
-            target = np.array([[False, True, False, False]], dtype=np.bool)
+            target = np.array([[True, False, False, False]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XI"'):
             value = PauliTable('XI')._array
-            target = np.array([[True, False, False, False]], dtype=np.bool)
+            target = np.array([[False, True, False, False]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "YZ"'):
             value = PauliTable('YZ')._array
-            target = np.array([[True, False, True, True]], dtype=np.bool)
+            target = np.array([[False, True, True, True]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XIZ"'):
             value = PauliTable('XIZ')._array
-            target = np.array([[True, False, False, False, False, True]],
+            target = np.array([[False, False, True, True, False, False]],
                               dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
@@ -159,7 +159,7 @@ class TestPauliTable(QiskitTestCase):
 
         with self.subTest(msg='X'):
             pauli = PauliTable.from_labels(['XI', 'IZ', 'YY'])
-            array = np.array([[True, False], [False, False], [True, True]],
+            array = np.array([[False, True], [False, False], [True, True]],
                              dtype=np.bool)
             self.assertTrue(np.all(pauli.X == array))
 
@@ -182,7 +182,7 @@ class TestPauliTable(QiskitTestCase):
 
         with self.subTest(msg='Z'):
             pauli = PauliTable.from_labels(['XI', 'IZ', 'YY'])
-            array = np.array([[False, False], [False, True], [True, True]],
+            array = np.array([[False, False], [True, False], [True, True]],
                              dtype=np.bool)
             self.assertTrue(np.all(pauli.Z == array))
 
@@ -238,7 +238,7 @@ class TestPauliTable(QiskitTestCase):
             labels = ['II', 'YY', 'XZ']
             array = np.array([[False, False, False, False],
                               [True, True, True, True],
-                              [True, False, False, True]],
+                              [False, True, True, False]],
                              dtype=np.bool)
             target = PauliTable(array)
             value = PauliTable.from_labels(labels)

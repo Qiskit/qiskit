@@ -58,14 +58,14 @@ class PauliTable(BaseOperator):
     .. math::
 
         \left(\begin{array}{ccc|ccc}
-            x_{0,N-1} & ... & x_{0,0} & z_{0,N-1} & ... & z_{0,0}  \\
-            x_{1,N-1} & ... & x_{1,0} & z_{1,N-1} & ... & z_{1,0}  \\
+            x_{0,0} & ... & x_{0,N-1} & z_{0,0} & ... & z_{0,N-1}  \\
+            x_{1,0} & ... & x_{1,N-1} & z_{1,0} & ... & z_{1,N-1}  \\
             \vdots & \ddots & \vdots & \vdots & \ddots & \vdots  \\
-            x_{M-1,N-1} & ... & x_{M-1,0} & z_{M-1,N-1} & ... & z_{M-1,0}
+            x_{M-1,0} & ... & x_{M-1,N-1} & z_{M-1,0} & ... & z_{M-1,N-1}
         \end{array}\right)
 
     where each row is a block vector :math:`[X_i, Z_i]` with
-    :math:`X = [x_{i,N-1}, ..., x_{i,0}]`, :math:`Z = [z_{i,N-1}, ..., z_{i,0}]`
+    :math:`X = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z = [z_{i,0}, ..., z_{i,N-1}]`
     is the symplectic representation of an `N`-qubit Pauli.
     This representation is based on reference [1].
 
@@ -96,10 +96,12 @@ class PauliTable(BaseOperator):
     **Qubit Ordering**
 
     The qubits are ordered in the table such the least significant qubit
-    `[x_{i, 0}, z_{i, 0}]` is the last element of each of the :math:`X_i, Z_i`
-    vector blocks. This ordering is true for the string label or a matrix
-    representation as well. For example Pauli ``"IX"`` has ``"X"`` on qubit-0
-    and ``"I"`` on qubit 1.
+    `[x_{i, 0}, z_{i, 0}]` is the first element of each of the :math:`X_i, Z_i`
+    vector blocks. This is the opposite order to position in string labels or
+    matrix tensor products where the least significant qubit is the right-most
+    string character. For example Pauli ``"ZX"`` has ``"X"`` on qubit-0
+    and ``"Z"`` on qubit 1, and would have symplectic vectors :math:`x=[1, 0]`,
+    :math:`z=[0, 1]`.
 
     **Data Access**
 
@@ -249,10 +251,8 @@ class PauliTable(BaseOperator):
     def delete(self, ind, qubit=False):
         """Return a copy with Pauli rows deleted from table.
 
-        When deleting qubit columns, qubit-0 is the right-most
-        (largest index) column, and qubit-(N-1) is the left-most
-        (0 index) column of the underlying :attr:`X` and :attr:`Z`
-        arrays.
+        When deleting qubits the qubit index is the same as the
+        column index of the underlying :attr:`X` and :attr:`Z` arrays.
 
         Args:
             ind (int or list): index(es) to delete.
@@ -280,17 +280,14 @@ class PauliTable(BaseOperator):
         if max(ind) >= self.n_qubits:
             raise QiskitError("Indices {} are not all less than the number of"
                               " qubits in the PauliTable ({})".format(ind, self.n_qubits))
-        cols_x = [self._n_qubits - 1 - i for i in ind]
-        cols_z = [2 * self._n_qubits - 1 - i for i in ind]
-        return PauliTable(np.delete(self._array, cols_x + cols_z, axis=1))
+        cols = ind + [self._n_qubits + i for i in ind]
+        return PauliTable(np.delete(self._array, cols, axis=1))
 
     def insert(self, ind, value, qubit=False):
         """Insert Pauli's into the table.
 
-        When inserting qubit columns, qubit-0 is the right-most
-        (largest index) column, and qubit-(N-1) is the left-most
-        (0 index) column of the underlying :attr:`X` and :attr:`Z`
-        arrays.
+        When inserting qubits the qubit index is the same as the
+        column index of the underlying :attr:`X` and :attr:`Z` arrays.
 
         Args:
             ind (int): index to insert at.
@@ -335,9 +332,8 @@ class PauliTable(BaseOperator):
                               " the same number of rows as the Pauli Table"
                               " ({}).".format(self.size))
         # Build new array by blocks
-        i = self.n_qubits - ind
-        return PauliTable(np.hstack((self.X[:, :i], value_x, self.X[:, i:],
-                                     self.Z[:, :i], value_z, self.Z[:, i:])))
+        return PauliTable(np.hstack((self.X[:, :ind], value_x, self.X[:, ind:],
+                                     self.Z[:, :ind], value_z, self.Z[:, ind:])))
 
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
@@ -368,7 +364,7 @@ class PauliTable(BaseOperator):
         # are use the 'stable' sort method
         indices = np.arange(self.size)
         for i in range(self.n_qubits):
-            sort_inds = order[:, -1 - i].argsort(kind='stable')
+            sort_inds = order[:, i].argsort(kind='stable')
             order = order[sort_inds]
             indices = indices[sort_inds]
             if weight:
@@ -510,7 +506,7 @@ class PauliTable(BaseOperator):
             other = PauliTable(other)
         x1, x2 = self._block_stack(self.X, other.X)
         z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x1, x2, z1, z2]))
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -543,7 +539,7 @@ class PauliTable(BaseOperator):
             other = PauliTable(other)
         x1, x2 = self._block_stack(self.X, other.X)
         z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x2, x1, z2, z1]))
+        return PauliTable(np.hstack([x1, x2, z1, z2]))
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -590,12 +586,11 @@ class PauliTable(BaseOperator):
         z1, z2 = self._block_stack(self.Z, other.Z)
 
         if qargs is not None:
-            index = [self.n_qubits - 1 - i for i in reversed(qargs)]
             ret_x, ret_z = x1.copy(), z1.copy()
-            x1 = x1[:, index]
-            z1 = z1[:, index]
-            ret_x[:, index] = x1 ^ x2
-            ret_z[:, index] = z1 ^ z2
+            x1 = x1[:, qargs]
+            z1 = z1[:, qargs]
+            ret_x[:, qargs] = x1 ^ x2
+            ret_z[:, qargs] = z1 ^ z2
             pauli = np.hstack([ret_x, ret_z])
         else:
             pauli = np.hstack((x1 ^ x2, z1 ^ z2))
@@ -913,9 +908,9 @@ class PauliTable(BaseOperator):
                 raise QiskitError("Pauli string contains invalid character:"
                                   " {} not in ['I', 'X', 'Y', 'Z'].".format(char))
             if char in ['X', 'Y']:
-                xs[i] = True
+                xs[n_qubits - 1 - i] = True
             if char in ['Z', 'Y']:
-                zs[i] = True
+                zs[n_qubits - 1 - i] = True
         return symp
 
     @staticmethod
@@ -932,13 +927,13 @@ class PauliTable(BaseOperator):
         for i in range(n_qubits):
             if not z[i]:
                 if not x[i]:
-                    paulis[i] = 'I'
+                    paulis[n_qubits - 1 - i] = 'I'
                 else:
-                    paulis[i] = 'X'
+                    paulis[n_qubits - 1 - i] = 'X'
             elif not x[i]:
-                paulis[i] = 'Z'
+                paulis[n_qubits - 1 - i] = 'Z'
             else:
-                paulis[i] = 'Y'
+                paulis[n_qubits - 1 - i] = 'Y'
         return str().join(paulis)
 
     @staticmethod
@@ -968,7 +963,7 @@ class PauliTable(BaseOperator):
         z = symp[n_qubits:2*n_qubits]
 
         dim = 2 ** n_qubits
-        twos_array = list(reversed(1 << np.arange(n_qubits)))
+        twos_array = 1 << np.arange(n_qubits)
         x_indices = np.array(x).dot(twos_array)
         z_indices = np.array(z).dot(twos_array)
 
