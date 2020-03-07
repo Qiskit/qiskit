@@ -78,13 +78,13 @@ class Kraus(QuantumChannel):
             QiskitError: if input data cannot be initialized as a
             a list of Kraus matrices.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
-        the input does not correspond to an N-qubit channel, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be
+            used. If the input does not correspond to an N-qubit channel, it
+            will assign a single subsystem with dimension specified by the
+            shape of the input.
         """
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
@@ -117,7 +117,7 @@ class Kraus(QuantumChannel):
             # E(rho) = sum_i A_i * rho * B_i^dagger
             elif isinstance(data,
                             tuple) and len(data) == 2 and len(data[0]) > 0:
-                kraus_left = [np.array(data[0][0], dtype=complex)]
+                kraus_left = [np.asarray(data[0][0], dtype=complex)]
                 shape = kraus_left[0].shape
                 for i in data[0][1:]:
                     op = np.asarray(i, dtype=complex)
@@ -237,6 +237,8 @@ class Kraus(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Kraus(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
