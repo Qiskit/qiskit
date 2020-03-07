@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
+"""Pass manager for optimization level 3, providing heavy optimization.
 
-"""
-Level 3 pass manager:
-noise adaptive mapping in addition to heavy optimization based on unitary synthesis
+Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
+gate cancellation using commutativity rules and unitary synthesis.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.passes import Unroller
@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
@@ -46,27 +47,29 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_3_pass_manager(pass_manager_config):
-    """
-    Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
+def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
 
     This pass manager applies the user-given initial layout. If none is given, and
     device calibration information is available, the circuit is mapped to the qubits
     with best readouts and to CX gates with highest fidelity. Otherwise, a layout on
     the most densely connected qubits is used.
+
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation, resynthesis
     of two-qubit unitary blocks, and redundant reset removal are performed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        pass_manager_config (PassManagerConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 3 pass manager.
+        a level 3 pass manager.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
@@ -128,6 +131,8 @@ def level_3_pass_manager(pass_manager_config):
     pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
+        pm3.append(CSPLayout(coupling_map, call_limit=10000, time_limit=60),
+                   condition=_choose_layout_condition)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)

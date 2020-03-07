@@ -43,14 +43,13 @@ import math
 
 import numpy as np
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.pulse_lib.discrete import gaussian, gaussian_square, drag, constant
-from qiskit.pulse.pulse_lib import continuous
+from qiskit.pulse.pulse_lib import gaussian, gaussian_square, drag, constant, continuous
+from .sample_pulse import SamplePulse
+from ..instructions import Instruction
+from ..channels import PulseChannel
+from ..exceptions import PulseError
 
 from .pulse_command import PulseCommand
-from .sample_pulse import SamplePulse
-from .instruction import Instruction
 
 # pylint: disable=missing-docstring
 
@@ -97,7 +96,7 @@ class ParametricPulse(PulseCommand):
         return ParametricInstruction(self, channel, name=name)
 
     def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
+             style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
@@ -106,7 +105,7 @@ class ParametricPulse(PulseCommand):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
@@ -253,11 +252,10 @@ class GaussianSquare(ParametricPulse):
 
 
 class Drag(ParametricPulse):
-    """
-    The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    r"""The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the |1>-|2> transition, reducing the chance of
-    leakage to the |2> state.
+    spectrum of a normal gaussian pulse near the :math:`|1\rangle` - :math:`|2\rangle` transition,
+    reducing the chance of leakage to the :math:`|2\rangle` state.
 
     .. math::
 
@@ -270,12 +268,21 @@ class Drag(ParametricPulse):
 
         Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
 
-    Ref:
-        [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
-        Analytic control methods for high-fidelity unitary operations
-        in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
-        [2] F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
-        Phys. Rev. Lett. 103, 110501 – Published 8 September 2009
+    References:
+        1. |citation1|_
+
+        .. _citation1: https://link.aps.org/doi/10.1103/PhysRevA.83.012308
+
+        .. |citation1| replace:: *Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
+           Analytic control methods for high-fidelity unitary operations
+           in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).*
+
+        2. |citation2|_
+
+        .. _citation2: https://link.aps.org/doi/10.1103/PhysRevLett.103.110501
+
+        .. |citation2| replace:: *F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
+           Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
     def __init__(self,

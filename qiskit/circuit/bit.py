@@ -21,6 +21,8 @@ from qiskit.circuit.exceptions import CircuitError
 class Bit:
     """Implement a generic bit."""
 
+    __slots__ = {'register', 'index'}
+
     def __init__(self, register, index):
         """Create a new generic bit.
         """

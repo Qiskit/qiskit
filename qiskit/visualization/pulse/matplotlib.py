@@ -32,9 +32,9 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
+from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
                           Acquire, PulseError, ParametricPulse)
-from qiskit.pulse.commands.frame_change import FrameChangeInstruction
 
 
 class EventsOutputChannels:
@@ -350,16 +350,13 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, output_channels, scale=1, channels=None,
-                               plot_all=False, scaling=None):
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
+    def _count_valid_waveforms(self, output_channels, scale, channel_scales=None,
+                               channels=None, plot_all=False):
         # count numbers of valid waveform
         n_valid_waveform = 0
-        v_max = 0
+        scale_dict = {chan: 0 for chan in output_channels.keys()}
         for channel, events in output_channels.items():
+            v_max = 0
             if channels:
                 if channel in channels:
                     waveform = events.waveform
@@ -377,17 +374,17 @@ class ScheduleDrawer:
                     n_valid_waveform += 1
                     events.enable = True
 
-        # when input schedule is empty or comprises only frame changes,
-        # we need to overwrite maximum amplitude by a value greater than zero,
-        # otherwise auto axis scaling will fail with zero division.
-        v_max = v_max or 1
+            scale_val = channel_scales.get(channel, scale)
+            if not scale_val:
+                # when input schedule is empty or comprises only frame changes,
+                # we need to overwrite maximum amplitude by a value greater than zero,
+                # otherwise auto axis scaling will fail with zero division.
+                v_max = v_max or 1
+                scale_dict[channel] = 1 / v_max
+            else:
+                scale_dict[channel] = scale_val
 
-        if scale:
-            v_max = 0.5 * scale
-        else:
-            v_max = 0.5 / (v_max)
-
-        return n_valid_waveform, v_max
+        return n_valid_waveform, scale_dict
 
     # pylint: disable=unused-argument
     def _draw_table(self, figure, channels, dt, n_valid_waveform):
@@ -510,12 +507,14 @@ class ScheduleDrawer:
                 ax.axvline(tf*dt, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, scale_dict,
                        label=False, framechange=True):
         y0 = 0
         prev_labels = []
         for channel, events in output_channels.items():
             if events.enable:
+                # scaling value of this channel
+                scale = 0.5 * scale_dict.get(channel, 0.5)
                 # plot waveform
                 waveform = events.waveform
                 time = np.arange(t0, tf + 1, dtype=float) * dt
@@ -528,10 +527,10 @@ class ScheduleDrawer:
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
                 # Minimum amplitude scaled
-                amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
+                amp_min = scale * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
-                re = v_max * re + y0
-                im = v_max * im + y0
+                re = scale * re + y0
+                im = scale * im + y0
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
@@ -561,6 +560,10 @@ class ScheduleDrawer:
             ax.text(x=0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
+            # show scaling factor
+            ax.text(x=0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
+                    fontsize=0.7*self.style.axis_font_size,
+                    ha='right', va='top')
 
             # change the y0 offset for removing spacing when a channel has negative values
             if self.style.remove_spacing:
@@ -570,8 +573,8 @@ class ScheduleDrawer:
         return y0
 
     def draw(self, schedule, dt, interp_method, plot_range,
-             scale=None, channels_to_plot=None, plot_all=True,
-             table=True, label=False, framechange=True,
+             scale=None, channel_scales=None, channels_to_plot=None,
+             plot_all=True, table=True, label=False, framechange=True,
              scaling=None, channels=None,
              show_framechange_channels=True):
         """Draw figure.
@@ -582,7 +585,9 @@ class ScheduleDrawer:
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
-            scale (float): Relative visual scaling of waveform amplitudes
+            scale (float): Relative visual scaling of waveform amplitudes.
+            channel_scales (dict[Channel, float]): Channel independent scaling as a
+                dictionary of `Channel` object.
             channels_to_plot (list[OutputChannel]): deprecated, see `channels`
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
@@ -612,6 +617,9 @@ class ScheduleDrawer:
             channels = []
         interp_method = interp_method or interpolation.step_wise
 
+        if channel_scales is None:
+            channel_scales = {}
+
         # setup plot range
         if plot_range:
             t0 = int(np.floor(plot_range[0]/dt))
@@ -634,10 +642,11 @@ class ScheduleDrawer:
 
         # count numbers of valid waveform
 
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels,
-                                                              scale=scale,
-                                                              channels=channels,
-                                                              plot_all=plot_all)
+        n_valid_waveform, scale_dict = self._count_valid_waveforms(output_channels,
+                                                                   scale=scale,
+                                                                   channel_scales=channel_scales,
+                                                                   channels=channels,
+                                                                   plot_all=plot_all)
 
         if table:
             ax = self._draw_table(figure, schedule_channels, dt, n_valid_waveform)
@@ -649,13 +658,16 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
-                                 t0, tf, dt, v_max, label=label,
+                                 t0, tf, dt, scale_dict, label=label,
                                  framechange=framechange)
 
-        self._draw_snapshots(ax, snapshot_channels, dt, y0)
+        y_ub = 0.5 + self.style.vertical_span
+        y_lb = y0 + 0.5 - self.style.vertical_span
+
+        self._draw_snapshots(ax, snapshot_channels, dt, y_lb)
 
         ax.set_xlim(t0 * dt, tf * dt)
-        ax.set_ylim(y0, 1)
+        ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
 
         return figure
