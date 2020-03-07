@@ -440,7 +440,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         result.eigenvalue = vqresult.optimal_value + 0j
         result.eigenstate = self.get_optimal_vector()
         if 'aux_ops' in self._ret:
-            result.aux_operator_eigenvalues = self._ret['aux_ops']
+            result.aux_operator_eigenvalues = self._ret['aux_ops'][0]
         result.cost_function_evals = self._eval_count
 
         self.cleanup_parameterized_circuits()
