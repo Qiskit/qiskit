@@ -52,6 +52,8 @@ class QuantumAlgorithm(ABC):
             kwargs (dict): kwargs
         Returns:
             dict: results of an algorithm.
+        Raises:
+            AquaError: If a quantum instance or backend has not been provided
         """
         if quantum_instance is None and self.quantum_instance is None:
             raise AquaError("Quantum device or backend "
@@ -74,8 +76,10 @@ class QuantumAlgorithm(ABC):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[None, QuantumInstance]) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
         """Set quantum  instance."""
+        if isinstance(quantum_instance, BaseBackend):
+            quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     def set_backend(self, backend: BaseBackend, **kwargs) -> None:

@@ -208,15 +208,16 @@ class TestVQE(QiskitAquaTestCase):
                 os.remove(self.get_resource_path(tmp_filename))
 
     def test_vqe_reuse(self):
+        """ Test vqe reuse """
         vqe = VQE()
         with self.assertRaises(AquaError):
-           _ = vqe.run()
+            _ = vqe.run()
 
         num_qubits = self.qubit_op.num_qubits
         var_form = RY(num_qubits, 3)
         vqe.var_form = var_form
         with self.assertRaises(AquaError):
-           _ = vqe.run()
+            _ = vqe.run()
 
         vqe.operator = self.qubit_op
         with self.assertRaises(AquaError):
@@ -236,6 +237,7 @@ class TestVQE(QiskitAquaTestCase):
         self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
     def test_vqe_mes(self):
+        """ Test vqe minimum eigen solver interface """
         vqe = VQE(var_form=RY(self.qubit_op.num_qubits, 3), optimizer=COBYLA())
         vqe.set_backend(BasicAer.get_backend('statevector_simulator'))
         result = vqe.compute_minimum_eigenvalue(self.qubit_op)
