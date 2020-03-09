@@ -38,6 +38,7 @@ Gates and Instructions
    :toctree: ../stubs/
 
    Gate
+   ControlledGate
    Measure
    Reset
    Instruction
@@ -53,11 +54,19 @@ Parametric Quantum Circuits
     ParameterVector
     ParameterExpression
 
+Random Circuits
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random.random_circuit
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit
 from .gate import Gate
+# pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet

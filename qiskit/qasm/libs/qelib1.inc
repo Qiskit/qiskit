@@ -77,6 +77,23 @@ gate cswap a,b,c
   ccx a,b,c;
   cx c,b;
 }
+// controlled rx rotation
+gate crx(lambda) a,b
+{
+  u1(pi/2) b;
+  cx a,b;
+  u3(-lambda/2,0,0) b;
+  cx a,b;
+  u3(lambda/2,-pi/2,0) b;
+}
+// controlled ry rotation
+gate cry(lambda) a,b
+{
+  u3(lambda/2,0,0) b;
+  cx a,b;
+  u3(-lambda/2,0,0) b;
+  cx a,b;
+}
 // controlled rz rotation
 gate crz(lambda) a,b
 {
@@ -105,10 +122,56 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
+// two-qubit XX rotation
+gate rxx(theta) a,b
+{
+  u3(pi/2, theta, 0) a;
+  h b;
+  cx a,b;
+  u1(-theta) b;
+  cx a,b;
+  h b;
+  u2(-pi, pi-theta) a;
+}
 // two-qubit ZZ rotation
 gate rzz(theta) a,b
 {
   cx a,b;
   u1(theta) b;
   cx a,b;
+}
+// relative-phase CCX
+gate rccx a,b,c
+{
+  u2(0,pi) c;
+  u1(pi/4) c;
+  cx b, c;
+  u1(-pi/4) c;
+  cx a, c;
+  u1(pi/4) c;
+  cx b, c;
+  u1(-pi/4) c;
+  u2(0,pi) c;
+}
+// relative-phase CCCX
+gate rcccx a,b,c,d
+{
+  u2(0,pi) d;
+  u1(pi/4) d;
+  cx c,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
+  cx a,d;
+  u1(pi/4) d;
+  cx b,d;
+  u1(-pi/4) d;
+  cx a,d;
+  u1(pi/4) d;
+  cx b,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
+  u1(pi/4) d;
+  cx c,d;
+  u1(-pi/4) d;
+  u2(0,pi) d;
 }

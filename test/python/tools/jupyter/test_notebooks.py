@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """Tests for the wrapper functionality."""
 
 import os
@@ -20,6 +22,7 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
+import qiskit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
 
@@ -30,6 +33,8 @@ TIMEOUT = 1000
 JUPYTER_KERNEL = 'python3'
 
 
+@unittest.skipUnless(hasattr(qiskit, 'IBMQ'),
+                     'qiskit-ibmq-provider is required for these tests')
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):

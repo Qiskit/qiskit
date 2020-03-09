@@ -210,13 +210,13 @@ class DAGCircuit:
         Returns:
             list[Clbit]: list of classical bits
         """
-        return [] if cond is None else [cbit for cbit in cond[0]]
+        return [] if cond is None else list(cond[0])
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -240,7 +240,7 @@ class DAGCircuit:
         """Apply an operation to the output of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -286,7 +286,7 @@ class DAGCircuit:
         """Apply an operation to the input of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
@@ -569,7 +569,7 @@ class DAGCircuit:
         """
         for wire in self.wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
-            if len([i for i in nodes]) == 2:
+            if len(list(nodes)) == 2:
                 yield wire
 
     def size(self):
@@ -791,11 +791,7 @@ class DAGCircuit:
 
         condition_bit_list = self._bits_in_condition(node.condition)
 
-        wire_map = {k: v for k, v in zip(wires,
-                                         [i for s in [node.qargs,
-                                                      node.cargs,
-                                                      condition_bit_list]
-                                          for i in s])}
+        wire_map = dict(zip(wires, list(node.qargs) + list(node.cargs) + list(condition_bit_list)))
         self._check_wiremap_validity(wire_map, wires, self.input_map)
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
@@ -864,7 +860,8 @@ class DAGCircuit:
 
         Args:
             node (DAGNode): Node to be replaced
-            op (Instruction): The Instruction instance to be added to the DAG
+            op (qiskit.circuit.Instruction): The :class:`qiskit.circuit.Instruction`
+                instance to be added to the DAG
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
@@ -948,8 +945,8 @@ class DAGCircuit:
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Type): Instruction subclass op nodes to return. if op=None, return
-                all op nodes.
+            op (Type): :class:`qiskit.circuit.Instruction` subclass op nodes to return.
+                if op=None, return all op nodes.
         Returns:
             list[DAGNode]: the list of node ids containing the given op.
         """
@@ -1187,7 +1184,7 @@ class DAGCircuit:
     def multigraph_layers(self):
         """Yield layers of the multigraph."""
         predecessor_count = dict()  # Dict[node, predecessors not visited]
-        cur_layer = [node for node in self.input_map.values()]
+        cur_layer = self.input_map.values()
         yield cur_layer
         next_layer = []
         while cur_layer:
