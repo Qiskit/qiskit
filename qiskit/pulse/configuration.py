@@ -34,7 +34,12 @@ class Kernel:
             params: Any settings for kerneling.
         """
         self.name = name
-        self.params = params
+        self.params = params['params']
+
+    def __repr__(self):
+        return "{}({}{})".format(self.__class__.__name__,
+                                 "'" + self.name + "', " or "",
+                                 self.params)
 
 
 class Discriminator:
@@ -50,9 +55,12 @@ class Discriminator:
             params: Any settings for discrimination.
         """
         self.name = name
-        self.params = params
+        self.params = params['params']
 
-
+    def __repr__(self):
+        return "{}({}{})".format(self.__class__.__name__,
+                                 "'" + self.name + "', " or "",
+                                 self.params)
 class LoRange:
     """Range of LO frequency."""
 

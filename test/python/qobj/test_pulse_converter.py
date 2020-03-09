@@ -22,12 +22,11 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Discriminator, Kernel, Gaussian, GaussianSquare, ConstantPulse,
-                                   Drag)
+                                   Gaussian, GaussianSquare, ConstantPulse, Drag)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
-from qiskit.pulse import LoConfig
+from qiskit.pulse import LoConfig, Kernel, Discriminator
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -236,13 +235,12 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
-        cmd = Acquire(10,
-                      kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
-                      discriminator=Discriminator(name='test_disc', params={'test_params': 1.0}))
-
         schedule = Schedule()
         for i in range(self.n_qubits):
-            schedule |= cmd(AcquireChannel(i), MemorySlot(i), RegisterSlot(i))
+            schedule |= Acquire(10, AcquireChannel(i), MemorySlot(i), RegisterSlot(i),
+                                kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
+                                discriminator=Discriminator(name='test_disc',
+                                                            params={'test_params': 1.0}))
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
                                     memory_slot=[0, 1], register_slot=[0, 1],
@@ -253,7 +251,10 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.timeslots, schedule.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        self.assertEqual(converted_instruction.instructions[0][-1].duration, 10)
+        self.assertEqual(converted_instruction.instructions[0][-1].kernel.params,
+                         {'test_params': 'test'})
+        self.assertEqual(converted_instruction.instructions[1][-1].channel, AcquireChannel(1))
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
