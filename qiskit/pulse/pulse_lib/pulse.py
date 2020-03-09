@@ -17,9 +17,7 @@ from typing import Callable, List, Optional
 
 from abc import ABC, abstractmethod
 
-from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
-from .command import Command
+from ..channels import PulseChannel
 
 
 class Pulse(ABC):
