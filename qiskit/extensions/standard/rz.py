@@ -71,9 +71,11 @@ class RZGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Rz gate with angle phi to a specified qubit (qubit).
-    An Rz gate implemements a phi radian rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
+    """Apply Rz gate with angle :math:`\\phi`
+
+    The gate is applied to a specified qubit `qubit`.
+    An Rz gate implemements a phi radian rotation of the qubit state vector
+    about the z axis of the Bloch sphere.
 
     Examples:
 
@@ -153,9 +155,12 @@ class CrzGate(CRZGate, metaclass=CRZMeta):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def crz(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cRz gate from a specified control (control_qubit) to target (target_qubit) qubit
-    with angle theta. A cRz gate implements a theta radian rotation of the qubit state vector
-    about the z axis of the Bloch sphere when the control qubit is in state |1>.
+    """Apply cRz gate
+
+    Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit
+    with angle :math:`\\theta`. A cRz gate implements a :math:`\\theta` radian rotation
+    of the qubit state vector about the z axis of the Bloch sphere when the control
+    qubit is in state :math:`|1\\rangle`.
 
     Examples:
 

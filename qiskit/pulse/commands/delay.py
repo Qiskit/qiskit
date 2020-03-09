@@ -15,8 +15,8 @@
 """Delay instruction. Deprecated path."""
 import warnings
 
-from qiskit.pulse.instructions import Delay
-from qiskit.pulse.instructions import Instruction
+from ..instructions import Delay
+from ..instructions import Instruction
 
 
 class DelayInstruction(Instruction):

@@ -54,7 +54,6 @@ class Delay(Instruction):
             warnings.warn("Usage of Delay without specifying a channel is deprecated. For "
                           "example, Delay(5)(DriveChannel(0)) should be replaced by "
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
-        self._duration = duration
         self._channel = channel
         super().__init__(duration, channel, name=name)
 
