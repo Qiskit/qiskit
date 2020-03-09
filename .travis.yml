@@ -44,10 +44,11 @@ jobs:
   include:
     - name: Python 3.6 Tests and Coverage Linux
       python: 3.6
-      env:
-        - PYTHON=coverage3 run --source qiskit --parallel-mode
+      install:
+        - pip install -U tox setuptools pip virtualenv
+      script:
+        - tox -ecoverage
       after_success:
-        - coverage3 combine || true
         - coveralls || true
         - coverage3 xml || true
         - pip install diff-cover || true
