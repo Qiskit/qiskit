@@ -634,7 +634,7 @@ class TestPulseAssembler(QiskitTestCase):
                              {'duration': 150, 'sigma': 8, 'amp': 0.2, 'width': 140})
         self.assertEqual(
             qobj.to_dict()['experiments'][0]['instructions'][0]['parameters']['amp'],
-            0.0+0.5j)
+            0.5j)
 
     def test_assemble_parametric_unsupported(self):
         """Test that parametric pulses are translated to SamplePulses if they're not supported

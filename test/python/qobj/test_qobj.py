@@ -182,9 +182,7 @@ class TestPulseQobj(QiskitTestCase):
                        'memory_slot_size': 8192,
                        'meas_return': 'avg',
                        'pulse_library': [{'name': 'pulse0',
-                                          'samples': [0j,
-                                                      0.5+0j,
-                                                      0j]}
+                                          'samples': [0, 0.5, 0]}
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
