@@ -27,9 +27,16 @@ from qiskit.util import deprecate_arguments
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
+    name = 'u1'
+    num_qubits = 1
+    num_params = 1
+
     def __init__(self, theta, label=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__('u1', 1, [theta], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta],
+                         label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate
@@ -119,9 +126,16 @@ class CU1Meta(type):
 class CU1Gate(ControlledGate, metaclass=CU1Meta):
     """The controlled-u1 gate."""
 
+    name = 'cu1'
+    num_qubits = 2
+    num_params = 1
+
     def __init__(self, theta):
         """Create new cu1 gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta],
+                         num_ctrl_qubits=1)
         self.base_gate = U1Gate(theta)
 
     def _define(self):

@@ -22,9 +22,16 @@ from qiskit.circuit.instruction import Instruction
 class Reset(Instruction):
     """Qubit reset."""
 
+    name = 'reset'
+    num_qubits = 1
+    num_clbits = 0
+
     def __init__(self):
         """Create new reset instruction."""
-        super().__init__("reset", 1, 0, [])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         self.num_clbits,
+                         [])
 
     def broadcast_arguments(self, qargs, cargs):
         for qarg in qargs[0]:

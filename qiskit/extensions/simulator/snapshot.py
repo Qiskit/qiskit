@@ -24,6 +24,8 @@ from qiskit.extensions.exceptions import QiskitError, ExtensionError
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
+    name = 'snapshot'
+
     def __init__(self,
                  label,
                  snapshot_type='statevector',
@@ -48,7 +50,7 @@ class Snapshot(Instruction):
         self._snapshot_type = snapshot_type
         if params is None:
             params = []
-        super().__init__('snapshot', num_qubits, num_clbits, params)
+        super().__init__(self.name, num_qubits, num_clbits, params)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

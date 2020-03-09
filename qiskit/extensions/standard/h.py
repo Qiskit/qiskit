@@ -30,9 +30,16 @@ from qiskit.util import deprecate_arguments
 class HGate(Gate):
     """Hadamard gate."""
 
+    name = 'h'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new Hadamard gate."""
-        super().__init__('h', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """
@@ -116,9 +123,16 @@ QuantumCircuit.h = h
 class CHGate(ControlledGate):
     """The controlled-H gate."""
 
+    name = 'ch'
+    num_qubits = 2
+    num_params = 0
+
     def __init__(self):
         """Create new CH gate."""
-        super().__init__('ch', 2, [], num_ctrl_qubits=1)
+        super().__init__('ch',
+                         self.num_qubits,
+                         [],
+                         num_ctrl_qubits=1)
         self.base_gate = HGate()
 
     def _define(self):

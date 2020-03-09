@@ -27,9 +27,15 @@ from qiskit.util import deprecate_arguments
 class RGate(Gate):
     """Rotation θ around the cos(φ)x + sin(φ)y axis."""
 
+    name = 'r'
+    num_qubits = 1
+    num_params = 2
+
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
-        super().__init__('r', 1, [theta, phi])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta, phi])
 
     def _define(self):
         """

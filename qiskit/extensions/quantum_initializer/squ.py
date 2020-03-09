@@ -46,6 +46,10 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
+    name = 'unitary'
+    num_qubits = 1
+    num_params = 1
+
     def __init__(self, u, mode="ZYZ", up_to_diagonal=False):
         if mode != "ZYZ":
             raise QiskitError("The decomposition mode is not known.")
@@ -57,7 +61,9 @@ class SingleQubitUnitary(Gate):
         self.mode = mode
         self.up_to_diagonal = up_to_diagonal
         # Create new gate
-        super().__init__("unitary", 1, [u])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [u])
 
     # Returns the diagonal gate D up to which the single-qubit unitary u is implemented,
     # i.e., u=D.u', where u' is the unitary implemented by the found circuit.

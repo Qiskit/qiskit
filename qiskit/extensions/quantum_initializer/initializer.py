@@ -41,6 +41,9 @@ class Initialize(Instruction):
     which is not unitary.
     """
 
+    name = 'initialize'
+    num_clbits = 0
+
     def __init__(self, params):
         """Create new initialize composite.
 
@@ -59,7 +62,7 @@ class Initialize(Instruction):
 
         num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, 0, params)
+        super().__init__(self.name, num_qubits, self.num_clbits, params)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization

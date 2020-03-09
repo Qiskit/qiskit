@@ -27,9 +27,16 @@ from qiskit.util import deprecate_arguments
 class ZGate(Gate):
     """Pauli Z (phase-flip) gate."""
 
+    name = 'z'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new Z gate."""
-        super().__init__('z', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u1 import U1Gate
@@ -117,9 +124,17 @@ class CZMeta(type):
 class CZGate(ControlledGate, metaclass=CZMeta):
     """The controlled-Z gate."""
 
+    name = 'cz'
+    num_qubits = 2
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new CZ gate."""
-        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label,
+                         num_ctrl_qubits=1)
         self.base_gate = ZGate()
 
     def _define(self):

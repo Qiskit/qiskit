@@ -28,9 +28,16 @@ from qiskit.util import deprecate_arguments
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
+    name = 'u3'
+    num_qubits = 1
+    num_params = 3
+
     def __init__(self, theta, phi, lam, label=None):
         """Create new two-pulse single qubit gate."""
-        super().__init__('u3', 1, [theta, phi, lam], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta, phi, lam],
+                         label=label)
 
     def inverse(self):
         """Invert this gate.
@@ -120,9 +127,16 @@ class CU3Meta(type):
 class CU3Gate(ControlledGate, metaclass=CU3Meta):
     """The controlled-u3 gate."""
 
+    name = 'cu3'
+    num_qubits = 2
+    num_params = 3
+
     def __init__(self, theta, phi, lam):
         """Create new cu3 gate."""
-        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta, phi, lam],
+                         num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
 
     def _define(self):

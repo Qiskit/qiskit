@@ -26,9 +26,15 @@ from qiskit.util import deprecate_arguments
 class SwapGate(Gate):
     """SWAP gate."""
 
+    name = 'swap'
+    num_qubits = 2
+    num_params = 0
+
     def __init__(self):
         """Create new SWAP gate."""
-        super().__init__('swap', 2, [])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [])
 
     def _define(self):
         """
@@ -118,9 +124,16 @@ class CSwapMeta(type):
 class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     """The controlled-swap gate, also called Fredkin gate."""
 
+    name = 'cswap'
+    num_qubits = 3
+    num_params = 0
+
     def __init__(self):
         """Create new CSWAP gate."""
-        super().__init__('cswap', 3, [], num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         num_ctrl_qubits=1)
         self.base_gate = SwapGate()
 
     def _define(self):

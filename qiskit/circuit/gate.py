@@ -24,6 +24,8 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
+    num_clbits = 0
+
     def __init__(self, name, num_qubits, params, label=None):
         """Create a new gate.
 
@@ -35,7 +37,7 @@ class Gate(Instruction):
         """
         self._label = label
         self.definition = None
-        super().__init__(name, num_qubits, 0, params)
+        super().__init__(name, num_qubits, self.num_clbits, params)
 
     def to_matrix(self):
         """Return a Numpy.array for the gate unitary matrix.

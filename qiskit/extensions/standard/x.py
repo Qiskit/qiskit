@@ -30,9 +30,16 @@ from qiskit.util import deprecate_arguments
 class XGate(Gate):
     """Pauli X (bit-flip) gate."""
 
+    name = 'x'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new X gate."""
-        super().__init__('x', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """
@@ -127,9 +134,16 @@ class CXMeta(type):
 class CXGate(ControlledGate, metaclass=CXMeta):
     """The controlled-X gate."""
 
+    name = 'cx'
+    num_qubits = 2
+    num_params = 0
+
     def __init__(self):
         """Create new cx gate."""
-        super().__init__('cx', 2, [], num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         num_ctrl_qubits=1)
         self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -227,9 +241,16 @@ class CCXMeta(type):
 class CCXGate(ControlledGate, metaclass=CCXMeta):
     """The double-controlled-not gate, also called Toffoli gate."""
 
+    name = 'ccx'
+    num_qubits = 3
+    num_params = 0
+
     def __init__(self):
         """Create new CCX gate."""
-        super().__init__('ccx', 3, [], num_ctrl_qubits=2)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         num_ctrl_qubits=2)
         self.base_gate = XGate()
 
     def _define(self):

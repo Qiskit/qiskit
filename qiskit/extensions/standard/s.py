@@ -26,9 +26,16 @@ from qiskit.util import deprecate_arguments
 class SGate(Gate):
     """The S gate, also called Clifford phase gate."""
 
+    name = 's'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create a new S gate."""
-        super().__init__('s', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """
@@ -57,9 +64,16 @@ class SGate(Gate):
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
 
+    name = 'sdg'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create a new Sdg gate."""
-        super().__init__('sdg', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """

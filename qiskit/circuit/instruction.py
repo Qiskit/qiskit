@@ -51,6 +51,11 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
+    name = None
+    num_qubits = None
+    num_clbits = None
+    num_params = None
+
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
 

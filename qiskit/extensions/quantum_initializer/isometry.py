@@ -57,6 +57,10 @@ class Isometry(Instruction):
         num_ancillas_dirty (int): number of additional ancillas that start in an arbitrary state
     """
 
+    name = 'isometry'
+    num_clbits = 0
+    num_params = 1
+
     # Notation: In the following decomposition we label the qubit by
     # 0 -> most significant one
     # ...
@@ -93,7 +97,10 @@ class Isometry(Instruction):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("isometry", num_qubits, 0, [isometry])
+        super().__init__(self.name,
+                         num_qubits,
+                         self.num_clbits,
+                         [isometry])
 
     def _define(self):
         # call to generate the circuit that takes the isometry to the first 2^m columns

@@ -41,6 +41,9 @@ class MCGupDiag(Gate):
     such that u=d.u'.
     """
 
+    name = 'MCGupDiag'
+    num_params = 1
+
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
         """Initialize a multi controlled gate.
 
@@ -65,7 +68,7 @@ class MCGupDiag(Gate):
             raise QiskitError("The controlled gate is not unitary.")
         # Create new gate.
         num_qubits = 1 + num_controls + num_ancillas_zero + num_ancillas_dirty
-        super().__init__("MCGupDiag", num_qubits, [gate])
+        super().__init__(self.name, num_qubits, [gate])
 
     def _define(self):
         mcg_up_diag_circuit, _ = self._dec_mcg_up_diag()

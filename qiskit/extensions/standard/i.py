@@ -39,9 +39,16 @@ class IGate(Gate, metaclass=IMeta):
     and should not be optimized or unrolled (it is an opaque gate).
     """
 
+    name = 'id'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new Identity gate."""
-        super().__init__('id', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def inverse(self):
         """Invert this gate."""

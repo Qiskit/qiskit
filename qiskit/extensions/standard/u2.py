@@ -26,9 +26,16 @@ from qiskit.util import deprecate_arguments
 class U2Gate(Gate):
     """One-pulse single-qubit gate."""
 
+    name = 'u2'
+    num_qubits = 1
+    num_params = 2
+
     def __init__(self, phi, lam, label=None):
         """Create new one-pulse single-qubit gate."""
-        super().__init__('u2', 1, [phi, lam], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [phi, lam],
+                         label=label)
 
     def _define(self):
         from qiskit.extensions.standard.u3 import U3Gate

@@ -33,9 +33,14 @@ from qiskit.circuit import QuantumRegister
 class MSGate(Gate):
     """Global Molmer-Sorensen gate."""
 
+    name = 'ms'
+    num_params = 1
+
     def __init__(self, n_qubits, theta):
         """Create new MS gate."""
-        super().__init__('ms', n_qubits, [theta])
+        super().__init__(self.name,
+                         n_qubits,
+                         [theta])
 
     def _define(self):
         from qiskit.extensions.standard.rxx import RXXGate

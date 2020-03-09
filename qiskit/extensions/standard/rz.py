@@ -25,9 +25,15 @@ from qiskit.util import deprecate_arguments
 class RZGate(Gate):
     """The rotation around the z-axis."""
 
+    name = 'rz'
+    num_qubits = 1
+    num_params = 1
+
     def __init__(self, phi):
         """Create new RZ single qubit gate."""
-        super().__init__('rz', 1, [phi])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [phi])
 
     def _define(self):
         """
@@ -109,9 +115,16 @@ class CRZMeta(type):
 class CRZGate(ControlledGate, metaclass=CRZMeta):
     """The controlled-rz gate."""
 
+    name = 'crz'
+    num_qubits = 2
+    num_params = 1
+
     def __init__(self, theta):
         """Create new crz gate."""
-        super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [theta],
+                         num_ctrl_qubits=1)
         self.base_gate = RZGate(theta)
 
     def _define(self):

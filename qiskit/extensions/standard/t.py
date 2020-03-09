@@ -26,9 +26,16 @@ from qiskit.util import deprecate_arguments
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
+    name = 't'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create new T gate."""
-        super().__init__('t', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """
@@ -57,9 +64,16 @@ class TGate(Gate):
 class TdgGate(Gate):
     """Tdg Gate: -pi/4 rotation around Z axis."""
 
+    name = 'tdg'
+    num_qubits = 1
+    num_params = 0
+
     def __init__(self, label=None):
         """Create a new Tdg gate."""
-        super().__init__('tdg', 1, [], label=label)
+        super().__init__(self.name,
+                         self.num_qubits,
+                         [],
+                         label=label)
 
     def _define(self):
         """

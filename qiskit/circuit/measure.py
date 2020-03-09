@@ -23,9 +23,16 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
+    name = 'measure'
+    num_qubits = 1
+    num_clbits = 1
+
     def __init__(self):
         """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [])
+        super().__init__(self.name,
+                         self.num_qubits,
+                         self.num_clbits,
+                         [])
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
