@@ -15,23 +15,23 @@
 """A test for visualizing tools"""
 import unittest
 
-from ddt import ddt, unpack
-from qiskit.test import QiskitTestCase
 from test import combine
+from ddt import ddt
+from qiskit.test import QiskitTestCase
 from qiskit.visualization.tools.pi_check import pi_check
+
 
 @ddt
 class TestPiCheck(QiskitTestCase):
     """ qiskit/visualization/tools/pi_check.py """
 
     @combine(case=[(3.14, '3.14'),
-                  (3.141592653589793, 'pi'),
-                  (6.283185307179586, '2pi'),
-                  (2.99, '2.99'),
-                  (2.999999999999999, '3'),
-                  (0.99, '0.99'),
-                  (0.999999999999999, '1')])
-    @unpack
+                   (3.141592653589793, 'pi'),
+                   (6.283185307179586, '2pi'),
+                   (2.99, '2.99'),
+                   (2.999999999999999, '3'),
+                   (0.99, '0.99'),
+                   (0.999999999999999, '1')])
     def test_default(self, case):
         """Default pi_check({case[0]})='{case[1]}'"""
         input_number = case[0]
