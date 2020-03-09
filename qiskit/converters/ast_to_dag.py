@@ -18,10 +18,12 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
+from qiskit.qasm.node.real import Real
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
@@ -361,6 +363,26 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
+    def _gate_definition_to_qiskit_definition(self, node, params):
+        """From a gate definition in qasm, to a gate.definition format."""
+        definition = []
+        qreg = QuantumRegister(node['n_bits'])
+        bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
+        exp_args = {node['args'][i]: Real(q) for i, q in enumerate(params)}
+
+        for child_op in node['body'].children:
+            qparams = []
+            eparams = []
+            for param_list in child_op.children[1:]:
+                if param_list.type == 'id_list':
+                    qparams = [bit_args[param.name] for param in param_list.children]
+                elif param_list.type == 'expression_list':
+                    for param in param_list.children:
+                        eparams.append(param.sym(nested_scope=[exp_args]))
+            op = self._create_op(child_op.name, params=eparams)
+            definition.append((op, qparams, []))
+        return definition
+
     def _create_dag_op(self, name, params, qargs):
         """
         Create a DAG node out of a parsed AST op node.
@@ -373,7 +395,10 @@ class AstInterpreter:
         Raises:
             QiskitError: if encountering a non-basis opaque gate
         """
+        op = self._create_op(name, params)
+        self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
 
+    def _create_op(self, name, params):
         if name in self.standard_extension:
             op = self.standard_extension[name](*params)
         elif name in self.gates:
@@ -382,8 +407,12 @@ class AstInterpreter:
                 op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
             else:
                 # call a custom gate
-                raise QiskitError('Custom non-opaque gates are not supported by ast_to_dag module')
+                op = Instruction(name=name,
+                                 num_qubits=self.gates[name]['n_bits'],
+                                 num_clbits=0,
+                                 params=params)
+                op.definition = self._gate_definition_to_qiskit_definition(self.gates[name],
+                                                                           params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
-
-        self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
+        return op
