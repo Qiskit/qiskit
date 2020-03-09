@@ -53,7 +53,7 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    - name: Python 3.6 Tests (Retworkx)
+    - name: Python 3.6 Tests (Networkx)
       python: 3.6
       install:
         # Install step for jobs that require compilation and qa.
@@ -63,7 +63,7 @@ jobs:
         - pip install "qiskit-ibmq-provider" -c constraints.txt
         - pip install "retworkx>=0.3.0"
       env:
-        - USE_RETWORKX="Y"
+        - USE_RETWORKX="N"
 
     # Randomized testing
     - name: Randomized tests

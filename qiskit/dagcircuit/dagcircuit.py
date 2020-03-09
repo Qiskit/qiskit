@@ -27,6 +27,7 @@ from collections import OrderedDict
 import copy
 import itertools
 import networkx as nx
+import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -34,14 +35,13 @@ from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
 
+
 # During retworkx transition, transition between 'nx' and 'rx' graph libraries
 # depending on self._USE_RX.
-_gls = {'nx': nx}  # pylint: disable=invalid-name
-try:
-    import retworkx as rx
-    _gls['rx'] = rx
-except ImportError:
-    pass
+_gls = {  # pylint: disable=invalid-name
+    'nx': nx,
+    'rx': rx,
+}
 
 
 class DAGCircuit:
@@ -56,12 +56,8 @@ class DAGCircuit:
     # pylint: disable=invalid-name
 
     def __new__(cls):
-        if os.environ.get('USE_RETWORKX', 'N').lower() == 'y':
-            try:
-                from .retworkx_dagcircuit import RetworkxDAGCircuit  # pylint: disable=cyclic-import
-            except ImportError:
-                raise ImportError('Error importing retworkx. '
-                                  'To install, run "pip install retworkx".')
+        if os.environ.get('USE_RETWORKX', 'Y').lower() == 'y':
+            from .retworkx_dagcircuit import RetworkxDAGCircuit  # pylint: disable=cyclic-import
             return super().__new__(RetworkxDAGCircuit)
         else:
             from .networkx_dagcircuit import NetworkxDAGCircuit  # pylint: disable=cyclic-import
