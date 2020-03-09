@@ -180,7 +180,7 @@ class QuantumChannel(BaseOperator):
         otherwise it will be added as a kraus simulator instruction.
 
         Returns:
-            Instruction: A kraus instruction for the channel.
+            qiskit.circuit.Instruction: A kraus instruction for the channel.
 
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.

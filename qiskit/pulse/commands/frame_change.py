@@ -18,7 +18,7 @@ import warnings
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
