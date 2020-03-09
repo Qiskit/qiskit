@@ -55,19 +55,21 @@ class Instruction(ScheduleComponent, ABC):
             *channels: List of pulse channels that this instruction operates on.
             name: Display name for this instruction.
         """
-        self._name = name
-
         self._command = None
         if not isinstance(duration, int):
             # TODO: Add deprecation warning once all instructions are migrated
             self._command = duration
             if name is None:
-                self._name = self.command.name
+                name = self.command.name
             duration = self.command.duration
         self._duration = duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
+
+        if name is None:
+            name = "{}{}".format(self.__class__.__name__.lower(), str(hex(self.__hash__()))[3:8])
+        self._name = name
 
     @property
     def name(self) -> str:
@@ -271,8 +273,8 @@ class Instruction(ScheduleComponent, ABC):
     def __hash__(self):
         if self.command:
             # Backwards compatibility for Instructions with Commands
-            return hash((hash(tuple(self.command)), self.channels.__hash__()))
-        return hash((hash(tuple(self.duration)), self.channels.__hash__()))
+            return hash(((tuple(self.command)), self.channels.__hash__()))
+        return hash((self.duration, self.channels.__hash__()))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
