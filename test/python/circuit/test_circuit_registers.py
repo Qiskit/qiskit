@@ -12,21 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
 import numpy as np
 
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
-from qiskit import execute
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
