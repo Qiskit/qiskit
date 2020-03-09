@@ -767,9 +767,7 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w, Qubit)]
-            cwires = [w for w in input_dag.wires if isinstance(w, Clbit)]
-            wires = qwires + cwires
+            wires = input_dag.wires
 
         self._check_wires_list(wires, node)
 
