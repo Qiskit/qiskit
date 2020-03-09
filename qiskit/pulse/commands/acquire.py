@@ -23,9 +23,10 @@ from ..exceptions import PulseError
 # pylint: disable=unused-import
 
 from ..instructions import Acquire
+from ..instructions import Instruction
 
 
-class AcquireInstruction:
+class AcquireInstruction(Instruction):
     """Deprecated."""
 
     def __init__(self,
@@ -37,7 +38,11 @@ class AcquireInstruction:
                  reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
-        warnings.warn("TODO", DeprecationWarning)
+        warnings.warn("The ``AcquireInstruction`` has been deprecated. Please use Acquire with "
+                      "channels instead. For example, AcquireInstruction(Acquire(duration), "
+                      "AcquireChannel(0), MemorySlot(0)) becomes Acquire(duration, "
+                      "AcquireChannel(0), MemorySlot(0)).",
+                      DeprecationWarning)
 
         if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
             warnings.warn('The AcquireInstruction on multiple qubits, multiple '

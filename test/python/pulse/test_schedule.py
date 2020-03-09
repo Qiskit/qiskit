@@ -21,9 +21,8 @@ import numpy as np
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
-                                   functional_pulse, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction, Gaussian, Drag,
-                                   GaussianSquare, ConstantPulse)
+                                   functional_pulse, PulseInstruction, FrameChangeInstruction,
+                                   Gaussian, Drag, GaussianSquare, ConstantPulse)
 from qiskit.pulse import pulse_lib, SamplePulse, Instruction
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -521,11 +520,11 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # test on Acquire
         only_acquire, no_acquire = \
-            self._filter_and_test_consistency(sched, instruction_types=[AcquireInstruction])
+            self._filter_and_test_consistency(sched, instruction_types=[Acquire])
         for _, inst in only_acquire.instructions:
-            self.assertIsInstance(inst, AcquireInstruction)
+            self.assertIsInstance(inst, Acquire)
         for _, inst in no_acquire.instructions:
-            self.assertFalse(isinstance(inst, AcquireInstruction))
+            self.assertFalse(isinstance(inst, Acquire))
 
         # test two instruction types
         only_pulse_and_fc, no_pulse_and_fc = \
@@ -569,7 +568,7 @@ class TestScheduleFilter(BaseTestSchedule):
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[(59, 65)])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(filtered.instructions[0][0], 60)
-        self.assertIsInstance(filtered.instructions[0][1], AcquireInstruction)
+        self.assertIsInstance(filtered.instructions[0][1], Acquire)
         self.assertEqual(len(excluded.instructions), 4)
         self.assertEqual(excluded.instructions[3][0], 90)
         self.assertIsInstance(excluded.instructions[3][1], PulseInstruction)
@@ -632,14 +631,14 @@ class TestScheduleFilter(BaseTestSchedule):
         # make sure the PulseInstruction not in the intervals is maintained
         self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
 
-        # split based on AcquireInstruction in the specified intervals
+        # split based on Acquire in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                instruction_types=[
-                                                                   AcquireInstruction],
+                                                                   Acquire],
                                                                time_ranges=[(25, 100)])
         self.assertTrue(len(excluded.instructions), 4)
         for _, inst in filtered.instructions:
-            self.assertIsInstance(inst, AcquireInstruction)
+            self.assertIsInstance(inst, Acquire)
         self.assertTrue(len(filtered.instructions), 2)
 
     def test_custom_filters(self):

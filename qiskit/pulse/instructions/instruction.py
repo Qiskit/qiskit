@@ -64,6 +64,7 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 self._name = self.command.name
             duration = self.command.duration
+        self._duration = duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
@@ -101,7 +102,7 @@ class Instruction(ScheduleComponent, ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self.timeslots.duration
+        return self._duration
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
