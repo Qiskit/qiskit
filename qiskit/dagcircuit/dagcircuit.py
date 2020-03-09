@@ -96,8 +96,10 @@ class DAGCircuit:
 
     @property
     def wires(self):
-        """Return a generator that returns wires in order."""
-        return sorted(self._wires, key=lambda bit: (bit.register.name, bit.index))
+        """Return a list of the wires in order."""
+        out_list = [bit for reg in self.qregs.values() for bit in reg]
+        out_list += [bit for reg in self.cregs.values() for bit in reg]
+        return out_list
 
     @property
     def node_counter(self):
