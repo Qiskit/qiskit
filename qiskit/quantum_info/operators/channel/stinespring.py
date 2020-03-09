@@ -75,12 +75,11 @@ class Stinespring(QuantumChannel):
             QiskitError: if input data cannot be initialized as a
             a list of Kraus matrices.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. This can fail for the
-        Stinespring operator if the output dimension cannot be automatically
-        determined.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. This can fail for the
+            Stinespring operator if the output dimension cannot be automatically
+            determined.
         """
         # If the input is a list or tuple we assume it is a pair of general
         # Stinespring matrices. If it is a numpy array we assume that it is
@@ -214,6 +213,8 @@ class Stinespring(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Stinespring(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
