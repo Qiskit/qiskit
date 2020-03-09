@@ -49,7 +49,6 @@ Standard Extensions
    SdgGate
    SwapGate
    TdgGate
-   U0Gate
    U1Gate
    U2Gate
    U3Gate
