@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -116,4 +116,15 @@ class BaseOperator(ABC):
     @abstractmethod
     def chop(self, threshold, copy=False):
         """ chop """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def num_qubits(self):
+        """ Returns number of qubits for operator """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_empty(self):
+        """ Check Operator is empty or not """
         raise NotImplementedError
