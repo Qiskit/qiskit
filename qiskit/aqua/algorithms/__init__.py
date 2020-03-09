@@ -56,8 +56,8 @@ Quantum Algorithms
    EOH
    QSVM
    Grover
-   IQPE
-   QPE
+   IQPEMinimumEigensolver
+   QPEMinimumEigensolver
    AmplitudeEstimation
    IterativeAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimation
@@ -110,7 +110,8 @@ from .distribution_learners import QGAN
 from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
 from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
-from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEResult, QPE, QPEResult,
+from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEMinimumEigensolver, IQPEResult,
+                                    QPE, QPEMinimumEigensolver, QPEResult,
                                     ClassicalCPLEX, CPLEX_Ising, ClassicalMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
@@ -142,8 +143,10 @@ __all__ = [
     'QSVM',
     'Grover',
     'IQPE',
+    'IQPEMinimumEigensolver',
     'IQPEResult',
     'QPE',
+    'QPEMinimumEigensolver',
     'QPEResult',
     'AmplitudeEstimation',
     'IterativeAmplitudeEstimation',
