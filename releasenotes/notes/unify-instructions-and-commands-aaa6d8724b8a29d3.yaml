@@ -25,14 +25,14 @@ features:
 upgrade:
   - |
     ``DelayInstruction`` has been deprecated and replaced by
-    :py:class:`~qiskit.pulse.instruction.Delay`. The migration pattern is:
+    :py:class:`~qiskit.pulse.instruction.Delay`. The migration pattern is::
 
         Delay(<duration>)(<channel>) -> Delay(<duration>, <channel>)
         DelayInstruction(Delay(<duration>), <channel>)
             -> Delay(<duration>, <channel>)
 
     Until the deprecation period is over, the previous ``Delay`` syntax of
-    calling a command on a channel will also be supported:
+    calling a command on a channel will also be supported::
 
         Delay(<phase>)(<channel>)
 
