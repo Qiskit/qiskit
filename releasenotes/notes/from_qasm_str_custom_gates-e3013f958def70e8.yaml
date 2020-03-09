@@ -9,7 +9,7 @@ fixes:
         qreg q[1];
         rinv q[0];"""
      
-    is equivalent to the following circuit:
+    is equivalent to the following circuit::
 
         rinv_q = QuantumRegister(1, name='q')
         rinv_gate = QuantumCircuit(rinv_q, name='rinv')
