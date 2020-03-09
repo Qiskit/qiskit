@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    A bug in ``from_qasm_str`` loading custom gates was fixed. Now, loading this QASM:
+    A bug in ``from_qasm_str`` loading custom gates was fixed. Now, loading this QASM::
 
         OPENQASM 2.0;
         include "qelib1.inc";
