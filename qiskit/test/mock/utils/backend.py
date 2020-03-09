@@ -13,93 +13,86 @@
 # that they have been altered from the originals.
 
 """
-Fake 100 qubit device.
+Fake backend generation.
 """
 import itertools
-import os
 import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Type
+
 import numpy as np
 
+from qiskit.exceptions import QiskitError
 from qiskit.providers.models import (PulseBackendConfiguration,
-                                     BackendProperties, PulseDefaults, BackendConfiguration, GateConfig, UchannelLO,
-                                     Command)
+                                     BackendProperties, PulseDefaults, GateConfig, Command)
 from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class FakeOpenPulse100Q(FakeBackend):
-    """A fake 100Q backend."""
-
-    def __init__(self):
-        """
-        TODO: architecture
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_100q.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
-            conf = json.load(f_conf)
-
-        configuration = PulseBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_openpulse_100q'
-        super().__init__(configuration)
-
-    def properties(self):
-        """Returns a snapshot of device properties."""
-        dirname = os.path.dirname(__file__)
-        filename = "props_100q.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
-
-    def defaults(self):
-        """Returns a snapshot of device defaults."""
-        dirname = os.path.dirname(__file__)
-        filename = "defs_100q.json"
-        with open(os.path.join(dirname, filename), "r") as f_defs:
-            defs = json.load(f_defs)
-        return PulseDefaults.from_dict(defs)
-
-
-# TODO: move to utils or remove if not necessary
 class FakeBackendBuilder(object):
     """FakeBackend builder.
 
     For example:
-
-        builder = FakeBackendBuilder("tashkent", grid_size=10)
+        builder = FakeBackendBuilder("Tashkent", n_qubits=100)
         path = os.path.dirname(os.path.abspath(__file__))
         builder.dump(path)
     """
 
+    _SINGLE_QUBIT_GATES = ['id', 'u1', 'u2', 'u3']
+    _DEFAULT_BASIS_GATES = ['id', 'u1', 'u2', 'u3', 'cx']
+    _DEFAULT_T1 = 113.3
+    _DEFAULT_T2 = 150.2
+    _DEFAULT_QUBIT_FREQUENCY = 4.8
+    _DEFAULT_QUBIT_READOUT_ERROR = 0.04
+
     def __init__(self,
                  name: str,
-                 grid_size: int,
-                 version: Optional[str] = '0.0.0'):
+                 n_qubits: int,
+                 version: Optional[str] = '0.0.0',
+                 coupling_map: Optional[List[List[int]]] = None,
+                 basis_gates: Optional[List[str]] = None,
+                 qubit_t1: Optional[float] = None,
+                 qubit_t2: Optional[float] = None,
+                 qubit_frequency: Optional[float] = None,
+                 qubit_readout_error: Optional[float] = None
+                 ):
         """
 
         Args:
             name:
-            grid_size:
             version:
         """
         self.name = name
-        self.grid_size = grid_size
         self.version = version
         self.now = datetime.now()
-        self.basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
-        self.n_qubits = grid_size**2
+        self.basis_gates = basis_gates if basis_gates else self._DEFAULT_BASIS_GATES
+        self.n_qubits = n_qubits
+
+        self.coupling_map = coupling_map
+
+        self.qubit_t1 = qubit_t1 if qubit_t1 else self._DEFAULT_T1
+        self.qubit_t2 = qubit_t2 if qubit_t2 else self._DEFAULT_T2
+        self.qubit_frequency = qubit_frequency if qubit_frequency \
+            else self._DEFAULT_QUBIT_FREQUENCY
+        self.qubit_readout_error = qubit_readout_error if qubit_readout_error \
+            else self._DEFAULT_QUBIT_READOUT_ERROR
+
+    @property
+    def cmap(self):
+        return self.coupling_map if self.coupling_map else self._generate_cmap()
 
     def _generate_cmap(self) -> List[List[int]]:
-        """Generate Almaden like connectivity map."""
+        """Generate Almaden like coupling map."""
         cmap = []
+        grid_size = int(np.ceil(np.sqrt(self.n_qubits)))
         for i in range(self.n_qubits):
-            if i % self.grid_size != 0:
+            if i % grid_size != 0:
                 cmap.append([i, i + 1])
-            if i % self.grid_size < self.grid_size and i % 2 == 0:
-                cmap.append([i, i + self.grid_size])
+            if i % grid_size < grid_size and i % 2 == 0:
+                cmap.append([i, i + grid_size])
+
+        self.coupling_map = cmap
 
         return cmap
 
@@ -109,24 +102,29 @@ class FakeBackendBuilder(object):
         gates = []
 
         for i in range(self.n_qubits):
-            # TODO: correct values
             qubits.append([
-                Nduv(date=self.now, name='T1', unit='µs', value=113.3),
-                Nduv(date=self.now, name='T2', unit='µs', value=150.2),
-                Nduv(date=self.now, name='frequency', unit='GHz', value=4.8),
-                Nduv(date=self.now, name='readout_error', unit='', value=0.04),
-                Nduv(date=self.now, name='prob_meas0_prep1', unit='', value=0.08),
-                Nduv(date=self.now, name='prob_meas1_prep0', unit='', value=0.02)
+                Nduv(date=self.now, name='T1', unit='µs', value=self.qubit_t1),
+                Nduv(date=self.now, name='T2', unit='µs', value=self.qubit_t2),
+                Nduv(date=self.now, name='frequency', unit='GHz', value=self.qubit_frequency),
+                Nduv(date=self.now, name='readout_error', unit='', value=self.qubit_readout_error)
             ])
 
-            for gate in self.basis_gates:
-                # TODO: correct values
-                parameters = [Nduv(date=self.now, name='gate_error', unit='', value=1.0),
-                              Nduv(date=self.now, name='gate_length', unit='', value=0.)]
-                # TODO: Gate constructor parameters should be List[Nduv]
-                # TODO: handle CNOT
-                gates.append(Gate(gate=gate, name="{0}_{1}".format(gate, i),
-                                  qubits=[i], parameters=parameters))
+        for gate in self.basis_gates:
+            parameters = [Nduv(date=self.now, name='gate_error', unit='', value=1.0),
+                          Nduv(date=self.now, name='gate_length', unit='', value=0.)]
+
+            if gate in self._SINGLE_QUBIT_GATES:
+                for i in range(self.n_qubits):
+                    gates.append(Gate(gate=gate, name="{0}_{1}".format(gate, i),
+                                      qubits=[i], parameters=parameters))
+            elif gate == 'cx':
+                for (q1, q2) in list(itertools.combinations(range(self.n_qubits), 2)):
+                    gates.append(Gate(gate=gate,
+                                      name="{gate}{q1}_{q2}".format(gate=gate, q1=q1, q2=q2),
+                                      qubits=[q1, q2],
+                                      parameters=parameters))
+            else:
+                raise QiskitError("{gate} is not supported by fake backend builder.".format(gate=gate))
 
         return BackendProperties(backend_name=self.name,
                                  backend_version=self.version,
@@ -225,7 +223,7 @@ class FakeBackendBuilder(object):
                                                        ch='d{}'.format(i), t0=0)])
             ]
 
-        for connected_pair in self._generate_cmap():
+        for connected_pair in self.cmap:
             q1, q2 = connected_pair
             cmd_def += [
                 Command(name='cx', qubits=[q1, q2],
@@ -263,3 +261,48 @@ class FakeBackendBuilder(object):
             json.dump(self.build_defaults().to_dict(), f,
                       indent=4, sort_keys=True,
                       default=lambda o: '')
+
+
+def fake_backend_generator(name: str,
+                           n_qubits: int,
+                           version: Optional[str] = '0.0.0',
+                           coupling_map: Optional[List[List[int]]] = None,
+                           basis_gates: Optional[List[str]] = None,
+                           qubit_t1: Optional[float] = None,
+                           qubit_t2: Optional[float] = None,
+                           qubit_frequency: Optional[float] = None,
+                           qubit_readout_error: Optional[float] = None) -> Type[FakeBackend]:
+    """
+    Example:
+        FakeOpenPulse100Q = fake_backend_generator("fake_100_q_backend", 100)
+        instance = FakeOpenPulse100Q()
+    """
+
+    builder = FakeBackendBuilder(name=name,
+                                 n_qubits=n_qubits,
+                                 version=version,
+                                 coupling_map=coupling_map,
+                                 basis_gates=basis_gates,
+                                 qubit_t1=qubit_t1,
+                                 qubit_t2=qubit_t2,
+                                 qubit_frequency=qubit_frequency,
+                                 qubit_readout_error=qubit_readout_error)
+
+    def fake_init(self):
+        configuration = builder.build_conf()
+        super(FakeBackend, self).__init__(configuration)
+
+    def properties(self) -> BackendProperties:
+        return builder.build_props()
+
+    def defaults(self) -> PulseDefaults:
+        return builder.build_defaults()
+
+    return type('FakeOpenPulse{}Q'.format(n_qubits),
+                (FakeBackend,),
+                {
+                    '__init__': fake_init,
+                    'backend_name': name,
+                    'properties': properties,
+                    'defaults': defaults
+                })

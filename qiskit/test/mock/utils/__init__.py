@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+"""
+Utils for test backends.
+"""
 
-from .fake_100q import FakeOpenPulse100Q
+from .backend import fake_backend_generator

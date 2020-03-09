@@ -31,4 +31,3 @@ from .singapore import FakeSingapore
 from .johannesburg import FakeJohannesburg
 from .boeblingen import FakeBoeblingen
 from .rochester import FakeRochester
-from .fake_100q import FakeOpenPulse100Q
