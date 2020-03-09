@@ -183,9 +183,8 @@ class InstructionScheduleMap():
         if self.has(instruction, qubits):
             return self._map[instruction][qubits]
 
-        else:
-            raise PulseError("Operation '{0}' for qubits {1} is not available "
-                             "for this system".format(instruction, qubits))
+        raise PulseError("Operation '{0}' for qubits {1} is not available "
+                         "for this system.".format(instruction, qubits))
 
     def add(self,
             instruction: str,
