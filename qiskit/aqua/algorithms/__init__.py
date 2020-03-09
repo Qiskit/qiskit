@@ -56,8 +56,8 @@ Quantum Algorithms
    EOH
    QSVM
    Grover
-   IQPE
-   QPE
+   IQPEMinimumEigensolver
+   QPEMinimumEigensolver
    AmplitudeEstimation
    IterativeAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimation
@@ -76,7 +76,7 @@ generate reference values while experimenting with, developing and testing quant
 The algorithms are designed to take the same input data as the quantum algorithms so that
 behavior, data validity and output can be evaluated and compared to a quantum result.
 
-Note: The :class:`CPLEX_Ising` algorithm requires `IBM ILOG CPLEX Optimization Studio
+Note: The :class:`ClassicalCPLEX` algorithm requires `IBM ILOG CPLEX Optimization Studio
 <https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html>`__
 and its Python API to be installed. See the following for more information:
 
@@ -89,47 +89,65 @@ and its Python API to be installed. See the following for more information:
    :toctree: ../stubs/
    :nosignatures:
 
-   ExactEigensolver
-   ExactMinimumEigensolver
-   ExactLSsolver
-   SVM_Classical
-   CPLEX_Ising
+   ClassicalEigensolver
+   ClassicalMinimumEigensolver
+   ClassicalLSsolver
+   ClassicalSVM
+   ClassicalCPLEX
 
 """
 
+from .algorithm_result import AlgorithmResult
 from .quantum_algorithm import QuantumAlgorithm
 from .classical_algorithm import ClassicalAlgorithm
-from .vq_algorithm import VQAlgorithm
+from .vq_algorithm import VQAlgorithm, VQResult
 from .amplitude_amplifiers import Grover
 from .amplitude_estimators import (AmplitudeEstimation,
                                    IterativeAmplitudeEstimation,
                                    MaximumLikelihoodAmplitudeEstimation)
-from .classifiers import VQC, QSVM, SVM_Classical
+from .classifiers import VQC, QSVM, ClassicalSVM, SVM_Classical
 from .distribution_learners import QGAN
-from .eigen_solvers import ExactEigensolver
+from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
-from .linear_solvers import HHL, ExactLSsolver
-from .minimum_eigen_solvers import VQE, QAOA, IQPE, QPE, CPLEX_Ising, ExactMinimumEigensolver
+from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
+from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEMinimumEigensolver, IQPEResult,
+                                    QPE, QPEMinimumEigensolver, QPEResult,
+                                    ClassicalCPLEX, CPLEX_Ising, ClassicalMinimumEigensolver,
+                                    MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
 __all__ = [
+    'AlgorithmResult',
     'QuantumAlgorithm',
     'VQE',
+    'VQEResult',
     'QAOA',
     'VQC',
     'QGAN',
     'ClassicalAlgorithm',
     'VQAlgorithm',
+    'VQResult',
+    'ClassicalEigensolver',
     'ExactEigensolver',
+    'ClassicalLSsolver',
+    'EigensolverResult',
     'ExactLSsolver',
-    'ExactMinimumEigensolver',
+    'ClassicalMinimumEigensolver',
+    'MinimumEigensolver',
+    'MinimumEigensolverResult',
+    'ClassicalSVM',
     'SVM_Classical',
+    'ClassicalCPLEX',
     'CPLEX_Ising',
     'EOH',
     'QSVM',
     'Grover',
     'IQPE',
+    'IQPEMinimumEigensolver',
+    'IQPEResult',
     'QPE',
+    'QPEMinimumEigensolver',
+    'QPEResult',
     'AmplitudeEstimation',
     'IterativeAmplitudeEstimation',
     'MaximumLikelihoodAmplitudeEstimation',

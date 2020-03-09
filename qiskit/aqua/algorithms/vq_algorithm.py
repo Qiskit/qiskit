@@ -12,27 +12,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-The Variational Quantum Algorithm Base Class. This class can be used an
-interface for working with Variation Quantum
-Algorithms, such as VQE, QAOA, or VSVM, and also provides helper utilities
-for implementing new variational algorithms.
-Writing a new variational algorithm is a simple as extending this class,
-implementing a cost function for the new
-algorithm to pass to the optimizer, and running the find_minimum()
-function below to begin the optimization.
-Alternatively, all of the functions below can be overridden to opt-out of
-this infrastructure but still meet the
-interface requirements.
+The Variational Quantum Algorithm Base Class.
+
+This class can be used an interface for working with Variation Quantum Algorithms, such as VQE,
+QAOA, or QSVM, and also provides helper utilities for implementing new variational algorithms.
+Writing a new variational algorithm is a simple as extending this class, implementing a cost
+function for the new algorithm to pass to the optimizer, and running :meth:`find_minimum` method
+of this class to carry out the optimization. Alternatively, all of the functions below can be
+overridden to opt-out of this infrastructure but still meet the interface requirements.
 """
 
 from typing import Optional, Callable
 import time
 import logging
+import warnings
 from abc import abstractmethod
 import numpy as np
 
-from qiskit.aqua import AquaError
-from qiskit.aqua.algorithms import QuantumAlgorithm
+from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.components.variational_forms import VariationalForm
 
@@ -45,56 +42,99 @@ class VQAlgorithm(QuantumAlgorithm):
     """
     The Variational Quantum Algorithm Base Class.
     """
-
     def __init__(self,
                  var_form: VariationalForm,
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
                  initial_point: Optional[np.ndarray] = None) -> None:
+        """
+        Args:
+            var_form: An optional parameterized variational form (ansatz).
+            optimizer: A classical optimizer.
+            cost_fn: An optional cost function for optimizer. If not supplied here must be
+                supplied on :meth:`find_minimum`.
+            initial_point: An optional initial point (i.e. initial parameter values)
+                for the optimizer.
+        Raises:
+             ValueError: for invalid input
+        """
         super().__init__()
-        if var_form is None:
-            raise AquaError('Missing variational form.')
+
         self._var_form = var_form
-
-        if optimizer is None:
-            raise AquaError('Missing optimizer.')
         self._optimizer = optimizer
-
         self._cost_fn = cost_fn
         self._initial_point = initial_point
 
         self._parameterized_circuits = None
 
-    @abstractmethod
-    def get_optimal_cost(self):
-        """ get optimal cost """
-        raise NotImplementedError()
+    @property
+    def var_form(self) -> Optional[VariationalForm]:
+        """ Returns variational form """
+        return self._var_form
 
-    @abstractmethod
-    def get_optimal_circuit(self):
-        """ get optimal circuit """
-        raise NotImplementedError()
+    @var_form.setter
+    def var_form(self, var_form: VariationalForm):
+        """ Sets variational form """
+        self._var_form = var_form
 
-    @abstractmethod
-    def get_optimal_vector(self):
-        """ get optimal vector """
-        raise NotImplementedError()
+    @property
+    def optimizer(self) -> Optional[Optimizer]:
+        """ Returns optimizer """
+        return self._optimizer
 
-    def find_minimum(self, initial_point=None, var_form=None,
-                     cost_fn=None, optimizer=None, gradient_fn=None):
-        """Optimize to find the minimum cost value.
+    @optimizer.setter
+    def optimizer(self, optimizer: Optimizer):
+        """ Sets optimizer """
+        self._optimizer = optimizer
+
+    @property
+    def initial_point(self) -> Optional[np.ndarray]:
+        """ Returns initial point """
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: np.ndarray):
+        """ Sets initial point """
+        self._initial_point = initial_point
+
+    def find_minimum(self,
+                     initial_point: Optional[np.ndarray] = None,
+                     var_form: Optional[VariationalForm] = None,
+                     cost_fn: Optional[Callable] = None,
+                     optimizer: Optional[Optimizer] = None,
+                     gradient_fn: Optional[Callable] = None) -> 'VQResult':
+        """
+        Optimize to find the minimum cost value.
+
+        Args:
+            initial_point: If not `None` will be used instead of any initial point supplied via
+                constructor. If `None` and `None` was supplied to constructor then a random
+                point will be used if the optimizer requires an initial point.
+            var_form: If not `None` will be used instead of any variational form supplied via
+                constructor.
+            cost_fn: If not `None` will be used instead of any cost_fn supplied via
+                constructor.
+            optimizer: If not `None` will be used instead of any optimizer supplied via
+                constructor.
+            gradient_fn: Optional gradient function for optimizer
 
         Returns:
             dict: Optimized variational parameters, and corresponding minimum cost value.
 
         Raises:
             ValueError: invalid input
-
         """
-        initial_point = initial_point if initial_point is not None else self._initial_point
-        var_form = var_form if var_form is not None else self._var_form
+        initial_point = initial_point if initial_point is not None else self.initial_point
+        var_form = var_form if var_form is not None else self.var_form
         cost_fn = cost_fn if cost_fn is not None else self._cost_fn
-        optimizer = optimizer if optimizer is not None else self._optimizer
+        optimizer = optimizer if optimizer is not None else self.optimizer
+
+        if var_form is None:
+            raise ValueError('Variational form neither supplied to constructor nor find minimum.')
+        if cost_fn is None:
+            raise ValueError('Cost function neither supplied to constructor nor find minimum.')
+        if optimizer is None:
+            raise ValueError('Optimizer neither supplied to constructor nor find minimum.')
 
         nparms = var_form.num_parameters
         bounds = var_form.parameter_bounds
@@ -134,13 +174,14 @@ class VQAlgorithm(QuantumAlgorithm):
                                                                       initial_point=initial_point,
                                                                       gradient_function=gradient_fn)
         eval_time = time.time() - start
-        ret = {}
-        ret['num_optimizer_evals'] = num_optimizer_evals
-        ret['min_val'] = opt_val
-        ret['opt_params'] = opt_params
-        ret['eval_time'] = eval_time
 
-        return ret
+        result = VQResult()
+        result.optimizer_evals = num_optimizer_evals
+        result.optimizer_time = eval_time
+        result.optimal_value = opt_val
+        result.optimal_point = opt_params
+
+        return result
 
     def get_prob_vector_for_params(self, construct_circuit_fn, params_s,
                                    quantum_instance, construct_circuit_args=None):
@@ -171,15 +212,20 @@ class VQAlgorithm(QuantumAlgorithm):
             probs[int(k, 2)] = v / shots
         return probs
 
-    @property
-    def initial_point(self):
-        """ returns initial point """
-        return self._initial_point
+    @abstractmethod
+    def get_optimal_cost(self):
+        """ get optimal cost """
+        raise NotImplementedError()
 
-    @initial_point.setter
-    def initial_point(self, new_value):
-        """ set initial point """
-        self._initial_point = new_value
+    @abstractmethod
+    def get_optimal_circuit(self):
+        """ get optimal circuit """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_optimal_vector(self):
+        """ get optimal vector """
+        raise NotImplementedError()
 
     @property
     @abstractmethod
@@ -187,21 +233,70 @@ class VQAlgorithm(QuantumAlgorithm):
         """ returns optimal parameters """
         raise NotImplementedError()
 
-    @property
-    def var_form(self):
-        """ returns var forms """
-        return self._var_form
-
-    @var_form.setter
-    def var_form(self, new_value):
-        """ sets var forms """
-        self._var_form = new_value
-
-    @property
-    def optimizer(self):
-        """ returns optimizer """
-        return self._optimizer
-
     def cleanup_parameterized_circuits(self):
         """ set parameterized circuits to None """
         self._parameterized_circuits = None
+
+
+class VQResult(AlgorithmResult):
+    """ Variation Quantum Algorithm Result."""
+
+    @property
+    def optimizer_evals(self) -> int:
+        """ Returns number of optimizer evaluations """
+        return self.get('optimizer_evals')
+
+    @optimizer_evals.setter
+    def optimizer_evals(self, value: int) -> None:
+        """ Sets number of optimizer evaluations """
+        self.data['optimizer_evals'] = value
+
+    @property
+    def optimizer_time(self) -> float:
+        """ Returns time taken for optimization """
+        return self.get('optimizer_time')
+
+    @optimizer_time.setter
+    def optimizer_time(self, value: float) -> None:
+        """ Sets time taken for optimization  """
+        self.data['optimizer_time'] = value
+
+    @property
+    def optimal_value(self) -> float:
+        """ Returns optimal value """
+        return self.get('optimal_value')
+
+    @optimal_value.setter
+    def optimal_value(self, value: int) -> float:
+        """ Sets optimal value """
+        self.data['optimal_value'] = value
+
+    @property
+    def optimal_point(self) -> np.ndarray:
+        """ Returns optimal point """
+        return self.get('optimal_point')
+
+    @optimal_point.setter
+    def optimal_point(self, value: np.ndarray) -> None:
+        """ Sets optimal point """
+        self.data['optimal_point'] = value
+
+    def __getitem__(self, key: object) -> object:
+        if key == 'num_optimizer_evals':
+            warnings.warn('num_optimizer_evals deprecated, use optimizer_evals property.',
+                          DeprecationWarning)
+            return super().__getitem__('optimizer_evals')
+        elif key == 'min_val':
+            warnings.warn('min_val deprecated, use optimal_value property.',
+                          DeprecationWarning)
+            return super().__getitem__('optimal_value')
+        elif key == 'opt_params':
+            warnings.warn('opt_params deprecated, use optimal_point property.',
+                          DeprecationWarning)
+            return super().__getitem__('optimal_point')
+        elif key == 'eval_time':
+            warnings.warn('eval_time deprecated, use optimizer_time property.',
+                          DeprecationWarning)
+            return super().__getitem__('optimizer_time')
+
+        return super().__getitem__(key)

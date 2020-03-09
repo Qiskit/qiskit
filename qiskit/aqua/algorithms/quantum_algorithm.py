@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,18 +21,20 @@ Doing so requires that the required algorithm interface is implemented.
 """
 
 from abc import ABC, abstractmethod
+from typing import Union, Dict, Optional
+from qiskit.providers import BaseBackend
 from qiskit.aqua import aqua_globals, QuantumInstance, AquaError
 
 
 class QuantumAlgorithm(ABC):
     """
-    Base class for Algorithms.
+    Base class for Quantum Algorithms.
 
     This method should initialize the module and
     use an exception if a component of the module is available.
     """
     @abstractmethod
-    def __init__(self):
+    def __init__(self) -> None:
         self._quantum_instance = None
 
     @property
@@ -40,33 +42,47 @@ class QuantumAlgorithm(ABC):
         """Return a numpy random."""
         return aqua_globals.random
 
-    def run(self, quantum_instance=None, **kwargs):
+    def run(self,
+            quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
+            **kwargs) -> Dict:
         """Execute the algorithm with selected backend.
 
         Args:
-            quantum_instance (QuantumInstance or BaseBackend): the experimental setting.
+            quantum_instance: the experimental setting.
             kwargs (dict): kwargs
         Returns:
             dict: results of an algorithm.
+        Raises:
+            AquaError: If a quantum instance or backend has not been provided
         """
-        # pylint: disable=import-outside-toplevel
-        from qiskit.providers import BaseBackend
-
-        if quantum_instance is None:
-            AquaError("Quantum device or backend "
-                      "is needed since you are running quantum algorithm.")
+        if quantum_instance is None and self.quantum_instance is None:
+            raise AquaError("Quantum device or backend "
+                            "is needed since you are running quantum algorithm.")
         if isinstance(quantum_instance, BaseBackend):
-            quantum_instance = QuantumInstance(quantum_instance)
-            quantum_instance.set_config(**kwargs)
-        self._quantum_instance = quantum_instance
+            self.set_backend(quantum_instance, **kwargs)
+        else:
+            if quantum_instance is not None:
+                self.quantum_instance = quantum_instance
 
         return self._run()
 
     @abstractmethod
-    def _run(self):
+    def _run(self) -> Dict:
         raise NotImplementedError()
 
     @property
-    def quantum_instance(self):
+    def quantum_instance(self) -> Union[None, QuantumInstance]:
         """ returns quantum instance """
         return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
+        """Set quantum  instance."""
+        if isinstance(quantum_instance, BaseBackend):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
+
+    def set_backend(self, backend: BaseBackend, **kwargs) -> None:
+        """Set backend with configuration."""
+        self._quantum_instance = QuantumInstance(backend)
+        self._quantum_instance.set_config(**kwargs)
