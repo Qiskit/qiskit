@@ -808,8 +808,8 @@ class StabilizerTable(PauliTable):
               - :math:`[0, 0]`
               - :math:`\begin{bmatrix} -1 & 0 \\ 0 & -1 \end{bmatrix}`
               - :math:`-I`
-              * - ``"X"``
-            - 0
+            * - ``"X"``
+              - 0
               - :math:`[1, 0]`
               - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
               - :math:`X`
@@ -878,8 +878,8 @@ class StabilizerTable(PauliTable):
               - :math:`[0, 0]`
               - :math:`\begin{bmatrix} -1 & 0 \\ 0 & -1 \end{bmatrix}`
               - :math:`-I`
-              * - ``"X"``
-            - 0
+            * - ``"X"``
+              - 0
               - :math:`[1, 0]`
               - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
               - :math:`X`
