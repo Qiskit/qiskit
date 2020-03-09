@@ -45,11 +45,11 @@ jobs:
     - name: Python 3.6 Tests and Coverage Linux
       python: 3.6
       env:
-        - PYTHON="coverage run --source qiskit --parallel-mode"
+        - PYTHON="coverage3 run --source qiskit --parallel-mode"
       after_success:
-        - coverage combine || true
+        - coverage3 combine || true
         - coveralls || true
-        - coverage xml || true
+        - coverage3 xml || true
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
