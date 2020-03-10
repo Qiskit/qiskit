@@ -179,12 +179,8 @@ class InstructionScheduleMap():
         Raises:
             PulseError: If command for qubits is not available
         """
-        qubits = _to_tuple(qubits)
-        if self.has(instruction, qubits):
-            return self._map[instruction][qubits]
-
-        raise PulseError("Operation '{0}' for qubits {1} is not available "
-                         "for this system.".format(instruction, qubits))
+        self.assert_has(instruction, qubits)
+        return self._map[instruction][_to_tuple(qubits)]
 
     def add(self,
             instruction: str,
