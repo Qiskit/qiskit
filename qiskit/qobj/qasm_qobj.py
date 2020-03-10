@@ -69,7 +69,6 @@ class QasmQobjInstruction:
                 words, the output of the function is (``register AND mask)
                 relation val.
         """
-        super(QasmQobjInstruction, self).__init__()
         self.name = name
         if params is not None:
             self.params = params
@@ -208,85 +207,28 @@ class QasmQobjConfig(SimpleNamespace):
                 configuration.
         """
         if shots is not None:
-            self.__dict__['shots'] = int(shots)
+            self.shots = int(shots)
 
         if max_credits is not None:
-            self.__dict__['max_credits'] = int(max_credits)
+            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
-            self.__dict__['seed_simulator'] = int(seed_simulator)
+            self.seed_simulator = int(seed_simulator)
 
         if memory is not None:
-            self.__dict__['memory'] = bool(memory)
+            self.memory = bool(memory)
 
         if parameter_binds is not None:
-            self.__dict__['parameter_binds'] = parameter_binds
+            self.parameter_binds = parameter_binds
 
         if memory_slots is not None:
-            self.__dict__['memory_slots'] = memory_slots
+            self.memory_slots = memory_slots
 
         if n_qubits is not None:
-            self.__dict__['n_qubits'] = n_qubits
+            self.n_qubits = n_qubits
 
         if kwargs:
             self.__dict__.update(kwargs)
-
-    @property
-    def shots(self):
-        """The number of shots to run for each experiment."""
-        return self.__dict__.get('shots')
-
-    @shots.setter
-    def shots(self, value):
-        self.__dict__['shots'] = value
-
-    @property
-    def max_credits(self):
-        """The max number of credits to use on the IBMQ public devices."""
-        return self.__dict__.get('max_credits')
-
-    @max_credits.setter
-    def max_credits(self, value):
-        self.__dict__['max_credits'] = value
-
-    @property
-    def memory(self):
-        """Whether to request memory from backend (per-shot readouts)."""
-        return self.__dict__.get('memory')
-
-    @memory.setter
-    def memory(self, value):
-        self.__dict__['memory'] = value
-
-    @property
-    def parameter_binds(self):
-        """List of parameter bindings."""
-        return self.__dict__.get('parameter_binds')
-
-    @parameter_binds.setter
-    def parameter_binds(self, value):
-        self.___dict___['parameter_binds'] = value
-
-    @property
-    def memory_slots(self):
-        """The number of memory slots on the device."""
-        self.__dict__.get('memory_slots')
-
-    @memory_slots.setter
-    def memory_slots(self, value):
-        self.__dict__['memory_slots'] = value
-
-    @property
-    def n_qubits(self):
-        """The number of qubits on the device."""
-        nqubits = self.__dict__.get('n_qubits')
-        if nqubits is None:
-            raise AttributeError('Attribute n_qubits is not defined')
-        return nqubits
-
-    @n_qubits.setter
-    def n_qubits(self, value):
-        self.__dict__['n_qubits'] = value
 
     def to_dict(self):
         """Return a dictionary format representation of the QASM Qobj config.
