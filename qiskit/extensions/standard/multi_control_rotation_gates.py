@@ -35,14 +35,23 @@ def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
         circuit.cu3(theta, phi, lam, control, target)
 
 
+def _generate_gray_code(num_bits):
+    if num_bits <= 0:
+        raise ValueError(
+            "Must have at least 1 value to generate the gray code")
+    result = [0]
+    for i in range(num_bits):
+        result += [x + 2**i for x in reversed(result)]
+    return [format(x, "0%sb" % num_bits) for x in result]
+
+
 def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
     """Apply multi-controlled u3 gate from ctls to tgt using graycode
     pattern with single-step angles theta, phi, lam."""
 
     n = len(ctls)
 
-    from sympy.combinatorics.graycode import GrayCode
-    gray_code = list(GrayCode(n).generate_gray())
+    gray_code = _generate_gray_code(n)
     last_pattern = None
 
     for pattern in gray_code:
