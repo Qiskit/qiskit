@@ -26,11 +26,7 @@ Base
    :toctree: ../stubs/
 
    Qobj
-   QobjInstruction
    QobjExperimentHeader
-   QobjExperimentConfig
-   QobjExperiment
-   QobjConfig
    QobjHeader
 
 Qasm
@@ -58,8 +54,6 @@ Pulse
    PulseQobjConfig
    QobjMeasurementOption
    PulseLibraryItem
-   PulseLibraryItemSchema
-   PulseQobjInstructionSchema
 
 Validation
 ==========
