@@ -12,21 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
 import numpy as np
 
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
-from qiskit import execute
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -419,40 +410,3 @@ class TestCircuitRegisters(QiskitTestCase):
         for (gate, qargs, _) in circ.data:
             self.assertEqual(gate.name, 'unitary')
             self.assertEqual(len(qargs), 4)
-
-
-class TestCircuitBit(QiskitTestCase):
-    """QuantumCircuit Registers tests."""
-
-    def test_bit_getitem(self):
-        """ Deprecated Bit.__getitem__.
-        """
-        qubit = QuantumRegister(1, "q")[0]
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qubit[0], qubit.register)
-            self.assertEqual(qubit[1], qubit.index)
-
-    def test_gate_with_tuples(self):
-        """ Deprecated gate parameters as tuples"""
-        qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h(qr[0])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h((qr, 0))
-        self.assertEqual(qc, expected)
-
-    def test_gate_with_tuple_list(self):
-        """ Deprecated gate parameters as tuple list"""
-        qr = QuantumRegister(2)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h([qr[0], qr[1]])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h([(qr, 0), (qr, 1)])
-        self.assertEqual(qc, expected)

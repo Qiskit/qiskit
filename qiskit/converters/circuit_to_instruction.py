@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a circuit to an instruction"""
+"""Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
@@ -38,9 +38,25 @@ def circuit_to_instruction(circuit, parameter_map=None):
         QiskitError: if parameter_map is not compatible with circuit
 
     Return:
-        Instruction: an instruction equivalent to the action of the
-            input circuit. Upon decomposition, this instruction will
-            yield the components comprising the original circuit.
+        qiskit.circuit.Instruction: an instruction equivalent to the action of the
+        input circuit. Upon decomposition, this instruction will
+        yield the components comprising the original circuit.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.converters import circuit_to_instruction
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            circuit_to_instruction(circ)
     """
 
     if parameter_map is None:

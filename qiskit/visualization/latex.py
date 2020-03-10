@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,consider-using-enumerate
 
 """latex circuit visualization backends."""
 
@@ -23,6 +23,7 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
@@ -212,13 +213,14 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    self._latex[i][0] = "\\lstick{{ {}_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    self._latex[i][0] = "\\lstick{{({}_{{{}}})~q_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
+                self._latex[i][0] = label
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
@@ -240,6 +242,8 @@ class QCircuitImage:
                 if op.name in boxed_gates:
                     self.has_box = True
                 if op.name in target_gates:
+                    self.has_target = True
+                if isinstance(op.op, ControlledGate):
                     self.has_target = True
 
         for layer in self.ops:
@@ -368,8 +372,74 @@ class QCircuitImage:
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
-                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                   'save', 'noise']:
+                if isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'cswap']:
+                    qarglist = op.qargs
+                    name = generate_latex_label(
+                        op.op.base_gate.name.upper()).replace(" ", "\\,")
+                    pos_array = []
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    num_qargs = len(qarglist) - num_ctrl_qubits
+                    for ctrl in range(len(qarglist)):
+                        pos_array.append(self.img_regs[qarglist[ctrl]])
+                    pos_qargs = pos_array[num_ctrl_qubits:]
+                    ctrl_pos = pos_array[:num_ctrl_qubits]
+                    if op.condition:
+                        mask = self._get_mask(op.condition[0])
+                        cl_reg = self.clbit_list[self._ffs(mask)]
+                        if_reg = cl_reg.register
+                        pos_cond = self.img_regs[if_reg[0]]
+                        temp = pos_array + [pos_cond]
+                        temp.sort(key=int)
+                        bottom = temp[len(pos_array) - 1]
+                        gap = pos_cond - bottom
+                        for i in range(self.cregs[if_reg]):
+                            if if_value[i] == '1':
+                                self._latex[pos_cond + i][column] = \
+                                    "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                            else:
+                                self._latex[pos_cond + i][column] = \
+                                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                gap = 1
+                    if num_qargs == 1:
+                        for index, pos in enumerate(ctrl_pos):
+                            self._latex[pos][column] = "\\ctrl{" + str(
+                                pos_array[index + 1] - pos_array[index]) + "}"
+                        self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                    else:
+                        pos_start = min(pos_qargs)
+                        pos_stop = max(pos_qargs)
+                        # If any controls appear in the span of the multiqubit
+                        # gate just treat the whole thing as a big gate instead
+                        # of trying to render the controls separately
+                        if any(ctrl_pos) in range(pos_start, pos_stop):
+                            pos_start = min(pos_array)
+                            pos_stop = max(pos_array)
+                            num_qargs = len(qarglist)
+                            name = generate_latex_label(
+                                op.name).replace(" ", "\\,")
+                        else:
+                            for index, pos in enumerate(ctrl_pos):
+                                if index + 1 >= num_ctrl_qubits:
+                                    if pos_array[index] > pos_stop:
+                                        upper = pos_stop
+                                    else:
+                                        upper = pos_start
+                                else:
+                                    upper = pos_array[index + 1]
+
+                                self._latex[pos][column] = "\\ctrl{" + str(
+                                    upper - pos_array[index]) + "}"
+
+                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                                                          (num_qargs - 1, name))
+                        for pos in range(pos_start + 1, pos_stop + 1):
+                            self._latex[pos][column] = ("\\ghost{%s}" % name)
+
+                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
+                                     'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
@@ -492,7 +562,7 @@ class QCircuitImage:
                         pos_2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
-                            pos_3 = self.img_regs[(if_reg, 0)]
+                            pos_3 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
                             bottom = temp[1]
@@ -558,7 +628,7 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
@@ -614,7 +684,7 @@ class QCircuitImage:
                                 # Based on the \cds command of the qcircuit package
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" %\
+                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
@@ -640,7 +710,7 @@ class QCircuitImage:
                         pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
-                            pos_4 = self.img_regs[(if_reg, 0)]
+                            pos_4 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3, pos_4]
                             temp.sort(key=int)
                             bottom = temp[2]

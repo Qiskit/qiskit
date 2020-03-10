@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
+"""Pass manager for optimization level 2, providing medium optimization.
 
-"""
-Level 2 pass manager:
-noise adaptive mapping in addition to commutation-based optimization
+Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
+gate cancellation using commutativity rules.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
@@ -29,6 +29,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -42,9 +43,8 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_2_pass_manager(transpile_config):
-    """
-    Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
+def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules.
 
     This pass manager applies the user-given initial layout. If none is given, and
@@ -55,20 +55,22 @@ def level_2_pass_manager(transpile_config):
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation and redundant
     reset removal are performed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        transpile_config (TranspileConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 2 pass manager.
+        a level 2 pass manager.
     """
-    basis_gates = transpile_config.basis_gates
-    coupling_map = transpile_config.coupling_map
-    initial_layout = transpile_config.initial_layout
-    seed_transpiler = transpile_config.seed_transpiler
-    backend_properties = transpile_config.backend_properties
+    basis_gates = pass_manager_config.basis_gates
+    coupling_map = pass_manager_config.coupling_map
+    initial_layout = pass_manager_config.initial_layout
+    seed_transpiler = pass_manager_config.seed_transpiler
+    backend_properties = pass_manager_config.backend_properties
 
     # 1. Unroll to the basis first, to prepare for noise-adaptive layout
     _unroll = Unroller(basis_gates)
@@ -87,12 +89,11 @@ def level_2_pass_manager(transpile_config):
     # 4. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
-    _add_barrier = BarrierBeforeFinalMeasurements()
-
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
 
-    _swap = [Unroll3qOrMore(),
+    _swap = [BarrierBeforeFinalMeasurements(),
+             Unroll3qOrMore(),
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
@@ -119,10 +120,11 @@ def level_2_pass_manager(transpile_config):
     pm2.append(_unroll)
     if coupling_map:
         pm2.append(_given_layout)
+        pm2.append(CSPLayout(coupling_map, call_limit=1000, time_limit=10),
+                   condition=_choose_layout_condition)
         pm2.append(_choose_layout, condition=_choose_layout_condition)
         pm2.append(_embed)
         pm2.append(_swap_check)
-        pm2.append(_add_barrier)
         pm2.append(_swap, condition=_swap_condition)
         if not coupling_map.is_symmetric:
             pm2.append(_direction_check)

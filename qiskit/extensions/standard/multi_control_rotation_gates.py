@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Multiple-Control U3 gate. Not using ancillary qubits.
+Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:
@@ -128,7 +128,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     Apply Multiple-Controlled Y rotation gate
 
     Args:
-        self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
         theta (float): angle theta
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
@@ -142,7 +142,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:
@@ -159,7 +159,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     if q_ancillae is None:
         ancillary_qubits = []
     elif isinstance(q_ancillae, QuantumRegister):
-        ancillary_qubits = [qb for qb in q_ancillae]
+        ancillary_qubits = list(q_ancillae)
     elif isinstance(q_ancillae, list):
         ancillary_qubits = q_ancillae
     else:
@@ -194,7 +194,7 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
     Apply Multiple-Controlled Z rotation gate
 
     Args:
-        self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcrz gate on.
         lam (float): angle lambda
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
@@ -206,7 +206,7 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:
