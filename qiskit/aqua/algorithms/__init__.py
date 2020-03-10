@@ -89,10 +89,10 @@ and its Python API to be installed. See the following for more information:
    :toctree: ../stubs/
    :nosignatures:
 
-   ClassicalEigensolver
-   ClassicalMinimumEigensolver
-   ClassicalLSsolver
-   ClassicalSVM
+   NumPyEigensolver
+   NumPyMinimumEigensolver
+   NumPyLSsolver
+   SklearnSVM
    ClassicalCPLEX
 
 """
@@ -105,14 +105,14 @@ from .amplitude_amplifiers import Grover
 from .amplitude_estimators import (AmplitudeEstimation,
                                    IterativeAmplitudeEstimation,
                                    MaximumLikelihoodAmplitudeEstimation)
-from .classifiers import VQC, QSVM, ClassicalSVM, SVM_Classical
+from .classifiers import VQC, QSVM, SklearnSVM, SVM_Classical
 from .distribution_learners import QGAN
-from .eigen_solvers import ClassicalEigensolver, ExactEigensolver, EigensolverResult
+from .eigen_solvers import NumPyEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
-from .linear_solvers import HHL, ClassicalLSsolver, ExactLSsolver
+from .linear_solvers import HHL, NumPyLSsolver, ExactLSsolver
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEMinimumEigensolver, IQPEResult,
                                     QPE, QPEMinimumEigensolver, QPEResult,
-                                    ClassicalCPLEX, CPLEX_Ising, ClassicalMinimumEigensolver,
+                                    ClassicalCPLEX, CPLEX_Ising, NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
 
@@ -127,15 +127,15 @@ __all__ = [
     'ClassicalAlgorithm',
     'VQAlgorithm',
     'VQResult',
-    'ClassicalEigensolver',
+    'NumPyEigensolver',
     'ExactEigensolver',
-    'ClassicalLSsolver',
+    'NumPyLSsolver',
     'EigensolverResult',
     'ExactLSsolver',
-    'ClassicalMinimumEigensolver',
+    'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
-    'ClassicalSVM',
+    'SklearnSVM',
     'SVM_Classical',
     'ClassicalCPLEX',
     'CPLEX_Ising',
