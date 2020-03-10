@@ -20,10 +20,9 @@ gate cancellation using commutativity rules and unitary synthesis.
 
 from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.extensions.standard import SwapGate
+
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
@@ -86,9 +85,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout = DenseLayout(coupling_map)
+    _choose_layout_1 = CSPLayout(coupling_map, call_limit=10000, time_limit=60)
+    _choose_layout_2 = DenseLayout(coupling_map)
+
     if backend_properties:
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        _choose_layout_3 = NoiseAdaptiveLayout(backend_properties)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -101,15 +102,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
-             Decompose(SwapGate)]
-
-    _direction_check = [CheckCXDirection(coupling_map)]
-
-    def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
-
-    _direction = [CXDirection(coupling_map)]
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
 
     # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
@@ -123,23 +116,28 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if coupling_map and not coupling_map.is_symmetric:
-        _opt.append(CXDirection(coupling_map))
-        # if a coupling map has been provided, match coupling
+    # 6. Fix any CX direction mismatch
+    _direction_check = [CheckCXDirection(coupling_map)]
 
+    def _direction_condition(property_set):
+        return not property_set['is_direction_mapped']
+
+    _direction = [CXDirection(coupling_map)]
+
+    # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
-        pm3.append(CSPLayout(coupling_map, call_limit=10000, time_limit=60),
-                   condition=_choose_layout_condition)
-        pm3.append(_choose_layout, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_1, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_2, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_3, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
-        if not coupling_map.is_symmetric:
-            pm3.append(_direction_check)
-            pm3.append(_direction, condition=_direction_condition)
     pm3.append(_depth_check + _opt, do_while=_opt_control)
+    if coupling_map and not coupling_map.is_symmetric:
+        pm3.append(_direction_check)
+        pm3.append(_direction, condition=_direction_condition)
 
     return pm3
