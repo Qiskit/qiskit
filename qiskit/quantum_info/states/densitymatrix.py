@@ -16,8 +16,8 @@
 DensityMatrix quantum state class.
 """
 
+import warnings
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -30,7 +30,6 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.counts import state_to_counts
 
 
 class DensityMatrix(QuantumState):
@@ -508,7 +507,14 @@ class DensityMatrix(QuantumState):
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.
 
+        DEPRECATED: use :meth:`probabilities_dict` instead.
+
         Returns:
             dict: Counts of probabilities.
         """
-        return state_to_counts(self.data.diagonal(), self._atol, True)
+        warnings.warn(
+            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
+            ' and will be removed no earlier than 3 months after that '
+            'release date. You should use the `Statevector.probabilities_dict`'
+            ' method instead.', DeprecationWarning, stacklevel=2)
+        return self.probabilities_dict()

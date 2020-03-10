@@ -16,6 +16,7 @@
 """
 Routine for converting a state vector to counts.
 """
+import warnings
 import numpy as np
 from qiskit.exceptions import QiskitError
 
@@ -57,6 +58,12 @@ def state_to_counts(vec, eps=1e-15, density_matrix_diag=False):
            res = execute(qc, sim).result()
            state_to_counts(res.get_statevector())
     """
+    warnings.warn(
+        'The `state_to_counts` method is deprecated as of 0.13.0,'
+        ' and will be removed no earlier than 3 months after that '
+        'release date. You should use the `Statevector(vec).probabilities_dict()`'
+        'instead.', DeprecationWarning, stacklevel=3)
+
     qubit_dims = np.log2(vec.shape[0])
     if qubit_dims % 1:
         raise QiskitError("Input vector is not a valid statevector for qubits.")
