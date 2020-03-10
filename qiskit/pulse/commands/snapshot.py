@@ -16,7 +16,7 @@
 Snapshot.
 """
 from qiskit.pulse.channels import SnapshotChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
@@ -83,5 +83,7 @@ class Snapshot(Command, Instruction):
     # pylint: enable=arguments-differ
 
     def __repr__(self):
-        return '%s(%s, %s, %s) -> %s' % (self.__class__.__name__, self.label,
-                                         self.type, self.name, self.channels)
+        return '%s(label=%s, snapshot_type="%s", name="%s")' % (self.__class__.__name__,
+                                                                self.label,
+                                                                self.type,
+                                                                self.name)

@@ -24,8 +24,6 @@ import numpy as np
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.channels import Channel
 
-from .instruction import Instruction
-
 
 class MetaCount(ABCMeta):
     """Meta class to count class instances."""
@@ -91,8 +89,12 @@ class Command(metaclass=MetaCount):
 
     @abstractmethod
     def to_instruction(self, command, *channels: List[Channel],
-                       name: Optional[str] = None) -> Instruction:
-        """Create an instruction from command."""
+                       name: Optional[str] = None):
+        """Create an instruction from command.
+
+        Returns:
+            Instruction
+        """
         pass
 
     def __call__(self, *args, **kwargs):
@@ -115,5 +117,6 @@ class Command(metaclass=MetaCount):
         return hash((type(self), self.duration, self.name))
 
     def __repr__(self):
-        return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
-                                             self.name, self.duration)
+        return '%s(duration=%d, name="%s")' % (self.__class__.__name__,
+                                               self.duration,
+                                               self.name)

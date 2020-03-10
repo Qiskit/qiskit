@@ -117,6 +117,13 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         raise VisualizationError("Length of legendL (%s) doesn't match "
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
+
+    # Set bar colors
+    if color is None:
+        color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
+    elif isinstance(color, str):
+        color = [color]
+
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
     else:
@@ -135,42 +142,15 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         labels = [list(x) for x in zip(*sorted(zip(dist, labels),
                                                key=lambda pair: pair[0]))][1]
 
-    labels_dict = OrderedDict()
-
-    # Set bar colors
-    if color is None:
-        color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
-    elif isinstance(color, str):
-        color = [color]
-
-    all_pvalues = []
     length = len(data)
-    for item, execution in enumerate(data):
-        if number_to_keep is not None:
-            data_temp = dict(Counter(execution).most_common(number_to_keep))
-            data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
-            execution = data_temp
-        values = []
-        for key in labels:
-            if key not in execution:
-                if number_to_keep is None:
-                    labels_dict[key] = 1
-                    values.append(0)
-                else:
-                    values.append(-1)
-            else:
-                labels_dict[key] = 1
-                values.append(execution[key])
-        values = np.array(values, dtype=float)
-        where_idx = np.where(values >= 0)[0]
-        pvalues = values[where_idx] / sum(values[where_idx])
-        for value in pvalues:
-            all_pvalues.append(value)
-        numelem = len(values[where_idx])
-        ind = np.arange(numelem)  # the x locations for the groups
-        width = 1/(len(data)+1)  # the width of the bars
-        rects = []
-        for idx, val in enumerate(pvalues):
+    width = 1/(len(data)+1)  # the width of the bars
+
+    labels_dict, all_pvalues, all_inds = _plot_histogram_data(data,
+                                                              labels,
+                                                              number_to_keep)
+    rects = []
+    for item, _ in enumerate(data):
+        for idx, val in enumerate(all_pvalues[item]):
             label = None
             if not idx and legend:
                 label = legend[item]
@@ -179,7 +159,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                                     color=color[item % len(color)],
                                     zorder=2))
         bar_center = (width / 2) * (length - 1)
-        ax.set_xticks(ind + bar_center)
+        ax.set_xticks(all_inds[item] + bar_center)
         ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
         # attach some text labels
         if bar_labels:
@@ -197,7 +177,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
 
     # add some text for labels, title, and axes ticks
     ax.set_ylabel('Probabilities', fontsize=14)
-    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
+    all_vals = np.concatenate(all_pvalues).ravel()
+    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_vals])])])
     if sort == 'desc':
         ax.invert_xaxis()
 
@@ -216,3 +197,52 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                              'nbAgg']:
             plt.close(fig)
     return fig
+
+
+def _plot_histogram_data(data, labels, number_to_keep):
+    """Generate the data needed for plotting counts.
+
+    Parameters:
+        data (list or dict): This is either a list of dictionaries or a single
+            dict containing the values to represent (ex {'001': 130})
+        labels (list): The list of bitstring labels for the plot.
+        number_to_keep (int): The number of terms to plot and rest
+            is made into a single bar called 'rest'.
+
+    Returns:
+        tuple: tuple containing:
+            (dict): The labels actually used in the plotting.
+            (list): List of ndarrays for the bars in each experiment.
+            (list): Indices for the locations of the bars for each
+                    experiment.
+    """
+    labels_dict = OrderedDict()
+
+    all_pvalues = []
+    all_inds = []
+    for execution in data:
+        if number_to_keep is not None:
+            data_temp = dict(Counter(execution).most_common(number_to_keep))
+            data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
+            execution = data_temp
+        values = []
+        for key in labels:
+            if key not in execution:
+                if number_to_keep is None:
+                    labels_dict[key] = 1
+                    values.append(0)
+                else:
+                    values.append(-1)
+            else:
+                labels_dict[key] = 1
+                values.append(execution[key])
+        values = np.array(values, dtype=float)
+        where_idx = np.where(values >= 0)[0]
+        pvalues = values[where_idx] / sum(values[where_idx])
+
+        all_pvalues.append(pvalues)
+        numelem = len(values[where_idx])
+        ind = np.arange(numelem)  # the x locations for the groups
+        all_inds.append(ind)
+
+    return labels_dict, all_pvalues, all_inds

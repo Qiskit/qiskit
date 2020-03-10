@@ -15,12 +15,13 @@
 """
 Quantum bit and Classical bit objects.
 """
-from warnings import warn
 from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
     """Implement a generic bit."""
+
+    __slots__ = {'register', 'index'}
 
     def __init__(self, register, index):
         """Create a new generic bit.
@@ -45,24 +46,10 @@ class Bit:
         """Return the official string representing the bit."""
         return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
-    def __getitem__(self, item):
-        warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
-             'Go for bit.register and bit.index.', DeprecationWarning, stacklevel=2)
-        if item == 0:
-            return self.register
-        elif item == 1:
-            return self.index
-        else:
-            raise IndexError
-
     def __hash__(self):
         return hash((self.register, self.index))
 
     def __eq__(self, other):
         if isinstance(other, Bit):
             return other.index == self.index and other.register == self.register
-        if isinstance(other, tuple):
-            warn('Equality check between a tuple and a Bit instances is deprecated. '
-                 'Convert your tuples to a Bit object.', DeprecationWarning, stacklevel=2)
-            return other[1] == self.index and other[0] == self.register
         return False

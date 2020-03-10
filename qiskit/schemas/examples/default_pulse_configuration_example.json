@@ -24,7 +24,7 @@
         {"name": "measure", "qubits": [0],
         "sequence": [{"name": "square_1",
         "t0": 0, "ch": "m0"},
-        {"name": "acquire", "t0": 3, "duration": 10}]},
+        {"name": "acquire", "t0": 3, "duration": 10, "qubits":[0,1,2], "memory_slot": [0,1,2]}]},
         {"name":"u1", "qubits": [1],
         "sequence" :[{"name": "fc", "phase": "P0",
         "t0": 0, "ch": "d0"}]},
@@ -47,7 +47,7 @@
         {"name": "measure", "qubits": [1],
         "sequence": [{"name": "square_1",
         "t0": 0, "ch": "m0"},
-        {"name": "acquire", "t0": 3, "duration": 10}]},
+        {"name": "acquire", "t0": 3, "duration": 10, "qubits":[0,1,2], "memory_slot": [0,1,2]}]},
         {"name":"u1", "qubits": [2],
         "sequence" :[{"name": "fc", "phase": "P0",
         "t0": 0, "ch": "d0"}]},
@@ -70,7 +70,7 @@
         {"name": "measure", "qubits": [2],
         "sequence": [{"name": "square_1",
         "t0": 0, "ch": "m0"},
-        {"name": "acquire", "t0": 3, "duration": 10}]}
+        {"name": "acquire", "t0": 3, "duration": 10, "qubits":[0,1,2], "memory_slot": [0,1,2]}]}
         ],
     "pulse_library": [
         {"name": "pulse_0", "samples": [[0.5,0],[1.0,0],[0.5,0]]},

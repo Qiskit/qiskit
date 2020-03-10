@@ -18,9 +18,9 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse.cmd_def import CmdDef
+from qiskit.pulse import AcquireChannel
 from qiskit.pulse.commands import AcquireInstruction
-from qiskit.pulse.channels import MeasureChannel
+from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -33,9 +33,8 @@ class TestAutoMerge(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.device = pulse.PulseChannelSpec.from_backend(self.backend)
         self.config = self.backend.configuration()
-        self.cmd_def = self.backend.defaults().build_cmd_def()
+        self.cmd_def = self.backend.defaults().instruction_schedule_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -43,12 +42,13 @@ class TestAutoMerge(QiskitTestCase):
         """Test that one acquire is delayed to match the time of the later acquire."""
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
-        sched = sched.insert(1, acquire(self.device.acquires[0], self.device.memoryslots[0]))
-        sched = sched.insert(10, acquire(self.device.acquires[1], self.device.memoryslots[1]))
-        sched = sched.insert(10, self.short_pulse(self.device.measures[0]))
-        sched = sched.insert(10, self.short_pulse(self.device.measures[1]))
+        sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
+        sched = sched.insert(1, acquire(self.config.acquire(0), MemorySlot(0)))
+        sched = sched.insert(10, acquire(self.config.acquire(1), MemorySlot(1)))
+        sched = sched.insert(10, self.short_pulse(self.config.measure(0)))
+        sched = sched.insert(10, self.short_pulse(self.config.measure(1)))
         sched = align_measures([sched], self.cmd_def)[0]
+        self.assertEqual(sched.name, 'fake_experiment')
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
@@ -64,8 +64,8 @@ class TestAutoMerge(QiskitTestCase):
         """
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
-        sched = sched.insert(1, acquire(self.device.acquires[0], self.device.memoryslots[0]))
+        sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
+        sched = sched.insert(1, acquire(self.config.acquire(0), MemorySlot(0)))
         sched = align_measures([sched], self.cmd_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
@@ -79,16 +79,16 @@ class TestAutoMerge(QiskitTestCase):
         """Test that an error is raised if multiple acquires occur on the same channel."""
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
-        sched = sched.insert(4, acquire(self.device.acquires[0], self.device.memoryslots[0]))
-        sched = sched.insert(10, acquire(self.device.acquires[0], self.device.memoryslots[0]))
+        sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
+        sched = sched.insert(4, acquire(self.config.acquire(0), MemorySlot(0)))
+        sched = sched.insert(10, acquire(self.config.acquire(0), MemorySlot(0)))
         with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
 
         # Test for measure channel
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(10, self.short_pulse(self.device.measures[0]))
-        sched = sched.insert(30, self.short_pulse(self.device.measures[0]))
+        sched = sched.insert(10, self.short_pulse(self.config.measure(0)))
+        sched = sched.insert(30, self.short_pulse(self.config.measure(0)))
         with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
 
@@ -104,12 +104,12 @@ class TestAutoMerge(QiskitTestCase):
         """Test that an error is raised if a pulse occurs on a channel after an acquire."""
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
-        sched = sched.insert(4, acquire(self.device.acquires[0], self.device.memoryslots[0]))
+        sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
+        sched = sched.insert(4, acquire(self.config.acquire(0), MemorySlot(0)))
         # No error with separate channel
-        sched = sched.insert(10, self.short_pulse(self.device.drives[1]))
+        sched = sched.insert(10, self.short_pulse(self.config.drive(1)))
         align_measures([sched], self.cmd_def)
-        sched = sched.insert(10, self.short_pulse(self.device.drives[0]))
+        sched = sched.insert(10, self.short_pulse(self.config.drive(0)))
         with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
 
@@ -117,11 +117,11 @@ class TestAutoMerge(QiskitTestCase):
         """Test that acquires are aligned together across multiple schedules."""
         acquire = pulse.Acquire(5)
         sched1 = pulse.Schedule(name='fake_experiment')
-        sched1 = sched1.insert(0, self.short_pulse(self.device.drives[0]))
-        sched1 = sched1.insert(10, acquire(self.device.acquires[0], self.device.memoryslots[0]))
+        sched1 = sched1.insert(0, self.short_pulse(self.config.drive(0)))
+        sched1 = sched1.insert(10, acquire(self.config.acquire(0), MemorySlot(0)))
         sched2 = pulse.Schedule(name='fake_experiment')
-        sched2 = sched2.insert(3, self.short_pulse(self.device.drives[0]))
-        sched2 = sched2.insert(25, acquire(self.device.acquires[0], self.device.memoryslots[0]))
+        sched2 = sched2.insert(3, self.short_pulse(self.config.drive(0)))
+        sched2 = sched2.insert(25, acquire(self.config.acquire(0), MemorySlot(0)))
         schedules = align_measures([sched1, sched2], self.cmd_def)
         for time, inst in schedules[0].instructions:
             if isinstance(inst, AcquireInstruction):
@@ -136,17 +136,16 @@ class TestAddImplicitAcquires(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.device = pulse.PulseChannelSpec.from_backend(self.backend)
         self.config = self.backend.configuration()
-        self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.cmd_def = self.backend.defaults().instruction_schedule_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
-        self.sched = sched.insert(5, acquire(self.device.acquires, self.device.memoryslots))
+        sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
+        sched = sched.insert(5, acquire(self.config.acquire(0), MemorySlot(0)))
+        sched = sched.insert(5, acquire(self.config.acquire(1), MemorySlot(1)))
+        self.sched = sched
 
     def test_add_implicit(self):
         """Test that implicit acquires are made explicit according to the meas map."""
@@ -154,7 +153,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1})
 
     def test_add_across_meas_map_sublists(self):
@@ -163,7 +162,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
     def test_dont_add_all(self):
@@ -172,8 +171,17 @@ class TestAddImplicitAcquires(QiskitTestCase):
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
-                acquired_qubits.update({a.index for a in inst.acquires})
+                acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
+
+    def test_multiple_acquires(self):
+        """Test for multiple acquires."""
+        sched = pulse.Schedule()
+        acq_q0 = pulse.Acquire(1200)(AcquireChannel(0), MemorySlot(0))
+        sched += acq_q0
+        sched += acq_q0 << sched.duration
+        sched = add_implicit_acquires(sched, meas_map=[[0]])
+        self.assertEqual(sched.instructions, ((0, acq_q0), (2400, acq_q0)))
 
 
 class TestPad(QiskitTestCase):
@@ -188,15 +196,15 @@ class TestPad(QiskitTestCase):
         delay = pulse.Delay(10)
         double_delay = pulse.Delay(20)
 
-        sched = (delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(1)).shift(10))
+        sched = (delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(1)).shift(10))
 
         ref_sched = (sched |
-                     delay(pulse.DriveChannel(0)) |
-                     delay(pulse.DriveChannel(0)).shift(20) |
-                     delay(pulse.DriveChannel(1)) |
-                     double_delay(pulse.DriveChannel(1)).shift(20))
+                     delay(DriveChannel(0)) |
+                     delay(DriveChannel(0)).shift(20) |
+                     delay(DriveChannel(1)) |
+                     double_delay(DriveChannel(1)).shift(20))
 
         self.assertEqual(pad(sched), ref_sched)
 
@@ -209,15 +217,15 @@ class TestPad(QiskitTestCase):
         delay = pulse.Delay(10)
         double_delay = pulse.Delay(20)
 
-        sched = (delay(pulse.DriveChannel(1)).shift(10) +
-                 delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(0)).shift(10))
+        sched = (delay(DriveChannel(1)).shift(10) +
+                 delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(0)).shift(10))
 
         ref_sched = (sched |
-                     delay(pulse.DriveChannel(0)) |
-                     delay(pulse.DriveChannel(0)).shift(20) |
-                     delay(pulse.DriveChannel(1)) |
-                     double_delay(pulse.DriveChannel(1)).shift(20))
+                     delay(DriveChannel(0)) |
+                     delay(DriveChannel(0)).shift(20) |
+                     delay(DriveChannel(1)) |
+                     double_delay(DriveChannel(1)).shift(20))
 
         self.assertEqual(pad(sched), ref_sched)
 
@@ -225,12 +233,12 @@ class TestPad(QiskitTestCase):
         """Test padding until time that is less than schedule duration."""
         delay = pulse.Delay(10)
 
-        sched = (delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(1)))
+        sched = (delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(1)))
 
         ref_sched = (sched |
-                     delay(pulse.DriveChannel(0)) |
-                     pulse.Delay(5)(pulse.DriveChannel(1)).shift(10))
+                     delay(DriveChannel(0)) |
+                     pulse.Delay(5)(DriveChannel(1)).shift(10))
 
         self.assertEqual(pad(sched, until=15), ref_sched)
 
@@ -238,13 +246,13 @@ class TestPad(QiskitTestCase):
         """Test padding until time that is greater than schedule duration."""
         delay = pulse.Delay(10)
 
-        sched = (delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(1)))
+        sched = (delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(1)))
 
         ref_sched = (sched |
-                     delay(pulse.DriveChannel(0)) |
-                     pulse.Delay(30)(pulse.DriveChannel(0)).shift(20) |
-                     pulse.Delay(40)(pulse.DriveChannel(1)).shift(10))
+                     delay(DriveChannel(0)) |
+                     pulse.Delay(30)(DriveChannel(0)).shift(20) |
+                     pulse.Delay(40)(DriveChannel(1)).shift(10))
 
         self.assertEqual(pad(sched, until=50), ref_sched)
 
@@ -253,14 +261,14 @@ class TestPad(QiskitTestCase):
         delay = pulse.Delay(10)
         double_delay = pulse.Delay(20)
 
-        sched = (delay(pulse.DriveChannel(0)).shift(10) +
-                 delay(pulse.DriveChannel(1)))
+        sched = (delay(DriveChannel(0)).shift(10) +
+                 delay(DriveChannel(1)))
 
         ref_sched = (sched |
-                     delay(pulse.DriveChannel(0)) |
-                     double_delay(pulse.DriveChannel(2)))
+                     delay(DriveChannel(0)) |
+                     double_delay(DriveChannel(2)))
 
-        channels = [pulse.DriveChannel(0), pulse.DriveChannel(2)]
+        channels = [DriveChannel(0), DriveChannel(2)]
 
         self.assertEqual(pad(sched, channels=channels), ref_sched)
 

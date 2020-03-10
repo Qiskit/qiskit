@@ -17,7 +17,7 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import SamplePulse
+from qiskit.pulse import SamplePulse, PulseError
 import qiskit.pulse.pulse_lib as pulse_lib
 import qiskit.pulse.pulse_lib.continuous as continuous
 
@@ -47,51 +47,51 @@ class TestDiscretePulses(QiskitTestCase):
     def test_square(self):
         """Test discrete sampled square wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         duration = 10
         times = np.arange(0, duration) + 0.5
-        square_ref = continuous.square(times, amp=amp, period=period)
-        square_pulse = pulse_lib.square(duration, amp=amp, period=period)
+        square_ref = continuous.square(times, amp=amp, freq=freq)
+        square_pulse = pulse_lib.square(duration, amp=amp, freq=freq)
         self.assertIsInstance(square_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(square_pulse.samples, square_ref)
 
         # test single cycle
-        cycle_period = duration
-        square_cycle_ref = continuous.square(times, amp=amp, period=cycle_period)
+        cycle_freq = 1./duration
+        square_cycle_ref = continuous.square(times, amp=amp, freq=cycle_freq)
         square_cycle_pulse = pulse_lib.square(duration, amp=amp)
         np.testing.assert_array_almost_equal(square_cycle_pulse.samples, square_cycle_ref)
 
     def test_sawtooth(self):
         """Test discrete sampled sawtooth wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         duration = 10
         times = np.arange(0, duration) + 0.5
-        sawtooth_ref = continuous.sawtooth(times, amp=amp, period=period)
-        sawtooth_pulse = pulse_lib.sawtooth(duration, amp=amp, period=period)
+        sawtooth_ref = continuous.sawtooth(times, amp=amp, freq=freq)
+        sawtooth_pulse = pulse_lib.sawtooth(duration, amp=amp, freq=freq)
         self.assertIsInstance(sawtooth_pulse, SamplePulse)
         np.testing.assert_array_equal(sawtooth_pulse.samples, sawtooth_ref)
 
         # test single cycle
-        cycle_period = duration
-        sawtooth_cycle_ref = continuous.sawtooth(times, amp=amp, period=cycle_period)
+        cycle_freq = 1./duration
+        sawtooth_cycle_ref = continuous.sawtooth(times, amp=amp, freq=cycle_freq)
         sawtooth_cycle_pulse = pulse_lib.sawtooth(duration, amp=amp)
         np.testing.assert_array_almost_equal(sawtooth_cycle_pulse.samples, sawtooth_cycle_ref)
 
     def test_triangle(self):
         """Test discrete sampled triangle wave."""
         amp = 0.5
-        period = 5
+        freq = 0.2
         duration = 10
         times = np.arange(0, duration) + 0.5
-        triangle_ref = continuous.triangle(times, amp=amp, period=period)
-        triangle_pulse = pulse_lib.triangle(duration, amp=amp, period=period)
+        triangle_ref = continuous.triangle(times, amp=amp, freq=freq)
+        triangle_pulse = pulse_lib.triangle(duration, amp=amp, freq=freq)
         self.assertIsInstance(triangle_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(triangle_pulse.samples, triangle_ref)
 
         # test single cycle
-        cycle_period = duration
-        triangle_cycle_ref = continuous.triangle(times, amp=amp, period=cycle_period)
+        cycle_freq = 1./duration
+        triangle_cycle_ref = continuous.triangle(times, amp=amp, freq=cycle_freq)
         triangle_cycle_pulse = pulse_lib.triangle(duration, amp=amp)
         np.testing.assert_array_equal(triangle_cycle_pulse.samples, triangle_cycle_ref)
 
@@ -196,6 +196,20 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(gaussian_square_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_square_pulse.samples, gaussian_square_ref)
 
+    def test_gaussian_square_args(self):
+        """Gaussian square allows the user to specify risefall or width. Test this."""
+        amp = 0.5
+        sigma = 0.1
+        duration = 10
+        # risefall and width consistent: no error
+        pulse_lib.gaussian_square(duration, amp, sigma, 2, width=6)
+        # supply width instead: no error
+        pulse_lib.gaussian_square(duration, amp, sigma, width=6)
+        with self.assertRaises(PulseError):
+            pulse_lib.gaussian_square(duration, amp, sigma, width=2, risefall=2)
+        with self.assertRaises(PulseError):
+            pulse_lib.gaussian_square(duration, amp, sigma)
+
     def test_drag(self):
         """Test discrete sampled drag pulse."""
         amp = 0.5
@@ -210,3 +224,15 @@ class TestDiscretePulses(QiskitTestCase):
         drag_pulse = pulse_lib.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
+
+    def test_period_deprecation_warning(self):
+        """Tests for DeprecationWarning"""
+        amp = 0.5
+        period = 5.
+        duration = 10
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.triangle(duration, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.sawtooth(duration, amp=amp, period=period))
+        self.assertWarns(DeprecationWarning,
+                         lambda: pulse_lib.square(duration, amp=amp, period=period))

@@ -25,7 +25,7 @@ Instructions are identified by the following:
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
-    num_qubits, num_clbits: dimensions of the instruction
+    num_qubits, num_clbits: dimensions of the instruction.
 
     params: List of parameters to specialize a specific instruction instance.
 
@@ -43,7 +43,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.models.qasm import QasmQobjInstruction
-from qiskit.circuit.parameter import ParameterExpression, Parameter
+from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -131,7 +131,7 @@ class Instruction:
 
     @property
     def params(self):
-        """return instruction params"""
+        """return instruction params."""
         return self._params
 
     @params.setter
@@ -161,7 +161,7 @@ class Instruction:
                 self._params.append(single_param)
             # example: snapshot('label')
             elif isinstance(single_param, str):
-                self._params.append(Parameter(single_param))
+                self._params.append(single_param)
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
@@ -247,7 +247,7 @@ class Instruction:
         It does not invert any gate.
 
         Returns:
-            Instruction: a fresh gate with sub-gates reversed
+            qiskit.circuit.Instruction: a fresh gate with sub-gates reversed
         """
         if not self._definition:
             return self.copy()
@@ -268,7 +268,7 @@ class Instruction:
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
 
         Returns:
-            Instruction: a fresh instruction for the inverse
+            qiskit.circuit.Instruction: a fresh instruction for the inverse
 
         Raises:
             CircuitError: if the instruction is not composite
@@ -293,14 +293,14 @@ class Instruction:
 
     def copy(self, name=None):
         """
-        shallow copy of the instruction.
+        Shallow copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
-            if None then the name stays the same
+            if None then the name stays the same.
 
         Returns:
-          Instruction: a shallow copy of the current instruction, with the name
+          qiskit.circuit.Instruction: a shallow copy of the current instruction, with the name
             updated if it was provided
         """
         cpy = copy.copy(self)
@@ -308,6 +308,9 @@ class Instruction:
         if name:
             cpy.name = name
         return cpy
+
+    def __deepcopy__(self, memo=None):
+        return self.copy()
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
@@ -363,7 +366,7 @@ class Instruction:
             n (int): Number of times to repeat the instruction
 
         Returns:
-            Instruction: Containing the definition.
+            qiskit.circuit.Instruction: Containing the definition.
 
         Raises:
             CircuitError: If n < 1.
@@ -379,18 +382,3 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
-
-    @property
-    def control(self):
-        """temporary classical control. Will be deprecated."""
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        return self.condition
-
-    @control.setter
-    def control(self, value):
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        self.condition = value

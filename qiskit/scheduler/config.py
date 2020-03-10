@@ -16,7 +16,7 @@
 
 from typing import List
 
-from qiskit.pulse.cmd_def import CmdDef
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 
 from qiskit.scheduler.utils import format_meas_map
 
@@ -25,14 +25,14 @@ class ScheduleConfig():
     """Configuration for pulse scheduling."""
 
     def __init__(self,
-                 cmd_def: CmdDef,
+                 inst_map: InstructionScheduleMap,
                  meas_map: List[List[int]]):
         """
         Container for information needed to schedule a QuantumCircuit into a pulse Schedule.
 
         Args:
-            cmd_def: The schedule definition of all gates supported on a backend
-            meas_map: A list of groups of qubits which have to be measured together
+            inst_map: The schedule definition of all gates supported on a backend.
+            meas_map: A list of groups of qubits which have to be measured together.
         """
-        self.cmd_def = cmd_def
+        self.inst_map = inst_map
         self.meas_map = format_meas_map(meas_map)
