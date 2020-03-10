@@ -23,12 +23,8 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization import pulse_drawer
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
-<<<<<<< HEAD
-from qiskit.pulse.commands import (FrameChange, SetFrequency, Acquire, PersistentValue,
-                                   Snapshot, Delay)
-=======
-from qiskit.pulse.commands import FrameChange, Acquire, ConstantPulse, Snapshot, Delay, Gaussian
->>>>>>> a37edbc07b48eb9448a427635a30d55a80759b03
+from qiskit.pulse.commands import (FrameChange, Acquire, ConstantPulse, Snapshot, Delay,
+                                   Gaussian, SetFrequency)
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
