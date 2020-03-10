@@ -114,7 +114,8 @@ def control(operation: Union[Gate, ControlledGate],
     # define controlled gate instructions
 
     if (not operation.definition and
-        not isinstance(operation, (CXGate, U3Gate, IGate))):  # opaque gate
+            not isinstance(operation, (CXGate, U3Gate, IGate))):
+        # opaque gate
         cgate = controlledgate.ControlledGate(
             new_name,
             operation.num_qubits + new_num_ctrl_qubits,
