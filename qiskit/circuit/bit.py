@@ -21,7 +21,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Bit:
     """Implement a generic bit."""
 
-    __slots__ = {'register', 'index', '_hash'}
+    __slots__ = {'_register', '_index', '_hash'}
 
     def __init__(self, register, index):
         """Create a new generic bit.
@@ -39,18 +39,38 @@ class Bit:
             raise CircuitError("index must be under the size of the register: %s was provided" %
                                index)
 
-        self.register = register
-        self.index = index
-        self._hash = hash((self.register, self.index))
+        self._register = register
+        self._index = index
+        self._hash = hash((self._register, self._index))
+
+    @property
+    def register(self):
+        return self._register
+
+    @register.setter
+    def register(self, value):
+        self._register = value
+        if hasattr(self, '_index'):
+            self._hash = hash((self._register, self._index))
+
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        self._index = value
+        if hasattr(self, '_register'):
+            self._hash = hash((self._register, self._index))
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
+        return "%s(%s, %s)" % (self.__class__.__name__, self._register, self._index)
 
     def __hash__(self):
         return self._hash
 
     def __eq__(self, other):
         if isinstance(other, Bit):
-            return other.index == self.index and other.register == self.register
+            return other._index == self._index and other._register == self._register
         return False
