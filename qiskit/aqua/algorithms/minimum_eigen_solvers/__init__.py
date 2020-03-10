@@ -19,7 +19,7 @@ from .qaoa import QAOA
 from .iqpe import IQPE, IQPEMinimumEigensolver, IQPEResult
 from .qpe import QPE, QPEMinimumEigensolver, QPEResult
 from .cplex import ClassicalCPLEX, CPLEX_Ising
-from .classical_minimum_eigen_solver import ClassicalMinimumEigensolver
+from .numpy_minimum_eigen_solver import NumPyMinimumEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 __all__ = [
@@ -34,7 +34,7 @@ __all__ = [
     'QPEResult',
     'ClassicalCPLEX',
     'CPLEX_Ising',
-    'ClassicalMinimumEigensolver',
+    'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult'
 ]

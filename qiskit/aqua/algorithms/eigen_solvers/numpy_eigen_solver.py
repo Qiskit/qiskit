@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
-class ClassicalEigensolver(ClassicalAlgorithm):
+class NumPyEigensolver(ClassicalAlgorithm):
     r"""
-    The Classical Eigensolver algorithm.
+    The NumPy Eigensolver algorithm.
 
-    Classical Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
+    NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
 
     Note:
@@ -195,7 +195,7 @@ class ClassicalEigensolver(ClassicalAlgorithm):
         self._get_ground_state_energy()
         self._get_energies()
 
-        logger.debug('ClassicalEigensolver _run result:\n%s',
+        logger.debug('NumPyEigensolver _run result:\n%s',
                      pprint.pformat(self._ret, indent=4))
         result = EigensolverResult()
         if 'eigvals' in self._ret:
@@ -210,7 +210,7 @@ class ClassicalEigensolver(ClassicalAlgorithm):
         return result
 
 
-class ExactEigensolver(ClassicalEigensolver):
+class ExactEigensolver(NumPyEigensolver):
     """
     The deprecated Eigensolver algorithm.
     """
@@ -218,6 +218,6 @@ class ExactEigensolver(ClassicalEigensolver):
     def __init__(self, operator: BaseOperator, k: int = 1,
                  aux_operators: Optional[List[BaseOperator]] = None) -> None:
         warnings.warn('Deprecated class {}, use {}.'.format('ExactEigensolver',
-                                                            'ClassicalEigensolver'),
+                                                            'NumPyEigensolver'),
                       DeprecationWarning)
         super().__init__(operator, k, aux_operators)
