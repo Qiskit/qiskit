@@ -229,77 +229,29 @@ class PulseQobjConfig(QobjDictField):
             kwargs: Additional free form key value fields to add to the
                 configuration
         """
-        self.__dict__['meas_level'] = meas_level
-        self.__dict__['meas_return'] = meas_return
+        self.meas_level = meas_level
+        self.meas_return = meas_return
         self.pulse_library = pulse_library
-        self.__dict__['qubit_lo_freq'] = qubit_lo_freq
-        self.__dict__['meas_lo_freq'] = meas_lo_freq
+        self.qubit_lo_freq = qubit_lo_freq
+        self.meas_lo_freq = meas_lo_freq
         if memory_slot_size is not None:
-            self.__dict__['memory_slot_size'] = memory_slot_size
+            self.memory_slot_size = memory_slot_size
         if rep_time is not None:
-            self.__dict__['rep_time'] = rep_time or []
+            self.rep_time = rep_time or []
         if shots is not None:
-            self.__dict__['shots'] = int(shots)
+            self.shots = int(shots)
 
         if max_credits is not None:
-            self.__dict__['max_credits'] = int(max_credits)
+            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
-            self.__dict__['seed_simulator'] = int(seed_simulator)
+            self.seed_simulator = int(seed_simulator)
 
         if memory_slots is not None:
-            self.__dict__['memory_slots'] = int(memory_slots)
+            self.memory_slots = int(memory_slots)
 
         if kwargs:
             self.__dict__.update(kwargs)
-
-    @property
-    def meas_level(self):
-        """The measurement level to use."""
-        return self._dict__['meas_level']
-
-    @meas_level.setter
-    def meas_level(self, data):
-        self.__dict__['meas_level'] = data
-
-    @property
-    def meas_return(self):
-        """The level of measurement information to return."""
-        return self.__dict__['meas_return']
-
-    @meas_return.setter
-    def meas_return(self, data):
-        self.__dict__['meas_return'] = data
-
-    @property
-    def shots(self):
-        """The number of shots."""
-        return self.__dict__.get('shots')
-
-    @shots.setter
-    def shots(self, value):
-        self.__dict__['shots'] = value
-
-    @property
-    def max_credits(self):
-        """The max_credits to use on the IBMQ public devices."""
-        return self.__dict__.get('max_credits')
-
-    @max_credits.setter
-    def max_credits(self, value):
-        self.__dict__['max_credits'] = value
-
-    @property
-    def memory_slots(self):
-        """The number of memory slots on the device."""
-        mem_slots = self.__dict__.get('memory_slots')
-        if mem_slots is None:
-            raise AttributeError('Attribute memory_slots is not defined')
-        return mem_slots
-
-    @memory_slots.setter
-    def memory_slots(self, value):
-        self.__dict__['memory_slots'] = value
 
     def to_dict(self):
         """Return a dictionary format representation of the Pulse Qobj config.
@@ -412,9 +364,9 @@ class PulseQobjExperimentConfig(QobjDictField):
                 configuration
         """
         if qubit_lo_freq is not None:
-            self.__dict__['qubit_lo_freq'] = qubit_lo_freq
+            self.qubit_lo_freq = qubit_lo_freq
         if meas_lo_freq is not None:
-            self.__dict__['meas_lo_freq'] = meas_lo_freq
+            self.meas_lo_freq = meas_lo_freq
         if kwargs:
             self.__dict__.update(kwargs)
 
