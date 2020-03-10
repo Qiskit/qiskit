@@ -93,7 +93,6 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.extensions.standard.multi_control_toffoli_gate
     import qiskit.extensions.standard.multi_control_u1_gate
 
-    ###### setup info ControlledGate needs
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         base_name = operation.base_gate.name
@@ -116,13 +115,14 @@ def control(operation: Union[Gate, ControlledGate],
 
     if (not operation.definition and
         not isinstance(operation, (CXGate, U3Gate, IGate))):  # opaque gate
-        cgate = controlledgate.ControlledGate(new_name,
-                                              operation.num_qubits + new_num_ctrl_qubits,
-                                              operation.params,
-                                              label=label,
-                                              num_ctrl_qubits=new_num_ctrl_qubits,
-                                              definition=None,
-                                              ctrl_state=ctrl_state)
+        cgate = controlledgate.ControlledGate(
+            new_name,
+            operation.num_qubits + new_num_ctrl_qubits,
+            operation.params,
+            label=label,
+            num_ctrl_qubits=new_num_ctrl_qubits,
+            definition=None,
+            ctrl_state=ctrl_state)
         cgate.base_gate = base_gate
         return cgate
 
