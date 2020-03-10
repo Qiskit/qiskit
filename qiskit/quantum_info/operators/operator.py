@@ -65,13 +65,12 @@ class Operator(BaseOperator):
         Raises:
             QiskitError: if input data cannot be initialized as an operator.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
-        the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
+            the input operator is not an N-qubit operator, it will assign a
+            single subsystem with dimension specified by the shape of the input.
         """
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
@@ -92,9 +91,9 @@ class Operator(BaseOperator):
             data = data.to_operator()
             self._data = data.data
             if input_dims is None:
-                input_dims = data.input_dims()
+                input_dims = data._input_dims
             if output_dims is None:
-                output_dims = data.output_dims()
+                output_dims = data._output_dims
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -238,6 +237,8 @@ class Operator(BaseOperator):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Operator):
             other = Operator(other)
         # Validate dimensions are compatible and return the composed

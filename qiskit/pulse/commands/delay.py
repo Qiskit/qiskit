@@ -18,7 +18,7 @@ Delay instruction.
 from typing import Optional
 
 from qiskit.pulse.channels import Channel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
