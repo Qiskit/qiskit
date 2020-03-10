@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -168,6 +168,19 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
         ref_mat = execute(qc, simulator).result().get_unitary(0)
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
+
+    @data(1, 2, 3)
+    def test_controlled_opaque_gate(self, num_ctrl_qubits):
+        """Test control of opaque gate"""
+        num_qubits = num_ctrl_qubits
+        ctrl_state = num_ctrl_qubits
+        params = []
+        opaque = Gate('opaque', num_qubits, params)
+        copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertNotEqual(copaque.name, opaque.name)
+        self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
+        self.assertIs(copaque.definition, None)
+        self.assertEqual(copaque.ctrl_state, ctrl_state)
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""

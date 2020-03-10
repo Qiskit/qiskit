@@ -18,6 +18,7 @@ from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
+from qiskit.extensions.standard import CXGate, U3Gate, IGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
@@ -92,6 +93,39 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.extensions.standard.multi_control_toffoli_gate
     import qiskit.extensions.standard.multi_control_u1_gate
 
+    ###### setup info ControlledGate needs
+    if isinstance(operation, controlledgate.ControlledGate):
+        new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
+        base_name = operation.base_gate.name
+        base_gate = operation.base_gate
+    else:
+        new_num_ctrl_qubits = num_ctrl_qubits
+        base_name = operation.name
+        base_gate = operation
+    # In order to maintain some backward compatibility with gate names this
+    # uses a naming convention where if the number of controls is <=2 the gate
+    # is named like "cc<base_gate.name>", else it is named like
+    # "c<num_ctrl_qubits><base_name>".
+    if new_num_ctrl_qubits > 2:
+        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
+    else:
+        ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
+    new_name = '{0}{1}'.format(ctrl_substr, base_name)
+
+    # define controlled gate instructions
+
+    if (not operation.definition and
+        not isinstance(operation, (CXGate, U3Gate, IGate))):  # opaque gate
+        cgate = controlledgate.ControlledGate(new_name,
+                                              operation.num_qubits + new_num_ctrl_qubits,
+                                              operation.params,
+                                              label=label,
+                                              num_ctrl_qubits=new_num_ctrl_qubits,
+                                              definition=None,
+                                              ctrl_state=ctrl_state)
+        cgate.base_gate = base_gate
+        return cgate
+
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
@@ -144,24 +178,8 @@ def control(operation: Union[Gate, ControlledGate],
                        mode='noancilla')
             else:
                 raise CircuitError('gate contains non-controllable instructions')
+
     instr = qc.to_instruction()
-    if isinstance(operation, controlledgate.ControlledGate):
-        new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        base_name = operation.base_gate.name
-        base_gate = operation.base_gate
-    else:
-        new_num_ctrl_qubits = num_ctrl_qubits
-        base_name = operation.name
-        base_gate = operation
-    # In order to maintain some backward compatibility with gate names this
-    # uses a naming convention where if the number of controls is <=2 the gate
-    # is named like "cc<base_gate.name>", else it is named like
-    # "c<num_ctrl_qubits><base_name>".
-    if new_num_ctrl_qubits > 2:
-        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
-    else:
-        ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
-    new_name = '{0}{1}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
                                           instr.num_qubits,
                                           operation.params,
