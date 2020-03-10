@@ -94,17 +94,17 @@ class PulseQobjInstruction:
             phase (float): if a ``fc`` instruction, the frame change phase in
                 radians.
             duration (int): The duration of the pulse in **dt** units.
-            qubits (list): A list of `int`s representing the qubits the
+            qubits (list): A list of ``int`` representing the qubits the
                 instruction operates on
             memory_slot (list): If a ``measure`` instruction this is a list
-                of `int`s containing the list of memory slots to store the
+                of ``int`` containing the list of memory slots to store the
                 measurement results in (must be the same length as qubits).
-                If a ``bfunc`` instruction this is a single `int` of the
+                If a ``bfunc`` instruction this is a single ``int`` of the
                 memory slot to store the boolean function result in.
             register_slot (list): If a ``measure`` instruction this is a list
-                of `int`s containing the list of register slots in which to
+                of ``int`` containing the list of register slots in which to
                 store the measurement results (must be the same length as
-                qubits). If a ``bfunc`` instruction this is a single `int`
+                qubits). If a ``bfunc`` instruction this is a single ``int``
                 of the register slot in which to store the result.
             kernels (list): List of :class:`QobjMeasurementOption` objects
                 defining the measurement kernels and set of parameters if the

@@ -43,31 +43,30 @@ class QasmQobjInstruction:
         Args:
             name (str): The name of the instruction
             params (list): The list of parameters for the gate
-            qubits (list): A list of `int`s representing the qubits the
+            qubits (list): A list of ``int`` representing the qubits the
                 instruction operates on
             register (list): If a ``measure`` instruction this is a list
-                of `int`s containing the list of register slots in which to
+                of ``int`` containing the list of register slots in which to
                 store the measurement results (must be the same length as
-                qubits). If a ``bfunc`` instruction this is a single `int`
+                qubits). If a ``bfunc`` instruction this is a single ``int``
                 of the register slot in which to store the result.
             memory (list): If a ``measure`` instruction this is a list
-                of `int`s containing the list of memory slots to store the
+                of ``int`` containing the list of memory slots to store the
                 measurement results in (must be the same length as qubits).
-                If a ``bfunc`` instruction this is a single `int` of the
+                If a ``bfunc`` instruction this is a single ``int`` of the
                 memory slot to store the boolean function result in.
             condition (tuple): A tuple of the form ``(int, int)`` where the
-                first `int` is the control register and the second `int` is
+                first ``int`` is the control register and the second ``int`` is
                 the control value if the gate has a condition.
             conditional (int):  The register index of the condition
             label (str): An optional label assigned to the instruction
             mask (int): For a ``bfunc`` instruction the hex value which is
                 applied as an ``AND`` to the register bits.
             relation (str): Relational  operator  for  comparing  the  masked
-                register to the `val` kwarg. Can be either ``==`` (equals) or
+                register to the ``val`` kwarg. Can be either ``==`` (equals) or
                 ``!=`` (not equals).
             val (int): Value to which to compare the masked register. In other
-                words, the output of the function is (``register AND mask)
-                relation val.
+                words, the output of the function is ``(register AND mask)``
         """
         self.name = name
         if params is not None:
