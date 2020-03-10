@@ -292,6 +292,105 @@ class QuantumState(ABC):
             # Otherwise set the number of qubits to None
             self._num_qubits = None
 
+    @staticmethod
+    def _index_to_ket_array(inds, dims, string_labels=False):
+        """Convert an index array into a ket array.
+
+        Args:
+            inds (np.array): an integer index array.
+            dims (tuple): a list of subsystem dimensions.
+            string_labels (bool): return ket as string if True, otherwise
+                                  return as index array (Default: False).
+
+        Returns:
+            np.array: an array of ket strings if string_label=True, otherwise
+                      an array of ket lists.
+        """
+        shifts = [1]
+        for d in dims[:-1]:
+            shifts.append(shifts[-1] * d)
+        kets = np.array([(inds // shift) % dim for dim, shift in zip(dims, shifts)])
+
+        if string_labels:
+            max_dim = max(dims)
+            char_kets = np.asarray(kets, dtype=np.unicode_)
+            str_kets = char_kets[0]
+            for row in char_kets[1:]:
+                if max_dim > 10:
+                    str_kets = np.char.add(',', str_kets)
+                str_kets = np.char.add(row, str_kets)
+            return str_kets.T
+
+        return kets.T
+
+    @staticmethod
+    def _vector_to_dict(vec, dims, decimals=None, string_labels=False):
+        """Convert a vector to a ket dictionary.
+
+        This representation will not show zero values in the output dict.
+
+        Args:
+            vec (array) a Numpy vector array.
+            dims (tuple): subsystem dimensions.
+            decimals (None or int): number of decimal places to round to.
+                                    (See Numpy.round), if None no rounding
+                                    is done (Default: None).
+            string_labels (bool): return ket as string if True, otherwise
+                                  return as index array (Default: False).
+
+        Returns:
+            dict: the vector in dictionary `ket` form.
+        """
+        # Get indices of non-zero elements
+        vals = vec if decimals is None else vec.round(decimals=decimals)
+        inds, = vals.nonzero()
+
+        # Convert to ket tuple based on subsystem dimensions
+        kets = QuantumState._index_to_ket_array(
+            inds, dims, string_labels=string_labels)
+
+        # Make dict of tuples
+        if string_labels:
+            return {ket: val for ket, val in zip(kets, vec[inds])}
+
+        return {tuple(ket): val for ket, val in zip(kets, vals[inds])}
+
+    @staticmethod
+    def _matrix_to_dict(mat, dims, decimals=None, string_labels=False):
+        """Convert a matrix to a ket dictionary.
+
+        This representation will not show zero values in the output dict.
+
+        Args:
+            mat (array) a Numpy matrix array.
+            dims (tuple): subsystem dimensions.
+            decimals (None or int): number of decimal places to round to.
+                                    (See Numpy.round), if None no rounding
+                                    is done (Default: None).
+            string_labels (bool): return ket as string if True, otherwise
+                                  return as index array (Default: False).
+
+        Returns:
+            dict: the matrix in dictionary `ket` form.
+        """
+        # Get indices of non-zero elements
+        vals = mat if decimals is None else mat.round(decimals=decimals)
+        inds_row, inds_col, = vals.nonzero()
+
+        # Convert to ket tuple based on subsystem dimensions
+        bras = QuantumState._index_to_ket_array(
+            inds_row, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(
+            inds_col, dims, string_labels=string_labels)
+
+        # Make dict of tuples
+        if string_labels:
+            return {'{}|{}'.format(ket, bra): val for ket, bra, val in zip(
+                kets, bras, vals[inds_row, inds_col])}
+
+        return {(tuple(ket), tuple(bra)): val for ket, bra, val in zip(
+            kets, bras, vals[inds_row, inds_col])}
+
     # Overloads
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
