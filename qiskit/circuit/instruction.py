@@ -42,7 +42,7 @@ from qiskit.qasm.node import node
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.qobj.models.qasm import QasmQobjInstruction
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
@@ -222,7 +222,7 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name, validate=False)
+        instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [
