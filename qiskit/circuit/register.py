@@ -26,7 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['name', 'size', '_bits', '_hash']
+    __slots__ = ['_name', '_size', '_bits', '_hash']
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -61,11 +61,31 @@ class Register:
             if name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
-        self.name = name
-        self.size = size
+        self._name = name
+        self._size = size
 
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
-        self._hash = hash((type(self), self.name, self.size))
+        self._hash = hash((type(self), self._name, self._size))
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        if hasattr(self, '_size'):
+            self._hash = hash((type(self), self._name, self._size))
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+        if hasattr(self, '_name'):
+            self._hash = hash((type(self), self._name, self._size))
 
     def __repr__(self):
         """Return the official string representing the register."""
