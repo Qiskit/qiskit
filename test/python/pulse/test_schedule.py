@@ -554,7 +554,6 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(only_sf.instructions), 1)
         self.assertEqual(len(no_sf.instructions), 6)
 
-
     def test_filter_intervals(self):
         """Test filtering on intervals."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
