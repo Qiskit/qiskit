@@ -124,4 +124,6 @@ class Register:
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
+        if not hasattr(self, '_hash'):
+            self._hash = hash((type(self), self.name, self.size))
         return self._hash
