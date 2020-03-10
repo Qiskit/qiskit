@@ -537,13 +537,13 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in no_pulse_and_fc.instructions:
             self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 2)
+        self.assertEqual(len(no_pulse_and_fc.instructions), 3)
 
         # test on FrameChange
         only_fc, no_fc = \
             self._filter_and_test_consistency(sched, instruction_types={FrameChangeInstruction})
         self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 5)
+        self.assertEqual(len(no_fc.instructions), 6)
 
         # test on SetFrequency
         only_sf, no_sf = \
@@ -552,7 +552,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in only_sf.instructions:
             self.assertTrue(isinstance(inst, SetFrequencyInstruction))
         self.assertEqual(len(only_sf.instructions), 1)
-        self.assertEqual(len(no_sf.instructions), 5)
+        self.assertEqual(len(no_sf.instructions), 6)
 
 
     def test_filter_intervals(self):
