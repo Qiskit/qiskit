@@ -417,11 +417,11 @@ class PulseQobj:
 
     def __init__(self, qobj_id, config, experiments,
                  header=None):
-        """Instatiate a new QASM Qobj Object.
+        """Instatiate a new Pulse Qobj Object.
 
-        Each QASM Qobj object is used to represent a single payload that will
+        Each Pulse Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published
-        `Qobj specification <https://arxiv.org/abs/1809.03452>`_ for OpenQASM
+        `Qobj specification <https://arxiv.org/abs/1809.03452>`_ for Pulse
         experiments.
 
         Args:
