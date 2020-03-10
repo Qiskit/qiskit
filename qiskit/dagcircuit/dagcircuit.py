@@ -30,7 +30,7 @@ import networkx as nx
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -71,7 +71,7 @@ class DAGCircuit:
         self.name = None
 
         # Set of wires (Register,idx) in the dag
-        self.wires = []
+        self._wires = set()
 
         # Map from wire (Register,idx) to input nodes of the graph
         self.input_map = OrderedDict()
@@ -160,6 +160,13 @@ class DAGCircuit:
         return [clbit for creg in self.cregs.values() for clbit in creg]
 
     @property
+    def wires(self):
+        """Return a list of the wires in order."""
+        out_list = [bit for reg in self.qregs.values() for bit in reg]
+        out_list += [bit for reg in self.cregs.values() for bit in reg]
+        return out_list
+
+    @property
     def node_counter(self):
         """
         Returns the number of nodes in the dag.
@@ -202,7 +209,7 @@ class DAGCircuit:
             DAGCircuitError: if trying to add duplicate wire
         """
         if wire not in self.wires:
-            self.wires.append(wire)
+            self.wires.add(wire)
 
             wire_name = "%s[%s]" % (wire.register.name, wire.index)
 
@@ -533,7 +540,7 @@ class DAGCircuit:
                     raise DAGCircuitError("wire %s[%d] not in self" % (
                         m_wire.register.name, m_wire.index))
 
-                if nd.wire not in input_circuit.wires:
+                if nd.wire not in input_circuit._wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
                                           % (nd.register.name, nd.wire.index))
 
@@ -597,7 +604,7 @@ class DAGCircuit:
                     raise DAGCircuitError("wire %s[%d] not in self" % (
                         m_name.register.name, m_name.index))
 
-                if nd.wire not in input_circuit.wires:
+                if nd.wire not in input_circuit._wires:
                     raise DAGCircuitError(
                         "inconsistent wire for %s[%d] in input_circuit"
                         % (nd.wire.register.name, nd.wire.index))
@@ -620,14 +627,14 @@ class DAGCircuit:
         Yields:
             Bit: Bit in idle wire.
         """
-        for wire in self.wires:
+        for wire in self._wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
             if len(list(nodes)) == 2:
                 yield wire
 
     def size(self):
         """Return the number of operations."""
-        return len(self._multi_graph) - 2 * len(self.wires)
+        return len(self._multi_graph) - 2 * len(self._wires)
 
     def depth(self):
         """Return the circuit depth.
@@ -645,12 +652,12 @@ class DAGCircuit:
     def width(self):
         """Return the total number of qubits + clbits used by the circuit.
            This function formerly returned the number of qubits by the calculation
-           return len(self.wires) - self.num_clbits()
+           return len(self._wires) - self.num_clbits()
            but was changed by issue #2564 to return number of qubits + clbits
            with the new function DAGCircuit.num_qubits replacing the former
            semantic of DAGCircuit.width().
         """
-        return len(self.wires)
+        return len(self._wires)
 
     def num_qubits(self):
         """Return the total number of qubits used by the circuit.
@@ -658,7 +665,7 @@ class DAGCircuit:
            DAGCircuit.width() now returns qubits + clbits for
            consistency with Circuit.width() [qiskit-terra #2564].
         """
-        return len(self.wires) - self.num_clbits()
+        return len(self._wires) - self.num_clbits()
 
     def num_clbits(self):
         """Return the total number of classical bits used by the circuit."""
@@ -802,9 +809,7 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w, Qubit)]
-            cwires = [w for w in input_dag.wires if isinstance(w, Clbit)]
-            wires = qwires + cwires
+            wires = input_dag.wires
 
         self._check_wires_list(wires, node)
 
