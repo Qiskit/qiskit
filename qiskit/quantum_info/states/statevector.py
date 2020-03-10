@@ -254,6 +254,68 @@ class Statevector(QuantumState):
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+
+        Examples:
+
+            Consider a 2-qubit product state
+            :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import Statevector
+
+                psi = Statevector.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = psi.probabilities()
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring only qubit-0
+                probs_qubit_0 = psi.probabilities([0])
+                print('Qubit-0 probs: {}'.format(probs_qubit_0))
+
+                # Probabilities for measuring only qubit-1
+                probs_qubit_1 = psi.probabilities([1])
+                print('Qubit-1 probs: {}'.format(probs_qubit_1))
+
+            We can also permute the order of qubits in the ``qargs`` list
+            to change the qubit position in the probabilities output
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import Statevector
+
+                psi = Statevector.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = psi.probabilities([0, 1])
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring both qubits
+                # but swapping qubits 0 and 1 in output
+                probs_swapped = psi.probabilities([1, 0])
+                print('Swapped probs: {}'.format(probs_swapped))
+        """
+        probs = self._subsystem_probabilities(
+            np.abs(self.data) ** 2, self._dims, qargs=qargs)
+        if decimals is not None:
+            probs = probs.round(decimals=decimals)
+        return probs
+
     def to_counts(self):
         """Returns the statevector as a counts dict
         of probabilities.
@@ -377,8 +439,9 @@ class Statevector(QuantumState):
             dict: the dictionary form of the Statevector.
 
         Example:
-            The ket-form of a (non-normalized) 2-qubit statevector
-            :math:`\psi = |-\rangle\otimes |0\rangle`
+
+            The ket-form of a 2-qubit statevector
+            :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 
             .. jupyter-execute::
 
@@ -398,10 +461,10 @@ class Statevector(QuantumState):
                 vec = np.zeros(9)
                 vec[0] = 1 / np.sqrt(2)
                 vec[-1] = 1 / np.sqrt(2)
-                psi = Statevector(np.arange(9), dims=(3, 3))
+                psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
-            For large subsytem dimensions delimeters are required. The
+            For large subsystem dimensions delimeters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
@@ -413,7 +476,7 @@ class Statevector(QuantumState):
                 vec = np.zeros(2 * 10)
                 vec[0] = 1 / np.sqrt(2)
                 vec[-1] = 1 / np.sqrt(2)
-                psi = Statevector(vec, dims=(3, 3))
+                psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
         """
         return self._vector_to_dict(self.data,

@@ -230,6 +230,69 @@ class DensityMatrix(QuantumState):
         # Unitary evolution by an Operator
         return self._evolve_operator(other, qargs=qargs)
 
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+
+        Examples:
+
+            Consider a 2-qubit product state :math:`\\rho=\\rho_1\\otimes\\rho_0`
+            with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
+            :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import DensityMatrix
+
+                rho = DensityMatrix.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = rho.probabilities()
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring only qubit-0
+                probs_qubit_0 = rho.probabilities([0])
+                print('Qubit-0 probs: {}'.format(probs_qubit_0))
+
+                # Probabilities for measuring only qubit-1
+                probs_qubit_1 = rho.probabilities([1])
+                print('Qubit-1 probs: {}'.format(probs_qubit_1))
+
+            We can also permute the order of qubits in the ``qargs`` list
+            to change the qubit position in the probabilities output
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import DensityMatrix
+
+                rho = DensityMatrix.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = rho.probabilities([0, 1])
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring both qubits
+                # but swapping qubits 0 and 1 in output
+                probs_swapped = rho.probabilities([1, 0])
+                print('Swapped probs: {}'.format(probs_swapped))
+        """
+        probs = self._subsystem_probabilities(
+            np.abs(self.data.diagonal()), self._dims, qargs=qargs)
+        if decimals is not None:
+            probs = probs.round(decimals=decimals)
+        return probs
+
     @classmethod
     def from_label(cls, label):
         r"""Return a tensor product of Pauli X,Y,Z eigenstates.
@@ -310,9 +373,10 @@ class DensityMatrix(QuantumState):
         Returns:
             dict: the dictionary form of the DensityMatrix.
 
-        Example:
-            The ket-form of a (non-normalized) 2-qubit statevector
-            :math:`\psi = |-\rangle\otimes |0\rangle`
+        Examples:
+
+            The ket-form of a 2-qubit density matrix
+            :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
 
             .. jupyter-execute::
 
@@ -334,10 +398,10 @@ class DensityMatrix(QuantumState):
                 mat[3, 3] = 0.25
                 mat[6, 6] = 0.25
                 mat[-1, -1] = 0.25
-                rho = DensityMatrix(np.arange(9), dims=(3, 3))
+                rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            For large subsytem dimensions delimeters are required. The
+            For large subsystem dimensions delimeters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
@@ -347,7 +411,7 @@ class DensityMatrix(QuantumState):
                 from qiskit.quantum_info import DensityMatrix
 
                 mat = np.zeros((2 * 10, 2 * 10))
-                mat[0] = 0.5
+                mat[0, 0] = 0.5
                 mat[-1, -1] = 0.5
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())

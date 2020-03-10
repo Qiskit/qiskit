@@ -271,6 +271,49 @@ class QuantumState(ABC):
         """
         pass
 
+    @abstractmethod
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+        """
+        pass
+
+    def probabilities_dict(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability dictionary.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (ket) form.
+        """
+        return self._vector_to_dict(
+            self.probabilities(qargs=qargs, decimals=decimals),
+            self.dims(qargs),
+            string_labels=True)
+
     @classmethod
     def _automatic_dims(cls, dims, size):
         """Check if input dimension corresponds to qubit subsystems."""
@@ -307,8 +350,8 @@ class QuantumState(ABC):
                       an array of ket lists.
         """
         shifts = [1]
-        for d in dims[:-1]:
-            shifts.append(shifts[-1] * d)
+        for dim in dims[:-1]:
+            shifts.append(shifts[-1] * dim)
         kets = np.array([(inds // shift) % dim for dim, shift in zip(dims, shifts)])
 
         if string_labels:
@@ -330,7 +373,7 @@ class QuantumState(ABC):
         This representation will not show zero values in the output dict.
 
         Args:
-            vec (array) a Numpy vector array.
+            vec (array): a Numpy vector array.
             dims (tuple): subsystem dimensions.
             decimals (None or int): number of decimal places to round to.
                                     (See Numpy.round), if None no rounding
@@ -351,7 +394,7 @@ class QuantumState(ABC):
 
         # Make dict of tuples
         if string_labels:
-            return {ket: val for ket, val in zip(kets, vec[inds])}
+            return dict(zip(kets, vec[inds]))
 
         return {tuple(ket): val for ket, val in zip(kets, vals[inds])}
 
@@ -362,7 +405,7 @@ class QuantumState(ABC):
         This representation will not show zero values in the output dict.
 
         Args:
-            mat (array) a Numpy matrix array.
+            mat (array): a Numpy matrix array.
             dims (tuple): subsystem dimensions.
             decimals (None or int): number of decimal places to round to.
                                     (See Numpy.round), if None no rounding
@@ -390,6 +433,83 @@ class QuantumState(ABC):
 
         return {(tuple(ket), tuple(bra)): val for ket, bra, val in zip(
             kets, bras, vals[inds_row, inds_col])}
+
+    @staticmethod
+    def _accumulate_dims(dims, qargs):
+        """Flatten subsystem dimensions for unspecified qargs.
+
+        This has the potential to reduce the number of subsystems
+        by combining consecutive subsystems between the specified
+        qargs. For example, if we had a 5-qubit system with
+        ``dims = (2, 2, 2, 2, 2)``, and ``qargs=[0, 4]``, then the
+        flattened system will have dimensions ``new_dims = (2, 8, 2)``
+        and qargs ``new_qargs = [0, 2]``.
+
+        Args:
+            dims (tuple): subsystem dimensions.
+            qargs (list): qargs list.
+
+        Returns:
+            tuple: the pair (new_dims, new_qargs).
+        """
+
+        qargs_map = {}
+        new_dims = []
+
+        # Accumulate subsystems that can be combined
+        accum = []
+        for i, dim in enumerate(dims):
+            if i in qargs:
+                if accum:
+                    new_dims.append(np.product(accum))
+                    accum = []
+                new_dims.append(dim)
+                qargs_map[i] = len(new_dims) - 1
+            else:
+                accum.append(dim)
+        if accum:
+            new_dims.append(np.product(accum))
+        return tuple(new_dims), [qargs_map[i] for i in qargs]
+
+    @staticmethod
+    def _subsystem_probabilities(probs, dims, qargs=None):
+        """Marginalize a probability vector according to subsystems.
+
+        Args:
+            probs (np.array): a probability vector Numpy array.
+            dims (tuple): subsystem dimensions.
+            qargs (None or list): a list of subsystems to return
+                marginalized probabilities for. If None return all
+                probabilities (Default: None).
+
+        Returns:
+            np.array: the marginalized probability vector flattened
+                      for the specified qargs.
+        """
+
+        if qargs is None:
+            return probs
+
+        # Accumulate dimensions to trace over
+        accum_dims, accum_qargs = QuantumState._accumulate_dims(
+            dims, qargs)
+
+        # Get sum axis for maginalized subsystems
+        n_qargs = len(accum_dims)
+        axis = list(range(n_qargs))
+        for i in accum_qargs:
+            axis.remove(n_qargs - 1 - i)
+
+        # Reshape the probability to a tensor and sum over maginalized axes
+        new_probs = np.sum(np.reshape(probs, list(reversed(accum_dims))),
+                           axis=tuple(axis))
+
+        # Transpose output probs based on order of qargs
+        if sorted(accum_qargs) != accum_qargs:
+            axes = np.argsort(accum_qargs)
+            return np.ravel(np.transpose(new_probs, axes=axes))
+
+        return np.ravel(new_probs)
 
     # Overloads
     def __matmul__(self, other):
