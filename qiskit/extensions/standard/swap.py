@@ -177,10 +177,12 @@ class FredkinGate(CSwapGate, metaclass=CSwapMeta):
                       'tgt2': 'target_qubit2'})
 def cswap(self, control_qubit, target_qubit1, target_qubit2,
           *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
-    """Apply Fredkin (CSWAP) gate from a specified control (control_qubit) to target1
-    (target_qubit1) and target2 (target_qubit2) qubits. The CSWAP gate is canonically
-    used to swap the qubit states of target1 and target2 when the control qubit is in
-    state |1>.
+    """Apply Fredkin (CSWAP) gate
+
+    From a specified control ``control_qubit`` to target1 ``target_qubit1`` and
+    target2 ``target_qubit2`` qubits. The CSWAP gate is canonically
+    used to swap the qubit states of target1 and target2 when the control qubit
+    is in state :math:`|1\\rangle`.
 
     Examples:
 
