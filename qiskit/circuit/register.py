@@ -69,20 +69,24 @@ class Register:
 
     @property
     def name(self):
+        """Get the register name."""
         return self._name
 
     @name.setter
     def name(self, value):
+        """Set the register name."""
         self._name = value
         if hasattr(self, '_size'):
             self._hash = hash((type(self), self._name, self._size))
 
     @property
     def size(self):
+        """Get the register size."""
         return self._size
 
     @size.setter
     def size(self, value):
+        """Set the register size."""
         self._size = value
         if hasattr(self, '_name'):
             self._hash = hash((type(self), self._name, self._size))
@@ -93,7 +97,7 @@ class Register:
 
     def __len__(self):
         """Return register size."""
-        return self.size
+        return self._size
 
     def __getitem__(self, key):
         """
@@ -122,7 +126,7 @@ class Register:
             return self._bits[key]
 
     def __iter__(self):
-        for bit in range(self.size):
+        for bit in range(self._size):
             yield self[bit]
 
     def __eq__(self, other):
@@ -137,13 +141,13 @@ class Register:
         """
         res = False
         if type(self) is type(other) and \
-                self.name == other.name and \
-                self.size == other.size:
+                self._name == other._name and \
+                self._size == other._size:
             res = True
         return res
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         if not hasattr(self, '_hash'):
-            self._hash = hash((type(self), self.name, self.size))
+            self._hash = hash((type(self), self._name, self._size))
         return self._hash

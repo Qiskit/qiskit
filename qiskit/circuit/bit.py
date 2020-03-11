@@ -45,20 +45,24 @@ class Bit:
 
     @property
     def register(self):
+        """Get bit's register."""
         return self._register
 
     @register.setter
     def register(self, value):
+        """Set bit's register."""
         self._register = value
         if hasattr(self, '_index'):
             self._hash = hash((self._register, self._index))
 
     @property
     def index(self):
+        """Get bit's index."""
         return self._index
 
     @index.setter
     def index(self, value):
+        """Set bit's index."""
         self._index = value
         if hasattr(self, '_register'):
             self._hash = hash((self._register, self._index))

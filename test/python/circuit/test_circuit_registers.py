@@ -412,6 +412,7 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(qargs), 4)
 
     def test_quantumregister_hash_upate_name(self):
+        """Test QuantumRegister hash changes on name update."""
         test_reg = QuantumRegister(2)
         orig_hash = hash(test_reg)
         test_reg.name = 'test_quantum'
@@ -419,6 +420,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertNotEqual(orig_hash, new_hash)
 
     def test_quantumregister_hash_upate_size(self):
+        """Test QuantumRegister hash changes on size update."""
         test_reg = QuantumRegister(2)
         orig_hash = hash(test_reg)
         test_reg.size = 452
@@ -426,6 +428,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertNotEqual(orig_hash, new_hash)
 
     def test_classicalregister_hash_upate_name(self):
+        """Test ClassicalRegister hash changes on name update."""
         test_reg = ClassicalRegister(2)
         orig_hash = hash(test_reg)
         test_reg.name = 'test_classical'
@@ -433,6 +436,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertNotEqual(orig_hash, new_hash)
 
     def test_classicalregister_hash_upate_size(self):
+        """Test ClassicalRegister hash changes on size update."""
         test_reg = ClassicalRegister(2)
         orig_hash = hash(test_reg)
         test_reg.size = 3
