@@ -157,7 +157,7 @@ class EventsOutputChannels:
             data_str = 'snapshot: %s' % val
             time_event.append((key, name, data_str))
         for key, val in frequencychanges.items():
-            data_str = 'frequency: %.4f' % val
+            data_str = 'frequency: %.4e' % val
             time_event.append((key, name, data_str))
 
         return time_event
