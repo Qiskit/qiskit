@@ -12,7 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Assertions."""
+"""
+===================================================
+Assertions for Debugging (:mod:`qiskit.assertions`)
+===================================================
+
+.. currentmodule:: qiskit.assertions
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   asserts
+   assertclassical
+   assertuniform
+   assertproduct
+"""
+
 from .asserts import Asserts
 from .assertclassical import AssertClassical
 from .assertuniform import AssertUniform
