@@ -1910,7 +1910,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                               "             "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2, ctrl_state='10'), [qr[2], qr[1], qr[0]])
+        circuit.append(HGate().control(2, ctrl_state='10'), [qr[1], qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_c3h(self):
@@ -1942,7 +1942,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                               "             "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(3, ctrl_state='100'), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(HGate().control(3, ctrl_state='010'), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_c3u2(self):
