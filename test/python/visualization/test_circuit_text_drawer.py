@@ -19,7 +19,6 @@ from codecs import encode
 from math import pi
 
 import numpy
-import sympy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter
@@ -985,20 +984,6 @@ class TestTextDrawerParams(QiskitTestCase):
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cu3(pi / 2, Parameter('theta'), pi, qr[0], qr[1])
-
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_sympy_constant(self):
-        """ cu3 drawing with sympy pi"""
-        expected = '\n'.join(["                            ",
-                              "q_0: |0>─────────■──────────",
-                              "        ┌────────┴─────────┐",
-                              "q_1: |0>┤ U3(pi/2,pi/2,pi) ├",
-                              "        └──────────────────┘"])
-
-        qr = QuantumRegister(2, 'q')
-        circuit = QuantumCircuit(qr)
-        circuit.cu3(pi / 2, sympy.pi / 2, sympy.pi, qr[0], qr[1])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
