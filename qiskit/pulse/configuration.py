@@ -61,6 +61,7 @@ class Discriminator:
         return "{}({}{})".format(self.__class__.__name__,
                                  "'" + self.name + "', " or "",
                                  self.params)
+
 class LoRange:
     """Range of LO frequency."""
 

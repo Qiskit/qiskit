@@ -180,13 +180,14 @@ class Acquire(Instruction):
         return self._reg_slots
 
     def __repr__(self):
-        return "{}({}{}{}{})".format(self.__class__.__name__,
-                             self.duration,
-                             ', ' + ', '.join(str(ch) for ch in self.acquires) if self.acquires else '',
-                             ', ' + str(self.mem_slot) if self.mem_slot else '',
-                             ', ' + str(self.reg_slot) if self.reg_slot else '',
-                             ', ' + str(self.kernel) if self.kernel else '',
-                             ', ' + str(self.discriminator) if self.discriminator else '')
+        return "{}({}{}{}{}{}{})".format(
+            self.__class__.__name__,
+            self.duration,
+            ', ' + ', '.join(str(ch) for ch in self.acquires) if self.acquires else '',
+            ', ' + str(self.mem_slot) if self.mem_slot else '',
+            ', ' + str(self.reg_slot) if self.reg_slot else '',
+            ', ' + str(self.kernel) if self.kernel else '',
+            ', ' + str(self.discriminator) if self.discriminator else '')
 
     def __eq__(self, other):
         return self.operands == other.operands
