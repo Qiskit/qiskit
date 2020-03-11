@@ -163,7 +163,7 @@ class Instruction:
             # example: snapshot('label')
             elif isinstance(single_param, str):
                 self._params.append(single_param)
-            # example: Aer expectation_value_snapshot
+            # example: Aer expectation_value_snapshot [complex, 'X']
             elif isinstance(single_param, list):
                 self._params.append(single_param)
             # example: numpy.array([[1, 0], [0, 1]])
