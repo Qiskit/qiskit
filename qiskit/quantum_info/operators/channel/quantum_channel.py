@@ -109,7 +109,7 @@ class QuantumChannel(BaseOperator):
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (None or list): optional subsystems to subtract on
+            qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:

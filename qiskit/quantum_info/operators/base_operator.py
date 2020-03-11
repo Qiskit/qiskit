@@ -329,12 +329,12 @@ class BaseOperator(ABC):
     def _add(self, other, qargs=None):
         """Return the linear operator self + other.
 
-        If ``qargs`` are specified the other operato will be added
+        If ``qargs`` are specified the other operator will be added
         assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
-            qargs (None or list): optional subsystems to subtract on
+            qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:

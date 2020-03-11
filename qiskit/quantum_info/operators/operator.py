@@ -366,7 +366,7 @@ class Operator(BaseOperator):
 
         Args:
             other (Operator): an operator object.
-            qargs (None or list): optional subsystems to subtract on
+            qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:
@@ -393,7 +393,7 @@ class Operator(BaseOperator):
         return ret
 
     def _multiply(self, other):
-        """Return the operator self + other.
+        """Return the operator self * other.
 
         Args:
             other (complex): a complex number.

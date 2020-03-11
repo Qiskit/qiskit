@@ -298,7 +298,7 @@ class Stinespring(QuantumChannel):
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
-            qargs (None or list): optional subsystems to subtract on
+            qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:
