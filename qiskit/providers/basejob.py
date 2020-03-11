@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional
 import time
 
-from .jobstatus import JOB_FINAL_STATES
+from .jobstatus import JobStatus, JOB_FINAL_STATES
 from .exceptions import JobTimeoutError
 from .basebackend import BaseBackend
 
@@ -49,6 +49,22 @@ class BaseJob(ABC):
         """Return the backend where this job was executed."""
         return self._backend
 
+    def done(self) -> bool:
+        """Return whether the job has successfully run."""
+        return self.status() == JobStatus.DONE
+
+    def running(self) -> bool:
+        """Return whether the job is actively running."""
+        return self.status() == JobStatus.RUNNING
+
+    def cancelled(self) -> bool:
+        """Return whether the job has been cancelled."""
+        return self.status() == JobStatus.CANCELLED
+
+    def in_final_state(self) -> bool:
+        """Return whether the job is in a final job state."""
+        return self.status() in JOB_FINAL_STATES
+
     def wait_for_final_state(
             self,
             timeout: Optional[float] = None,
@@ -58,20 +74,20 @@ class BaseJob(ABC):
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 
         Args:
-            timeout: seconds to wait for the job. If ``None``, wait indefinitely. Default: None.
-            wait: seconds between queries. Default: 5.
-            callback: callback function invoked after each query. Default: None.
+            timeout: Seconds to wait for the job. If ``None``, wait indefinitely.
+            wait: Seconds between queries.
+            callback: Callback function invoked after each query.
                 The following positional arguments are provided to the callback function:
 
-                * job_id: job ID
-                * job_status: status of the job from the last query
-                * job: this BaseJob instance
+                * job_id: Job ID
+                * job_status: Status of the job from the last query
+                * job: This BaseJob instance
 
                 Note: different subclass might provide different arguments to
                 the callback function.
 
         Raises:
-            JobTimeoutError: if the job does not reach a final state before the
+            JobTimeoutError: If the job does not reach a final state before the
                 specified timeout.
         """
         start_time = time.time()
