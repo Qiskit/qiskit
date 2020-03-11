@@ -175,7 +175,7 @@ class FakeBackendBuilder(object):
             n_qubits=self.n_qubits,
             meas_levels=[0, 1, 2],
             basis_gates=self.basis_gates,
-            simulator=False,
+            simulator=True,
             local=True,
             conditional=True,
             open_pulse=True,
