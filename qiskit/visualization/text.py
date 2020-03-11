@@ -402,7 +402,7 @@ class Bullet(DirectOnQuWire):
 
 
 class OpenBullet(DirectOnQuWire):
-    """ Draws an open bullet (usually with a connector). E.g. the top part of a CX gate.
+    """Draws an open bullet (usually with a connector). E.g. the top part of a CX gate.
 
     ::
 
