@@ -173,10 +173,12 @@ class Cu3Gate(CU3Gate, metaclass=CU3Meta):
                       'tgt': 'target_qubit'})
 def cu3(self, theta, phi, lam, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cU3 gate from a specified control (control_qubit) to target (target_qubit) qubit
-    with angle theta, phi, and lam.
-    A cU3 gate implements a U3(theta,phi,lam) on the target qubit when the
-    control qubit is in state |1>.
+    """Apply cU3 gate
+
+    Applied from a specified control ``control_qubit`` to target
+    ``target_qubit`` qubit with angle ``theta``, ``phi``, and ``lam``.
+    A cU3 gate implements a ``U3(theta,phi,lam)`` on the target qubit when the
+    control qubit is in state :math:`|1\\rangle`.
 
     Examples:
 

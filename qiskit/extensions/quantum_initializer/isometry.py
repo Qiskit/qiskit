@@ -99,19 +99,11 @@ class Isometry(Instruction):
         # call to generate the circuit that takes the isometry to the first 2^m columns
         # of the 2^n identity matrix
         iso_circuit = self._gates_to_uncompute()
-        num_gates = len(iso_circuit.data)
         # invert the circuit to create the circuit implementing the isometry
-        if not num_gates == 0:
-            # ToDo: Allow to inverse empty circuits.
-            gate = iso_circuit.to_instruction().inverse()
+        gate = iso_circuit.to_instruction().inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
-        if num_gates == 0:
-            # ToDo: improve handling of empty circuit, such that the following line
-            # ToDo: is not required.
-            iso_circuit.i(q[0])
-        else:
-            iso_circuit.append(gate, q[:])
+        iso_circuit.append(gate, q[:])
         self.definition = iso_circuit.data
 
     def _gates_to_uncompute(self):

@@ -87,7 +87,6 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
    Instruction
 
 .. autosummary::
-   :hidden:
    :toctree: ../stubs/
 
    qiskit.pulse.commands
@@ -134,13 +133,14 @@ Exceptions
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Instruction, Acquire, AcquireInstruction, FrameChange,
+from .commands import (Acquire, AcquireInstruction, FrameChange,
                        PersistentValue, SamplePulse, Snapshot, Kernel,
-                       Discriminator, Delay, ParametricPulse,
+                       Discriminator, ParametricPulse,
                        ParametricInstruction, Gaussian,
                        GaussianSquare, Drag, ConstantPulse, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
+from .instructions import Instruction, Delay
 from .interfaces import ScheduleComponent
 from .schedule import Schedule

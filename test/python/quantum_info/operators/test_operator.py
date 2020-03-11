@@ -18,6 +18,7 @@
 
 import unittest
 import logging
+import copy
 import numpy as np
 from numpy.testing import assert_allclose
 import scipy.linalg as la
@@ -201,11 +202,6 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(Operator(mat.tolist()),
                          Operator(mat))
 
-    def test_rep(self):
-        """Test Operator representation string property."""
-        op = Operator(self.rand_matrix(2, 2))
-        self.assertEqual(op.rep, 'Operator')
-
     def test_data(self):
         """Test Operator representation string property."""
         mat = self.rand_matrix(2, 2)
@@ -244,24 +240,30 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.output_dims(qargs=[2, 0]), (4, 2))
 
     def test_reshape(self):
-        """Test Operator _reshape method."""
+        """Test Operator reshape method."""
         op = Operator(self.rand_matrix(8, 8))
+        reshaped1 = op.reshape(input_dims=[8], output_dims=[8])
+        reshaped2 = op.reshape(input_dims=[4, 2], output_dims=[2, 4])
         self.assertEqual(op.output_dims(), (2, 2, 2))
         self.assertEqual(op.input_dims(), (2, 2, 2))
-        op._reshape(input_dims=[8], output_dims=[8])
-        self.assertEqual(op.output_dims(), (8,))
-        self.assertEqual(op.input_dims(), (8,))
-        op._reshape(input_dims=[4, 2], output_dims=[2, 4])
-        self.assertEqual(op.output_dims(), (2, 4))
-        self.assertEqual(op.input_dims(), (4, 2))
+        self.assertEqual(reshaped1.output_dims(), (8,))
+        self.assertEqual(reshaped1.input_dims(), (8,))
+        self.assertEqual(reshaped2.output_dims(), (2, 4))
+        self.assertEqual(reshaped2.input_dims(), (4, 2))
 
     def test_copy(self):
         """Test Operator copy method"""
         mat = np.eye(2)
-        orig = Operator(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        with self.subTest("Deep copy"):
+            orig = Operator(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Operator(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
 
     def test_is_unitary(self):
         """Test is_unitary method."""
@@ -361,28 +363,34 @@ class TestOperator(OperatorTestCase):
         # op3 qargs=[0, 1, 2]
         targ = np.dot(np.kron(mat_c, np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), Operator(targ))
+        self.assertEqual(op.compose(op3([0, 1, 2])), Operator(targ))
+        self.assertEqual(op @ op3([0, 1, 2]), Operator(targ))
         # op3 qargs=[2, 1, 0]
         targ = np.dot(np.kron(mat_a, np.kron(mat_b, mat_c)), mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), Operator(targ))
+        self.assertEqual(op @ op3([2, 1, 0]), Operator(targ))
 
         # op2 qargs=[0, 1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), Operator(targ))
+        self.assertEqual(op @ op2([0, 1]), Operator(targ))
         # op2 qargs=[2, 0]
         targ = np.dot(np.kron(mat_a, np.kron(np.eye(2), mat_b)), mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), Operator(targ))
+        self.assertEqual(op @ op2([2, 0]), Operator(targ))
 
         # op1 qargs=[0]
         targ = np.dot(np.kron(np.eye(4), mat_a), mat)
         self.assertEqual(op.compose(op1, qargs=[0]), Operator(targ))
-
+        self.assertEqual(op @ op1([0]), Operator(targ))
         # op1 qargs=[1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_a, np.eye(2))), mat)
         self.assertEqual(op.compose(op1, qargs=[1]), Operator(targ))
-
+        self.assertEqual(op @ op1([1]), Operator(targ))
         # op1 qargs=[2]
         targ = np.dot(np.kron(mat_a, np.eye(4)), mat)
         self.assertEqual(op.compose(op1, qargs=[2]), Operator(targ))
+        self.assertEqual(op @ op1([2]), Operator(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""
@@ -399,28 +407,33 @@ class TestOperator(OperatorTestCase):
         # op3 qargs=[0, 1, 2]
         targ = np.dot(mat, np.kron(mat_c, np.kron(mat_b, mat_a)))
         self.assertEqual(op.dot(op3, qargs=[0, 1, 2]), Operator(targ))
+        self.assertEqual(op * op3([0, 1, 2]), Operator(targ))
         # op3 qargs=[2, 1, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(mat_b, mat_c)))
         self.assertEqual(op.dot(op3, qargs=[2, 1, 0]), Operator(targ))
+        self.assertEqual(op * op3([2, 1, 0]), Operator(targ))
 
         # op2 qargs=[0, 1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_b, mat_a)))
         self.assertEqual(op.dot(op2, qargs=[0, 1]), Operator(targ))
+        self.assertEqual(op * op2([0, 1]), Operator(targ))
         # op2 qargs=[2, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(np.eye(2), mat_b)))
         self.assertEqual(op.dot(op2, qargs=[2, 0]), Operator(targ))
+        self.assertEqual(op * op2([2, 0]), Operator(targ))
 
         # op1 qargs=[0]
         targ = np.dot(mat, np.kron(np.eye(4), mat_a))
         self.assertEqual(op.dot(op1, qargs=[0]), Operator(targ))
-
+        self.assertEqual(op * op1([0]), Operator(targ))
         # op1 qargs=[1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_a, np.eye(2))))
         self.assertEqual(op.dot(op1, qargs=[1]), Operator(targ))
-
+        self.assertEqual(op * op1([1]), Operator(targ))
         # op1 qargs=[2]
         targ = np.dot(mat, np.kron(mat_a, np.eye(4)))
         self.assertEqual(op.dot(op1, qargs=[2]), Operator(targ))
+        self.assertEqual(op * op1([2]), Operator(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -510,44 +523,30 @@ class TestOperator(OperatorTestCase):
         mat2 = self.rand_matrix(4, 4)
         op1 = Operator(mat1)
         op2 = Operator(mat2)
-        self.assertEqual(op1.add(op2), Operator(mat1 + mat2))
+        self.assertEqual(op1._add(op2), Operator(mat1 + mat2))
         self.assertEqual(op1 + op2, Operator(mat1 + mat2))
+        self.assertEqual(op1 - op2, Operator(mat1 - mat2))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         op1 = Operator(self.rand_matrix(2, 2))
         op2 = Operator(self.rand_matrix(3, 3))
-        self.assertRaises(QiskitError, op1.add, op2)
-
-    def test_subtract(self):
-        """Test subtract method."""
-        mat1 = self.rand_matrix(4, 4)
-        mat2 = self.rand_matrix(4, 4)
-        op1 = Operator(mat1)
-        op2 = Operator(mat2)
-        self.assertEqual(op1.subtract(op2), Operator(mat1 - mat2))
-        self.assertEqual(op1 - op2, Operator(mat1 - mat2))
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        op1 = Operator(self.rand_matrix(2, 2))
-        op2 = Operator(self.rand_matrix(3, 3))
-        self.assertRaises(QiskitError, op1.subtract, op2)
+        self.assertRaises(QiskitError, op1._add, op2)
 
     def test_multiply(self):
         """Test multiply method."""
         mat = self.rand_matrix(4, 4)
         val = np.exp(5j)
         op = Operator(mat)
-        self.assertEqual(op.multiply(val), Operator(val * mat))
+        self.assertEqual(op._multiply(val), Operator(val * mat))
         self.assertEqual(val * op, Operator(val * mat))
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         op = Operator(self.rand_matrix(2, 2))
-        self.assertRaises(QiskitError, op.multiply, 's')
+        self.assertRaises(QiskitError, op._multiply, 's')
         self.assertRaises(QiskitError, op.__rmul__, 's')
-        self.assertRaises(QiskitError, op.multiply, op)
+        self.assertRaises(QiskitError, op._multiply, op)
         self.assertRaises(QiskitError, op.__rmul__, op)
 
     def test_negate(self):
