@@ -1134,9 +1134,7 @@ class Layer:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
 
-                control_label = None
-                if bit_i in control_index:
-                    control_label = control_index[bit_i]
+                control_label = control_index.get(bit_i)
                 set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,
                                              control_label=control_label))
             set_bit(bits.pop(0), OnWireBot(label, box_height, bot_connect=bot_connect,
