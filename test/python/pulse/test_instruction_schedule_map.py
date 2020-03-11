@@ -226,8 +226,6 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('f', (0,), test_func)
         self.assertEqual(inst_map.get('f', (0,), x_test), ref_sched)
 
-        self.assertIsInstance(inst_map.get_signature('f', (0,)), Signature)
-
         self.assertEqual(inst_map.get_parameters('f', (0,)), ('x',))
 
         self.assertEqual(inst_map.get_unevaluated('f', (0,)), test_func)

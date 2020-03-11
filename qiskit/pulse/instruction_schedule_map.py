@@ -266,35 +266,6 @@ class InstructionScheduleMap():
                       DeprecationWarning)
         return self.qubits_with_instruction(cmd_name)
 
-    def get_signature(self,
-                      instruction: str,
-                      qubits: Union[int, Iterable[int]]
-                      ) -> Optional[inspect.Signature]:
-        """Get signature for instruction and a set of qubits.
-
-        If it is a schedule, `None` is returned.
-
-        Args:
-            instruction: Name of the instruction.
-            qubits: The qubits for the instruction.
-
-        Returns:
-            The signature of the requested instruction.
-
-        Raises:
-            PulseError: If command for qubits is not available
-        """
-        qubits = _to_tuple(qubits)
-        if self.has(instruction, qubits):
-            schedule = self._map[instruction][qubits]
-            if callable(schedule):
-                return inspect.signature(schedule)
-            return None
-
-        else:
-            raise PulseError("Operation '{0}' for qubits {1} is not available "
-                             "for this system".format(instruction, qubits))
-
     def get_parameters(self, instruction: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """Return the list of parameters taken by the given instruction on the given qubits.
 
