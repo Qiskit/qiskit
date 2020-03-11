@@ -419,7 +419,7 @@ class OpenBullet(DirectOnQuWire):
 
 
 class EmptyWire(DrawElement):
-    """ This element is just the wire, with no instructions nor operations."""
+    """This element is just the wire, with no instructions nor operations."""
 
     def __init__(self, wire):
         super().__init__(wire)
