@@ -21,6 +21,7 @@ from enum import Enum
 
 from qiskit.pulse import commands, channels, instructions
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -413,8 +414,7 @@ class QobjToInstructionConverter:
                           "to first discriminator entry.")
         discriminator = discriminators[0]
         if discriminator:
-            discriminator = commands.Discriminator(name=discriminators[0].name,
-                                                   params=discriminators[0].params)
+            discriminator = Discriminator(name=discriminators[0].name, **discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
@@ -425,7 +425,7 @@ class QobjToInstructionConverter:
                           "kernel entry.")
         kernel = kernels[0]
         if kernel:
-            kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
+            kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
         schedule = Schedule()
 
