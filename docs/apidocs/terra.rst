@@ -13,6 +13,7 @@ Qiskit Terra API Reference
    visualization
    converters
    assembler
+   assertions
    dagcircuit
    extensions
    providers_basicaer
