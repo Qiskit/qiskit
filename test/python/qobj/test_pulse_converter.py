@@ -238,6 +238,18 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
 
+    def test_set_frequency(self):
+        """Test converted qobj from FrameChangeInstruction."""
+        cmd = SetFrequency(frequency=8.0)
+        instruction = cmd(MeasureChannel(0))
+
+        qobj = PulseQobjInstruction(name='sf', ch='m0', t0=0, frequency=8.0)
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        self.assertTrue('frequency' in qobj.to_dict())
+
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
         cmd = PersistentValue(value=0.1j)
