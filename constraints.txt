@@ -1,4 +1,1 @@
-astroid==2.3.3
-pylint==2.4.4
-matplotlib==3.2.0rc1;python_version=='3.8'
 nbformat==4.4.0

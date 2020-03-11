@@ -259,12 +259,12 @@ class DensityMatrix(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output density matrix of an instruction.
 
-        The statevector is initialized in the state |0,...,0> of the same
-        number of qubits as the input instruction or circuit, evolved
+        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of
+        the same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             DensityMatrix: the final density matrix.
@@ -327,11 +327,6 @@ class DensityMatrix(QuantumState):
         new_dim = np.product(new_dims)
         return DensityMatrix(np.reshape(tensor, (new_dim, new_dim)),
                              dims=new_dims)
-
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return 2 * tuple(reversed(self.dims()))
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""

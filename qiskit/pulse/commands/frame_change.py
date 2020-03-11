@@ -18,7 +18,7 @@ Frame change pulse.
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
@@ -58,7 +58,9 @@ class FrameChange(Command):
         return hash((super().__hash__(), self.phase))
 
     def __repr__(self):
-        return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
+        return '%s(phase=%.3f, name="%s")' % (self.__class__.__name__,
+                                              self.phase,
+                                              self.name)
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel, name=None) -> 'FrameChangeInstruction':

@@ -14,8 +14,8 @@
 
 # pylint: disable=invalid-name
 
-"""Helper function to parse string expression given by backends."""
-
+"""Parser for mathematical string expressions returned by backends."""
+from typing import Dict, List, Union
 import ast
 import copy
 import operator
@@ -26,9 +26,8 @@ from qiskit.pulse.exceptions import PulseError
 
 
 class PulseExpression(ast.NodeTransformer):
-    """Expression parser to evaluate parameter values.
-    """
-    # valid functions
+    """Expression parser to evaluate parameter values."""
+
     _math_ops = {
         'acos': cmath.acos,
         'acosh': cmath.acosh,
@@ -49,8 +48,8 @@ class PulseExpression(ast.NodeTransformer):
         'pi': cmath.pi,
         'e': cmath.e
     }
+    """Valid math functions."""
 
-    # valid binary operations
     _binary_ops = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
@@ -58,19 +57,20 @@ class PulseExpression(ast.NodeTransformer):
         ast.Div: operator.truediv,
         ast.Pow: operator.pow
     }
+    """Valid binary operations."""
 
-    # valid unary operations
     _unary_ops = {
         ast.UAdd: operator.pos,
         ast.USub: operator.neg
     }
+    """Valid unary operations."""
 
-    def __init__(self, source, partial_binding=False):
+    def __init__(self, source: Union[str, ast.Expression], partial_binding: bool = False):
         """Create new evaluator.
 
         Args:
-            source (str or ast.Expression): Expression of equation to evaluate.
-            partial_binding (bool): Allow partial bind of parameters.
+            source: Expression of equation to evaluate.
+            partial_binding: Allow partial bind of parameters.
 
         Raises:
             PulseError: When invalid string is specified.
@@ -91,19 +91,23 @@ class PulseExpression(ast.NodeTransformer):
         self.visit(self._tree)
 
     @property
-    def params(self):
-        """Get parameters."""
+    def params(self) -> List[str]:
+        """Get parameters.
+
+        Returns:
+            A list of parameters in sorted order.
+        """
         return sorted(self._params.copy())
 
-    def __call__(self, *args, **kwargs):
-        """Get evaluated value with given parameters.
+    def __call__(self, *args, **kwargs) -> Union[float, complex, ast.Expression]:
+        """Evaluate the expression with the given values of the expression's parameters.
 
         Args:
             *args: Variable length parameter list.
             **kwargs: Arbitrary parameters.
 
         Returns:
-            float or complex or ast: Evaluated value.
+            Evaluated value.
 
         Raises:
             PulseError: When parameters are not bound.
@@ -137,16 +141,16 @@ class PulseExpression(ast.NodeTransformer):
         return expr.body.n
 
     @staticmethod
-    def _match_ops(opr, opr_dict, *args):
+    def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> Union[float, complex]:
         """Helper method to apply operators.
 
         Args:
-            opr (ast.AST): Operator of node.
-            opr_dict (dict): Mapper from ast to operator.
+            opr: Operator of node.
+            opr_dict: Mapper from ast to operator.
             *args: Arguments supplied to operator.
 
         Returns:
-            float or complex: Evaluated value.
+            Evaluated value.
 
         Raises:
             PulseError: When unsupported operation is specified.
@@ -156,39 +160,39 @@ class PulseExpression(ast.NodeTransformer):
                 return op_func(*args)
         raise PulseError('Operator %s is not supported.' % opr.__class__.__name__)
 
-    def visit_Expression(self, node):
+    def visit_Expression(self, node: ast.Expression) -> ast.Expression:
         """Evaluate children nodes of expression.
 
         Args:
-            node (ast.Expression): Expression to evaluate.
+            node: Expression to evaluate.
 
         Returns:
-            ast.Expression: Evaluated value.
+            Evaluated value.
         """
         tmp_node = copy.deepcopy(node)
         tmp_node.body = self.visit(tmp_node.body)
 
         return tmp_node
 
-    def visit_Num(self, node):
+    def visit_Num(self, node: ast.Num) -> ast.Num:
         """Return number as it is.
 
         Args:
-            node (ast.Num): Number.
+            node: Number.
 
         Returns:
-            ast.Num: Number to return.
+            Input node.
         """
         return node
 
-    def visit_Name(self, node):
+    def visit_Name(self, node: ast.Name) -> Union[ast.Name, ast.Num]:
         """Evaluate name and return ast.Num if it is bound.
 
         Args:
-            node (ast.Name): Name to evaluate.
+            node: Name to evaluate.
 
         Returns:
-            ast.Name or ast.Num: Evaluated value.
+            Evaluated value.
 
         Raises:
             PulseError: When parameter value is not a number.
@@ -210,14 +214,14 @@ class PulseExpression(ast.NodeTransformer):
         self._params.add(node.id)
         return node
 
-    def visit_UnaryOp(self, node):
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> Union[ast.UnaryOp, ast.Num]:
         """Evaluate unary operation and return ast.Num if operand is bound.
 
         Args:
-            node (ast.UnaryOp): Unary operation to evaluate.
+            node: Unary operation to evaluate.
 
         Returns:
-            ast.UnaryOp or ast.Num: Evaluated value.
+            Evaluated value.
         """
         node.operand = self.visit(node.operand)
         if isinstance(node.operand, ast.Num):
@@ -226,14 +230,14 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         return node
 
-    def visit_BinOp(self, node):
+    def visit_BinOp(self, node: ast.BinOp) -> Union[ast.BinOp, ast.Num]:
         """Evaluate binary operation and return ast.Num if operands are bound.
 
         Args:
-            node (ast.BinOp): Binary operation to evaluate.
+            node: Binary operation to evaluate.
 
         Returns:
-            ast.BinOp or ast.Num: Evaluated value.
+            Evaluated value.
         """
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
@@ -243,14 +247,14 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         return node
 
-    def visit_Call(self, node):
+    def visit_Call(self, node: ast.Call) -> Union[ast.Call, ast.Num]:
         """Evaluate function and return ast.Num if all arguments are bound.
 
         Args:
-            node (ast.Call): Function to evaluate.
+            node: Function to evaluate.
 
         Returns:
-            ast.Call or ast.Num: Evaluated value.
+            Evaluated value.
 
         Raises:
             PulseError: When unsupported or unsafe function is specified.
@@ -273,20 +277,31 @@ class PulseExpression(ast.NodeTransformer):
         raise PulseError('Unsupported node: %s' % node.__class__.__name__)
 
 
-def parse_string_expr(source, partial_binding=False):
+def parse_string_expr(source: str, partial_binding: bool = False):
     """Safe parsing of string expression.
 
     Args:
-        source (str): String expression to parse.
-        partial_binding (bool): Allow partial bind of parameters.
+        source: String expression to parse.
+        partial_binding: Allow partial bind of parameters.
 
     Returns:
         PulseExpression: Returns a expression object.
+
+    Example:
+
+        expr = 'P1 + P2 + P3'
+        parsed_expr = parse_string_expr(expr, partial_binding=True)
+
+        # create new PulseExpression
+        bound_two = parsed_expr(P1=1, P2=2)
+        # evaluate expression
+        value1 = bound_two(P3=3)
+        value2 = bound_two(P3=4)
+        value3 = bound_two(P3=5)
+
     """
     subs = [('numpy.', ''), ('np.', ''), ('math.', ''), ('cmath.', '')]
     for match, sub in subs:
         source = source.replace(match, sub)
 
-    expression = PulseExpression(source, partial_binding)
-
-    return expression
+    return PulseExpression(source, partial_binding)

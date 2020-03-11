@@ -28,7 +28,7 @@ import itertools
 import networkx as nx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -53,7 +53,7 @@ class DAGCircuit:
         self.name = None
 
         # Set of wires (Register,idx) in the dag
-        self.wires = []
+        self._wires = set()
 
         # Map from wire (Register,idx) to input nodes of the graph
         self.input_map = OrderedDict()
@@ -93,6 +93,13 @@ class DAGCircuit:
     def clbits(self):
         """Return a list of classical bits (as a list of Clbit instances)."""
         return [clbit for creg in self.cregs.values() for clbit in creg]
+
+    @property
+    def wires(self):
+        """Return a list of the wires in order."""
+        out_list = [bit for reg in self.qregs.values() for bit in reg]
+        out_list += [bit for reg in self.cregs.values() for bit in reg]
+        return out_list
 
     @property
     def node_counter(self):
@@ -136,8 +143,8 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if trying to add duplicate wire
         """
-        if wire not in self.wires:
-            self.wires.append(wire)
+        if wire not in self._wires:
+            self._wires.add(wire)
             self._max_node_id += 1
             input_map_wire = self.input_map[wire] = self._max_node_id
 
@@ -216,7 +223,7 @@ class DAGCircuit:
         """Add a new operation node to the graph and assign properties.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -240,7 +247,7 @@ class DAGCircuit:
         """Apply an operation to the output of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
@@ -286,7 +293,7 @@ class DAGCircuit:
         """Apply an operation to the input of the circuit.
 
         Args:
-            op (Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
@@ -480,7 +487,7 @@ class DAGCircuit:
                     raise DAGCircuitError("wire %s[%d] not in self" % (
                         m_wire.register.name, m_wire.index))
 
-                if nd.wire not in input_circuit.wires:
+                if nd.wire not in input_circuit._wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
                                           % (nd.register.name, nd.wire.index))
 
@@ -544,7 +551,7 @@ class DAGCircuit:
                     raise DAGCircuitError("wire %s[%d] not in self" % (
                         m_name.register.name, m_name.index))
 
-                if nd.wire not in input_circuit.wires:
+                if nd.wire not in input_circuit._wires:
                     raise DAGCircuitError(
                         "inconsistent wire for %s[%d] in input_circuit"
                         % (nd.wire.register.name, nd.wire.index))
@@ -567,14 +574,14 @@ class DAGCircuit:
         Yields:
             Bit: Bit in idle wire.
         """
-        for wire in self.wires:
+        for wire in self._wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
             if len(list(nodes)) == 2:
                 yield wire
 
     def size(self):
         """Return the number of operations."""
-        return self._multi_graph.order() - 2 * len(self.wires)
+        return self._multi_graph.order() - 2 * len(self._wires)
 
     def depth(self):
         """Return the circuit depth.
@@ -592,12 +599,12 @@ class DAGCircuit:
     def width(self):
         """Return the total number of qubits + clbits used by the circuit.
            This function formerly returned the number of qubits by the calculation
-           return len(self.wires) - self.num_clbits()
+           return len(self._wires) - self.num_clbits()
            but was changed by issue #2564 to return number of qubits + clbits
            with the new function DAGCircuit.num_qubits replacing the former
            semantic of DAGCircuit.width().
         """
-        return len(self.wires)
+        return len(self._wires)
 
     def num_qubits(self):
         """Return the total number of qubits used by the circuit.
@@ -605,7 +612,7 @@ class DAGCircuit:
            DAGCircuit.width() now returns qubits + clbits for
            consistency with Circuit.width() [qiskit-terra #2564].
         """
-        return len(self.wires) - self.num_clbits()
+        return len(self._wires) - self.num_clbits()
 
     def num_clbits(self):
         """Return the total number of classical bits used by the circuit."""
@@ -760,9 +767,7 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w, Qubit)]
-            cwires = [w for w in input_dag.wires if isinstance(w, Clbit)]
-            wires = qwires + cwires
+            wires = input_dag.wires
 
         self._check_wires_list(wires, node)
 
@@ -860,7 +865,8 @@ class DAGCircuit:
 
         Args:
             node (DAGNode): Node to be replaced
-            op (Instruction): The Instruction instance to be added to the DAG
+            op (qiskit.circuit.Instruction): The :class:`qiskit.circuit.Instruction`
+                instance to be added to the DAG
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
@@ -944,8 +950,8 @@ class DAGCircuit:
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Type): Instruction subclass op nodes to return. if op=None, return
-                all op nodes.
+            op (Type): :class:`qiskit.circuit.Instruction` subclass op nodes to return.
+                if op=None, return all op nodes.
         Returns:
             list[DAGNode]: the list of node ids containing the given op.
         """

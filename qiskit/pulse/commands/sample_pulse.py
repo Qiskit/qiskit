@@ -23,14 +23,12 @@ import numpy as np
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 
-from .instruction import Instruction
-from .command import Command
+from ..instructions import Instruction
+from .pulse_command import PulseCommand
 
 
-class SamplePulse(Command):
+class SamplePulse(PulseCommand):
     """Container for functional pulse."""
-
-    prefix = 'p'
 
     def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
                  epsilon: float = 1e-7):
@@ -102,7 +100,7 @@ class SamplePulse(Command):
         return samples
 
     def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
+             style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
@@ -111,7 +109,7 @@ class SamplePulse(Command):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
@@ -151,7 +149,13 @@ class SamplePulse(Command):
         return hash((super().__hash__(), self.samples.tostring()))
 
     def __repr__(self):
-        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+        opt = np.get_printoptions()
+        np.set_printoptions(threshold=50)
+        repr_str = '%s(samples=%s, name="%s")' % (self.__class__.__name__,
+                                                  repr(self.samples),
+                                                  self.name)
+        np.set_printoptions(**opt)
+        return repr_str
 
     # pylint: disable=arguments-differ
     def to_instruction(self, channel: PulseChannel,

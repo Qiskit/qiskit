@@ -20,10 +20,7 @@ import logging
 from math import pi, ceil
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-
-from qiskit import QiskitError
-# pylint: disable=unused-import
-from .relative_phase_toffoli import rccx
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +217,7 @@ def _multicx_recursion(qc, qrs, qancilla=None):
         _ccccx(qc, qrs)
     else:  # qrs[0], qrs[n-2] is the controls, qrs[n-1] is the target, and qancilla as working qubit
         assert qancilla is not None, ('There must be an ancilla qubit not '
-                                      'necesseraly initialized to zero')
+                                      'necessarily initialized to zero')
         n = len(qrs)
         mid = ceil(n / 2)
         _multicx_recursion(qc, [*qrs[:mid], qancilla], qrs[mid])

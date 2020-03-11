@@ -18,21 +18,23 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
+from qiskit.qasm.node.real import Real
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.ccx import ToffoliGate
-from qiskit.extensions.standard.cswap import FredkinGate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.cy import CyGate
-from qiskit.extensions.standard.cz import CzGate
+from qiskit.extensions.standard.x import CCXGate
+from qiskit.extensions.standard.swap import CSwapGate
+from qiskit.extensions.standard.x import CXGate
+from qiskit.extensions.standard.y import CYGate
+from qiskit.extensions.standard.z import CZGate
 from qiskit.extensions.standard.swap import SwapGate
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.iden import IdGate
+from qiskit.extensions.standard.i import IGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.t import TGate
@@ -46,11 +48,14 @@ from qiskit.extensions.standard.z import ZGate
 from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.cu1 import Cu1Gate
-from qiskit.extensions.standard.ch import CHGate
-from qiskit.extensions.standard.crz import CrzGate
-from qiskit.extensions.standard.cu3 import Cu3Gate
+from qiskit.extensions.standard.rxx import RXXGate
 from qiskit.extensions.standard.rzz import RZZGate
+from qiskit.extensions.standard.u1 import CU1Gate
+from qiskit.extensions.standard.u3 import CU3Gate
+from qiskit.extensions.standard.h import CHGate
+from qiskit.extensions.standard.rx import CRXGate
+from qiskit.extensions.standard.ry import CRYGate
+from qiskit.extensions.standard.rz import CRZGate
 
 
 def ast_to_dag(ast):
@@ -106,20 +111,23 @@ class AstInterpreter:
                           "sdg": SdgGate,
                           "swap": SwapGate,
                           "rx": RXGate,
+                          "rxx": RXXGate,
                           "ry": RYGate,
                           "rz": RZGate,
                           "rzz": RZZGate,
-                          "id": IdGate,
+                          "id": IGate,
                           "h": HGate,
-                          "cx": CnotGate,
-                          "cy": CyGate,
-                          "cz": CzGate,
+                          "cx": CXGate,
+                          "cy": CYGate,
+                          "cz": CZGate,
                           "ch": CHGate,
-                          "crz": CrzGate,
-                          "cu1": Cu1Gate,
-                          "cu3": Cu3Gate,
-                          "ccx": ToffoliGate,
-                          "cswap": FredkinGate}
+                          "crx": CRXGate,
+                          "cry": CRYGate,
+                          "crz": CRZGate,
+                          "cu1": CU1Gate,
+                          "cu3": CU3Gate,
+                          "ccx": CCXGate,
+                          "cswap": CSwapGate}
 
     def __init__(self, dag):
         """Initialize interpreter's data."""
@@ -233,11 +241,11 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[idx]], [], self.condition)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CnotGate(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[0]], [], self.condition)
             else:
-                self.dag.apply_operation_back(CnotGate(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(CXGate(), [id0[0], id1[idx]], [], self.condition)
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -355,6 +363,26 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
+    def _gate_definition_to_qiskit_definition(self, node, params):
+        """From a gate definition in qasm, to a gate.definition format."""
+        definition = []
+        qreg = QuantumRegister(node['n_bits'])
+        bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
+        exp_args = {node['args'][i]: Real(q) for i, q in enumerate(params)}
+
+        for child_op in node['body'].children:
+            qparams = []
+            eparams = []
+            for param_list in child_op.children[1:]:
+                if param_list.type == 'id_list':
+                    qparams = [bit_args[param.name] for param in param_list.children]
+                elif param_list.type == 'expression_list':
+                    for param in param_list.children:
+                        eparams.append(param.sym(nested_scope=[exp_args]))
+            op = self._create_op(child_op.name, params=eparams)
+            definition.append((op, qparams, []))
+        return definition
+
     def _create_dag_op(self, name, params, qargs):
         """
         Create a DAG node out of a parsed AST op node.
@@ -367,7 +395,10 @@ class AstInterpreter:
         Raises:
             QiskitError: if encountering a non-basis opaque gate
         """
+        op = self._create_op(name, params)
+        self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
 
+    def _create_op(self, name, params):
         if name in self.standard_extension:
             op = self.standard_extension[name](*params)
         elif name in self.gates:
@@ -376,8 +407,12 @@ class AstInterpreter:
                 op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
             else:
                 # call a custom gate
-                raise QiskitError('Custom non-opaque gates are not supported by ast_to_dag module')
+                op = Instruction(name=name,
+                                 num_qubits=self.gates[name]['n_bits'],
+                                 num_clbits=0,
+                                 params=params)
+                op.definition = self._gate_definition_to_qiskit_definition(self.gates[name],
+                                                                           params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
-
-        self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
+        return op
