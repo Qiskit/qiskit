@@ -12,12 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,unexpected-keyword-arg
-
 """Unit tests for pulse instructions."""
 
-from qiskit.pulse import Snapshot
+from qiskit.pulse import Delay, DriveChannel, Snapshot
 from qiskit.test import QiskitTestCase
+
+
+class TestDelayCommand(QiskitTestCase):
+    """Delay tests."""
+
+    def test_delay(self):
+        """Test delay."""
+        delay = Delay(10, DriveChannel(0), name='test_name')
+
+        self.assertEqual(delay.name, "test_name")
+        self.assertEqual(delay.duration, 10)
+        self.assertEqual(delay.operands, [10, DriveChannel(0)])
 
 
 class TestSnapshot(QiskitTestCase):
