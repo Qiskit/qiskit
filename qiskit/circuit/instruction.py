@@ -40,7 +40,7 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.qobj.models.qasm import QasmQobjInstruction
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
@@ -106,8 +106,8 @@ class Instruction:
 
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
-                   and numpy.allclose(self_param, other_param,
-                                      atol=_CUTOFF_PRECISION):
+                        and numpy.allclose(self_param, other_param,
+                                           atol=_CUTOFF_PRECISION):
                     continue
             except TypeError:
                 pass
@@ -175,7 +175,7 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name, validate=False)
+        instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [
@@ -246,24 +246,27 @@ class Instruction:
 
     def copy(self, name=None):
         """
-        Shallow copy of the instruction.
+        Copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
             if None then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a shallow copy of the current instruction, with the name
+          qiskit.circuit.Instruction: a copy of the current instruction, with the name
             updated if it was provided
         """
-        cpy = copy.copy(self)
-        cpy.params = copy.copy(self.params)
+        cpy = self.__deepcopy__()
         if name:
             cpy.name = name
         return cpy
 
-    def __deepcopy__(self, memo=None):
-        return self.copy()
+    def __deepcopy__(self, _memo=None):
+        cpy = copy.copy(self)
+        cpy.params = copy.copy(self.params)
+        if self._definition:
+            cpy._definition = copy.deepcopy(self._definition, _memo)
+        return cpy
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
