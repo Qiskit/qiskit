@@ -17,7 +17,6 @@
 import unittest
 
 import numpy as np
-
 import qiskit.pulse as pulse
 from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -25,10 +24,12 @@ from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
+from qiskit.pulse.pulse_lib import gaussian
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.scheduler import measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown
+from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
 
 
@@ -574,6 +575,23 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
         self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
+
+    def test_pulse_name_conflicts_in_other_schedule(self):
+        """Test two pulses with the same name in different schedule can be resolved."""
+        backend = FakeAlmaden()
+
+        schedules = []
+        ch_d0 = pulse.DriveChannel(0)
+        for amp in (0.1, 0.2):
+            sched = Schedule()
+            sched += gaussian(duration=100, amp=amp, sigma=30, name='my_pulse')(ch_d0)
+            sched += measure(qubits=[0], backend=backend) << 100
+            schedules.append(sched)
+
+        qobj = assemble(schedules, backend)
+
+        # two user pulses and one measurement pulse should be contained
+        self.assertEqual(len(qobj.config.pulse_library), 3)
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
