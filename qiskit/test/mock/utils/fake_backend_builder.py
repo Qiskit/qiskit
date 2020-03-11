@@ -35,48 +35,68 @@ class FakeBackendBuilder(object):
 
     For example:
         builder = FakeBackendBuilder("Tashkent", n_qubits=100)
-        path = os.path.dirname(os.path.abspath(__file__))
-        builder.dump(path)
+        FakeOpenPulse100Q = builder.build()
+        fake_backend = FakeOpenPulse100Q()
     """
-
-    _SINGLE_QUBIT_GATES = ['id', 'u1', 'u2', 'u3']
-    _DEFAULT_BASIS_GATES = ['id', 'u1', 'u2', 'u3', 'cx']
-    _DEFAULT_T1 = 113.3
-    _DEFAULT_T2 = 150.2
-    _DEFAULT_QUBIT_FREQUENCY = 4.8
-    _DEFAULT_QUBIT_READOUT_ERROR = 0.04
 
     def __init__(self,
                  name: str,
                  n_qubits: int,
-                 version: Optional[str] = '0.0.0',
+                 version: Optional[str] = None,
                  coupling_map: Optional[List[List[int]]] = None,
                  basis_gates: Optional[List[str]] = None,
                  qubit_t1: Optional[float] = None,
                  qubit_t2: Optional[float] = None,
                  qubit_frequency: Optional[float] = None,
-                 qubit_readout_error: Optional[float] = None
-                 ):
-        """
+                 qubit_readout_error: Optional[float] = None,
+                 single_qubit_gates: Optional[List[str]] = None):
+        """Creates fake backend builder.
 
         Args:
-            name:
-            version:
+            name (str): Name of the backend.
+            n_qubits (int): Number of qubits in the backend.
+            version (str, optional): Version of the fake backend.
+            coupling_map (list, optional): Coupling map.
+            basis_gates (list, optional): Basis gates of the backend.
+            qubit_t1 (float, optional): Longitudinal coherence time.
+            qubit_t2 (float, optional): Transverse coherence time.
+            qubit_frequency (float, optional): Frequency of qubit.
+            qubit_readout_error (float, optional): Readout error of qubit.
+            single_qubit_gates (list, optional: List of single qubit gates for backend properties.
         """
+
+        if version is None:
+            version = '0.0.0'
+
+        if basis_gates is None:
+            basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
+
+        if qubit_t1 is None:
+            qubit_t1 = 113.3
+
+        if qubit_t2 is None:
+            qubit_t2 = 150.2
+
+        if qubit_frequency is None:
+            qubit_frequency = 4.8
+
+        if qubit_readout_error is None:
+            qubit_readout_error = 0.04
+
+        if single_qubit_gates is None:
+            single_qubit_gates = ['id', 'u1', 'u2', 'u3']
+
         self.name = name
         self.version = version
-        self.now = datetime.now()
-        self.basis_gates = basis_gates if basis_gates else self._DEFAULT_BASIS_GATES
+        self.basis_gates = basis_gates
+        self.qubit_t1 = qubit_t1
+        self.qubit_t2 = qubit_t2
+        self.qubit_frequency = qubit_frequency
+        self.qubit_readout_error = qubit_readout_error
         self.n_qubits = n_qubits
-
+        self.single_qubit_gates = single_qubit_gates
         self.coupling_map = coupling_map
-
-        self.qubit_t1 = qubit_t1 if qubit_t1 else self._DEFAULT_T1
-        self.qubit_t2 = qubit_t2 if qubit_t2 else self._DEFAULT_T2
-        self.qubit_frequency = qubit_frequency if qubit_frequency \
-            else self._DEFAULT_QUBIT_FREQUENCY
-        self.qubit_readout_error = qubit_readout_error if qubit_readout_error \
-            else self._DEFAULT_QUBIT_READOUT_ERROR
+        self.now = datetime.now()
 
     @property
     def cmap(self):
@@ -113,7 +133,7 @@ class FakeBackendBuilder(object):
             parameters = [Nduv(date=self.now, name='gate_error', unit='', value=1.0),
                           Nduv(date=self.now, name='gate_length', unit='', value=0.)]
 
-            if gate in self._SINGLE_QUBIT_GATES:
+            if gate in self.single_qubit_gates:
                 for i in range(self.n_qubits):
                     gates.append(Gate(gate=gate, name="{0}_{1}".format(gate, i),
                                       qubits=[i], parameters=parameters))
@@ -245,10 +265,6 @@ class FakeBackendBuilder(object):
             cmd_def=cmd_def
         )
 
-    def build_backend(self):
-        """Build backend."""
-        pass
-
     def dump(self, folder: str):
         """Dumps backend configuration files to specifier folder."""
         with open('{0}/props_{1}.json'.format(folder, self.name), 'w') as f:
@@ -262,47 +278,24 @@ class FakeBackendBuilder(object):
                       indent=4, sort_keys=True,
                       default=lambda o: '')
 
+    def build(self) -> Type[FakeBackend]:
+        """Generates fake backend type."""
+        configuration = self.build_conf()
 
-def fake_backend_generator(name: str,
-                           n_qubits: int,
-                           version: Optional[str] = '0.0.0',
-                           coupling_map: Optional[List[List[int]]] = None,
-                           basis_gates: Optional[List[str]] = None,
-                           qubit_t1: Optional[float] = None,
-                           qubit_t2: Optional[float] = None,
-                           qubit_frequency: Optional[float] = None,
-                           qubit_readout_error: Optional[float] = None) -> Type[FakeBackend]:
-    """
-    Example:
-        FakeOpenPulse100Q = fake_backend_generator("fake_100_q_backend", 100)
-        instance = FakeOpenPulse100Q()
-    """
+        def fake_init(cls):
+            super(FakeBackend, cls).__init__(configuration)
 
-    builder = FakeBackendBuilder(name=name,
-                                 n_qubits=n_qubits,
-                                 version=version,
-                                 coupling_map=coupling_map,
-                                 basis_gates=basis_gates,
-                                 qubit_t1=qubit_t1,
-                                 qubit_t2=qubit_t2,
-                                 qubit_frequency=qubit_frequency,
-                                 qubit_readout_error=qubit_readout_error)
+        def properties(cls) -> BackendProperties:
+            return self.build_props()
 
-    def fake_init(self):
-        configuration = builder.build_conf()
-        super(FakeBackend, self).__init__(configuration)
+        def defaults(cls) -> PulseDefaults:
+            return self.build_defaults()
 
-    def properties(self) -> BackendProperties:
-        return builder.build_props()
-
-    def defaults(self) -> PulseDefaults:
-        return builder.build_defaults()
-
-    return type('FakeOpenPulse{}Q'.format(n_qubits),
-                (FakeBackend,),
-                {
-                    '__init__': fake_init,
-                    'backend_name': name,
-                    'properties': properties,
-                    'defaults': defaults
-                })
+        return type('FakeOpenPulse{}Q'.format(self.n_qubits),
+                    (FakeBackend,),
+                    {
+                        '__init__': fake_init,
+                        'backend_name': self.name,
+                        'properties': properties,
+                        'defaults': defaults
+                    })

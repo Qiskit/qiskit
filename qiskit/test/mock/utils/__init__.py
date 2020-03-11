@@ -16,4 +16,4 @@
 Utils for test backends.
 """
 
-from .backend import fake_backend_generator
+from .fake_backend_builder import FakeBackendBuilder
