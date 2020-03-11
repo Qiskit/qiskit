@@ -1953,9 +1953,9 @@ class TestTextOpenControlledGate(QiskitTestCase):
             "        ┌───────┴───────┐",
             "q_1: |0>┤ U2(pi,-5pi/8) ├",
             "        └───────┬───────┘",
-            "q_2: |0>────────o────────",
+            "q_2: |0>────────■────────",
             "                │        ",
-            "q_3: |0>────────■────────",
+            "q_3: |0>────────o────────",
             "                         "])
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
