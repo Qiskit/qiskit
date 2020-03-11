@@ -208,8 +208,8 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if trying to add duplicate wire
         """
-        if wire not in self.wires:
-            self.wires.add(wire)
+        if wire not in self._wires:
+            self._wires.add(wire)
 
             wire_name = "%s[%s]" % (wire.register.name, wire.index)
 
