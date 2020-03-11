@@ -36,6 +36,8 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     pulse_matplotlib_reference = path_to_diagram_reference('pulse_matplotlib_ref.png')
     instr_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
     schedule_matplotlib_reference = path_to_diagram_reference('schedule_matplotlib_ref.png')
+    truncated_schedule_matplotlib_reference = path_to_diagram_reference(
+        'truncated_schedule_matplotlib_ref.png')
     schedule_show_framechange_ref = path_to_diagram_reference('schedule_show_framechange_ref.png')
     parametric_matplotlib_reference = path_to_diagram_reference('parametric_matplotlib_ref.png')
 
@@ -119,6 +121,17 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         schedule = self.sample_schedule()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
+        os.remove(filename)
+
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    def test_truncated_schedule_matplotlib_drawer(self):
+        filename = self._get_resource_path('current_truncated_schedule_matplotlib_ref.png')
+        schedule = self.sample_schedule()
+        pulse_drawer(schedule, plot_range=(150, 300), filename=filename)
+        self.assertImagesAreEqual(filename, self.truncated_schedule_matplotlib_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
