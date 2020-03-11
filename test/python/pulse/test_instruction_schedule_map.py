@@ -227,5 +227,3 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.get('f', (0,), x_test), ref_sched)
 
         self.assertEqual(inst_map.get_parameters('f', (0,)), ('x',))
-
-        self.assertEqual(inst_map.get_unevaluated('f', (0,)), test_func)

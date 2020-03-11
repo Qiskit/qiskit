@@ -163,25 +163,6 @@ class InstructionScheduleMap():
         # otherwise this is just a Schedule
         return schedule_generator
 
-    def get_unevaluated(self,
-                        instruction: str,
-                        qubits: Union[int, Iterable[int]]
-                        ) -> Union[Schedule, Callable[..., Schedule]]:
-        """Get raw unevaluated command.
-
-        Args:
-            instruction: The name of the instruction to get.
-            qubits: The qubits for the instruction.
-
-        Returns:
-            The unevaluated ``Callable`` or ``Schedule`` stored internally.
-
-        Raises:
-            PulseError: If command for qubits is not available
-        """
-        self.assert_has(instruction, qubits)
-        return self._map[instruction][_to_tuple(qubits)]
-
     def add(self,
             instruction: str,
             qubits: Union[int, Iterable[int]],
