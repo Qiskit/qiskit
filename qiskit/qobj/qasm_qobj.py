@@ -37,7 +37,7 @@ class QasmQobjInstruction:
 
     def __init__(self, name, params=None, qubits=None, register=None,
                  memory=None, condition=None, conditional=None, label=None,
-                 mask=None, relation=None, val=None):
+                 mask=None, relation=None, val=None, snapshot_type=None):
         """Instatiate a new QasmQobjInstruction object.
 
         Args:
@@ -67,6 +67,8 @@ class QasmQobjInstruction:
                 ``!=`` (not equals).
             val (int): Value to which to compare the masked register. In other
                 words, the output of the function is ``(register AND mask)``
+            snapshot_type (str): For snapshot instructions the type of snapshot
+                to use
         """
         self.name = name
         if params is not None:
@@ -89,6 +91,8 @@ class QasmQobjInstruction:
             self.relation = relation
         if val is not None:
             self.val = val
+        if snapshot_type is not None:
+            self.snapshot_type = snapshot_type
 
     def to_dict(self):
         """Return a dictionary format representation of the Instruction.
@@ -98,7 +102,8 @@ class QasmQobjInstruction:
         """
         out_dict = {'name': self.name}
         for attr in ['params', 'qubits', 'register', 'memory', '_condition',
-                     'conditional', 'label', 'mask', 'relation', 'val']:
+                     'conditional', 'label', 'mask', 'relation', 'val',
+                     'snapshot_type']:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)
 
