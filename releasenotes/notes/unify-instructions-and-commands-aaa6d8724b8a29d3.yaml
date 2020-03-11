@@ -22,10 +22,11 @@ features:
 
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
-upgrade:
+deprecation:
   - |
     ``DelayInstruction`` has been deprecated and replaced by
-    :py:class:`~qiskit.pulse.instruction.Delay`. The migration pattern is::
+    :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
+    taken over the previous ``Command`` ``Delay``. The migration pattern is::
 
         Delay(<duration>)(<channel>) -> Delay(<duration>, <channel>)
         DelayInstruction(Delay(<duration>), <channel>)
