@@ -132,8 +132,8 @@ class TestQASMQobj(QiskitTestCase):
                     {'name': 'snapshot', 'qubits': [1],
                      'snapshot_type': 'statevector', 'label': 'my_snap'}
                 ],
-                'config': {},
-                'header': {}}
+                 'config': {},
+                 'header': {}}
             ],
         }
         self.assertEqual(expected_dict, res)
