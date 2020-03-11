@@ -34,7 +34,7 @@ class Kernel:
             params: Any settings for kerneling.
         """
         self.name = name
-        self.params = params['params']
+        self.params = params
 
     def __repr__(self):
         return "{}({}{})".format(self.__class__.__name__,
@@ -55,7 +55,7 @@ class Discriminator:
             params: Any settings for discrimination.
         """
         self.name = name
-        self.params = params['params']
+        self.params = params
 
     def __repr__(self):
         return "{}({}{})".format(self.__class__.__name__,
