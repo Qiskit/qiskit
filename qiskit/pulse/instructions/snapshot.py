@@ -36,7 +36,7 @@ class Snapshot(Instruction):
             name: Snapshot name which defaults to ``label``. This parameter is only for display
                   purposes and is not taken into account during comparison.
         """
-        self._label = label or "snap{:10x}".format(hash((snapshot_type)))
+        self._label = label
         self._type = snapshot_type
         if name is None:
             name = self.label
