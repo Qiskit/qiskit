@@ -30,9 +30,19 @@ class Pulse(ABC):
         else:
             raise PulseError('Pulse duration should be integer.')
 
-    def __call__(self):
-        """TODO, deprecated"""
-        pass
+    def __call__(self, channel: PulseChannel) -> 'Instruction':
+        """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
+        ``channel``.
+
+        Args:
+            channel: The channel that will have the pulse.
+
+        Return:
+            Complete and ready to schedule ``Play``.
+        """
+        warnings.warn("Calling a ``Pulse`` with a channel is deprecated. Instantiate ``Play`` "
+                      "directly with a pulse and a channel.", DeprecationWarning)
+        return Play(self, channel)
 
     @abstractmethod
     def draw(self, dt: float = 1,
@@ -56,4 +66,4 @@ class Pulse(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
-        pass
+        raise NotImplementedError

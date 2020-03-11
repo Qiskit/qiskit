@@ -25,29 +25,30 @@ class Play(Instruction):
 
     def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
         """TODO"""
-        self._pulse
+        self._pulse = pulse
         self._channel = channel
-        super().__init__(pulse.duration, channel)
+        super().__init__(pulse.duration, channel, name=name)
 
     @property
-    def channel:
+    def operands(self) -> List:
         """TODO"""
-        return channel
+        return [self.pulse, self.channel]
+
+    @property
+    def channel(self) -> PulseChannel:
+        """TODO"""
+        return self._channel
 
     @property
     def pulse(self) -> Pulse:
         """TODO"""
-        return pulse
+        return self._pulse
 
     @property
     def pulse_name(self) -> str:
-        return pulse.name
-
-    @property
-    def operands(self):
-        """TODO"""
-        return # TODO
+        return self.pulse.name
 
     def __repr__(self):
         """TODO"""
-        pass
+        return "{}({}, {}, name={})".format(self.__class__.__name__, self.pulse, self.channel,
+                                            self.name)

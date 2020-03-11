@@ -65,10 +65,6 @@ class ParametricPulse(Pulse):
         super().__init__(duration=duration)
         self.validate_parameters()
 
-    def __call__(self):
-        """TODO, deprecated"""
-        pass
-
     @abstractmethod
     def get_sample_pulse(self) -> SamplePulse:
         """Return a SamplePulse with samples filled according to the formula that the pulse
