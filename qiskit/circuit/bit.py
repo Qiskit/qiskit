@@ -41,6 +41,9 @@ class Bit:
 
         self._register = register
         self._index = index
+        self._update_hash()
+
+    def _update_hash(self):
         self._hash = hash((self._register, self._index))
 
     @property
@@ -53,7 +56,7 @@ class Bit:
         """Set bit's register."""
         self._register = value
         if hasattr(self, '_index'):
-            self._hash = hash((self._register, self._index))
+            self._update_hash()
 
     @property
     def index(self):
@@ -65,7 +68,7 @@ class Bit:
         """Set bit's index."""
         self._index = value
         if hasattr(self, '_register'):
-            self._hash = hash((self._register, self._index))
+            self._update_hash()
 
     def __repr__(self):
         """Return the official string representing the bit."""

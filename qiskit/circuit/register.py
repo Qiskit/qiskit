@@ -64,8 +64,12 @@ class Register:
         self._name = name
         self._size = size
 
-        self._bits = [self.bit_type(self, idx) for idx in range(size)]
         self._hash = hash((type(self), self._name, self._size))
+        self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
+    def _update_bits_hash(self):
+        for bit in self._bits:
+            bit._update_hash()
 
     @property
     def name(self):
@@ -78,6 +82,7 @@ class Register:
         self._name = value
         if hasattr(self, '_size'):
             self._hash = hash((type(self), self._name, self._size))
+            self._update_bits_hash()
 
     @property
     def size(self):
@@ -90,6 +95,7 @@ class Register:
         self._size = value
         if hasattr(self, '_name'):
             self._hash = hash((type(self), self._name, self._size))
+            self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -148,6 +154,4 @@ class Register:
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        if not hasattr(self, '_hash'):
-            self._hash = hash((type(self), self._name, self._size))
         return self._hash
