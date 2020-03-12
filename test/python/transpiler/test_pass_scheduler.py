@@ -296,7 +296,7 @@ class TestUseCases(SchedulerTestCase):
         self.passmanager.append(PassI_Bad_AP())
         self.assertSchedulerRaises(circ, self.passmanager,
                                    ['run analysis pass PassI_Bad_AP',
-                                    'cx_runs: {(5, 6, 7, 8)}'],
+                                    'cx_runs: {(4, 5, 6, 7)}'],
                                    TranspilerError)
 
     def test_analysis_pass_is_idempotent(self):
