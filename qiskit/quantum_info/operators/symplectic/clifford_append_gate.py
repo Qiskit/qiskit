@@ -9,7 +9,9 @@ Clifford class gate update utility function
 """
 # pylint: disable=invalid-name
 
-from qiskit import QiskitError
+import numpy as np
+from qiskit.exceptions import QiskitError
+from qiskit.circuit import QuantumCircuit
 
 
 # ---------------------------------------------------------------------
@@ -212,7 +214,6 @@ def append_v(clifford, qubit):
     """
     x = clifford.table.X[:, qubit]
     z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= False
     tmp = x.copy()
     x ^= z
     z[:] = tmp
@@ -233,7 +234,6 @@ def append_w(clifford, qubit):
     """
     x = clifford.table.X[:, qubit]
     z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= False
     tmp = z.copy()
     z ^= x
     x[:] = tmp
@@ -276,7 +276,7 @@ def append_cz(clifford, control, target):
     z0 = clifford.table.Z[:, control]
     x1 = clifford.table.X[:, target]
     z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= (z1 ^ z0 ^ True) & x1 & x0
+    clifford.table.phase ^= x0 & x1 & (z0 ^ z1)
     z1 ^= x0
     z0 ^= x1
     return clifford
@@ -296,3 +296,140 @@ def append_swap(clifford, qubit0, qubit1):
     clifford.table.X[:, [qubit0, qubit1]] = clifford.table.X[:, [qubit1, qubit0]]
     clifford.table.Z[:, [qubit0, qubit1]] = clifford.table.Z[:, [qubit1, qubit0]]
     return clifford
+
+
+def decompose_clifford(clifford):
+    """Decompose a Clifford into a QuantumCircuit.
+
+    TODO: Reference paper for Algorithm (Gottesman?).
+
+    Args:
+        clifford (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+    """
+    # Compose a circuit which we will convert to an instruction
+    circuit = QuantumCircuit(clifford.n_qubits,
+                             name=str(clifford))
+
+    # Make a copy of Clifford as we are going to do row reduction to
+    # reduce it to an identity
+    clifford_cpy = clifford.copy()
+
+    for i in range(clifford.n_qubits):
+        # * make1forXkk(i)
+
+        # put a 1 one into position by permuting and using Hadamards(i,i)
+        set_qubit_x_true(clifford_cpy, circuit, i)
+        # * .makeXrowzero(i)
+        # make all entries in row i except ith equal to 0
+        # by using phase gate and CNOTS
+        set_row_x_zero(clifford_cpy, circuit, i)
+        #  * makeZrowzero(i)
+        # treat Zs
+        set_row_z_zero(clifford_cpy, circuit, i)
+
+    for i in range(clifford.n_qubits):
+        if clifford_cpy.destabilizer.phase[i]:
+            append_z(clifford_cpy, i)
+            circuit.z(i)
+        if clifford_cpy.stabilizer.phase[i]:
+            append_x(clifford_cpy, i)
+            circuit.x(i)
+    # Next we invert the circuit to undo the row reduction and return the
+    # result as a gate instruction
+    return circuit.inverse()
+
+
+def set_qubit_x_true(clifford, circuit, qubit):
+    """Set destabilizer.X[qubit, qubit] to be True.
+
+    This is done by permuting columns l > qubit or if necessary applying
+    a Hadamard
+    """
+    x = clifford.destabilizer.X[qubit]
+    z = clifford.destabilizer.Z[qubit]
+
+    if x[qubit]:
+        return
+
+    # Try to find non-zero element
+    for i in range(qubit + 1, clifford.n_qubits):
+        if x[i]:
+            append_swap(clifford, i, qubit)
+            circuit.swap(i, qubit)
+            return
+
+    # no non-zero element found: need to apply Hadamard somewhere
+    for i in range(qubit, clifford.n_qubits):
+        if z[i]:
+            append_h(clifford, i)
+            circuit.h(i)
+            if i != qubit:
+                append_swap(clifford, i, qubit)
+                circuit.swap(i, qubit)
+            return
+
+
+def set_row_x_zero(clifford, circuit, qubit):
+    """Set destabilizer.X[qubit, i] to False for all i > qubit.
+
+    This is done by applying CNOTS assumes k<=N and A[k][k]=1
+    """
+    x = clifford.destabilizer.X[qubit]
+    z = clifford.destabilizer.Z[qubit]
+
+    # Check X first
+    for i in range(qubit + 1, clifford.n_qubits):
+        if x[i]:
+            append_cx(clifford, qubit, i)
+            circuit.cx(qubit, i)
+
+    # Check whether Zs need to be set to zero:
+    if np.any(z[qubit:]):
+        if not z[qubit]:
+            # to treat Zs: make sure row.Z[k] to True
+            append_s(clifford, qubit)
+            circuit.s(qubit)
+
+        # reverse CNOTS
+        for i in range(qubit + 1, clifford.n_qubits):
+            if z[i]:
+                append_cx(clifford, i, qubit)
+                circuit.cx(i, qubit)
+        # set row.Z[qubit] to False
+        append_s(clifford, qubit)
+        circuit.s(qubit)
+
+
+def set_row_z_zero(clifford, circuit, qubit):
+    """Set stabilizer.Z[qubit, i] to False for all i > qubit.
+
+    Implemented by applying (reverse) CNOTS assumes qubit < n_qubits
+    and set_row_x_zero has been called first
+    """
+
+    x = clifford.stabilizer.X[qubit]
+    z = clifford.stabilizer.Z[qubit]
+
+    # check whether Zs need to be set to zero:
+    if np.any(z[qubit + 1:]):
+        for i in range(qubit + 1, clifford.n_qubits):
+            if z[i]:
+                append_cx(clifford, i, qubit)
+                circuit.cx(i, qubit)
+
+    # check whether Xs need to be set to zero:
+    if np.any(x[qubit:]):
+        append_h(clifford, qubit)
+        circuit.h(qubit)
+        for i in range(qubit + 1, clifford.n_qubits):
+            if x[i]:
+                append_cx(clifford, qubit, i)
+                circuit.cx(qubit, i)
+        if z[qubit]:
+            append_s(clifford, qubit)
+            circuit.s(qubit)
+        append_h(clifford, qubit)
+        circuit.h(qubit)

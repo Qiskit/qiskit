@@ -13,9 +13,11 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
+from qiskit.quantum_info.operators.symplectic.clifford_append_gate import (append_gate,
+                                                                           decompose_clifford)
 
 
 class Clifford(BaseOperator):
@@ -145,22 +147,6 @@ class Clifford(BaseOperator):
 
         return np.array_equal(arr.T.dot(seye).dot(arr) % 2, seye)
 
-    def to_matrix(self):
-        """Convert operator to Numpy matrix."""
-
-        # TODO: IMPLEMENT ME!
-
-        raise NotImplementedError(
-            'This method has not been implemented for Clifford operators yet.')
-
-    def to_operator(self):
-        """Convert to an Operator object."""
-
-        # TODO: IMPLEMENT ME!
-
-        raise NotImplementedError(
-            'This method has not been implemented for Clifford operators yet.')
-
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
     # ---------------------------------------------------------------------
@@ -287,6 +273,22 @@ class Clifford(BaseOperator):
         destabilizer = StabilizerTable.from_labels(obj.get('destabilizer'))
         stabilizer = StabilizerTable.from_labels(obj.get('stabilizer'))
         return Clifford(destabilizer + stabilizer)
+
+    def to_matrix(self):
+        """Convert operator to Numpy matrix."""
+        return self.to_operator().data
+
+    def to_operator(self):
+        """Convert to an Operator object."""
+        return Operator(self.to_gate())
+
+    def to_circuit(self):
+        """Return a QuantumCircuit implementing the Clifford."""
+        return decompose_clifford(self)
+
+    def to_gate(self):
+        """Return a Gate instruction implementing the Clifford."""
+        return self.to_circuit().to_gate()
 
     @staticmethod
     def from_instruction(instruction):
