@@ -80,7 +80,7 @@ def _load_from_string(qasm_src: str or List[str],
     return circ
 
 
-def _load_from_file(filename: str or List[str],
+def _load_from_file(filename: str,
                     loader: str = None,
                     include_path: str = '') -> QuantumCircuit:
     """
