@@ -20,6 +20,7 @@ Provide for pluggable qasm translator
 Based on conversation with Dr. Luciano Bello
 @author: jax
 """
+from os import linesep
 from typing import List
 from qiskit import QuantumCircuit, QiskitError
 from qiskit.qasm import Qasm
@@ -61,11 +62,9 @@ def load(qasm_src: str or List[str], loader: str = 'qasm',
 
     circ = None
     if loader == 'qasm':
-        tt_s = type(qasm_src)
-        if tt_s is str:
-            qasm = Qasm(data=qasm_src)
-        elif tt_s is List[str]:
-            qasm = Qasm(data=qasm_src)
+        if isinstance(qasm_src, list):
+            qasm_src = ''.join(s + linesep for s in qasm_src)
+        qasm = Qasm(data=qasm_src)
         circ = _qasm_load(qasm)
     elif loader == 'nuqasm2':
         from nuqasm2 import load_string
