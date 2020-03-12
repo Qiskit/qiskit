@@ -1,3 +1,6 @@
+# pylint: disable=invalid-file-header
+# TODO: fix header regex bug and remove pylint disable
+
 # -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
@@ -25,7 +28,6 @@ import numpy as np
 
 def interp1d(time, samples, nop, kind='linear'):
     """Scipy interpolation wrapper.
-
     Args:
         time (ndarray): time.
         samples (ndarray): complex pulse envelope.
@@ -41,16 +43,44 @@ def interp1d(time, samples, nop, kind='linear'):
     dt = time[1] - time[0]
 
     time += 0.5 * dt
-    cs_ry = interpolate.interp1d(time[:-1], re_y, kind=kind, bounds_error=False)
-    cs_iy = interpolate.interp1d(time[:-1], im_y, kind=kind, bounds_error=False)
+
+    cs_ry = interpolate.interp1d(
+        time[:-1], re_y, kind=kind, bounds_error=False)
+    cs_iy = interpolate.interp1d(
+        time[:-1], im_y, kind=kind, bounds_error=False)
 
     time_ = np.linspace(time[0], time[-1] * dt, nop)
 
     return time_, cs_ry(time_), cs_iy(time_)
 
 
+def step_wise(time, samples, nop):
+    """Scipy interpolation wrapper.
+​
+    Args:
+        time (ndarray): time.
+        samples (ndarray): complex pulse envelope.
+        nop (int): data points for interpolation.
+    Returns:
+        ndarray: interpolated waveform.
+    """
+
+    samples_ = np.repeat(samples, 2)
+    re_y_ = np.real(samples_)
+    im_y_ = np.imag(samples_)
+
+    time__ = np.concatenate(([time[0]], np.repeat(time[1:-1], 2), [time[-1]]))
+
+    cs_ry_ = interpolate.interp1d(
+        time__, re_y_, kind='nearest', bounds_error=False)
+    cs_iy_ = interpolate.interp1d(
+        time__, im_y_, kind='nearest', bounds_error=False)
+
+    time_ = np.linspace(time[0], time[-1], nop)
+
+    return time_, cs_ry_(time_), cs_iy_(time_)
+
+
 linear = partial(interp1d, kind='linear')
 
 cubic_spline = partial(interp1d, kind='cubic')
-
-step_wise = partial(interp1d, kind='nearest')
