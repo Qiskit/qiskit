@@ -59,9 +59,12 @@ class QuantumChannel(BaseOperator):
         super().__init__(input_dims, output_dims)
 
     def __repr__(self):
-        return '{}({}, input_dims={}, output_dims={})'.format(
-            self._channel_rep, self._data, self._input_dims,
-            self._output_dims)
+        prefix = '{}('.format(self._channel_rep)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}input_dims={}, output_dims={})'.format(
+            prefix, np.array2string(
+                np.asarray(self.data), separator=', ', prefix=prefix),
+            pad, self._input_dims, self._output_dims)
 
     def __eq__(self, other):
         """Test if two QuantumChannels are equal."""
