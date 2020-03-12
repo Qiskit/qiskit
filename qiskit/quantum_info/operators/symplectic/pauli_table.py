@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
@@ -127,7 +128,7 @@ class PauliTable(BaseOperator):
         """Initialize the PauliTable.
 
         Args:
-            data (array or str): input data.
+            data (array or str or ScalarOp or PauliTable): input data.
 
         Raises:
             QiskitError: if input array is invalid shape.
@@ -142,6 +143,13 @@ class PauliTable(BaseOperator):
         elif isinstance(data, PauliTable):
             # Share underlying array
             self._array = data._array
+        elif isinstance(data, ScalarOp):
+            # Initialize an N-qubit identity
+            if data.coeff != 1 or set(data._input_dims) != set([2]):
+                raise QiskitError(
+                    '{} is not an N-qubit identity'.format(data))
+            n_qubits = len(data._input_dims)
+            self._array = np.zeros((1, 2 * n_qubits), dtype=np.bool)
         else:
             # Convert to bool array avoiding copy if possible
             self._array = np.asarray(data, dtype=np.bool)
@@ -628,18 +636,37 @@ class PauliTable(BaseOperator):
         """
         return self.compose(other, qargs=qargs, front=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Append with another PauliTable.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (PauliTable): another table.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             PauliTable: the concatinated table self + other.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        return PauliTable(np.vstack((self._array, other._array)))
+
+        self._validate_add_dims(other, qargs)
+
+        if qargs is None or (sorted(qargs) == qargs
+                             and len(qargs) == self.n_qubits):
+            return PauliTable(np.vstack((self._array, other._array)))
+
+        # Pad other with identity and then add
+        padded = PauliTable(
+            np.zeros((1, 2 * self.n_qubits), dtype=np.bool))
+        padded = padded.compose(other, qargs=qargs)
+        return PauliTable(np.vstack((self._array, padded._array)))
 
     def conjugate(self):
         """Not implemented."""

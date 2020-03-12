@@ -265,6 +265,31 @@ class TestPauliTableProperties(QiskitTestCase):
         target = PauliTable.from_labels(labels1 + labels2)
         self.assertEqual(target, pauli1 + pauli2)
 
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        pauli1 = PauliTable.from_labels(['IIII', 'YYYY'])
+        pauli2 = PauliTable.from_labels(['XY', 'YZ'])
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            target = PauliTable.from_labels(
+                ['IIII', 'YYYY', 'IIXY', 'IIYZ'])
+            self.assertEqual(pauli1 + pauli2([0, 1]), target)
+
+        with self.subTest(msg='qargs=[0, 3]'):
+            target = PauliTable.from_labels(
+                ['IIII', 'YYYY', 'XIIY', 'YIIZ'])
+            self.assertEqual(pauli1 + pauli2([0, 3]), target)
+
+        with self.subTest(msg='qargs=[2, 1]'):
+            target = PauliTable.from_labels(
+                ['IIII', 'YYYY', 'IYXI', 'IZYI'])
+            self.assertEqual(pauli1 + pauli2([2, 1]), target)
+
+        with self.subTest(msg='qargs=[3, 1]'):
+            target = PauliTable.from_labels(
+                ['IIII', 'YYYY', 'YIXI', 'ZIYI'])
+            self.assertEqual(pauli1 + pauli2([3, 1]), target)
+
     def test_getitem_methods(self):
         """Test __getitem__ method."""
         with self.subTest(msg='__getitem__ single'):
