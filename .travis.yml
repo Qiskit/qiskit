@@ -37,19 +37,12 @@ script:
 after_failure:
     - python tools/report_ci_failure.py
 
-stages:
-  - name: deploy
-    if: tag IS present
-  - name: tests
-    if: tag IS blank
-
 jobs:
   fast_finish: true
   allow_failures:
     - name: Randomized tests
   include:
     - name: Python 3.6 Tests and Coverage Linux
-      stage: tests
       python: 3.6
       env:
         - PYTHON="coverage run --source qiskit --parallel-mode"
@@ -62,7 +55,6 @@ jobs:
 
     - name: Python 3.6 Tests (Networkx)
       python: 3.6
-      stage: tests
       install:
         # Install step for jobs that require compilation and qa.
         - pip install -U -r requirements.txt -c constraints.txt
@@ -75,7 +67,6 @@ jobs:
 
     # Randomized testing
     - name: Randomized tests
-      stage: tests
       cache:
         pip: true
         directories:
@@ -85,58 +76,3 @@ jobs:
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
       - make test_randomized
-    # non-x86 wheel builds
-    - stage: deploy
-      arch: arm64
-      services:
-        - docker
-      before_install:
-        - echo ""
-      install:
-        - echo ""
-      env:
-        - CIBW_BEFORE_BUILD: pip install -U Cython
-        - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS present
-      script:
-        - sudo pip install -U twine cibuildwheel
-        - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
-    - stage: deploy
-      arch: ppc64le
-      services:
-        - docker
-      before_install:
-        - echo ""
-      install:
-        - echo ""
-      env:
-        - CIBW_BEFORE_BUILD: pip install -U Cython
-        - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS present
-      script:
-        - sudo pip install -U twine cibuildwheel
-        - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
-    - stage: deploy
-      arch: s390x
-      services:
-        - docker
-      before_install:
-        - echo ""
-      install:
-        - echo ""
-      env:
-        - CIBW_BEFORE_BUILD: pip install -U Cython
-        - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS present
-      script:
-        - sudo pip install -U twine cibuildwheel
-        - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
