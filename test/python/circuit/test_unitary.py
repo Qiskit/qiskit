@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=arguments-differ,method-hidden
+
 """Quick program to test the qi tools modules."""
 
 import json
@@ -166,9 +168,20 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(instr.name, 'unitary')
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
         # check conversion to dict
-        qobj_dict = qobj.to_dict()
+        qobj_dict = qobj.to_dict(validate=True)
+
+        class NumpyEncoder(json.JSONEncoder):
+            """Class for encoding json str with complex and numpy arrays."""
+            def default(self, obj):
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, complex):
+                    return (obj.real, obj.imag)
+                return json.JSONEncoder.default(self, obj)
+
         # check json serialization
-        self.assertTrue(isinstance(json.dumps(qobj_dict), str))
+        self.assertTrue(isinstance(json.dumps(qobj_dict, cls=NumpyEncoder),
+                                   str))
 
     def test_labeled_unitary(self):
         """test qobj output with unitary matrix"""

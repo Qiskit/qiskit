@@ -38,6 +38,11 @@ from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
+try:
+    import retworkx as rx
+except ImportError:
+    pass
+
 
 def raise_if_dagcircuit_invalid(dag):
     """Validates the internal consistency of a DAGCircuit._multi_graph.
@@ -49,12 +54,16 @@ def raise_if_dagcircuit_invalid(dag):
 
     multi_graph = dag._multi_graph
 
-    if not nx.is_directed_acyclic_graph(multi_graph):
-        raise DAGCircuitError('multi_graph is not a DAG.')
+    if dag._USE_RX:
+        if not rx.is_directed_acyclic_graph(multi_graph):
+            raise DAGCircuitError('multi_graph is not a DAG.')
+    else:
+        if not nx.is_directed_acyclic_graph(multi_graph):
+            raise DAGCircuitError('multi_graph is not a DAG.')
 
     # Every node should be of type in, out, or op.
     # All input/output nodes should be present in input_map/output_map.
-    for node in multi_graph.nodes():
+    for node in dag._get_multi_graph_nodes():
         if node.type == 'in':
             assert node is dag.input_map[node.wire]
         elif node.type == 'out':
@@ -73,7 +82,7 @@ def raise_if_dagcircuit_invalid(dag):
     # Every edge should be labled with a known wire.
     edges_outside_wires = [edge_data['wire']
                            for source, dest, edge_data
-                           in multi_graph.edges(data=True)
+                           in dag._get_multi_graph_edges()
                            if edge_data['wire'] not in dag.wires]
     if edges_outside_wires:
         raise DAGCircuitError('multi_graph contains one or more edges ({}) '
@@ -92,25 +101,25 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Every wire should be propagated by exactly one edge between nodes.
     for wire in dag.wires:
-        cur_node = dag.input_map[wire]
-        out_node = dag.output_map[wire]
+        cur_node_id = dag.input_map[wire]._node_id
+        out_node_id = dag.output_map[wire]._node_id
 
-        while cur_node != out_node:
-            out_edges = multi_graph.out_edges(cur_node, data=True)
+        while cur_node_id != out_node_id:
+            out_edges = dag._get_multi_graph_out_edges(cur_node_id)
             edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges
                                if data['wire'] == wire]
 
             assert len(edges_to_follow) == 1
-            cur_node = edges_to_follow[0][1]
+            cur_node_id = edges_to_follow[0][1]
 
     # Wires can only terminate at input/output nodes.
     for op_node in dag.op_nodes():
-        assert multi_graph.in_degree(op_node) == multi_graph.out_degree(op_node)
+        assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
-        in_edges = multi_graph.in_edges(node, data=True)
-        out_edges = multi_graph.out_edges(node, data=True)
+        in_edges = dag._get_multi_graph_in_edges(node._node_id)
+        out_edges = dag._get_multi_graph_out_edges(node._node_id)
 
         in_wires = {data['wire'] for src, dest, data in in_edges}
         out_wires = {data['wire'] for src, dest, data in out_edges}
@@ -204,6 +213,20 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
 
+    def test_edges(self):
+        """Test that DAGCircuit.edges() behaves as expected with ops."""
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [], condition=None)
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
+        out_edges = self.dag.edges(self.dag.output_map.values())
+        self.assertEqual(list(out_edges), [])
+        in_edges = self.dag.edges(self.dag.input_map.values())
+        # number of edges for input nodes should be the same as number of wires
+        self.assertEqual(len(list(in_edges)), 5)
+
     def test_apply_operation_back_conditional(self):
         """Test consistency of apply_operation_back with condition set."""
 
@@ -219,28 +242,31 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(h_node.condition, h_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(h_node, data=True)),
+            sorted(self.dag._get_multi_graph_in_edges(h_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit2], h_node,
+                (self.dag.input_map[self.qubit2]._node_id, h_node._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (self.dag.input_map[self.clbit0], h_node,
+                (self.dag.input_map[self.clbit0]._node_id, h_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], h_node,
+                (self.dag.input_map[self.clbit1]._node_id, h_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(h_node, data=True)),
+            sorted(self.dag._get_multi_graph_out_edges(h_node._node_id)),
             sorted([
-                (h_node, self.dag.output_map[self.qubit2],
+                (h_node._node_id, self.dag.output_map[self.qubit2]._node_id,
                  {'wire': self.qubit2, 'name': 'qr[2]'}),
-                (h_node, self.dag.output_map[self.clbit0],
+                (h_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (h_node, self.dag.output_map[self.clbit1],
+                (h_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_back_conditional_measure(self):
         """Test consistency of apply_operation_back for conditional measure."""
@@ -261,28 +287,31 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
+            sorted(self.dag._get_multi_graph_in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit0], meas_node,
+                (self.dag.input_map[self.qubit0]._node_id, meas_node._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[new_creg[0]], meas_node,
+                (self.dag.input_map[new_creg[0]]._node_id, meas_node._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
+            sorted(self.dag._get_multi_graph_out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit0],
+                (meas_node._node_id, self.dag.output_map[self.qubit0]._node_id,
                  {'wire': self.qubit0, 'name': 'qr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[new_creg[0]],
+                (meas_node._node_id, self.dag.output_map[new_creg[0]]._node_id,
                  {'wire': Clbit(new_creg, 0), 'name': 'cr2[0]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_back_conditional_measure_to_self(self):
         """Test consistency of apply_operation_back for measure onto conditioning bit."""
@@ -300,28 +329,31 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(meas_node.condition, meas_gate.condition)
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(meas_node, data=True)),
+            sorted(self.dag._get_multi_graph_in_edges(meas_node._node_id)),
             sorted([
-                (self.dag.input_map[self.qubit1], meas_node,
+                (self.dag.input_map[self.qubit1]._node_id, meas_node._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (self.dag.input_map[self.clbit0], meas_node,
+                (self.dag.input_map[self.clbit0]._node_id, meas_node._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (self.dag.input_map[self.clbit1], meas_node,
+                (self.dag.input_map[self.clbit1]._node_id, meas_node._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(meas_node, data=True)),
+            sorted(self.dag._get_multi_graph_out_edges(meas_node._node_id)),
             sorted([
-                (meas_node, self.dag.output_map[self.qubit1],
+                (meas_node._node_id, self.dag.output_map[self.qubit1]._node_id,
                  {'wire': self.qubit1, 'name': 'qr[1]'}),
-                (meas_node, self.dag.output_map[self.clbit0],
+                (meas_node._node_id, self.dag.output_map[self.clbit0]._node_id,
                  {'wire': self.clbit0, 'name': 'cr[0]'}),
-                (meas_node, self.dag.output_map[self.clbit1],
+                (meas_node._node_id, self.dag.output_map[self.clbit1]._node_id,
                  {'wire': self.clbit1, 'name': 'cr[1]'}),
             ]))
 
-        self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
+        if self.dag._USE_RX:
+            self.assertTrue(rx.is_directed_acyclic_graph(self.dag._multi_graph))
+        else:
+            self.assertTrue(nx.is_directed_acyclic_graph(self.dag._multi_graph))
 
     def test_apply_operation_front(self):
         """The apply_operation_front() method"""
@@ -363,6 +395,15 @@ class TestDagOperations(QiskitTestCase):
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
+
+        # q_0: |0>─────■───|0>─
+        #         ┌─┐┌─┴─┐
+        # q_1: |0>┤M├┤ X ├─────
+        #         └╥┘└───┘
+        #  c_0: 0 ═╬═══════════
+        #          ║
+        #  c_1: 0 ═╩═══════════
+
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
@@ -376,13 +417,29 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
-        self.assertEqual(next(successor_cnot).type, 'out')
-        self.assertIsInstance(next(successor_cnot).op, Reset)
+        # Ordering between Reset and out[q1] is indeterminant.
+
+        successor1 = next(successor_cnot)
+        successor2 = next(successor_cnot)
         with self.assertRaises(StopIteration):
             next(successor_cnot)
 
+        self.assertTrue(
+            (successor1.type == 'out' and isinstance(successor2.op, Reset))
+            or (successor2.type == 'out' and isinstance(successor1.op, Reset))
+        )
+
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
+
+        # q_0: |0>─|0>───■─────
+        #              ┌─┴─┐┌─┐
+        # q_1: |0>─────┤ X ├┤M├
+        #              └───┘└╥┘
+        #  c_0: 0 ═══════════╬═
+        #                    ║
+        #  c_1: 0 ═══════════╩═
+
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
@@ -396,10 +453,17 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
-        self.assertIsInstance(next(predecessor_cnot).op, Reset)
-        self.assertEqual(next(predecessor_cnot).type, 'in')
+        # Ordering between Reset and in[q1] is indeterminant.
+
+        predecessor1 = next(predecessor_cnot)
+        predecessor2 = next(predecessor_cnot)
         with self.assertRaises(StopIteration):
             next(predecessor_cnot)
+
+        self.assertTrue(
+            (predecessor1.type == 'in' and isinstance(predecessor2.op, Reset))
+            or (predecessor2.type == 'in' and isinstance(predecessor1.op, Reset))
+        )
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -501,12 +565,12 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
 
         qbit = self.dag.qubits()[0]
-        self.assertEqual([1, 11, 12, 2], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
-        self.assertEqual([11, 12],
+        self.assertEqual([0, 10, 11, 1], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
+        self.assertEqual([10, 11],
                          [i._node_id for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
 
         cbit = self.dag.clbits()[0]
-        self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
+        self.assertEqual([6, 7], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
         with self.assertRaises(DAGCircuitError):
@@ -671,7 +735,7 @@ class TestDagLayers(QiskitTestCase):
         qr = QuantumRegister(1, 'q0')
 
         # the order the nodes should be in
-        truth = [('in', 'q0[0]', 1), ('op', 'x', 3), ('op', 'id', 4), ('out', 'q0[0]', 2)]
+        truth = [('in', 'q0[0]', 0), ('op', 'x', 2), ('op', 'id', 3), ('out', 'q0[0]', 1)]
 
         # this only occurred sometimes so has to be run more than once
         # (10 times seemed to always be enough for this bug to show at least once)
