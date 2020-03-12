@@ -533,6 +533,106 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(self.rand_matrix(3, 3))
         self.assertRaises(QiskitError, op1._add, op2)
 
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        mat = self.rand_matrix(8, 8)
+        mat0 = self.rand_matrix(2, 2)
+        mat1 = self.rand_matrix(2, 2)
+
+        op = Operator(mat)
+        op0 = Operator(mat0)
+        op01 = Operator(np.kron(mat1, mat0))
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + Operator(np.kron(np.eye(4), mat0))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + Operator(
+                np.kron(np.kron(np.eye(2), mat0), np.eye(2)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + Operator(np.kron(mat0, np.eye(4)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op + op01([0, 1])
+            target = op + Operator(
+                np.kron(np.eye(2), np.kron(mat1, mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op + op01([1, 0])
+            target = op + Operator(
+                np.kron(np.eye(2), np.kron(mat0, mat1)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op + op01([0, 2])
+            target = op + Operator(
+                np.kron(mat1, np.kron(np.eye(2), mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op + op01([2, 0])
+            target = op + Operator(
+                np.kron(mat0, np.kron(np.eye(2), mat1)))
+            self.assertEqual(value, target)
+
+    def test_sub_qargs(self):
+        """Test subtract method with qargs."""
+        mat = self.rand_matrix(8, 8)
+        mat0 = self.rand_matrix(2, 2)
+        mat1 = self.rand_matrix(2, 2)
+
+        op = Operator(mat)
+        op0 = Operator(mat0)
+        op01 = Operator(np.kron(mat1, mat0))
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - Operator(np.kron(np.eye(4), mat0))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - Operator(
+                np.kron(np.kron(np.eye(2), mat0), np.eye(2)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - Operator(np.kron(mat0, np.eye(4)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op - op01([0, 1])
+            target = op - Operator(
+                np.kron(np.eye(2), np.kron(mat1, mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op - op01([1, 0])
+            target = op - Operator(
+                np.kron(np.eye(2), np.kron(mat0, mat1)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op - op01([0, 2])
+            target = op - Operator(
+                np.kron(mat1, np.kron(np.eye(2), mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op - op01([2, 0])
+            target = op - Operator(
+                np.kron(mat0, np.kron(np.eye(2), mat1)))
+            self.assertEqual(value, target)
+
     def test_multiply(self):
         """Test multiply method."""
         mat = self.rand_matrix(4, 4)
