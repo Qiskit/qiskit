@@ -1,0 +1,79 @@
+---
+features:
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.to_dict` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.to_dict` methods to convert
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` objects into Bra-Ket notation
+    dictionary.
+
+    Example
+      
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.to_dict())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.to_dict())
+
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.probabilities` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities` to
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes which return an
+    array of measurement outcome probabilities in the computational
+    basis for the specified subsystems.
+
+    Example
+      
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.probabilities())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.probabilities())
+
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.probabilities_dict` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities_dict` to
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes which return a
+    count-style dictionary array of measurement outcome probabilities
+    in the computational basis for the specified subsystems.
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.probabilities_dict())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.probabilities_dict())
+
+deprecations:
+  - |
+    Deprecates :meth:`qiskit.quantum_info.Statevector.to_counts`,
+    :meth:`qiskit.quantum_info.DensityMatrix.to_counts`, and
+    :func:`qiskit.quantum_info.counts.state_to_counts`. These functions
+    are superseded by the class methods
+    :meth:`qiskit.quantum_info.Statevector.probabilities_dict` and
+    :meth:`qiskit.quantum_info.DensityMatrix.probabilities_dict`.
