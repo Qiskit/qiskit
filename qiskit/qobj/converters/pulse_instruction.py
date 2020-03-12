@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels
+from qiskit.pulse import commands, channels, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -207,21 +207,21 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.SetFrequencyInstruction)
+    @bind_instruction(instructions.SetFrequency)
     def convert_set_frequency(self, shift, instruction):
         """ Return converted `SetFrequencyInstruction`.
 
         Args:
             shift (int): Offset time.
-            instruction (SetFrequencyInstruction): set frequency instruction.
+            instruction (SetFrequency): set frequency instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'sf',
             't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'frequency': instruction.command.frequency
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency
         }
         return self._qobj_model(**command_dict)
 
@@ -438,7 +438,7 @@ class QobjToInstructionConverter:
         """Return converted `SetFrequencyInstruction`.
 
         Args:
-            instruction (PulseQobjInstruction): set frequency qobj
+            instruction (PulseQobjInstruction): set frequency qobj instruction
         Returns:
             Schedule: Converted and scheduled Instruction
         """
@@ -449,13 +449,13 @@ class QobjToInstructionConverter:
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
-            def gen_scf_schedule(*args, **kwargs):
+            def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return commands.SetFrequency(_frequency)(channel) << t0
+                return instructions.SetFrequency(_frequency, channel) << t0
 
-            return ParameterizedSchedule(gen_scf_schedule, parameters=frequency_expr.params)
+            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
-        return commands.SetFrequency(frequency)(channel) << t0
+        return instructions.SetFrequency(frequency, channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):

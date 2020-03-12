@@ -18,11 +18,10 @@ Set channel frequency.
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
-from .command import Command
+from qiskit.pulse.commands.instruction import Instruction
 
 
-class SetFrequency(Command):
+class SetFrequency(Instruction):
     """
     Set the channel frequency. This command operates on PulseChannels.
     A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
@@ -35,15 +34,19 @@ class SetFrequency(Command):
 
     prefix = 'sf'
 
-    def __init__(self, frequency: float, name: Optional[str] = None):
+    def __init__(self, frequency: float,
+                 channel: Optional[PulseChannel] = None,
+                 name: Optional[str] = None):
         """Creates a new set channel frequency pulse.
 
         Args:
             frequency: New frequency of the channel in Hz.
+            channel: The channel this instruction operates on.
             name: Name of this set channel frequency command.
         """
-        super().__init__(duration=0)
+        super().__init__(0, channel)
         self._frequency = float(frequency)
+        self._channel = channel
         self._name = SetFrequency.create_name(name)
 
     @property
@@ -68,12 +71,3 @@ class SetFrequency(Command):
 
     def __repr__(self):
         return '%s(%s, frequency=%.3f)' % (self.__class__.__name__, self.name, self.frequency)
-
-    # pylint: disable=arguments-differ
-    def to_instruction(self, channel: PulseChannel, name=None) -> 'SetFrequencyInstruction':
-        return SetFrequencyInstruction(self, channel, name=name)
-    # pylint: enable=arguments-differ
-
-
-class SetFrequencyInstruction(Instruction):
-    """Instruction to change the frequency of a `PulseChannel`."""

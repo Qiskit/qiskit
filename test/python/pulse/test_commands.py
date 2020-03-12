@@ -147,18 +147,6 @@ class TestFrameChangeCommand(QiskitTestCase):
         self.assertTrue(fc_command.name.startswith('fc'))
 
 
-class TestSetFrequency(QiskitTestCase):
-    """Set frequency tests."""
-
-    def test_default(self):
-        """Test default set frequency."""
-        scf_command = SetFrequency(frequency=8.0)
-
-        self.assertEqual(scf_command.frequency, 8.0)
-        self.assertEqual(scf_command.duration, 0)
-        self.assertTrue(scf_command.name.startswith('sf'))
-
-
 class TestPersistentValueCommand(QiskitTestCase):
     """PersistentValue tests."""
 
