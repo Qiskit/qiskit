@@ -22,6 +22,8 @@ from types import SimpleNamespace
 import json
 import fastjsonschema
 
+from qiskit.circuit.parameterexpression import ParameterExpression
+
 
 path_part = 'schemas/qobj_schema.json'
 path = os.path.join(
@@ -105,7 +107,18 @@ class QasmQobjInstruction:
                      'conditional', 'label', 'mask', 'relation', 'val',
                      'snapshot_type']:
             if hasattr(self, attr):
-                out_dict[attr] = getattr(self, attr)
+                # TODO: Remove the param type conversion when Aer understands
+                # ParameterExpression type
+                if attr == 'params':
+                    params = []
+                    for param in list(getattr(self, attr)):
+                        if isinstance(param, ParameterExpression):
+                            params.append(float(param))
+                        else:
+                            params.append(param)
+                    out_dict[attr] = params
+                else:
+                    out_dict[attr] = getattr(self, attr)
 
         return out_dict
 
