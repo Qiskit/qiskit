@@ -30,11 +30,16 @@ class Acquire(Instruction):
     e.g. instantiated with AcquireChannel(0), the Acquire command will trigger data collection
     for the channel associated with qubit 0 readout. This instruction also provides acquisition
     metadata:
-     - the duration of time to acquire data (in number of timesteps, dt),
-     - the register slot to store classified, intermediary readout results,
-     - the memory slot to return classified results,
-     - the kernel to integrate raw data for each shot, and
-     - the discriminator to classify kerneled IQ points.
+
+     * the duration of time to acquire data (in number of timesteps, dt),
+
+     * the register slot to store classified, intermediary readout results,
+
+     * the memory slot to return classified results,
+
+     * the kernel to integrate raw data for each shot, and
+
+     * the discriminator to classify kerneled IQ points.
     """
 
     def __init__(self,
