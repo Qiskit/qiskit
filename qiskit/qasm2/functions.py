@@ -135,8 +135,8 @@ def load(data: str or List[str] = None,
     loader : str, optional
         Name of module with functional attribute
             load(filename: str = None,
-            data: str = None,
-            include_path: str = None) -> QuantumCircuit:
+                 data: str = None,
+                 include_path: str = None) -> QuantumCircuit:
         ... to use for qasm translation.
         None means "use Qiskit qasm"
         The default is None.
