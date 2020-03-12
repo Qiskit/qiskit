@@ -319,6 +319,31 @@ class TestStabilizerTableProperties(QiskitTestCase):
         target = StabilizerTable.from_labels(labels1 + labels2)
         self.assertEqual(target, stab1 + stab2)
 
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        stab1 = StabilizerTable.from_labels(['+IIII', '-YYYY'])
+        stab2 = StabilizerTable.from_labels(['-XY', '+YZ'])
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            target = StabilizerTable.from_labels(
+                ['+IIII', '-YYYY', '-IIXY', '+IIYZ'])
+            self.assertEqual(stab1 + stab2([0, 1]), target)
+
+        with self.subTest(msg='qargs=[0, 3]'):
+            target = StabilizerTable.from_labels(
+                ['+IIII', '-YYYY', '-XIIY', '+YIIZ'])
+            self.assertEqual(stab1 + stab2([0, 3]), target)
+
+        with self.subTest(msg='qargs=[2, 1]'):
+            target = StabilizerTable.from_labels(
+                ['+IIII', '-YYYY', '-IYXI', '+IZYI'])
+            self.assertEqual(stab1 + stab2([2, 1]), target)
+
+        with self.subTest(msg='qargs=[3, 1]'):
+            target = StabilizerTable.from_labels(
+                ['+IIII', '-YYYY', '-YIXI', '+ZIYI'])
+            self.assertEqual(stab1 + stab2([3, 1]), target)
+
     def test_getitem_methods(self):
         """Test __getitem__ method."""
         with self.subTest(msg='__getitem__ single'):

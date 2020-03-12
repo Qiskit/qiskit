@@ -654,20 +654,41 @@ class StabilizerTable(PauliTable):
         """
         return super().dot(other, qargs=qargs)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Append with another StabilizerTable.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (StabilizerTable): another table.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             StabilizerTable: the concatinated table self + other.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
+
+        self._validate_add_dims(other, qargs)
+
+        if qargs is None or (sorted(qargs) == qargs
+                             and len(qargs) == self.num_qubits):
+            return StabilizerTable(np.vstack((self._array, other._array)),
+                                   np.hstack((self._phase, other._phase)))
+
+        # Pad other with identity and then add
+        padded = StabilizerTable(
+            np.zeros((1, 2 * self.num_qubits), dtype=np.bool))
+        padded = padded.compose(other, qargs=qargs)
+
         return StabilizerTable(
-            np.vstack((self._array, other._array)),
-            np.hstack((self._phase, other._phase)))
+            np.vstack((self._array, padded._array)),
+            np.hstack((self._phase, padded._phase)))
 
     def _multiply(self, other):
         """Multiply (XOR) phase vector of the StabilizerTable.
