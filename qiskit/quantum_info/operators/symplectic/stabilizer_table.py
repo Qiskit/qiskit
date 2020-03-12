@@ -580,9 +580,9 @@ class StabilizerTable(PauliTable):
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
-        if qargs is None and other.n_qubits != self.n_qubits:
+        if qargs is None and other.num_qubits != self.num_qubits:
             raise QiskitError("other PauliTable must be on the same number of qubits.")
-        if qargs and other.n_qubits != len(qargs):
+        if qargs and other.num_qubits != len(qargs):
             raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
 
         # Stack X and Z blocks for output size
@@ -846,7 +846,7 @@ class StabilizerTable(PauliTable):
         Returns:
             list or array: The rows of the StabilizerTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self._n_qubits))
+        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self._num_qubits))
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i], self._phase[i])
         if array:
@@ -927,7 +927,7 @@ class StabilizerTable(PauliTable):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.n_qubits
+        dim = 2 ** self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=float)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i], self._phase[i])

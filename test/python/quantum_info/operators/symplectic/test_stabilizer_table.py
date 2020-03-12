@@ -232,13 +232,13 @@ class TestStabilizerTableProperties(QiskitTestCase):
                 stab = StabilizerTable(np.zeros(shape))
                 self.assertEqual(stab.size, j)
 
-    def test_n_qubits_property(self):
-        """Test n_qubits property"""
-        with self.subTest(msg='n_qubits'):
+    def test_num_qubits_property(self):
+        """Test num_qubits property"""
+        with self.subTest(msg='num_qubits'):
             for j in range(1, 10):
                 shape = (5, 2 * j)
                 stab = StabilizerTable(np.zeros(shape))
-                self.assertEqual(stab.n_qubits, j)
+                self.assertEqual(stab.num_qubits, j)
 
     def test_phase_property(self):
         """Test phase property"""
