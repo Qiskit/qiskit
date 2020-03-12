@@ -62,6 +62,7 @@ class Discriminator:
                                  "'" + self.name + "', " or "",
                                  self.params)
 
+
 class LoRange:
     """Range of LO frequency."""
 
