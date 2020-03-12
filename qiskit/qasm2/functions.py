@@ -33,19 +33,19 @@ def _qasm_load(qasm: Qasm) -> QuantumCircuit:
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
 
-
-def load(qasm_src: str or List[str], loader: str = 'qasm',
-         include_path: str = '') -> QuantumCircuit:
+def _load_from_string(qasm_src: str or List[str],
+                      loader: str = 'qasm',
+                      include_path: str = '') -> QuantumCircuit:
     """
 
     Parameters
     ----------
     qasm_src : str or List[str]
-        qasm program source as string or list of string.
+        Qasm program source as string or list of string.
     loader : str, optional
         Canonical name of desired loader. The default is 'qasm'.
     include_path : str, optional
-        loader-specific include path for qasm include directives.
+        Loader-specific include path for qasm include directives.
         The default is ''.
 
     Raises
@@ -71,4 +71,82 @@ def load(qasm_src: str or List[str], loader: str = 'qasm',
         circ = load_string(qasm_src, include_path)
     else:
         raise QiskitError("load qasm: unknown loader")
+    return circ
+
+
+def _load_from_file(filename: str or List[str],
+                    loader: str = 'qasm',
+                    include_path: str = '') -> QuantumCircuit:
+    """
+
+    Parameters
+    ----------
+    filename : str
+        Filepath to qasm program source.
+    loader : str, optional
+        Canonical name of desired loader. The default is 'qasm'.
+    include_path : str, optional
+        Loader-specific include path for qasm include directives.
+        The default is ''.
+
+    Raises
+    ------
+    QiskitError
+        If unknown loader.
+
+    Returns
+    -------
+    QuantumCircuit
+        Circuit factoried from Qasm src.
+
+    """
+
+    circ = None
+    qasm = Qasm(filename=filename)
+    if loader == 'qasm':
+        circ = _qasm_load(qasm)
+    elif loader == 'nuqasm2':
+        from nuqasm2 import load_from_file
+        circ = load_from_file(filename, include_path)
+    else:
+        raise QiskitError("load qasm: unknown loader")
+    return circ
+
+def load(data: str  or List[str] = None,
+         filename: str = None,
+         loader: str = 'qasm',
+         include_path: str = '') -> QuantumCircuit:
+    """
+
+
+    Parameters
+    ----------
+    data : str or List[str], optional
+        Qasm program source as string or list of string. The default is None.
+    filename : str, optional
+        Filepath to qasm program source. The default is None.
+    loader : str, optional
+        DESCRIPTION. The default is 'qasm'.
+    include_path : str, optional
+        Loader-specific include path for qasm include directives.
+        The default is ''.
+
+    Raises
+    ------
+    QiskitError
+        If unknown loader or if both filename and data or neither filename nor data.
+
+    Returns
+    -------
+    QuantumCircuit
+        DESCRIPTION.
+
+    """
+    if (not data and not filename) or (data and filename):
+        raise QiskitError("To load, either filename or data (and not both) must be provided.")
+    circ = None
+    if data:
+        circ = _load_from_string(data, loader=loader, include_path=include_path)
+    if filename:
+        circ = _load_from_file(filename, loader=loader, include_path=include_path)
     return circ
