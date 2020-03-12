@@ -15,6 +15,7 @@
 Stinespring representation of a Quantum Channel.
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -289,11 +290,16 @@ class Stinespring(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             Stinespring: the linear addition channel self + other.
@@ -304,7 +310,7 @@ class Stinespring(QuantumChannel):
         """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
-        return Stinespring(Choi(self).add(other))
+        return Stinespring(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
@@ -320,12 +326,15 @@ class Stinespring(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
+
+        ret = copy.copy(self)
         # If the number is complex or negative we need to convert to
         # general Stinespring representation so we first convert to
         # the Choi representation
         if isinstance(other, complex) or other < 1:
             # Convert to Choi-matrix
-            return Stinespring(Choi(self)._multiply(other))
+            ret._data = Stinespring(Choi(self)._multiply(other))._data
+            return ret
         # If the number is real we can update the Kraus operators
         # directly
         num = np.sqrt(other)
@@ -334,8 +343,8 @@ class Stinespring(QuantumChannel):
         stine_r = None
         if self._data[1] is not None:
             stine_r = num * self._data[1]
-        return Stinespring((stine_l, stine_r), self.input_dims(),
-                           self.output_dims())
+        ret._data = (stine_l, stine_r)
+        return ret
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
