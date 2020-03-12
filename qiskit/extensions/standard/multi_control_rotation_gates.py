@@ -37,8 +37,7 @@ def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
 
 def _generate_gray_code(num_bits):
     if num_bits <= 0:
-        raise ValueError(
-            "Must have at least 1 value to generate the gray code")
+        raise QiskitError("Must have at least 1 control in a controlled gate")
     result = [0]
     for i in range(num_bits):
         result += [x + 2**i for x in reversed(result)]
