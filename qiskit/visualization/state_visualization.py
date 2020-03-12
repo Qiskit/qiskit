@@ -74,9 +74,9 @@ def plot_state_hinton(
         rho: Union[QuantumState, np.ndarray],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None,
-        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
+        ax_real=None,
+        ax_imag=None,
+        auto_scale: bool = True):
     """Plot a hinton diagram for the quantum state. This function visualizes a quantum state
     as a two dimensional diagram of density matrix in computational basis.
     The color of a box indicates the sign of matrix element and the size
@@ -91,13 +91,13 @@ def plot_state_hinton(
         figsize:
             Figure size in inches. If ``None`` is  specified,
             figure with 8 by 5 inch size is generated.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
@@ -156,10 +156,10 @@ def plot_quantum_channel_hinton(
         channel: Union[QuantumChannel, QuantumCircuit],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None,
+        ax_real=None,
+        ax_imag=None,
         basis: Optional[List[str]] = None,
-        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
+        auto_scale: bool = True):
     """Hinton diagram plot of the quantum channel. The function visualizes a quantum channel
     as a two dimensional diagram of Chi-matrix. The color of a box indicates
     the sign of matrix element and the size represents its magnitude. A while (black)
@@ -174,13 +174,13 @@ def plot_quantum_channel_hinton(
         figsize:
             Figure size in inches. If ``None`` is  specified,
             figure with 8 by 5 inch size is generated.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
@@ -245,9 +245,9 @@ def _plot_matrix_hinton(
         oper_name: [str],
         title: Optional[str] = "",
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None,
-        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
+        ax_real=None,
+        ax_imag=None,
+        auto_scale: bool = True):
     """A common interface to generate Hinton diagram. This *private* function should be called by
     other visualization API with two dimensional numpy array to visualize,
     corresponding axis labels and matrix name.
@@ -265,13 +265,13 @@ def _plot_matrix_hinton(
             A string that represents the plot title.
         figsize:
             Figure size in inches.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
@@ -475,8 +475,8 @@ def plot_state_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None) -> 'matplotlib.figure.Figure':
+        ax_real=None,
+        ax_imag=None):
     """Cityscape plot of a quantum state.
 
     Args:
@@ -493,13 +493,13 @@ def plot_state_city(
             of matrix elements. In default ``#648fff`` is specified for both components.
         alpha:
             Transparency value for bars. In default ``1`` (non transparent) is specified.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
@@ -557,9 +557,9 @@ def plot_quantum_channel_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None,
-        basis: Optional[List[str]] = None) -> 'matplotlib.figure.Figure':
+        ax_real=None,
+        ax_imag=None,
+        basis: Optional[List[str]] = None):
     """Cityscape plot of the Chi-matrix representation of a quantum channel.
 
     Args:
@@ -576,13 +576,13 @@ def plot_quantum_channel_city(
             of matrix elements. In default ``#648fff`` is specified for both components.
         alpha:
             Transparency value for bars. In default ``1`` (non transparent) is specified.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
@@ -646,8 +646,8 @@ def _plot_matrix_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional['matplotlib.axes.Axes'] = None,
-        ax_imag: Optional['matplotlib.axes.Axes'] = None) -> 'matplotlib.figure.Figure':
+        ax_real=None,
+        ax_imag=None):
     """A common interface to generate cityscape diagram. This *private* function should be
     called by other visualization API with two dimensional numpy array to visualize,
     corresponding axis labels and matrix name.
@@ -670,13 +670,13 @@ def _plot_matrix_city(
             of matrix elements. In default ``#648fff`` is specified for both components.
         alpha:
             Transparency value for bars. In default ``1`` (non transparent) is specified.
-        ax_real:
+        ax_real (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_imag`` only the real component plot
             will be generated. Additionally, if specified there will be no returned
             ``Figure`` since it is redundant.
-        ax_imag:
+        ax_imag (matplotlib.axes.Axes):
             An optional Axes object to be used for the visualization output.
             If ``None`` is specified a new matplotlib ``Figure`` will be created and used.
             If this is specified without an ``ax_real`` only the imaginary component plot
