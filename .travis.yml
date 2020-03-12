@@ -39,7 +39,7 @@ after_failure:
 
 stages:
   - name: deploy
-    if: tag IS blank
+    if: tag IS present
   - name: tests
     if: tag IS blank
 
@@ -95,15 +95,15 @@ jobs:
       install:
         - echo ""
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_BEFORE_BUILD: pip install -U Cython
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS blank
+      if: tag IS present
       script:
         - sudo pip install -U twine cibuildwheel
         - cibuildwheel --output-dir wheelhouse
-#        - twine upload wheelhouse/*
+        - twine upload wheelhouse/*
     - stage: deploy
       arch: ppc64le
       services:
@@ -113,15 +113,15 @@ jobs:
       install:
         - echo ""
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_BEFORE_BUILD: pip install -U Cython
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS blank
+      if: tag IS present
       script:
         - sudo pip install -U twine cibuildwheel
         - cibuildwheel --output-dir wheelhouse
-#        - twine upload wheelhouse/*
+        - twine upload wheelhouse/*
     - stage: deploy
       arch: s390x
       services:
@@ -131,12 +131,12 @@ jobs:
       install:
         - echo ""
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_BEFORE_BUILD: pip install -U Cython
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS blank
+      if: tag IS present
       script:
         - sudo pip install -U twine cibuildwheel
         - cibuildwheel --output-dir wheelhouse
-#        - twine upload wheelhouse/*
+        - twine upload wheelhouse/*
