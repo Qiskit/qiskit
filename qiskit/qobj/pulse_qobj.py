@@ -19,6 +19,7 @@
 
 import copy
 import json
+import pprint
 
 import numpy
 
@@ -171,6 +172,16 @@ class PulseQobjInstruction:
                 x.to_dict() for x in self.discriminators]
         return out_dict
 
+    def __str__(self):
+        out = "Instruction: %s\n" % self.name
+        out += "\t\tt0: %s\n" % self.t0
+        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
+                     'qubits', 'memory_slot', 'register_slot',
+                     'label', 'type', 'pulse_shape', 'parameters']:
+            if hasattr(self, attr):
+                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new PulseQobjExperimentConfig object from a dictionary.
@@ -319,6 +330,22 @@ class PulseQobjExperiment:
             out_dict['header'] = self.header.to_dict()
         return out_dict
 
+    def __str__(self):
+        out = '\nPulse Experiment:\n'
+        if hasattr(self, 'config'):
+            config = pprint.pformat(self.config.to_dict())
+        else:
+            config = '{}'
+        if hasattr(self, 'header'):
+            header = pprint.pformat(self.header.to_dict() or {})
+        else:
+            header = '{}'
+        out += 'Header:\n%s\n' % header
+        out += 'Config:\n%s\n\n' % config
+        for instruction in self.instructions:
+            out += '\t%s\n' % instruction
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new PulseQobjExperiment object from a dictionary.
@@ -450,6 +477,17 @@ class PulseQobj:
 
         json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
         validator(json.loads(json_str))
+
+    def __str__(self):
+        out = "Pulse Qobj: %s:\n" % self.qobj_id
+        config = pprint.pformat(self.config.to_dict())
+        out += "Config: %s\n" % str(config)
+        header = pprint.pformat(self.header.to_dict())
+        out += "Header: %s\n" % str(header)
+        out += "Experiments:\n"
+        for experiment in self.experiments:
+            out += "%s" % str(experiment)
+        return out
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the Pulse Qobj.

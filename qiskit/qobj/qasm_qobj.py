@@ -17,6 +17,7 @@
 """Module providing definitions of QASM Qobj classes."""
 
 import os
+import pprint
 from types import SimpleNamespace
 
 import json
@@ -122,6 +123,15 @@ class QasmQobjInstruction:
 
         return out_dict
 
+    def __str__(self):
+        out = "Instruction: %s\n" % self.name
+        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
+                     'conditional', 'label', 'mask', 'relation', 'val',
+                     'snapshot_type']:
+            if hasattr(self, attr):
+                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new QasmQobjInstruction object from a dictionary.
@@ -160,6 +170,16 @@ class QasmQobjExperiment:
         self.config = config or QasmQobjExperimentConfig()
         self.header = header or QasmQobjExperimentHeader()
         self.instructions = instructions or []
+
+    def __str__(self):
+        out = '\nQASM Experiment:\n'
+        config = pprint.pformat(self.config.to_dict())
+        header = pprint.pformat(self.header.to_dict())
+        out += 'Header:\n%s\n' % header
+        out += 'Config:\n%s\n\n' % config
+        for instruction in self.instructions:
+            out += '\t%s\n' % instruction
+        return out
 
     def to_dict(self):
         """Return a dictionary format representation of the Experiment.
@@ -363,6 +383,17 @@ class QasmQobj:
         self.config = config or QasmQobjConfig()
         self.experiments = experiments or []
         self.qobj_id = qobj_id
+
+    def __str__(self):
+        out = "QASM Qobj: %s:\n" % self.qobj_id
+        config = pprint.pformat(self.config.to_dict())
+        out += "Config: %s\n" % str(config)
+        header = pprint.pformat(self.header.to_dict())
+        out += "Header: %s\n" % str(header)
+        out += "Experiments:\n"
+        for experiment in self.experiments:
+            out += "%s" % str(experiment)
+        return out
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the QASM Qobj.
