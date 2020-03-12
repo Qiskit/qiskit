@@ -19,11 +19,11 @@ import numpy as np
 from .pauli_table import PauliTable
 
 
-def pauli_basis(n_qubits, weight=False):
+def pauli_basis(num_qubits, weight=False):
     """Return the ordered PauliTable for the n-qubit Pauli basis.
 
     Args:
-        n_qubits (int): number of qubits
+        num_qubits (int): number of qubits
         weight (bool): if True optionally return the basis sorted by Pauli weight
                        rather than lexicographic order (Default: False)
 
@@ -35,10 +35,10 @@ def pauli_basis(n_qubits, weight=False):
                                     [True, True],
                                     [False, True]],
                                    dtype=np.bool))
-    if n_qubits == 1:
+    if num_qubits == 1:
         return pauli_1q
     pauli = pauli_1q
-    for _ in range(n_qubits - 1):
+    for _ in range(num_qubits - 1):
         pauli = pauli_1q.tensor(pauli)
     if weight:
         return pauli.sort(weight=True)

@@ -236,11 +236,11 @@ class TestPauliTableProperties(QiskitTestCase):
 
     def test_n_qubit_propertiy(self):
         """Test n_qubit property"""
-        with self.subTest(msg='n_qubits'):
+        with self.subTest(msg='num_qubits'):
             for j in range(1, 10):
                 shape = (5, 2 * j)
                 pauli = PauliTable(np.zeros(shape))
-                self.assertEqual(pauli.n_qubits, j)
+                self.assertEqual(pauli.num_qubits, j)
 
     def test_eq(self):
         """Test __eq__ method."""
