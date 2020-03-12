@@ -50,10 +50,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     """Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
 
-    This pass manager applies the user-given initial layout. If none is given, and
-    device calibration information is available, the circuit is mapped to the qubits
-    with best readouts and to CX gates with highest fidelity. Otherwise, a layout on
-    the most densely connected qubits is used.
+    This pass manager applies the user-given initial layout. If none is given, a search
+    for a perfect layout (i.e. one that satisfies all 2-qubit interactions) is conducted.
+    If no such layout is found, and device calibration information is available, the
+    circuit is mapped to the qubits with best readouts and to CX gates with highest fidelity.
 
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
@@ -86,10 +86,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['layout']
 
     _choose_layout_1 = CSPLayout(coupling_map, call_limit=10000, time_limit=60)
-    _choose_layout_2 = DenseLayout(coupling_map)
-
-    if backend_properties:
-        _choose_layout_3 = NoiseAdaptiveLayout(backend_properties)
+    _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -131,7 +128,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
-        pm3.append(_choose_layout_3, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)

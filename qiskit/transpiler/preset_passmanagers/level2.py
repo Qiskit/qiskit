@@ -47,7 +47,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     This pass manager applies the user-given initial layout. If none is given, a search
     for a perfect layout (i.e. one that satisfies all 2-qubit interactions) is conducted.
-    If no such layout is found, qubits are laid out on the most densely connected subset.
+    If no such layout is found, qubits are laid out on the most densely connected subset
+    which also exhibits the best gate fidelitites.
+
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation and redundant
