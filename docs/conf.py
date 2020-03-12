@@ -69,7 +69,12 @@ extensions = [
     'sphinx_tabs.tabs',
     'sphinx_automodapi.automodapi',
     'jupyter_sphinx.execute',
+    'nbsphinx'
 ]
+
+nbsphinx_timeout = 60
+html_sourcelink_suffix = ''
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['theme/']
