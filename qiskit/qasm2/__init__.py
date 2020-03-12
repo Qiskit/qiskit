@@ -13,20 +13,16 @@
 # that they have been altered from the originals.
 
 """
-=========================
-Qasm (:mod:`qiskit.qasm`)
-=========================
+===========================
+Qasm2 (:mod:`qiskit.qasm2`)
+===========================
 
 .. currentmodule:: qiskit.qasm2
 
 .. autosummary::
    :toctree: ../stubs/
 
-   Qasm
-   QasmError
+  load()
 """
 
-# from numpy import pi
-
-# from .qasm import Qasm
-# from .exceptions import QasmError
+from .functions import load
