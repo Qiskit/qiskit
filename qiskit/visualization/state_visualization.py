@@ -43,8 +43,6 @@ if HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
     from matplotlib.patches import Circle
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
     import matplotlib.colors as mcolors
     from matplotlib.colors import Normalize, LightSource
     import matplotlib.gridspec as gridspec
@@ -76,9 +74,9 @@ def plot_state_hinton(
         rho: Union[QuantumState, np.ndarray],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None,
-        auto_scale: bool = True) -> Figure:
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None,
+        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
     """Plot a hinton diagram for the quantum state. This function visualizes a quantum state
     as a two dimensional diagram of density matrix in computational basis.
     The color of a box indicates the sign of matrix element and the size
@@ -158,10 +156,10 @@ def plot_quantum_channel_hinton(
         channel: Union[QuantumChannel, QuantumCircuit],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None,
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None,
         basis: Optional[List[str]] = None,
-        auto_scale: bool = True) -> Figure:
+        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
     """Hinton diagram plot of the quantum channel. The function visualizes a quantum channel
     as a two dimensional diagram of Chi-matrix. The color of a box indicates
     the sign of matrix element and the size represents its magnitude. A while (black)
@@ -247,9 +245,9 @@ def _plot_matrix_hinton(
         oper_name: [str],
         title: Optional[str] = "",
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None,
-        auto_scale: bool = True) -> Figure:
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None,
+        auto_scale: bool = True) -> 'matplotlib.figure.Figure':
     """A common interface to generate Hinton diagram. This *private* function should be called by
     other visualization API with two dimensional numpy array to visualize,
     corresponding axis labels and matrix name.
@@ -477,8 +475,8 @@ def plot_state_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None) -> Figure:
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None) -> 'matplotlib.figure.Figure':
     """Cityscape plot of a quantum state.
 
     Args:
@@ -559,9 +557,9 @@ def plot_quantum_channel_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None,
-        basis: Optional[List[str]] = None) -> Figure:
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None,
+        basis: Optional[List[str]] = None) -> 'matplotlib.figure.Figure':
     """Cityscape plot of the Chi-matrix representation of a quantum channel.
 
     Args:
@@ -648,8 +646,8 @@ def _plot_matrix_city(
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
         alpha: Optional[float] = 1,
-        ax_real: Optional[Axes] = None,
-        ax_imag: Optional[Axes] = None) -> Figure:
+        ax_real: Optional['matplotlib.axes.Axes'] = None,
+        ax_imag: Optional['matplotlib.axes.Axes'] = None) -> 'matplotlib.figure.Figure':
     """A common interface to generate cityscape diagram. This *private* function should be
     called by other visualization API with two dimensional numpy array to visualize,
     corresponding axis labels and matrix name.
