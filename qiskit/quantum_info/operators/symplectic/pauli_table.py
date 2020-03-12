@@ -160,7 +160,9 @@ class PauliTable(BaseOperator):
 
     def __repr__(self):
         """Display representation."""
-        return 'PauliTable(\n{})'.format(repr(self._array))
+        prefix = 'PauliTable('
+        return '{}{})'.format(prefix, np.array2string(
+            self._array, separator=',', prefix=prefix))
 
     def __str__(self):
         """String representation."""
