@@ -172,6 +172,20 @@ class PulseQobjInstruction:
                 x.to_dict() for x in self.discriminators]
         return out_dict
 
+    def __repr__(self):
+        out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
+        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
+                     'qubits', 'memory_slot', 'register_slot',
+                     'label', 'type', 'pulse_shape', 'parameters']:
+            attr_val = getattr(self, attr, None)
+            if attr_val is not None:
+                if isinstance(attr_val, str):
+                    out += ', %s="%s"' % (attr, attr_val)
+                else:
+                    out += ", %s=%s" % (attr, attr_val)
+        out += ')'
+        return out
+
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         out += "\t\tt0: %s\n" % self.t0
@@ -330,6 +344,17 @@ class PulseQobjExperiment:
             out_dict['header'] = self.header.to_dict()
         return out_dict
 
+    def __repr__(self):
+        instructions_str = [repr(x) for x in self.instructions]
+        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        out = "PulseQobjExperiment("
+        if hasattr(self, 'config'):
+            out += str(repr(self.config)) + ", "
+        if hasattr(self, 'header'):
+            out += str(repr(self.header)) + ", "
+        out += instructions_repr + ')'
+        return out
+
     def __str__(self):
         out = '\nPulse Experiment:\n'
         if hasattr(self, 'config'):
@@ -432,6 +457,13 @@ class PulseLibraryItem:
         """
         return cls(**data)
 
+    def __repr__(self):
+        return "PulseLibraryItem(%s, %s)" % (self.name, repr(self.samples))
+
+    def __str__(self):
+        return "Pulse Library Item:\n\tname: %s\n\tsamples: %s" % (
+            self.name, self.samples)
+
     def __eq__(self, other):
         if isinstance(other, PulseLibraryItem):
             if self.to_dict() == other.to_dict():
@@ -477,6 +509,14 @@ class PulseQobj:
 
         json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
         validator(json.loads(json_str))
+
+    def __repr__(self):
+        experiments_str = [repr(x) for x in self.experiments]
+        experiments_repr = '[' + ', '.join(experiments_str) + ']'
+        out = "PulseQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+            self.qobj_id, repr(self.config), experiments_repr,
+            repr(self.header))
+        return out
 
     def __str__(self):
         out = "Pulse Qobj: %s:\n" % self.qobj_id

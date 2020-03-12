@@ -123,6 +123,20 @@ class QasmQobjInstruction:
 
         return out_dict
 
+    def __repr__(self):
+        out = "QasmQobjInstruction(name='%s'" % self.name
+        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
+                     'conditional', 'label', 'mask', 'relation', 'val',
+                     'snapshot_type']:
+            attr_val = getattr(self, attr, None)
+            if attr_val is not None:
+                if isinstance(attr_val, str):
+                    out += ', %s="%s"' % (attr, attr_val)
+                else:
+                    out += ", %s=%s" % (attr, attr_val)
+        out += ')'
+        return out
+
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         for attr in ['params', 'qubits', 'register', 'memory', '_condition',
@@ -170,6 +184,13 @@ class QasmQobjExperiment:
         self.config = config or QasmQobjExperimentConfig()
         self.header = header or QasmQobjExperimentHeader()
         self.instructions = instructions or []
+
+    def __repr__(self):
+        instructions_str = [repr(x) for x in self.instructions]
+        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
+            repr(self.config), repr(self.header), instructions_repr)
+        return out
 
     def __str__(self):
         out = '\nQASM Experiment:\n'
@@ -383,6 +404,14 @@ class QasmQobj:
         self.config = config or QasmQobjConfig()
         self.experiments = experiments or []
         self.qobj_id = qobj_id
+
+    def __repr__(self):
+        experiments_str = [repr(x) for x in self.experiments]
+        experiments_repr = '[' + ', '.join(experiments_str) + ']'
+        out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+            self.qobj_id, repr(self.config), experiments_repr,
+            repr(self.header))
+        return out
 
     def __str__(self):
         out = "QASM Qobj: %s:\n" % self.qobj_id
