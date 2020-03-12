@@ -110,7 +110,8 @@ def plot_state_hinton(
             In default ``True`` is specified.
 
     Returns:
-        The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization
+            if neither ``ax_real`` or ``ax_imag`` is set.
 
     Raises:
         VisualizationError: When input object is not a valid quantum state.
@@ -196,7 +197,8 @@ def plot_quantum_channel_hinton(
             In default ``True`` is specified.
 
     Returns:
-        The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization
+            if neither ``ax_real`` or ``ax_imag`` is set.
 
     Raises:
         VisualizationError: When input object is not a valid quantum channel.
@@ -284,7 +286,7 @@ def _plot_matrix_hinton(
             In default ``True`` is specified.
 
     Returns:
-         The matplotlib ``Figure`` of the visualization.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization.
 
     Raises:
         ImportError: Requires matplotlib.
@@ -507,7 +509,8 @@ def plot_state_city(
             ``Figure`` since it is redundant.
 
     Returns:
-        The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization
+            if neither ``ax_real`` or ``ax_imag`` is set.
 
     Raises:
         VisualizationError: When input object is not a valid quantum state.
@@ -593,7 +596,8 @@ def plot_quantum_channel_city(
             ``[i, x, y, z]`` is specified.
 
     Returns:
-        The matplotlib ``Figure`` of the visualization if neither ``ax_real`` or ``ax_imag`` is set.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization
+            if neither ``ax_real`` or ``ax_imag`` is set.
 
     Raises:
         VisualizationError: When input object is not a valid quantum channel.
@@ -684,7 +688,7 @@ def _plot_matrix_city(
             ``Figure`` since it is redundant.
 
     Returns:
-         The matplotlib ``Figure`` of the visualization.
+        matplotlib.figure.Figure: The matplotlib ``Figure`` of the visualization.
 
     Raises:
         ImportError: Requires matplotlib.
