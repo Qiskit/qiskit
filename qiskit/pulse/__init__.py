@@ -134,12 +134,12 @@ from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
 from .commands import (AcquireInstruction, FrameChange,
-                       PersistentValue, SamplePulse, Snapshot, ParametricPulse,
+                       PersistentValue, SamplePulse, ParametricPulse,
                        ParametricInstruction, Gaussian,
                        GaussianSquare, Drag, ConstantPulse, functional_pulse)
 from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Acquire, Instruction, Delay
+from .instructions import Acquire, Instruction, Delay, Snapshot
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
