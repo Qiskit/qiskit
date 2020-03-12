@@ -91,9 +91,8 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertTrue(
-            (entry[0] == first_equiv and entry[1] == second_equiv)
-            or (entry[1] == first_equiv and entry[0] == second_equiv))
+        self.assertEqual(entry[0], first_equiv)
+        self.assertEqual(entry[1], second_equiv)
 
     def test_set_entry(self):
         """Verify setting an entry overrides any previously added."""
@@ -181,9 +180,8 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertTrue(
-            (entry[0] == first_equiv and entry[1] == second_equiv)
-            or (entry[1] == first_equiv and entry[0] == second_equiv))
+        self.assertEqual(entry[0], second_equiv)
+        self.assertEqual(entry[1], first_equiv)
 
     def test_set_entry(self):
         """Verify we find only equivalences from top when explicitly set."""
@@ -305,9 +303,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         second_expected.rz(lam, 0)
 
         self.assertEqual(len(entry), 2)
-        self.assertTrue(
-            (entry[0] == first_expected and entry[1] == second_expected)
-            or (entry[1] == first_expected and entry[0] == second_expected))
+        self.assertEqual(entry[0], first_expected)
+        self.assertEqual(entry[1], second_expected)
 
     def test_adding_gate_and_partially_specified_gate(self):
         """Verify entries will different numbers of parameters will be returned."""
@@ -335,12 +332,11 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         entry = eq_lib.get_entry(gate_query)
 
         first_expected = QuantumCircuit(1)
-        first_expected.rx(lam, 0)
+        first_expected.u2(lam, 0, 0)
 
         second_expected = QuantumCircuit(1)
-        second_expected.u2(lam, 0, 0)
+        second_expected.rx(lam, 0)
 
         self.assertEqual(len(entry), 2)
-        self.assertTrue(
-            (entry[0] == first_expected and entry[1] == second_expected)
-            or (entry[1] == first_expected and entry[0] == second_expected))
+        self.assertEqual(entry[0], first_expected)
+        self.assertEqual(entry[1], second_expected)

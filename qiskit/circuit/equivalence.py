@@ -112,8 +112,13 @@ class EquivalenceLibrary():
             gate (Gate) - Gate: A Gate instance.
 
         Returns:
-            List[QuantumCircuit]: A list of QuantumCircuits. If empty, library
-            contains no known decompositions of Gate.
+            List[QuantumCircuit]: A list of equivalent QuantumCircuits. If empty,
+                library contains no known decompositions of Gate.
+
+                Returned circuits will be ordered according to their insertion in
+                the library, from earliest to latest, from top to base. The
+                ordering of the StandardEquivalenceLibrary will not generally be
+                consistent across Qiskit versions.
         """
 
         key = Key(name=gate.name,
