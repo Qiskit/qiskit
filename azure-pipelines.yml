@@ -14,7 +14,6 @@ trigger:
 
 stages:
   - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
       pool: {vmImage: 'Ubuntu-16.04'}
@@ -61,7 +60,7 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
@@ -74,16 +73,16 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.0.0
+          pip install cibuildwheel==1.2.0
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
+#      - bash: |
+#          twine upload wheelhouse/*
+#        env:
+#          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
