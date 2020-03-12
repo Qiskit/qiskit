@@ -44,15 +44,20 @@ class SetFrequency(Instruction):
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency command.
         """
-        super().__init__(0, channel)
         self._frequency = float(frequency)
+        super().__init__(0, channel, name=name)
         self._channel = channel
-        self._name = SetFrequency.create_name(name)
 
     @property
     def frequency(self):
         """New frequency."""
         return self._frequency
+
+    @property
+    def channel(self):
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on"""
+        return self._channel
 
     def __eq__(self, other: 'SetFrequency'):
         """

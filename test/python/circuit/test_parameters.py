@@ -438,6 +438,30 @@ class TestParameters(QiskitTestCase):
         bound_test_qc = test_qc.bind_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
+    def test_rebinding_instruction_copy(self):
+        """Test rebinding a copied instruction does not modify the original."""
+
+        theta = Parameter('th')
+
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        instr = qc.to_instruction()
+
+        qc1 = QuantumCircuit(1)
+        qc1.append(instr, [0])
+
+        output1 = qc1.bind_parameters({theta: 0.1}).decompose()
+        output2 = qc1.bind_parameters({theta: 0.2}).decompose()
+
+        expected1 = QuantumCircuit(1)
+        expected1.rx(0.1, 0)
+
+        expected2 = QuantumCircuit(1)
+        expected2.rx(0.2, 0)
+
+        self.assertEqual(expected1, output1)
+        self.assertEqual(expected2, output2)
+
     @combine(target_type=['gate', 'instruction'], parameter_type=['numbers', 'parameters'])
     def test_decompose_propagates_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves bound values."""

@@ -102,6 +102,75 @@ class TestQASMQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
 
+    def test_snapshot_instruction_to_dict(self):
+        """Test snapshot instruction to dict."""
+        valid_qobj = QasmQobj(
+            qobj_id='12345',
+            header=QobjHeader(),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QasmQobjExperiment(instructions=[
+                    QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QasmQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2]),
+                    QasmQobjInstruction(name='snapshot', qubits=[1],
+                                        snapshot_type='statevector',
+                                        label='my_snap')
+                ])
+            ]
+        )
+        res = valid_qobj.to_dict(validate=True)
+        expected_dict = {
+            'qobj_id': '12345',
+            'type': 'QASM',
+            'schema_version': '1.1.0',
+            'header': {},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
+            'experiments': [
+                {'instructions': [
+                    {'name': 'u1', 'params': [0.4], 'qubits': [1]},
+                    {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]},
+                    {'name': 'snapshot', 'qubits': [1],
+                     'snapshot_type': 'statevector', 'label': 'my_snap'}
+                ],
+                 'config': {},
+                 'header': {}}
+            ],
+        }
+        self.assertEqual(expected_dict, res)
+
+    def test_snapshot_instruction_from_dict(self):
+        """Test snapshot instruction from dict."""
+        expected_qobj = QasmQobj(
+            qobj_id='12345',
+            header=QobjHeader(),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            experiments=[
+                QasmQobjExperiment(instructions=[
+                    QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
+                    QasmQobjInstruction(name='u2', qubits=[1], params=[0.4, 0.2]),
+                    QasmQobjInstruction(name='snapshot', qubits=[1],
+                                        snapshot_type='statevector',
+                                        label='my_snap')
+                ])
+            ]
+        )
+        qobj_dict = {
+            'qobj_id': '12345',
+            'type': 'QASM',
+            'schema_version': '1.1.0',
+            'header': {},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
+            'experiments': [
+                {'instructions': [
+                    {'name': 'u1', 'params': [0.4], 'qubits': [1]},
+                    {'name': 'u2', 'params': [0.4, 0.2], 'qubits': [1]},
+                    {'name': 'snapshot', 'qubits': [1],
+                     'snapshot_type': 'statevector', 'label': 'my_snap'}
+                ]}
+            ],
+        }
+        self.assertEqual(expected_qobj, QasmQobj.from_dict(qobj_dict))
+
     def test_simjob_raises_error_when_sending_bad_qobj(self):
         """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.
         """

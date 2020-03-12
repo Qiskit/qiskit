@@ -23,7 +23,8 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Discriminator, Kernel, Gaussian, GaussianSquare, ConstantPulse,
-                                   Drag, SetFrequency)
+                                   Drag)
+from qiskit.pulse.instructions import SetFrequency
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -118,8 +119,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_set_frequency(self):
         """Test converted qobj from SetFrequencyInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SetFrequency(frequency=8.0)
-        instruction = command(DriveChannel(0))
+        instruction = SetFrequency(8.0, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='sf',
@@ -240,14 +240,13 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_set_frequency(self):
         """Test converted qobj from FrameChangeInstruction."""
-        cmd = SetFrequency(frequency=8.0)
-        instruction = cmd(MeasureChannel(0))
+        instruction = SetFrequency(8.0, DriveChannel(0))
 
-        qobj = PulseQobjInstruction(name='sf', ch='m0', t0=0, frequency=8.0)
+        qobj = PulseQobjInstruction(name='sf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertTrue('frequency' in qobj.to_dict())
 
     def test_persistent_value(self):
