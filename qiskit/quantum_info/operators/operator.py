@@ -108,8 +108,12 @@ class Operator(BaseOperator):
         super().__init__(input_dims, output_dims)
 
     def __repr__(self):
-        return 'Operator({}, input_dims={}, output_dims={})'.format(
-            self._data, self._input_dims, self._output_dims)
+        prefix = 'Operator('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}input_dims={}, output_dims={})'.format(
+            prefix, np.array2string(
+                self.data, separator=', ', prefix=prefix),
+            pad, self._input_dims, self._output_dims)
 
     def __eq__(self, other):
         """Test if two Operators are equal."""
