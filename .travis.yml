@@ -21,7 +21,6 @@ cache:
 stage_osx: &stage_osx
   os: osx
   language: python
-  python: 2.7
   cache:
     pip: true
     directories:
@@ -44,7 +43,6 @@ stage_osx: &stage_osx
 os: linux
 dist: bionic
 language: python
-python: 3.7
 install:
   # Install step for jobs that require compilation and qa.
   - pip install -U -r requirements.txt -c constraints.txt
@@ -75,12 +73,14 @@ jobs:
       env:
         - PYTHON_VERSION=3.7.7
     - name: Lint and Style
+      python: 3.7
       script:
           - pycodestyle --max-line-length=100 qiskit test
           - pylint -rn qiskit test
           - reno lint
       stage: lint_and_tests
     - name: Docs
+      python: 3.7
       install:
         - python -m pip install --upgrade pip
         - pip install -U tox
