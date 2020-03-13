@@ -85,7 +85,8 @@ jobs:
         - python -m pip install --upgrade pip
         - pip install -U tox
         - python setup.py build_ext --inplace
-        - sudo apt install -y graphviz
+        - sudo apt-get update
+        - sudo apt-get install -y graphviz
       script:
         - tox -edocs
     - name: Python 3.5 Tests Linux
