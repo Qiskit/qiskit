@@ -83,25 +83,26 @@ class PassBenchmarks:
         swap.property_set['layout'] = self.layout
         return swap.run(self.dag).count_ops().get('swap')
 
-    def time_lookahead_swap(self, _, __):
-        swap = LookaheadSwap(self.coupling_map)
-        swap.property_set['layout'] = self.layout
-        swap.run(self.dag)
+    # Disable lookahead swap benchmarks due to timeout.
+    # def time_lookahead_swap(self, _, __):
+    #     swap = LookaheadSwap(self.coupling_map)
+    #     swap.property_set['layout'] = self.layout
+    #     swap.run(self.dag)
 
-    def peakmem_lookahead_swap(self, _, __):
-        swap = LookaheadSwap(self.coupling_map)
-        swap.property_set['layout'] = self.layout
-        swap.run(self.dag)
+    # def peakmem_lookahead_swap(self, _, __):
+    #     swap = LookaheadSwap(self.coupling_map)
+    #     swap.property_set['layout'] = self.layout
+    #     swap.run(self.dag)
 
-    def track_lookahead_swap_depth(self, _, __):
-        swap = LookaheadSwap(self.coupling_map)
-        swap.property_set['layout'] = self.layout
-        return swap.run(self.dag).depth()
+    # def track_lookahead_swap_depth(self, _, __):
+    #     swap = LookaheadSwap(self.coupling_map)
+    #     swap.property_set['layout'] = self.layout
+    #     return swap.run(self.dag).depth()
 
-    def track_lookahead_swap_swap_count(self, _, __):
-        swap = LookaheadSwap(self.coupling_map)
-        swap.property_set['layout'] = self.layout
-        return swap.run(self.dag).depth().count_ops().get('swap')
+    # def track_lookahead_swap_swap_count(self, _, __):
+    #     swap = LookaheadSwap(self.coupling_map)
+    #     swap.property_set['layout'] = self.layout
+    #     return swap.run(self.dag).depth().count_ops().get('swap')
 
     def time_basic_swap(self, _, __):
         swap = BasicSwap(self.coupling_map)
