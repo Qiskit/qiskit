@@ -219,7 +219,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
     """ Test remove diagonal control gates before measure. """
 
     def test_optimize_1cz_2measure(self):
-        """ Remove a single CzGate
+        """ Remove a single CZGate
             qr0:--Z--m---       qr0:--m---
                   |  |                |
             qr1:--.--|-m-  ==>  qr1:--|-m-
@@ -244,7 +244,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1crz_2measure(self):
-        """ Remove a single CrzGate
+        """ Remove a single CRZGate
             qr0:-RZ--m---       qr0:--m---
                   |  |                |
             qr1:--.--|-m-  ==>  qr1:--|-m-
@@ -269,7 +269,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1cu1_2measure(self):
-        """ Remove a single Cu1Gate
+        """ Remove a single CU1Gate
             qr0:-CU1-m---       qr0:--m---
                   |  |                |
             qr1:--.--|-m-  ==>  qr1:--|-m-
@@ -323,7 +323,7 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
     """ Test situations where remove_diagonal_gates_before_measure should not optimize """
 
     def test_optimize_1cz_1measure(self):
-        """ Do not remove a CzGate because measure happens on only one of the wires
+        """ Do not remove a CZGate because measure happens on only one of the wires
         Compare with test_optimize_1cz_2measure.
 
             qr0:--Z--m---

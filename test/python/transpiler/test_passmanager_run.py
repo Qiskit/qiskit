@@ -15,12 +15,12 @@
 """Tests PassManager.run()"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import CnotGate
+from qiskit.extensions.standard import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
 from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler.transpile_config import TranspileConfig
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 
 
 class TestPassManagerRun(QiskitTestCase):
@@ -56,16 +56,15 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(TranspileConfig(
+        pass_manager = level_1_pass_manager(PassManagerConfig(
             basis_gates=basis_gates,
             coupling_map=CouplingMap(coupling_map),
             initial_layout=Layout.from_qubit_list(initial_layout),
-            seed_transpiler=42,
-            optimization_level=1))
+            seed_transpiler=42))
         new_circuit = pass_manager.run(circuit)
 
         for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CnotGate):
+            if isinstance(gate, CXGate):
                 self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_default_pass_manager_two(self):
@@ -103,15 +102,14 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(TranspileConfig(
+        pass_manager = level_1_pass_manager(PassManagerConfig(
             basis_gates=basis_gates,
             coupling_map=CouplingMap(coupling_map),
             initial_layout=Layout.from_qubit_list(initial_layout),
-            seed_transpiler=42,
-            optimization_level=1))
+            seed_transpiler=42))
         new_circuits = pass_manager.run([circuit1, circuit2])
 
         for new_circuit in new_circuits:
             for gate, qargs, _ in new_circuit.data:
-                if isinstance(gate, CnotGate):
+                if isinstance(gate, CXGate):
                     self.assertIn([x.index for x in qargs], coupling_map)

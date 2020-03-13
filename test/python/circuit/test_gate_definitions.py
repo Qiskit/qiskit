@@ -41,10 +41,26 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
     def test_crz_definition(self):
-        """Test crz gate matrix and defintion.
+        """Test crz gate matrix and definition.
         """
         circ = QuantumCircuit(2)
         circ.crz(1, 0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_cry_definition(self):
+        """Test cry gate matrix and definition.
+        """
+        circ = QuantumCircuit(2)
+        circ.cry(1, 0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_crx_definition(self):
+        """Test crx gate matrix and definition.
+        """
+        circ = QuantumCircuit(2)
+        circ.crx(1, 0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -56,7 +72,7 @@ class TestGateDefinitions(QiskitTestCase):
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
-    def test_cu1_defintion(self):
+    def test_cu1_definition(self):
         """Test cu1 gate matrix and definition.
         """
         circ = QuantumCircuit(2)

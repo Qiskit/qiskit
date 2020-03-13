@@ -34,6 +34,7 @@ class Gate(Instruction):
             label (str or None): An optional label for the gate [Default: None]
         """
         self._label = label
+        self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
     def to_matrix(self):
@@ -57,9 +58,10 @@ class Gate(Instruction):
         Raises:
             CircuitError: If Gate is not unitary
         """
+        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
-        decomposition, unitary = schur(self.to_matrix(), output='complex')
+        decomposition, unitary = schur(Operator(self).data, output='complex')
         # Raise the diagonal entries to the specified power
         decomposition_power = list()
 
@@ -105,6 +107,25 @@ class Gate(Instruction):
         else:
             raise TypeError('label expects a string or None')
 
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Return controlled version of gate
+
+        Args:
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
+            label (str or None): optional gate label
+            ctrl_state (int or str or None): The control state in decimal or as
+                a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+
+        Returns:
+            ControlledGate: controlled version of gate.
+
+        Raises:
+            QiskitError: unrecognized mode or invalid ctrl_state
+        """
+        # pylint: disable=cyclic-import
+        from .add_control import add_control
+        return add_control(self, num_ctrl_qubits, label, ctrl_state)
+
     @staticmethod
     def _broadcast_single_argument(qarg):
         """Expands a single argument.
@@ -134,7 +155,7 @@ class Gate(Instruction):
             for arg0 in qarg0:
                 yield [arg0, qarg1[0]], []
         else:
-            raise CircuitError('Not sure how to combine these two qubit arguments:\n %s\n %s' %
+            raise CircuitError('Not sure how to combine these two-qubit arguments:\n %s\n %s' %
                                (qarg0, qarg1))
 
     @staticmethod

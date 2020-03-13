@@ -190,10 +190,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         c_0:  0 ══╩══════════════
         """
         qc = QuantumCircuit(2, 1)
-        qc.iden(0)
+        qc.i(0)
         qc.measure(1, 0)
         qc.cx(1, 0)
-        qc.iden(1)
+        qc.i(1)
 
         # can't just add all the nodes to one block as in other tests
         # as we are trying to test the block gets added in the correct place
@@ -210,7 +210,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         This example was raised in #2764, and checks that the final CX
         stays after the main block, even though one of the nodes in the
-        block was declared after it. This occured when the block was
+        block was declared after it. This occurred when the block was
         added when the last node in the block was seen.
 
         blocks = [['cx', 'id', 'id']]
@@ -224,9 +224,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(3)
         qc.cx(1, 2)
-        qc.iden(1)
+        qc.i(1)
         qc.cx(0, 1)
-        qc.iden(2)
+        qc.i(2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -255,13 +255,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
         qc.cx(3, 2)
-        qc.iden(1)
-        qc.iden(2)
+        qc.i(1)
+        qc.i(2)
 
         qc.swap(1, 2)
 
-        qc.iden(1)
-        qc.iden(2)
+        qc.i(1)
+        qc.i(2)
         qc.cx(0, 1)
         qc.cx(3, 2)
 

@@ -72,7 +72,8 @@ disable=no-self-use,        # disabled as it is too verbose
     too-many-public-methods, too-few-public-methods, too-many-ancestors,
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
-    docstring-first-line-empty # relax docstring style
+    docstring-first-line-empty, # relax docstring style
+    import-outside-toplevel
 
 
 
@@ -172,7 +173,7 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 attr-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}|ax$
+argument-rgx=[a-z_][a-z0-9_]{2,30}|ax|dt$
 
 # Naming hint for argument names
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$

@@ -14,7 +14,7 @@
 
 """Qobj utilities and enums."""
 
-from enum import Enum
+from enum import Enum, IntEnum
 
 from qiskit.validation.jsonschema import validate_json_against_schema
 
@@ -29,6 +29,13 @@ class MeasReturnType(str, Enum):
     """PulseQobjConfig meas_return allowed values."""
     AVERAGE = 'avg'
     SINGLE = 'single'
+
+
+class MeasLevel(IntEnum):
+    """MeasLevel allowed values."""
+    RAW = 0
+    KERNELED = 1
+    CLASSIFIED = 2
 
 
 def validate_qobj_against_schema(qobj):
