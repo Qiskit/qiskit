@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Acquire instruction is used to trigger the analog-to-digital converter (ADC) and provide
+"""The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process; for example, where to store classified readout data.
 """
 import warnings
