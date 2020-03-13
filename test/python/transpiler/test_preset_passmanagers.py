@@ -417,7 +417,8 @@ class TestTranspileLevelsSwap(QiskitTestCase):
                            optimization_level=level,
                            basis_gates=basis,
                            coupling_map=coupling_map,
-                           seed_transpiler=42)
+                           seed_transpiler=42,
+                           initial_layout=[0, 1, 2, 3, 4])
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn('swap', resulting_basis)
