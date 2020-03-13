@@ -1038,6 +1038,7 @@ class DAGCircuit:
 
     def twoQ_gates(self):
         """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
+        warnings.warn('deprecated function, use dag.two_qubit_ops', DeprecationWarning)
         two_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) == 2:
@@ -1046,29 +1047,28 @@ class DAGCircuit:
 
     def threeQ_or_more_gates(self):
         """Get list of 3-or-more-qubit gates: (id, data)."""
-        warnings.warn('deprecated function, use dag.multi_q_ops', DeprecationWarning)
+        warnings.warn('deprecated function, use dag.multi_qubit_ops', DeprecationWarning)
         three_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) >= 3:
                 three_q_gates.append(node)
         return three_q_gates
 
-    def two_q_ops(self):
+    def two_qubit_ops(self):
         """Get list of 2 qubit operations. Ignore directives like snapshot and barrier."""
-        warnings.warn('deprecated function, use dag.two_q_ops', DeprecationWarning)
-        two_q_ops = []
+        ops = []
         for node in self.op_nodes(include_directives=False):
             if len(node.qargs) == 2:
-                two_q_ops.append(node)
-        return two_q_ops
+                ops.append(node)
+        return ops
 
-    def multi_q_ops(self):
+    def multi_qubit_ops(self):
         """Get list of 3+ qubit operations. Ignore directives like snapshot and barrier."""
-        multi_q_ops = []
+        ops = []
         for node in self.op_nodes(include_directives=False):
             if len(node.qargs) >= 3:
-                multi_q_ops.append(node)
-        return multi_q_ops
+                ops.append(node)
+        return ops
 
     def longest_path(self):
         """Returns the longest path in the dag as a list of DAGNodes."""

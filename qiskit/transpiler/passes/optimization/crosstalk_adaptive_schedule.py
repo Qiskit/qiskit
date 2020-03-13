@@ -220,7 +220,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Currenty overlaps (A,B) are considered when A is a 2q gate and
         B is either 2q or 1q gate.
         """
-        for gate in dag.two_q_ops():
+        for gate in dag.two_qubit_ops():
             overlap_set = []
             descendants = dag.descendants(gate)
             ancestors = dag.ancestors(gate)

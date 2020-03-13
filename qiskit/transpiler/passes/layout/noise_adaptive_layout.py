@@ -143,7 +143,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         for q in dag.qubits():
             self.qarg_to_id[q.register.name + str(q.index)] = idx
             idx += 1
-        for gate in dag.two_q_ops():
+        for gate in dag.two_qubit_ops():
             qid1 = self._qarg_to_id(gate.qargs[0])
             qid2 = self._qarg_to_id(gate.qargs[1])
             min_q = min(qid1, qid2)

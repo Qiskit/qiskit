@@ -32,7 +32,7 @@ class Unroll3qOrMore(TransformationPass):
         Raises:
             QiskitError: if a 3q+ gate is not decomposable
         """
-        for node in dag.multi_q_ops():
+        for node in dag.multi_qubit_ops():
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition
             if not rule:
