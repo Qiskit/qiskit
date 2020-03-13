@@ -25,14 +25,8 @@ from os import linesep
 from typing import List
 from qiskit import QuantumCircuit, QiskitError
 from qiskit.qasm import Qasm
-from qiskit.converters import ast_to_dag  # pylint: disable=cyclic-import
-from qiskit.converters import dag_to_circuit
+from .funhelp import qasm_load
 
-
-def _qasm_load(qasm: Qasm) -> QuantumCircuit:
-    ast = qasm.parse()
-    dag = ast_to_dag(ast)
-    return dag_to_circuit(dag)
 
 def _load_from_string(qasm_src: str or List[str],
                       loader: str = None,
@@ -72,7 +66,7 @@ def _load_from_string(qasm_src: str or List[str],
         if isinstance(qasm_src, list):
             qasm_src = ''.join(s + linesep for s in qasm_src)
         qasm = Qasm(data=qasm_src)
-        circ = _qasm_load(qasm)
+        circ = qasm_load(qasm)
     else:
         m_m = import_module(loader)
         circ = getattr(m_m, 'load')(data=qasm_src,
@@ -111,7 +105,7 @@ def _load_from_file(filename: str,
     circ = None
     if not loader:
         qasm = Qasm(filename=filename)
-        circ = _qasm_load(qasm)
+        circ = qasm_load(qasm)
     else:
         m_m = import_module(loader)
         circ = getattr(m_m, 'load')(filename=filename,

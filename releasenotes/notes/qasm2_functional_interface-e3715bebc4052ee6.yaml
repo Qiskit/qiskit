@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    qiskit.qasm2 provides a functional interface to Qasm2 source loading and
+    unloading. This supersedes the use of QuantumCircuit member functions
+    to load or unload openqasm2 source to QuantumCircuit and provides for
+    pluggable qasm translators.
+    
+  - |
+    The loader interface is as follows::
+        ``load(data:: str or List[str] = None,``
+        ``filename:: str = None,``
+        ``loader:: str = None, include_path:: str = '') -> QuantumCircuit::``
+      
+        ``from qiskit.qasm2 import loadffile = open(self.qasm_file_path, 'r')``
+        ``lines = ffile.read()``
+        ``ffile.close()``
+        
+    Parameters
+    ----------
+    filename:: str
+      Filepath to qasm program source.
+    loader:: str, optional
+      Name of module with functional attribute
+      ``load(filename:: str = None,``
+               ``data::str = None,``
+               ``include_path::  str = None) -> QuantumCircuit::``
+      to use for qasm translation.
+      None means use Qiskit qasm.
+      The default is None.
+    include_path :: str, optional
+      Loader-specific include path for qasm include directives.
+      The default is ''.
+
+    Returns
+    -------
+    QuantumCircuit
+        Circuit factoried from Qasm src.
