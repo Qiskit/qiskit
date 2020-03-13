@@ -14,7 +14,7 @@
 
 """Quantum circuit object."""
 
-from copy import deepcopy
+import copy
 import itertools
 import sys
 import warnings
@@ -286,8 +286,8 @@ class QuantumCircuit:
         self._check_compatible_regs(rhs)
 
         # Make new circuit with combined registers
-        combined_qregs = deepcopy(self.qregs)
-        combined_cregs = deepcopy(self.cregs)
+        combined_qregs = copy.deepcopy(self.qregs)
+        combined_cregs = copy.deepcopy(self.cregs)
 
         for element in rhs.qregs:
             if element not in self.qregs:
@@ -1096,7 +1096,25 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = deepcopy(self)
+
+        cpy = copy.copy(self)
+
+        instr_instances = {id(instr): instr
+                           for instr, _, __ in self._data}
+
+        instr_copies = {id_: instr.copy()
+                        for id_, instr in instr_instances.items()}
+
+        cpy._parameter_table = ParameterTable()
+        cpy._parameter_table._table = {
+            param: [(instr_copies[id(instr)], param_index)
+                    for instr, param_index in self._parameter_table[param]]
+            for param in self._parameter_table
+        }
+
+        cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
+                     for inst, qargs, cargs in self._data]
+
         if name:
             cpy.name = name
         return cpy
