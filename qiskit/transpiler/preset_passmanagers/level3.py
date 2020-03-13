@@ -27,7 +27,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import CSPLayout
-from qiskit.transpiler.passes import NoiseAdaptiveLayout
+from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -85,7 +85,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['layout']
 
     _choose_layout_1 = CSPLayout(coupling_map, call_limit=10000, time_limit=60)
-    _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
+    # TODO: benchmark DenseLayout vs. NoiseAdaptiveLayout in terms of noise aware mapping
+    _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
