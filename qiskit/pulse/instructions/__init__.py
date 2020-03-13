@@ -24,3 +24,4 @@ sequence of scheduled Pulse ``Instruction`` s over many channels.
 from .delay import Delay
 from .instruction import Instruction
 from .play import Play
+from .snapshot import Snapshot
