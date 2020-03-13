@@ -1053,6 +1053,15 @@ class DAGCircuit:
                 three_q_gates.append(node)
         return three_q_gates
 
+    def two_q_ops(self):
+        """Get list of 2 qubit operations. Ignore directives like snapshot and barrier."""
+        warnings.warn('deprecated function, use dag.two_q_ops', DeprecationWarning)
+        two_q_ops = []
+        for node in self.op_nodes(include_directives=False):
+            if len(node.qargs) == 3:
+                two_q_ops.append(node)
+        return two_q_ops
+
     def multi_q_ops(self):
         """Get list of 3+ qubit operations. Ignore directives like snapshot and barrier."""
         multi_q_ops = []

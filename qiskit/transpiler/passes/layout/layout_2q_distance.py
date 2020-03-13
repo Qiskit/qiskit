@@ -55,7 +55,7 @@ class Layout2qDistance(AnalysisPass):
 
         sum_distance = 0
 
-        for gate in dag.twoQ_gates():
+        for gate in dag.two_q_ops():
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
 

@@ -481,13 +481,13 @@ class TestDagOperations(QiskitTestCase):
         self.assertIsInstance(op_node_2.op, Gate)
 
     def test_two_q_gates(self):
-        """The method dag.twoQ_gates() returns all 2Q gate nodes"""
+        """The method dag.two_q_ops() returns all 2Q gate operation nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Barrier(2), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
-        op_nodes = self.dag.twoQ_gates()
+        op_nodes = self.dag.two_q_ops()
         self.assertEqual(len(op_nodes), 1)
 
         op_node = op_nodes.pop()

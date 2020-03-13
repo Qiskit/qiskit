@@ -120,7 +120,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
-        nodes = dag.twoQ_gates()
+        nodes = dag.two_q_ops()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
