@@ -409,11 +409,34 @@ class TestTranspileLevelsSwap(QiskitTestCase):
              level=[0, 1, 2, 3],
              dsc='circuit: {circuit.__name__}, level: {level}',
              name='{circuit.__name__}_level{level}')
-    def test(self, circuit, level):
+    def test_1(self, circuit, level):
         """Simple coupling map (linear 5 qubits)."""
         basis = ['u1', 'u2', 'cx', 'swap']
         coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
         result = transpile(circuit(),
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)
+
+    @combine(level=[0, 1, 2, 3],
+             dsc='If swap in basis, do not decompose it. level: {level}',
+             name='level{level}')
+    def test_2(self, level):
+        """Simple coupling map (linear 5 qubits).
+        The circuit requires a swap and that swap should exit at the end
+        for the transpilation"""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 4)
+        circuit.cx(1, 4)
+        circuit.cx(2, 4)
+        circuit.cx(3, 4)
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit,
                            optimization_level=level,
                            basis_gates=basis,
                            coupling_map=coupling_map,
