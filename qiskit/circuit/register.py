@@ -80,9 +80,8 @@ class Register:
     def name(self, value):
         """Set the register name."""
         self._name = value
-        if hasattr(self, '_size'):
-            self._hash = hash((type(self), self._name, self._size))
-            self._update_bits_hash()
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
 
     @property
     def size(self):
@@ -93,9 +92,8 @@ class Register:
     def size(self, value):
         """Set the register size."""
         self._size = value
-        if hasattr(self, '_name'):
-            self._hash = hash((type(self), self._name, self._size))
-            self._update_bits_hash()
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
