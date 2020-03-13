@@ -80,6 +80,14 @@ jobs:
           - pylint -rn qiskit test
           - reno lint
       stage: lint_and_tests
+    - name: Docs
+      install:
+        - python -m pip install --upgrade pip
+        - pip install -U tox
+        - python setup.py build_ext --inplace
+        - sudo apt install -y graphviz
+      script:
+        - tox -edocs
     - name: Python 3.5 Tests Linux
       python: 3.5
       stage: tests
