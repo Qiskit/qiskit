@@ -135,3 +135,54 @@ def build_qv_model_circuit(width, depth, seed=None):
             pair = int(perm[2*k]), int(perm[2*k+1])
             circuit.append(U, [pair[0], pair[1]])
     return circuit
+
+
+def build_ripple_adder_circuit(size):
+    """
+    Builds a ripple adder of a given size.
+    """
+    n = size
+    a = QuantumRegister(n, "a")
+    b = QuantumRegister(n, "b")
+    cin = QuantumRegister(1, "cin")
+    cout = QuantumRegister(1, "cout")
+    ans = ClassicalRegister(n+1, "ans")
+    qc = QuantumCircuit(a, b, cin, cout, ans, name="rippleadd")
+
+    def majority(p, a, b, c):
+        """Majority gate."""
+        p.cx(c, b)
+        p.cx(c, a)
+        p.ccx(a, b, c)
+
+    def unmajority(p, a, b, c):
+        """Unmajoritygate."""
+        p.ccx(a, b, c)
+        p.cx(c, a)
+        p.cx(a, b)
+
+    # Build a temporary subcircuitthat adds a to b,
+    # storing the result in b
+    adder_subcircuit = QuantumCircuit(cin, a, b, cout)
+    majority(adder_subcircuit, cin[0], b[0], a[0])
+    for j in range(n - 1):
+        majority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
+
+    adder_subcircuit.cx(a[n - 1], cout[0])
+
+    for j in reversed(range(n - 1)):
+        unmajority(adder_subcircuit, a[j], b[j + 1], a[j + 1])
+        unmajority(adder_subcircuit, cin[0], b[0], a[0])
+
+    # Set the inputs to the adder
+    qc.x(a[0])  # Set input a = 0...0001
+    qc.x(b)   # Set input b = 1...1111
+    # Apply the adder
+    qc += adder_subcircuit
+
+    # Measure the output register in the computational basis
+    for j in range(n):
+        qc.measure(b[j], ans[j])
+    qc.measure(cout[0], ans[n])
+
+    return qc
