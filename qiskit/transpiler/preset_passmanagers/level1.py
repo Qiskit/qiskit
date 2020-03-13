@@ -72,7 +72,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _given_layout = SetLayout(initial_layout)
 
     _choose_layout_and_score = [TrivialLayout(coupling_map),
-            Layout2qDistance(coupling_map, property_name='trivial_layout_score')]
+                                Layout2qDistance(coupling_map,
+                                                 property_name='trivial_layout_score')]
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']

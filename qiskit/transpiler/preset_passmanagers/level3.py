@@ -26,7 +26,6 @@ from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import StochasticSwap
