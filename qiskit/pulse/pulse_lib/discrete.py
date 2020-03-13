@@ -21,10 +21,9 @@ Note the sampling strategy use for all discrete pulses is `midpoint`.
 import warnings
 from typing import Optional
 
-from qiskit.pulse.exceptions import PulseError
-from ..commands.sample_pulse import SamplePulse
+from ..exceptions import PulseError
+from .sample_pulse import SamplePulse
 from . import continuous
-
 from . import samplers
 
 

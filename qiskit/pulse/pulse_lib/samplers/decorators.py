@@ -135,10 +135,30 @@ import pydoc
 
 import numpy as np
 
-from qiskit.pulse.commands.sample_pulse import SamplePulse
 from qiskit.pulse.commands.pulse_decorators import functional_pulse
 
+from ..sample_pulse import SamplePulse
 from . import strategies
+
+
+def functional_pulse(func: Callable):
+    """A decorator for generating SamplePulse from python callable.
+
+    Args:
+        func: A function describing pulse envelope.
+    Raises:
+        PulseError: when invalid function is specified.
+    """
+    @functools.wraps(func)
+    def to_pulse(duration, *args, name=None, **kwargs):
+        """Return SamplePulse."""
+        if isinstance(duration, (int, np.integer)) and duration > 0:
+            samples = func(duration, *args, **kwargs)
+            samples = np.asarray(samples, dtype=np.complex128)
+            return SamplePulse(samples=samples, name=name)
+        raise PulseError('The first argument must be an integer value representing duration.')
+
+    return to_pulse
 
 
 def _update_annotations(discretized_pulse: Callable) -> Callable:
