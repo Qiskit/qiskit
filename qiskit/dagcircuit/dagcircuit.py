@@ -1038,7 +1038,9 @@ class DAGCircuit:
 
     def twoQ_gates(self):
         """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
-        warnings.warn('deprecated function, use dag.two_qubit_ops', DeprecationWarning)
+        warnings.warn('deprecated function, use dag.two_qubit_ops(). '
+                      'filter output by isinstance(op, Gate) to only get unitary Gates.',
+                      DeprecationWarning)
         two_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) == 2:
@@ -1047,7 +1049,9 @@ class DAGCircuit:
 
     def threeQ_or_more_gates(self):
         """Get list of 3-or-more-qubit gates: (id, data)."""
-        warnings.warn('deprecated function, use dag.multi_qubit_ops', DeprecationWarning)
+        warnings.warn('deprecated function, use dag.multi_qubit_ops(). '
+                      'filter output by isinstance(op, Gate) to only get unitary Gates.',
+                      DeprecationWarning)
         three_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) >= 3:
