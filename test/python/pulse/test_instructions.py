@@ -35,11 +35,11 @@ class TestShiftPhase(QiskitTestCase):
 
     def test_default(self):
         """Test basic ShiftPhase."""
-        fc_command = ShiftPhase(1.57, DriveChannel(0))
+        shift_phase = ShiftPhase(1.57, DriveChannel(0))
 
-        self.assertEqual(fc_command.phase, 1.57)
-        self.assertEqual(fc_command.duration, 0)
-        self.assertTrue(fc_command.name.startswith('fc'))
+        self.assertEqual(shift_phase.phase, 1.57)
+        self.assertEqual(shift_phase.duration, 0)
+        self.assertTrue(shift_phase.name.startswith('ShiftPhase'))
 
 
 class TestSnapshot(QiskitTestCase):

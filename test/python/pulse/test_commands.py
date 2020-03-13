@@ -144,7 +144,7 @@ class TestFrameChangeCommand(QiskitTestCase):
 
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
-        self.assertTrue(fc_command.name.startswith('fc'))
+        self.assertTrue(fc_command.name.startswith('FrameChange'))
 
 
 class TestPersistentValueCommand(QiskitTestCase):
