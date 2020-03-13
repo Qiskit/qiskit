@@ -18,10 +18,12 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile, assemble
+from qiskit.transpiler import CouplingMap
 from qiskit.extensions.standard import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
+from qiskit.converters import circuit_to_dag
 
 
 def emptycircuit():
@@ -394,3 +396,28 @@ class TestFinalLayouts(QiskitTestCase):
 
         for physical, virtual in initial_layout.items():
             self.assertEqual(result._layout._p2v[physical], virtual)
+
+
+@ddt
+class TestTranspileLevelsSwap(QiskitTestCase):
+    """Test if swap is in the basis, do not unroll
+    See https://github.com/Qiskit/qiskit-terra/pull/3963
+    The circuit in combine should require a swap and that swap should exit at the end
+    for the transpilation"""
+
+    @combine(circuit=[circuit_2532],
+             level=[0, 1, 2, 3],
+             dsc='circuit: {circuit.__name__}, level: {level}',
+             name='{circuit.__name__}_level{level}')
+    def test(self, circuit, level):
+        """Simple coupling map (linear 5 qubits)."""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit(),
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)
