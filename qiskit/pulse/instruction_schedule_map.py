@@ -32,7 +32,7 @@ import warnings
 import inspect
 
 from collections import defaultdict
-from typing import List, Tuple, Iterable, Union, Optional, Callable
+from typing import List, Tuple, Iterable, Union, Callable
 
 from .schedule import Schedule, ParameterizedSchedule
 from .exceptions import PulseError
