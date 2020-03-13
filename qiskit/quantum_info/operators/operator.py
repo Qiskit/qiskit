@@ -65,13 +65,12 @@ class Operator(BaseOperator):
         Raises:
             QiskitError: if input data cannot be initialized as an operator.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
-        the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
+            the input operator is not an N-qubit operator, it will assign a
+            single subsystem with dimension specified by the shape of the input.
         """
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
@@ -359,11 +358,16 @@ class Operator(BaseOperator):
         data = np.kron(other._data, self._data)
         return Operator(data, input_dims, output_dims)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the operator self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (Operator): an operator object.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             Operator: the operator self + other.
@@ -372,15 +376,24 @@ class Operator(BaseOperator):
             QiskitError: if other is not an operator, or has incompatible
             dimensions.
         """
+        # pylint: disable=import-outside-toplevel, cyclic-import
+        from qiskit.quantum_info.operators.scalar_op import ScalarOp
+
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, Operator):
             other = Operator(other)
-        self._validate_add_dims(other)
+
+        self._validate_add_dims(other, qargs)
+        other = ScalarOp._pad_with_identity(self, other, qargs)
+
         ret = copy.copy(self)
         ret._data = self.data + other.data
         return ret
 
     def _multiply(self, other):
-        """Return the operator other * self.
+        """Return the operator self * other.
 
         Args:
             other (complex): a complex number.

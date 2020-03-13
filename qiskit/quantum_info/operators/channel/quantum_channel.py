@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
 class QuantumChannel(BaseOperator):
@@ -100,14 +101,19 @@ class QuantumChannel(BaseOperator):
         """
         pass
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other channel will be added
+        assuming it is the identity channel on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
-            QuantumChannel: the linear addition channel self + other.
+            QuantumChannel: the linear addition self + other as a SuperOp object.
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
@@ -116,9 +122,16 @@ class QuantumChannel(BaseOperator):
         # NOTE: this method must be overriden for subclasses
         # that don't have a linear matrix representation
         # ie Kraus and Stinespring
+
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
-        self._validate_add_dims(other)
+
+        self._validate_add_dims(other, qargs)
+        other = ScalarOp._pad_with_identity(self, other, qargs)
+
         ret = copy.copy(self)
         ret._data = self._data + other._data
         return ret
@@ -180,7 +193,7 @@ class QuantumChannel(BaseOperator):
         otherwise it will be added as a kraus simulator instruction.
 
         Returns:
-            Instruction: A kraus instruction for the channel.
+            qiskit.circuit.Instruction: A kraus instruction for the channel.
 
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
