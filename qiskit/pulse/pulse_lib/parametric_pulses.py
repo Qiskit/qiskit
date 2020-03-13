@@ -12,9 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-# TODO: Update the below
-"""Parametric pulse commands module. These are pulse commands which are described by a specified
+"""Parametric waveforms module. These are pulses which are described by a specified
 parameterization.
 
 If a backend supports parametric pulses, it will have the attribute
@@ -43,9 +41,7 @@ from typing import Any, Callable, Dict, Optional
 import math
 import numpy as np
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.exceptions import PulseError
-
+from ..exceptions import PulseError
 from . import continuous
 from .discrete import gaussian, gaussian_square, drag, constant
 from .pulse import Pulse
@@ -56,7 +52,7 @@ class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: int, channel: Optional[PulseChannel] = None):
+    def __init__(self, duration: int):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
@@ -115,9 +111,8 @@ class ParametricPulse(Pulse):
 
 
 class Gaussian(ParametricPulse):
-    """
-    A truncated pulse envelope shaped according to the Gaussian function whose mean is centered at
-    the center of the pulse (duration / 2):
+    """A truncated pulse envelope shaped according to the Gaussian function whose mean is centered
+    at the center of the pulse (duration / 2):
 
     .. math::
 
@@ -127,8 +122,7 @@ class Gaussian(ParametricPulse):
     def __init__(self,
                  duration: int,
                  amp: complex,
-                 sigma: float,
-                 channel: Optional[PulseChannel] = None):
+                 sigma: float):
         """Initialize the gaussian pulse.
 
         Args:
@@ -142,11 +136,13 @@ class Gaussian(ParametricPulse):
         super().__init__(duration=duration)
 
     @property
-    def amp(self):
+    def amp(self) -> complex:
+        """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self):
+    def sigma(self) -> float:
+        """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
     def get_sample_pulse(self) -> SamplePulse:
@@ -170,8 +166,7 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """
-    A square pulse with a Gaussian shaped risefall on either side:
+    """A square pulse with a Gaussian shaped risefall on either side:
 
     .. math::
 
@@ -194,8 +189,7 @@ class GaussianSquare(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 width: float,
-                 channel: Optional[PulseChannel] = None):
+                 width: float):
         """Initialize the gaussian square pulse.
 
         Args:
@@ -211,15 +205,18 @@ class GaussianSquare(ParametricPulse):
         super().__init__(duration=duration)
 
     @property
-    def amp(self):
+    def amp(self) -> complex:
+        """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self):
+    def sigma(self) -> float:
+        """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
     @property
-    def width(self):
+    def width(self) -> float:
+        """The width of the square portion of the pulse."""
         return self._width
 
     def get_sample_pulse(self) -> SamplePulse:
@@ -276,8 +273,7 @@ class Drag(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 beta: float,
-                 channel: Optional[PulseChannel] = None):
+                 beta: float):
         """Initialize the drag pulse.
 
         Args:
@@ -293,15 +289,18 @@ class Drag(ParametricPulse):
         super().__init__(duration=duration)
 
     @property
-    def amp(self):
+    def amp(self) -> complex:
+        """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self):
+    def sigma(self) -> float:
+        """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
     @property
-    def beta(self):
+    def beta(self) -> float:
+        """The weighing factor for the Gaussian derivative component of the waveform."""
         return self._beta
 
     def get_sample_pulse(self) -> SamplePulse:
@@ -359,8 +358,7 @@ class ConstantPulse(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
-                 channel: Optional[PulseChannel] = None):
+                 amp: complex):
         """
         Initialize the constant-valued pulse.
 
@@ -372,7 +370,8 @@ class ConstantPulse(ParametricPulse):
         super().__init__(duration=duration)
 
     @property
-    def amp(self):
+    def amp(self) -> complex:
+        """The constant value amplitude."""
         return self._amp
 
     def get_sample_pulse(self) -> SamplePulse:

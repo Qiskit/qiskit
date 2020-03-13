@@ -13,22 +13,27 @@
 # that they have been altered from the originals.
 
 """Any command which implements a transmit signal on a channel."""
-from typing import Callable, List, Optional
-
+import warnings
+from typing import Callable, Optional
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 from ..channels import PulseChannel
+from ..exceptions import PulseError
+from ..instructions.play import Play
 
 
 class Pulse(ABC):
     """The abstract superclass for pulses."""
 
-    @abstractmethod  #???
-    def __init__(self, duration: int = None):
-        if isinstance(duration, (int, np.integer)):
-            self._duration = int(duration)
-        else:
+    @abstractmethod
+    def __init__(self, duration: int, name: Optional[str] = None):
+        if not isinstance(duration, (int, np.integer)):
             raise PulseError('Pulse duration should be integer.')
+        self.duration = int(duration)
+        self.name = name if name is not None else '{}{}'.format(self.__class__.__name__,
+                                                                self.__hash__())
 
     def __call__(self, channel: PulseChannel) -> 'Instruction':
         """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a

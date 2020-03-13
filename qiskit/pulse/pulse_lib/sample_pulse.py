@@ -12,21 +12,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""TODO"""
+"""A pulse that is described by complex-valued sample points."""
 import warnings
-
 from typing import Callable, Union, List, Optional
 
-from qiskit.pulse.channels import PulseChannel
+import numpy as np
+
+from ..exceptions import PulseError
 from .pulse import Pulse
 
 
 class SamplePulse(Pulse):
-    """TODO"""
+    """A pulse specified completely by complex-valued amplitudes; implicitly time separated by the
+    backend cycle-time, dt.
+    """
 
     def __init__(self, samples: Union[np.ndarray, List[complex]],
-    	         channel: Optional[PulseChannel] = None,
-    			 name: Optional[str] = None,
+                 name: Optional[str] = None,
                  epsilon: float = 1e-7):
         """Create new sample pulse command.
 
@@ -38,34 +40,32 @@ class SamplePulse(Pulse):
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised
         """
-        super().__init__(duration=len(samples))
-
+        super().__init__(duration=len(samples), name=name)
         samples = np.asarray(samples, dtype=np.complex_)
-
         self._samples = self._clip(samples, epsilon=epsilon)
-        self._name = SamplePulse.create_name(name)
 
     @property
-    def samples(self):
+    def samples(self) -> np.ndarray:
         """Return sample values."""
         return self._samples
 
-    def _clip(self, samples: np.ndarray, epsilon: float = 1e-7):
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-7) -> np.ndarray:
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 
         If difference is greater than epsilon error is raised.
 
         Args:
-            samples: Complex array of pulse envelope
+            samples: Complex array of pulse envelope.
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
-                norm is greater than 1+epsilon an error will be raised
+                norm is greater than 1+epsilon an error will be raised.
 
         Returns:
-            np.ndarray: Clipped pulse samples
+            Clipped pulse samples.
+
         Raises:
-            PulseError: If there exists a pulse sample with a norm greater than 1+epsilon
+            PulseError: If there exists a pulse sample with a norm greater than 1+epsilon.
         """
         samples_norm = np.abs(samples)
         to_clip = (samples_norm > 1.) & (samples_norm <= 1. + epsilon)
@@ -152,7 +152,3 @@ class SamplePulse(Pulse):
                                                   self.name)
         np.set_printoptions(**opt)
         return repr_str
-
-    def __call__(self):
-    	"""TODO, deprecate"""
-    	pass

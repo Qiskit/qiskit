@@ -19,10 +19,15 @@ from typing import Optional
 
 from ..channels import PulseChannel
 from ..pulse_lib import SamplePulse
+from ..instructions import Instruction
 
 
 class PulseInstruction(Instruction):
     """Instruction to drive a pulse to an `PulseChannel`."""
 
     def __init__(self, command: SamplePulse, channel: PulseChannel, name: Optional[str] = None):
-        warnings.warn("TODO", DeprecationWarning)
+        warnings.warn("PulseInstruction is deprecated. Use Play, instead, with a pulse and a "
+                      "channel. For example: PulseInstruction(SamplePulse([...]), DriveChannel(0))"
+                      " -> Play(SamplePulse[...], DriveChannel(0)).",
+                      DeprecationWarning)
+        super().__init__(command, channel, name=name)
