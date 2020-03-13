@@ -26,6 +26,7 @@ import os
 from collections import OrderedDict
 import copy
 import itertools
+import warnings
 import networkx as nx
 import retworkx as rx
 
@@ -996,18 +997,21 @@ class DAGCircuit:
                        self._id_to_node[dest],
                        edge)
 
-    def op_nodes(self, op=None):
+    def op_nodes(self, op=None, include_directives=True):
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Type): :class:`qiskit.circuit.Instruction` subclass op nodes to return.
-                if op=None, return all op nodes.
+            op (Instruction): op nodes to return. if None, return all op nodes.
+            include_directives (bool): include `barrier`, `snapshot` etc.
+
         Returns:
             list[DAGNode]: the list of node ids containing the given op.
         """
         nodes = []
         for node in self._get_multi_graph_nodes():
             if node.type == "op":
+                if not include_directives and node.name in ['snapshot', 'barrier']:
+                    continue
                 if op is None or isinstance(node.op, op):
                     nodes.append(node)
         return nodes
@@ -1042,11 +1046,20 @@ class DAGCircuit:
 
     def threeQ_or_more_gates(self):
         """Get list of 3-or-more-qubit gates: (id, data)."""
+        warnings.warn('deprecated function, use dag.multi_q_ops', DeprecationWarning)
         three_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) >= 3:
                 three_q_gates.append(node)
         return three_q_gates
+
+    def multi_q_ops(self):
+        """Get list of 3+ qubit operations. Ignore directives like snapshot and barrier."""
+        multi_q_ops = []
+        for node in self.op_nodes(include_directives=False):
+            if len(node.qargs) >= 3:
+                multi_q_ops.append(node)
+        return multi_q_ops
 
     def longest_path(self):
         """Returns the longest path in the dag as a list of DAGNodes."""
