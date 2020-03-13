@@ -20,7 +20,7 @@ cache:
 
 stage_osx: &stage_osx
   os: osx
-  language: python
+  language: generic
   cache:
     pip: true
     directories:
