@@ -1058,7 +1058,7 @@ class DAGCircuit:
         warnings.warn('deprecated function, use dag.two_q_ops', DeprecationWarning)
         two_q_ops = []
         for node in self.op_nodes(include_directives=False):
-            if len(node.qargs) == 3:
+            if len(node.qargs) == 2:
                 two_q_ops.append(node)
         return two_q_ops
 

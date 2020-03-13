@@ -60,7 +60,7 @@ class TestUnitaryGate(QiskitTestCase):
         """test instantiation of new unitary with another one (copy)"""
         uni1 = UnitaryGate([[0, 1], [1, 0]])
         uni2 = UnitaryGate(uni1)
-        self.assertTrue(uni1 == uni2)
+        self.assertEqual(uni1, uni2)
         self.assertFalse(uni1 is uni2)
 
     def test_conjugate(self):
@@ -97,7 +97,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit.index in [0, 1])
+            self.assertIn(qubit.index, [0, 1])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_2q_unitary(self):
@@ -121,11 +121,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
         nodes = dag.two_q_ops()
-        self.assertTrue(len(nodes) == 1)
+        self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit.index in [0, 1])
+            self.assertIn(qubit.index, [0, 1])
         assert_allclose(dnode.op.to_matrix(), matrix)
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -145,11 +145,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.log.info(qc)
         dag = circuit_to_dag(qc)
         nodes = dag.multi_q_ops()
-        self.assertTrue(len(nodes) == 1)
+        self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit.index in [0, 1, 3])
+            self.assertIn(qubit.index, [0, 1, 3])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_qobj_with_unitary_matrix(self):
