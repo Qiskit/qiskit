@@ -31,7 +31,7 @@ class Acquire(Instruction):
     for the channel associated with qubit 0 readout. This instruction also provides acquisition
     metadata:
 
-     * the duration of time to acquire data (in number of timesteps, dt),
+     * the number of cycles during which to acquire (in terms of dt),
 
      * the register slot to store classified, intermediary readout results,
 
@@ -68,9 +68,8 @@ class Acquire(Instruction):
             name: Name of the instruction for display purposes.
 
         Raises:
-            PulseError: If the number of register and memory slots does not equal the number of
-                        channels, or if channels are supplied and do not equal the number of m
-                        does not equal the number of AcquireChannels supplied.
+            PulseError: If channels are supplied, and the number of register and/or memory slots
+                        does not equal the number of channels.
         """
         if isinstance(channel, list) or isinstance(mem_slot, list) or reg_slots or mem_slots:
             warnings.warn('The AcquireInstruction on multiple qubits, multiple '
@@ -195,7 +194,7 @@ class Acquire(Instruction):
             ', ' + str(self.discriminator) if self.discriminator else '')
 
     def __eq__(self, other):
-        return self.operands == other.operands
+        return isinstance(other, type(self)) and self.operands == other.operands
 
     def __call__(self,
                  channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
