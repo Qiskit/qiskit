@@ -905,8 +905,8 @@ class TextDrawing():
             gates = [Bullet(conditional=conditional), BoxOnQuWire('Y')]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'cz':
-            # cz
+        elif instruction.name == 'cz' and instruction.op.ctrl_state == 1:
+            # cz TODO: only supports one closed controlled for now
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 

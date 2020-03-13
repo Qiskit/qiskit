@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate
+from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate, ZGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -1881,6 +1881,19 @@ class TestTextOpenControlledGate(QiskitTestCase):
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
         circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+
+    def test_cz_bot(self):
+        """Open controlled Z (bottom)"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>──o──",
+                              "        ┌─┴─┐",
+                              "q_1: |0>┤ Z ├",
+                              "        └───┘"])
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
