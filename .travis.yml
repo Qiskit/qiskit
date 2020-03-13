@@ -124,19 +124,3 @@ jobs:
       <<: *stage_osx
       env:
         - PYTHON_VERSION=3.8.2
-    - name: Python 3.5 Test Windows
-      os: windows
-      python: 3.5
-      stage: tests
-    - name: Python 3.6 Test Windows
-      os: windows
-      python: 3.6
-      stage: tests
-    - name: Python 3.7 Test Windows
-      os: windows
-      python: 3.7
-      stage: tests
-    - name: Python 3.8 Test Windows
-      os: windows
-      python: 3.8
-      stage: tests
