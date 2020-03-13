@@ -49,7 +49,7 @@ class ShiftPhase(Instruction):
                           "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
         self._phase = phase
         self._channel = channel
-        super().__init__(0, channel, name=name or 'fc{:x}'.format(hash((phase, channel)))[:10])
+        super().__init__(0, channel, name=name)
 
     @property
     def phase(self) -> float:
