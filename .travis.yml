@@ -79,6 +79,8 @@ jobs:
           - pylint -rn qiskit test
           - reno lint
       stage: lint_and_tests
+      git:
+        depth: false
     - name: Docs
       python: 3.7
       install:
