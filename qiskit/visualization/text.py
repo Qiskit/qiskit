@@ -910,11 +910,6 @@ class TextDrawing():
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'ch':
-            # ch
-            gates = [Bullet(conditional=conditional), BoxOnQuWire('H')]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
         elif instruction.name == 'cu1':
             # cu1
             connection_label = TextDrawing.params_for_label(instruction)[0]

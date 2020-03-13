@@ -1871,6 +1871,19 @@ class TestTextControlledGate(QiskitTestCase):
 class TestTextOpenControlledGate(QiskitTestCase):
     """Test open controlled gates"""
 
+    def test_ch_bot(self):
+        """Open controlled H (bottom)"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>──o──",
+                              "        ┌─┴─┐",
+                              "q_1: |0>┤ H ├",
+                              "        └───┘"])
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+
     def test_cch_bot(self):
         """Controlled CH (bottom)"""
         expected = '\n'.join(["             ",
