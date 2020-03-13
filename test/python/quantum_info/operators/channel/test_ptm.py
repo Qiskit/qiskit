@@ -256,6 +256,100 @@ class TestPTM(ChannelTestCase):
         targ = PTM(mat1 - mat2)
         self.assertEqual(chan1 - chan2, targ)
 
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat0 = self.rand_matrix(4, 4)
+        mat1 = self.rand_matrix(4, 4)
+
+        op = PTM(mat)
+        op0 = PTM(mat0)
+        op1 = PTM(mat1)
+        op01 = op1.tensor(op0)
+        eye = PTM(self.ptmI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + eye.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + eye.tensor(op0).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + op0.tensor(eye).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op + op01([0, 1])
+            target = op + eye.tensor(op1).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op + op01([1, 0])
+            target = op + eye.tensor(op0).tensor(op1)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op + op01([0, 2])
+            target = op + op1.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op + op01([2, 0])
+            target = op + op0.tensor(eye).tensor(op1)
+            self.assertEqual(value, target)
+
+    def test_sub_qargs(self):
+        """Test subtract method with qargs."""
+        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat0 = self.rand_matrix(4, 4)
+        mat1 = self.rand_matrix(4, 4)
+
+        op = PTM(mat)
+        op0 = PTM(mat0)
+        op1 = PTM(mat1)
+        op01 = op1.tensor(op0)
+        eye = PTM(self.ptmI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - eye.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - eye.tensor(op0).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - op0.tensor(eye).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op - op01([0, 1])
+            target = op - eye.tensor(op1).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op - op01([1, 0])
+            target = op - eye.tensor(op0).tensor(op1)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op - op01([0, 2])
+            target = op - op1.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op - op01([2, 0])
+            target = op - op0.tensor(eye).tensor(op1)
+            self.assertEqual(value, target)
+
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = PTM(self.ptmI)
