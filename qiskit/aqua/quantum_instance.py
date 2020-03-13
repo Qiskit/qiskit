@@ -65,46 +65,46 @@ class QuantumInstance:
                  measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
                  measurement_error_mitigation_shots=None,
                  job_callback=None):
-        """Constructor.
+        """
+        Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
+        transpilation and execution. When provided to an Aqua algorithm the algorithm will
+        execute the circuits it needs to run using the instance.
 
         Args:
-            backend (BaseBackend): instance of selected backend
-            shots (int, optional): number of repetitions of each circuit, for sampling
-            seed_simulator (int, optional): random seed for simulators
-            max_credits (int, optional): maximum credits to use
-            basis_gates (list[str], optional): list of basis gate names supported by the
-                                               target. Default: ['u1','u2','u3','cx','id']
-            coupling_map (CouplingMap or list[list]): coupling map (perhaps custom) to
+            backend (BaseBackend): Instance of selected backend
+            shots (int, optional): Number of repetitions of each circuit, for sampling
+            seed_simulator (int, optional): Random seed for simulators
+            max_credits (int, optional): Maximum credits to use
+            basis_gates (list[str], optional): List of basis gate names supported by the
+                                               target. Default: ['u1', 'u2', 'u3', 'cx', 'id']
+            coupling_map (CouplingMap or list[list]): Coupling map (perhaps custom) to
                                                       target in mapping
-            initial_layout (Layout or dict or list, optional): initial layout of qubits in mapping
-            pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
-            seed_transpiler (int, optional): the random seed for circuit mapper
+            initial_layout (Layout or dict or list, optional): Initial layout of qubits in mapping
+            pass_manager (PassManager, optional): Pass manager to handle how to compile the circuits
+            seed_transpiler (int, optional): The random seed for circuit mapper
             optimization_level (int, optional): How much optimization to perform on the circuits.
-                                                Higher levels generate more optimized circuits,
-                                                at the expense of longer transpilation time.
-            backend_options (dict, optional): all running options for backend, please refer
-                                              to the provider.
+                Higher levels generate more optimized circuits, at the expense of longer
+                transpilation time.
+            backend_options (dict, optional): All running options for backend, please refer
+                to the provider of the backend for information as to what options it supports.
             noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model
                                                                                       for simulator
-            timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
-            wait (float, optional): seconds between queries to result
-            skip_qobj_validation (bool, optional): Bypass Qobj validation to
-                                                    decrease submission time
-            measurement_error_mitigation_cls (Callable, optional): the approach to mitigate
-                                                                    measurement
-                                                                    error, CompleteMeasFitter or
-                                                                    TensoredMeasFitter
-            cals_matrix_refresh_period (int, optional): how long to refresh the calibration
-                                                        matrix in measurement mitigation,
-                                                        unit in minutes
-            measurement_error_mitigation_shots (int, optional): the shot number for building
-                                                                calibration matrix,
-                                                                if None, use the shot number
-                                                                in quantum instance
-            job_callback (Callable, optional): callback used in querying info of
-                                               the submitted job, and
-                                               providing the following arguments: job_id,
-                                               job_status, queue_position, job
+            timeout (float, optional): Seconds to wait for job. If None, wait indefinitely.
+            wait (float, optional): Seconds between queries for job result
+            skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease circuit
+                processing time during submission to backend.
+            measurement_error_mitigation_cls (Callable, optional): The approach to mitigate
+                measurement errors. Qiskit Ignis provides fitter classes for this functionality
+                and CompleteMeasFitter from qiskit.ignis.mitigation.measurement module can be used
+                here. (TensoredMeasFitter is not supported).
+            cals_matrix_refresh_period (int, optional): How often to refresh the calibration
+                matrix in measurement mitigation. in minutes
+            measurement_error_mitigation_shots (int, optional): The number of shots number for
+                building calibration matrix. If None, the main `shots` parameter value is used.
+            job_callback (Callable, optional): Optional user supplied callback which can be used
+                to monitor job progress as jobs are submitted for processing by an Aqua algorithm.
+                The callback is provided the following arguments: `job_id, job_status,
+                queue_position, job`
 
         Raises:
             AquaError: the shots exceeds the maximum number of shots
