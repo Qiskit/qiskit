@@ -47,6 +47,8 @@ class QuantumState(ABC):
         self._dim = None         # combined dimension of all subsystems
         self._num_qubits = None  # number of qubit subsystems if N-qubit state
         self._set_dims(dims)
+        # RNG for measure functions
+        self._rng = np.random.RandomState()
 
     def __eq__(self, other):
         if (isinstance(other, self.__class__)
@@ -150,6 +152,10 @@ class QuantumState(ABC):
         # pylint: disable=no-value-for-parameter
         # The constructor of subclasses from raw data should be a copy
         return self.__class__(self.data, self.dims())
+
+    def seed(self, value=None):
+        """Set the seed for the quantum state RNG."""
+        self._rng.seed(value)
 
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):
@@ -313,6 +319,50 @@ class QuantumState(ABC):
             self.probabilities(qargs=qargs, decimals=decimals),
             self.dims(qargs),
             string_labels=True)
+
+    def sample_measure(self, qargs=None, shots=1, memory=False):
+        """Sample measurement outcomes in the computational basis.
+
+        Args:
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+            shots (int): number of samples to generate (Default: 1).
+            memory (bool): if True return a list of all samples in order
+                        otherwise return a counts dictionary of samples
+                        (Default: False).
+
+        Returns:
+            dict: sampled counts dict if ``memory=False``.
+            np.array: sampled counts in order if ``memory=True``.
+
+        Additional Information:
+
+            This function *samples* measurement outcomes using the measure
+            :meth:`probabilities` for the current state and `qargs`. It does
+            not actually implement the measurement so the current state is
+            not modified.
+
+            The seed for random number generator used for sampling can be
+            set to a fixed value by using the stats :meth:`seed` method.
+        """
+        # Get measurement probabilities for measured qubits
+        probs = self.probabilities(qargs)
+
+        # Generate list of possible outcome string labels
+        labels = self._index_to_ket_array(
+            np.arange(len(probs)), self.dims(qargs), string_labels=True)
+
+        # Sample outcomes
+        samples = self._rng.choice(labels, p=probs, size=shots)
+
+        if memory:
+            # Return all samples in order they were generated
+            return samples
+
+        # Combine all samples into a counts dictionary
+        inds, counts = np.unique(samples, return_counts=True)
+        return dict(zip(inds, counts))
 
     @classmethod
     def _automatic_dims(cls, dims, size):
