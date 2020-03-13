@@ -22,7 +22,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -66,7 +66,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -89,7 +89,7 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
