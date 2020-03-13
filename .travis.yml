@@ -89,6 +89,8 @@ jobs:
         - sudo apt-get install -y graphviz
       script:
         - tox -edocs
+      git:
+        depth: false
     - name: Python 3.5 Tests Linux
       python: 3.5
       stage: tests
