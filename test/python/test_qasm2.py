@@ -25,8 +25,13 @@ class TestQasm2(QiskitTestCase):
     """Test Qasm2 functional interface to QASM loading/unloading"""
 
     def setUp(self):
-        self.qasm_file_path = self._get_resource_path('example.qasm',
-                                                      Path.QASMS)
+        self.qasm_file_path = self._get_resource_path('yiqing.qasm',
+                                                      Path.QASM2)
+        self.yiqing_circ_draw_path = self._get_resource_path('output/yiqing_circ_draw.txt',
+                                                             Path.QASM2)
+        y_f = open(self.yiqing_circ_draw_path, 'r')
+        self.yiqing_circ_draw = y_f.read()
+        y_f.close()
 
     def test_load_unload(self):
         """Test Qasm2 load() and unload()"""
@@ -43,8 +48,23 @@ class TestQasm2(QiskitTestCase):
         c_0a = load(data=lines_list)
         # print(c0a.draw())
 
-        self.assertEqual(c_0, c_0a)
-        self.assertEqual(unload(c_0), unload(c_0a))
+        c_0_unloaded = unload(c_0)
+        c_0a_unloaded = unload(c_0a)
+
+        self.assertTrue(c_0, "Error: Circuit c_0 was not generated.")
+        self.assertTrue(c_0a, "Error: Circuit c_0a was not generated.")
+
+        self.assertEqual(c_0, c_0a,
+                         "Error: Circuits c_0 and c_0a are not the same.")
+
+        self.assertEqual(str(c_0.draw()),
+                         self.yiqing_circ_draw,
+                         "Error: Circuit c_0 draw doesn't match {}".format(self.yiqing_circ_draw_path))  #pylint: disable=line-too-long
+
+        self.assertEqual(c_0_unloaded, c_0a_unloaded,
+                         "Error: Circuits c_0 and c_0a don't unload the same.")
+        # self.assertEqual(c_0_unloaded, lines,
+        #                  "Error: Circuit c_0 unloaded doesn't match{}".format(self.qasm_file_path))   #pylint: disable=line-too-long
 
 if __name__ == '__main__':
     unittest.main()
