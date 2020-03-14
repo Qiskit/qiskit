@@ -51,11 +51,9 @@ class TestQasm2(QiskitTestCase):
 
         # qasm string loaded via qiskit qasm
         self.c_0 = load(data=lines)
-        # print(c0.draw())
 
-        # qasm list of string loaded via qiskit qasm'
+        # qasm list of string loaded via qiskit qasm
         self.c_0a = load(data=lines_list)
-        # print(c0a.draw())
 
         self.c_0_unloaded = unload(self.c_0)
         self.c_0a_unloaded = unload(self.c_0a)
