@@ -6,12 +6,12 @@ features:
     to load or unload openqasm2 source to QuantumCircuit and provides for
     pluggable qasm translators. The default translator is qiskit.qasm
 
-    Example
+    Example:
 
-.. code-block:
+    .. code-block::
 
-      from qiskit.qasm2 import load, unload
-      circ = load(filename=filename),
-                  loader='nuqasm2',
-                  include_path='/somewhere/qiskit-terra/qiskit/qasm/libs')
-      print(unload(circ))
+        from qiskit.qasm2 import load, unload
+        circ = load(filename=filename),
+                    loader='nuqasm2',
+                    include_path='/somewhere/qiskit-terra/qiskit/qasm/libs')
+        print(unload(circ))
