@@ -98,16 +98,17 @@ class TestQasm2(QiskitTestCase):
         self.temp_file.seek(0)
         lines = self.temp_file.read()
 
-        err_string = "Error:\nCircuit c_0\n{}\nand text file\n{}\ndon't export the same."
+        err_string = "Error:\nCircuit c_0\n{}\nand text file\n{}\naren't the same."
         self.assertEqual(self.c_0_exported, lines,
                          err_string.format(self.c_0_exported, lines))
 
         self.temp_bfile.seek(0)
         lines = self.temp_bfile.read().decode('utf-8')
 
-        err_string = "Error:\nCircuit c_0\n{}\nand binary file\n{}\ndon't export the same."
+        err_string = "Error:\nCircuit c_0\n{}\nand binary file\n{}\naren't export the same."
         self.assertEqual(self.c_0_b_exported, lines,
                          err_string.format(self.c_0_b_exported, lines))
+
 
 if __name__ == '__main__':
     unittest.main()
