@@ -62,7 +62,6 @@ class TestQasm2(QiskitTestCase):
         self.temp_bfile = tempfile.TemporaryFile(mode='w+b')
         self.c_0_b_exported = export(self.c_0, file=self.temp_bfile)
 
-
         self.c_0a_exported = export(self.c_0a)
 
     def tearDown(self):
