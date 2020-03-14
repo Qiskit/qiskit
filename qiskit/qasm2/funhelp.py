@@ -15,7 +15,7 @@
 """
 Created on Wed Mar 11 18:03:12 2020
 Support via qiskit.qasm for functional interface
-to Qasm2 source loading and unloading in functions.py
+to Qasm2 source loading and exporting in functions.py
 @author: jax
 """
 # from importlib import import_module
@@ -49,7 +49,7 @@ def qasm_load(qasm: Qasm) -> QuantumCircuit:
     return dag_to_circuit(dag)
 
 
-def qasm_unload(qc: QuantumCircuit) -> str:
+def qasm_export(qc: QuantumCircuit) -> str:
     """
     Return OpenQASM string using qiskit.qasm code.
 

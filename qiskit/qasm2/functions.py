@@ -14,7 +14,7 @@
 
 """
 Created on Wed Mar 11 18:03:12 2020
-Functional interface to Qasm2 source loading and unloading
+Functional interface to Qasm2 source loading and exporting
 Supersede QuantumCircuit member functions
 Provide for pluggable qasm translator
 Based on conversation with Dr. Luciano Bello
@@ -22,10 +22,10 @@ Based on conversation with Dr. Luciano Bello
 """
 from importlib import import_module
 from os import linesep
-from typing import List
+from typing import List, BinaryIO, TextIO
 from qiskit import QuantumCircuit, QiskitError
 from qiskit.qasm import Qasm
-from .funhelp import qasm_load, qasm_unload
+from .funhelp import qasm_load, qasm_export
 
 
 def _load_from_string(qasm_src: str or List[str],
@@ -162,25 +162,41 @@ def load(data: str or List[str] = None,
     return circ
 
 
-def unload(qc: QuantumCircuit,
-           unloader: str = None,
-           include_path: str = None) -> str:
+def export(qc: QuantumCircuit,
+           exporter: str = None,
+           file: BinaryIO or TextIO = None,
+           filename: str = None,
+           include_path: str = None,) -> str:
     """
     Decompile a QuantumCircuit into Return OpenQASM string
 
     Parameters
     ----------
     qc : QuantumCircuit
-        Circuit to decompile ("unload")
-    unloader : str. optional
+        Circuit to decompile ("export")
+    exporter : str, optional
         Name of module with functional attribute
-            unload(qc: QuantumCircuit,
+            export(qc: QuantumCircuit,
                    include_path: str = None) -> QuantumCircuit:
         ... to use for qasm translation.
         None means "use Qiskit qasm"
         The default is None.
+    file : BinaryIO or TextIO, optional
+        File object to write to as well as return str
+        Caller must close file.
+        Mutually exclusive with filename=
+        The default is None.
+    filename : str, optional
+        Name of file to write export to as well as return str
+        Mutually exclusive with file=
+        The default is None.
     include_path: str, optional
-        Unlaoder-specific include path for qasm include directives
+        Unloader-specific include path for qasm include directives
+
+    Raises
+    ------
+    QiskitError
+        If both filename and file
 
     Returns
     -------
@@ -188,10 +204,22 @@ def unload(qc: QuantumCircuit,
         OpenQASM source for circuit.
 
     """
+    if filename and file:
+        raise QiskitError("export: file= and filename= are mutually exclusive")
+
     qasm_src = None
-    if not unloader:
-        qasm_src = qasm_unload(qc)
+
+    if not exporter:
+        qasm_src = qasm_export(qc)
     else:
-        m_m = import_module(unloader)
-        qasm_src = getattr(m_m, 'unload')(qc, include_path=include_path)
+        m_m = import_module(exporter)
+        qasm_src = getattr(m_m, 'export')(qc, include_path=include_path)
+    if filename:
+        f_f = open(filename, 'w')
+        if f_f.isinstance(BinaryIO):
+            qasm_src = qasm_src.bytes()
+        f_f.write(qasm_src)
+        f_f.close()
+    elif file:
+        file.write(qasm_src)
     return qasm_src
