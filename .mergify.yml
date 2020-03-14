@@ -1,7 +1,7 @@
 pull_request_rules:
   - name: automatic merge on CI success and review
     conditions:
-      - status-success=Qiskit.qiskit-terra
+      - status-success=Travis CI - Pull Request
       - "#approved-reviews-by>=1"
       - label=automerge
       - label!=on hold

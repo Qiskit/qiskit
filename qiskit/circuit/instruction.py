@@ -308,13 +308,14 @@ class Instruction:
             updated if it was provided
         """
         cpy = self.__deepcopy__()
+
         if name:
             cpy.name = name
         return cpy
 
     def __deepcopy__(self, _memo=None):
         cpy = copy.copy(self)
-        cpy.params = copy.copy(self.params)
+        cpy._params = copy.copy(self._params)
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, _memo)
         return cpy
