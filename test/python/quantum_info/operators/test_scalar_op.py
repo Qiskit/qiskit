@@ -253,7 +253,6 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         inds = [2 - i for i in reversed(qargs)]
         full_array[inds] = part_array
         full_label = ''.join(full_array)
-        print(qargs, label, full_label)
         dims = 3 * (2, )
         val = ScalarOp(dims, coeff=coeff) + Operator.from_label(label)(qargs)
         target = (coeff * Operator.from_label(3 * 'I')) + Operator.from_label(full_label)
@@ -271,7 +270,6 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         inds = [2 - i for i in reversed(qargs)]
         full_array[inds] = part_array
         full_label = ''.join(full_array)
-        print(qargs, label, full_label)
         dims = 3 * (2, )
         val = ScalarOp(dims, coeff=coeff) - Operator.from_label(label)(qargs)
         target = (coeff * Operator.from_label(3 * 'I')) - Operator.from_label(full_label)
