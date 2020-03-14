@@ -326,10 +326,10 @@ class Schedule(ScheduleComponent):
         """
 
         def if_scalar_cast_to_list(to_list):
-            return_ls = []
-            if str(type(to_list)) != "<class 'list'>":
-                return_ls.append(to_list)
-                return return_ls
+            try:
+                iter(to_list)
+            except TypeError:
+                to_list = [to_list]
             return to_list
 
         def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
