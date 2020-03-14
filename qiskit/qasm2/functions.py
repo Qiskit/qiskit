@@ -25,7 +25,7 @@ from os import linesep
 from typing import List
 from qiskit import QuantumCircuit, QiskitError
 from qiskit.qasm import Qasm
-from .funhelp import qasm_load
+from .funhelp import qasm_load, qasm_unload
 
 
 def _load_from_string(qasm_src: str or List[str],
@@ -116,7 +116,7 @@ def _load_from_file(filename: str,
 def load(data: str or List[str] = None,
          filename: str = None,
          loader: str = None,
-         include_path: str = '') -> QuantumCircuit:
+         include_path: str = None) -> QuantumCircuit:
     """
 
 
@@ -136,7 +136,7 @@ def load(data: str or List[str] = None,
         The default is None.
     include_path : str, optional
         Loader-specific include path for qasm include directives.
-        The default is ''.
+        The default is None.
 
     Raises
     ------
@@ -160,3 +160,37 @@ def load(data: str or List[str] = None,
     elif filename:
         circ = _load_from_file(filename, loader=loader, include_path=include_path)
     return circ
+
+def unload(qc: QuantumCircuit,
+           unloader: str = None,
+           include_path: str = None) -> str:
+    """
+    Decompile a QuantumCircuit into Return OpenQASM string
+
+    Parameters
+    ----------
+    qc : QuantumCircuit
+        Circuit to decompile ("unload")
+    unloader : str. optional
+        Name of module with functional attribute
+            unload(qc: QuantumCircuit,
+                   include_path: str = None) -> QuantumCircuit:
+        ... to use for qasm translation.
+        None means "use Qiskit qasm"
+        The default is None.
+    include_path: str, optional
+        Unlaoder-specific include path for qasm include directives
+
+    Returns
+    -------
+    str
+        OpenQASM source for circuit.
+
+    """
+    qasm_src = None
+    if not unloader:
+        qasm_src = qasm_unload(qc)
+    else:
+        m_m = import_module(unloader)
+        qasm_src = getattr(m_m, 'unload')(qc, include_path=include_path)
+    return qasm_src

@@ -25,4 +25,4 @@ Qasm2 (:mod:`qiskit.qasm2`)
   load()
 """
 
-from .functions import load
+from .functions import load, unload

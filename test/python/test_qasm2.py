@@ -17,19 +17,19 @@
 import os
 import unittest
 
-from qiskit.qasm2 import load
+from qiskit.qasm2 import load, unload
 from qiskit.test import QiskitTestCase, Path
 
 
 class TestQasm2(QiskitTestCase):
-    """Test Qasm2 functional interface to QASM loading"""
+    """Test Qasm2 functional interface to QASM loading/unloading"""
 
     def setUp(self):
         self.qasm_file_path = self._get_resource_path('example.qasm',
                                                       Path.QASMS)
 
-    def test_load(self):
-        """Test Qasm2 load()"""
+    def test_load_unload(self):
+        """Test Qasm2 load() and unload()"""
         ffile = open(self.qasm_file_path, 'r')
         lines = ffile.read()
         ffile.close()
@@ -44,7 +44,7 @@ class TestQasm2(QiskitTestCase):
         # print(c0a.draw())
 
         self.assertEqual(c_0, c_0a)
-
+        self.assertEqual(unload(c_0), unload(c_0a))
 
 if __name__ == '__main__':
     unittest.main()
