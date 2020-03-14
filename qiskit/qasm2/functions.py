@@ -161,6 +161,7 @@ def load(data: str or List[str] = None,
         circ = _load_from_file(filename, loader=loader, include_path=include_path)
     return circ
 
+
 def unload(qc: QuantumCircuit,
            unloader: str = None,
            include_path: str = None) -> str:

@@ -48,6 +48,7 @@ def qasm_load(qasm: Qasm) -> QuantumCircuit:
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
 
+
 def qasm_unload(qc: QuantumCircuit) -> str:
     """
     Return OpenQASM string using qiskit.qasm code.
