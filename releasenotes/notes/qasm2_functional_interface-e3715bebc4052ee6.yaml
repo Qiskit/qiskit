@@ -8,7 +8,7 @@ features:
 
     Example
 
-..code-block:
+.. code-block:
 
       from qiskit.qasm2 import load, unload
       circ = load(filename=filename),
