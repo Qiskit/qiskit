@@ -58,7 +58,8 @@ class Instruction:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[int|float|complex|str|ndarray|ParameterExpression]): list of parameters
+            params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
+                list of parameters
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -161,6 +162,9 @@ class Instruction:
                 self._params.append(single_param)
             # example: snapshot('label')
             elif isinstance(single_param, str):
+                self._params.append(single_param)
+            # example: Aer expectation_value_snapshot [complex, 'X']
+            elif isinstance(single_param, list):
                 self._params.append(single_param)
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
@@ -304,13 +308,14 @@ class Instruction:
             updated if it was provided
         """
         cpy = self.__deepcopy__()
+
         if name:
             cpy.name = name
         return cpy
 
     def __deepcopy__(self, _memo=None):
         cpy = copy.copy(self)
-        cpy.params = copy.copy(self.params)
+        cpy._params = copy.copy(self._params)
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, _memo)
         return cpy

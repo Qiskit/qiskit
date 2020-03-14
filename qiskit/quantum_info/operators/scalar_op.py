@@ -202,11 +202,16 @@ class ScalarOp(BaseOperator):
         ret._coeff = self.coeff ** n
         return ret
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the operator self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
+            qargs (None or list): optional subsystems to subtract on
+                                  (Default: None)
 
         Returns:
             ScalarOp: if other is an ScalarOp.
@@ -215,10 +220,18 @@ class ScalarOp(BaseOperator):
         Raises:
             QiskitError: if other has incompatible dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
-        self._validate_add_dims(other)
+        self._validate_add_dims(other, qargs)
+
+        # If qargs are specified we have to pad the other BaseOperator
+        # with identities on remaining subsystems. We do this by
+        # composing it with an identity ScalarOp.
+        other = ScalarOp._pad_with_identity(self, other, qargs)
 
         # First we check the special case where coeff=0. In this case
         # we simply return the other operator reshaped so that its
@@ -229,14 +242,12 @@ class ScalarOp(BaseOperator):
 
         # Next if we are adding two ScalarOps we return a ScalarOp
         if isinstance(other, ScalarOp):
-            coeff1 = 1 if self.coeff is None else self.coeff
-            coeff2 = 1 if other.coeff is None else other.coeff
-            return ScalarOp(self._input_dims, coeff=coeff1+coeff2)
+            return ScalarOp(self._input_dims, coeff=self.coeff+other.coeff)
 
         # Finally if we are adding another BaseOperator subclass
         # we use that subclasses `_add` method and reshape the
         # final dimensions.
-        return other._add(self).reshape(self._input_dims, self._output_dims)
+        return other.reshape(self._input_dims, self._output_dims)._add(self)
 
     def _multiply(self, other):
         """Return the ScalarOp other * self.
@@ -255,3 +266,19 @@ class ScalarOp(BaseOperator):
         ret = self.copy()
         ret._coeff = other * self.coeff
         return ret
+
+    @staticmethod
+    def _pad_with_identity(current, other, qargs=None):
+        """Pad another operator with identities.
+
+        Args:
+            current (BaseOperator): current operator.
+            other (BaseOperator): other operator.
+            qargs (None or list): qargs
+
+        Returns:
+            BaseOperator: the padded operator.
+        """
+        if qargs is None:
+            return other
+        return ScalarOp(current._input_dims).compose(other, qargs=qargs)
