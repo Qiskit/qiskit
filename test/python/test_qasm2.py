@@ -59,10 +59,15 @@ class TestQasm2(QiskitTestCase):
         self.temp_file = tempfile.TemporaryFile(mode='w+t')
         self.c_0_exported = export(self.c_0, file=self.temp_file)
 
+        self.temp_bfile = tempfile.TemporaryFile(mode='w+b')
+        self.c_0_b_exported = export(self.c_0, file=self.temp_bfile)
+
+
         self.c_0a_exported = export(self.c_0a)
 
     def tearDown(self):
         self.temp_file.close()
+        self.temp_bfile.close()
 
     def test_load(self):
         """Test Qasm2 load()"""
@@ -93,10 +98,16 @@ class TestQasm2(QiskitTestCase):
         self.temp_file.seek(0)
         lines = self.temp_file.read()
 
-        err_string = "Error:\nCircuit c_0\n{}\nand temp_file\n{}\ndon't export the same."
+        err_string = "Error:\nCircuit c_0\n{}\nand text file\n{}\ndon't export the same."
         self.assertEqual(self.c_0_exported, lines,
                          err_string.format(self.c_0_exported, lines))
 
+        self.temp_bfile.seek(0)
+        lines = self.temp_bfile.read().decode('utf-8')
+
+        err_string = "Error:\nCircuit c_0\n{}\nand binary file\n{}\ndon't export the same."
+        self.assertEqual(self.c_0_b_exported, lines,
+                         err_string.format(self.c_0_b_exported, lines))
 
 if __name__ == '__main__':
     unittest.main()

@@ -183,6 +183,7 @@ def export(qc: QuantumCircuit,
         The default is None.
     file : BinaryIO or TextIO, optional
         File object to write to as well as return str
+        Written in UTF-8
         Caller must close file.
         Mutually exclusive with filename=
         The default is None.
@@ -216,10 +217,11 @@ def export(qc: QuantumCircuit,
         qasm_src = getattr(m_m, 'export')(qc, include_path=include_path)
     if filename:
         f_f = open(filename, 'w')
-        if f_f.isinstance(BinaryIO):
-            qasm_src = qasm_src.bytes()
         f_f.write(qasm_src)
         f_f.close()
     elif file:
-        file.write(qasm_src)
+        if 'b' in file.mode:
+            file.write(bytes(qasm_src, 'utf-8'))
+        else:
+            file.write(qasm_src)
     return qasm_src
