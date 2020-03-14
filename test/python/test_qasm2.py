@@ -58,8 +58,12 @@ class TestQasm2(QiskitTestCase):
         self.c_0_unloaded = unload(self.c_0)
         self.c_0a_unloaded = unload(self.c_0a)
 
+        # x = open('foo.txt', 'w')
+        # print(self.c_0_unloaded, file=x)
+        # x.close()
+
     def test_load(self):
-        """Test Qasm2 load() functional interface"""
+        """Test Qasm2 load()"""
 
         self.assertTrue(self.c_0, "Error: Circuit c_0 was not generated.")
         self.assertTrue(self.c_0a, "Error: Circuit c_0a was not generated.")
@@ -73,17 +77,16 @@ class TestQasm2(QiskitTestCase):
                          s_draw_no_match.format(self._circ_draw_path))
 
     def test_unload(self):
-        """Test Qasm2 unload() functional interface"""
+        """Test Qasm2 unload()"""
 
         self.assertEqual(self.c_0_unloaded, self.c_0a_unloaded,
                          "Error: Circuits c_0 and c_0a don't unload the same.")
 
-        # This fails to match, have not identified the problem
-        # s_unload_unmatch = "Error:\n{}\ndoesn't match\n{}"
-        # self.assertEqual(self.c_0_unloaded,
-        #                  self._circ_unload,
-        #                  s_unload_unmatch.format(self.c_0_unloaded,
-        #                                          self._circ_unload))
+        s_unload_unmatch = "Error:\n{}\ndoesn't match\n{}"
+        self.assertEqual(self.c_0_unloaded,
+                         self._circ_unload,
+                         s_unload_unmatch.format(self.c_0_unloaded,
+                                                 self._circ_unload))
 
 
 if __name__ == '__main__':
