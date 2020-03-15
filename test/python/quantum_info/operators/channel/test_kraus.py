@@ -14,13 +14,14 @@
 
 """Tests for Kraus quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info import Kraus, Operator
+from qiskit.quantum_info import Kraus
 from .channel_test_case import ChannelTestCase
 
 
@@ -62,19 +63,10 @@ class TestKraus(ChannelTestCase):
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
-        unitary_x = np.array([[0, 1], [1, 0]])
-        unitary_h = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
-
-        target = Operator(np.kron(y90, np.kron(unitary_x, unitary_h)))
-        qr = QuantumRegister(3)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
-        circ.x(qr[1])
-        circ.ry(np.pi / 2, qr[2])
-
-        ans = np.linalg.norm((Kraus(circ)-Kraus(target)).data)
-        self.assertAlmostEqual(ans, 0.0)
+        circuit, target = self.simple_circuit_no_measure()
+        op = Kraus(circuit)
+        target = Kraus(target)
+        self.assertEqual(op, target)
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""
@@ -88,11 +80,25 @@ class TestKraus(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
+        mat = np.eye(2)
+        with self.subTest("Deep copy"):
+            orig = Kraus(mat)
+            cpy = orig.copy()
+            cpy._data[0][0][0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Kraus(mat)
+            clone = copy.copy(orig)
+            clone._data[0][0][0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
         mat = np.eye(4)
         orig = Kraus(mat)
-        cpy = orig.copy()
-        cpy._data[0][0][0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0][0][0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -335,6 +341,56 @@ class TestKraus(ChannelTestCase):
         targ = 2 * (rho @ chan)
         chan = chan._add(chan)
         self.assertEqual(rho @ chan, targ)
+
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        kraus = self.rand_kraus(8, 8, 4)
+        kraus0 = self.rand_kraus(2, 2, 4)
+
+        op = Kraus(kraus)
+        op0 = Kraus(kraus0)
+        eye = Kraus(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+    def test_sub_qargs(self):
+        """Test sub method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        kraus = self.rand_kraus(8, 8, 4)
+        kraus0 = self.rand_kraus(2, 2, 4)
+
+        op = Kraus(kraus)
+        op0 = Kraus(kraus0)
+        eye = Kraus(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
 
     def test_subtract(self):
         """Test subtract method."""

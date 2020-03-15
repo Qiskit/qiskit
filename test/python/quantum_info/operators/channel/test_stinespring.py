@@ -14,13 +14,14 @@
 
 """Tests for Stinespring quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info import Stinespring, Operator
+from qiskit.quantum_info import Stinespring
 from .channel_test_case import ChannelTestCase
 
 
@@ -56,19 +57,10 @@ class TestStinespring(ChannelTestCase):
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
-        unitary_x = np.array([[0, 1], [1, 0]])
-        unitary_h = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
-
-        target = Operator(np.kron(y90, np.kron(unitary_x, unitary_h)))
-        qr = QuantumRegister(3)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
-        circ.x(qr[1])
-        circ.ry(np.pi / 2, qr[2])
-
-        ans = np.linalg.norm((Stinespring(circ)-Stinespring(target)).data)
-        self.assertAlmostEqual(ans, 0.0)
+        circuit, target = self.simple_circuit_no_measure()
+        op = Stinespring(circuit)
+        target = Stinespring(target)
+        self.assertEqual(op, target)
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""
@@ -83,10 +75,24 @@ class TestStinespring(ChannelTestCase):
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
+        with self.subTest("Deep copy"):
+            orig = Stinespring(mat)
+            cpy = orig.copy()
+            cpy._data[0][0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Stinespring(mat)
+            clone = copy.copy(orig)
+            clone._data[0][0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
+        mat = np.eye(4)
         orig = Stinespring(mat)
-        cpy = orig.copy()
-        cpy._data[0][0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0][0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -347,6 +353,56 @@ class TestStinespring(ChannelTestCase):
         rho_targ = 0 * (rho_init @ chan)
         chan = chan - chan
         self.assertEqual(rho_init.evolve(chan), rho_targ)
+
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        stine = self.rand_matrix(32, 8)
+        stine0 = self.rand_matrix(8, 2)
+
+        op = Stinespring(stine)
+        op0 = Stinespring(stine0)
+        eye = Stinespring(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+    def test_sub_qargs(self):
+        """Test sub method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        stine = self.rand_matrix(32, 8)
+        stine0 = self.rand_matrix(8, 2)
+
+        op = Stinespring(stine)
+        op0 = Stinespring(stine0)
+        eye = Stinespring(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
 
     def test_multiply(self):
         """Test multiply method."""

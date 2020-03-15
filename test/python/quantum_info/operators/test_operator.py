@@ -18,6 +18,7 @@
 
 import unittest
 import logging
+import copy
 import numpy as np
 from numpy.testing import assert_allclose
 import scipy.linalg as la
@@ -253,10 +254,16 @@ class TestOperator(OperatorTestCase):
     def test_copy(self):
         """Test Operator copy method"""
         mat = np.eye(2)
-        orig = Operator(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        with self.subTest("Deep copy"):
+            orig = Operator(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Operator(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
 
     def test_is_unitary(self):
         """Test is_unitary method."""
@@ -356,28 +363,34 @@ class TestOperator(OperatorTestCase):
         # op3 qargs=[0, 1, 2]
         targ = np.dot(np.kron(mat_c, np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), Operator(targ))
+        self.assertEqual(op.compose(op3([0, 1, 2])), Operator(targ))
+        self.assertEqual(op @ op3([0, 1, 2]), Operator(targ))
         # op3 qargs=[2, 1, 0]
         targ = np.dot(np.kron(mat_a, np.kron(mat_b, mat_c)), mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), Operator(targ))
+        self.assertEqual(op @ op3([2, 1, 0]), Operator(targ))
 
         # op2 qargs=[0, 1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), Operator(targ))
+        self.assertEqual(op @ op2([0, 1]), Operator(targ))
         # op2 qargs=[2, 0]
         targ = np.dot(np.kron(mat_a, np.kron(np.eye(2), mat_b)), mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), Operator(targ))
+        self.assertEqual(op @ op2([2, 0]), Operator(targ))
 
         # op1 qargs=[0]
         targ = np.dot(np.kron(np.eye(4), mat_a), mat)
         self.assertEqual(op.compose(op1, qargs=[0]), Operator(targ))
-
+        self.assertEqual(op @ op1([0]), Operator(targ))
         # op1 qargs=[1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_a, np.eye(2))), mat)
         self.assertEqual(op.compose(op1, qargs=[1]), Operator(targ))
-
+        self.assertEqual(op @ op1([1]), Operator(targ))
         # op1 qargs=[2]
         targ = np.dot(np.kron(mat_a, np.eye(4)), mat)
         self.assertEqual(op.compose(op1, qargs=[2]), Operator(targ))
+        self.assertEqual(op @ op1([2]), Operator(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""
@@ -394,28 +407,33 @@ class TestOperator(OperatorTestCase):
         # op3 qargs=[0, 1, 2]
         targ = np.dot(mat, np.kron(mat_c, np.kron(mat_b, mat_a)))
         self.assertEqual(op.dot(op3, qargs=[0, 1, 2]), Operator(targ))
+        self.assertEqual(op * op3([0, 1, 2]), Operator(targ))
         # op3 qargs=[2, 1, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(mat_b, mat_c)))
         self.assertEqual(op.dot(op3, qargs=[2, 1, 0]), Operator(targ))
+        self.assertEqual(op * op3([2, 1, 0]), Operator(targ))
 
         # op2 qargs=[0, 1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_b, mat_a)))
         self.assertEqual(op.dot(op2, qargs=[0, 1]), Operator(targ))
+        self.assertEqual(op * op2([0, 1]), Operator(targ))
         # op2 qargs=[2, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(np.eye(2), mat_b)))
         self.assertEqual(op.dot(op2, qargs=[2, 0]), Operator(targ))
+        self.assertEqual(op * op2([2, 0]), Operator(targ))
 
         # op1 qargs=[0]
         targ = np.dot(mat, np.kron(np.eye(4), mat_a))
         self.assertEqual(op.dot(op1, qargs=[0]), Operator(targ))
-
+        self.assertEqual(op * op1([0]), Operator(targ))
         # op1 qargs=[1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_a, np.eye(2))))
         self.assertEqual(op.dot(op1, qargs=[1]), Operator(targ))
-
+        self.assertEqual(op * op1([1]), Operator(targ))
         # op1 qargs=[2]
         targ = np.dot(mat, np.kron(mat_a, np.eye(4)))
         self.assertEqual(op.dot(op1, qargs=[2]), Operator(targ))
+        self.assertEqual(op * op1([2]), Operator(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -514,6 +532,106 @@ class TestOperator(OperatorTestCase):
         op1 = Operator(self.rand_matrix(2, 2))
         op2 = Operator(self.rand_matrix(3, 3))
         self.assertRaises(QiskitError, op1._add, op2)
+
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        mat = self.rand_matrix(8, 8)
+        mat0 = self.rand_matrix(2, 2)
+        mat1 = self.rand_matrix(2, 2)
+
+        op = Operator(mat)
+        op0 = Operator(mat0)
+        op01 = Operator(np.kron(mat1, mat0))
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + Operator(np.kron(np.eye(4), mat0))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + Operator(
+                np.kron(np.kron(np.eye(2), mat0), np.eye(2)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + Operator(np.kron(mat0, np.eye(4)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op + op01([0, 1])
+            target = op + Operator(
+                np.kron(np.eye(2), np.kron(mat1, mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op + op01([1, 0])
+            target = op + Operator(
+                np.kron(np.eye(2), np.kron(mat0, mat1)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op + op01([0, 2])
+            target = op + Operator(
+                np.kron(mat1, np.kron(np.eye(2), mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op + op01([2, 0])
+            target = op + Operator(
+                np.kron(mat0, np.kron(np.eye(2), mat1)))
+            self.assertEqual(value, target)
+
+    def test_sub_qargs(self):
+        """Test subtract method with qargs."""
+        mat = self.rand_matrix(8, 8)
+        mat0 = self.rand_matrix(2, 2)
+        mat1 = self.rand_matrix(2, 2)
+
+        op = Operator(mat)
+        op0 = Operator(mat0)
+        op01 = Operator(np.kron(mat1, mat0))
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - Operator(np.kron(np.eye(4), mat0))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - Operator(
+                np.kron(np.kron(np.eye(2), mat0), np.eye(2)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - Operator(np.kron(mat0, np.eye(4)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op - op01([0, 1])
+            target = op - Operator(
+                np.kron(np.eye(2), np.kron(mat1, mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op - op01([1, 0])
+            target = op - Operator(
+                np.kron(np.eye(2), np.kron(mat0, mat1)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op - op01([0, 2])
+            target = op - Operator(
+                np.kron(mat1, np.kron(np.eye(2), mat0)))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op - op01([2, 0])
+            target = op - Operator(
+                np.kron(mat0, np.kron(np.eye(2), mat1)))
+            self.assertEqual(value, target)
 
     def test_multiply(self):
         """Test multiply method."""
