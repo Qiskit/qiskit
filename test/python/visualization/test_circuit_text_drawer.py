@@ -1083,6 +1083,36 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit,
                                                   vertical_compression='medium')), expected)
 
+    def test_text_measure_with_spaces(self):
+        """Measure wire might have extra spaces
+        Found while reproducing
+        https://quantumcomputing.stackexchange.com/q/10194/1859"""
+        qasm_string = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            qreg q[2];
+            creg c[3];
+            measure q[0] -> c[1];
+            if(c==1) x q[1];
+        """
+        expected = '\n'.join(["        ┌─┐       ",
+                              "q_0: |0>┤M├───────",
+                              "        └╥┘       ",
+                              "         ║  ┌───┐ ",
+                              "q_1: |0>─╫──┤ X ├─",
+                              "         ║  └─┬─┘ ",
+                              "         ║ ┌──┴──┐",
+                              " c_0: 0 ═╬═╡     ╞",
+                              "         ║ │     │",
+                              "         ║ │     │",
+                              " c_1: 0 ═╩═╡ = 1 ╞",
+                              "           │     │",
+                              "           │     │",
+                              " c_2: 0 ═══╡     ╞",
+                              "           └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, vertical_compression='low')), expected)
+
 
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
@@ -1883,7 +1913,6 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-
     def test_cz_bot(self):
         """Open controlled Z (bottom)"""
         expected = '\n'.join(["             ",
@@ -1895,7 +1924,6 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
 
     def test_cch_bot(self):
         """Controlled CH (bottom)"""

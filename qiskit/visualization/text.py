@@ -773,7 +773,7 @@ class TextDrawing():
                 ret += "╬"
             elif topc in "║╥" and botc in "─":
                 ret += "╫"
-            elif topc in '╫╬' and botc in " ":
+            elif topc in '║╫╬' and botc in " ":
                 ret += "║"
             elif topc == '└' and botc == "┌":
                 ret += "├"
