@@ -1001,7 +1001,8 @@ class DAGCircuit:
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Instruction): op nodes to return. if None, return all op nodes.
+            op (qiskit.circuit.Instruction): op nodes to return.
+                If None, return all op nodes.
             include_directives (bool): include `barrier`, `snapshot` etc.
 
         Returns:
