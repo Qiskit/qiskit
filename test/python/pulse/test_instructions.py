@@ -39,7 +39,7 @@ class TestShiftPhase(QiskitTestCase):
 
         self.assertEqual(shift_phase.phase, 1.57)
         self.assertEqual(shift_phase.duration, 0)
-        self.assertTrue(shift_phase.name.startswith('ShiftPhase'))
+        self.assertTrue(shift_phase.name.startswith('shiftphase'))
 
 
 class TestSnapshot(QiskitTestCase):
