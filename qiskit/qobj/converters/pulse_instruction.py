@@ -282,7 +282,11 @@ class InstructionToQobjConverter:
                 'parameters': instruction.pulse.parameters
             }
         else:
-            # TODO
+            command_dict = {
+                'name': instruction.name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name
+            }
 
         return self._qobj_model(**command_dict)
 

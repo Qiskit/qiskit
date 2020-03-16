@@ -135,8 +135,6 @@ import pydoc
 
 import numpy as np
 
-from qiskit.pulse.commands.pulse_decorators import functional_pulse
-
 from ..sample_pulse import SamplePulse
 from . import strategies
 
