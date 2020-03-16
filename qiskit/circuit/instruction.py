@@ -34,11 +34,9 @@ The circuit itself keeps this context.
 """
 import copy
 from itertools import zip_longest
-import warnings
 
 import numpy
 
-from qiskit.qasm.node import node
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -142,18 +140,6 @@ class Instruction:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, node.Node):
-                warnings.warn('Using qasm ast node as a circuit.Instruction '
-                              'parameter is deprecated as of the 0.11.0, and '
-                              'will be removed no earlier than 3 months after '
-                              'that release date. You should convert the qasm '
-                              'node to a supported type int, float, complex, '
-                              'str, circuit.ParameterExpression, or ndarray '
-                              'before setting Instruction.parameters',
-                              DeprecationWarning, stacklevel=3)
-
-                self._params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self._params.append(single_param)
@@ -171,39 +157,6 @@ class Instruction:
                 self._params.append(single_param)
             elif isinstance(single_param, numpy.number):
                 self._params.append(single_param.item())
-            elif 'sympy' in str(type(single_param)):
-                import sympy
-                if isinstance(single_param, sympy.Basic):
-                    warnings.warn('Parameters of sympy.Basic is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert this to a '
-                                  'supported type prior to using it as a '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                elif isinstance(single_param, sympy.Matrix):
-                    warnings.warn('Parameters of sympy.Matrix is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Matrix '
-                                  'to a numpy matrix with sympy.matrix2numpy '
-                                  'prior to using it as a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    matrix = sympy.matrix2numpy(single_param, dtype=complex)
-                    self._params.append(matrix)
-                elif isinstance(single_param, sympy.Expr):
-                    warnings.warn('Parameters of sympy.Expr is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Expr '
-                                  'to a supported type prior to using it as '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                else:
-                    raise CircuitError("invalid param type {0} in instruction "
-                                       "{1}".format(type(single_param), self.name))
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
