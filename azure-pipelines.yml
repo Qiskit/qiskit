@@ -11,6 +11,11 @@ trigger:
   tags:
     include:
       - '*'
+pr:
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
 
 stages:
   - stage: 'Wheel_Builds'
