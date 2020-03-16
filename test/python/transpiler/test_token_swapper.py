@@ -41,6 +41,7 @@ class TestGeneral(QiskitTestCase):
 
     def setUp(self) -> None:
         """Set up test cases."""
+        super().setUp()
         random.seed(0)
 
     def test_simple(self) -> None:

@@ -158,6 +158,7 @@ class TestVisualizationUtils(QiskitTestCase):
     the need to be check if the interface or their result changes."""
 
     def setUp(self):
+        super().setUp()
         self.qr1 = QuantumRegister(2, 'qr1')
         self.qr2 = QuantumRegister(2, 'qr2')
         self.cr1 = ClassicalRegister(2, 'cr1')

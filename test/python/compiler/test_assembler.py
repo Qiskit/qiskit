@@ -460,6 +460,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
@@ -1043,6 +1044,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
 
     def setUp(self):
+        super().setUp()
         self.schedule = pulse.Schedule(name='fake_experiment')
 
         self.backend = FakeOpenPulse2Q()
