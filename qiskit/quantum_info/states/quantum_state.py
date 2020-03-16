@@ -52,8 +52,12 @@ class QuantumState(ABC):
         return False
 
     def __repr__(self):
-        return '{}({}, dims={})'.format(
-            self.rep, self.data, self._dims)
+        prefix = '{}('.format(self.rep)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self.data, separator=', ', prefix=prefix),
+            pad, self._dims)
 
     @property
     def rep(self):
