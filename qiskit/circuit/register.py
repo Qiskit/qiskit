@@ -26,7 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['name', 'size', '_bits', '_hash']
+    __slots__ = ['_name', '_size', '_bits', '_hash']
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -61,11 +61,39 @@ class Register:
             if name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
-        self.name = name
-        self.size = size
+        self._name = name
+        self._size = size
 
+        self._hash = hash((type(self), self._name, self._size))
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
-        self._hash = hash((type(self), self.name, self.size))
+
+    def _update_bits_hash(self):
+        for bit in self._bits:
+            bit._update_hash()
+
+    @property
+    def name(self):
+        """Get the register name."""
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Set the register name."""
+        self._name = value
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
+
+    @property
+    def size(self):
+        """Get the register size."""
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        """Set the register size."""
+        self._size = value
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -73,7 +101,7 @@ class Register:
 
     def __len__(self):
         """Return register size."""
-        return self.size
+        return self._size
 
     def __getitem__(self, key):
         """
@@ -102,7 +130,7 @@ class Register:
             return self._bits[key]
 
     def __iter__(self):
-        for bit in range(self.size):
+        for bit in range(self._size):
             yield self[bit]
 
     def __eq__(self, other):
@@ -117,8 +145,8 @@ class Register:
         """
         res = False
         if type(self) is type(other) and \
-                self.name == other.name and \
-                self.size == other.size:
+                self._name == other._name and \
+                self._size == other._size:
             res = True
         return res
 
