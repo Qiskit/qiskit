@@ -135,15 +135,17 @@ import pydoc
 
 import numpy as np
 
+from ...exceptions import PulseError
 from ..sample_pulse import SamplePulse
 from . import strategies
 
 
-def functional_pulse(func: Callable):
+def functional_pulse(func: Callable) -> Callable:
     """A decorator for generating SamplePulse from python callable.
 
     Args:
         func: A function describing pulse envelope.
+
     Raises:
         PulseError: when invalid function is specified.
     """
