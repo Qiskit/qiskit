@@ -27,7 +27,6 @@ import warnings
 from collections import OrderedDict
 import copy
 import itertools
-import warnings
 import networkx as nx
 import retworkx as rx
 

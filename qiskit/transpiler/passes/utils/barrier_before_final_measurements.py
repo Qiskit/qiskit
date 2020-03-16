@@ -75,7 +75,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for final_op in final_ops:
             dag.remove_op_node(final_op)
 
-        dag.compose_back(barrier_layer)
+        dag.compose(barrier_layer)
 
         # Merge the new barrier into any other barriers
         adjacent_pass = MergeAdjacentBarriers()

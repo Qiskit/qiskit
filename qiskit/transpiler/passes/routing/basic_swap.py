@@ -93,13 +93,13 @@ class BasicSwap(TransformationPass):
 
                     # layer insertion
                     edge_map = current_layout.combine_into_edge_map(trivial_layout)
-                    new_dag.compose_back(swap_layer, edge_map)
+                    new_dag.compose(swap_layer, edge_map)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
             edge_map = current_layout.combine_into_edge_map(trivial_layout)
-            new_dag.compose_back(subdag, edge_map)
+            new_dag.compose(subdag, edge_map)
 
         return new_dag

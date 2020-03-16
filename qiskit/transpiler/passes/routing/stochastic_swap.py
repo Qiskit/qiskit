@@ -257,7 +257,7 @@ class StochasticSwap(TransformationPass):
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, "
                          "depth %d", best_depth)
-            dagcircuit_output.compose_back(best_circuit)
+            dagcircuit_output.compose(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Make qubit edge map and extend by classical bits
@@ -269,7 +269,7 @@ class StochasticSwap(TransformationPass):
         for creg in layer_circuit.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        dagcircuit_output.compose_back(layer_circuit, edge_map)
+        dagcircuit_output.compose(layer_circuit, edge_map)
 
         return dagcircuit_output
 
@@ -361,7 +361,7 @@ class StochasticSwap(TransformationPass):
                     # for each inner iteration
                     layout = best_layout
                     # Update the DAG
-                    dagcircuit_output.compose_back(
+                    dagcircuit_output.compose(
                         self._layer_update(j,
                                            best_layout,
                                            best_depth,
@@ -374,7 +374,7 @@ class StochasticSwap(TransformationPass):
                 layout = best_layout
 
                 # Update the DAG
-                dagcircuit_output.compose_back(
+                dagcircuit_output.compose(
                     self._layer_update(i,
                                        best_layout,
                                        best_depth,
