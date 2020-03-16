@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
                           Snapshot, Kernel, Discriminator, functional_pulse,
                           Delay, PulseError, ConstantPulse, Gaussian, GaussianSquare,
-                          Drag, pulse_lib, SetFrequency)
+                          Drag, pulse_lib)
 from qiskit.test import QiskitTestCase
 
 

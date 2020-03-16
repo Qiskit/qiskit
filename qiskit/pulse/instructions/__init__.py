@@ -23,4 +23,4 @@ sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
 from .delay import Delay
 from .instruction import Instruction
-from .set_frequency import SetFrequency
+from .frequency import SetFrequency

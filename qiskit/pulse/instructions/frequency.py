@@ -13,31 +13,33 @@
 # that they have been altered from the originals.
 
 """
-Set channel frequency.
+Frequency instructions module. These instructions allow the user to manipulate
+the frequency of a channel.
 """
-from typing import Optional
+from typing import List, Optional, Union
 
 from ..channels import PulseChannel
 from .instruction import Instruction
 
 
 class SetFrequency(Instruction):
-    """
-    Set the channel frequency. This command operates on PulseChannels.
-    A PulseChannel creates pulses of the form Re[exp(i 2pi f jdt + phase) d_j].
-    F is the frequency of the channel. The command SetFrequency allows
+    """Set the channel frequency. This command operates on PulseChannels.
+    A PulseChannel creates pulses of the form
+
+    .. math::
+        Re[exp(i 2pi f jdt + phase) d_j].
+
+    Here, f is the frequency of the channel. The command SetFrequency allows
     the user to set the value of f. All pulses that are played on a channel
     after SetFrequency has been called will have the corresponding frequency.
 
     The duration of SetFrequency is 0.
     """
 
-    prefix = 'sf'
-
     def __init__(self, frequency: float,
-                 channel: Optional[PulseChannel] = None,
+                 channel: Optional[PulseChannel],
                  name: Optional[str] = None):
-        """Creates a new set channel frequency pulse.
+        """Creates a new set channel frequency instruction.
 
         Args:
             frequency: New frequency of the channel in Hz.
@@ -49,12 +51,17 @@ class SetFrequency(Instruction):
         self._channel = channel
 
     @property
-    def frequency(self):
+    def operands(self) -> List[Union[int, PulseChannel]]:
+        """Return a list of instruction operands."""
+        return [self.frequency, self.channel]
+
+    @property
+    def frequency(self) -> float:
         """New frequency."""
         return self._frequency
 
     @property
-    def channel(self):
+    def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on"""
         return self._channel
@@ -75,4 +82,4 @@ class SetFrequency(Instruction):
         return hash((super().__hash__(), self.frequency))
 
     def __repr__(self):
-        return '%s(%s, frequency=%.3f)' % (self.__class__.__name__, self.name, self.frequency)
+        return '%s(%s, frequency=%.0f)' % (self.__class__.__name__, self.name, self.frequency)
