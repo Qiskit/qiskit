@@ -28,17 +28,17 @@ class SamplePulse(Pulse):
     """
 
     def __init__(self, samples: Union[np.ndarray, List[complex]],
-                 name: Optional[str] = None,
-                 epsilon: float = 1e-7):
+                 epsilon: float = 1e-7,
+                 name: Optional[str] = None):
         """Create new sample pulse command.
 
         Args:
             samples: Complex array of pulse envelope
-            name: Unique name to identify the pulse
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised
+            name: Unique name to identify the pulse
         """
         super().__init__(duration=len(samples), name=name)
         samples = np.asarray(samples, dtype=np.complex_)

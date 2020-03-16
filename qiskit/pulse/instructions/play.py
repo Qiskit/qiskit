@@ -42,7 +42,7 @@ class Play(Instruction):
         """
         self._pulse = pulse
         self._channel = channel
-        super().__init__(pulse.duration, channel, name=name)
+        super().__init__(pulse.duration, channel, name=name if name is not None else pulse.name)
 
     @property
     def operands(self) -> List[Union[Pulse, PulseChannel]]:

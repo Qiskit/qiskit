@@ -11,17 +11,34 @@ features:
 
         sched += Delay(5)(DriveChannel(0))
         sched += ShiftPhase(np.pi)(DriveChannel(0))
+        sched += SamplePulse([1.0, ...])(DriveChannel(0))
 
     or, equivalently (though less used)::
 
         sched += DelayInstruction(Delay(5), DriveChannel(0))
         sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+        sched += PulseInstruction(SamplePulse([1.0, ...], DriveChannel(0))
 
     Now, rather than build a command *and* an instruction, each command has
     been migrated into an instruction::
 
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
+        sched += Play(SamplePulse([1.0, ...], DriveChannel(0))
+
+  - |
+    There is now a :py:class:`~qiskit.pulse.instructions.Play` instruction
+    which takes a description of a pulse envelope and a channel. The pulse
+    description must subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse`.
+    py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
+    now subclass from ``Pulse`` and have been moved to the `pulse_lib`.
+
+    For example::
+
+        Play(SamplePulse[0.1]*10, DriveChannel(0))
+        Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
+
 deprecations:
   - |
     ``DelayInstruction`` has been deprecated and replaced by
@@ -38,3 +55,9 @@ deprecations:
         Delay(<phase>)(<channel>)
 
     The new ``Delay`` instruction does not support a ``command`` attribute.
+  - |
+    The call method of py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse`s has been deprecated.
+    The migration is as follows::
+
+        Pulse(<*args>)(<channel>) -> Play(Pulse(*args), <channel>)

@@ -52,13 +52,14 @@ class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: int):
+    def __init__(self, duration: int, name: Optional[str] = None):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
+            name: Display name for this pulse envelope.
         """
-        super().__init__(duration=duration)
+        super().__init__(duration=duration, name=name)
         self.validate_parameters()
 
     @abstractmethod
@@ -122,7 +123,8 @@ class Gaussian(ParametricPulse):
     def __init__(self,
                  duration: int,
                  amp: complex,
-                 sigma: float):
+                 sigma: float,
+                 name: Optional[str] = None):
         """Initialize the gaussian pulse.
 
         Args:
@@ -130,6 +132,7 @@ class Gaussian(ParametricPulse):
             amp: The amplitude of the Gaussian envelope.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
+            name: Display name for this pulse envelope.
         """
         self._amp = complex(amp)
         self._sigma = sigma
@@ -189,7 +192,8 @@ class GaussianSquare(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 width: float):
+                 width: float,
+                 name: Optional[str] = None):
         """Initialize the gaussian square pulse.
 
         Args:
@@ -198,6 +202,7 @@ class GaussianSquare(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
+            name: Display name for this pulse envelope.
         """
         self._amp = complex(amp)
         self._sigma = sigma
@@ -273,7 +278,8 @@ class Drag(ParametricPulse):
                  duration: int,
                  amp: complex,
                  sigma: float,
-                 beta: float):
+                 beta: float,
+                 name: Optional[str] = None):
         """Initialize the drag pulse.
 
         Args:
@@ -282,6 +288,7 @@ class Drag(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
+            name: Display name for this pulse envelope.
         """
         self._amp = complex(amp)
         self._sigma = sigma
@@ -365,6 +372,7 @@ class ConstantPulse(ParametricPulse):
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
+            name: Display name for this pulse envelope.
         """
         self._amp = complex(amp)
         super().__init__(duration=duration)

@@ -32,8 +32,9 @@ class Pulse(ABC):
         if not isinstance(duration, (int, np.integer)):
             raise PulseError('Pulse duration should be integer.')
         self.duration = int(duration)
-        self.name = name if name is not None else '{}{}'.format(self.__class__.__name__,
-                                                                self.__hash__())
+        self.name = (name if name is not None
+                          else '{}{}'.format(str(self.__class__.__name__).lower(),
+                                             self.__hash__()))
 
     def __call__(self, channel: PulseChannel) -> 'Instruction':
         """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
