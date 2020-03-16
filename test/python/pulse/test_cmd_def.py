@@ -21,7 +21,7 @@ from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import (CmdDef, SamplePulse, Schedule,
-                          PulseError, PersistentValue, FrameChange)
+                          PulseError, PersistentValue, ShiftPhase)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
@@ -119,19 +119,19 @@ class TestCmdDef(QiskitTestCase):
             cmd_def.get('inst_seq', 0, 1, 2, 3, P1=1)
 
         sched = cmd_def.get('inst_seq', 0, 1, 2, 3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = cmd_def.get('inst_seq', 0, P1=1, P2=2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = cmd_def.get('inst_seq', 0, 1, 2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
     def test_negative_phases(self):
         """Test bind parameters with negative values."""
@@ -145,8 +145,8 @@ class TestCmdDef(QiskitTestCase):
 
         sched = cmd_def.get('inst_seq', 0, -1, 2)
 
-        self.assertEqual(sched.instructions[0][-1].command.phase, -1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, -2)
+        self.assertEqual(sched.instructions[0][-1].phase, -1)
+        self.assertEqual(sched.instructions[1][-1].phase, -2)
 
     def test_build_cmd_def(self):
         """Test building of parameterized cmd_def from defaults."""
@@ -165,8 +165,8 @@ class TestCmdDef(QiskitTestCase):
         self.assertEqual(cmd_def.get_parameters('u1', 0), ('P0',))
 
         u1_minus_pi = cmd_def.get('u1', 0, P0=np.pi)
-        fc_cmd = u1_minus_pi.instructions[0][-1].command
-        self.assertEqual(fc_cmd.phase, -np.pi)
+        shift_phase = u1_minus_pi.instructions[0][-1]
+        self.assertEqual(shift_phase.phase, -np.pi)
 
     def test_default_phases_parameters(self):
         """Test parameters for phases."""
@@ -176,14 +176,12 @@ class TestCmdDef(QiskitTestCase):
         for i in range(2):
             u1_phases = []
             for _, instr in cmd_def.get('u1', i, P0=np.pi).instructions:
-                cmd = instr.command
-                if isinstance(cmd, FrameChange):
-                    u1_phases.append(cmd.phase)
+                if isinstance(instr, ShiftPhase):
+                    u1_phases.append(instr.phase)
             self.assertEqual(u1_phases, [-np.pi])
 
             u2_phases = []
             for _, instr in cmd_def.get('u2', i, P0=0, P1=np.pi).instructions:
-                cmd = instr.command
-                if isinstance(cmd, FrameChange):
-                    u2_phases.append(cmd.phase)
+                if isinstance(instr, ShiftPhase):
+                    u2_phases.append(instr.phase)
             self.assertEqual(u2_phases, [-np.pi, 0])
