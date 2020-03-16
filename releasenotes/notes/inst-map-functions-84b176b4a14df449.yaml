@@ -4,7 +4,9 @@
      It is now possible to insert a callable into a :class:`qiskit.pulse.InstructionScheduleMap`
      which returns a new :class:`qiskit.pulse.Schedule` when it is called with parameters.
      For example:
+
      .. code::
+
         def test_func(x):
            sched = Schedule()
            sched += pulse_lib.constant(int(x), amp_test)(DriveChannel(0))
