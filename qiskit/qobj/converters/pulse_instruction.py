@@ -263,7 +263,7 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(instruction.Snapshot)
+    @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
