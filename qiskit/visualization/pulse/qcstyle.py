@@ -22,7 +22,7 @@ class SchedStyle:
                  label_ch_color=None, label_ch_alpha=0.3, d_ch_color=None, u_ch_color=None,
                  m_ch_color=None, s_ch_color=None, s_ch_linestyle='-', table_color=None,
                  bg_color=None, num_points=1000, dpi=150, remove_spacing=True,
-                 max_table_ratio=0.5, vertical_span=0.2):
+                 max_table_ratio=0.5, vertical_span=0.2, axis_formatter=None):
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
@@ -50,6 +50,9 @@ class SchedStyle:
             max_table_ratio (float): Maximum portion of the plot the table can take up. Limited to
                 range between 0 and 1.
             vertical_span (float): Spacing on top and bottom of plot.
+            axis_formatter (str): Format of horizontal axis of the plot. This is convenient when
+                you set ``dt`` option for the drawer. For example, formatter of ``%.3e`` gives you
+                horizontal axis values in the scientific notation with 3 digits.
         """
         self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
@@ -75,6 +78,7 @@ class SchedStyle:
         self.remove_spacing = remove_spacing
         self.max_table_ratio = max(min(max_table_ratio, 0.0), 1.0)
         self.vertical_span = vertical_span
+        self.axis_formatter = axis_formatter or '%s'
 
 
 class PulseStyle:
