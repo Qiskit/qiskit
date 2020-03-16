@@ -3,7 +3,7 @@ features:
   - |
     Added a new feature. The ``SetFrequency`` instruction allows users to change the
     frequency of the ``PulseChannel``. This is done in the following way
-    
+
         sched += SetFrequency(5.5e9, DriveChannel(0))
 
     In this example, the frequency of all pulses before the ``SetFrequency`` command

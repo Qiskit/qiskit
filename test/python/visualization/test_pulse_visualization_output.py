@@ -24,7 +24,8 @@ from qiskit.visualization import pulse_drawer
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import (FrameChange, Acquire, ConstantPulse, Snapshot, Delay,
-                                   Gaussian, SetFrequency)
+                                   Gaussian)
+from qiskit.pulse.instructions import SetFrequency
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
