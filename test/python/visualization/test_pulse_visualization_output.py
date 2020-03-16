@@ -66,7 +66,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched = sched.append(gp0(DriveChannel(0)))
         sched = sched.insert(0, ConstantPulse(duration=60, amp=0.2 + 0.4j)(ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
-        sched = sched.insert(60, SetFrequency(frequency=8.0)(DriveChannel(0)))
+        sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))
         sched = sched.insert(60, gs0(MeasureChannel(0)))
