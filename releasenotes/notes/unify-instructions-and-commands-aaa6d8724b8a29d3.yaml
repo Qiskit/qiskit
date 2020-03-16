@@ -17,6 +17,8 @@ features:
 
         sched += DelayInstruction(Delay(5), DriveChannel(0))
         sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+        sched += AcquireInstruction(Acquire(100), AcquireChannel(0),
+                                    MemorySlot(0))
 
     Now, rather than build a command *and* an instruction, each command has
     been migrated into an instruction::
