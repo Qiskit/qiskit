@@ -18,6 +18,7 @@ from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjConfig)
 from qiskit.tools.parallel import parallel_map
 
+
 def _assemble_circuit(circuit):
     # header stuff
     n_qubits = 0
@@ -107,7 +108,6 @@ def _assemble_circuit(circuit):
         instructions.append(instruction)
     return QasmQobjExperiment(instructions=instructions, header=header,
                               config=config)
-
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
