@@ -39,8 +39,8 @@ deprecations:
 
     The new ``Delay`` instruction does not support a ``command`` attribute.
   - |
-    FrameChange and FrameChangeInstruction have been deprecated and replaced
-    by ShiftPhase. The changes are::
+    ``FrameChange`` and ``FrameChangeInstruction`` have been deprecated and replaced
+    by :py:class:`~qiskit.pulse.instructions.ShiftPhase`. The changes are::
 
         FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel>)
         FrameChangeInstruction(FrameChange(<phase>), <channel>)
