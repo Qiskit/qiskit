@@ -42,9 +42,9 @@ deprecations:
     FrameChange and FrameChangeInstruction have been deprecated and replaced
     by ShiftPhase. The changes are::
 
-        FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel)
+        FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel>)
         FrameChangeInstruction(FrameChange(<phase>), <channel>)
-            -> ShiftPhase(<phase>, <channel)
+            -> ShiftPhase(<phase>, <channel>)
 
     Until the deprecation period is over, the previous FrameChange syntax of
     calling a command on a channel will be supported::

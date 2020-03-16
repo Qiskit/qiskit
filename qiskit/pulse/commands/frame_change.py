@@ -34,7 +34,7 @@ class FrameChange(Command):
             phase: Frame change phase in radians. The allowable precision is device specific
             name: Name of this framechange command.
         """
-        warnings.warn("FrameChange is deprecated. Use ShiftPhase, instead, with channels"
+        warnings.warn("FrameChange is deprecated. Use ShiftPhase, instead, with channels "
                       "specified. For example: FrameChange(3.14)(DriveChannel(0)) -> "
                       "ShiftPhase(3.14, DriveChannel(0)). This can be called to add a channel: "
                       "ShiftPhase(3.14)(DriveChannel(0)).",
