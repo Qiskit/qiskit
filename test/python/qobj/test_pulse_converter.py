@@ -238,9 +238,9 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         schedule = Schedule()
         for i in range(self.n_qubits):
             schedule |= Acquire(10, AcquireChannel(i), MemorySlot(i), RegisterSlot(i),
-                                kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
+                                kernel=Kernel(name='test_kern', test_params='test'),
                                 discriminator=Discriminator(name='test_disc',
-                                                            params={'test_params': 1.0}))
+                                                            test_params=1.0))
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
                                     memory_slot=[0, 1], register_slot=[0, 1],
