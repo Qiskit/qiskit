@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels
+from qiskit.pulse import commands, channels, instructions, pulse_lib
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -263,6 +263,29 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Play)
+    def convert_play(self, shift, instruction):
+        """Return the converted `Play`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (Play): An instance of Play.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        if isinstance(instruction.pulse, pulse_lib.ParametricPulse):
+            command_dict = {
+                'name': 'parametric_pulse',
+                'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name,
+                'parameters': instruction.pulse.parameters
+            }
+        else:
+            # TODO
+
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(commands.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
@@ -447,7 +470,7 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = commands.SamplePulse(pulse.samples, pulse.name)
+        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
