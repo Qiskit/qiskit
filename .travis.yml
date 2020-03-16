@@ -18,31 +18,10 @@ cache:
   directories:
     - .stestr
 
-stage_osx: &stage_osx
-  os: osx
-  language: generic
-  cache:
-    pip: true
-    directories:
-      - ~/python-interpreters/
-  before_install:
-    # Travis does not provide support for Python 3 under osx - it needs to be
-    # installed manually.
-    - |
-      if [[ ! -d ~/python-interpreters/$PYTHON_VERSION ]]; then
-        git clone git://github.com/pyenv/pyenv.git
-        cd pyenv/plugins/python-build
-        ./install.sh
-        cd ../../..
-        python-build $PYTHON_VERSION ~/python-interpreters/$PYTHON_VERSION
-      fi
-      sudo pip2 install -U virtualenv pip setuptools
-      virtualenv --python ~/python-interpreters/$PYTHON_VERSION/bin/python venv
-      source venv/bin/activate
-    - which python
 os: linux
 dist: bionic
 language: python
+python: 3.7
 install:
   # Install step for jobs that require compilation and qa.
   - pip install -U -r requirements.txt -c constraints.txt
@@ -58,44 +37,11 @@ script:
 after_failure:
     - python tools/report_ci_failure.py
 
-stages:
-  - name: lint_and_tests
-  - name: tests
 jobs:
   fast_finish: true
+  allow_failures:
+    - name: Randomized tests
   include:
-    - name: Python 3.7 Tests Linux
-      python: 3.7
-      stage: lint_and_tests
-    - name: Python 3.7 Tests MacOS
-      stage: lint_and_tests
-      <<: *stage_osx
-      env:
-        - PYTHON_VERSION=3.7.7
-    - name: Lint and Style
-      python: 3.7
-      script:
-          - pycodestyle --max-line-length=100 qiskit test
-          - pylint -rn qiskit test
-          - reno lint
-      stage: lint_and_tests
-      git:
-        depth: false
-    - name: Docs
-      python: 3.7
-      install:
-        - python -m pip install --upgrade pip
-        - pip install -U tox
-        - python setup.py build_ext --inplace
-        - sudo apt-get update
-        - sudo apt-get install -y graphviz
-      script:
-        - tox -edocs
-      git:
-        depth: false
-    - name: Python 3.5 Tests Linux
-      python: 3.5
-      stage: tests
     - name: Python 3.6 Tests and Coverage Linux
       python: 3.6
       env:
@@ -106,21 +52,27 @@ jobs:
         - coverage xml || true
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
-    - name: Python 3.8 Tests Linux
-      python: 3.8
-      stage: tests
-    - name: Python 3.5 Tests MacOS
-      stage: tests
-      <<: *stage_osx
+
+    - name: Python 3.6 Tests (Networkx)
+      python: 3.6
+      install:
+        # Install step for jobs that require compilation and qa.
+        - pip install -U -r requirements.txt -c constraints.txt
+        - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
+        - pip install -c constraints.txt -e .
+        - pip install "qiskit-ibmq-provider" -c constraints.txt
+        - pip install "retworkx>=0.3.0"
       env:
-        - PYTHON_VERSION=3.5.9
-    - name: Python 3.6 Tests MacOS
-      stage: tests
-      <<: *stage_osx
-      env:
-        - PYTHON_VERSION=3.6.10
-    - name: Python 3.8 Tests MacOS
-      stage: tests
-      <<: *stage_osx
-      env:
-        - PYTHON_VERSION=3.8.2
+        - USE_RETWORKX="N"
+
+    # Randomized testing
+    - name: Randomized tests
+      cache:
+        pip: true
+        directories:
+        - .hypothesis
+      script:
+      - pip install -U pip
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - make test_randomized
