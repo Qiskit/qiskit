@@ -214,6 +214,7 @@ class InstructionToQobjConverter:
         Args:
             shift (int): Offset time.
             instruction (SetFrequency): set frequency instruction.
+
         Returns:
             dict: Dictionary of required parameters.
         """

@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,8 +17,8 @@ Set channel frequency.
 """
 from typing import Optional
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.commands.instruction import Instruction
+from ..channels import PulseChannel
+from .instruction import Instruction
 
 
 class SetFrequency(Instruction):
@@ -61,7 +61,7 @@ class SetFrequency(Instruction):
 
     def __eq__(self, other: 'SetFrequency'):
         """
-        Two set frequency commands are the same if they have the same type and frequency.
+        Two set frequency instructions are the same if they have the same type and frequency.
 
         Args:
             other: Other SetFrequency.
