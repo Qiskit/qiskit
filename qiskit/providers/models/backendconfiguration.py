@@ -332,7 +332,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.hamiltonian = hamiltonian
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]
-        self.dt = dt * 1e-9
+        self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
 
         channel_bandwidth = kwargs.pop('channel_bandwidth', None)
