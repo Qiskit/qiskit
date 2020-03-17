@@ -18,7 +18,6 @@ transmitted pulses, such as ``DriveChannel``).
 from typing import List, Optional, Union
 
 from ..channels import PulseChannel
-from ..pulse_lib.pulse import Pulse
 from .instruction import Instruction
 
 
@@ -31,7 +30,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
+    def __init__(self, pulse: 'Pulse', channel: PulseChannel, name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
@@ -45,12 +44,12 @@ class Play(Instruction):
         super().__init__(pulse.duration, channel, name=name if name is not None else pulse.name)
 
     @property
-    def operands(self) -> List[Union[Pulse, PulseChannel]]:
+    def operands(self) -> List[Union['Pulse', PulseChannel]]:
         """Return a list of instruction operands."""
         return [self.pulse, self.channel]
 
     @property
-    def pulse(self) -> Pulse:
+    def pulse(self) -> 'Pulse':
         """A description of the samples that will be played; for instance, exact sample data or
         a known function like Gaussian with parameters.
         """
