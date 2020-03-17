@@ -116,7 +116,7 @@ class DenseLayout(AnalysisPass):
         self.property_set['layout'] = layout
 
     @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def _best_subset(self, num_qubits, n_qubits=None):
+    def _best_subset(self, num_qubits, n_qubits=None):  # pylint:disable=unused-argument
         """Computes the qubit mapping with the best connectivity.
 
         Args:
