@@ -14,7 +14,7 @@
 
 """Quantum circuit object."""
 
-from copy import deepcopy
+import copy
 import itertools
 import sys
 import warnings
@@ -286,8 +286,8 @@ class QuantumCircuit:
         self._check_compatible_regs(rhs)
 
         # Make new circuit with combined registers
-        combined_qregs = deepcopy(self.qregs)
-        combined_cregs = deepcopy(self.cregs)
+        combined_qregs = copy.deepcopy(self.qregs)
+        combined_cregs = copy.deepcopy(self.cregs)
 
         for element in rhs.qregs:
             if element not in self.qregs:
@@ -444,12 +444,12 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (Instruction or Operation): Instruction instance to append
+            instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            qiskit.circuit.Instruction: a handle to the instruction that was just added
         """
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
@@ -578,7 +578,7 @@ class QuantumCircuit:
                parameterize the instruction.
 
         Returns:
-            Instruction: a composite instruction encapsulating this circuit
+            qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
             (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
@@ -969,6 +969,13 @@ class QuantumCircuit:
             qubits += reg.size
         return qubits
 
+    @property
+    def n_clbits(self):
+        """
+        Return number of classical bits.
+        """
+        return sum(len(reg) for reg in self.cregs)
+
     def count_ops(self):
         """Count each operation kind in the circuit.
 
@@ -1089,7 +1096,25 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = deepcopy(self)
+
+        cpy = copy.copy(self)
+
+        instr_instances = {id(instr): instr
+                           for instr, _, __ in self._data}
+
+        instr_copies = {id_: instr.copy()
+                        for id_, instr in instr_instances.items()}
+
+        cpy._parameter_table = ParameterTable()
+        cpy._parameter_table._table = {
+            param: [(instr_copies[id(instr)], param_index)
+                    for instr, param_index in self._parameter_table[param]]
+            for param in self._parameter_table
+        }
+
+        cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
+                     for inst, qargs, cargs in self._data]
+
         if name:
             cpy.name = name
         return cpy
@@ -1294,7 +1319,10 @@ class QuantumCircuit:
             for op, _, _ in instruction._definition:
                 for idx, param in enumerate(op.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:
-                        op.params[idx] = param.bind({parameter: value})
+                        if isinstance(value, ParameterExpression):
+                            op.params[idx] = param.subs({parameter: value})
+                        else:
+                            op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
     def _substitute_parameters(self, parameter_map):
@@ -1306,6 +1334,7 @@ class QuantumCircuit:
             for (instr, param_index) in self._parameter_table[old_parameter]:
                 new_param = instr.params[param_index].subs({old_parameter: new_parameter})
                 instr.params[param_index] = new_param
+                self._rebind_definition(instr, old_parameter, new_parameter)
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 

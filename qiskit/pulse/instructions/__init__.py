@@ -18,7 +18,18 @@ Instructions typically include at least one :py:class:`~qiskit.pulse.channels.Ch
 operand specifying where the instruction will be applied, and every instruction has a duration,
 whether implicitly or explicitly defined.
 
+For instance, a :py:class:`~qiskit.pulse.instructions.ShiftPhase` instruction can be instantiated
+with operands *phase* and *channel*, for some float ``phase`` and a
+:py:class`~qiskit.pulse.channels.Channel` ``channel``::
+
+    ShiftPhase(phase, channel)
+
+The duration of this instruction is implicitly zero.
+
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
+from .delay import Delay
 from .instruction import Instruction
+from .phase import ShiftPhase
+from .snapshot import Snapshot

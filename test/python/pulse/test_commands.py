@@ -135,7 +135,7 @@ class TestAcquire(QiskitTestCase):
 
 
 class TestFrameChangeCommand(QiskitTestCase):
-    """FrameChange tests."""
+    """FrameChange tests. Deprecated."""
 
     def test_default(self):
         """Test default frame change.

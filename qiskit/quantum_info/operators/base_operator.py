@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
 class BaseOperator(ABC):
-    """Abstract linear operator base class"""
+    """Abstract linear operator base class."""
 
     ATOL = ATOL_DEFAULT
     RTOL = RTOL_DEFAULT
@@ -38,17 +38,40 @@ class BaseOperator(ABC):
         # Dimension attributes
         # Note that the tuples of input and output dims are ordered
         # from least-significant to most-significant subsystems
+        self._qargs = None        # qargs for composition, set with __call__
         self._input_dims = None   # tuple of input dimensions of each subsystem
         self._output_dims = None  # tuple of output dimensions of each subsystem
         self._input_dim = None    # combined input dimension of all subsystems
         self._output_dim = None   # combined output dimension of all subsystems
         self._set_dims(input_dims, output_dims)
 
+    def __call__(self, qargs):
+        """Return a clone with qargs set"""
+        if isinstance(qargs, int):
+            qargs = [qargs]
+        n_qargs = len(qargs)
+        # We don't know if qargs will be applied to input our output
+        # dimensions so we just check it matches one of them.
+        if n_qargs not in (len(self._input_dims), len(self._output_dims)):
+            raise QiskitError(
+                "Length of qargs ({}) does not match number of input ({})"
+                " or output ({}) subsystems.".format(
+                    n_qargs, len(self._input_dims), len(self._output_dims)))
+        # Make a shallow copy
+        ret = copy.copy(self)
+        ret._qargs = qargs
+        return ret
+
     def __eq__(self, other):
         """Check types and subsystem dimensions are equal"""
         return (isinstance(other, self.__class__) and
                 self._input_dims == other._input_dims and
                 self._output_dims == other._output_dims)
+
+    @property
+    def qargs(self):
+        """Return the qargs for the operator."""
+        return self._qargs
 
     @property
     def dim(self):
@@ -157,6 +180,36 @@ class BaseOperator(ABC):
         pass
 
     @abstractmethod
+    def tensor(self, other):
+        """Return the tensor product operator self ⊗ other.
+
+        Args:
+            other (BaseOperator): a operator subclass object.
+
+        Returns:
+            BaseOperator: the tensor product operator self ⊗ other.
+
+        Raises:
+            QiskitError: if other is not an operator.
+        """
+        pass
+
+    @abstractmethod
+    def expand(self, other):
+        """Return the tensor product operator other ⊗ self.
+
+        Args:
+            other (BaseOperator): an operator object.
+
+        Returns:
+            BaseOperator: the tensor product operator other ⊗ self.
+
+        Raises:
+            QiskitError: if other is not an operator.
+        """
+        pass
+
+    @abstractmethod
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
 
@@ -225,40 +278,10 @@ class BaseOperator(ABC):
             ret = ret.compose(self)
         return ret
 
-    @abstractmethod
-    def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
-
-        Args:
-            other (BaseOperator): a operator subclass object.
-
-        Returns:
-            BaseOperator: the tensor product operator self ⊗ other.
-
-        Raises:
-            QiskitError: if other is not an operator.
-        """
-        pass
-
-    @abstractmethod
-    def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
-
-        Args:
-            other (BaseOperator): an operator object.
-
-        Returns:
-            BaseOperator: the tensor product operator other ⊗ self.
-
-        Raises:
-            QiskitError: if other is not an operator.
-        """
-        pass
-
     def add(self, other):
         """Return the linear operator self + other.
 
-        DEPRECATED: use `+` or `_add` instead.
+        DEPRECATED: use ``operator + other`` instead.
 
         Args:
             other (BaseOperator): an operator object.
@@ -266,15 +289,14 @@ class BaseOperator(ABC):
         Returns:
             BaseOperator: the operator self + other.
         """
-        warnings.warn("`BaseOperator.add` method is deprecated, use the `+`"
-                      " operator or `BaseOperator._add` instead",
-                      DeprecationWarning)
+        warnings.warn("`BaseOperator.add` method is deprecated, use"
+                      "`op + other` instead.", DeprecationWarning)
         return self._add(other)
 
     def subtract(self, other):
         """Return the linear operator self - other.
 
-        DEPRECATED: use `-` instead.
+        DEPRECATED: use ``operator - other`` instead.
 
         Args:
             other (BaseOperator): an operator object.
@@ -282,15 +304,14 @@ class BaseOperator(ABC):
         Returns:
             BaseOperator: the operator self - other.
         """
-        warnings.warn("`BaseOperator.subtract` method is deprecated, use the `-`"
-                      " operator or `BaseOperator._add(-other)` instead",
-                      DeprecationWarning)
+        warnings.warn("`BaseOperator.subtract` method is deprecated, use"
+                      "`op - other` instead", DeprecationWarning)
         return self._add(-other)
 
     def multiply(self, other):
         """Return the linear operator other * self.
 
-        DEPRECATED: use `*` of `_multiply` instead.
+        DEPRECATED: use ``other * operator`` instead.
 
         Args:
             other (complex): a complex number.
@@ -301,16 +322,20 @@ class BaseOperator(ABC):
         Raises:
             NotImplementedError: if subclass does not support multiplication.
         """
-        warnings.warn("`BaseOperator.multiply` method is deprecated, use the `*`"
-                      " operator or `BaseOperator._multiply` instead",
-                      DeprecationWarning)
+        warnings.warn("`BaseOperator.multiply` method is deprecated, use"
+                      "the `other * op` instead", DeprecationWarning)
         return self._multiply(other)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the linear operator self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             BaseOperator: the operator self + other.
@@ -413,21 +438,37 @@ class BaseOperator(ABC):
                     output_dims[qubit] = other._output_dims[i]
         return input_dims, output_dims
 
-    def _validate_add_dims(self, other):
+    def _validate_add_dims(self, other, qargs=None):
         """Check dimensions are compatible for addition.
 
         Args:
             other (BaseOperator): another operator object.
+            qargs (None or list): compose qargs kwarg value.
 
         Raises:
             QiskitError: if operators have incompatibile dimensions for addition.
         """
-        # For adding we only require that operators have the same total
-        # dimensions rather than each subsystem dimension matching.
-        if self.dim != other.dim:
-            raise QiskitError(
-                "Cannot add operators with different shapes"
-                " ({} != {}).".format(self.dim, other.dim))
+        if qargs is None:
+            # For adding without qargs we only require that operators have
+            # the same total dimensions rather than each subsystem dimension
+            # matching.
+            if self.dim != other.dim:
+                raise QiskitError(
+                    "Cannot add operators with different shapes"
+                    " ({} != {}).".format(self.dim, other.dim))
+        else:
+            # If adding on subsystems the operators must have equal
+            # shape on subsystems
+            if (self._input_dims != self._output_dims or
+                    other._input_dims != other._output_dims):
+                raise QiskitError(
+                    "Cannot add operators on subsystems for non-square"
+                    " operator.")
+            if self.input_dims(qargs) != other._input_dims:
+                raise QiskitError(
+                    "Cannot add operators on subsystems with different"
+                    " dimensions ({} != {}).".format(
+                        self.input_dims(qargs), other._input_dims))
 
     # Overloads
     def __matmul__(self, other):

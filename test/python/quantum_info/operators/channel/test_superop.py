@@ -14,6 +14,7 @@
 
 """Tests for SuperOp quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -90,10 +91,24 @@ class TestSuperOp(ChannelTestCase):
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
+        with self.subTest("Deep copy"):
+            orig = SuperOp(mat)
+            cpy = orig.copy()
+            cpy._data[0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = SuperOp(mat)
+            clone = copy.copy(orig)
+            clone._data[0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
+        mat = np.eye(4)
         orig = SuperOp(mat)
-        cpy = orig.copy()
-        cpy._data[0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_evolve(self):
         """Test evolve method."""
@@ -329,34 +344,41 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), SuperOp(targ))
+        self.assertEqual(op @ op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op @ op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), SuperOp(targ))
+        self.assertEqual(op @ op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), SuperOp(targ))
+        self.assertEqual(op @ op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[0]), SuperOp(targ))
+        self.assertEqual(op @ op1([0]), SuperOp(targ))
 
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[1]), SuperOp(targ))
+        self.assertEqual(op @ op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[2]), SuperOp(targ))
+        self.assertEqual(op @ op1([2]), SuperOp(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""
@@ -375,34 +397,40 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[0, 1, 2]), SuperOp(targ))
+        self.assertEqual(op * op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op * op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[0, 1]), SuperOp(targ))
+        self.assertEqual(op * op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[2, 0]), SuperOp(targ))
+        self.assertEqual(op * op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[0]), SuperOp(targ))
-
+        self.assertEqual(op * op1([0]), SuperOp(targ))
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[1]), SuperOp(targ))
+        self.assertEqual(op * op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[2]), SuperOp(targ))
+        self.assertEqual(op * op1([2]), SuperOp(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -529,6 +557,100 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan1 + chan2, targ)
         targ = SuperOp(mat1 - mat2)
         self.assertEqual(chan1 - chan2, targ)
+
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat0 = self.rand_matrix(4, 4)
+        mat1 = self.rand_matrix(4, 4)
+
+        op = SuperOp(mat)
+        op0 = SuperOp(mat0)
+        op1 = SuperOp(mat1)
+        op01 = op1.tensor(op0)
+        eye = SuperOp(self.sopI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + eye.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + eye.tensor(op0).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + op0.tensor(eye).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op + op01([0, 1])
+            target = op + eye.tensor(op1).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op + op01([1, 0])
+            target = op + eye.tensor(op0).tensor(op1)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op + op01([0, 2])
+            target = op + op1.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op + op01([2, 0])
+            target = op + op0.tensor(eye).tensor(op1)
+            self.assertEqual(value, target)
+
+    def test_sub_qargs(self):
+        """Test subtract method with qargs."""
+        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat0 = self.rand_matrix(4, 4)
+        mat1 = self.rand_matrix(4, 4)
+
+        op = SuperOp(mat)
+        op0 = SuperOp(mat0)
+        op1 = SuperOp(mat1)
+        op01 = op1.tensor(op0)
+        eye = SuperOp(self.sopI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - eye.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - eye.tensor(op0).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - op0.tensor(eye).tensor(eye)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 1]'):
+            value = op - op01([0, 1])
+            target = op - eye.tensor(op1).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[1, 0]'):
+            value = op - op01([1, 0])
+            target = op - eye.tensor(op0).tensor(op1)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[0, 2]'):
+            value = op - op01([0, 2])
+            target = op - op1.tensor(eye).tensor(op0)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='qargs=[2, 0]'):
+            value = op - op01([2, 0])
+            target = op - op0.tensor(eye).tensor(op1)
+            self.assertEqual(value, target)
 
     def test_add_except(self):
         """Test add method raises exceptions."""
