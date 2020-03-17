@@ -197,6 +197,9 @@ class Statevector(QuantumState):
             QiskitError: if the operator dimension does not match the
             specified Statevector subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
