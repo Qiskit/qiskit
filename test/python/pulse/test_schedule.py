@@ -20,11 +20,12 @@ import numpy as np
 
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
-from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
+from qiskit.pulse.commands import (Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction, Gaussian, Drag,
+                                   PulseInstruction, Gaussian, Drag,
                                    GaussianSquare, ConstantPulse)
-from qiskit.pulse import pulse_lib, SamplePulse, Instruction
+
+from qiskit.pulse import pulse_lib, SamplePulse, ShiftPhase, Instruction, SetFrequency
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
@@ -99,18 +100,16 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test valid schedule creation without error."""
         gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
         gp1 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
-
-        fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
 
         sched = Schedule()
         sched = sched.append(gp0(self.config.drive(0)))
         sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.control(0)))
-        sched = sched.insert(60, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(30, gp1(self.config.drive(0)))
         sched = sched.insert(60, gp0(self.config.control(0)))
         sched = sched.insert(80, Snapshot("label", "snap_type"))
-        sched = sched.insert(90, fc_pi_2(self.config.drive(0)))
+        sched = sched.insert(90, ShiftPhase(1.57, self.config.drive(0)))
         sched = sched.insert(90, acquire(self.config.acquire(0),
                                          MemorySlot(0),
                                          RegisterSlot(0)))
@@ -129,17 +128,16 @@ class TestScheduleBuilding(BaseTestSchedule):
            and return equivalent schedules."""
         gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
         gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
-        fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
 
         sched = Schedule()
         sched += gp0(self.config.drive(0))
         sched |= PersistentValue(value=0.2 + 0.4j)(self.config.control(0))
-        sched |= FrameChange(phase=-1.57)(self.config.drive(0)) << 60
+        sched |= ShiftPhase(-1.57, self.config.drive(0)) << 60
         sched |= gp1(self.config.drive(0)) << 30
         sched |= gp0(self.config.control(0)) << 60
         sched |= Snapshot("label", "snap_type") << 60
-        sched |= fc_pi_2(self.config.drive(0)) << 90
+        sched |= ShiftPhase(1.57, self.config.drive(0)) << 90
         sched |= acquire(self.config.acquire(0),
                          MemorySlot(0),
                          RegisterSlot(0)) << 90
@@ -288,7 +286,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         acquire = Acquire(10)
         gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
         pv0 = PersistentValue(0.1)
-        fc0 = FrameChange(0.1)
         snapshot = Snapshot('snapshot_label', 'state')
 
         sched1 = Schedule(name='test_name')
@@ -307,7 +304,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched_pv = pv0(self.config.drive(0), name='pv_name') | sched1
         self.assertEqual(sched_pv.name, 'pv_name')
 
-        sched_fc = fc0(self.config.drive(0), name='fc_name') | sched1
+        sched_fc = ShiftPhase(0.1, self.config.drive(0), name='fc_name') | sched1
         self.assertEqual(sched_fc.name, 'fc_name')
 
         sched_snapshot = snapshot | sched1
@@ -488,7 +485,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(60, acquire(AcquireChannel(0), MemorySlot(0)))
         sched = sched.insert(60, acquire(AcquireChannel(1), MemorySlot(1)))
         sched = sched.insert(90, lp0(self.config.drive(0)))
@@ -514,7 +511,8 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, lp0(self.config.drive(0)))
@@ -530,19 +528,28 @@ class TestScheduleFilter(BaseTestSchedule):
         # test two instruction types
         only_pulse_and_fc, no_pulse_and_fc = \
             self._filter_and_test_consistency(sched, instruction_types=[PulseInstruction,
-                                                                        FrameChangeInstruction])
+                                                                        ShiftPhase])
         for _, inst in only_pulse_and_fc.instructions:
-            self.assertIsInstance(inst, (PulseInstruction, FrameChangeInstruction))
+            self.assertIsInstance(inst, (PulseInstruction, ShiftPhase))
         for _, inst in no_pulse_and_fc.instructions:
-            self.assertFalse(isinstance(inst, (PulseInstruction, FrameChangeInstruction)))
+            self.assertFalse(isinstance(inst, (PulseInstruction, ShiftPhase)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 2)
+        self.assertEqual(len(no_pulse_and_fc.instructions), 3)
 
-        # test on FrameChange
+        # test on ShiftPhase
         only_fc, no_fc = \
-            self._filter_and_test_consistency(sched, instruction_types={FrameChangeInstruction})
+            self._filter_and_test_consistency(sched, instruction_types={ShiftPhase})
         self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 5)
+        self.assertEqual(len(no_fc.instructions), 6)
+
+        # test on SetFrequency
+        only_sf, no_sf = \
+            self._filter_and_test_consistency(sched,
+                                              instruction_types=[SetFrequency])
+        for _, inst in only_sf.instructions:
+            self.assertTrue(isinstance(inst, SetFrequency))
+        self.assertEqual(len(only_sf.instructions), 1)
+        self.assertEqual(len(no_sf.instructions), 6)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
@@ -551,7 +558,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, lp0(self.config.drive(0)))
@@ -601,7 +608,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
 
@@ -627,7 +634,7 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                time_ranges=[(25, 100), (0, 11)])
         self.assertTrue(len(excluded.instructions), 3)
         for time, inst in filtered.instructions:
-            self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
+            self.assertIsInstance(inst, (ShiftPhase, PulseInstruction))
         self.assertTrue(len(filtered.instructions), 4)
         # make sure the PulseInstruction not in the intervals is maintained
         self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
@@ -648,7 +655,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: True)
         for i in filtered.instructions:
@@ -678,7 +685,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, lp0(self.config.drive(0)))
         sched = sched.insert(10, lp0(self.config.drive(1)))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, acquire(self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, lp0(self.config.drive(0)))
@@ -727,23 +734,23 @@ class TestScheduleEquality(BaseTestSchedule):
 
     def test_different_channels(self):
         """Test equality is False if different channels."""
-        self.assertNotEqual(Schedule(FrameChange(0)(DriveChannel(0))),
-                            Schedule(FrameChange(0)(DriveChannel(1))))
+        self.assertNotEqual(Schedule(ShiftPhase(0, DriveChannel(0))),
+                            Schedule(ShiftPhase(0, DriveChannel(1))))
 
     def test_same_time_equal(self):
         """Test equal if instruction at same time."""
 
-        self.assertEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
-                         Schedule((0, FrameChange(0)(DriveChannel(1)))))
+        self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
+                         Schedule((0, ShiftPhase(0, DriveChannel(1)))))
 
     def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
-        self.assertNotEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
-                            Schedule((1, FrameChange(0)(DriveChannel(1)))))
+        self.assertNotEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
+                            Schedule((1, ShiftPhase(0, DriveChannel(1)))))
 
     def test_single_channel_out_of_order(self):
         """Test that schedule with single channel equal when out of order."""
-        instructions = [(0, FrameChange(0)(DriveChannel(0))),
+        instructions = [(0, ShiftPhase(0, DriveChannel(0))),
                         (15, SamplePulse(np.ones(10))(DriveChannel(0))),
                         (5, SamplePulse(np.ones(10))(DriveChannel(0)))]
 
@@ -751,7 +758,7 @@ class TestScheduleEquality(BaseTestSchedule):
 
     def test_multiple_channels_out_of_order(self):
         """Test that schedule with multiple channels equal when out of order."""
-        instructions = [(0, FrameChange(0)(DriveChannel(1))),
+        instructions = [(0, ShiftPhase(0, DriveChannel(1))),
                         (1, Acquire(10)(AcquireChannel(0), MemorySlot(1)))]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
@@ -759,8 +766,8 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_different_name_equal(self):
         """Test that names are ignored when checking equality."""
 
-        self.assertEqual(Schedule((0, FrameChange(0, name='fc1')(DriveChannel(1))), name='s1'),
-                         Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
+        self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc1')), name='s1'),
+                         Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc2')), name='s2'))
 
 
 if __name__ == '__main__':
