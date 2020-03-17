@@ -980,7 +980,7 @@ class QuantumCircuit:
     def num_clbits(self):
         """Return number of classical bits."""
         return sum(len(reg) for reg in self.cregs)
-    
+
     @property
     def n_clbits(self):
         """Deprecated, use ``num_clbits`` instead. Return the number of classical bits."""
