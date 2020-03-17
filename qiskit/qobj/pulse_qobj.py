@@ -77,10 +77,10 @@ class PulseQobjInstruction:
     """A class representing a single instruction in an PulseQobj Experiment."""
 
     def __init__(self, name, t0, ch=None, conditional=None, val=None, phase=None,
-                 frequency=None, duration=None, qubits=None, memory_slot=None,
+                 duration=None, qubits=None, memory_slot=None,
                  register_slot=None, kernels=None, discriminators=None,
                  label=None, type=None, pulse_shape=None,
-                 parameters=None):
+                 parameters=None, frequency=None):
         """Instantiate a new PulseQobjInstruction object.
 
         Args:
