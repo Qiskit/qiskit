@@ -14,7 +14,6 @@
 
 """Model and schema for backend configuration."""
 from typing import Dict, List
-import warnings
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -342,9 +341,9 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
-        self._rep_times = [_rt * 1e-6 for _rt in rep_times]
-        self._dt = dt * 1e-9
-        self._dtm = dtm * 1e-9
+        self.rep_times = [_rt * 1e-6 for _rt in rep_times]
+        self.dt = dt * 1e-9  # pylint: disable=invalid-name
+        self.dtm = dtm * 1e-9
 
         channel_bandwidth = kwargs.pop('channel_bandwidth', None)
         if channel_bandwidth:
@@ -356,39 +355,6 @@ class PulseBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
-
-    @property
-    def dt(self) -> float:  # pylint: disable=invalid-name
-        """Drive channel sampling time in seconds(s)."""
-        # only raise dt warning once
-        if not PulseBackendConfiguration._dt_warning_done:
-            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
-                          'than nanoseconds(ns).')
-            PulseBackendConfiguration._dt_warning_done = True
-
-        return self._dt
-
-    @property
-    def dtm(self) -> float:  # pylint: disable=invalid-name
-        """Measure channel sampling time in seconds(s)."""
-        # only raise dt warning once
-        if not PulseBackendConfiguration._dt_warning_done:
-            warnings.warn('`dt` and `dtm` now have units of seconds(s) rather '
-                          'than nanoseconds(ns).')
-            PulseBackendConfiguration._dt_warning_done = True
-
-        return self._dtm
-
-    @property
-    def rep_times(self) -> List[float]:  # pylint: disable=invalid-name
-        """Supported repetition times for device in seconds."""
-        # only raise rep_time warning once
-        if not PulseBackendConfiguration._rep_time_warning_done:
-            warnings.warn('`rep_time` now has units of seconds(s) rather '
-                          'than microseconds(mu s).')
-            PulseBackendConfiguration._rep_time_warning_done = True
-
-        return self._rep_times
 
     @property
     def sample_rate(self) -> float:
