@@ -1900,11 +1900,11 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_cz_bot(self):
         """Open controlled Z (bottom)"""
-        expected = '\n'.join(["             ",
-                              "q_0: |0>──o──",
-                              "        ┌─┴─┐",
-                              "q_1: |0>┤ Z ├",
-                              "        └───┘"])
+        expected = '\n'.join(["           ",
+                              "q_0: |0>─o─",
+                              "         │ ",
+                              "q_1: |0>─■─",
+                              "           "])
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
         circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
