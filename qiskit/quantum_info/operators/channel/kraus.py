@@ -17,6 +17,7 @@
 Kraus representation of a Quantum Channel.
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -330,11 +331,16 @@ class Kraus(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             Kraus: the linear addition channel self + other.
@@ -346,7 +352,7 @@ class Kraus(QuantumChannel):
         # Since we cannot directly add two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
-        return Kraus(Choi(self).add(other))
+        return Kraus(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
@@ -362,11 +368,14 @@ class Kraus(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
+
+        ret = copy.copy(self)
         # If the number is complex we need to convert to general
         # kraus channel so we multiply via Choi representation
         if isinstance(other, complex) or other < 0:
             # Convert to Choi-matrix
-            return Kraus(Choi(self)._multiply(other))
+            ret._data = Kraus(Choi(self)._multiply(other))._data
+            return ret
         # If the number is real we can update the Kraus operators
         # directly
         val = np.sqrt(other)
@@ -374,7 +383,8 @@ class Kraus(QuantumChannel):
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:
             kraus_r = [val * k for k in self._data[1]]
-        return Kraus((kraus_l, kraus_r), self._input_dim, self._output_dim)
+        ret._data = (kraus_l, kraus_r)
+        return ret
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.

@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    A new requirement has been added to the requirements list,
+    `retworkx <https://pypi.org/project/retworkx/>`_. It is an Apache 2.0
+    licensed graph library that has a similar API to networkx and is being used
+    to significantly speed up the :class:`qiskit.dagcircuit.DAGCircuit`
+    operations as part of the transpiler. There are binaries published on PyPI
+    for all the platforms supported by Qiskit Terra but if you're using a
+    platform where there aren't precompiled binaries published refer to the
+    `retworkx documentation
+    <https://retworkx.readthedocs.io/en/stable/README.html#installing-retworkx>`_
+    for instructions on pip installing from sdist.
+
+    If you encounter any issues with the transpiler or DAGCircuit class as part
+    of the transition you can switch back to the previous networkx
+    implementation by setting the environment variable ``USE_RETWORKX`` to
+    ``N``. This option will be removed in the 0.14.0 release.

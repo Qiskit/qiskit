@@ -179,9 +179,39 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         target = coeff1 - coeff2
         self.assertScalarOp(val, dims, target)
 
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j],
+             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]])
+    def test_add_qargs(self, coeff1, coeff2, qargs):
+        """Test add operation with ScalarOp. ({coeff1} + {coeff2}({qargs}))"""
+        # Add two ScalarOps
+        full_dims = np.array([2, 3, 4])
+        dims1 = tuple(full_dims.tolist())
+        dims2 = tuple(full_dims[qargs].tolist())
+        op1 = ScalarOp(dims1, coeff=coeff1)
+        op2 = ScalarOp(dims2, coeff=coeff2)
+
+        val = op1 + op2(qargs)
+        target = coeff1 + coeff2
+        self.assertScalarOp(val, dims1, target)
+
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j],
+             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]])
+    def test_subtract_qargs(self, coeff1, coeff2, qargs):
+        """Test subtract operation with ScalarOp. ({coeff1} - {coeff2}({qargs}))"""
+        # Add two ScalarOps
+        full_dims = np.array([2, 3, 4])
+        dims1 = tuple(full_dims.tolist())
+        dims2 = tuple(full_dims[qargs].tolist())
+        op1 = ScalarOp(dims1, coeff=coeff1)
+        op2 = ScalarOp(dims2, coeff=coeff2)
+
+        val = op1 - op2(qargs)
+        target = coeff1 - coeff2
+        self.assertScalarOp(val, dims1, target)
+
     @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
     def test_add_operator(self, coeff, label):
-        """Test add and subtract operations with Operator (coeff={coeff}, label={label})"""
+        """Test add operation with Operator (coeff={coeff}, label={label})"""
         dims = (2, 2)
         iden = ScalarOp(4, coeff=coeff)
         op = Operator.from_label(label)
@@ -195,6 +225,12 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
             target = coeff * Operator.from_label('II') + op
             self.assertOperator(val, dims, target)
 
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    def test_subtract_operator(self, coeff, label):
+        """Test subtract operation with Operator (coeff={coeff}, label={label})"""
+        dims = (2, 2)
+        iden = ScalarOp(4, coeff=coeff)
+        op = Operator.from_label(label)
         with self.subTest(msg='{} - Operator({})'.format(iden, label)):
             val = iden - op
             target = coeff * Operator.from_label('II') - op
@@ -204,6 +240,40 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
             val = op - iden
             target = op - coeff * Operator.from_label('II')
             self.assertOperator(val, dims, target)
+
+    @combine(coeff=[0, 1, -3.1, 1 + 3j],
+             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0],
+                    [0, 1, 2], [2, 0, 1], [1, 2, 0]])
+    def test_add_operator_qargs(self, coeff, qargs):
+        """Test qargs add operation with Operator (coeff={coeff}, qargs={qargs})"""
+        # Get labels for qarg addition
+        part_array = np.array(['X', 'Y', 'Z'])[range(len(qargs))]
+        label = ''.join(part_array)
+        full_array = np.array(3 * ['I'])
+        inds = [2 - i for i in reversed(qargs)]
+        full_array[inds] = part_array
+        full_label = ''.join(full_array)
+        dims = 3 * (2, )
+        val = ScalarOp(dims, coeff=coeff) + Operator.from_label(label)(qargs)
+        target = (coeff * Operator.from_label(3 * 'I')) + Operator.from_label(full_label)
+        self.assertOperator(val, dims, target)
+
+    @combine(coeff=[0, 1, -3.1, 1 + 3j],
+             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0],
+                    [0, 1, 2], [2, 0, 1], [1, 2, 0]])
+    def test_subtract_operator_qargs(self, coeff, qargs):
+        """Test qargs subtract operation with Operator (coeff={coeff}, qargs={qargs})"""
+        # Get labels for qarg addition
+        part_array = np.array(['X', 'Y', 'Z'])[range(len(qargs))]
+        label = ''.join(part_array)
+        full_array = np.array(3 * ['I'])
+        inds = [2 - i for i in reversed(qargs)]
+        full_array[inds] = part_array
+        full_label = ''.join(full_array)
+        dims = 3 * (2, )
+        val = ScalarOp(dims, coeff=coeff) - Operator.from_label(label)(qargs)
+        target = (coeff * Operator.from_label(3 * 'I')) - Operator.from_label(full_label)
+        self.assertOperator(val, dims, target)
 
 
 @ddt

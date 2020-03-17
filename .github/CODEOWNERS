@@ -22,7 +22,7 @@ scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzu
 quantum_info/         @chriseclectic @ajavadia @ewinston
 qi/                   @chriseclectic @ajavadia
 result/               @diego-plan9 @jyu00 @taalexander @mtreinish @ajavadia
-schemas/              @diego-plan9 @dcmckayibm
+schemas/              @diego-plan9 @mtreinish @taalexander
 transpiler/           @ajavadia @kdk @1ucian0 @itoko @mtreinish
 assembler/            @ajavadia @kdk @diego-plan9 @taalexander @mtreinish @lcapelluto
 compiler/             @ajavadia @kdk @diego-plan9 @1ucian0 @taalexander @mtreinish @lcapelluto
