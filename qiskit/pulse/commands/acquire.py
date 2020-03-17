@@ -18,9 +18,9 @@ Acquire.
 import warnings
 from typing import Optional, Union, List
 
-from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
-from .instruction import Instruction
+from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..instructions import Instruction
 from .meas_opts import Discriminator, Kernel
 from .command import Command
 
@@ -126,10 +126,6 @@ class AcquireInstruction(Instruction):
 
         if not isinstance(acquire, list):
             acquire = [acquire]
-
-        if isinstance(acquire[0], Qubit):
-            raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
-                             "which are deprecated.")
 
         if mem_slot and not isinstance(mem_slot, list):
             mem_slot = [mem_slot]

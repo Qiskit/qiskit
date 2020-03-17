@@ -12,8 +12,33 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Command classes for pulse."""
-from .instruction import Instruction
+# pylint: disable=cyclic-import
+
+"""
+Supported command types in Pulse.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Acquire
+   FrameChange
+   SamplePulse
+   Snapshot
+   Delay
+   Gaussian
+   GaussianSquare
+   Drag
+   ConstantPulse
+
+Abstract Classes
+----------------
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParametricPulse
+   Command
+
+ """
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel

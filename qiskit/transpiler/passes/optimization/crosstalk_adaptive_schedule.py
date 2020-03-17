@@ -40,7 +40,7 @@ except ImportError:
     HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CnotGate
+from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.transpiler.exceptions import TranspilerError
@@ -51,12 +51,9 @@ ONEQ_XTALK_THRESH = 2
 
 
 class CrosstalkAdaptiveSchedule(TransformationPass):
-    """
-    Crosstalk mitigation through adaptive instruction scheduling.
-    """
+    """Crosstalk mitigation through adaptive instruction scheduling."""
     def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
-        """
-        CrosstalkAdaptiveSchedule initializer.
+        """CrosstalkAdaptiveSchedule initializer.
 
         Args:
             backend_prop (BackendProperties): backend properties object
@@ -68,18 +65,21 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 We currently ignore crosstalk between pairs of single-qubit gates.
                 Gate pairs which are not specified are assumed to be crosstalk free.
 
-                Example: crosstalk_prop = {(0, 1) : {(2, 3) : 0.2, (2) : 0.15},
-                                           (4, 5) : {(2, 3) : 0.1},
-                                           (2, 3) : {(0, 1) : 0.05, (4, 5): 0.05}}
+                Example::
+
+                    crosstalk_prop = {(0, 1) : {(2, 3) : 0.2, (2) : 0.15},
+                                                (4, 5) : {(2, 3) : 0.1},
+                                                (2, 3) : {(0, 1) : 0.05, (4, 5): 0.05}}
+
                 The keys of the crosstalk_prop are tuples for ordered tuples for CX gates
                 e.g., (0, 1) corresponding to CX 0, 1 in the hardware.
                 Each key has an associated value dict which specifies the conditional error rates
-                with nearby gates e.g., (0, 1) : {(2, 3) : 0.2, (2) : 0.15} means that
+                with nearby gates e.g., ``(0, 1) : {(2, 3) : 0.2, (2) : 0.15}`` means that
                 CNOT 0, 1 has an error rate of 0.2 when it is executed in parallel with CNOT 2,3
                 and an error rate of 0.15 when it is executed in parallel with a single qubit
                 gate on qubit 2.
             weight_factor (float): weight of gate error/crosstalk terms in the objective
-                weight_factor*fidelities + (1-weight_factor)*decoherence errors.
+                :math:`weight_factor*fidelities + (1-weight_factor)*decoherence errors`.
                 Weight can be varied from 0 to 1, with 0 meaning that only decoherence
                 errors are optimized and 1 meaning that only crosstalk errors are optimized.
                 weight_factor should be tuned per application to get the best results.
@@ -327,7 +327,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 dur = self.bp_u2_dur[q_0]
             elif isinstance(gate.op, U3Gate):
                 dur = self.bp_u3_dur[q_0]
-            elif isinstance(gate.op, CnotGate):
+            elif isinstance(gate.op, CXGate):
                 dur = self.bp_cx_dur[self.cx_tuple(gate)]
             self.opt.add(self.gate_duration[gate] == dur)
 
@@ -383,7 +383,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     fid = math.log(1.0 - self.bp_u2_err[q_0])
                 elif isinstance(gate.op, U3Gate):
                     fid = math.log(1.0 - self.bp_u3_err[q_0])
-                elif isinstance(gate.op, CnotGate):
+                elif isinstance(gate.op, CXGate):
                     fid = math.log(1.0 - self.bp_cx_err[self.cx_tuple(gate)])
                 self.opt.add(self.gate_fidelity[gate] == round(fid, NUM_PREC))
             else:

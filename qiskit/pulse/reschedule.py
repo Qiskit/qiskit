@@ -22,13 +22,10 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
+from qiskit.pulse import (CmdDef, Acquire, AcquireInstruction, Delay,
+                          InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
-from .cmd_def import CmdDef
-from .commands import Acquire, AcquireInstruction, Delay
 from .exceptions import PulseError
-from .instruction_schedule_map import InstructionScheduleMap
-from .interfaces import ScheduleComponent
-from .schedule import Schedule
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],
@@ -51,8 +48,10 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         cal_gate: The name of the gate to inspect for the calibration time
         max_calibration_duration: If provided, cmd_def and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
+
     Returns:
         Schedule
+
     Raises:
         PulseError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire, or if align_time is negative
@@ -62,7 +61,8 @@ def align_measures(schedules: Iterable[ScheduleComponent],
 
     def calculate_align_time():
         """Return the the max between the duration of the calibration time and the absolute time
-        of the latest scheduled acquire."""
+        of the latest scheduled acquire.
+        """
         nonlocal max_calibration_duration
         if max_calibration_duration is None:
             max_calibration_duration = get_max_calibration_duration()
@@ -129,15 +129,15 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
-    Warning:
-        Since new acquires are being added, Memory Slots will be set to match the qubit index. This
-        may overwrite your specification.
+    .. warning:: Since new acquires are being added, Memory Slots will be set to match the
+                 qubit index. This may overwrite your specification.
 
     Args:
-        schedule: Schedule to be aligned
-        meas_map: List of lists of qubits that are measured together
+        schedule: Schedule to be aligned.
+        meas_map: List of lists of qubits that are measured together.
+
     Returns:
-        Schedule
+        A ``Schedule`` with the additional acquisition commands.
     """
     new_schedule = Schedule(name=schedule.name)
     acquire_map = dict()
@@ -171,19 +171,20 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     return new_schedule
 
 
-def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
+def pad(schedule: Schedule,
+        channels: Optional[Iterable[Channel]] = None,
         until: Optional[int] = None) -> Schedule:
-    """Pad the input Schedule with `Delay`s on all unoccupied timeslots until
-    `schedule.duration` or `until` if not `None`.
+    """Pad the input ``Schedule`` with ``Delay`` s on all unoccupied timeslots until ``until``
+    if it is provided, otherwise until ``schedule.duration``.
 
     Args:
         schedule: Schedule to pad.
-        channels: Channels to pad. Defaults to all channels in
-            `schedule` if not provided. If the supplied channel is not a member
-            of `schedule` it will be added.
-        until: Time to pad until. Defaults to `schedule.duration` if not provided.
+        channels: Channels to pad. Defaults to all channels in ``schedule`` if not provided.
+                  If the supplied channel is not a member of ``schedule``, it will be added.
+        until: Time to pad until. Defaults to ``schedule.duration`` if not provided.
+
     Returns:
-        Schedule: The padded schedule
+        The padded schedule.
     """
     until = until or schedule.duration
 
