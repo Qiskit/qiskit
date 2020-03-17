@@ -1910,6 +1910,30 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_ccz_bot(self):
+        """Closed-Open controlled Z (bottom)"""
+        expected = '\n'.join(["           ",
+                              "q_0: |0>─■─",
+                              "         │ ",
+                              "q_1: |0>─o─",
+                              "         │ ",
+                              "q_2: |0>─■─",
+                              "           "])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(ZGate().control(2, ctrl_state='01'), [qr[0], qr[1], qr[2]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_cccz_conditional(self):
+        """Closed-Open controlled Z (with conditional)"""
+        expected = '\n'.join([])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(ZGate().control(3, ctrl_state='101').c_if(cr, 1),
+                       [qr[0], qr[1], qr[2], qr[3]])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_cch_bot(self):
         """Controlled CH (bottom)"""
         expected = '\n'.join(["             ",
