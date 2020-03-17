@@ -192,19 +192,19 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, 3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
     def test_schedule_generator(self):
         """Test schedule generator functionalty."""
