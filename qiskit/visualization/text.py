@@ -952,7 +952,7 @@ class TextDrawing():
                     gates.append(Bullet(conditional=conditional))
                 else:
                     gates.append(OpenBullet(conditional=conditional))
-            if label == 'Z':
+            if instruction.op.base_gate.name == 'z':
                 gates.append(Bullet(conditional=conditional))
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
