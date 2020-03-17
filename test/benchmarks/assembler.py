@@ -16,20 +16,42 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 from qiskit.compiler import assemble
+from qiskit.assembler import disassemble
 
 from .utils import random_circuit
 
 
 class AssemblerBenchmarks:
     params = ([1, 2, 5, 8],
-              [8, 128, 1024, 2048, 4096])
-    param_names = ['n_qubits', 'depth']
+              [8, 128, 1024, 2048, 4096],
+              [1, 5, 10, 50, 100])
+    param_names = ['n_qubits', 'depth', 'number of circuits']
     timeout = 600
+    version = 2
 
-    def setup(self, n_qubits, depth):
+    def setup(self, n_qubits, depth, number_of_circuits):
         seed = 42
         self.circuit = random_circuit(n_qubits, depth, measure=True,
                                       conditional=True, seed=seed)
+        self.circuits = [self.circuit] * number_of_circuits
 
-    def time_assemble_circuit(self, _, __):
-        assemble(self.circuit)
+    def time_assemble_circuit(self, _, __, ___):
+        assemble(self.circuits)
+
+
+class DisassemblerBenchmarks:
+    params = ([1, 2, 5, 8],
+              [8, 128, 1024, 2048, 4096],
+              [1, 5, 10, 50, 100])
+    param_names = ['n_qubits', 'depth', 'number of circuits']
+    timeout = 600
+
+    def setup(self, n_qubits, depth, number_of_circuits):
+        seed = 424242
+        self.circuit = random_circuit(n_qubits, depth, measure=True,
+                                      conditional=True, seed=seed)
+        self.circuits = [self.circuit] * number_of_circuits
+        self.qobj = assemble(self.circuits)
+
+    def time_disassemble_circuit(self, _, __, ___):
+        disassemble(self.qobj)
