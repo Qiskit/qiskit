@@ -24,7 +24,8 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
     except ImportError:
-        print("Error importing IPython.core.display")
+        print("Error importing IPython.core.display. To install, run "
+              '"pip install ipython".')
 
 
 def iplot_state_city(rho, figsize=None):
