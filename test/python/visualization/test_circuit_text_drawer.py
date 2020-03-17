@@ -1926,7 +1926,17 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_cccz_conditional(self):
         """Closed-Open controlled Z (with conditional)"""
-        expected = '\n'.join([])
+        expected = '\n'.join(["               ",
+                              "q_0: |0>───■───",
+                              "           │   ",
+                              "q_1: |0>───o───",
+                              "           │   ",
+                              "q_2: |0>───■───",
+                              "           │   ",
+                              "q_3: |0>───■───",
+                              "        ┌──┴──┐",
+                              " c_0: 0 ╡ = 1 ╞",
+                              "        └─────┘"])
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(1, 'c')
         circuit = QuantumCircuit(qr, cr)
