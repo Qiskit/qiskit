@@ -1,6 +1,6 @@
-########################
-Qiskit API documentation
-########################
+####################
+Qiskit documentation
+####################
 
 Qiskit is an open-source framework for working with quantum computers
 at the level of circuits, pulses, and algorithms.
@@ -23,10 +23,6 @@ Qiskit consists of four foundational elements:
 - :ref:`Qiskit Ignis <Ignis>`: Addressing noise and errors
 
 - :ref:`Qiskit Aqua <Aqua>`: Building algorithms and applications
-
-.. note::
-  This is the Qiskit API documentation. For detailed workflow examples, please sign in to the
-  IBM Quantum Experience to `explore Qiskit tutorials <https://quantum-computing.ibm.com/jupyter/tutorial/1_start_here.ipynb>`__.
 
 .. toctree::
   :maxdepth: 2
