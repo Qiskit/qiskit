@@ -15,9 +15,10 @@
 
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, BasicAer, execute
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class TestGateDefinitions(QiskitTestCase):
@@ -95,3 +96,17 @@ class TestGateDefinitions(QiskitTestCase):
         circ.cx(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_ryy_matrix_representation(self):
+        """Test the matrix representation of the RYY gate.
+        """
+        from qiskit.extensions.standard.ryy import RYYGate
+        theta = 0.991283
+        expected = RYYGate(theta).to_matrix()
+
+        circuit = QuantumCircuit(2)
+        circuit.ryy(theta, 0, 1)
+        backend = BasicAer.get_backend('unitary_simulator')
+        simulated = execute(circuit, backend).result().get_unitary()
+
+        self.assertTrue(matrix_equal(expected, simulated))

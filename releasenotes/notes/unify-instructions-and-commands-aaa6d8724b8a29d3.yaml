@@ -1,0 +1,52 @@
+---
+features:
+  - |
+    There has been a significant simplification to the style in which Pulse
+    instructions are built.
+
+    With the previous style, ``Command`` s were called with channels to make
+    an :py:class:`~qiskit.pulse.instruction.Instruction`. The usage of both
+    commands and instructions was a point of confusion. This was the previous
+    style::
+
+        sched += Delay(5)(DriveChannel(0))
+        sched += ShiftPhase(np.pi)(DriveChannel(0))
+
+    or, equivalently (though less used)::
+
+        sched += DelayInstruction(Delay(5), DriveChannel(0))
+        sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+
+    Now, rather than build a command *and* an instruction, each command has
+    been migrated into an instruction::
+
+        sched += Delay(5, DriveChannel(0))
+        sched += ShiftPhase(np.pi, DriveChannel(0))
+deprecations:
+  - |
+    ``DelayInstruction`` has been deprecated and replaced by
+    :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
+    taken over the previous ``Command`` ``Delay``. The migration pattern is::
+
+        Delay(<duration>)(<channel>) -> Delay(<duration>, <channel>)
+        DelayInstruction(Delay(<duration>), <channel>)
+            -> Delay(<duration>, <channel>)
+
+    Until the deprecation period is over, the previous ``Delay`` syntax of
+    calling a command on a channel will also be supported::
+
+        Delay(<phase>)(<channel>)
+
+    The new ``Delay`` instruction does not support a ``command`` attribute.
+  - |
+    ``FrameChange`` and ``FrameChangeInstruction`` have been deprecated and replaced
+    by :py:class:`~qiskit.pulse.instructions.ShiftPhase`. The changes are::
+
+        FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel>)
+        FrameChangeInstruction(FrameChange(<phase>), <channel>)
+            -> ShiftPhase(<phase>, <channel>)
+
+    Until the deprecation period is over, the previous FrameChange syntax of
+    calling a command on a channel will be supported::
+
+        ShiftPhase(<phase>)(<channel>)

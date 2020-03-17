@@ -20,6 +20,8 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.extensions.standard.t import TGate, TdgGate
+from qiskit.extensions.standard.s import SGate, SdgGate
 from qiskit.qasm import pi
 from qiskit.util import deprecate_arguments
 
@@ -30,7 +32,7 @@ class HGate(Gate):
 
     def __init__(self, label=None):
         """Create new Hadamard gate."""
-        super().__init__("h", 1, [], label=label)
+        super().__init__('h', 1, [], label=label)
 
     def _define(self):
         """
@@ -38,7 +40,7 @@ class HGate(Gate):
         """
         from qiskit.extensions.standard.u2 import U2Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U2Gate(0, pi), [q[0]], [])
         ]
@@ -76,9 +78,14 @@ class HGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Hadamard (H) gate to a specified qubit (qubit).
-    An H gate implements a rotation of pi about the axis (x + z)/sqrt(2) on the Bloch sphere.
-    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ or |1⟩ to |-⟩.
+    r"""Apply Hadamard (H) gate.
+
+    Applied to a specified qubit ``qubit``.
+
+    An H gate implements a rotation of :math:`\pi` about the axis
+    :math:`\frac{(x + z)}{\sqrt{2}}` on the Bloch sphere. This gate is
+    canonically used to rotate the qubit state from :math:`|0\rangle` to
+    :math:`|+\rangle` or :math:`|1\rangle` to :math:`|-\rangle`.
 
     Examples:
 
@@ -98,6 +105,7 @@ def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
 
             from qiskit.extensions.standard.h import HGate
             HGate().to_matrix()
+
     """
     return self.append(HGate(), [qubit], [])
 
@@ -106,11 +114,11 @@ QuantumCircuit.h = h
 
 
 class CHGate(ControlledGate):
-    """controlled-H gate."""
+    """The controlled-H gate."""
 
     def __init__(self):
         """Create new CH gate."""
-        super().__init__("ch", 2, [], num_ctrl_qubits=1)
+        super().__init__('ch', 2, [], num_ctrl_qubits=1)
         self.base_gate = HGate()
 
     def _define(self):
@@ -125,16 +133,14 @@ class CHGate(ControlledGate):
             sdg b;
         }
         """
-        from qiskit.extensions.standard.s import SGate, SdgGate
-        from qiskit.extensions.standard.t import TGate, TdgGate
-        from qiskit.extensions.standard.x import CnotGate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (SGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (TdgGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
@@ -148,19 +154,23 @@ class CHGate(ControlledGate):
         return CHGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a Numpy.array for the Ch gate."""
+        """Return a numpy.array for the CH gate."""
         return numpy.array([[1, 0, 0, 0],
-                            [0, 1/numpy.sqrt(2), 0, 1/numpy.sqrt(2)],
+                            [0, 1 / numpy.sqrt(2), 0, 1 / numpy.sqrt(2)],
                             [0, 0, 1, 0],
-                            [0, 1/numpy.sqrt(2), 0, -1/numpy.sqrt(2)]], dtype=complex)
+                            [0, 1 / numpy.sqrt(2), 0, -1 / numpy.sqrt(2)]],
+                           dtype=complex)
 
 
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cH gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    This gate is canonically used to rotate the qubit state from |0⟩ to |+⟩ and and |1⟩ to |−⟩
-    when the control qubit is in state |1>.
+    """Apply cH gate
+
+    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+    This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+    :math:`|+\\rangle` and :math:`|1\\rangle to :math:`|−\\rangle` when the control qubit is
+    in state :math:`|1\\rangle`.
 
     Examples:
 

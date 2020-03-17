@@ -16,7 +16,9 @@
 Abstract base class for Quantum Channels.
 """
 
+import copy
 from abc import abstractmethod
+from numbers import Number
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -27,11 +29,56 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
+    def __init__(self, data, input_dims=None, output_dims=None,
+                 channel_rep=None):
+        """Initialize a quantum channel Superoperator operator.
+
+        Args:
+            data (array or list): quantum channel data array.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+            channel_rep (str): quantum channel representation name string.
+
+        Raises:
+            QiskitError: if arguments are invalid.
+        """
+        # Set channel representation string
+        if not isinstance(channel_rep, str):
+            raise QiskitError("rep must be a string not a {}".format(
+                channel_rep.__class__))
+        self._channel_rep = channel_rep
+        self._data = data
+        super().__init__(input_dims, output_dims)
+
+    def __repr__(self):
+        prefix = '{}('.format(self._channel_rep)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}input_dims={}, output_dims={})'.format(
+            prefix, np.array2string(
+                np.asarray(self.data), separator=', ', prefix=prefix),
+            pad, self._input_dims, self._output_dims)
+
+    def __eq__(self, other):
+        """Test if two QuantumChannels are equal."""
+        if not super().__eq__(other):
+            return False
+        return np.allclose(
+            self.data, other.data, rtol=self._rtol, atol=self._atol)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
+
+    @abstractmethod
     def compose(self, other, qargs=None, front=False):
         """Return the composed quantum channel self @ other.
 
@@ -47,8 +94,7 @@ class QuantumChannel(BaseOperator):
             QuantumChannel: The quantum channel self @ other.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or has
-            incompatible dimensions.
+            QiskitError: if other has incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -56,42 +102,78 @@ class QuantumChannel(BaseOperator):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        if front:
-            return self._chanmul(other, qargs, left_multiply=False)
-        return self._chanmul(other, qargs, left_multiply=True)
+        pass
 
-    def dot(self, other, qargs=None):
-        """Return the right multiplied quantum channel self * other.
+    def _add(self, other, qargs=None):
+        """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other channel will be added
+        assuming it is the identity channel on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
-            QuantumChannel: The quantum channel self * other.
+            QuantumChannel: the linear addition self + other as a SuperOp object.
 
         Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or has
-            incompatible dimensions.
+            QiskitError: if other cannot be converted to a channel or
+            has incompatible dimensions.
         """
-        return super().dot(other, qargs=qargs)
+        # NOTE: this method must be overriden for subclasses
+        # that don't have a linear matrix representation
+        # ie Kraus and Stinespring
+
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        self._validate_add_dims(other, qargs)
+        other = ScalarOp._pad_with_identity(self, other, qargs)
+
+        ret = copy.copy(self)
+        ret._data = self._data + other._data
+        return ret
+
+    def _multiply(self, other):
+        """Return the QuantumChannel other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            QuantumChannel: the scalar multiplication other * self.
+
+        Raises:
+            QiskitError: if other is not a valid scalar.
+        """
+        # NOTE: this method must be overriden for subclasses
+        # that don't have a linear matrix representation
+        # ie Kraus and Stinespring
+        if not isinstance(other, Number):
+            raise QiskitError("other is not a number")
+        ret = copy.copy(self)
+        ret._data = other * self._data
+        return ret
 
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(
             choi, atol, rtol)
 
     def is_tp(self, atol=None, rtol=None):
         """Test if a channel is completely-positive (CP)"""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_tp_helper(choi, atol, rtol)
 
     def is_cp(self, atol=None, rtol=None):
         """Test if Choi-matrix is completely-positive (CP)"""
-        choi = _to_choi(self.rep, self._data, *self.dim)
+        choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol)
 
     def is_unitary(self, atol=None, rtol=None):
@@ -104,7 +186,7 @@ class QuantumChannel(BaseOperator):
 
     def to_operator(self):
         """Try to convert channel to a unitary representation Operator."""
-        mat = _to_operator(self.rep, self._data, *self.dim)
+        mat = _to_operator(self._channel_rep, self._data, *self.dim)
         return Operator(mat, self.input_dims(), self.output_dims())
 
     def to_instruction(self):
@@ -114,7 +196,7 @@ class QuantumChannel(BaseOperator):
         otherwise it will be added as a kraus simulator instruction.
 
         Returns:
-            Instruction: A kraus instruction for the channel.
+            qiskit.circuit.Instruction: A kraus instruction for the channel.
 
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
@@ -132,7 +214,7 @@ class QuantumChannel(BaseOperator):
             )
         # Next we convert to the Kraus representation. Since channel is CPTP we know
         # that there is only a single set of Kraus operators
-        kraus, _ = _to_kraus(self.rep, self._data, *self.dim)
+        kraus, _ = _to_kraus(self._channel_rep, self._data, *self.dim)
         # If we only have a single Kraus operator then the channel is
         # a unitary channel so can be converted to a UnitaryGate. We do this by
         # converting to an Operator and using its to_instruction method
@@ -194,25 +276,6 @@ class QuantumChannel(BaseOperator):
         Raises:
             QiskitError: if the quantum channel dimension does not match the
             specified quantum state subsystem dimensions.
-        """
-        pass
-
-    @abstractmethod
-    def _chanmul(self, other, qargs=None, left_multiply=False):
-        """Multiply two quantum channels.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list): a list of subsystem positions to compose other on.
-            left_multiply (bool): If True return other * self
-                                  If False return self * other [Default:False]
-
-        Returns:
-            QuantumChannel: The composition channel.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass, or
-            has incompatible dimensions.
         """
         pass
 

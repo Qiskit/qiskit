@@ -599,12 +599,12 @@ class MatplotlibDrawer:
             else:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
-            self.ax.text(self.x_offset, y, label, ha='right', va='center',
+            self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y],
+            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
         # classical register
         this_creg_dict = {}
@@ -630,20 +630,20 @@ class MatplotlibDrawer:
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
-            self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
+            self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.5 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
         if feedline_r:
-            self._linefeed_mark((self.fold + 1 - 0.1,
+            self._linefeed_mark((self.fold + self.x_offset + 1 - 0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
         if feedline_l:
-            self._linefeed_mark((0.1,
+            self._linefeed_mark((self.x_offset + 0.3,
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
@@ -910,7 +910,7 @@ class MatplotlibDrawer:
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
-                    elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
+                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
 
                         color = None
@@ -937,6 +937,16 @@ class MatplotlibDrawer:
 
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
+
+                    # cu1 gate
+                    elif op.name == 'cu1':
+                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, text='U1 ({})'.format(param))
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+
                     # swap gate
                     elif op.name == 'swap':
                         self._swap(q_xy[0])
