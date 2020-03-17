@@ -18,7 +18,7 @@ transmitted pulses, such as ``DriveChannel``).
 from typing import List, Optional, Union
 
 from ..channels import PulseChannel
-from ..pulse_lib import Pulse
+from ..pulse_lib.pulse import Pulse
 from .instruction import Instruction
 
 
