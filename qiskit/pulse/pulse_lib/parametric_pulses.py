@@ -365,7 +365,8 @@ class ConstantPulse(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex):
+                 amp: complex,
+                 name: Optional[str] = None):
         """
         Initialize the constant-valued pulse.
 
