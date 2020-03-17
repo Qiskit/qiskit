@@ -34,7 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse, SetFrequency)
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase)
 
 
 class EventsOutputChannels:
@@ -180,7 +180,7 @@ class EventsOutputChannels:
             tmp_fc = 0
             tmp_sf = None
             for command in commands:
-                if isinstance(command, FrameChange):
+                if isinstance(command, (FrameChange, ShiftPhase)):
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetFrequency):
@@ -321,7 +321,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, FrameChangeInstruction):
+                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
@@ -463,26 +463,26 @@ class ScheduleDrawer:
 
         return ax
 
-    def _draw_snapshots(self, ax, snapshot_channels, dt, y0):
+    def _draw_snapshots(self, ax, snapshot_channels, y0):
         for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
+                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
-    def _draw_framechanges(self, ax, fcs, dt, y0):
+    def _draw_framechanges(self, ax, fcs, y0):
         framechanges_present = True
         for time in fcs.keys():
-            ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+            ax.text(x=time, y=y0, s=r'$\circlearrowleft$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center')
         return framechanges_present
 
-    def _draw_frequency_changes(self, ax, sf, dt, y0):
+    def _draw_frequency_changes(self, ax, sf, y0):
         frequency_changes_present = True
         for time in sf.keys():
-            ax.text(x=time*dt, y=y0, s=r'$\leftrightsquigarrow$',
+            ax.text(x=time, y=y0, s=r'$\leftrightsquigarrow$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center', rotation=90)
         return frequency_changes_present
@@ -508,7 +508,7 @@ class ScheduleDrawer:
                     return True
         return False
 
-    def _draw_labels(self, ax, labels, prev_labels, dt, y0):
+    def _draw_labels(self, ax, labels, prev_labels, y0):
         for t0, (tf, cmd) in labels.items():
             if isinstance(cmd, PersistentValue):
                 name = cmd.name if cmd.name else 'pv'
@@ -518,8 +518,8 @@ class ScheduleDrawer:
                 name = cmd.name
 
             ax.annotate(r'%s' % name,
-                        xy=((t0+tf)//2*dt, y0),
-                        xytext=((t0+tf)//2*dt, y0-0.07),
+                        xy=((t0+tf)//2, y0),
+                        xytext=((t0+tf)//2, y0-0.07),
                         fontsize=self.style.label_font_size,
                         ha='center', va='center')
 
@@ -528,13 +528,13 @@ class ScheduleDrawer:
             color = self.style.label_ch_color
 
             if not self._prev_label_at_time(prev_labels, t0):
-                ax.axvline(t0*dt, -1, 1, color=color,
+                ax.axvline(t0, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
             if not (self._prev_label_at_time(prev_labels, tf) or tf in labels):
-                ax.axvline(tf*dt, -1, 1, color=color,
+                ax.axvline(tf, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, scale_dict,
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, scale_dict,
                        label=False, framechange=True, frequencychange=True):
         y0 = 0
         prev_labels = []
@@ -544,7 +544,7 @@ class ScheduleDrawer:
                 scale = 0.5 * scale_dict.get(channel, 0.5)
                 # plot waveform
                 waveform = events.waveform
-                time = np.arange(t0, tf + 1, dtype=float) * dt
+                time = np.arange(t0, tf + 1, dtype=float)
                 if waveform.any():
                     time, re, im = interp_method(time, waveform, self.style.num_points)
                 else:
@@ -573,26 +573,26 @@ class ScheduleDrawer:
                 # plot frame changes
                 fcs = events.framechanges
                 if fcs and framechange:
-                    self._draw_framechanges(ax, fcs, dt, y0)
+                    self._draw_framechanges(ax, fcs, y0)
                 # plot frequency changes
                 sf = events.frequencychanges
                 if sf and frequencychange:
-                    self._draw_frequency_changes(ax, sf, dt, y0 + scale)
+                    self._draw_frequency_changes(ax, sf, y0 + scale)
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, labels, prev_labels, dt, y0)
+                    self._draw_labels(ax, labels, prev_labels, y0)
                 prev_labels.append(labels)
 
             else:
                 continue
 
             # plot label
-            ax.text(x=0, y=y0, s=channel.name,
+            ax.text(x=t0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
             # show scaling factor
-            ax.text(x=0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
+            ax.text(x=t0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
                     fontsize=0.7*self.style.axis_font_size,
                     ha='right', va='top')
 
@@ -653,8 +653,8 @@ class ScheduleDrawer:
 
         # setup plot range
         if plot_range:
-            t0 = int(np.floor(plot_range[0]/dt))
-            tf = int(np.floor(plot_range[1]/dt))
+            t0 = int(np.floor(plot_range[0]))
+            tf = int(np.floor(plot_range[1]))
         else:
             t0 = 0
             # when input schedule is empty or comprises only frame changes,
@@ -689,15 +689,19 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
-                                 t0, tf, dt, scale_dict, label=label,
+                                 t0, tf, scale_dict, label=label,
                                  framechange=framechange)
 
         y_ub = 0.5 + self.style.vertical_span
         y_lb = y0 + 0.5 - self.style.vertical_span
 
-        self._draw_snapshots(ax, snapshot_channels, dt, y_lb)
+        self._draw_snapshots(ax, snapshot_channels, y_lb)
 
-        ax.set_xlim(t0 * dt, tf * dt)
+        ax.set_xlim(t0, tf)
+        tick_labels = np.linspace(t0, tf, 5)
+        ax.set_xticks(tick_labels)
+        ax.set_xticklabels([self.style.axis_formatter % label for label in tick_labels * dt],
+                           fontsize=self.style.axis_font_size)
         ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
 

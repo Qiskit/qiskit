@@ -142,6 +142,6 @@ from .configuration import LoConfig, LoRange
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
 
-from .instructions import Instruction, Delay, Snapshot, SetFrequency
+from .instructions import Instruction, Delay, ShiftPhase, Snapshot, SetFrequency
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
