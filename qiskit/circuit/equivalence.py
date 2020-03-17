@@ -155,13 +155,13 @@ def _raise_if_param_mismatch(gate_params, circuit_parameters):
 
 
 def _raise_if_shape_mismatch(gate, circuit):
-    if (gate.num_qubits != circuit.n_qubits
-            or gate.num_clbits != circuit.n_clbits):
+    if (gate.num_qubits != circuit.num_qubits
+            or gate.num_clbits != circuit.num_clbits):
         raise CircuitError('Cannot add equivalence between circuit and gate '
                            'of different shapes. Gate: {} qubits and {} clbits. '
                            'Circuit: {} qubits and {} clbits.'.format(
                                gate.num_qubits, gate.num_clbits,
-                               circuit.n_qubits, circuit.n_clbits))
+                               circuit.num_qubits, circuit.num_clbits))
 
 
 def _rebind_equiv(equiv, query_params):
