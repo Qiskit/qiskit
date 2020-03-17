@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.util import deprecate_arguments
 
+
 class DenseLayout(AnalysisPass):
     """Choose a Layout by finding the most connected subset of qubits.
 
@@ -163,11 +164,13 @@ class DenseLayout(AnalysisPass):
                 curr_error = 0
                 # compute meas error for subset
                 avg_meas_err = np.mean(self.meas_arr)
-                meas_diff = np.mean(self.meas_arr[bfs[0:num_qubits]])-avg_meas_err
+                meas_diff = np.mean(
+                    self.meas_arr[bfs[0:num_qubits]])-avg_meas_err
                 if meas_diff > 0:
                     curr_error += self.num_meas*meas_diff
 
-                cx_err = np.mean([self.cx_mat[edge[0], edge[1]] for edge in sub_graph])
+                cx_err = np.mean([self.cx_mat[edge[0], edge[1]]
+                                  for edge in sub_graph])
                 if self.coupling_map.is_symmetric:
                     cx_err /= 2
                 curr_error += self.num_cx*cx_err
