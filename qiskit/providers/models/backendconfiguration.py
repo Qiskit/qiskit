@@ -217,6 +217,16 @@ class BackendConfiguration(BaseModel):
 
         super().__init__(**kwargs)
 
+    @property
+    def num_qubits(self):
+        """Returns the number of qubits.
+
+        In future, `n_qubits` should be replaced in favor of `num_qubits` for consistent use
+        throughout Qiskit. Until this is properly refactored, this property serves as intermediate
+        solution.
+        """
+        return self.n_qubits
+
 
 @bind_schema(QasmBackendConfigurationSchema)
 class QasmBackendConfiguration(BackendConfiguration):
