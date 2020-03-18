@@ -140,6 +140,6 @@ from .commands import (AcquireInstruction, FrameChange,
 from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Acquire, Instruction, Delay, ShiftPhase, Snapshot
+from .instructions import Acquire, Instruction, Delay, ShiftPhase, Snapshot, SetFrequency
 from .interfaces import ScheduleComponent
 from .schedule import Schedule

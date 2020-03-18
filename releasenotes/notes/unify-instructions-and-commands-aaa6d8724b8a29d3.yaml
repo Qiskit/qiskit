@@ -26,6 +26,7 @@ features:
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
         sched += Acquire(100, AcquireChannel(0), MemorySlot(0))
+        sched += SetFrequency(5.5, DriveChannel(0))  # New instruction!
 
 deprecations:
   - |
