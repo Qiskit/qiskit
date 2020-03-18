@@ -17,8 +17,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, Delay
-from qiskit.pulse.commands import (Command, PulseInstruction, Acquire, AcquireInstruction,
+from qiskit.pulse import Schedule, Delay, Acquire
+from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
@@ -189,7 +189,7 @@ def _assemble_instructions(
             # add samples to pulse library
             user_pulselib[name] = instruction.command
 
-        if isinstance(instruction, AcquireInstruction):
+        if isinstance(instruction, (AcquireInstruction, Acquire)):
             max_memory_slot = max(max_memory_slot,
                                   *[slot.index for slot in instruction.mem_slots])
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
