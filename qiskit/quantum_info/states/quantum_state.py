@@ -16,6 +16,7 @@
 Abstract QuantumState class.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -28,9 +29,9 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 class QuantumState(ABC):
     """Abstract quantum state base class"""
 
-    ATOL = ATOL_DEFAULT
-    RTOL = RTOL_DEFAULT
-    MAX_TOL = 1e-4
+    _ATOL_DEFAULT = ATOL_DEFAULT
+    _RTOL_DEFAULT = RTOL_DEFAULT
+    _MAX_TOL = 1e-4
 
     def __init__(self, rep, data, dims):
         """Initialize a state object."""
@@ -86,38 +87,56 @@ class QuantumState(ABC):
     @property
     def _atol(self):
         """The absolute tolerance parameter for float comparisons."""
-        return self.__class__.ATOL
+        return self.__class__._ATOL_DEFAULT
 
     @_atol.setter
-    def _atol(self, atol):
-        """Set the absolute tolerance parameter for float comparisons."""
-        # NOTE: that this overrides the class value so applies to all
-        # instances of the class.
-        max_tol = self.__class__.MAX_TOL
-        if atol < 0:
-            raise QiskitError("Invalid atol: must be non-negative.")
-        if atol > max_tol:
+    def _atol(self, value):
+        """Set the class default absolute tolerance parameter for float comparisons."""
+        warnings.warn(
+            'Setting default atol default value with `_atol` is deprecated as'
+            ' of 0.13.0, and will be removed no earlier than 3 months after'
+            ' that release date. You should use the `set_atol` class method'
+            ' instead.', DeprecationWarning, stacklevel=2)
+        self.__class__._set_atol(value)
+
+    @classmethod
+    def set_atol(cls, value):
+        """Set the class default absolute tolerance parameter for float comparisons."""
+        if value < 0:
             raise QiskitError(
-                "Invalid atol: must be less than {}.".format(max_tol))
-        self.__class__.ATOL = atol
+                "Invalid atol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise QiskitError(
+                "Invalid atol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._ATOL_DEFAULT = value
 
     @property
     def _rtol(self):
         """The relative tolerance parameter for float comparisons."""
-        return self.__class__.RTOL
+        return self.__class__._RTOL_DEFAULT
 
     @_rtol.setter
-    def _rtol(self, rtol):
-        """Set the relative tolerance parameter for float comparisons."""
-        # NOTE: that this overrides the class value so applies to all
-        # instances of the class.
-        max_tol = self.__class__.MAX_TOL
-        if rtol < 0:
-            raise QiskitError("Invalid rtol: must be non-negative.")
-        if rtol > max_tol:
+    def _rtol(self, value):
+        """Set the class default relative tolerance parameter for float comparisons."""
+        warnings.warn(
+            'Setting default rtol default value with `_rtol` is deprecated as'
+            ' of 0.13.0, and will be removed no earlier than 3 months after'
+            ' that release date. You should use the `set_rtol` class method'
+            ' instead.', DeprecationWarning, stacklevel=2)
+        self.__class__._set_rtol(value)
+
+    @classmethod
+    def _set_rtol(cls, value):
+        """Set the class default relative tolerance parameter for float comparisons."""
+        if value < 0:
             raise QiskitError(
-                "Invalid rtol: must be less than {}.".format(max_tol))
-        self.__class__.RTOL = rtol
+                "Invalid atol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise QiskitError(
+                "Invalid atol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._RTOL_DEFAULT = value
 
     def _reshape(self, dims=None):
         """Reshape dimensions of the state.
