@@ -57,7 +57,7 @@ deprecations:
 
         ShiftPhase(<phase>)(<channel>)
   - |
-    ``AcquireInstruction``has been deprecated and replaced by
+    ``AcquireInstruction`` has been deprecated and replaced by
     :py:class:`~qiskit.pulse.instructions.Acquire`. The changes are::
 
         Acquire(<duration>)(<**channels>) -> Acquire(<duration>, <**channels>)
