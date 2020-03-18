@@ -64,7 +64,6 @@ class FakeBackendBuilder(object):
             qubit_readout_error (float, optional): Readout error of qubit.
             single_qubit_gates (list, optional: List of single qubit gates for backend properties.
         """
-
         if version is None:
             version = '0.0.0'
 
@@ -106,11 +105,18 @@ class FakeBackendBuilder(object):
         """Generate Almaden like coupling map."""
         cmap = []
         grid_size = int(np.ceil(np.sqrt(self.n_qubits)))
-        for i in range(self.n_qubits):
-            if i % grid_size != 0:
-                cmap.append([i, i + 1])
-            if i % grid_size < grid_size and i % 2 == 0:
-                cmap.append([i, i + grid_size])
+
+        for row in range(grid_size):
+            for column in range(grid_size):
+                if column + 1 < grid_size and column + row * grid_size + 1 < self.n_qubits:
+                    q1 = column + row * grid_size
+                    q2 = q1 + 1
+                    cmap.append([q1, q2])
+                if row + 1 < grid_size and (column + row) % 2 == 0\
+                        and column + (row + 1) * grid_size < self.n_qubits:
+                    q1 = column + row * grid_size
+                    q2 = q1 + grid_size
+                    cmap.append([q1, q2])
 
         self.coupling_map = cmap
 
@@ -163,7 +169,7 @@ class FakeBackendBuilder(object):
         discriminators = []
         meas_kernels = []
         channel_bandwidth = []
-        rep_times = []
+        rep_times = [1000]
         meas_level = []
         qubit_lo_range = []
         meas_lo_range = []
@@ -175,7 +181,7 @@ class FakeBackendBuilder(object):
             n_qubits=self.n_qubits,
             meas_levels=[0, 1, 2],
             basis_gates=self.basis_gates,
-            simulator=True,
+            simulator=False,
             local=True,
             conditional=True,
             open_pulse=True,
@@ -207,63 +213,96 @@ class FakeBackendBuilder(object):
         qubit_freq_est = np.linspace(4.9, 5.1, self.n_qubits).tolist()
         meas_freq_est = np.linspace(6.4, 6.6, self.n_qubits).tolist()
         buffer = 10
-        pulse_library = [PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
-                         PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j]),
-                         PulseLibraryItem(name='test_pulse_3',
-                                          samples=[0.j, 0.1j, 1j, 0.5 + 0j]),
-                         PulseLibraryItem(name='test_pulse_4',
-                                          samples=7*[0.j, 0.1j, 1j, 0.5 + 0j])]
+        pulse_library = [
+                {
+                    'name': 'test_pulse_1',
+                    'samples': [[0.0, 0.0], [0.0, 0.1]]
+                },
+                {
+                    'name': 'test_pulse_2',
+                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]
+                },
+                {
+                    'name': 'test_pulse_3',
+                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+                },
+                {
+                    'name': 'test_pulse_4',
+                    'samples': 7 * [
+                        [0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]
+                    ]
+                }
+            ]
 
         measure_command_sequence = [PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                         qubits=range(self.n_qubits),
-                                                         memory_slot=range(self.n_qubits))]
+                                                         qubits=list(range(self.n_qubits)),
+                                                         memory_slot=list(range(self.n_qubits))
+                                                         ).to_dict()]
         measure_command_sequence += [PulseQobjInstruction(name='test_pulse_1',
-                                                          ch='m{}'.format(i), t0=0)
+                                                          ch='m{}'.format(i), t0=0).to_dict()
                                      for i in range(self.n_qubits)]
 
-        measure_command = Command(name='measure', qubits=range(self.n_qubits),
-                                  sequence=measure_command_sequence)
+        measure_command = Command.from_dict({
+            'name': 'measure',
+            'qubits': list(range(self.n_qubits)),
+            'sequence': measure_command_sequence
+        }).to_dict()
 
         cmd_def = [measure_command]
 
         for i in range(self.n_qubits):
             cmd_def += [
-                Command(name='u1', qubits=[i],
-                        sequence=[PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                       t0=0, phase='-P0')]),
-                Command(name='u2', qubits=[i],
-                        sequence=[PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                       t0=0, phase='-P1'),
-                                  PulseQobjInstruction(name='test_pulse_4',
-                                                       ch='d{}'.format(i), t0=0),
-                                  PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                       t0=0, phase='-P0')]),
-                Command(name='u3', qubits=[i],
-                        sequence=[PulseQobjInstruction(name='test_pulse_3',
-                                                       ch='d{}'.format(i), t0=0)])
+                Command.from_dict({
+                    'name': 'u1',
+                    'qubits': [i],
+                    'sequence': [PulseQobjInstruction(name='fc', ch='d{}'.format(i),
+                                                      t0=0, phase='-P0').to_dict()]
+                }).to_dict(),
+                Command.from_dict({
+                    'name': 'u2',
+                    'qubits': [i],
+                    'sequence': [PulseQobjInstruction(name='fc', ch='d{}'.format(i),
+                                                      t0=0, phase='-P1').to_dict(),
+                                 PulseQobjInstruction(name='test_pulse_4',
+                                                      ch='d{}'.format(i), t0=0).to_dict(),
+                                 PulseQobjInstruction(name='fc', ch='d{}'.format(i),
+                                                      t0=0, phase='-P0').to_dict()]
+                }).to_dict(),
+                Command.from_dict({
+                    'name': 'u3',
+                    'qubits': [i],
+                    'sequence': [PulseQobjInstruction(name='test_pulse_3',
+                                                      ch='d{}'.format(i), t0=0).to_dict()]
+                }).to_dict()
             ]
 
-        for connected_pair in self.cmap:
-            q1, q2 = connected_pair
+        for couple in self.cmap:
+            q1, q2 = couple
             cmd_def += [
-                Command(name='cx', qubits=[q1, q2],
-                        sequence=[PulseQobjInstruction(name='test_pulse_1',
-                                                       ch='d{}'.format(q1), t0=0),
-                                  PulseQobjInstruction(name='test_pulse_2',
-                                                       ch='u{}'.format(q1), t0=10),
-                                  PulseQobjInstruction(name='test_pulse_1',
-                                                       ch='d{}'.format(q2), t0=20),
-                                  PulseQobjInstruction(name='fc', ch='d{}'.format(q2),
-                                                       t0=20, phase=2.1)])
+                Command.from_dict({
+                    'name': 'cx',
+                    'qubits': [q1, q2],
+                    'sequence': [PulseQobjInstruction(name='test_pulse_1',
+                                                      ch='d{}'.format(q1),
+                                                      t0=0).to_dict(),
+                                 PulseQobjInstruction(name='test_pulse_2',
+                                                      ch='u{}'.format(q1),
+                                                      t0=10).to_dict(),
+                                 PulseQobjInstruction(name='test_pulse_1',
+                                                      ch='d{}'.format(q2),
+                                                      t0=20).to_dict(),
+                                 PulseQobjInstruction(name='fc', ch='d{}'.format(q2),
+                                                      t0=20, phase=2.1).to_dict()]
+                }).to_dict()
             ]
 
-        return PulseDefaults(
-            qubit_freq_est=qubit_freq_est,
-            meas_freq_est=meas_freq_est,
-            buffer=buffer,
-            pulse_library=pulse_library,
-            cmd_def=cmd_def
-        )
+        return PulseDefaults.from_dict({
+            'qubit_freq_est': meas_freq_est,
+            'meas_freq_est': qubit_freq_est,
+            'buffer': buffer,
+            'pulse_library': pulse_library,
+            'cmd_def': cmd_def
+        })
 
     def dump(self, folder: str):
         """Dumps backend configuration files to specifier folder."""
@@ -278,24 +317,36 @@ class FakeBackendBuilder(object):
                       indent=4, sort_keys=True,
                       default=lambda o: '')
 
-    def build(self) -> Type[FakeBackend]:
-        """Generates fake backend type."""
-        configuration = self.build_conf()
+    def build(self):
+        backend = FakeBackend(self.build_conf())
+        backend.defaults = self.build_defaults
+        backend.properties = self.build_props
+        return backend
 
-        def fake_init(cls):
-            super(FakeBackend, cls).__init__(configuration)
-
-        def properties(cls) -> BackendProperties:
-            return self.build_props()
-
-        def defaults(cls) -> PulseDefaults:
-            return self.build_defaults()
-
-        return type('FakeOpenPulse{}Q'.format(self.n_qubits),
-                    (FakeBackend,),
-                    {
-                        '__init__': fake_init,
-                        'backend_name': self.name,
-                        'properties': properties,
-                        'defaults': defaults
-                    })
+    # def build(self) -> Type[FakeBackend]:
+    #     """Generates fake backend type."""
+    #     configuration = self.build_conf()
+    #
+    #     def fake_init(cls):
+    #         super(FakeBackend, cls).__init__(configuration)
+    #
+    #     def properties(cls) -> BackendProperties:
+    #         return self.build_props()
+    #
+    #     def defaults(cls) -> PulseDefaults:
+    #         return self.build_defaults()
+    #
+    #     def fake_getstate(cls):
+    #         return {'name': 'lel'}
+    #
+    #     def fake_setstate(cls, state):
+    #         pass
+    #
+    #     return type('FakeOpenPulse{}Q'.format(self.n_qubits),
+    #                 (FakeBackend,),
+    #                 {
+    #                     '__init__': fake_init,
+    #                     'backend_name': self.name,
+    #                     'properties': properties,
+    #                     'defaults': defaults
+    #                 })

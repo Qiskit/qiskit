@@ -13,8 +13,11 @@
 # that they have been altered from the originals.
 
 """Test of generated fake backends."""
+import math
 
+from qiskit import QuantumRegister, QuantumCircuit, execute, schedule, transpile, assemble, BasicAer
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
 
 
@@ -22,9 +25,24 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
     def setUp(self) -> None:
-        FakeBackendClass = FakeBackendBuilder("FakeTashkent", n_qubits=4).build()
-        self.backend = FakeBackendClass()
+        self.backend = FakeBackendBuilder("Tashkent", n_qubits=4).build()
 
     def test_not_even_came_up_with_name_yet(self):
-        # TODO: rename and implement something like scheduling circuit
         pass
+        # desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
+        # qr = QuantumRegister(2, "qr")
+        # qc = QuantumCircuit(qr)
+        # qc.initialize(desired_vector, [qr[0], qr[1]])
+        # # job = execute(qc, self.backend)
+        # # result = job.result()
+        # # print(result)
+        #
+        # experiments = transpile(qc, backend=self.backend)
+        # experiments = schedule(circuits=experiments, backend=self.backend)
+        # qobj = assemble(experiments, backend=self.backend)
+        #
+        # job = self.backend.run(qobj)
+        #
+        # result = job.result()
+        #
+        # print(qobj)
