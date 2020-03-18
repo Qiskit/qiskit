@@ -26,19 +26,19 @@ Standard Extensions
    :toctree: ../stubs/
 
    Barrier
-   ToffoliGate
+   CCXGate
    CHGate
-   CrxGate
-   CryGate
-   CrzGate
-   FredkinGate
-   Cu1Gate
-   Cu3Gate
-   CnotGate
-   CyGate
-   CzGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
    HGate
-   IdGate
+   IGate
    MSGate
    RXGate
    RXXGate
@@ -49,7 +49,6 @@ Standard Extensions
    SdgGate
    SwapGate
    TdgGate
-   U0Gate
    U1Gate
    U2Gate
    U3Gate

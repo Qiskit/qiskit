@@ -19,10 +19,13 @@
 import os
 import unittest
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.visualization import pulse_drawer
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
-from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot, Delay, Gaussian
+from qiskit.pulse.commands import (FrameChange, Acquire, ConstantPulse, Snapshot, Delay,
+                                   Gaussian)
+from qiskit.pulse.instructions import SetFrequency
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
@@ -35,6 +38,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     pulse_matplotlib_reference = path_to_diagram_reference('pulse_matplotlib_ref.png')
     instr_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
     schedule_matplotlib_reference = path_to_diagram_reference('schedule_matplotlib_ref.png')
+    trunc_sched_mpl_reference = path_to_diagram_reference('truncated_schedule_matplotlib_ref.png')
     schedule_show_framechange_ref = path_to_diagram_reference('schedule_show_framechange_ref.png')
     parametric_matplotlib_reference = path_to_diagram_reference('parametric_matplotlib_ref.png')
 
@@ -61,8 +65,9 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         delay = Delay(100)
         sched = Schedule()
         sched = sched.append(gp0(DriveChannel(0)))
-        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(ControlChannel(0)))
+        sched = sched.insert(0, ConstantPulse(duration=60, amp=0.2 + 0.4j)(ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
+        sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))
         sched = sched.insert(60, gs0(MeasureChannel(0)))
@@ -118,6 +123,17 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         schedule = self.sample_schedule()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
+        os.remove(filename)
+
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    def test_truncated_schedule_matplotlib_drawer(self):
+        filename = self._get_resource_path('current_truncated_schedule_matplotlib_ref.png')
+        schedule = self.sample_schedule()
+        pulse_drawer(schedule, plot_range=(150, 300), filename=filename)
+        self.assertImagesAreEqual(filename, self.trunc_sched_mpl_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
