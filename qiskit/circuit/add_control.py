@@ -18,7 +18,6 @@ from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import CXGate, U3Gate, IGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
@@ -111,21 +110,22 @@ def control(operation: Union[Gate, ControlledGate],
         ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
     new_name = '{0}{1}'.format(ctrl_substr, base_name)
 
-    # define controlled gate instructions
-
-    if (not operation.definition and
-            not isinstance(operation, (CXGate, U3Gate, IGate))):
-        # opaque gate
-        cgate = controlledgate.ControlledGate(
-            new_name,
-            operation.num_qubits + new_num_ctrl_qubits,
-            operation.params,
-            label=label,
-            num_ctrl_qubits=new_num_ctrl_qubits,
-            definition=None,
-            ctrl_state=ctrl_state)
-        cgate.base_gate = base_gate
-        return cgate
+    # detect opaque gate
+    if not operation.definition:
+        # since u3, cx, and i are opaque-like we want to distinguish them here;
+        if operation.__class__ is Gate:
+            cgate = controlledgate.ControlledGate(
+                new_name,
+                operation.num_qubits + num_ctrl_qubits,
+                operation.params,
+                label=label,
+                num_ctrl_qubits=new_num_ctrl_qubits,
+                definition=None,
+                ctrl_state=ctrl_state)
+            cgate.base_gate = base_gate
+            return cgate
+        # else:
+        #     raise QiskitError('Controlled opaque gates should be ')
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
