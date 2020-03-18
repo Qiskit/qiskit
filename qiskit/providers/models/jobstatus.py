@@ -12,40 +12,57 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Model and schema for job status."""
+"""Class for job status."""
 
-from marshmallow.validate import OneOf
-
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import String
+from types import SimpleNamespace
+from qiskit.exceptions import QiskitError
 
 
-class JobStatusSchema(BaseSchema):
-    """Schema for JobStatus."""
-
-    # Required properties.
-    job_id = String(required=True)
-    status = String(required=True,
-                    validate=OneOf(['DONE', 'QUEUED', 'CANCELLED', 'RUNNING', 'ERROR']))
-    status_msg = String(required=True)
-
-
-@bind_schema(JobStatusSchema)
-class JobStatus(BaseModel):
+class JobStatus(SimpleNamespace):
     """Model for JobStatus.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``JobStatusSchema``.
 
     Attributes:
         job_id (str): backend job_id.
         status (str): status of the job.
         status_msg (str): status message.
     """
+    job_states = ['DONE', 'QUEUED', 'CANCELLED', 'RUNNING', 'ERROR']
 
     def __init__(self, job_id, status, status_msg, **kwargs):
         self.job_id = job_id
+        if status not in self.job_states:
+            raise QiskitError("Job status of %s not a valid job state")
         self.status = status
         self.status_msg = status_msg
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new JobStatus object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the JobStatus to create.
+                         It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            JobStatus: The JobStatus from the input dictionary.
+        """
+        return cls(**data)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the JobStatus.
+
+        Returns:
+            dict: The dictionary form of the JobStatus.
+        """
+        return self.__dict__
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.job_id, self.status, self.status_msg))

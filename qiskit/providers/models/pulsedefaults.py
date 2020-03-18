@@ -15,101 +15,157 @@
 # pylint: disable=missing-type-doc
 
 """Model and schema for pulse defaults."""
+import copy
 import warnings
-
+from types import SimpleNamespace
 from typing import Any, Dict, List
-from marshmallow.validate import Length, Range
 
-from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
-from qiskit.validation.base import ObjSchema
-from qiskit.qobj.models.pulse import PulseLibraryItemSchema, PulseQobjInstructionSchema
-from qiskit.qobj import PulseLibraryItem
+from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import ParameterizedSchedule
 
 
-class MeasurementKernelSchema(BaseSchema):
-    """Schema for MeasurementKernel."""
+class MeasurementKernel:
+    """Class representing a Measurement Kernel."""
 
-    # Optional properties.
-    name = fields.String()
-    params = fields.Nested(ObjSchema)
+    def __init__(self, name, params):
+        """Initialize a MeasurementKernel object
 
+        Args:
+            name (str): The name of the measurement kernel
+            params: The parameters of the measurement kernel
+        """
+        self.name = name
+        self.params = params
 
-class DiscriminatorSchema(BaseSchema):
-    """Schema for Discriminator."""
+    def to_dict(self):
+        """Return a dictionary format representation of the MeasurementKernel.
 
-    # Optional properties.
-    name = fields.String()
-    params = fields.Nested(ObjSchema)
+        Returns:
+            dict: The dictionary form of the MeasurementKernel.
+        """
+        return {'name': self.name, 'params': self.params}
 
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new MeasurementKernel object from a dictionary.
 
-class CommandSchema(BaseSchema):
-    """Schema for Command."""
+        Args:
+            data (dict): A dictionary representing the MeasurementKernel
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
 
-    # Required properties.
-    name = fields.String(required=True)
-
-    # Optional properties.
-    qubits = fields.List(fields.Integer(validate=Range(min=0)),
-                         validate=Length(min=1))
-    sequence = fields.Nested(PulseQobjInstructionSchema, many=True)
-
-
-class PulseDefaultsSchema(BaseSchema):
-    """Schema for PulseDefaults."""
-
-    # Required properties.
-    qubit_freq_est = fields.List(fields.Number(), required=True, validate=Length(min=1))
-    meas_freq_est = fields.List(fields.Number(), required=True, validate=Length(min=1))
-    buffer = fields.Integer(required=True, validate=Range(min=0))
-    pulse_library = fields.Nested(PulseLibraryItemSchema, required=True, many=True)
-    cmd_def = fields.Nested(CommandSchema, many=True, required=True)
-
-    # Optional properties.
-    meas_kernel = fields.Nested(MeasurementKernelSchema)
-    discriminator = fields.Nested(DiscriminatorSchema)
+        Returns:
+            MeasurementKernel: The MeasurementKernel from the input dictionary.
+        """
+        return cls(**data)
 
 
-@bind_schema(MeasurementKernelSchema)
-class MeasurementKernel(BaseModel):
-    """Model for MeasurementKernel.
+class Discriminator:
+    """Class representing a Discriminator."""
 
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``MeasurementKernelSchema``.
-    """
-    pass
+    def __init__(self, name, params):
+        """Initialize a Discriminator object
+
+        Args:
+            name (str): The name of the discriminator
+            params: The parameters of the discriminator
+        """
+        self.name = name
+        self.params = params
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Discriminator.
+
+        Returns:
+            dict: The dictionary form of the Discriminator.
+        """
+        return {'name': self.name, 'params': self.params}
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Discriminator object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Discriminator
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            Discriminator: The Discriminator from the input dictionary.
+        """
+        return cls(**data)
 
 
-@bind_schema(DiscriminatorSchema)
-class Discriminator(BaseModel):
-    """Model for Discriminator.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``DiscriminatorSchema``.
-    """
-    pass
-
-
-@bind_schema(CommandSchema)
-class Command(BaseModel):
-    """Model for Command.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``CommandSchema``.
+class Command(SimpleNamespace):
+    """Class representing a Command.
 
     Attributes:
         name: Pulse command name.
     """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, qubits=None, sequence=None, **kwargs):
+        """Initialize a Command object
+
+        Args:
+            name (str): The name of the command
+            qubits: The qubits for the command
+            sequence (PulseQobjInstruction): The sequence for the Command
+            kwargs: Optional additional fields
+        """
         self.name = name
+        if qubits is not None:
+            self.qubits = qubits
+        if sequence is not None:
+            self.sequence = sequence
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    def to_dict(self):
+        """Return a dictionary format representation of the Command.
+
+        Returns:
+            dict: The dictionary form of the Command.
+        """
+        out_dict = {'name': self.name}
+        if hasattr(self, 'qubits'):
+            out_dict['qubits'] = self.qubits
+        if hasattr(self, 'sequence'):
+            out_dict['sequence'] = [x.to_dict() for x in self.sequence]
+        for key, value in self.__dict__.items():
+            if key not in ['name', 'qubits', 'sequence']:
+                out_dict[key] = value
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Command object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Command
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            Command: The Command from the input dictionary.
+        """
+        in_data = copy.copy(data)
+        if 'sequence' in in_data:
+            in_data['sequence'] = [
+                PulseQobjInstruction.from_dict(x) for x in in_data.pop(
+                    'sequence')]
+        return cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.name))
 
 
-@bind_schema(PulseDefaultsSchema)
-class PulseDefaults(BaseModel):
+class PulseDefaults(SimpleNamespace):
     """Description of default settings for Pulse systems. These are instructions or settings that
     may be good starting points for the Pulse user. The user may modify these defaults for custom
     scheduling.
@@ -121,6 +177,8 @@ class PulseDefaults(BaseModel):
                  buffer: int,
                  pulse_library: List[PulseLibraryItem],
                  cmd_def: List[Command],
+                 meas_kernel: MeasurementKernel = None,
+                 discriminator: Discriminator = None,
                  **kwargs: Dict[str, Any]):
         """
         Validate and reformat transport layer inputs to initialize.
@@ -131,10 +189,10 @@ class PulseDefaults(BaseModel):
             buffer: Default buffer time (in units of dt) between pulses.
             pulse_library: Pulse name and sample definitions.
             cmd_def: Operation name and definition in terms of Commands.
+            meas_kernel: The measurement kernels
+            discriminator: The discriminators
             **kwargs: Other attributes for the super class.
         """
-        super().__init__(**kwargs)
-
         self.buffer = buffer
         self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
         """Qubit frequencies in Hertz."""
@@ -149,6 +207,73 @@ class PulseDefaults(BaseModel):
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+
+        if meas_kernel is not None:
+            self.meas_kernel = meas_kernel
+        if discriminator is not None:
+            self.discriminator = discriminator
+
+        self.__dict__.update(kwargs)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the PulseDefaults.
+
+        Returns:
+            dict: The dictionary form of the PulseDefaults.
+        """
+        out_dict = {
+            'qubit_freq_est': self.qubit_freq_est,
+            'meas_freq_est': self.qubit_freq_est,
+            'buffer': self.buffer,
+            'pulse_library': [x.to_dict() for x in self.pulse_library],
+            'cmd_def': [x.to_dict() for x in self.cmd_def],
+        }
+        if hasattr(self, 'meas_kernel'):
+            out_dict['meas_kernel'] = self.meas_kernel.to_dict()
+        if hasattr(self, 'discriminator'):
+            out_dict['discriminator'] = self.discriminator.to_dict()
+        for key, value in self.__dict__.items():
+            if key not in ['qubit_freq_est', 'meas_freq_est', 'buffer',
+                           'pulse_library', 'cmd_def', 'meas_kernel',
+                           'discriminator']:
+                out_dict[key] = value
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new PulseDefaults object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the PulseDefaults
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            PulseDefaults: The PulseDefaults from the input dictionary.
+        """
+        in_data = copy.copy(data)
+        in_data['pulse_library'] = [
+            PulseLibraryItem.from_dict(x) for x in in_data.pop('pulse_library')]
+        in_data['cmd_def'] = [
+            Command.from_dict(x) for x in in_data.pop('cmd_def')]
+        if 'meas_kernel' in in_data:
+            in_data['meas_kernel'] = MeasurementKernel.from_dict(
+                in_data.pop('meas_kernel'))
+        if 'discriminator' in in_data:
+            in_data['discriminator'] = Discriminator.from_dict(
+                in_data.pop('discriminator'))
+        return cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.qubit_freq_est, self.meas_freq_est,
+                                 self.buffer, self.pulse_library,
+                                 self.cmd_def))
 
     @property
     def circuit_instruction_map(self):

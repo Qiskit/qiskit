@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,60 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Model and schema for backend configuration."""
+"""Backend Properties classes."""
+
+import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union, List
+from types import SimpleNamespace
+from typing import Any, Iterable, Tuple, Union
 
-from marshmallow.validate import Length, Regexp
-
-from qiskit.validation import fields
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.providers.exceptions import BackendPropertyError
 
 
-class NduvSchema(BaseSchema):
-    """Schema for name-date-unit-value."""
-
-    # Required properties.
-    date = fields.DateTime(required=True)
-    name = fields.String(required=True)
-    unit = fields.String(required=True)
-    value = fields.Number(required=True)
-
-
-class GateSchema(BaseSchema):
-    """Schema for Gate."""
-
-    # Required properties.
-    qubits = fields.List(fields.Integer(), required=True,
-                         validate=Length(min=1))
-    gate = fields.String(required=True)
-    parameters = fields.Nested(NduvSchema, required=True, many=True,
-                               validate=Length(min=1))
-
-
-class BackendPropertiesSchema(BaseSchema):
-    """Schema for BackendProperties."""
-
-    # Required properties.
-    backend_name = fields.String(required=True)
-    backend_version = fields.String(required=True,
-                                    validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    last_update_date = fields.DateTime(required=True)
-    qubits = fields.List(fields.Nested(NduvSchema, many=True,
-                                       validate=Length(min=1)), required=True,
-                         validate=Length(min=1))
-    gates = fields.Nested(GateSchema, required=True, many=True,
-                          validate=Length(min=1))
-    general = fields.Nested(NduvSchema, required=True, many=True)
-
-
-@bind_schema(NduvSchema)
-class Nduv(BaseModel):
-    """Model for name-date-unit-value.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``NduvSchema``.
+class Nduv:
+    """Class representing name-date-unit-value
 
     Attributes:
         date: date.
@@ -73,68 +31,150 @@ class Nduv(BaseModel):
         unit: unit.
         value: value.
     """
+    def __init__(self, date, name, unit, value):
+        """Intialize a new name-date-unit-value object
 
-    def __init__(self,
-                 date: datetime.datetime,
-                 name: str,
-                 unit: str,
-                 value: float,
-                 **kwargs):
+        Args:
+            date (datetime): Date field
+            name (str): Name field
+            unit (str): Nduv unit
+            value (float): The value of the Nduv
+        """
         self.date = date
         self.name = name
         self.unit = unit
         self.value = value
 
-        super().__init__(**kwargs)
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Nduv object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Nduv to create.
+                         It will be in the same format as output by
+                         :func:`to_dict`.
+
+        Returns:
+            Nduv: The Nduv from the input dictionary.
+        """
+        return cls(**data)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the BackendStatus.
+
+        Returns:
+            dict: The dictionary form of the Nduv.
+        """
+        out_dict = {
+            'date': self.date,
+            'name': self.name,
+            'unit': self.unit,
+            'value': self.value,
+        }
+        return out_dict
+
+    def __eq__(self, other):
+        if isinstance(other, Nduv):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
 
 
-@bind_schema(GateSchema)
-class Gate(BaseModel):
-    """Model for Gate.
+class Gate(SimpleNamespace):
+    """Class representing a gate's properties
 
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``GateSchema``.
-
-    Attributes:
-        qubits: qubits.
-        gate: gate.
-        parameters: parameters.
+          Attributes:
+          qubits: qubits.
+          gate: gate.
+          parameters: parameters.
     """
 
-    def __init__(self, qubits: List[int], gate: str, parameters: Nduv, **kwargs):
+    def __init__(self, qubits, gate, parameters, **kwargs):
+        """Initialize a new Gate object
+
+        Args:
+            qubits (list): A list of integers representing qubits
+            gate (str): The gates name
+            parameters (list): List of :class:`Nduv` objects for the
+                name-date-unit-value for the gate
+            kwargs: Optional additional fields
+        """
         self.qubits = qubits
         self.gate = gate
         self.parameters = parameters
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Gate object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Gate to create.
+                         It will be in the same format as output by
+                         :func:`to_dict`.
+
+        Returns:
+            Gate: The Nduv from the input dictionary.
+        """
+        in_data = copy.copy(data)
+        nduvs = []
+        for nduv in in_data.pop('parameters'):
+            nduvs.append(Nduv.from_dict(nduv))
+        in_data['parameters'] = nduvs
+        return cls(**in_data)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the BackendStatus.
+
+        Returns:
+            dict: The dictionary form of the Gate.
+        """
+        out_dict = {}
+        out_dict['qubits'] = self.qubits
+        out_dict['gate'] = self.gate
+        out_dict['parameters'] = self.parameters.to_dict()
+        return out_dict
+
+    def __eq__(self, other):
+        if isinstance(other, Gate):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.qubits, self.gate, self.parameters))
 
 
-@bind_schema(BackendPropertiesSchema)
-class BackendProperties(BaseModel):
-    """Model for BackendProperties.
+class BackendProperties(SimpleNamespace):
+    """Class representing backend properties
 
-    Container class which holds backend properties which have been measured by the provider.
-    All properties which are provided are provided optionally. These properties may describe
-    qubits, gates, or other general properties of the backend.
+    This holds backend properties measured by the provider. All properties
+    which are provided optionally. These properties may describe qubits, gates,
+    or other general propeties of the backend
     """
 
-    def __init__(self,
-                 backend_name: str,
-                 backend_version: str,
-                 last_update_date: datetime.datetime,
-                 qubits: List[List[Nduv]],
-                 gates: List[Gate],
-                 general: List[Nduv],
-                 **kwargs):  # pylint: disable=missing-param-doc
+    def __init__(self, backend_name, backend_version, last_update_date, qubits,
+                 gates, general, **kwargs):
         """Initialize a BackendProperties instance.
 
         Args:
-            backend_name: Backend name.
-            backend_version: Backend version in the form X.Y.Z.
-            last_update_date: Last date/time that a property was updated.
-            qubits: System qubit parameters.
-            gates: System gate parameters.
-            general: General parameters.
+            backend_name (str): Backend name.
+            backend_version (str): Backend version in the form X.Y.Z.
+            last_update_date (datetime): Last date/time that a property was
+                                         updated.
+            qubits (list): System qubit parameters as a list of lists of
+                           :class:`Nduv` objects
+            gates (list): System gate parameters as a list of :class:`Gate`
+                          objects
+            general (list): General parameters as a list of :class:`Nduv`
+                            objects
+            kwargs: optional additional fields
         """
         self.backend_name = backend_name
         self.backend_version = backend_version
@@ -160,8 +200,72 @@ class BackendProperties(BaseModel):
                 value = self._apply_prefix(param.value, param.unit)
                 formatted_props[param.name] = (value, param.date)
             self._gates[gate.gate][tuple(gate.qubits)] = formatted_props
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.backend_name, self.backend_version,
+                                 self.last_update_date, self.qubits,
+                                 self.gates, self.general))
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Gate object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Gate to create.
+                         It will be in the same format as output by
+                         :func:`to_dict`.
+
+        Returns:
+            BackendProperties: The BackendProperties from the input
+                               dictionary.
+        """
+        in_data = copy.copy(data)
+        backend_name = in_data.pop('backend_name')
+        backend_version = in_data.pop('backend_version')
+        last_update_date = in_data.pop('last_update_date')
+        qubits = []
+        for qubit in in_data.pop('qubits'):
+            nduvs = []
+            for nduv in qubit:
+                nduvs.append(Nduv.from_dict(nduv))
+            qubits.append(nduvs)
+        gates = [Gate.from_dict(x) for x in in_data.pop('gates')]
+        general = [Nduv.from_dict(x) for x in in_data.pop('general')]
+        return cls(backend_name, backend_version, last_update_date,
+                   qubits, gates, general, **in_data)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the BackendStatus.
+
+        Returns:
+            dict: The dictionary form of the BackendProperties.
+        """
+        out_dict = {
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'last_update_date': self.last_update_date
+        }
+        out_dict['qubits'] = [x.to_dict() for y in self.qubits for x in y]
+        out_dict['gates'] = [x.to_dict() for x in self.gates]
+        out_dict['general'] = [x.to_dict() for x in self.general]
+        for key, value in self.__dict__.items():
+            if key not in ['backend_name', 'backend_version',
+                           'last_update_date', 'qubits', 'general', 'gates']:
+                out_dict[key] = value
+        return out_dict
+
+    def __eq__(self, other):
+        if isinstance(other, BackendProperties):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
 
     def gate_property(self,
                       gate: str,
@@ -301,7 +405,8 @@ class BackendProperties(BaseModel):
 
     def _apply_prefix(self, value: float, unit: str) -> float:
         """
-        Given a SI unit prefix and value, apply the prefix to convert to standard SI unit.
+        Given a SI unit prefix and value, apply the prefix to convert to
+        standard SI unit.
 
         Args:
             value: The number to apply prefix to.
@@ -328,4 +433,5 @@ class BackendProperties(BaseModel):
         try:
             return value * prefixes[unit[0]]
         except KeyError:
-            raise BackendPropertyError("Could not understand units: {u}".format(u=unit))
+            raise BackendPropertyError(
+                "Could not understand units: {u}".format(u=unit))
