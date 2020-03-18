@@ -129,8 +129,7 @@ class Acquire(Instruction):
     def operands(self) -> List:
         """Return a list of instruction operands."""
         return [self.duration, self.channel,
-                self.mem_slot, self.reg_slot,
-                self.kernel, self.discriminator]
+                self.mem_slot, self.reg_slot]
 
     @property
     def channel(self) -> AcquireChannel:
