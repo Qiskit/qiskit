@@ -25,7 +25,7 @@ features:
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
         sched += Play(SamplePulse([1.0, ...], DriveChannel(0))
-
+        sched += SetFrequency(5.5, DriveChannel(0))
   - |
     There is now a :py:class:`~qiskit.pulse.instructions.Play` instruction
     which takes a description of a pulse envelope and a channel. The pulse
@@ -38,7 +38,6 @@ features:
 
         Play(SamplePulse[0.1]*10, DriveChannel(0))
         Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
-
 deprecations:
   - |
     ``DelayInstruction`` has been deprecated and replaced by

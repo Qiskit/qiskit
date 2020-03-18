@@ -34,7 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse, ShiftPhase)
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase)
 
 
 class EventsOutputChannels:
@@ -53,6 +53,7 @@ class EventsOutputChannels:
 
         self._waveform = None
         self._framechanges = None
+        self._frequencychanges = None
         self._conditionals = None
         self._snapshots = None
         self._labels = None
@@ -86,6 +87,14 @@ class EventsOutputChannels:
             self._build_waveform()
 
         return self._trim(self._framechanges)
+
+    @property
+    def frequencychanges(self):
+        """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
 
     @property
     def conditionals(self):
@@ -136,6 +145,7 @@ class EventsOutputChannels:
         framechanges = self.framechanges
         conditionals = self.conditionals
         snapshots = self.snapshots
+        frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
             data_str = 'framechange: %.2f' % val
@@ -146,6 +156,9 @@ class EventsOutputChannels:
         for key, val in snapshots.items():
             data_str = 'snapshot: %s' % val
             time_event.append((key, name, data_str))
+        for key, val in frequencychanges.items():
+            data_str = 'frequency: %.4e' % val
+            time_event.append((key, name, data_str))
 
         return time_event
 
@@ -153,6 +166,7 @@ class EventsOutputChannels:
         """Create waveform from stored pulses.
         """
         self._framechanges = {}
+        self._frequencychanges = {}
         self._conditionals = {}
         self._snapshots = {}
         self._labels = {}
@@ -164,15 +178,20 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
+            tmp_sf = None
             for command in commands:
                 if isinstance(command, (FrameChange, ShiftPhase)):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
+            if tmp_sf is not None:
+                self._frequencychanges[time] = tmp_sf
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
@@ -460,6 +479,14 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
+    def _draw_frequency_changes(self, ax, sf, y0):
+        frequency_changes_present = True
+        for time in sf.keys():
+            ax.text(x=time, y=y0, s=r'$\leftrightsquigarrow$',
+                    fontsize=self.style.icon_font_size,
+                    ha='center', va='center', rotation=90)
+        return frequency_changes_present
+
     def _get_channel_color(self, channel):
         # choose color
         if isinstance(channel, DriveChannel):
@@ -508,7 +535,7 @@ class ScheduleDrawer:
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, scale_dict,
-                       label=False, framechange=True):
+                       label=False, framechange=True, frequencychange=True):
         y0 = 0
         prev_labels = []
         for channel, events in output_channels.items():
@@ -547,6 +574,10 @@ class ScheduleDrawer:
                 fcs = events.framechanges
                 if fcs and framechange:
                     self._draw_framechanges(ax, fcs, y0)
+                # plot frequency changes
+                sf = events.frequencychanges
+                if sf and frequencychange:
+                    self._draw_frequency_changes(ax, sf, y0 + scale)
                 # plot labels
                 labels = events.labels
                 if labels and label:
