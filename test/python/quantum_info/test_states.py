@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
 
 """Quick program to test the quantum information states modules."""
 
@@ -31,21 +31,26 @@ class TestStates(QiskitTestCase):
     """Tests for qi.py"""
 
     def test_projector(self):
+        """TO BE REMOVED with qiskit.quantum_info.basis_state"""
         state0 = np.array([1.+0.j, 0.+0.j])
-        state1 = projector(np.array([0.+0.j, 1.+0.j]))
+        with self.assertWarns(DeprecationWarning):
+            state1 = projector(np.array([0.+0.j, 1.+0.j]))
         self.assertEqual(state_fidelity(state0, state0), 1.0)
         self.assertEqual(state_fidelity(state1, state1), 1.0)
         self.assertEqual(state_fidelity(state0, state1), 0.0)
 
     def test_basis(self):
-        # reference
-        state = basis_state('010', 3)
+        """TO BE REMOVED with qiskit.quantum_info.basis_state"""
+        with self.assertWarns(DeprecationWarning):
+            state = basis_state('010', 3)
         state_ideal = np.array([0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j])
         state_fidelity(state, state_ideal)
         self.assertEqual(state_fidelity(state, state_ideal), 1.0)
 
     def test_basis_state_circuit(self):
-        state = state = (basis_state('001', 3)+basis_state('111', 3))/np.sqrt(2)
+        """TO BE REMOVED with qiskit.quantum_info.basis_state"""
+        with self.assertWarns(DeprecationWarning):
+            state = (basis_state('001', 3) + basis_state('111', 3))/np.sqrt(2)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
@@ -54,16 +59,19 @@ class TestStates(QiskitTestCase):
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
     def test_random_state(self):
+        """TO BE REMOVED with qiskit.quantum_info.basis_state"""
         # this test that a random state converges to 1/d
         number = 1000
         E_P0_last = 0
         for ii in range(number):
-            state = basis_state(bin(3)[2:].zfill(3), 3)
+            with self.assertWarns(DeprecationWarning):
+                state = basis_state(bin(3)[2:].zfill(3), 3)
             E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state, random_state(2**3, seed=ii))/(ii+1)
             E_P0_last = E_P0
         self.assertAlmostEqual(E_P0, 1/8, places=2)
 
     def test_random_state_circuit(self):
+        """Run initizalized circuit"""
         state = random_state(2**3, seed=40)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
