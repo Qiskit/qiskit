@@ -207,6 +207,25 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.SetFrequency)
+    def convert_set_frequency(self, shift, instruction):
+        """ Return converted `SetFrequencyInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (SetFrequency): set frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'sf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.ShiftPhase)
     def convert_shift_phase(self, shift, instruction):
         """Return converted `ShiftPhase`.
@@ -281,7 +300,7 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.Snapshot)
+    @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
@@ -433,6 +452,30 @@ class QobjToInstructionConverter:
 
         return instructions.ShiftPhase(phase, channel) << t0
 
+    @bind_name('sf')
+    def convert_set_frequency(self, instruction):
+        """Return converted `SetFrequencyInstruction`.
+
+        Args:
+            instruction (PulseQobjInstruction): set frequency qobj instruction
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = instruction.frequency
+
+        if isinstance(frequency, str):
+            frequency_expr = parse_string_expr(frequency, partial_binding=False)
+
+            def gen_sf_schedule(*args, **kwargs):
+                _frequency = frequency_expr(*args, **kwargs)
+                return instructions.SetFrequency(_frequency, channel) << t0
+
+            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+
+        return instructions.SetFrequency(frequency, channel) << t0
+
     @bind_name('pv')
     def convert_persistent_value(self, instruction):
         """Return converted `PersistentValueInstruction`.
@@ -504,4 +547,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type) << t0
+        return instructions.Snapshot(instruction.label, instruction.type) << t0
