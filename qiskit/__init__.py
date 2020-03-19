@@ -56,8 +56,10 @@ _config = _user_config.get_config()
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
-    if not _config.get('suppress_packaging_warnings') or os.environ.get(
-            'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '').upper() != 'Y':
+    suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
+    if not _config.get('suppress_packaging_warnings') or (_config.get(
+            'suppress_packaging_warnings') and
+            suppress_warnings.upper() != 'N') or suppress_warnings.upper() != 'Y':
         warnings.warn('Could not import the Aer provider from the qiskit-aer '
                       'package. Install qiskit-aer or check your installation.',
                       RuntimeWarning)
@@ -65,9 +67,10 @@ except ImportError:
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
-
-    if _config.get('suppress_packaging_warnings') or os.environ.get(
-            'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '').upper() != 'Y':
+    suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
+    if not _config.get('suppress_packaging_warnings') or (_config.get(
+            'suppress_packaging_warnings') and
+            suppress_warnings.upper() != 'N') or suppress_warnings.upper() != 'Y':
         warnings.warn('Could not import the IBMQ provider from the '
                       'qiskit-ibmq-provider package. Install '
                       'qiskit-ibmq-provider or check your installation.',
