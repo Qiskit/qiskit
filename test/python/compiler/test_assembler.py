@@ -572,9 +572,8 @@ class TestPulseAssembler(QiskitTestCase):
                         **self.config)
         validate_qobj_against_schema(qobj)
 
-        self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
-        self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
-        self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
+        self.assertNotEqual(qobj.config.pulse_library[0],
+                            qobj.config.pulse_library[1])
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""

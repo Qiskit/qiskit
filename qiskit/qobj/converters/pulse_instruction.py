@@ -586,7 +586,7 @@ class QobjToInstructionConverter:
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
-            """Return converted `PulseInstruction`.
+            """Return converted `Play`.
 
             Args:
                 instruction (PulseQobjInstruction): pulse qobj
@@ -595,7 +595,7 @@ class QobjToInstructionConverter:
             """
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
-            return pulse(channel) << t0
+            return instructions.Play(pulse, channel) << t0
 
     @bind_name('parametric_pulse')
     def convert_parametric(self, instruction):

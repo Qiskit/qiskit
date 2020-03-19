@@ -110,6 +110,12 @@ class ParametricPulse(Pulse):
                                             interp_method=interp_method, scale=scale,
                                             interactive=interactive)
 
+    def __eq__(self, other: 'ParametricPulse') -> bool:
+        return super().__eq__(other) and self.parameters == other.parameters
+
+    def __hash__(self) -> int:
+        return hash(self.parameters[k] for k in sorted(self.parameters))
+
 
 class Gaussian(ParametricPulse):
     """A truncated pulse envelope shaped according to the Gaussian function whose mean is centered
@@ -163,7 +169,7 @@ class Gaussian(ParametricPulse):
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{}(duration={}, amp={}, sigma={})' \
                ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma)
 
@@ -243,7 +249,7 @@ class GaussianSquare(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
                 "width": self.width}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{}(duration={}, amp={}, sigma={}, width={})' \
                ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width)
 
@@ -348,7 +354,7 @@ class Drag(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
                 "beta": self.beta}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{}(duration={}, amp={}, sigma={}, beta={})' \
                ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta)
 
@@ -395,5 +401,5 @@ class ConstantPulse(ParametricPulse):
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{}(duration={}, amp={})'.format(self.__class__.__name__, self.duration, self.amp)

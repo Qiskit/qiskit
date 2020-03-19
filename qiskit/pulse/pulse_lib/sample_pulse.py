@@ -129,7 +129,7 @@ class SamplePulse(Pulse):
                                           interp_method=interp_method, scale=scale,
                                           interactive=interactive)
 
-    def __eq__(self, other: 'SamplePulse'):
+    def __eq__(self, other: 'SamplePulse') -> bool:
         """Two SamplePulses are the same if they are of the same type
         and have the same name and samples.
 
@@ -142,7 +142,7 @@ class SamplePulse(Pulse):
         return super().__eq__(other) and (self.samples == other.samples).all()
 
     def __hash__(self):
-        return hash((super().__hash__(), self.samples.tostring()))
+        return hash(self.samples.tostring())
 
     def __repr__(self):
         opt = np.get_printoptions()

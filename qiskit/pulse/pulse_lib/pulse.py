@@ -73,3 +73,11 @@ class Pulse(ABC):
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def __eq__(self, other: 'Pulse') -> bool:
+        return isinstance(other, type(self))
+
+    @abstractmethod
+    def __hash__(self) -> int:
+        raise NotImplementedError
