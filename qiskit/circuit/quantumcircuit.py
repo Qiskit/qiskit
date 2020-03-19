@@ -981,15 +981,6 @@ class QuantumCircuit:
         """Return number of classical bits."""
         return sum(len(reg) for reg in self.cregs)
 
-    @property
-    def n_clbits(self):
-        """Deprecated, use ``num_clbits`` instead. Return the number of classical bits."""
-        warnings.warn('The QuantumCircuit.n_clbits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_clbits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_clbits
-
     def count_ops(self):
         """Count each operation kind in the circuit.
 
