@@ -61,7 +61,7 @@ class Pulse(ABC):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
