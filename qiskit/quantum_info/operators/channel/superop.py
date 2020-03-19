@@ -66,7 +66,7 @@ class SuperOp(QuantumChannel):
 
         Raises:
             QiskitError: if input data cannot be initialized as a
-            superoperator.
+                         superoperator.
 
         Additional Information:
             If the input or output dimensions are None, they will be
@@ -217,7 +217,8 @@ class SuperOp(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power is not
+                         an integer.
         """
         if not isinstance(n, (int, np.integer)):
             raise QiskitError("Can only power with integer powers.")
@@ -291,7 +292,7 @@ class SuperOp(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         # Prevent cyclic imports by importing DensityMatrix here
         # pylint: disable=cyclic-import
