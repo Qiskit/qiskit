@@ -162,8 +162,35 @@ class FakeBackendBuilder(object):
     def build_conf(self) -> PulseBackendConfiguration:
         """Build configuration for backend."""
         # TODO: correct values
+        h_str = [
+            ",".join(["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits),
+                      "wq{i}/2*(I{i}-Z{i})]"]),
+            ",".join(["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits),
+                      "omegad{i}*X{i}||D{i}]"])
+        ]
+        variables = []
+        for (q1, q2) in self.cmap:
+            h_str += [
+                "jq{q1}q{q2}*Sp{q1}*Sm{q2}".format(q1=q1, q2=q2),
+                "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=q1, q2=q2)
+            ]
+
+            variables.append(("jq{q1}q{q2}".format(q1=q1, q2=q2), 0))
+        for i, (q1, q2) in enumerate(list(itertools.combinations(range(self.n_qubits), 2))):
+            h_str.append("omegad{0}*X{1}||U{2}".format(q1, q2, i))
+        for i in range(self.n_qubits):
+            variables += [
+                ("omegad{}".format(i), 0),
+                ("wq{}".format(i), 0)
+            ]
+        hamiltonian = {
+            'h_str': h_str,
+            'description': 'Hamiltonian description for {} qubits backend.'.format(self.n_qubits),
+            'qub': {i: 2 for i in range(self.n_qubits)},
+            'vars': dict(variables)
+        }
+
         meas_map = [list(range(self.n_qubits))]
-        hamiltonian = {'h_str': [], 'description': "", 'qub': {}, 'vars': {}}
         conditional_latency = []
         acquisition_latency = []
         discriminators = []
