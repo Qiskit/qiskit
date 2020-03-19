@@ -146,4 +146,4 @@ class TestUserConfig(QiskitTestCase):
                               'circuit_mpl_style': 'default',
                               'transpile_optimization_level': 3,
                               'suppress_packaging_warnings': True},
-                              config.settings)
+                             config.settings)

@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-order
+# pylint: disable=wrong-import-order,invalid-name,wrong-import-position
 
 
 """Main Qiskit public functionality."""
@@ -33,6 +33,9 @@ from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 
+# user config
+from qiskit import user_config as _user_config
+
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions
@@ -47,8 +50,7 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
 
-from qiskit import user_config
-_config = user_config.get_config()
+_config = _user_config.get_config()
 
 # Try to import the Aer provider if installed.
 try:
@@ -73,11 +75,11 @@ except ImportError:
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute import execute
-from qiskit.compiler import transpile, assemble, schedule
+from qiskit.execute import execute  # noqa
+from qiskit.compiler import transpile, assemble, schedule  # noqa
 
-from .version import __version__
-from .version import _get_qiskit_versions
+from .version import __version__  # noqa
+from .version import _get_qiskit_versions  # noqa
 
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 5:
