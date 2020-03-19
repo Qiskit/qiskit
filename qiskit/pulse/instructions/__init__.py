@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """The ``instruction`` module holds the various ``Instruction`` s which are supported by
-Qiskit Pulse. Instructions accept a list of operands unique to instructions of that type.
+Qiskit Pulse. Instructions accept multiple operands unique to instructions of that type.
 Instructions typically include at least one :py:class:`~qiskit.pulse.channels.Channel` as an
 operand specifying where the instruction will be applied, and every instruction has a duration,
 whether implicitly or explicitly defined.
@@ -24,10 +24,31 @@ with operands *phase* and *channel*, for some float ``phase`` and a
 
     ShiftPhase(phase, channel)
 
-The duration of this instruction is implicitly zero.
+The duration of this instruction is implicitly zero. On the other hand, the
+:py:class:`~qiskit.pulse.instructions.Delay` instruction takes an explicit duration::
+
+  Delay(duration, channel)
 
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
-sequence of scheduled Pulse ``Instruction`` s over many channels.
+sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`` s and
+``Schedule`` s implement the same interface.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Delay
+   ShiftPhase
+   SetFrequency
+   Acquire
+   Snapshot
+
+Abstract Classes
+----------------
+.. autosummary::
+   :toctree: ../stubs/
+
+   Instruction
+
 """
 from .acquire import Acquire
 from .delay import Delay

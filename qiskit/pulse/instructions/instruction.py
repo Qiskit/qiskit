@@ -29,15 +29,13 @@ from abc import ABC
 
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
+from ..channels import Channel
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
+from ..timeslots import Interval, Timeslot, TimeslotCollection
 from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
-
-# TODO: After migrating instruction implementations, add property+abstractmethod operands
 
 
 class Instruction(ScheduleComponent, ABC):
@@ -52,12 +50,14 @@ class Instruction(ScheduleComponent, ABC):
 
         Args:
             duration: Length of time taken by the instruction in terms of dt.
+                      Deprecated: the first argument used to be the Command.
             *channels: List of pulse channels that this instruction operates on.
             name: Display name for this instruction.
         """
         self._command = None
         if not isinstance(duration, int):
-            # TODO: Add deprecation warning once all instructions are migrated
+            warnings.warn("Commands have been deprecated. Use `qiskit.pulse.instructions` instead.",
+                          DeprecationWarning)
             self._command = duration
             if name is None:
                 name = self.command.name
@@ -78,8 +78,18 @@ class Instruction(ScheduleComponent, ABC):
 
     @property
     def command(self) -> 'commands.Command':
-        """The associated command."""
+        """The associated command. Commands are deprecated, so this method will be deprecated
+        shortly.
+        """
         return self._command
+
+    @property
+    def operands(self) -> Tuple:
+        """Return a list of instruction operands."""
+        # This cannot be a true abstractmethod While old Command style classes are still
+        # implemented, because they do not have an operands method.
+        if self.command is None:
+            raise NotImplementedError
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -258,7 +268,7 @@ class Instruction(ScheduleComponent, ABC):
                                           label=label, framechange=framechange,
                                           channels=channels)
 
-    def __eq__(self, other: 'Instruction'):
+    def __eq__(self, other: 'Instruction') -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
@@ -266,15 +276,13 @@ class Instruction(ScheduleComponent, ABC):
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return (self.command == other.command) and (set(self.channels) == set(other.channels))
-        return ((self.duration == other.duration) and
-                (set(self.channels) == set(other.channels)) and
-                (isinstance(other, type(self))))
+        return isinstance(other, type(self)) and self.operands == other.operands
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((self.duration, self.channels.__hash__()))
+        return hash((type(self), self.operands, getattr(self, 'name', '')))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
@@ -288,7 +296,9 @@ class Instruction(ScheduleComponent, ABC):
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
-    def __repr__(self):
-        return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.command if self.command else self.duration,
-                               ', '.join(str(ch) for ch in self.channels))
+    def __repr__(self) -> str:
+        if self.operands:
+            operands = ', '.join(str(op) for op in self.operands)
+        else:
+            operands = "{}, {}".format(self.command, ', '.join(str(ch) for ch in self.channels))
+        return "{}({})".format(self.__class__.__name__, operands)

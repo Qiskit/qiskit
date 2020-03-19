@@ -17,7 +17,7 @@ some metadata for the acquisition process; for example, where to store classifie
 """
 import warnings
 
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
 from ..configuration import Kernel, Discriminator
@@ -113,11 +113,6 @@ class Acquire(Instruction):
             name = 'acq{:10x}'.format(hash((duration, tuple(channels), tuple(mem_slot),
                                             tuple(reg_slot), kernel, discriminator)))
 
-        if channels is not None:
-            super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
-        else:
-            super().__init__(duration, name=name)
-
         self._acquires = channels
         self._channel = channels[0] if channels else None
         self._mem_slots = mem_slot
@@ -125,11 +120,16 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
+        if channels is not None:
+            super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
+        else:
+            super().__init__(duration, name=name)
+
     @property
-    def operands(self) -> List:
+    def operands(self) -> Tuple[int, AcquireChannel, MemorySlot, RegisterSlot]:
         """Return a list of instruction operands."""
-        return [self.duration, self.channel,
-                self.mem_slot, self.reg_slot]
+        return (self.duration, self.channel,
+                self.mem_slot, self.reg_slot)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -182,7 +182,7 @@ class Acquire(Instruction):
         """RegisterSlots."""
         return self._reg_slots
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
@@ -191,9 +191,6 @@ class Acquire(Instruction):
             ', ' + str(self.reg_slot) if self.reg_slot else '',
             ', ' + str(self.kernel) if self.kernel else '',
             ', ' + str(self.discriminator) if self.discriminator else '')
-
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and self.operands == other.operands
 
     def __call__(self,
                  channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
