@@ -29,7 +29,9 @@ The duration of this instruction is implicitly zero.
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels.
 """
+from .acquire import Acquire
 from .delay import Delay
 from .instruction import Instruction
+from .frequency import SetFrequency
 from .phase import ShiftPhase
 from .snapshot import Snapshot

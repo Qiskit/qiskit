@@ -220,7 +220,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Currenty overlaps (A,B) are considered when A is a 2q gate and
         B is either 2q or 1q gate.
         """
-        for gate in dag.twoQ_gates():
+        for gate in dag.two_qubit_ops():
             overlap_set = []
             descendants = dag.descendants(gate)
             ancestors = dag.ancestors(gate)
@@ -700,7 +700,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Main scheduling function
         """
         if not HAS_Z3:
-            raise TranspilerError('z3-solver is required to use CrosstalkAdaptiveSchedule')
+            raise TranspilerError('z3-solver is required to use CrosstalkAdaptiveSchedule. '
+                                  'To install, run "pip install z3-solver".')
 
         self.dag = dag
 

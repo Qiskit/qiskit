@@ -11,17 +11,23 @@ features:
 
         sched += Delay(5)(DriveChannel(0))
         sched += ShiftPhase(np.pi)(DriveChannel(0))
+        sched += Acquire(100)(AcquireChannel(0), MemorySlot(0))
 
     or, equivalently (though less used)::
 
         sched += DelayInstruction(Delay(5), DriveChannel(0))
         sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+        sched += AcquireInstruction(Acquire(100), AcquireChannel(0),
+                                    MemorySlot(0))
 
     Now, rather than build a command *and* an instruction, each command has
     been migrated into an instruction::
 
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
+        sched += Acquire(100, AcquireChannel(0), MemorySlot(0))
+        sched += SetFrequency(5.5, DriveChannel(0))  # New instruction!
+
 deprecations:
   - |
     ``DelayInstruction`` has been deprecated and replaced by
@@ -50,3 +56,15 @@ deprecations:
     calling a command on a channel will be supported::
 
         ShiftPhase(<phase>)(<channel>)
+  - |
+    ``AcquireInstruction`` has been deprecated and replaced by
+    :py:class:`~qiskit.pulse.instructions.Acquire`. The changes are::
+
+        Acquire(<duration>)(<**channels>) -> Acquire(<duration>, <**channels>)
+        AcquireInstruction(Acquire(<duration>), <**channels>)
+            -> Acquire(<duration>, <**channels>)
+
+    Until the deprecation period is over, the previous Acquire syntax of
+    calling the command on a channel will be supported::
+
+        Acquire(<duration>)(<**channels>)
