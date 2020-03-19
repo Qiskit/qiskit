@@ -12,8 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Frequency instructions module. These instructions allow the user to manipulate
+"""Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
 from typing import List, Optional, Union
@@ -63,10 +62,11 @@ class SetFrequency(Instruction):
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
-        scheduled on"""
+        scheduled on.
+        """
         return self._channel
 
-    def __eq__(self, other: 'SetFrequency'):
+    def __eq__(self, other: Instruction) -> bool:
         """
         Two set frequency instructions are the same if they have the same type and frequency.
 
@@ -76,10 +76,10 @@ class SetFrequency(Instruction):
         Returns:
             bool: Are self and other equal.
         """
-        return super().__eq__(other) and (self.frequency == other.frequency)
+        return super().__eq__(other) and (self.operands == other.operands)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((super().__hash__(), self.frequency))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%s, frequency=%.0f)' % (self.__class__.__name__, self.name, self.frequency)

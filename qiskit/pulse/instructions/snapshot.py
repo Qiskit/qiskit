@@ -19,7 +19,7 @@ import warnings
 
 from typing import List, Optional
 
-from qiskit.pulse.channels import SnapshotChannel
+from ..channels import SnapshotChannel
 from .instruction import Instruction
 
 
@@ -53,6 +53,10 @@ class Snapshot(Instruction):
         return self._type
 
     @property
+    def operands(self) -> List:
+        return [self.label, self.type]
+
+    @property
     def channel(self) -> SnapshotChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on; trivially, a ``SnapshotChannel``.
@@ -70,9 +74,7 @@ class Snapshot(Instruction):
         return self
 
     def __eq__(self, other: 'Snapshot'):
-        return (super().__eq__(other) and
-                self.label == other.label and
-                self.type == other.type)
+        return super().__eq__(other) and self.operands == other.operands
 
     def __hash__(self):
         return hash((super().__hash__(), self.label, self.type))

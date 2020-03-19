@@ -182,7 +182,13 @@ class Acquire(Instruction):
         """RegisterSlots."""
         return self._reg_slots
 
-    def __repr__(self):
+    def __eq__(self, other: Instruction) -> bool:
+        return super().__eq__(other) and self.operands == other.operands
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.operands))
+
+    def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
@@ -191,9 +197,6 @@ class Acquire(Instruction):
             ', ' + str(self.reg_slot) if self.reg_slot else '',
             ', ' + str(self.kernel) if self.kernel else '',
             ', ' + str(self.discriminator) if self.discriminator else '')
-
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and self.operands == other.operands
 
     def __call__(self,
                  channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,

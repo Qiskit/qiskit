@@ -17,8 +17,8 @@ import warnings
 
 from typing import List, Optional, Union
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.exceptions import PulseError
+from ..channels import PulseChannel
+from ..exceptions import PulseError
 from .instruction import Instruction
 
 
@@ -69,6 +69,11 @@ class Delay(Instruction):
         """
         return self._channel
 
+    def __repr__(self) -> str:
+        return "{}({}, {})".format(self.__class__.__name__,
+                                   self.duration,
+                                   self.channel)
+
     def __call__(self, channel: PulseChannel) -> 'Delay':
         """Return new ``Delay`` that is fully instantiated with both ``duration`` and a ``channel``.
 
@@ -86,8 +91,3 @@ class Delay(Instruction):
         if self._channel is not None:
             raise PulseError("The channel has already been assigned as {}.".format(self.channel))
         return Delay(self.duration, channel)
-
-    def __repr__(self):
-        return "{}({}, {})".format(self.__class__.__name__,
-                                   self.duration,
-                                   self.channel)

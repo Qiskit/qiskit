@@ -18,8 +18,8 @@ import warnings
 
 from typing import List, Optional, Union
 
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.exceptions import PulseError
+from ..channels import PulseChannel
+from ..exceptions import PulseError
 from .instruction import Instruction
 
 
@@ -68,6 +68,18 @@ class ShiftPhase(Instruction):
         """
         return self._channel
 
+    def __eq__(self, other: Instruction) -> bool:
+        return super().__eq__(other) and (self.operands == other.operands)
+
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.phase))
+
+    def __repr__(self) -> str:
+        return "{}({}, {}{})".format(self.__class__.__name__,
+                                     self.phase,
+                                     self.channel,
+                                     ", name={}".format(self.name) if self.name else "")
+
     def __call__(self, channel: PulseChannel) -> 'ShiftPhase':
         """Return a new ShiftPhase instruction supporting the deprecated syntax of FrameChange.
 
@@ -86,9 +98,3 @@ class ShiftPhase(Instruction):
                       "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
                       "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
         return ShiftPhase(self.phase, channel)
-
-    def __repr__(self):
-        return "{}({}, {}{})".format(self.__class__.__name__,
-                                     self.phase,
-                                     self.channel,
-                                     ", name={}".format(self.name) if self.name else "")

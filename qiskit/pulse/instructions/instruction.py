@@ -25,19 +25,17 @@ For example::
 """
 import warnings
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
+from ..channels import Channel
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
+from ..timeslots import Interval, Timeslot, TimeslotCollection
 from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
-
-# TODO: After migrating instruction implementations, add property+abstractmethod operands
 
 
 class Instruction(ScheduleComponent, ABC):
@@ -57,7 +55,8 @@ class Instruction(ScheduleComponent, ABC):
         """
         self._command = None
         if not isinstance(duration, int):
-            # TODO: Add deprecation warning once all instructions are migrated
+            warnings.warn("Commands have been deprecated. Use `qiskit.pulse.instructions` instead.",
+                          DeprecationWarning)
             self._command = duration
             if name is None:
                 name = self.command.name
@@ -80,6 +79,14 @@ class Instruction(ScheduleComponent, ABC):
     def command(self) -> 'commands.Command':
         """The associated command."""
         return self._command
+
+    @property
+    def operands(self) -> List:
+        """Return a list of instruction operands."""
+        # This cannot be a true abstractmethod While old Command style classes are still
+        # implemented, because they do not have an operands method.
+        if self._command is None:
+            raise NotImplementedError
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -258,7 +265,7 @@ class Instruction(ScheduleComponent, ABC):
                                           label=label, framechange=framechange,
                                           channels=channels)
 
-    def __eq__(self, other: 'Instruction'):
+    def __eq__(self, other: 'Instruction') -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
@@ -266,15 +273,15 @@ class Instruction(ScheduleComponent, ABC):
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return (self.command == other.command) and (set(self.channels) == set(other.channels))
-        return ((self.duration == other.duration) and
-                (set(self.channels) == set(other.channels)) and
-                (isinstance(other, type(self))))
+        return (isinstance(other, type(self)) and
+                (self.duration == other.duration) and
+                (set(self.channels) == set(other.channels)))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((self.duration, self.channels.__hash__()))
+        return hash((self.duration, self.channels.__hash__(), type(self)))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
@@ -288,7 +295,7 @@ class Instruction(ScheduleComponent, ABC):
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
-    def __repr__(self):
+    def __repr__(self) -> strr:
         return "%s(%s, %s)" % (self.__class__.__name__,
                                self.command if self.command else self.duration,
                                ', '.join(str(ch) for ch in self.channels))
