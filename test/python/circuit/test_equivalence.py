@@ -340,3 +340,64 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         self.assertEqual(len(entry), 2)
         self.assertEqual(entry[0], first_expected)
         self.assertEqual(entry[1], second_expected)
+
+
+class TestSessionEquivalenceLibrary(QiskitTestCase):
+    """Test cases for SessionEquivalenceLibrary."""
+
+    def test_converter_gate_registration(self):
+        """Verify converters register gates in session equivalence library."""
+        qc_gate = QuantumCircuit(2)
+        qc_gate.h(0)
+        qc_gate.cx(0, 1)
+
+        bell_gate = qc_gate.to_gate()
+
+        qc_inst = QuantumCircuit(2)
+        qc_inst.h(0)
+        qc_inst.cx(0, 1)
+
+        bell_inst = qc_inst.to_instruction()
+
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        gate_entry = sel.get_entry(bell_gate)
+        inst_entry = sel.get_entry(bell_inst)
+
+        self.assertEqual(len(gate_entry), 1)
+        self.assertEqual(len(inst_entry), 1)
+
+        self.assertEqual(gate_entry[0], qc_gate)
+        self.assertEqual(inst_entry[0], qc_inst)
+
+    def test_gate_decomposition_properties(self):
+        """Verify decompositions are accessible via gate properties."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        gate = qc.to_gate()
+
+        decomps = gate.decompositions
+
+        self.assertEqual(len(decomps), 1)
+        self.assertEqual(decomps[0], qc)
+
+        qc2 = QuantumCircuit(2)
+        qc2.h([0, 1])
+        qc2.cz(0, 1)
+        qc2.h(1)
+
+        gate.add_decomposition(qc2)
+
+        decomps = gate.decompositions
+
+        self.assertEqual(len(decomps), 2)
+        self.assertEqual(decomps[0], qc)
+        self.assertEqual(decomps[1], qc2)
+
+        gate.decompositions = [qc2]
+
+        decomps = gate.decompositions
+
+        self.assertEqual(len(decomps), 1)
+        self.assertEqual(decomps[0], qc2)
