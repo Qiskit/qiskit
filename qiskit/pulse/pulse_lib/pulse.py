@@ -36,7 +36,7 @@ class Pulse(ABC):
                      else '{}{}'.format(str(self.__class__.__name__).lower(),
                                         self.__hash__()))
 
-    def __call__(self, channel: PulseChannel) -> 'qiskit.pulse.instruction.Instruction':
+    def __call__(self, channel: PulseChannel) -> Play:
         """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
         ``channel``.
 
