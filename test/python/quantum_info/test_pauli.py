@@ -30,7 +30,7 @@ class TestPauliAPI(QiskitTestCase):
     def check(self, result):
         """checks for result to be a Pauli 'IY' """
         self.assertIsInstance(result, Pauli)
-        self.assertEqual(result.num_ts, 2)
+        self.assertEqual(result.num_qubits, 2)
         self.assertEqual(result.to_label(), 'IY')
 
     def test_ndarray_bool(self):
