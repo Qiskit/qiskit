@@ -373,7 +373,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
@@ -407,7 +407,10 @@ class QCircuitImage:
                         for index, pos in enumerate(ctrl_pos):
                             self._latex[pos][column] = "\\ctrl{" + str(
                                 pos_array[index + 1] - pos_array[index]) + "}"
-                        self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                        if name == 'Z':
+                            self._latex[pos_array[-1]][column] = "\\control\\qw"
+                        else:
+                            self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
                     else:
                         pos_start = min(pos_qargs)
                         pos_stop = max(pos_qargs)

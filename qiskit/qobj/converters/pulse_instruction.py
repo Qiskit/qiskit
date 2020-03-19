@@ -21,6 +21,7 @@ from enum import Enum
 
 from qiskit.pulse import commands, channels, instructions
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -119,7 +120,7 @@ class InstructionToQobjConverter:
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction):
+    def convert_acquire_deprecated(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -160,6 +161,52 @@ class InstructionToQobjConverter:
                         QobjMeasurementOption(
                             name=instruction.command.kernel.name,
                             params=instruction.command.kernel.params)
+                    ]
+                })
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.Acquire)
+    def convert_acquire(self, shift, instruction):
+        """Return converted `Acquire`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Acquire): acquire instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        meas_level = self._run_config.get('meas_level', 2)
+
+        command_dict = {
+            'name': 'acquire',
+            't0': shift + instruction.start_time,
+            'duration': instruction.duration,
+            'qubits': [q.index for q in instruction.acquires],
+            'memory_slot': [m.index for m in instruction.mem_slots]
+        }
+        if meas_level == MeasLevel.CLASSIFIED:
+            # setup discriminators
+            if instruction.discriminator:
+                command_dict.update({
+                    'discriminators': [
+                        QobjMeasurementOption(
+                            name=instruction.discriminator.name,
+                            params=instruction.discriminator.params)
+                    ]
+                })
+            # setup register_slots
+            if instruction.reg_slots:
+                command_dict.update({
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                })
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+            # setup kernels
+            if instruction.kernel:
+                command_dict.update({
+                    'kernels': [
+                        QobjMeasurementOption(
+                            name=instruction.kernel.name,
+                            params=instruction.kernel.params)
                     ]
                 })
         return self._qobj_model(**command_dict)
@@ -300,7 +347,7 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.Snapshot)
+    @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
@@ -375,7 +422,7 @@ class QobjToInstructionConverter:
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
-        """Return converted `AcquireInstruction`.
+        """Return converted `Acquire`.
 
         Args:
             instruction (PulseQobjInstruction): acquire qobj
@@ -404,8 +451,7 @@ class QobjToInstructionConverter:
                           "to first discriminator entry.")
         discriminator = discriminators[0]
         if discriminator:
-            discriminator = commands.Discriminator(name=discriminators[0].name,
-                                                   params=discriminators[0].params)
+            discriminator = Discriminator(name=discriminators[0].name, **discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
@@ -416,13 +462,14 @@ class QobjToInstructionConverter:
                           "kernel entry.")
         kernel = kernels[0]
         if kernel:
-            kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
+            kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
-        cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
 
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
-            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
+            schedule |= instructions.Acquire(duration, acquire_channel, mem_slot=mem_slot,
+                                             reg_slot=reg_slot, kernel=kernel,
+                                             discriminator=discriminator) << t0
 
         return schedule
 
@@ -547,4 +594,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type) << t0
+        return instructions.Snapshot(instruction.label, instruction.type) << t0

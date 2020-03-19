@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Measurement options. Deprecated path."""
+"""Session gates."""
 
-# pylint: disable=unused-import
+# pylint: disable=invalid-name
 
+from qiskit.extensions.standard.equivalence_library import StandardEquivalenceLibrary
+from .equivalence import EquivalenceLibrary
 
-from qiskit.pulse.configuration import Kernel, Discriminator
+SessionEquivalenceLibrary = EquivalenceLibrary(base=StandardEquivalenceLibrary)

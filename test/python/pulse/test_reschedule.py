@@ -18,8 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse import AcquireChannel
-from qiskit.pulse.commands import AcquireInstruction
+from qiskit.pulse import AcquireChannel, Acquire
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
@@ -50,11 +49,11 @@ class TestAutoMerge(QiskitTestCase):
         sched = align_measures([sched], self.cmd_def)[0]
         self.assertEqual(sched.name, 'fake_experiment')
         for time, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
         sched = align_measures([sched], self.cmd_def, align_time=20)[0]
         for time, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 20)
             if isinstance(inst.channels[0], MeasureChannel):
                 self.assertEqual(time, 20)
@@ -68,11 +67,11 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(1, acquire(self.config.acquire(0), MemorySlot(0)))
         sched = align_measures([sched], self.cmd_def)[0]
         for time, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 4)
         sched = align_measures([sched], self.cmd_def, max_calibration_duration=10)[0]
         for time, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
 
     def test_multi_acquire(self):
@@ -124,10 +123,10 @@ class TestAutoMerge(QiskitTestCase):
         sched2 = sched2.insert(25, acquire(self.config.acquire(0), MemorySlot(0)))
         schedules = align_measures([sched1, sched2], self.cmd_def)
         for time, inst in schedules[0].instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
         for time, inst in schedules[0].instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
 
 
@@ -152,7 +151,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched = add_implicit_acquires(self.sched, [[0, 1]])
         acquired_qubits = set()
         for _, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1})
 
@@ -161,7 +160,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched = add_implicit_acquires(self.sched, [[0, 2], [1, 3]])
         acquired_qubits = set()
         for _, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
@@ -170,7 +169,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched = add_implicit_acquires(self.sched, [[4, 5], [0, 2], [1, 3]])
         acquired_qubits = set()
         for _, inst in sched.instructions:
-            if isinstance(inst, AcquireInstruction):
+            if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 

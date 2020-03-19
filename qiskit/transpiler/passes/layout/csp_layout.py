@@ -105,7 +105,7 @@ class CSPLayout(AnalysisPass):
         qubits = dag.qubits()
         cxs = set()
 
-        for gate in dag.twoQ_gates():
+        for gate in dag.two_qubit_ops():
             cxs.add((qubits.index(gate.qargs[0]),
                      qubits.index(gate.qargs[1])))
         edges = self.coupling_map.get_edges()
