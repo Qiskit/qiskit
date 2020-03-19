@@ -47,11 +47,15 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
 
+from qiskit import user_config
+_config = user_config.get_config()
+
 # Try to import the Aer provider if installed.
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
-    if os.environ.get('QISKIT_SUPPRESS_AER_WARNINGS') != 'Y':
+    if _config.get('suppress_packaging_warnings') or os.environ.get(
+            'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '').upper() != 'Y':
         warnings.warn('Could not import the Aer provider from the qiskit-aer '
                       'package. Install qiskit-aer or check your installation.',
                       RuntimeWarning)
@@ -59,10 +63,13 @@ except ImportError:
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
-    warnings.warn('Could not import the IBMQ provider from the '
-                  'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
-                  'or check your installation.',
-                  RuntimeWarning)
+
+    if _config.get('suppress_packaging_warnings') or os.environ.get(
+            'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '').upper() != 'Y':
+        warnings.warn('Could not import the IBMQ provider from the '
+                      'qiskit-ibmq-provider package. Install '
+                      'qiskit-ibmq-provider or check your installation.',
+                      RuntimeWarning)
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)

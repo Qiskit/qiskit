@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    A new environment variable ``QISKIT_SUPPRESS_PACKAGING_WARNINGS`` can be
+    set to ``Y`` or ``y`` which will suppress the warnings about
+    ``qiskit-aer`` and ``qiskit-ibmq-provider`` not being installed at import
+    time. This is useful for users who are only running qiskit-terra (or just
+    not qiskit-aer and/or qiskit-ibmq-provider) and the warnings are not an
+    indication of a potential packaging problem.
+  - |
+    A new user config file option, ``suppress_packaging_warnings`` has been
+    added. When set to ``true`` in your user config file like::
+
+        [default]
+        suppress_packaging_warnings = true
+
+    it will suppress the warnings about  ``qiskit-aer`` and
+    ``qiskit-ibmq-provider`` not being installed at import time. This is useful
+    for users who are only running qiskit-terra (or just not qiskit-aer and/or
+    qiskit-ibmq-provider) and the warnings are not an indication of a potential
+    packaging problem.
