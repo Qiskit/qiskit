@@ -259,20 +259,31 @@ class Drag(ParametricPulse):
     with an additional Gaussian derivative component. It is designed to reduce the frequency
     spectrum of a normal gaussian pulse near the :math:`|1\rangle` - :math:`|2\rangle` transition,
     reducing the chance of leakage to the :math:`|2\rangle` state.
+
     .. math::
+
         f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
              = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
+
     where 'Gaussian' is:
+
     .. math::
+
         Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
+
     References:
         1. |citation1|_
+
         .. _citation1: https://link.aps.org/doi/10.1103/PhysRevA.83.012308
+
         .. |citation1| replace:: *Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
            Analytic control methods for high-fidelity unitary operations
            in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).*
+
         2. |citation2|_
+
         .. _citation2: https://link.aps.org/doi/10.1103/PhysRevLett.103.110501
+
         .. |citation2| replace:: *F. Motzoi, J. M. Gambetta, P. Rebentrost, and F. K. Wilhelm
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
