@@ -1,5 +1,19 @@
 ---
 deprecations:
   - |
-    The ``n_qubits`` and ``numberofqubits`` keywords are deprecated throughout 
-    Terra and replaced by ``num_qubits``.
+    The ``n_qubits`` and ``numberofqubits`` keywords are deprecated throughout
+    Terra and replaced by ``num_qubits``. The objects affected by this change are listed below.
+
+    class                  | old method      | new method
+    -----------------------+-----------------+--------------------------------
+    QuantumCircuit         | n_qubits        | num_qubits
+    Pauli                  | numberofqubits  | num_qubits
+    BackendConfiguration   | nothing removed | num_qubits (additionally added)
+
+    function               | old argument   | new argument
+    -----------------------+----------------+-------------
+    random_circuit         | n_qubits       | num_qubits
+    MSGate.__init__        | n_qubit        | num_qubits
+
+
+

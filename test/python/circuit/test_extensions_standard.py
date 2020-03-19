@@ -1352,12 +1352,20 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
+        from qiskit.extensions.standard.ms import MSGate
+
         params = [0.1 * i for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
             sig = signature(gate_class)
-            free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
+            if gate_class == MSGate:
+                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
+                # 3 arguments but really its only 2. This if can be removed once the deprecated
+                # n_qubits argument is no longer supported.
+                free_params = 2
+            else:
+                free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):

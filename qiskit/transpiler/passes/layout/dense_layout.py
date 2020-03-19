@@ -22,7 +22,6 @@ import scipy.sparse.csgraph as cs
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.util import deprecate_arguments
 
 
 class DenseLayout(AnalysisPass):
@@ -116,13 +115,11 @@ class DenseLayout(AnalysisPass):
                 map_iter += 1
         self.property_set['layout'] = layout
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def _best_subset(self, num_qubits, n_qubits=None):  # pylint:disable=unused-argument
+    def _best_subset(self, num_qubits):
         """Computes the qubit mapping with the best connectivity.
 
         Args:
             num_qubits (int): Number of subset qubits to consider.
-            n_qubits (int): Deprecated, use num_qubits instead.
 
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.

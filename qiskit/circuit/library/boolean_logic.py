@@ -21,18 +21,15 @@ from typing import List, Optional
 import numpy as np
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_arguments
 
 
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self,
                  num_qubits: int,
                  pattern: Optional[List[int]] = None,
                  seed: Optional[int] = None,
-                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
                  ) -> QuantumCircuit:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
@@ -40,7 +37,6 @@ class Permutation(QuantumCircuit):
             num_qubits: circuit width.
             pattern: permutation pattern. If None, permute randomly.
             seed: random seed in case a random permutation is requested.
-            n_qubits: deprecated, use num_qubits instead.
 
         Returns:
             A permutation circuit.
@@ -74,12 +70,10 @@ class XOR(QuantumCircuit):
     This circuit can also represent addition by ``amount`` over the finite field GF(2).
     """
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self,
                  num_qubits: int,
                  amount: Optional[int] = None,
                  seed: Optional[int] = None,
-                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
                  ) -> QuantumCircuit:
         """Return a circuit implementing bitwise xor.
 
@@ -87,7 +81,6 @@ class XOR(QuantumCircuit):
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.
-            n_qubits: deprecated, use num_qubits instead.
 
         Returns:
             A circuit for bitwise XOR.
@@ -114,17 +107,13 @@ class XOR(QuantumCircuit):
 class InnerProduct(QuantumCircuit):
     """An n_qubit circuit that computes the inner product of two registers."""
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def __init__(self, num_qubits: int,
-                 *, n_qubits: Optional[int] = None  # pylint:disable=unused-argument
-                 ) -> QuantumCircuit:
+    def __init__(self, num_qubits: int) -> QuantumCircuit:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 
         This implementation uses CZ gates.
 
         Args:
             num_qubits: width of top and bottom registers (half total circuit width)
-            n_qubits: deprecated, use num_qubits instead
 
         Returns:
             A circuit computing inner product of two registers.
