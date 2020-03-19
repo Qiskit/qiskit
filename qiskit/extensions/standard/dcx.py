@@ -21,19 +21,35 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
- 
+
 class DCXGate(Gate):
-    """Double-CNOT gate.
+    r"""Double-CNOT gate.
 
     A 2-qubit interaction consisting of two back-to-back
     CNOTs with alternate controls.
 
-    Equivalent to a CNOT-SWAP (CNS) sequence, and locally equivalent
-    to an iSWAP.
+    .. parsed-literal::
+                  ┌───┐
+        q_0: ──■──┤ X ├
+             ┌─┴─┐└─┬─┘
+        q_1: ┤ X ├──■──
+             └───┘
+
+    This is a classical logic gate, equivalent to a CNOT-SWAP (CNS) sequence,
+    and locally equivalent to an iSWAP.
+
+    .. math::
+
+        DCX =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0
+            \end{pmatrix}
     """
 
     def __init__(self):
-        """Create new DCX gate."""
         super().__init__('dcx', 2, [])
 
     def _define(self):
@@ -41,7 +57,6 @@ class DCXGate(Gate):
         gate dcx a, b { cx a, b; cx a, b; }
         """
         from qiskit.extensions.standard.x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
         self.definition = [
             (CXGate(), [q[0], q[1]], []),

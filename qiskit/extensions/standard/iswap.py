@@ -23,18 +23,41 @@ from qiskit.circuit import QuantumRegister
 
 
 class iSwapGate(Gate):
-    """iSWAP gate.
+    r"""iSWAP gate.
 
-    A 2-qubit XY interaction. Symmetric and self-inverse.
+    A 2-qubit XY interaction that is equivalent to a SWAP up to a diagonal.
+
+    .. math::
+
+        iSWAP =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & i & 0 \\
+                0 & i & 0 & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+          = \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+         .  \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & i & 0 & 0 \\
+                0 & 0 & i & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    This gate is symmetric and self-inverse.
     """
 
     def __init__(self):
-        """Create new iSWAP gate."""
         super().__init__('iswap', 2, [])
 
     def _define(self):
         """
-        gate iswap a,b { 
+        gate iswap a,b {
             ry(pi/2) b; rz(-pi/2) b;
             ry(pi/2) a; rz(pi/2) a;
             cx b, a;
@@ -48,7 +71,6 @@ class iSwapGate(Gate):
         from qiskit.extensions.standard.u1 import U1Gate
         from qiskit.extensions.standard.u2 import U2Gate
         from qiskit.extensions.standard.x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
         self.definition = [
             (U2Gate(-np.pi/2, 0), [q[1]], []),
