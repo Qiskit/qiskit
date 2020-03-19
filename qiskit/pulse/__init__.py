@@ -133,12 +133,12 @@ Exceptions
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef
-from .commands import (Acquire, AcquireInstruction, FrameChange, PersistentValue, Kernel,
-                       Discriminator, functional_pulse)
-from .configuration import LoConfig, LoRange
+from .commands import (AcquireInstruction, FrameChange, PersistentValue,
+                       functional_pulse)
+from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Instruction, Delay, Play, ShiftPhase, Snapshot, SetFrequency
+from .instructions import Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot, SetFrequency
 from .interfaces import ScheduleComponent
 from .pulse_lib import SamplePulse, Gaussian, GaussianSquare, Drag, ConstantPulse, ParametricPulse
 from .schedule import Schedule
