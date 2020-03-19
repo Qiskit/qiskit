@@ -25,7 +25,7 @@ from qiskit.circuit import QuantumRegister
 class iSwapGate(Gate):
     """iSWAP gate.
 
-    A 2-qubit XY interaction.
+    A 2-qubit XY interaction. Symmetric and self-inverse.
     """
 
     def __init__(self):
@@ -63,7 +63,7 @@ class iSwapGate(Gate):
 
     def inverse(self):
         """Invert this gate."""
-        return iSwapGate()  # self-inverse
+        return iSwapGate()
 
     def to_matrix(self):
         """Return a numpy.array for the iSWAP gate."""
