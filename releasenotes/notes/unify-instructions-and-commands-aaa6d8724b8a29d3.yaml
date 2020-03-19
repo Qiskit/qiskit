@@ -36,7 +36,7 @@ features:
     description must subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse`.
     py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
     py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
-    now subclass from ``Pulse`` and have been moved to the `pulse_lib`.
+    now subclass from ``Pulse`` and have been moved to the ``pulse_lib``.
 
     For example::
 
@@ -72,7 +72,7 @@ deprecations:
         ShiftPhase(<phase>)(<channel>)
   - |
     The call method of py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
-    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse`s has been deprecated.
+    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s have been deprecated.
     The migration is as follows::
 
         Pulse(<*args>)(<channel>) -> Play(Pulse(*args), <channel>)
