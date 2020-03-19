@@ -100,7 +100,7 @@ class QuantumState(ABC):
         self.__class__._set_atol(value)
 
     @classmethod
-    def set_atol(cls, value):
+    def _set_atol(cls, value):
         """Set the class default absolute tolerance parameter for float comparisons."""
         if value < 0:
             raise QiskitError(
