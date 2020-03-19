@@ -14,11 +14,12 @@
 
 """Unit tests for pulse instructions."""
 
-from qiskit.pulse import Delay, DriveChannel, ShiftPhase, Snapshot
+from qiskit.pulse import DriveChannel, pulse_lib
+from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot
 from qiskit.test import QiskitTestCase
 
 
-class TestDelayCommand(QiskitTestCase):
+class TestDelay(QiskitTestCase):
     """Delay tests."""
 
     def test_delay(self):
@@ -52,3 +53,15 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(snapshot.name, "test_name")
         self.assertEqual(snapshot.type, "state")
         self.assertEqual(snapshot.duration, 0)
+
+
+class TestPlay(QiskitTestCase):
+    """Play tests."""
+
+    def test_play(self):
+        """Test basic play instruction."""
+        duration = 64
+        pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
+        play = Play(pulse, DriveChannel(1))
+        self.assertEqual(play.name, pulse.name)
+        self.assertEqual(play.duration, duration)

@@ -136,7 +136,7 @@ class Gaussian(ParametricPulse):
         """
         self._amp = complex(amp)
         self._sigma = sigma
-        super().__init__(duration=duration)
+        super().__init__(duration=duration, name=name)
 
     @property
     def amp(self) -> complex:
@@ -207,7 +207,7 @@ class GaussianSquare(ParametricPulse):
         self._amp = complex(amp)
         self._sigma = sigma
         self._width = width
-        super().__init__(duration=duration)
+        super().__init__(duration=duration, name=name)
 
     @property
     def amp(self) -> complex:
@@ -293,7 +293,7 @@ class Drag(ParametricPulse):
         self._amp = complex(amp)
         self._sigma = sigma
         self._beta = beta
-        super().__init__(duration=duration)
+        super().__init__(duration=duration, name=name)
 
     @property
     def amp(self) -> complex:
@@ -376,7 +376,7 @@ class ConstantPulse(ParametricPulse):
             name: Display name for this pulse envelope.
         """
         self._amp = complex(amp)
-        super().__init__(duration=duration)
+        super().__init__(duration=duration, name=name)
 
     @property
     def amp(self) -> complex:
