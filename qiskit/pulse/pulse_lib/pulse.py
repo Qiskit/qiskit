@@ -52,7 +52,7 @@ class Pulse(ABC):
 
     @abstractmethod
     def draw(self, dt: float = 1,
-             style: Optional['PulseStyle'] = None,
+             style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
