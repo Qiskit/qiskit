@@ -38,7 +38,7 @@ def _mct_v_chain(qc, control_qubits, target_qubit, ancillary_qubits, dirty_ancil
     by using the Toffoli implementation from Section IV.B of https://arxiv.org/abs/1508.03273
     """
 
-    if len(ancillary_qubits) < len(control_qubits) - 2:
+    if len(ancillary_qubits) < len(control_qubits) - 4:
         raise QiskitError('Insufficient number of ancillary qubits.')
 
     if dirty_ancilla:
