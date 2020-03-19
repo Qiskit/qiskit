@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,import-error
+# pylint: disable=import-error
 
 """
 Visualization functions for measurement counts.
@@ -52,7 +52,7 @@ DIST_MEAS = {'hamming': hamming_distance}
 
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                    sort='asc', target_string=None,
-                   legend=None, bar_labels=True, title=None):
+                   legend=None, bar_labels=True, title=None, ax=None):
     """Plot a histogram of data.
 
     Args:
@@ -69,14 +69,36 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
             list or 1 if it's a dict)
         bar_labels (bool): Label each bar in histogram with probability value.
         title (str): A string to use for the plot title
+        ax (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. Additionally, if specified there
+            will be no returned Figure since it is redundant.
 
     Returns:
-        matplotlib.Figure: A figure for the rendered histogram.
+        matplotlib.Figure:
+            A figure for the rendered histogram, if the ``ax``
+            kwarg is not set.
 
     Raises:
         ImportError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
+
+    Example:
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit.visualization import plot_histogram
+           %matplotlib inline
+
+           qc = QuantumCircuit(2, 2)
+           qc.h(0)
+           qc.cx(0, 1)
+           qc.measure([0, 1], [0, 1])
+
+           backend = BasicAer.get_backend('qasm_simulator')
+           job = execute(qc, backend)
+           plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
@@ -96,7 +118,17 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
 
-    fig, ax = plt.subplots(figsize=figsize)
+    # Set bar colors
+    if color is None:
+        color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
+    elif isinstance(color, str):
+        color = [color]
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig = None
+
     labels = list(sorted(
         functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
     if number_to_keep is not None:
@@ -110,17 +142,85 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         labels = [list(x) for x in zip(*sorted(zip(dist, labels),
                                                key=lambda pair: pair[0]))][1]
 
+    length = len(data)
+    width = 1/(len(data)+1)  # the width of the bars
+
+    labels_dict, all_pvalues, all_inds = _plot_histogram_data(data,
+                                                              labels,
+                                                              number_to_keep)
+    rects = []
+    for item, _ in enumerate(data):
+        for idx, val in enumerate(all_pvalues[item]):
+            label = None
+            if not idx and legend:
+                label = legend[item]
+            if val >= 0:
+                rects.append(ax.bar(idx+item*width, val, width, label=label,
+                                    color=color[item % len(color)],
+                                    zorder=2))
+        bar_center = (width / 2) * (length - 1)
+        ax.set_xticks(all_inds[item] + bar_center)
+        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
+        # attach some text labels
+        if bar_labels:
+            for rect in rects:
+                for rec in rect:
+                    height = rec.get_height()
+                    if height >= 1e-3:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '%.3f' % float(height),
+                                ha='center', va='bottom', zorder=3)
+                    else:
+                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
+                                '0',
+                                ha='center', va='bottom', zorder=3)
+
+    # add some text for labels, title, and axes ticks
+    ax.set_ylabel('Probabilities', fontsize=14)
+    all_vals = np.concatenate(all_pvalues).ravel()
+    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_vals])])])
+    if sort == 'desc':
+        ax.invert_xaxis()
+
+    ax.yaxis.set_major_locator(MaxNLocator(5))
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(14)
+    plt.grid(which='major', axis='y', zorder=0, linestyle='--')
+    if title:
+        plt.title(title)
+
+    if legend:
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
+                  borderaxespad=0, frameon=True, fontsize=12)
+    if fig:
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
+    return fig
+
+
+def _plot_histogram_data(data, labels, number_to_keep):
+    """Generate the data needed for plotting counts.
+
+    Parameters:
+        data (list or dict): This is either a list of dictionaries or a single
+            dict containing the values to represent (ex {'001': 130})
+        labels (list): The list of bitstring labels for the plot.
+        number_to_keep (int): The number of terms to plot and rest
+            is made into a single bar called 'rest'.
+
+    Returns:
+        tuple: tuple containing:
+            (dict): The labels actually used in the plotting.
+            (list): List of ndarrays for the bars in each experiment.
+            (list): Indices for the locations of the bars for each
+                    experiment.
+    """
     labels_dict = OrderedDict()
 
-    # Set bar colors
-    if color is None:
-        color = ['#648fff', '#dc267f', '#785ef0', '#ffb000', '#fe6100']
-    elif isinstance(color, str):
-        color = [color]
-
     all_pvalues = []
-    length = len(data)
-    for item, execution in enumerate(data):
+    all_inds = []
+    for execution in data:
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
@@ -139,56 +239,10 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         values = np.array(values, dtype=float)
         where_idx = np.where(values >= 0)[0]
         pvalues = values[where_idx] / sum(values[where_idx])
-        for value in pvalues:
-            all_pvalues.append(value)
+
+        all_pvalues.append(pvalues)
         numelem = len(values[where_idx])
         ind = np.arange(numelem)  # the x locations for the groups
-        width = 1/(len(data)+1)  # the width of the bars
-        rects = []
-        for idx, val in enumerate(pvalues):
-            label = None
-            if not idx and legend:
-                label = legend[item]
-            if val >= 0:
-                rects.append(ax.bar(idx+item*width, val, width, label=label,
-                                    color=color[item % len(color)],
-                                    zorder=2))
-        bar_center = (width / 2) * (length - 1)
-        ax.set_xticks(ind + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
-        # attach some text labels
-        if bar_labels:
-            for rect in rects:
-                for rec in rect:
-                    height = rec.get_height()
-                    if height >= 1e-3:
-                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
-                                '%.3f' % float(height),
-                                ha='center', va='bottom', zorder=3)
-                    else:
-                        ax.text(rec.get_x() + rec.get_width() / 2., 1.05 * height,
-                                '0',
-                                ha='center', va='bottom', zorder=3)
+        all_inds.append(ind)
 
-    # add some text for labels, title, and axes ticks
-    ax.set_ylabel('Probabilities', fontsize=14)
-    ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
-    if sort == 'desc':
-        ax.invert_xaxis()
-
-    ax.yaxis.set_major_locator(MaxNLocator(5))
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label.set_fontsize(14)
-    ax.set_facecolor('#eeeeee')
-    plt.grid(which='major', axis='y', zorder=0, linestyle='--')
-    if title:
-        plt.title(title)
-
-    if legend:
-        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
-                  borderaxespad=0, frameon=True, fontsize=12)
-    if fig:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(fig)
-    return fig
+    return labels_dict, all_pvalues, all_inds

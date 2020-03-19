@@ -12,40 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
-controlled-NOT gate.
+Controlled-not gate.
 """
+import warnings
+# pylint: disable=unused-import
+from qiskit.extensions.standard.x import CnotGate, cx
 
-import numpy
-
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-
-
-class CnotGate(Gate):
-    """controlled-NOT gate."""
-
-    def __init__(self):
-        """Create new CNOT gate."""
-        super().__init__("cx", 2, [])
-
-    def inverse(self):
-        """Invert this gate."""
-        return CnotGate()  # self-inverse
-
-    def to_matrix(self):
-        """Return a Numpy.array for the Cx gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, 1],
-                            [0, 0, 1, 0],
-                            [0, 1, 0, 0]], dtype=complex)
-
-
-def cx(self, ctl, tgt):
-    """Apply CX from ctl to tgt."""
-    return self.append(CnotGate(), [ctl, tgt], [])
-
-
-QuantumCircuit.cx = cx
+warnings.warn('This module is deprecated. The CnotGate can now be found in x.py',
+              category=DeprecationWarning, stacklevel=2)

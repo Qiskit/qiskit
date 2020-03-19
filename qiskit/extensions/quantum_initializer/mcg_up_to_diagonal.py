@@ -29,7 +29,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.ucg import UCG
+from qiskit.extensions.quantum_initializer.uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -42,8 +42,8 @@ class MCGupDiag(Gate):
     """
 
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
-        """
-        Initialize a multi controlled gate.
+        """Initialize a multi controlled gate.
+
             Args:
                 gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
                 num_controls (int): number of control qubits
@@ -94,14 +94,14 @@ class MCGupDiag(Gate):
         circuit = QuantumCircuit(q)
         (q_target, q_controls, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         # ToDo: Keep this threshold updated such that the lowest gate count is achieved:
-        # ToDo: we implement the MCG with a UCG up to diagonal if the number of controls is
+        # ToDo: we implement the MCG with a UCGate up to diagonal if the number of controls is
         # ToDo: smaller than the threshold.
         threshold = float("inf")
         if self.num_controls < threshold:
-            # Implement the MCG as a UCG (up to diagonal)
+            # Implement the MCG as a UCGate (up to diagonal)
             gate_list = [np.eye(2, 2) for i in range(2 ** self.num_controls)]
             gate_list[-1] = self.params[0]
-            ucg = UCG(gate_list, up_to_diagonal=True)
+            ucg = UCGate(gate_list, up_to_diagonal=True)
             circuit.append(ucg, [q_target] + q_controls)
             diag = ucg._get_diagonal()
             # else:

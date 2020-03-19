@@ -17,6 +17,7 @@
 import numpy as np
 
 from qiskit.result import models
+from qiskit.result import marginal_counts
 from qiskit.validation import base
 from qiskit.result import Result
 from qiskit.test import QiskitTestCase
@@ -57,6 +58,81 @@ class TestResultOperations(QiskitTestCase):
         result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_counts(0), processed_counts)
+
+    def test_multiple_circuits_counts(self):
+        """"
+        Test that counts are returned either as a list or a single item.
+
+        Counts are returned as a list when multiple experiments are executed
+        and get_counts() is called with no arguments. In all the other cases
+        get_counts() returns a single item containing the counts for a
+        single experiment.
+        """
+        raw_counts_1 = {'0x0': 5, '0x3': 12, '0x5': 9, '0xD': 6, '0xE': 2}
+        processed_counts_1 = {'0000': 5, '0011': 12, '0101': 9, '1101': 6, '1110': 2}
+        data_1 = models.ExperimentResultData(counts=base.Obj(**raw_counts_1))
+        exp_result_header_1 = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_1,
+                                               header=exp_result_header_1)
+
+        raw_counts_2 = {'0x1': 0, '0x4': 3, '0x6': 6, '0xA': 1, '0xB': 2}
+        processed_counts_2 = {'0001': 0, '0100': 3, '0110': 6, '1010': 1, '1011': 2}
+        data_2 = models.ExperimentResultData(counts=base.Obj(**raw_counts_2))
+        exp_result_header_2 = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_2 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_2,
+                                               header=exp_result_header_2)
+
+        raw_counts_3 = {'0xC': 27, '0xF': 20}
+        processed_counts_3 = {'1100': 27, '1111': 20}
+        data_3 = models.ExperimentResultData(counts=base.Obj(**raw_counts_3))
+        exp_result_header_3 = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_3 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_3,
+                                               header=exp_result_header_3)
+
+        mult_result = Result(results=[exp_result_1, exp_result_2, exp_result_3],
+                             **self.base_result_args)
+        sing_result = Result(results=[exp_result_1], **self.base_result_args)
+
+        self.assertEqual(mult_result.get_counts(), [processed_counts_1, processed_counts_2,
+                                                    processed_counts_3])
+        self.assertEqual(sing_result.get_counts(), processed_counts_1)
+
+    def test_marginal_counts(self):
+        """Test that counts are marginalized correctly."""
+        raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data = models.ExperimentResultData(counts=base.Obj(**raw_counts))
+        exp_result_header = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result = models.ExperimentResult(shots=54, success=True, data=data,
+                                             header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+        expected_marginal_counts = {'00': 4, '01': 27, '10': 23}
+
+        self.assertEqual(marginal_counts(result.get_counts(), [0, 1]), expected_marginal_counts)
+        self.assertEqual(marginal_counts(result.get_counts(), [1, 0]), expected_marginal_counts)
+
+    def test_marginal_counts_result(self):
+        """Test that a Result object containing counts marginalizes correctly."""
+        raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data_1 = models.ExperimentResultData(counts=base.Obj(**raw_counts_1))
+        exp_result_header_1 = base.Obj(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
+                                               header=exp_result_header_1)
+
+        raw_counts_2 = {'0x2': 5, '0x3': 8}
+        data_2 = models.ExperimentResultData(counts=base.Obj(**raw_counts_2))
+        exp_result_header_2 = base.Obj(creg_sizes=[['c0', 2]], memory_slots=2)
+        exp_result_2 = models.ExperimentResult(shots=13, success=True, data=data_2,
+                                               header=exp_result_header_2)
+
+        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+
+        expected_marginal_counts_1 = {'00': 4, '01': 27, '10': 23}
+        expected_marginal_counts_2 = {'0': 5, '1': 8}
+
+        self.assertEqual(marginal_counts(result, [0, 1]).get_counts(0),
+                         expected_marginal_counts_1)
+        self.assertEqual(marginal_counts(result, [0]).get_counts(1),
+                         expected_marginal_counts_2)
 
     def test_memory_counts_no_header(self):
         """Test that memory bitstrings are extracted properly without header."""

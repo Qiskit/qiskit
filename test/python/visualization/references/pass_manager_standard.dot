@@ -1,7 +1,8 @@
 digraph G {
 subgraph cluster_0 {
 fontname=helvetica;
-label=FlowLinear;
+label="[0] ";
+labeljust=l;
 1 [color=red, fontname=helvetica, label=SetLayout, shape=rectangle];
 2 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=solid];
 2 -> 1;
@@ -9,7 +10,8 @@ label=FlowLinear;
 
 subgraph cluster_3 {
 fontname=helvetica;
-label=Conditional;
+label="[1] condition";
+labeljust=l;
 4 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
 5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 5 -> 4;
@@ -18,63 +20,66 @@ label=Conditional;
 
 subgraph cluster_6 {
 fontname=helvetica;
-label=FlowLinear;
+label="[2] ";
+labeljust=l;
 7 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
 8 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 8 -> 7;
-9 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=dashed];
-9 -> 7;
 4 -> 7;
 }
 
-subgraph cluster_10 {
+subgraph cluster_9 {
 fontname=helvetica;
-label=FlowLinear;
-11 [color=blue, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
-12 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=dashed];
-12 -> 11;
-7 -> 11;
+label="[3] ";
+labeljust=l;
+10 [color=blue, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
+7 -> 10;
 }
 
-subgraph cluster_13 {
+subgraph cluster_11 {
 fontname=helvetica;
-label=FlowLinear;
-14 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
-15 [color=black, fontname=helvetica, fontsize=10, label=basis, shape=ellipse, style=solid];
-15 -> 14;
-11 -> 14;
+label="[4] ";
+labeljust=l;
+12 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
+13 [color=black, fontname=helvetica, fontsize=10, label=basis, shape=ellipse, style=solid];
+13 -> 12;
+10 -> 12;
 }
 
-subgraph cluster_16 {
+subgraph cluster_14 {
 fontname=helvetica;
-label=FlowLinear;
-17 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
-18 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-18 -> 17;
-14 -> 17;
+label="[5] ";
+labeljust=l;
+15 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
+16 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+16 -> 15;
+12 -> 15;
+}
+
+subgraph cluster_17 {
+fontname=helvetica;
+label="[6] do_while";
+labeljust=l;
+18 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
+15 -> 18;
 }
 
 subgraph cluster_19 {
 fontname=helvetica;
-label=DoWhile;
-20 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
-17 -> 20;
+label="[7] ";
+labeljust=l;
+20 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
+21 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+21 -> 20;
+18 -> 20;
 }
 
-subgraph cluster_21 {
+subgraph cluster_22 {
 fontname=helvetica;
-label=FlowLinear;
-22 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
-23 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-23 -> 22;
-20 -> 22;
-}
-
-subgraph cluster_24 {
-fontname=helvetica;
-label=FlowLinear;
-25 [color=blue, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
-22 -> 25;
+label="[8] ";
+labeljust=l;
+23 [color=blue, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+20 -> 23;
 }
 
 }

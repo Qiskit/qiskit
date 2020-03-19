@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -60,6 +60,7 @@ class DefaultStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
@@ -80,6 +81,7 @@ class DefaultStyle:
             'sdg': clifford_color,
             't': other_color,
             'tdg': other_color,
+            'r': other_color,
             'rx': other_color,
             'ry': other_color,
             'rz': other_color,
@@ -90,7 +92,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = 25
+        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -113,18 +115,22 @@ class DefaultStyle:
         self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
+        if 'fold' in dic:
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
+
         if dic:
-            warn('style option/s ({}) is/are not '
-                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)
 
 
 class BWStyle:
@@ -145,7 +151,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -158,6 +164,7 @@ class BWStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
@@ -178,6 +185,7 @@ class BWStyle:
             'sdg': '#ffffff',
             't': '#ffffff',
             'tdg': '#ffffff',
+            'r': '#ffffff',
             'rx': '#ffffff',
             'ry': '#ffffff',
             'rz': '#ffffff',
@@ -213,15 +221,19 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
+        if 'fold' in dic:
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
+
         if dic:
-            warn('style option/s ({}) is/are not '
-                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)

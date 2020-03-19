@@ -306,14 +306,7 @@ class TestStatevector(QiskitTestCase):
             vec1 = self.rand_vec(4)
             state0 = Statevector(vec0)
             state1 = Statevector(vec1)
-            self.assertEqual(state0.subtract(state1), Statevector(vec0 - vec1))
             self.assertEqual(state0 - state1, Statevector(vec0 - vec1))
-
-    def test_subtract_except(self):
-        """Test subtract method raises exceptions."""
-        state1 = Statevector(self.rand_vec(2))
-        state2 = Statevector(self.rand_vec(3))
-        self.assertRaises(QiskitError, state1.subtract, state2)
 
     def test_multiply(self):
         """Test multiply method."""

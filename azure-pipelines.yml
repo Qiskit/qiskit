@@ -11,6 +11,11 @@ trigger:
   tags:
     include:
       - '*'
+pr:
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
 
 stages:
   - stage: 'Wheel_Builds'
@@ -24,19 +29,22 @@ stages:
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
         - task: UsePythonVersion@0
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==1.0.0
+            pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
         - bash: |
             twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
       pool: {vmImage: 'Ubuntu-16.04'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -48,33 +56,39 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
+            pip install -U twine
             python setup.py sdist
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'dist'}
           condition: succeededOrFailed()
         - bash: |
             twine upload dist/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.13'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==0.11.1
+          pip install cibuildwheel==1.0.0
+          pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
       - bash: |
           twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -95,14 +109,16 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==1.0.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - bash: |
+        - script: |
             twine upload wheelhouse\*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
     condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
     jobs:
@@ -111,8 +127,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -122,9 +138,10 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -161,8 +178,8 @@ stages:
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -172,7 +189,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -200,22 +217,23 @@ stages:
             python -m pip install --upgrade pip
             pip install -U tox
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
-            tox -edocs -- -j auto
+            tox -edocs
           displayName: 'Run Docs build'
         - task: PublishBuildArtifacts@1
           displayName: 'Publish docs'
           inputs:
             pathtoPublish: 'docs/_build/html'
             artifactName: 'html_docs'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -225,7 +243,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -273,6 +291,8 @@ stages:
             python.version: '3.6'
           Python37:
             python.version: '3.7'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -282,7 +302,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
@@ -323,8 +343,10 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python35:
+            python.version: '3.5'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -334,9 +356,10 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
+            sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -368,15 +391,17 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python35:
+            python.version: '3.5'
+          Python38:
+            python.version: '3.8'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -386,7 +411,7 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -e .
+            pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'

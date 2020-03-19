@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Disassemble function for a qobj into a list of circuits and it's config"""
+"""Disassemble function for a qobj into a list of circuits and its config"""
 
 import collections
 
@@ -23,7 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 def _experiments_to_circuits(qobj):
-    """Return a list of QuantumCircuit object(s) from a qobj
+    """Return a list of QuantumCircuit object(s) from a qobj.
 
     Args:
         qobj (Qobj): The Qobj object to convert to QuantumCircuits
@@ -50,8 +50,6 @@ def _experiments_to_circuits(qobj):
             conditional = {}
             for i in x.instructions:
                 name = i.name
-                if i.name == 'id':
-                    name = 'iden'
                 qubits = []
                 params = getattr(i, 'params', [])
                 try:
@@ -125,7 +123,7 @@ def _experiments_to_circuits(qobj):
 
 
 def disassemble(qobj):
-    """Disassemble a qobj and return the circuits, run_config, and user header
+    """Disassemble a qobj and return the circuits, run_config, and user header.
 
     Args:
         qobj (Qobj): The input qobj object to disassemble
@@ -133,7 +131,7 @@ def disassemble(qobj):
     Returns:
         tuple: (circuits, run_config, user_qobj_header):
             * circuits (list): A list of quantum circuits
-            * run_config (dict): The dist of the run config
+            * run_config (dict): The dict of the run config
             * user_qobj_header (dict): The dict of any user headers in the qobj
     """
     run_config = qobj.config.to_dict()

@@ -18,10 +18,12 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile, assemble
+from qiskit.transpiler import CouplingMap
 from qiskit.extensions.standard import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
+from qiskit.converters import circuit_to_dag
 
 
 def emptycircuit():
@@ -135,7 +137,7 @@ class TestPassesInspection(QiskitTestCase):
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
-    """Test transpiing with different layouts"""
+    """Test transpiling with different layouts"""
 
     @data(0, 1, 2, 3)
     def test_layout_1711(self, level):
@@ -263,18 +265,26 @@ class TestFinalLayouts(QiskitTestCase):
                           13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
                           17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
 
-        noise_adaptive_layout = {6: qr1[0], 11: qr1[1], 5: qr1[2],
-                                 0: qr2[0], 1: qr2[1],
-                                 2: ancilla[0], 3: ancilla[1], 4: ancilla[2],
-                                 7: ancilla[3], 8: ancilla[4], 9: ancilla[5],
-                                 10: ancilla[6], 12: ancilla[7], 13: ancilla[8],
-                                 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
-                                 17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+        dense_layout = {0: qr2[1], 1: qr1[2], 2: qr1[0], 3: ancilla[0], 4: ancilla[1], 5: qr2[0],
+                        6: qr1[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
+                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
+                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                        19: ancilla[14]}
 
+        csp_layout = {0: qr1[1], 1: qr1[2], 2: qr2[0], 5: qr1[0], 3: qr2[1], 4: ancilla[0],
+                      6: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
+                      11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
+                      15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                      19: ancilla[14]}
+
+        # Trivial layout
         expected_layout_level0 = trivial_layout
-        expected_layout_level1 = trivial_layout
-        expected_layout_level2 = noise_adaptive_layout
-        expected_layout_level3 = noise_adaptive_layout
+        # Dense layout
+        expected_layout_level1 = dense_layout
+        # CSP layout
+        expected_layout_level2 = csp_layout
+        expected_layout_level3 = csp_layout
+
         expected_layouts = [expected_layout_level0,
                             expected_layout_level1,
                             expected_layout_level2,
@@ -282,3 +292,155 @@ class TestFinalLayouts(QiskitTestCase):
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_layout_tokyo_fully_connected_cx(self, level):
+        """Test that final layout in tokyo in a fully connected circuit
+        """
+        qr = QuantumRegister(5, 'qr')
+        qc = QuantumCircuit(qr)
+        for qubit_target in qr:
+            for qubit_control in qr:
+                if qubit_control != qubit_target:
+                    qc.cx(qubit_control, qubit_target)
+
+        ancilla = QuantumRegister(15, 'ancilla')
+
+        trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
+                          5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                          9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                          13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                          17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+
+        dense_layout = {2: qr[0], 6: qr[1], 1: qr[2], 5: qr[3], 0: qr[4], 3: ancilla[0],
+                        4: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
+                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
+                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+                        19: ancilla[14]}
+
+        # noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4],
+        #                          0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
+        #                          4: ancilla[4], 7: ancilla[5], 8: ancilla[6], 9: ancilla[7],
+        #                          12: ancilla[8], 13: ancilla[9], 14: ancilla[10],
+        #                          16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+        #                          19: ancilla[14]}
+
+        expected_layout_level0 = trivial_layout
+        expected_layout_level1 = dense_layout
+        expected_layout_level2 = dense_layout
+        expected_layout_level3 = dense_layout
+
+        expected_layouts = [expected_layout_level0,
+                            expected_layout_level1,
+                            expected_layout_level2,
+                            expected_layout_level3]
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1)
+    def test_trivial_layout(self, level):
+        """Test that trivial layout is preferred in level 0 and 1
+        See: https://github.com/Qiskit/qiskit-terra/pull/3657#pullrequestreview-342012465
+        """
+        qr = QuantumRegister(10, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[9])
+        qc.cx(qr[4], qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[7], qr[6])
+        qc.cx(qr[6], qr[5])
+        qc.cx(qr[5], qr[0])
+
+        ancilla = QuantumRegister(10, 'ancilla')
+        trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
+                          5: qr[5], 6: qr[6], 7: qr[7], 8: qr[8], 9: qr[9],
+                          10: ancilla[0], 11: ancilla[1], 12: ancilla[2], 13: ancilla[3],
+                          14: ancilla[4], 15: ancilla[5], 16: ancilla[6], 17: ancilla[7],
+                          18: ancilla[8], 19: ancilla[9]}
+
+        expected_layouts = [trivial_layout, trivial_layout]
+
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout(self, level):
+        """When a user provides a layout (initial_layout), it should be used.
+        """
+        qr = QuantumRegister(10, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[9])
+        qc.cx(qr[4], qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[7], qr[6])
+        qc.cx(qr[6], qr[5])
+        qc.cx(qr[5], qr[0])
+
+        initial_layout = {0: qr[0], 2: qr[1], 4: qr[2], 6: qr[3], 8: qr[4],
+                          10: qr[5], 12: qr[6], 14: qr[7], 16: qr[8], 18: qr[9]}
+
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, initial_layout=initial_layout,
+                           seed_transpiler=42)
+
+        for physical, virtual in initial_layout.items():
+            self.assertEqual(result._layout._p2v[physical], virtual)
+
+
+@ddt
+class TestTranspileLevelsSwap(QiskitTestCase):
+    """Test if swap is in the basis, do not unroll
+    See https://github.com/Qiskit/qiskit-terra/pull/3963
+    The circuit in combine should require a swap and that swap should exit at the end
+    for the transpilation"""
+
+    @combine(circuit=[circuit_2532],
+             level=[0, 1, 2, 3],
+             dsc='circuit: {circuit.__name__}, level: {level}',
+             name='{circuit.__name__}_level{level}')
+    def test_1(self, circuit, level):
+        """Simple coupling map (linear 5 qubits)."""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit(),
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42,
+                           initial_layout=[0, 1, 2, 3, 4])
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)
+
+    @combine(level=[0, 1, 2, 3],
+             dsc='If swap in basis, do not decompose it. level: {level}',
+             name='level{level}')
+    def test_2(self, level):
+        """Simple coupling map (linear 5 qubits).
+        The circuit requires a swap and that swap should exit at the end
+        for the transpilation"""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 4)
+        circuit.cx(1, 4)
+        circuit.cx(2, 4)
+        circuit.cx(3, 4)
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit,
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)

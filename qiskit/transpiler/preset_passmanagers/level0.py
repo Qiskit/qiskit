@@ -12,16 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Level 0 pass manager:
-no optimization, just conforming to basis and coupling map
+"""Pass manager for optimization level 0, providing no explicit optimization.
+
+Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import Decompose
+from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
@@ -35,28 +35,30 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
 
-def level_0_pass_manager(transpile_config):
-    """
-    Level 0 pass manager: no explicit optimization other than mapping to backend.
+def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+    """Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
     layout consisting of mapping the i-th virtual qubit to the i-th physical qubit is used.
     Any unused physical qubit is allocated as ancilla space.
+
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map. Finally, extra resets are removed.
-    Note: in simulators where coupling_map=None, only the unrolling and optimization
-    stages are done.
+
+    Note:
+        In simulators where ``coupling_map=None``, only the unrolling and
+        optimization stages are done.
 
     Args:
-        transpile_config (TranspileConfig)
+        pass_manager_config: configuration of the pass manager.
 
     Returns:
-        PassManager: a level 0 pass manager.
+        a level 0 pass manager.
     """
-    basis_gates = transpile_config.basis_gates
-    coupling_map = transpile_config.coupling_map
-    initial_layout = transpile_config.initial_layout
-    seed_transpiler = transpile_config.seed_transpiler
+    basis_gates = pass_manager_config.basis_gates
+    coupling_map = pass_manager_config.coupling_map
+    initial_layout = pass_manager_config.initial_layout
+    seed_transpiler = pass_manager_config.seed_transpiler
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -69,8 +71,8 @@ def level_0_pass_manager(transpile_config):
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 3. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    # 3. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = Unroll3qOrMore()
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -79,10 +81,12 @@ def level_0_pass_manager(transpile_config):
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
-             Decompose(SwapGate)]
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
 
-    # 5. Fix any bad CX directions
+    # 5. Unroll to the basis
+    _unroll = Unroller(basis_gates)
+
+    # 6. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -90,21 +94,22 @@ def level_0_pass_manager(transpile_config):
 
     _direction = [CXDirection(coupling_map)]
 
-    # 6. Remove zero-state reset
+    # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
+    # Build pass manager
     pm0 = PassManager()
     if coupling_map:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
-    pm0.append(_unroll)
-    if coupling_map:
+        pm0.append(_unroll3q)
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
-        if not coupling_map.is_symmetric:
-            pm0.append(_direction_check)
-            pm0.append(_direction, condition=_direction_condition)
+    pm0.append(_unroll)
+    if coupling_map and not coupling_map.is_symmetric:
+        pm0.append(_direction_check)
+        pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
 
     return pm0

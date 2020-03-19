@@ -12,21 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
 import numpy as np
 
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
-from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
@@ -52,12 +43,12 @@ class TestCircuitRegisters(QiskitTestCase):
     def test_qarg_negative_size(self):
         """Test attempt to create a negative size QuantumRegister.
         """
-        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, -1)
+        self.assertRaises(CircuitError, QuantumRegister, -1)
 
     def test_qarg_string_size(self):
         """Test attempt to create a non-integer size QuantumRegister.
         """
-        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, 'string')
+        self.assertRaises(CircuitError, QuantumRegister, 'string')
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister.
@@ -245,7 +236,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qc.cswap(qr2[3::-1], qr1[1:9:2], qr1[2:9:2])
         qc.cswap(qr2[0], qr1[1], qr1[2])
         qc.cswap([qr2[0]], [qr1[1]], [qr1[2]])
-        self.assertRaises(qiskit.exceptions.QiskitError, qc.cswap, qr2[4::-1],
+        self.assertRaises(CircuitError, qc.cswap, qr2[4::-1],
                           qr1[1:9:2], qr1[2:9:2])
 
     def test_apply_ccx_to_empty_slice(self):
@@ -253,14 +244,14 @@ class TestCircuitRegisters(QiskitTestCase):
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
-        self.assertRaises(qiskit.exceptions.QiskitError, qc.ccx, qr[2:0], qr[4:2], qr[7:5])
+        self.assertRaises(CircuitError, qc.ccx, qr[2:0], qr[4:2], qr[7:5])
 
     def test_apply_cx_to_non_register(self):
         """test applying ccx to non-register raises"""
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
-        self.assertRaises(qiskit.exceptions.QiskitError, qc.cx, qc[0:2], qc[2:4])
+        self.assertRaises(CircuitError, qc.cx, qc[0:2], qc[2:4])
 
     def test_apply_ch_to_slice(self):
         """test applying ch to slice"""
@@ -343,7 +334,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(CircuitError):
             qc.measure(qr[0:2], cr[2])
         # this is ok
         qc.measure(qr[0], cr[0:2])
@@ -368,6 +359,17 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(qargs), 2)
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
+
+    def test_bit_index_mix_list(self):
+        """Test mix of bit and index in list indexing"""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.h([qr[0], qr[1]])
+
+        qc.h([qr[0], 1])
+        self.assertEqual(qc, expected)
 
     def test_4_args_custom_gate_trivial_expansion(self):
         """test 'expansion' of 4 args in custom gate.
@@ -409,39 +411,42 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.name, 'unitary')
             self.assertEqual(len(qargs), 4)
 
+    def test_quantumregister_hash_upate_name(self):
+        """Test QuantumRegister hash changes on name update."""
+        test_reg = QuantumRegister(2)
+        orig_hash = hash(test_reg)
+        orig_bit_hashes = [hash(x) for x in test_reg]
+        test_reg.name = 'test_quantum'
+        new_hash = hash(test_reg)
+        new_bit_hashes = [hash(x) for x in test_reg]
+        self.assertNotEqual(orig_hash, new_hash)
+        for x in range(2):
+            self.assertNotEqual(orig_bit_hashes[x], new_bit_hashes[x])
 
-class TestCircuitBit(QiskitTestCase):
-    """QuantumCircuit Registers tests."""
+    def test_quantumregister_hash_upate_size(self):
+        """Test QuantumRegister hash changes on size update."""
+        test_reg = QuantumRegister(2)
+        orig_hash = hash(test_reg)
+        test_reg.size = 3
+        new_hash = hash(test_reg)
+        self.assertNotEqual(orig_hash, new_hash)
 
-    def test_bit_getitem(self):
-        """ Deprecated Bit.__getitem__.
-        """
-        qubit = QuantumRegister(1, "q")[0]
+    def test_classicalregister_hash_upate_name(self):
+        """Test ClassicalRegister hash changes on name update."""
+        test_reg = ClassicalRegister(2)
+        orig_hash = hash(test_reg)
+        orig_bit_hashes = [hash(x) for x in test_reg]
+        test_reg.name = 'test_classical'
+        new_hash = hash(test_reg)
+        new_bit_hashes = [hash(x) for x in test_reg]
+        self.assertNotEqual(orig_hash, new_hash)
+        for x in range(2):
+            self.assertNotEqual(orig_bit_hashes[x], new_bit_hashes[x])
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qubit[0], qubit.register)
-            self.assertEqual(qubit[1], qubit.index)
-
-    def test_gate_with_tuples(self):
-        """ Deprecated gate parameters as tuples"""
-        qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h(qr[0])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h((qr, 0))
-        self.assertEqual(qc, expected)
-
-    def test_gate_with_tuple_list(self):
-        """ Deprecated gate parameters as tuple list"""
-        qr = QuantumRegister(2)
-        qc = QuantumCircuit(qr)
-
-        expected = QuantumCircuit(qr)
-        expected.h([qr[0], qr[1]])
-
-        with self.assertWarns(DeprecationWarning):
-            qc.h([(qr, 0), (qr, 1)])
-        self.assertEqual(qc, expected)
+    def test_classicalregister_hash_upate_size(self):
+        """Test ClassicalRegister hash changes on size update."""
+        test_reg = ClassicalRegister(2)
+        orig_hash = hash(test_reg)
+        test_reg.size = 3
+        new_hash = hash(test_reg)
+        self.assertNotEqual(orig_hash, new_hash)

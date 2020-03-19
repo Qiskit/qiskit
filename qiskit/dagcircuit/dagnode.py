@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Object to represent the information at a node in the DAGCircuit"""
+"""Object to represent the information at a node in the DAGCircuit."""
 
 import warnings
 
@@ -20,7 +20,7 @@ from qiskit.exceptions import QiskitError
 
 
 class DAGNode:
-    """Object to represent the information at a node in the DAGCircuit
+    """Object to represent the information at a node in the DAGCircuit.
 
     It is used as the return value from `*_nodes()` functions and can
     be supplied to functions that take a node.
@@ -33,19 +33,19 @@ class DAGNode:
 
     @property
     def type(self):
-        """Returns a str which is the type of the node else None"""
+        """Returns a str that is the type of the node, else None"""
         return self.data_dict.get('type')
 
     @property
     def op(self):
-        """Returns the Instruction object corresponding to the op for the node else None"""
+        """Returns the Instruction object corresponding to the op for the node, else None"""
         if 'type' not in self.data_dict or self.data_dict['type'] != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
         return self.data_dict.get('op')
 
     @property
     def name(self):
-        """Returns a str which is the name of the node else None"""
+        """Returns a str that is the name of the node, else None"""
         return self.data_dict.get('name')
 
     @name.setter
@@ -56,21 +56,19 @@ class DAGNode:
     @property
     def qargs(self):
         """
-        Returns list of (QuantumRegister, int) tuples where the int is the index
-        of the qubit else an empty list
+        Returns list of Qubit, else an empty list.
         """
         return self.data_dict.get('qargs', [])
 
     @qargs.setter
     def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs"""
+        """Sets the qargs to be the given list of qargs."""
         self.data_dict['qargs'] = new_qargs
 
     @property
     def cargs(self):
         """
-        Returns list of (ClassicalRegister, int) tuples where the int is the index
-        of the cbit else an empty list
+        Returns list of Clbit, else an empty list.
         """
         return self.data_dict.get('cargs', [])
 
@@ -78,15 +76,14 @@ class DAGNode:
     def condition(self):
         """
         Returns a tuple (ClassicalRegister, int) where the int is the
-        value of the condition else None
+        value of the condition, else None.
         """
         return self.data_dict.get('condition')
 
     @property
     def wire(self):
         """
-        Returns (Register, int) tuple where the int is the index of
-        the wire else None
+        Returns the Bit object, else None.
         """
         if self.data_dict['type'] not in ['in', 'out']:
             raise QiskitError('The node %s is not an input/output node' % str(self))
@@ -99,8 +96,8 @@ class DAGNode:
         return self._node_id > other._node_id
 
     def __hash__(self):
-        """Needed for ancestors function, which returns a set
-        to be in a set requires the object to be hashable
+        """Needed for ancestors function, which returns a set.
+        To be in a set requires the object to be hashable
         """
         return hash(id(self))
 
@@ -110,14 +107,14 @@ class DAGNode:
         return str(id(self))
 
     def pop(self, val):
-        """Remove the provided value from the dictionary"""
+        """Remove the provided value from the dictionary."""
         warnings.warn('DAGNode.pop has been deprecated.', DeprecationWarning)
         del self.data_dict[val]
 
     @staticmethod
     def semantic_eq(node1, node2):
         """
-        Check if DAG nodes are considered equivalent, e.g. as a node_match for nx.is_isomorphic.
+        Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
 
         Args:
             node1 (DAGNode): A node to compare.

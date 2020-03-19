@@ -17,7 +17,7 @@ Classical register reference object.
 """
 import itertools
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from .register import Register
 from .bit import Bit
 
@@ -26,11 +26,21 @@ class Clbit(Bit):
     """Implement a classical bit."""
 
     def __init__(self, register, index):
+        """Creates a classical bit.
+
+        Args:
+            register (ClassicalRegister): a classical register.
+            index (int): the index to insert the bit
+
+        Raises:
+            CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
+        """
+
         if isinstance(register, ClassicalRegister):
             super().__init__(register, index)
         else:
-            raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
-                              type(register).__name__)
+            raise CircuitError('Clbit needs a ClassicalRegister and %s was provided' %
+                               type(register).__name__)
 
 
 class ClassicalRegister(Register):

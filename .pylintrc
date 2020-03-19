@@ -72,7 +72,8 @@ disable=no-self-use,        # disabled as it is too verbose
     too-many-public-methods, too-few-public-methods, too-many-ancestors,
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
-    docstring-first-line-empty # relax docstring style
+    docstring-first-line-empty, # relax docstring style
+    import-outside-toplevel
 
 
 
@@ -172,7 +173,7 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 attr-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{2,30}|ax|dt$
 
 # Naming hint for argument names
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$
@@ -297,7 +298,7 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=matplotlib.cm,numpy.random
+ignored-modules=matplotlib.cm,numpy.random,retworkx
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of

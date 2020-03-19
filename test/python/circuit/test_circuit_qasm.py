@@ -12,20 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
-
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -60,9 +49,9 @@ include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
 creg cr[3];
-u1(0.300000000000000) qr1[0];
-u2(0.200000000000000,0.100000000000000) qr2[0];
-u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
+u1(0.3) qr1[0];
+u2(0.2,0.1) qr2[0];
+u3(0.3,0.2,0.1) qr2[1];
 s qr2[1];
 sdg qr2[1];
 cx qr1[0],qr2[1];

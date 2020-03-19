@@ -14,13 +14,14 @@
 
 """Tests for Kraus quantum channel representation class."""
 
+import copy
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.channel import Kraus
+from qiskit.quantum_info import Kraus
 from .channel_test_case import ChannelTestCase
 
 
@@ -79,11 +80,25 @@ class TestKraus(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
+        mat = np.eye(2)
+        with self.subTest("Deep copy"):
+            orig = Kraus(mat)
+            cpy = orig.copy()
+            cpy._data[0][0][0, 0] = 0.0
+            self.assertFalse(cpy == orig)
+        with self.subTest("Shallow copy"):
+            orig = Kraus(mat)
+            clone = copy.copy(orig)
+            clone._data[0][0][0, 0] = 0.0
+            self.assertTrue(clone == orig)
+
+    def test_clone(self):
+        """Test clone method"""
         mat = np.eye(4)
         orig = Kraus(mat)
-        cpy = orig.copy()
-        cpy._data[0][0][0, 0] = 0.0
-        self.assertFalse(cpy == orig)
+        clone = copy.copy(orig)
+        clone._data[0][0][0, 0] = 0.0
+        self.assertTrue(clone == orig)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -180,8 +195,34 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho @ chan, targ)
 
+    def test_dot(self):
+        """Test dot method."""
+        # Random input test state
+        rho = DensityMatrix(self.rand_rho(2))
+
+        # UnitaryChannel evolution
+        chan1 = Kraus(self.UX)
+        chan2 = Kraus(self.UY)
+        targ = rho.evolve(Kraus(self.UZ))
+        self.assertEqual(rho.evolve(chan1.dot(chan2)), targ)
+        self.assertEqual(rho.evolve(chan1 * chan2), targ)
+
+        # 50% depolarizing channel
+        chan1 = Kraus(self.depol_kraus(0.5))
+        targ = rho @ Kraus(self.depol_kraus(0.75))
+        self.assertEqual(rho.evolve(chan1.dot(chan1)), targ)
+        self.assertEqual(rho.evolve(chan1 * chan1), targ)
+
+        # Compose different dimensions
+        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
+        chan1 = Kraus(kraus1)
+        chan2 = Kraus(kraus2)
+        targ = rho @ chan1 @ chan2
+        self.assertEqual(rho.evolve(chan2.dot(chan1)), targ)
+        self.assertEqual(rho.evolve(chan2 * chan1), targ)
+
     def test_compose_front(self):
-        """Test front compose method."""
+        """Test deprecated front compose method."""
         # Random input test state
         rho = DensityMatrix(self.rand_rho(2))
 
@@ -290,7 +331,7 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) + (rho @ chan2)
-        chan = chan1.add(chan2)
+        chan = chan1._add(chan2)
         self.assertEqual(rho @ chan, targ)
         chan = chan1 + chan2
         self.assertEqual(rho @ chan, targ)
@@ -298,8 +339,58 @@ class TestKraus(ChannelTestCase):
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 2 * (rho @ chan)
-        chan = chan.add(chan)
+        chan = chan._add(chan)
         self.assertEqual(rho @ chan, targ)
+
+    def test_add_qargs(self):
+        """Test add method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        kraus = self.rand_kraus(8, 8, 4)
+        kraus0 = self.rand_kraus(2, 2, 4)
+
+        op = Kraus(kraus)
+        op0 = Kraus(kraus0)
+        eye = Kraus(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op + op0([0])
+            target = op + eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op + op0([1])
+            target = op + eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op + op0([2])
+            target = op + op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+    def test_sub_qargs(self):
+        """Test sub method with qargs."""
+        rho = DensityMatrix(self.rand_rho(8))
+        kraus = self.rand_kraus(8, 8, 4)
+        kraus0 = self.rand_kraus(2, 2, 4)
+
+        op = Kraus(kraus)
+        op0 = Kraus(kraus0)
+        eye = Kraus(self.UI)
+
+        with self.subTest(msg='qargs=[0]'):
+            value = op - op0([0])
+            target = op - eye.tensor(eye).tensor(op0)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[1]'):
+            value = op - op0([1])
+            target = op - eye.tensor(op0).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
+
+        with self.subTest(msg='qargs=[2]'):
+            value = op - op0([2])
+            target = op - op0.tensor(eye).tensor(eye)
+            self.assertEqual(rho @ value, rho @ target)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -311,15 +402,13 @@ class TestKraus(ChannelTestCase):
         chan1 = Kraus(kraus1)
         chan2 = Kraus(kraus2)
         targ = (rho @ chan1) - (rho @ chan2)
-        chan = chan1.subtract(chan2)
-        self.assertEqual(rho @ chan, targ)
         chan = chan1 - chan2
         self.assertEqual(rho @ chan, targ)
 
         # Random Single-Kraus maps
         chan = Kraus((kraus1, kraus2))
         targ = 0 * (rho @ chan)
-        chan = chan.subtract(chan)
+        chan = chan - chan
         self.assertEqual(rho @ chan, targ)
 
     def test_multiply(self):
@@ -332,28 +421,26 @@ class TestKraus(ChannelTestCase):
         # Single Kraus set
         chan1 = Kraus(kraus1)
         targ = val * (rho @ chan1)
-        chan = chan1.multiply(val)
+        chan = chan1._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan1
-        self.assertEqual(rho @ chan, targ)
-        chan = chan1 * val
         self.assertEqual(rho @ chan, targ)
 
         # Double Kraus set
         chan2 = Kraus((kraus1, kraus2))
         targ = val * (rho @ chan2)
-        chan = chan2.multiply(val)
+        chan = chan2._multiply(val)
         self.assertEqual(rho @ chan, targ)
         chan = val * chan2
-        self.assertEqual(rho @ chan, targ)
-        chan = chan2 * val
         self.assertEqual(rho @ chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Kraus(self.depol_kraus(1))
-        self.assertRaises(QiskitError, chan.multiply, 's')
-        self.assertRaises(QiskitError, chan.multiply, chan)
+        self.assertRaises(QiskitError, chan._multiply, 's')
+        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, chan)
+        self.assertRaises(QiskitError, chan.__rmul__, chan)
 
     def test_negate(self):
         """Test negate method"""

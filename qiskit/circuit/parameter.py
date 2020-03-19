@@ -17,13 +17,11 @@ Parameter Class for variable parameters.
 
 from uuid import uuid4
 
-import sympy
-
 from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters"""
+    """Parameter Class for variable parameters."""
 
     def __new__(cls, _, uuid=None):
         # Parameter relies on self._uuid being set prior to other attributes
@@ -48,7 +46,8 @@ class Parameter(ParameterExpression):
     def __init__(self, name):
         self._name = name
 
-        symbol = sympy.Symbol(name)
+        from sympy import Symbol
+        symbol = Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
     def subs(self, parameter_map):

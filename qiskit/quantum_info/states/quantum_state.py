@@ -52,8 +52,12 @@ class QuantumState(ABC):
         return False
 
     def __repr__(self):
-        return '{}({}, dims={})'.format(
-            self.rep, self.data, self._dims)
+        prefix = '{}('.format(self.rep)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self.data, separator=', ', prefix=prefix),
+            pad, self._dims)
 
     @property
     def rep(self):
@@ -72,12 +76,12 @@ class QuantumState(ABC):
 
     @property
     def _atol(self):
-        """The absolute tolerence parameter for float comparisons."""
+        """The absolute tolerance parameter for float comparisons."""
         return self.__class__.ATOL
 
     @_atol.setter
     def _atol(self, atol):
-        """Set the absolute tolerence parameter for float comparisons."""
+        """Set the absolute tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL
@@ -90,12 +94,12 @@ class QuantumState(ABC):
 
     @property
     def _rtol(self):
-        """The relative tolerence parameter for float comparisons."""
+        """The relative tolerance parameter for float comparisons."""
         return self.__class__.RTOL
 
     @_rtol.setter
     def _rtol(self, rtol):
-        """Set the relative tolerence parameter for float comparisons."""
+        """Set the relative tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL

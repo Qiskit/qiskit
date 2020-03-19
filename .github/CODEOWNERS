@@ -2,6 +2,9 @@
 # modify particular files in the repo. The PR can be merged when approved by at 
 # least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
+# Global rule, unless specialized by a later one
+* @ajavadia @kdk @mtreinish @1ucian0
+
 # Individual folders on root directory
 /tools/               @mtreinish @kdk
 /examples/            @jaygambetta @mtreinish @maddy-tod
@@ -9,21 +12,20 @@ test/                 @ajavadia @mtreinish @kdk @1ucian0
 docs/                 @nonhermitian @mtreinish
 
 # Qiskit folders (also their corresponding tests)
-assembler/            @diego-plan @taalexander @mtreinish
-circuit/              @ajavadia @kdk @ewinston @jaygambetta @1ucian0
-compiler/             @jaygambetta @ajavadia @kdk
-converters/           @mtreinish @1ucian0
+circuit/              @ajavadia @kdk @ewinston @1ucian0 @mtreinish
+extensions/           @ajavadia @kdk @ewinston @1ucian0 @mtreinish
 dagcircuit/           @ajavadia @kdk @1ucian0 @maddy-tod
-extensions/           @ajavadia @kdk @ewinston
-providers/            @diego-plan9 @mtreinish
+providers/            @ajavadia @mtreinish @diego-plan9 @jyu00 @chriseclectic @ewinston
 basicaer/             @chriseclectic @ajavadia
-pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989
-qobj/                 @diego-plan9 @jyu00 @taalexander
-quantum_info/         @chriseclectic @jaygambetta @levbishop @ajavadia
+pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
+scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
+quantum_info/         @chriseclectic @ajavadia @ewinston
 qi/                   @chriseclectic @ajavadia
-result/               @diego-plan9 @jyu00 @taalexander @mtreinish
-schemas/              @diego-plan9 @dcmckayibm
-qiskit/tools/         @nonhermitian
+result/               @diego-plan9 @jyu00 @taalexander @mtreinish @ajavadia
+schemas/              @diego-plan9 @mtreinish @taalexander
 transpiler/           @ajavadia @kdk @1ucian0 @itoko @mtreinish
-validation/           @diego-plan9 @atilag
-visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod
+assembler/            @ajavadia @kdk @diego-plan9 @taalexander @mtreinish @lcapelluto
+compiler/             @ajavadia @kdk @diego-plan9 @1ucian0 @taalexander @mtreinish @lcapelluto
+qobj/                 @diego-plan9 @jyu00 @taalexander @kdk @mtreinish
+validation/           @ajavadia @diego-plan9 @taalexander @mtreinish
+visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod @ajavadia

@@ -27,15 +27,9 @@ from .fake_backend import FakeBackend
 from .fake_job import FakeJob
 from .fake_qobj import FakeQobj
 
+from .backends import *
+
 from .fake_qasm_simulator import FakeQasmSimulator
-
-from .fake_yorktown import FakeYorktown
-from .fake_tenerife import FakeTenerife
-from .fake_ourense import FakeOurense
-from .fake_melbourne import FakeMelbourne
-from .fake_rueschlikon import FakeRueschlikon
-from .fake_tokyo import FakeTokyo
-from .fake_poughkeepsie import FakePoughkeepsie
-from .fake_boeblingen import FakeBoeblingen
-
 from .fake_openpulse_2q import FakeOpenPulse2Q
+from .fake_openpulse_3q import FakeOpenPulse3Q
+from .fake_1q import Fake1Q

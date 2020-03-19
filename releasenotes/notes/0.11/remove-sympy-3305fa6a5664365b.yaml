@@ -1,0 +1,20 @@
+---
+deprecations:
+  - |
+    Passing in ``sympy.Basic``, ``sympy.Expr`` and ``sympy.Matrix`` types as
+    instruction parameters are deprecated and will be removed in a future
+    release. You'll need to convert the input to one of the supported types
+    which are:
+
+    * ``int``
+    * ``float``
+    * ``complex``
+    * ``str``
+    * ``np.ndarray``
+
+other:
+  - |
+    All sympy parameter output type support have been been removed (or
+    deprecated as noted) from qiskit-terra. This includes sympy type
+    parameters in ``QuantumCircuit`` objects, qasm ast nodes, or ``Qobj``
+    objects.

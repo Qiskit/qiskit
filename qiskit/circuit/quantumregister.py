@@ -17,7 +17,7 @@ Quantum register reference object.
 """
 import itertools
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from .register import Register
 from .bit import Bit
 
@@ -26,11 +26,21 @@ class Qubit(Bit):
     """Implement a quantum bit."""
 
     def __init__(self, register, index):
+        """Creates a qubit.
+
+        Args:
+            register (QuantumRegister): a quantum register.
+            index (int): the index to insert the qubit
+
+        Raises:
+            CircuitError: if the provided register is not a valid :class:`QuantumRegister`
+        """
+
         if isinstance(register, QuantumRegister):
             super().__init__(register, index)
         else:
-            raise QiskitError('Qubit needs a QuantumRegister and %s was provided' %
-                              type(register).__name__)
+            raise CircuitError('Qubit needs a QuantumRegister and %s was provided' %
+                               type(register).__name__)
 
 
 class QuantumRegister(Register):
