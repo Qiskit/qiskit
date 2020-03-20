@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum Operators."""
-
-from .operator import Operator
-from .scalar_op import ScalarOp
-from .pauli import Pauli, pauli_group
-from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-from .quaternion import Quaternion
-from .measures import process_fidelity, average_gate_fidelity, gate_error
-
-from .symplectic import PauliTable
-from .symplectic import pauli_basis
+"""Qiskit quantum information symplectic operator tests."""
