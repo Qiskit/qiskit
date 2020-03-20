@@ -111,7 +111,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'stochastic':
         _swap += [StochasticSwap(coupling_map, trials=100, seed=seed_transpiler)]
     elif routing_method == 'lookahead':
-        _swap += [LookaheadSwap(coupling_map)]
+        _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     else:
         raise TranspilerError("Invalid routing method %s.", routing_method)
 
