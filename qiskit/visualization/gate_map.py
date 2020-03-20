@@ -311,13 +311,13 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         .. jupyter-execute::
 
             import numpy as np
-            from qiskit import QuantumCircuit, IBMQ, transpile
+            from qiskit import QuantumCircuit, IQX, transpile
             from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
             from qiskit.tools.monitor import job_monitor
             import matplotlib.pyplot as plt
             %matplotlib inline
 
-            IBMQ.load_account()
+            IQX.load_account()
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)
@@ -325,7 +325,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
                 ghz.cx(0,idx)
             ghz.measure(range(3), range(3))
 
-            provider = IBMQ.get_provider(hub='ibm-q')
+            provider = IQX.get_provider(hub='ibm-q')
             backend = provider.get_backend('ibmq_vigo')
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
@@ -398,12 +398,12 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit import QuantumCircuit, execute, IQX
             from qiskit.visualization import plot_error_map
             %matplotlib inline
 
-            IBMQ.load_account()
-            provider = IBMQ.get_provider(hub='ibm-q')
+            IQX.load_account()
+            provider = IQX.get_provider(hub='ibm-q')
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
