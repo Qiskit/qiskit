@@ -26,30 +26,40 @@ Extracting the greatest performance from quantum hardware requires real-time pul
 instructions. Pulse answers that need: it enables the quantum physicist *user* to specify the
 exact time dynamics of an experiment. It is especially powerful for error mitigation techniques.
 
-The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-commands`) scheduled in
+The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-insts`) scheduled in
 parallel over multiple virtual hardware or simulator resources (see: :ref:`pulse-channels`). The
 system also allows the user to recover the time dynamics of the measured output.
 
 This is sufficient to allow the quantum physicist to explore and correct for noise in a quantum
 system.
 
-.. _pulse-commands:
+.. _pulse-insts:
 
-Commands (:mod:`~qiskit.pulse.commands`)
-========================================
+Instructions (:mod:`~qiskit.pulse.instructions`)
+================================================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   SamplePulse
    Delay
-   FrameChange
+   ShiftPhase
+   SetFrequency
+   Acquire
+   Snapshot
+
+Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
+========================================================
+
+TODO: waiting on Pulses PR to merge
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib.discrete
+   SamplePulse
    Gaussian
    GaussianSquare
    Drag
    ConstantPulse
-   Acquire
-   Snapshot
 
 .. _pulse-channels:
 
@@ -89,7 +99,7 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
 .. autosummary::
    :toctree: ../stubs/
 
-   qiskit.pulse.commands
+   qiskit.pulse.instructions
    qiskit.pulse.channels
 
 Configuration
@@ -111,14 +121,6 @@ These utilities return modified :class:`~qiskit.pulse.Schedule` s.
    ~reschedule.align_measures
    ~reschedule.add_implicit_acquires
    ~reschedule.pad
-
-Pulse Library
-=============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.pulse.pulse_lib.discrete
 
 Exceptions
 ==========

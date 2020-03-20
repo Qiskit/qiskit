@@ -28,7 +28,7 @@ class TestDelay(QiskitTestCase):
 
         self.assertEqual(delay.name, "test_name")
         self.assertEqual(delay.duration, 10)
-        self.assertEqual(delay.operands, [10, DriveChannel(0)])
+        self.assertEqual(delay.operands, (10, DriveChannel(0)))
 
 
 class TestShiftPhase(QiskitTestCase):

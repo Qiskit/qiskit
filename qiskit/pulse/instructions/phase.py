@@ -28,6 +28,14 @@ class ShiftPhase(Instruction):
     same :py:class:`~qiskit.pulse.channels.Channel`. It is a relative increase in phase determined
     by the ``phase`` operand.
 
+    In particular, a PulseChannel creates pulses of the form
+
+    .. math::
+        Re[exp(i 2pi f jdt + phase) d_j].
+
+    The ``ShiftPhase`` instruction causes *phase* to be increased by the instruction's ``phase``
+    operand. This will affect all pulses following on the same channel.
+
     The qubit phase is tracked in software, enabling instantaneous, nearly error-free Z-rotations
     by using a ShiftPhase to update the frame tracking the qubit state.
     """

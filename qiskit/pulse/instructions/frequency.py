@@ -28,8 +28,8 @@ class SetFrequency(Instruction):
     .. math::
         Re[exp(i 2pi f jdt + phase) d_j].
 
-    Here, f is the frequency of the channel. The command SetFrequency allows
-    the user to set the value of f. All pulses that are played on a channel
+    Here, *f* is the frequency of the channel. The command SetFrequency allows
+    the user to set the value of *f*. All pulses that are played on a channel
     after SetFrequency has been called will have the corresponding frequency.
 
     The duration of SetFrequency is 0.
