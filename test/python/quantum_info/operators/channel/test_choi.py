@@ -36,20 +36,24 @@ class TestChoi(ChannelTestCase):
         chan = Choi(mat4)
         assert_allclose(chan.data, mat4)
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         mat8 = np.eye(8) / 2.0
         chan = Choi(mat8, input_dims=4)
         assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (4, 2))
+        self.assertIsNone(chan.num_qubits)
 
         chan = Choi(mat8, input_dims=2)
         assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (2, 4))
+        self.assertIsNone(chan.num_qubits)
 
         mat16 = np.eye(16) / 4
         chan = Choi(mat16)
         assert_allclose(chan.data, mat16)
         self.assertEqual(chan.dim, (4, 4))
+        self.assertEqual(chan.num_qubits, 2)
 
         # Wrong input or output dims should raise exception
         self.assertRaises(
