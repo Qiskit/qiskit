@@ -16,7 +16,7 @@
 
 import warnings
 
-from typing import List, Optional, Union
+from typing import Optional, Tuple
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
@@ -52,14 +52,14 @@ class ShiftPhase(Instruction):
         super().__init__(0, channel, name=name)
 
     @property
+    def operands(self) -> Tuple[float, PulseChannel]:
+        """Return a list of instruction operands."""
+        return (self.phase, self.channel)
+
+    @property
     def phase(self) -> float:
         """Return the rotation angle enacted by this instruction in radians."""
         return self._phase
-
-    @property
-    def operands(self) -> List[Union[float, PulseChannel]]:
-        """Return a list of instruction operands."""
-        return [self.phase, self.channel]
 
     @property
     def channel(self) -> PulseChannel:
@@ -67,18 +67,6 @@ class ShiftPhase(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __eq__(self, other: Instruction) -> bool:
-        return super().__eq__(other) and (self.operands == other.operands)
-
-    def __hash__(self) -> int:
-        return hash((super().__hash__(), self.phase))
-
-    def __repr__(self) -> str:
-        return "{}({}, {}{})".format(self.__class__.__name__,
-                                     self.phase,
-                                     self.channel,
-                                     ", name={}".format(self.name) if self.name else "")
 
     def __call__(self, channel: PulseChannel) -> 'ShiftPhase':
         """Return a new ShiftPhase instruction supporting the deprecated syntax of FrameChange.

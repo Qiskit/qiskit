@@ -15,7 +15,7 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import List, Optional, Union
+from typing import Optional, Tuple
 
 from ..channels import PulseChannel
 from .instruction import Instruction
@@ -46,13 +46,13 @@ class SetFrequency(Instruction):
             name: Name of this set channel frequency command.
         """
         self._frequency = float(frequency)
-        super().__init__(0, channel, name=name)
         self._channel = channel
+        super().__init__(0, channel, name=name)
 
     @property
-    def operands(self) -> List[Union[int, PulseChannel]]:
+    def operands(self) -> Tuple[float, PulseChannel]:
         """Return a list of instruction operands."""
-        return [self.frequency, self.channel]
+        return (self.frequency, self.channel)
 
     @property
     def frequency(self) -> float:
@@ -65,21 +65,3 @@ class SetFrequency(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __eq__(self, other: Instruction) -> bool:
-        """
-        Two set frequency instructions are the same if they have the same type and frequency.
-
-        Args:
-            other: Other SetFrequency.
-
-        Returns:
-            bool: Are self and other equal.
-        """
-        return super().__eq__(other) and (self.operands == other.operands)
-
-    def __hash__(self) -> int:
-        return hash((super().__hash__(), self.frequency))
-
-    def __repr__(self) -> str:
-        return '%s(%s, frequency=%.0f)' % (self.__class__.__name__, self.name, self.frequency)

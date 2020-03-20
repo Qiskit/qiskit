@@ -25,7 +25,7 @@ For example::
 """
 import warnings
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 
@@ -50,6 +50,7 @@ class Instruction(ScheduleComponent, ABC):
 
         Args:
             duration: Length of time taken by the instruction in terms of dt.
+                      Deprecated: the first argument used to be the Command.
             *channels: List of pulse channels that this instruction operates on.
             name: Display name for this instruction.
         """
@@ -59,8 +60,8 @@ class Instruction(ScheduleComponent, ABC):
                           DeprecationWarning)
             self._command = duration
             if name is None:
-                name = self.command.name
-            duration = self.command.duration
+                name = self._command.name
+            duration = self._command.duration
         self._duration = duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
@@ -78,10 +79,13 @@ class Instruction(ScheduleComponent, ABC):
     @property
     def command(self) -> 'commands.Command':
         """The associated command."""
+        warnings.warn("`Command`s, and the `command` property of `Instruction`s have been "
+                      "deprecated. Migrate your code to use the new `Instruction` subclasses.",
+                      DeprecationWarning)
         return self._command
 
     @property
-    def operands(self) -> List:
+    def operands(self) -> Tuple:
         """Return a list of instruction operands."""
         # This cannot be a true abstractmethod While old Command style classes are still
         # implemented, because they do not have an operands method.
@@ -270,18 +274,16 @@ class Instruction(ScheduleComponent, ABC):
 
         Equality is determined by the instruction sharing the same operands and channels.
         """
-        if self.command:
+        if self._command:
             # Backwards compatibility for Instructions with Commands
-            return (self.command == other.command) and (set(self.channels) == set(other.channels))
-        return (isinstance(other, type(self)) and
-                (self.duration == other.duration) and
-                (set(self.channels) == set(other.channels)))
+            return (self._command == other._command) and (set(self.channels) == set(other.channels))
+        return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:
-        if self.command:
+        if self._command:
             # Backwards compatibility for Instructions with Commands
-            return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((self.duration, self.channels.__hash__(), type(self)))
+            return hash(((tuple(self._command)), self.channels.__hash__()))
+        return hash((type(self), self.operands, getattr(self, 'name', '')))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
@@ -295,7 +297,9 @@ class Instruction(ScheduleComponent, ABC):
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
-    def __repr__(self) -> strr:
-        return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.command if self.command else self.duration,
-                               ', '.join(str(ch) for ch in self.channels))
+    def __repr__(self) -> str:
+        if self.operands:
+            operands = ', '.join(str(op) for op in self.operands)
+        else:
+            operands = "{}, {}".format(self._command, ', '.join(str(ch) for ch in self.channels))
+        return "{}({})".format(self.__class__.__name__, operands)

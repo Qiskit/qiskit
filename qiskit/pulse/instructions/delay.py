@@ -15,7 +15,7 @@
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
 import warnings
 
-from typing import List, Optional, Union
+from typing import Optional, Tuple
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
@@ -58,9 +58,9 @@ class Delay(Instruction):
         super().__init__(duration, channel, name=name)
 
     @property
-    def operands(self) -> List[Union[int, PulseChannel]]:
+    def operands(self) -> Tuple[int, PulseChannel]:
         """Return a list of instruction operands."""
-        return [self.duration, self.channel]
+        return (self.duration, self.channel)
 
     @property
     def channel(self) -> PulseChannel:
@@ -68,11 +68,6 @@ class Delay(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __repr__(self) -> str:
-        return "{}({}, {})".format(self.__class__.__name__,
-                                   self.duration,
-                                   self.channel)
 
     def __call__(self, channel: PulseChannel) -> 'Delay':
         """Return new ``Delay`` that is fully instantiated with both ``duration`` and a ``channel``.

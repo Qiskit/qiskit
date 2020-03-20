@@ -17,7 +17,7 @@ instructions available are determined by the simulator being used.
 """
 import warnings
 
-from typing import List, Optional
+from typing import Optional, Tuple
 
 from ..channels import SnapshotChannel
 from .instruction import Instruction
@@ -38,9 +38,15 @@ class Snapshot(Instruction):
         """
         self._label = label
         self._type = snapshot_type
+        self._channel = SnapshotChannel()
         if name is None:
             name = self.label
-        super().__init__(0, SnapshotChannel(), name=name)
+        super().__init__(0, self.channel, name=name)
+
+    @property
+    def operands(self) -> Tuple:
+        """Return a list of instruction operands."""
+        return (self.label, self.type)
 
     @property
     def label(self) -> str:
@@ -53,34 +59,13 @@ class Snapshot(Instruction):
         return self._type
 
     @property
-    def operands(self) -> List:
-        return [self.label, self.type]
-
-    @property
     def channel(self) -> SnapshotChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on; trivially, a ``SnapshotChannel``.
         """
-        return self.channels[0]
-
-    @property
-    def operands(self) -> List[str]:
-        """Return a list of instruction operands."""
-        return [self.label, self.type]
+        return self._channel
 
     def __call__(self):
         """Deprecated."""
         warnings.warn("Snapshot call method is deprecated.", DeprecationWarning)
         return self
-
-    def __eq__(self, other: 'Snapshot'):
-        return super().__eq__(other) and self.operands == other.operands
-
-    def __hash__(self):
-        return hash((super().__hash__(), self.label, self.type))
-
-    def __repr__(self):
-        return '{}({}, {}, name={})'.format(self.__class__.__name__,
-                                            self.label,
-                                            self.type,
-                                            self.name)
