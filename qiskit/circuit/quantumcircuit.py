@@ -983,11 +983,10 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
-        for instr, _, _ in self._data:
-            if instr.name in count_ops.keys():
-                count_ops[instr.name] += 1
-            else:
-                count_ops[instr.name] = 1
+        count_n_gates = {}
+        for instr, qubits, bits in self._data:
+            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1            
+        
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_connected_components(self, unitary_only=False):
@@ -1069,22 +1068,6 @@ class QuantumCircuit:
             if num_sub_graphs == 1:
                 break
         return num_sub_graphs
-    
-    def count_num_gates(self, n: int) -> int:
-        """Counts number of n-qubit gates in the circuit
-         
-         Args:
-          name (n): The number of input/output qubits of the gates you want to count
-
-        Returns:
-          int: The total number of n-qubit gates in your circuit
-        """
-        num_gates = 0
-        for instruction in self._data:
-            if len(instruction[1]) == n:
-                num_gates += 1
-        return num_gates
-            
 
     def num_unitary_factors(self):
         """Computes the number of tensor factors in the unitary
