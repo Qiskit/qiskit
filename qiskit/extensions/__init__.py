@@ -81,7 +81,7 @@ Initialization
    Initialize
 """
 
-from qiskit.extensions.quantum_initializer.initializer import Initialize
+# from .quantum_initializer.initializer import Initialize
 from .standard import *
 from .unitary import UnitaryGate
 from .simulator import Snapshot

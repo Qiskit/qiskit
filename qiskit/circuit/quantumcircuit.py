@@ -22,6 +22,7 @@ import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
 from qiskit.util import is_main_process
+from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -34,6 +35,14 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+# gate imports
+from .gates.u1 import U1Gate, CU1Gate
+from .gates.u2 import U2Gate
+from .gates.u3 import U3Gate, CU3Gate
+from .gates.x import XGate, CXGate, CCXGate
+from .gates.y import YGate, CYGate
+from .gates.z import ZGate, CZGate
 
 
 class QuantumCircuit:
@@ -1336,6 +1345,263 @@ class QuantumCircuit:
                 instr.params[param_index] = new_param
                 self._rebind_definition(instr, old_parameter, new_parameter)
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply U1 gate with angle theta
+
+        Applied to a specified qubit ``qubit``.
+        :math:`u1(\\lambda) := diag(1, ei\\lambda) ∼ U(0, 0, \\lambda) = Rz(\\lambda)`
+        where :math:`~` is equivalence up to a global phase.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                circuit = QuantumCircuit(1)
+                circuit.u1(theta,0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                import numpy
+                from qiskit.extensions.standard.u1 import U1Gate
+                U1Gate(numpy.pi/2).to_matrix()
+        """
+        return self.append(U1Gate(theta), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cu1(self, theta, control_qubit, target_qubit,
+            *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        r"""Apply cU1 gate
+
+        Applied from a specified control ``control_qubit`` to target
+        ``target_qubit`` qubit  with angle theta. A cU1 gate implements a
+        :math:`\theta` radian rotation of the qubit state vector about the z axis
+        of the Bloch sphere when the control qubit is in state :math:`|1\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                circuit = QuantumCircuit(2)
+                circuit.cu1(theta,0,1)
+                circuit.draw()
+        """
+        return self.append(CU1Gate(theta), [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply U2 gate with angle phi and lam to a specified qubit (qubit).
+        u2(φ,λ) := U(π/2,φ,λ) = Rz(φ + π/2)Rx(π/2)Rz(λ − π/2)
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                phi = Parameter('φ')
+                lam = Parameter('λ')
+                circuit = QuantumCircuit(1)
+                circuit.u2(phi,lam,0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                import numpy
+                from qiskit.extensions.standard.u2 import U2Gate
+                U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
+        """
+        return self.append(U2Gate(phi, lam), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u3(self, theta, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply U3 gate with angle theta, phi, and lam to a specified qubit (qubit).
+        u3(θ, φ, λ) := U(θ, φ, λ) = Rz(φ + 3π)Rx(π/2)Rz(θ + π)Rx(π/2)Rz(λ)
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('theta')
+                phi = Parameter('φ')
+                lam = Parameter('λ')
+                circuit = QuantumCircuit(1)
+                circuit.u3(theta,phi,lam,0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                import numpy
+                from qiskit.extensions.standard.u3 import U3Gate
+                U3Gate(numpy.pi/2,numpy.pi/2,numpy.pi/2).to_matrix()
+        """
+        return self.append(U3Gate(theta, phi, lam), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cu3(self, theta, phi, lam, control_qubit, target_qubit,
+            *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cU3 gate
+
+        Applied from a specified control ``control_qubit`` to target
+        ``target_qubit`` qubit with angle ``theta``, ``phi``, and ``lam``.
+        A cU3 gate implements a ``U3(theta,phi,lam)`` on the target qubit when the
+        control qubit is in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                phi = Parameter('φ')
+                lam = Parameter('λ')
+                circuit = QuantumCircuit(2)
+                circuit.cu3(theta,phi,lam,0,1)
+                circuit.draw()
+        """
+        return self.append(CU3Gate(theta, phi, lam), [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply X gate to a specified qubit (qubit).
+
+        An X gate implements a :math:`\\pi` rotation of the qubit state vector about
+        the x axis of the Bloch sphere. This gate is canonically used to implement
+        a bit flip on the qubit state from :math:`|0\\rangle` to :math:`|1\\rangle`,
+        or vice versa.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.x(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.x import XGate
+                XGate().to_matrix()
+        """
+        return self.append(XGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+           *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply CX gate
+
+        From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+        A CX gate implements a :math:`\\pi` rotation of the qubit state vector about
+        the x axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`
+        This gate is canonically used to implement a bit flip on the qubit state from
+        :math:`|0\\rangle` to :math:`|1\\rangle`, or vice versa when the control qubit is in
+        :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.cx(0,1)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.x import CXGate
+                CXGate().to_matrix()
+        """
+        return self.append(CXGate(), [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cnot(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+             *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Alias for the ``QuantumCircuit.cx`` method."""
+        self.cx(control_qubit, target_qubit, ctl=ctl, tgt=tgt)
+
+    @deprecate_arguments({'ctl1': 'control_qubit1',
+                          'ctl2': 'control_qubit2',
+                          'tgt': 'target_qubit'})
+    def ccx(self, control_qubit1, control_qubit2, target_qubit,
+            *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply Toffoli (ccX) gate
+
+        From two specified controls ``(control_qubit1 and control_qubit2)`` to target ``target_qubit``
+        qubit. This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+        :math:`|1\\rangle`, or vice versa when both the control qubits are in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(3)
+                circuit.ccx(0,1,2)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.x import CCXGate
+                CCXGate().to_matrix()
+        """
+
+        return self.append(CCXGate(),
+                           [control_qubit1, control_qubit2, target_qubit], [])
+
+    @deprecate_arguments({'ctl1': 'control_qubit1',
+                          'ctl2': 'control_qubit2',
+                          'tgt': 'target_qubit'})
+    def toffoli(self, control_qubit1, control_qubit2, target_qubit,
+                *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
+        """Alias for the ``QuantumCircuit.ccx`` method."""
+        self.ccx(control_qubit1, control_qubit2, target_qubit, ctl1=ctl1, ctl2=ctl2, tgt=tgt)
 
 
 def _circuit_from_qasm(qasm):

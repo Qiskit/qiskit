@@ -17,7 +17,7 @@ Controlled unitary gate.
 """
 from qiskit.circuit.exceptions import CircuitError
 from .gate import Gate
-from . import QuantumRegister
+from .quantumregister import QuantumRegister
 
 
 class ControlledGate(Gate):
