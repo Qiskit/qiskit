@@ -120,7 +120,7 @@ class QuantumChannel(BaseOperator):
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
+                         has incompatible dimensions.
         """
         # NOTE: this method must be overriden for subclasses
         # that don't have a linear matrix representation
@@ -275,7 +275,7 @@ class QuantumChannel(BaseOperator):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         pass
 

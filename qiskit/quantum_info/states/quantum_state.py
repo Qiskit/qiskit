@@ -209,7 +209,7 @@ class QuantumState(ABC):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         pass
 
@@ -225,7 +225,7 @@ class QuantumState(ABC):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         pass
 
@@ -258,7 +258,7 @@ class QuantumState(ABC):
 
         Raises:
             QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+                         specified QuantumState subsystem dimensions.
         """
         pass
 

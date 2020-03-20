@@ -196,7 +196,7 @@ class ScalarOp(BaseOperator):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         ret = self.copy()
         ret._coeff = self.coeff ** n
