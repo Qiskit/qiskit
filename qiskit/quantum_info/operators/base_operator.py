@@ -136,7 +136,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if combined size of all subsystem input dimension or
-            subsystem output dimensions is not constant.
+                         subsystem output dimensions is not constant.
         """
         clone = copy.copy(self)
         if output_dims is None and input_dims is None:
@@ -232,7 +232,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -256,7 +256,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
         """
         return self.compose(other, qargs=qargs, front=True)
 
@@ -271,7 +271,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         # NOTE: if a subclass can have negative or non-integer powers
         # this method should be overridden in that class.
