@@ -182,11 +182,12 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag_1 = LookaheadSwap(coupling_map, search_depth=3, search_width=3).run(original_dag)
         mapped_dag_2 = LookaheadSwap(coupling_map, search_depth=5, search_width=5).run(original_dag)
-        
+
         num_swaps_1 = mapped_dag_1.count_ops().get('swap', 0)
         num_swaps_2 = mapped_dag_2.count_ops().get('swap', 0)
-        
+
         self.assertLessEqual(num_swaps_2, num_swaps_1)
+
 
 if __name__ == '__main__':
     unittest.main()
