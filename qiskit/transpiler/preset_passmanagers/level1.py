@@ -27,7 +27,11 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import BasicSwap
+from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -65,6 +69,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
+    layout_method = pass_manager_config.layout_method or 'dense'
+    routing_method = pass_manager_config.routing_method or 'stochastic'
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -79,7 +85,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['layout']
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    _improve_layout = DenseLayout(coupling_map, backend_properties)
+    if layout_method == 'trivial':
+        _improve_layout = TrivialLayout(coupling_map)
+    elif layout_method == 'dense':
+        _improve_layout = DenseLayout(coupling_map, backend_properties)
+    elif layout_method == 'noise_adaptive':
+        _improve_layout = NoiseAdaptiveLayout(backend_properties)
+    else:
+        raise TranspilerError("Invalid layout method %s.", layout_method)
 
     def _not_perfect_yet(property_set):
         return property_set['trivial_layout_score'] is not None and \
@@ -97,8 +110,15 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
 
-    _swap = [BarrierBeforeFinalMeasurements(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
+    _swap = [BarrierBeforeFinalMeasurements()]
+    if routing_method == 'basic':
+        _swap += [BasicSwap(coupling_map)]
+    elif routing_method == 'stochastic':
+        _swap += [StochasticSwap(coupling_map, trials=50, seed=seed_transpiler)]
+    elif routing_method == 'lookahead':
+        _swap += [LookaheadSwap(coupling_map)]
+    else:
+        raise TranspilerError("Invalid routing method %s.", routing_method)
 
     # 6. Unroll to the basis
     _unroll = Unroller(basis_gates)
