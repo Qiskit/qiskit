@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Adds ``StabilizerTable`` class. This is a subclass of the ``PauliTable``
-    class which includes a boolean phase vector along with the Pauli table
-    symplectic array. This represents a list of Stabilizer operators which
-    are real-Pauli operators with +1 or -1 coefficient. Because the stabilizer
-    matrices are real the ``"Y"`` label matrix is defined as
+    Adds :class:`qiskit.quantum_info.StabilizerTable`` class. This is a subclass
+    of the :class:`qiskit.quantum_info.PauliTable` class which includes a boolean
+    phase vector along with the Pauli table array. This represents a list of
+    Stabilizer operators which are real-Pauli operators with +1 or -1 coefficient.
+    Because the stabilizer matrices are real the ``"Y"`` label matrix is defined as
     ``[[0, 1], [-1, 0]]``. See the API documentation for additional information.
