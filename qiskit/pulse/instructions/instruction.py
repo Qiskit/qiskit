@@ -60,8 +60,8 @@ class Instruction(ScheduleComponent, ABC):
                           DeprecationWarning)
             self._command = duration
             if name is None:
-                name = self._command.name
-            duration = self._command.duration
+                name = self.command.name
+            duration = self.command.duration
         self._duration = duration
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
@@ -78,10 +78,9 @@ class Instruction(ScheduleComponent, ABC):
 
     @property
     def command(self) -> 'commands.Command':
-        """The associated command."""
-        warnings.warn("`Command`s, and the `command` property of `Instruction`s have been "
-                      "deprecated. Migrate your code to use the new `Instruction` subclasses.",
-                      DeprecationWarning)
+        """The associated command. Commands are deprecated, so this method will be deprecated
+        shortly.
+        """
         return self._command
 
     @property
@@ -89,7 +88,7 @@ class Instruction(ScheduleComponent, ABC):
         """Return a list of instruction operands."""
         # This cannot be a true abstractmethod While old Command style classes are still
         # implemented, because they do not have an operands method.
-        if self._command is None:
+        if self.command is None:
             raise NotImplementedError
 
     @property
@@ -274,15 +273,15 @@ class Instruction(ScheduleComponent, ABC):
 
         Equality is determined by the instruction sharing the same operands and channels.
         """
-        if self._command:
+        if self.command:
             # Backwards compatibility for Instructions with Commands
-            return (self._command == other._command) and (set(self.channels) == set(other.channels))
+            return (self.command == other.command) and (set(self.channels) == set(other.channels))
         return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:
-        if self._command:
+        if self.command:
             # Backwards compatibility for Instructions with Commands
-            return hash(((tuple(self._command)), self.channels.__hash__()))
+            return hash(((tuple(self.command)), self.channels.__hash__()))
         return hash((type(self), self.operands, getattr(self, 'name', '')))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
@@ -301,5 +300,5 @@ class Instruction(ScheduleComponent, ABC):
         if self.operands:
             operands = ', '.join(str(op) for op in self.operands)
         else:
-            operands = "{}, {}".format(self._command, ', '.join(str(ch) for ch in self.channels))
+            operands = "{}, {}".format(self.command, ', '.join(str(ch) for ch in self.channels))
         return "{}({})".format(self.__class__.__name__, operands)
