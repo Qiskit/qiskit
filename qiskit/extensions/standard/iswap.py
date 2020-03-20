@@ -26,7 +26,7 @@ class iSwapGate(Gate):
     r"""iSWAP gate.
 
     A 2-qubit XY interaction that is equivalent to a SWAP up to a diagonal.
-    This is a Clifford and symmetric gate. It's action is to swap two qubit
+    This is a Clifford and symmetric gate. Its action is to swap two qubit
     states and phase the :math:`|01\\rangle` and :math:`|10\\rangle`
     amplitudes by i.
 
