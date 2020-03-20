@@ -53,18 +53,18 @@ except ImportError:
     warnings.warn('Could not import the Aer provider from the qiskit-aer '
                   'package. Install qiskit-aer or check your installation.',
                   RuntimeWarning)
-# Try to import the IBMQ provider if installed.
+# Try to import the IQX provider if installed.
 try:
     from qiskit.providers.ibmq import IQX
-    IBMQ = IQX
+    IBMQ = IQX  # For backward compatibility (03/19/2020)
 except ImportError:
-    warnings.warn('Could not import the IBMQ provider from the '
+    warnings.warn('Could not import the IQX provider from the '
                   'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
                   'or check your installation.',
                   RuntimeWarning)
 
-# Moved to after IBMQ and Aer imports due to import issues
-# with other modules that check for IBMQ (tools)
+# Moved to after IQX and Aer imports due to import issues
+# with other modules that check for IQX (tools)
 from qiskit.execute import execute
 from qiskit.compiler import transpile, assemble, schedule
 
