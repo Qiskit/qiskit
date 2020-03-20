@@ -38,74 +38,49 @@ from .quantumcircuitdata import QuantumCircuitData
 
 class QuantumCircuit:
     """Create a new circuit.
-
     A circuit is a list of instructions bound to some registers.
-
     Args:
         regs: list(:class:`Register`) or list(``int``) The registers to be
             included in the circuit.
-
                 * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
                   and/or :class:`ClassicalRegister` objects to include in the circuit.
-
                 For example:
-
                 * ``QuantumCircuit(QuantumRegister(4))``
                 * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
                 * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
-
                 * If a list of ``int``, the amount of qubits and/or classical bits to include in
                   the circuit. It can either be a single int for just the number of quantum bits,
                   or 2 ints for the number of quantum bits and classical bits, respectively.
-
                 For example:
-
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
-
-
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
-
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
-
     Examples:
-
         Construct a simple Bell state circuit.
-
         .. jupyter-execute::
-
             from qiskit import QuantumCircuit
-
             qc = QuantumCircuit(2, 2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure([0, 1], [0, 1])
             qc.draw()
-
         Construct a 5-qubit GHZ circuit.
-
         .. jupyter-execute::
-
             from qiskit import QuantumCircuit
-
             qc = QuantumCircuit(5)
             qc.h(0)
             qc.cx(0, range(1, 5))
             qc.measure_all()
-
         Construct a 4-qubit Berstein-Vazirani circuit using registers.
-
         .. jupyter-execute::
-
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-
             qr = QuantumRegister(3, 'q')
             anc = QuantumRegister(1, 'ancilla')
             cr = ClassicalRegister(3, 'c')
             qc = QuantumCircuit(qr, anc, cr)
-
             qc.x(anc[0])
             qc.h(anc[0])
             qc.h(qr[0:3])
@@ -113,7 +88,6 @@ class QuantumCircuit:
             qc.h(qr[0:3])
             qc.barrier(qr)
             qc.measure(qr, cr)
-
             qc.draw()
     """
     instances = 0
@@ -160,10 +134,8 @@ class QuantumCircuit:
     @property
     def data(self):
         """Return the circuit data (instructions and context).
-
         Returns:
             QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
-
             Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an
             Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a
             list of Clbit objects.
@@ -173,7 +145,6 @@ class QuantumCircuit:
     @data.setter
     def data(self, data_input):
         """Sets the circuit data from a list of instructions and context.
-
         Args:
             data_input (list): A list of instructions with context
                 in the format (instruction, qargs, cargs), where Instruction
@@ -215,10 +186,8 @@ class QuantumCircuit:
     def has_register(self, register):
         """
         Test if this circuit has the register r.
-
         Args:
             register (Register): a quantum or classical register.
-
         Returns:
             bool: True if the register is contained in this circuit.
         """
@@ -233,10 +202,8 @@ class QuantumCircuit:
 
     def mirror(self):
         """Mirror the circuit by reversing the instructions.
-
         This is done by recursively mirroring all instructions.
         It does not invert any gate.
-
         Returns:
             QuantumCircuit: the mirrored circuit
         """
@@ -248,12 +215,9 @@ class QuantumCircuit:
 
     def inverse(self):
         """Invert this circuit.
-
         This is done by recursively inverting all gates.
-
         Returns:
             QuantumCircuit: the inverted circuit
-
         Raises:
             CircuitError: if the circuit cannot be inverted.
         """
@@ -265,20 +229,15 @@ class QuantumCircuit:
 
     def combine(self, rhs):
         """Append rhs to self if self contains compatible registers.
-
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
         returned circuit will contain all unique registers between both
         circuits.
-
         Return self + rhs as a new object.
-
         Args:
             rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
-
         Returns:
             QuantumCircuit: Returns a new QuantumCircuit object
-
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
@@ -302,20 +261,15 @@ class QuantumCircuit:
 
     def extend(self, rhs):
         """Append QuantumCircuit to the right hand side if it contains compatible registers.
-
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
         returned circuit will contain all unique registers between both
         circuits.
-
         Modify and return self.
-
         Args:
             rhs (QuantumCircuit): The quantum circuit to append to the right hand side.
-
         Returns:
             QuantumCircuit: Returns this QuantumCircuit object (which has been modified)
-
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
@@ -417,10 +371,8 @@ class QuantumCircuit:
         """
         Converts several qubit representations (such as indexes, range, etc.)
         into a list of qubits.
-
         Args:
             qubit_representation (Object): representation to expand
-
         Returns:
             List(tuple): Where each tuple is a qubit.
         """
@@ -430,10 +382,8 @@ class QuantumCircuit:
         """
         Converts several classical bit representations (such as indexes, range, etc.)
         into a list of classical bits.
-
         Args:
             clbit_representation (Object): representation to expand
-
         Returns:
             List(tuple): Where each tuple is a classical bit.
         """
@@ -442,12 +392,10 @@ class QuantumCircuit:
     def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
-
         Args:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
-
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
         """
@@ -466,15 +414,12 @@ class QuantumCircuit:
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
-
         Args:
             instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
-
         Returns:
             Instruction: a handle to the instruction that was just added
-
         Raises:
             CircuitError: if the gate is of a different shape than the wires
                 it is being attached to.
@@ -570,13 +515,11 @@ class QuantumCircuit:
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.
-
         Args:
             parameter_map(dict): For parameterized circuits, a mapping from
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
-
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
             (can be decomposed back)
@@ -586,13 +529,11 @@ class QuantumCircuit:
 
     def to_gate(self, parameter_map=None):
         """Create a Gate out of this circuit.
-
         Args:
             parameter_map(dict): For parameterized circuits, a mapping from
                parameters in the circuit to parameters to be used in the
                gate. If None, existing circuit parameters will also
                parameterize the gate.
-
         Returns:
             Gate: a composite gate encapsulating this circuit
             (can be decomposed back)
@@ -603,7 +544,6 @@ class QuantumCircuit:
     def decompose(self):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
-
         Returns:
             QuantumCircuit: a circuit one level decomposed
         """
@@ -657,15 +597,10 @@ class QuantumCircuit:
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None):
         """Draw the quantum circuit.
-
         **text**: ASCII art TextDrawing that can be printed in the console.
-
         **latex**: high-quality images compiled via LaTeX.
-
         **latex_source**: raw uncompiled LaTeX output.
-
         **matplotlib**: images with color rendered purely in Python.
-
         Args:
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``latex``,
@@ -681,7 +616,6 @@ class QuantumCircuit:
                 a dictionary of style, then that will be opened, parsed, and used
                 as the input dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
-
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
@@ -725,11 +659,9 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
-
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
             :class:`TextDrawing`:
-
             * `PIL.Image` (output='latex')
                 an in-memory representation of the image of the circuit
                 diagram.
@@ -739,21 +671,16 @@ class QuantumCircuit:
                 The LaTeX source code for visualizing the circuit diagram.
             * `TextDrawing` (output='text')
                 A drawing that can be printed as ASCII art.
-
         Raises:
             VisualizationError: when an invalid output method is selected
             ImportError: when the output methods require non-installed
                 libraries
-
         .. _style-dict-circ-doc:
-
         **Style Dict Details**
-
         The style dict kwarg contains numerous options that define the style of
         the output circuit visualization. The style dict is only used by the
         ``mpl`` output. The options available in the style dict are defined
         below:
-
         Args:
             textcolor (str): The color code to use for text. Defaults to
                 `'#000000'`
@@ -776,7 +703,6 @@ class QuantumCircuit:
             displaytext (dict): A dictionary of the text to use for each
                 element type in the output visualization. The default values
                 are::
-
                     {
                         'id': 'id',
                         'u0': 'U_0',
@@ -796,12 +722,10 @@ class QuantumCircuit:
                         'rz': 'R_z',
                         'reset': '\\left|0\\right\\rangle'
                     }
-
                 You must specify all the necessary values if using this. There
                 is no provision for passing an incomplete dict in.
             displaycolor (dict): The color codes to use for each circuit
                 element. The default values are::
-
                     {
                         'id': '#F0E442',
                         'u0': '#E7AB3B',
@@ -823,10 +747,8 @@ class QuantumCircuit:
                         'target': '#70B7EB',
                         'meas': '#D188B4'
                     }
-
                Also, just like  `displaytext` there is no provision for an
                incomplete dict passed in.
-
             latexdrawerstyle (bool): When set to True, enable LaTeX mode, which
                 will draw gates like the `latex` output modes.
             usepiformat (bool): When set to True, use radians for output.
@@ -870,7 +792,6 @@ class QuantumCircuit:
 
     def size(self):
         """Returns total number of gate operations in circuit.
-
         Returns:
             int: Total number of gate operations.
         """
@@ -884,10 +805,8 @@ class QuantumCircuit:
         """Return circuit depth (i.e., length of critical path).
         This does not include compiler or simulator directives
         such as 'barrier' or 'snapshot'.
-
         Returns:
             int: Depth of circuit.
-
         Notes:
             The circuit depth and the DAG depth need not be the
             same.
@@ -952,10 +871,8 @@ class QuantumCircuit:
 
     def width(self):
         """Return number of qubits plus clbits in circuit.
-
         Returns:
             int: Width of circuit.
-
         """
         return sum(reg.size for reg in self.qregs + self.cregs)
 
@@ -978,22 +895,18 @@ class QuantumCircuit:
 
     def count_ops(self):
         """Count each operation kind in the circuit.
-
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
         for instr, _, _ in self._data:
-            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1            
-        
+            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
-
         Args:
             unitary_only (bool): Compute only unitary part of graph.
-
         Returns:
             int: Number of connected components in circuit.
         """
@@ -1077,7 +990,6 @@ class QuantumCircuit:
     def num_tensor_factors(self):
         """Computes the number of tensor factors in the unitary
         (quantum) part of the circuit only.
-
         Notes:
             This is here for backwards compatibility, and will be
             removed in a future release of Qiskit. You should call
@@ -1087,10 +999,8 @@ class QuantumCircuit:
 
     def copy(self, name=None):
         """Copy the circuit.
-
         Args:
           name (str): name to be given to the copied circuit. If None, then the name stays the same
-
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
@@ -1132,12 +1042,9 @@ class QuantumCircuit:
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
-
         Returns a new circuit with measurements if `inplace=False`.
-
         Parameters:
             inplace (bool): All measurements inplace or return new circuit.
-
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
         """
@@ -1161,12 +1068,9 @@ class QuantumCircuit:
     def measure_all(self, inplace=True):
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
-
         Returns a new circuit with measurements if `inplace=False`.
-
         Parameters:
             inplace (bool): All measurements inplace or return new circuit.
-
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
         """
@@ -1189,12 +1093,9 @@ class QuantumCircuit:
         """Removes final measurement on all qubits if they are present.
         Deletes the ClassicalRegister that was used to store the values from these measurements
         if it is idle.
-
         Returns a new circuit without measurements if `inplace=False`.
-
         Parameters:
             inplace (bool): All measurements removed inplace or return new circuit.
-
         Returns:
             QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
         """
@@ -1237,7 +1138,6 @@ class QuantumCircuit:
     @staticmethod
     def from_qasm_file(path):
         """Take in a QASM file and generate a QuantumCircuit object.
-
         Args:
           path (str): Path to the file for a QASM program
         Return:
@@ -1249,7 +1149,6 @@ class QuantumCircuit:
     @staticmethod
     def from_qasm_str(qasm_str):
         """Take in a QASM string and generate a QuantumCircuit object.
-
         Args:
           qasm_str (str): A QASM program string
         Return:
@@ -1265,13 +1164,10 @@ class QuantumCircuit:
 
     def bind_parameters(self, value_dict):
         """Assign parameters to values yielding a new circuit.
-
         Args:
             value_dict (dict): {parameter: value, ...}
-
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
-
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
@@ -1343,3 +1239,4 @@ def _circuit_from_qasm(qasm):
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
+	
