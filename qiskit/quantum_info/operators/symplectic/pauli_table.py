@@ -148,11 +148,10 @@ class PauliTable(BaseOperator):
             self._array = np.hstack([data.x, data.z])
         elif isinstance(data, ScalarOp):
             # Initialize an N-qubit identity
-            if data.coeff != 1 or set(data._input_dims) != set([2]):
+            if data.num_qubits is None:
                 raise QiskitError(
                     '{} is not an N-qubit identity'.format(data))
-            num_qubits = len(data._input_dims)
-            self._array = np.zeros((1, 2 * num_qubits), dtype=np.bool)
+            self._array = np.zeros((1, 2 * data.num_qubits), dtype=np.bool)
         else:
             # Convert to bool array avoiding copy if possible
             self._array = np.asarray(data, dtype=np.bool)
@@ -165,8 +164,7 @@ class PauliTable(BaseOperator):
 
         # Set size properties
         self._num_paulis = self._array.shape[0]
-        self._num_qubits = self._array.shape[1] // 2
-        dims = self._num_qubits * (2, )
+        dims = (self._array.shape[1] // 2) * (2, )
         super().__init__(dims, dims)
 
     def __repr__(self):
@@ -227,11 +225,6 @@ class PauliTable(BaseOperator):
     def shape(self):
         """The full shape of the :meth:`array`"""
         return self._array.shape
-
-    @property
-    def num_qubits(self):
-        """The number of qubits for each Pauli in the table."""
-        return self._num_qubits
 
     @property
     def size(self):
