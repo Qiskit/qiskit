@@ -35,7 +35,7 @@ def mock_get_backend(backend):
     Raises:
         NameError: If the specified value of backend
     """
-    mock_ibmq = MagicMock()
+    mock_iqx = MagicMock()
     mock_provider = MagicMock()
     if not hasattr(backend_mocks, backend):
         raise NameError(
@@ -43,5 +43,5 @@ def mock_get_backend(backend):
             'qiskit.test.mock')
     fake_backend = getattr(backend_mocks, backend)()
     mock_provider.get_backend.return_value = fake_backend
-    mock_ibmq.get_provider.return_value = mock_provider
-    qiskit.IQX = mock_ibmq
+    mock_iqx.get_provider.return_value = mock_provider
+    qiskit.IQX = mock_iqx
