@@ -159,6 +159,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
 
+    if pass_manager:
+        return pass_manager.run(circuits, output_name=output_name, callback=callback)
+
     if optimization_level is None:
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', None)
@@ -188,7 +191,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
-    # Transpile circuits in parallel
+
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
