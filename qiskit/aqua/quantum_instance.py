@@ -271,7 +271,7 @@ class QuantumInstance:
         qobj = compiler.assemble(circuits, **self._run_config.to_dict())
 
         if self._meas_error_mitigation_cls is not None:
-            qubit_index = get_measured_qubits_from_qobj(qobj)
+            qubit_index, qubit_mappings = get_measured_qubits_from_qobj(qobj)
             qubit_index_str = '_'.join([str(x) for x in qubit_index]) + \
                 "_{}".format(self._meas_error_mitigation_shots or self._run_config.shots)
             meas_error_mitigation_fitter, timestamp = \
@@ -346,9 +346,24 @@ class QuantumInstance:
 
             if meas_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
-                result = \
-                    meas_error_mitigation_fitter.filter.apply(result,
-                                                              self._meas_error_mitigation_method)
+                skip_num_circuits = len(result.results) - len(circuits)
+                #  remove the calibration counts from result object to assure the length of
+                #  ExperimentalResult is equal length to input circuits
+                result.results = result.results[skip_num_circuits:]
+                tmp_result = copy.deepcopy(result)
+                for qubit_index_str, c_idx in qubit_mappings.items():
+                    curr_qubit_index = [int(x) for x in qubit_index_str.split("_")]
+                    tmp_result.results = [result.results[i] for i in c_idx]
+                    if curr_qubit_index == qubit_index:
+                        tmp_fitter = meas_error_mitigation_fitter
+                    else:
+                        tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
+                    tmp_result = tmp_fitter.filter.apply(
+                        tmp_result, self._meas_error_mitigation_method
+                    )
+                    for i, n in enumerate(c_idx):
+                        result.results[n] = tmp_result.results[i]
+
         else:
             result = run_qobj(qobj, self._backend, self._qjob_config,
                               self._backend_options, self._noise_config,
