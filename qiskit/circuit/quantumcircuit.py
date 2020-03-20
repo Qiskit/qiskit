@@ -894,7 +894,7 @@ class QuantumCircuit:
         return sum(len(reg) for reg in self.cregs)
 
     def count_ops(self):
-        """Count each operation kind in the circuit.
+        """Count each operation kind in the circuit
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
