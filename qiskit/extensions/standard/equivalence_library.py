@@ -318,6 +318,18 @@ for inst, qargs, cargs in [
     def_dcx.append(inst, qargs, cargs)
 _sel.add_equivalence(DCXGate(), def_dcx)
 
+q = QuantumRegister(2, 'q')
+dcx_to_iswap = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[0]], []),
+        (SdgGate(), [q[0]], []),
+        (SdgGate(), [q[1]], []),
+        (iSwapGate(), [q[0], q[1]], []),
+        (HGate(), [q[1]], [])
+]:
+    dcx_to_iswap.append(inst, qargs, cargs)
+_sel.add_equivalence(DCXGate(), dcx_to_iswap)
+
 # CSwapGate
 
 q = QuantumRegister(3, 'q')

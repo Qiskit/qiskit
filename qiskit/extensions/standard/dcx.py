@@ -25,7 +25,7 @@ from qiskit.circuit import QuantumRegister
 class DCXGate(Gate):
     r"""Double-CNOT gate.
 
-    A 2-qubit interaction consisting of two back-to-back
+    A 2-qubit Clifford gate consisting of two back-to-back
     CNOTs with alternate controls.
 
     .. parsed-literal::
