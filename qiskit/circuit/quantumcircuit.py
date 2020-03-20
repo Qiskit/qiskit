@@ -1069,6 +1069,22 @@ class QuantumCircuit:
             if num_sub_graphs == 1:
                 break
         return num_sub_graphs
+    
+    def count_num_gates(self, n: int) -> int:
+        """Counts number of n-qubit gates in the circuit
+         
+         Args:
+          name (n): The number of input/output qubits of the gates you want to count
+
+        Returns:
+          int: The total number of n-qubit gates in your circuit
+        """
+        num_gates = 0
+        for instruction in self._data:
+            if len(instruction[1]) == n:
+                num_gates += 1
+        return num_gates
+            
 
     def num_unitary_factors(self):
         """Computes the number of tensor factors in the unitary
