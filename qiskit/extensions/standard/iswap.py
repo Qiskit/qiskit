@@ -25,7 +25,8 @@ from qiskit.circuit import QuantumRegister
 class iSwapGate(Gate):
     r"""iSWAP gate.
 
-    A 2-qubit XY interaction that is equivalent to a SWAP up to a diagonal.
+    A symmetric 2-qubit XY interaction that is
+    equivalent to a SWAP up to a diagonal.
 
     .. math::
 
@@ -48,8 +49,6 @@ class iSwapGate(Gate):
                 0 & 0 & i & 0 \\
                 0 & 0 & 0 & 1
             \end{pmatrix}
-
-    This gate is symmetric.
     """
 
     def __init__(self):
@@ -58,40 +57,33 @@ class iSwapGate(Gate):
     def _define(self):
         """
         gate iswap a,b {
-            u2(pi/2) a;
-            u2(-pi/2) b;
-            cx b, a;
-            u1(-pi/2) a;
-            u2(-pi/2, pi/2) b;
-            cx b, a;
-            u2(pi, pi/2) a;
-            u2(pi, 3*pi/2) b;
-            }
+            s q[0];
+            s q[1];
+            h q[0];
+            cx q[0],q[1];
+            cx q[1],q[0];
+            h q[1];
+        }
         """
-        from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.u2 import U2Gate
+        from qiskit.extensions.standard.h import HGate
+        from qiskit.extensions.standard.s import SGate
         from qiskit.extensions.standard.x import CXGate
         q = QuantumRegister(2, 'q')
         self.definition = [
-            (U2Gate(np.pi/2, 0), [q[0]], []),
-            (U2Gate(-np.pi/2, 0), [q[1]], []),
+            (SGate(), [q[0]], []),
+            (SGate(), [q[1]], []),
+            (HGate(), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
-            (U1Gate(-np.pi/2), [q[0]], []),
-            (U2Gate(-np.pi/2, np.pi/2), [q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (U2Gate(np.pi, np.pi/2), [q[0]], []),
-            (U2Gate(np.pi, -np.pi/2), [q[1]], [])
+            (HGate(), [q[1]], [])
         ]
 
-    # TODO: after migration to StandardEquivalenceLibrary and adding
-    # `phase` to circuits, the matrix can be defined. The decomposition
-    # would then be in terms of circuit above, with a phase e^(i*pi/4)
-    # def to_matrix(self):
-    #    """Return a numpy.array for the iSWAP gate."""
-    #    return np.array([[1, 0, 0, 0],
-    #                     [0, 0, 1j, 0],
-    #                     [0, 1j, 0, 0],
-    #                     [0, 0, 0, 1]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the iSWAP gate."""
+        return np.array([[1, 0, 0, 0],
+                         [0, 0, 1j, 0],
+                         [0, 1j, 0, 0],
+                         [0, 0, 0, 1]], dtype=complex)
 
 
 def iswap(self, qubit1, qubit2):

@@ -62,8 +62,6 @@ class DCXGate(Gate):
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], [])
         ]
-        # alternate decomposition in terms of iswap
-        # gate dcx a, b { h a; rz(-pi/2) a; rz(-pi/2) b; iswap(a, b), h b;}
 
     def to_matrix(self):
         """Return a numpy.array for the DCX gate."""
