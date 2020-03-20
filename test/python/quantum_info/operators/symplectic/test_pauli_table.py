@@ -103,11 +103,6 @@ class TestPauliTableInit(QiskitTestCase):
             target = np.array([[False, True]], dtype=np.bool)
             self.assertTrue(np.all(np.array(value == target)))
 
-        with self.subTest(msg='str init "I"'):
-            value = PauliTable('I')._array
-            target = np.array([[False, False]], dtype=np.bool)
-            self.assertTrue(np.all(np.array(value == target)))
-
         with self.subTest(msg='str init "IX"'):
             value = PauliTable('IX')._array
             target = np.array([[True, False, False, False]], dtype=np.bool)
