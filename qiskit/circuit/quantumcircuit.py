@@ -984,7 +984,7 @@ class QuantumCircuit:
         """
         count_ops = {}
         count_n_gates = {}
-        for instr, qubits, bits in self._data:
+        for instr, _, _ in self._data:
             count_ops[instr.name] = count_ops.get(instr.name, 0) + 1            
         
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
