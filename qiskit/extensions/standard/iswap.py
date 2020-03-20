@@ -109,12 +109,11 @@ def iswap(self, qubit1, qubit2):
             circuit.iswap(0,1)
             circuit.draw()
 
-        Matrix Representation:
-
         .. jupyter-execute::
 
             from qiskit.extensions.standard.iswap import iSwapGate
-            iSwapGate().to_matrix()
+            from qiskit.quantum_info import Operator
+            Operator(iSwapGate()).data
     """
     return self.append(iSwapGate(), [qubit1, qubit2], [])
 
