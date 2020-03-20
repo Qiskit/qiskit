@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Utilities for mocking the IBMQ provider, including job responses and backends.
+Utilities for mocking the IQX provider, including job responses and backends.
 
 The module includes dummy provider, backends, and jobs.
 The purpose of these classes is to fake backends for testing purposes:

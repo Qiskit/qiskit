@@ -92,8 +92,8 @@ def _get_credentials():
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
                                 'and is required for executing online tests.')
 
-    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
-        return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
+    if os.getenv('IQX_TOKEN') and os.getenv('IQX_URL'):
+        return Credentials(os.getenv('IQX_TOKEN'), os.getenv('IQX_URL'))
     elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()

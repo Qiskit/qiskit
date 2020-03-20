@@ -76,7 +76,7 @@ def create_job_widget(watcher, job, backend, status='', queue_pos=None, msg=''):
 
     Args:
         watcher (widget): The job watcher instance.
-        job (IBMQJob): The job.
+        job (IQXJob): The job.
         backend (str): The backend the job is running on.
         status (str): The job status.
         queue_pos (int): Queue position, if any.
@@ -134,7 +134,7 @@ def build_job_viewer():
                                                   max_height='500px',
                                                   overflow_y='scroll',
                                                   overflow_x='hidden'))
-    acc.set_title(0, 'IBMQ Jobs')
+    acc.set_title(0, 'IQX Jobs')
     acc.selected_index = None
     acc.layout.visibility = 'hidden'
     display(acc)

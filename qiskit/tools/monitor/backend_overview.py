@@ -31,13 +31,13 @@ def get_unique_backends():
         ImportError: If qiskit-ibmq-provider is not installed
     """
     try:
-        from qiskit.providers.ibmq import IBMQ
+        from qiskit.providers.ibmq import IQX
     except ImportError:
         raise ImportError("The IBMQ provider is necessary for this function "
                           " to work. Please ensure it's installed before "
                           "using this function")
     backends = []
-    for provider in IBMQ.providers():
+    for provider in IQX.providers():
         for backend in provider.backends():
             backends.append(backend)
     unique_hardware_backends = []
@@ -62,13 +62,13 @@ def backend_monitor(backend):
     """
     try:
         # pylint: disable=import-error,no-name-in-module
-        from qiskit.providers.ibmq import IBMQBackend
+        from qiskit.providers.ibmq import IQXBackend
     except ImportError:
         raise ImportError("The IBMQ provider is necessary for this function "
                           " to work. Please ensure it's installed before "
                           "using this function")
 
-    if not isinstance(backend, IBMQBackend):
+    if not isinstance(backend, IQXBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()

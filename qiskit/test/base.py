@@ -37,7 +37,7 @@ class QiskitTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Determines if the TestCase is using IBMQ credentials.
+        # Determines if the TestCase is using IQX credentials.
         cls.using_ibmq_credentials = False
 
         # Set logging to file and stdout if the LOG_LEVEL envar is set.

@@ -27,11 +27,11 @@ Overview of all available backends
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit import IQX
     import qiskit.tools.jupyter
     %matplotlib inline
 
-    IBMQ.load_account()
+    IQX.load_account()
 
     %qiskit_backend_overview
 
@@ -41,12 +41,12 @@ Detailed information on a single backend
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit import IQX
     import qiskit.tools.jupyter
     %matplotlib inline
 
-    IBMQ.load_account()
-    provider = IBMQ.get_provider(hub='ibm-q')
+    IQX.load_account()
+    provider = IQX.get_provider(hub='ibm-q')
     backend = provider.get_backend('ibmq_vigo')
     backend
 
@@ -107,7 +107,7 @@ if HAS_MATPLOTLIB:
     from .backend_monitor import _backend_monitor
 
 try:
-    from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
+    from qiskit.providers.ibmq.iqxbackend import IQXBackend
     HAS_IBMQ = True
 except ImportError:
     HAS_IBMQ = False

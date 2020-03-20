@@ -28,7 +28,7 @@ from qiskit.test.mock import FakeBackend
 
 try:
     # pylint: disable=import-error
-    from qiskit.providers.ibmq import IBMQBackend
+    from qiskit.providers.ibmq import IQXBackend
 except ImportError:
     pass
 
@@ -82,7 +82,7 @@ def _backend_monitor(backend):
     Raises:
         QiskitError: Input is not an IBMQBackend
     """
-    if not isinstance(backend, IBMQBackend) and not isinstance(backend, FakeBackend):
+    if not isinstance(backend, IQXBackend) and not isinstance(backend, FakeBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
     title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
     title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"

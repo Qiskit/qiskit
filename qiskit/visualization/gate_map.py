@@ -110,12 +110,12 @@ def plot_gate_map(backend, figsize=None,
 
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, execute, IBMQ
+           from qiskit import QuantumCircuit, execute, IQX
            from qiskit.visualization import plot_gate_map
            %matplotlib inline
 
-           provider = IBMQ.load_account()
-           accountProvider = IBMQ.get_provider(hub='ibm-q')
+           provider = IQX.load_account()
+           accountProvider = IQX.get_provider(hub='ibm-q')
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
