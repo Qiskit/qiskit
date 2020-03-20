@@ -90,7 +90,9 @@ def _get_credentials():
                                                        discover_credentials)
     except ImportError:
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
-                                'and is required for executing online tests.')
+                                'and is required for executing online tests. '
+                                'To install, run "pip install qiskit-ibmq-provider" '
+                                'or check your installation.')
 
     if os.getenv('IQX_TOKEN') and os.getenv('IQX_URL'):
         return Credentials(os.getenv('IQX_TOKEN'), os.getenv('IQX_URL'))

@@ -11,6 +11,11 @@ trigger:
   tags:
     include:
       - '*'
+pr:
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
 
 stages:
   - stage: 'Wheel_Builds'
@@ -215,7 +220,7 @@ stages:
             sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
-            tox -edocs -- -j auto
+            tox -edocs
           displayName: 'Run Docs build'
         - task: PublishBuildArtifacts@1
           displayName: 'Publish docs'
