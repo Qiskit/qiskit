@@ -16,11 +16,14 @@
 
 import unittest
 import time
+
 from test.aqua import QiskitAquaTestCase
 import numpy as np
 from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
+from qiskit import QuantumCircuit
+
 from qiskit.aqua.components.oracles import LogicalExpressionOracle
-from qiskit.aqua import QuantumInstance, aqua_globals
+from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
 from qiskit.aqua.algorithms import Grover
 
 
@@ -151,6 +154,51 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
 
         self.assertGreater(total_diff, 0.0)
         self.assertGreater(timestamp_2, timestamp_1)
+
+    def test_measurement_error_mitigation_with_diff_qubit_order(self):
+        """ measurement error mitigation with dedicated shots test """
+        # pylint: disable=import-outside-toplevel
+        from qiskit import Aer
+        from qiskit.providers.aer import noise
+
+        aqua_globals.random_seed = 0
+
+        # build noise model
+        noise_model = noise.NoiseModel()
+        read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
+        noise_model.add_all_qubit_readout_error(read_err)
+
+        backend = Aer.get_backend('qasm_simulator')
+        quantum_instance = QuantumInstance(backend=backend,
+                                           seed_simulator=1679,
+                                           seed_transpiler=167,
+                                           shots=1000,
+                                           noise_model=noise_model,
+                                           measurement_error_mitigation_cls=CompleteMeasFitter,
+                                           cals_matrix_refresh_period=0)
+        # circuit
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+        qc1.cx(0, 1)
+        qc1.measure(0, 0)
+        qc1.measure(1, 1)
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h(0)
+        qc2.cx(0, 1)
+        qc2.measure(1, 0)
+        qc2.measure(0, 1)
+
+        # this should run smoothly
+        quantum_instance.execute([qc1, qc2])
+
+        # failure case
+        qc3 = QuantumCircuit(3, 3)
+        qc3.h(2)
+        qc3.cx(1, 2)
+        qc3.measure(2, 1)
+        qc3.measure(1, 2)
+
+        self.assertRaises(AquaError, quantum_instance.execute, [qc1, qc3])
 
 
 if __name__ == '__main__':
