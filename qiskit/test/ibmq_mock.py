@@ -20,18 +20,18 @@ from qiskit.test import mock as backend_mocks
 
 
 def mock_get_backend(backend):
-    """Replace qiskit.IBMQ with a mock that returns a single backend.
+    """Replace qiskit.IQX with a mock that returns a single backend.
 
-    Note this will set the value of qiskit.IBMQ to a MagicMock object. It is
+    Note this will set the value of qiskit.IQX to a MagicMock object. It is
     intended to be run as part of docstrings with jupyter-example in a hidden
     cell so that later examples which rely on ibmq devices so that the docs can
     be built without requiring configured credentials. If used outside of this
-    context be aware that you will have to manually restore qiskit.IBMQ the
-    value to qiskit.providers.ibmq.IBMQ after you finish using your mock.
+    context be aware that you will have to manually restore qiskit.IQX the
+    value to qiskit.providers.ibmq.IQX after you finish using your mock.
 
     Args:
         backend (str): The class name as a string for the fake device to
-            return from the mock IBMQ object. For example, FakeVigo.
+            return from the mock IQX object. For example, FakeVigo.
     Raises:
         NameError: If the specified value of backend
     """
@@ -44,4 +44,4 @@ def mock_get_backend(backend):
     fake_backend = getattr(backend_mocks, backend)()
     mock_provider.get_backend.return_value = fake_backend
     mock_ibmq.get_provider.return_value = mock_provider
-    qiskit.IBMQ = mock_ibmq
+    qiskit.IQX = mock_ibmq
