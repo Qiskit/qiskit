@@ -12,29 +12,34 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pauli Y (bit-phase-flip) gate.
-"""
+"""Hadamard gate."""
+
 import numpy
 from qiskit.qasm import pi
+from .t import TGate, TdgGate
+from .s import SGate, SdgGate
 from ..controlledgate import ControlledGate
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
 
 
-class YGate(Gate):
-    """Pauli Y (bit-phase-flip) gate."""
+# pylint: disable=cyclic-import
+class HGate(Gate):
+    """Hadamard gate."""
 
     def __init__(self, label=None):
-        """Create new Y gate."""
-        super().__init__('y', 1, [], label=label)
+        """Create new Hadamard gate."""
+        super().__init__('h', 1, [], label=label)
 
     def _define(self):
-        from .u3 import U3Gate
+        """
+        gate h a { u2(0,pi) a; }
+        """
+        from .u2 import U2Gate
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [
-            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
+            (U2Gate(0, pi), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -54,50 +59,51 @@ class YGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CYGate()
+                return CHGate()
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate."""
-        return YGate()  # self-inverse
+        return HGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j],
-                            [1j, 0]], dtype=complex)
+        """Return a Numpy.array for the H gate."""
+        return numpy.array([[1, 1],
+                            [1, -1]], dtype=complex) / numpy.sqrt(2)
 
 
-class CYMeta(type):
-    """A metaclass to ensure that CyGate and CYGate are of the same type.
-
-    Can be removed when CyGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CYGate, CyGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CYGate(ControlledGate, metaclass=CYMeta):
-    """The controlled-Y gate."""
+class CHGate(ControlledGate):
+    """The controlled-H gate."""
 
     def __init__(self):
-        """Create a new CY gate."""
-        super().__init__('cy', 2, [], num_ctrl_qubits=1)
-        self.base_gate = YGate()
+        """Create new CH gate."""
+        super().__init__('ch', 2, [], num_ctrl_qubits=1)
+        self.base_gate = HGate()
 
     def _define(self):
         """
-        gate cy a,b { sdg b; cx a,b; s b; }
+        gate ch a,b {
+            s b;
+            h b;
+            t b;
+            cx a, b;
+            tdg b;
+            h b;
+            sdg b;
+        }
         """
-        from .s import SGate, SdgGate
         from .x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
-            (SdgGate(), [q[1]], []),
+            (SGate(), [q[1]], []),
+            (HGate(), [q[1]], []),
+            (TGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (SGate(), [q[1]], [])
+            (TdgGate(), [q[1]], []),
+            (HGate(), [q[1]], []),
+            (SdgGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -105,23 +111,12 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     def inverse(self):
         """Invert this gate."""
-        return CYGate()  # self-inverse
+        return CHGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a numpy.array for the CY gate."""
+        """Return a numpy.array for the CH gate."""
         return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, -1j],
+                            [0, 1 / numpy.sqrt(2), 0, 1 / numpy.sqrt(2)],
                             [0, 0, 1, 0],
-                            [0, 1j, 0, 0]], dtype=complex)
-
-
-class CyGate(CYGate, metaclass=CYMeta):
-    """A deprecated CYGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class CyGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CYGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()
+                            [0, 1 / numpy.sqrt(2), 0, -1 / numpy.sqrt(2)]],
+                           dtype=complex)

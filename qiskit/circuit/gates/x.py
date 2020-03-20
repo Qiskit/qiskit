@@ -15,10 +15,9 @@
 """Pauli X (bit-flip) gate."""
 
 import numpy
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TdgGate
 from qiskit.qasm import pi
+from .h import HGate
+from .t import TGate, TdgGate
 from ..controlledgate import ControlledGate
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
@@ -75,7 +74,6 @@ class XGate(Gate):
         """Return a numpy.array for the X gate."""
         return numpy.array([[0, 1],
                             [1, 0]], dtype=complex)
-
 
 
 class CXMeta(type):

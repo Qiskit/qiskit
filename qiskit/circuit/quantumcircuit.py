@@ -37,6 +37,9 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 
 # gate imports
+from .gates.h import HGate, CHGate
+from .gates.s import SGate, SdgGate
+from .gates.t import TGate, TdgGate
 from .gates.u1 import U1Gate, CU1Gate
 from .gates.u2 import U2Gate
 from .gates.u3 import U3Gate, CU3Gate
@@ -1347,6 +1350,178 @@ class QuantumCircuit:
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
     @deprecate_arguments({'q': 'qubit'})
+    def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        r"""Apply Hadamard (H) gate.
+
+        Applied to a specified qubit ``qubit``.
+
+        An H gate implements a rotation of :math:`\pi` about the axis
+        :math:`\frac{(x + z)}{\sqrt{2}}` on the Bloch sphere. This gate is
+        canonically used to rotate the qubit state from :math:`|0\rangle` to
+        :math:`|+\rangle` or :math:`|1\rangle` to :math:`|-\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.h(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.h import HGate
+                HGate().to_matrix()
+
+        """
+        return self.append(HGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+    def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+           *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cH gate
+
+        From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+        This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
+        :math:`|+\\rangle` and :math:`|1\\rangle to :math:`|−\\rangle` when the control qubit is
+        in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.ch(0,1)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.h import CHGate
+                CHGate().to_matrix()
+        """
+        return self.append(CHGate(), [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply S gate to a specified qubit (qubit).
+        An S gate implements a pi/2 rotation of the qubit state vector about the
+        z axis of the Bloch sphere.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.s(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.s import SGate
+                SGate().to_matrix()
+        """
+        return self.append(SGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def sdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply Sdg gate to a specified qubit (qubit).
+        An Sdg gate implements a -pi/2 rotation of the qubit state vector about the
+        z axis of the Bloch sphere. It is the inverse of S gate.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.sdg(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.s import SdgGate
+                SdgGate().to_matrix()
+        """
+        return self.append(SdgGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply T gate to a specified qubit (qubit).
+        A T gate implements a pi/4 rotation of a qubit state vector about the
+        z axis of the Bloch sphere.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.t(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.t import TGate
+                TGate().to_matrix()
+        """
+        return self.append(TGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply Tdg gate to a specified qubit (qubit).
+        A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
+        z axis of the Bloch sphere. It is the inverse of T-gate.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.tdg(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.t import TdgGate
+                TdgGate().to_matrix()
+        """
+        return self.append(TdgGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
     def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply U1 gate with angle theta
 
@@ -1602,6 +1777,128 @@ class QuantumCircuit:
                 *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
         """Alias for the ``QuantumCircuit.ccx`` method."""
         self.ccx(control_qubit1, control_qubit2, target_qubit, ctl1=ctl1, ctl2=ctl2, tgt=tgt)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply Y gate to a specified qubit (qubit).
+
+        A Y gate implements a :math:`\\pi` rotation of the qubit state vector about
+        the y axis of the Bloch sphere. This gate is canonically used to implement
+        a bit flip and phase flip on the qubit state from :math:`|0\\rangle` to
+        :math:`i|1\\rangle`, or from :math:`|1\\rangle` to :math:`-i|0\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.y(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.y import YGate
+                YGate().to_matrix()
+        """
+        return self.append(YGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+           *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cY gate
+
+        Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+        A cY gate implements a pi rotation of the qubit state vector about the y axis
+        of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
+        This gate is canonically used to implement a bit flip and phase flip on the qubit state
+        from :math:`|0\\rangle` to :math:`i|1\\rangle`, or from :math:`|1\\rangle` to
+        :math:`-i|0\\rangle` when the control qubit is in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.cy(0,1)
+                circuit.draw()
+        """
+        return self.append(CYGate(), [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply Z gate to a specified qubit (qubit).
+
+        A Z gate implements a :math:`\\pi` rotation of the qubit state vector about
+        the z axis of the Bloch sphere. This gate is canonically used to implement
+        a phase flip on the qubit state from :math:`|+\\rangle` to :math:`|-\\rangle`,
+        or vice versa.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.z(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.z import ZGate
+                ZGate().to_matrix()
+        """
+        return self.append(ZGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+           *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cZ gate
+
+        From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
+        A cZ gate implements a :math:`\\pi` rotation of the qubit state vector about
+        the z axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
+        This gate is canonically used to implement a phase flip on the qubit state from
+        :math:`|+\\rangle` to :math:`|-\\rangle`, or vice versa when the control qubit is in
+        state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+                import numpy
+
+                circuit = QuantumCircuit(2)
+                circuit.cz(0,1)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.z import CZGate
+                CZGate().to_matrix()
+        """
+        return self.append(CZGate(), [control_qubit, target_qubit], [])
 
 
 def _circuit_from_qasm(qasm):

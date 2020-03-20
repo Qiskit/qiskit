@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""The S gate (Clifford phase gate) and its inverse."""
+
+import numpy
+from qiskit.qasm import pi
+from ..gate import Gate
+from ..quantumregister import QuantumRegister
+
+
+class SGate(Gate):
+    """The S gate, also called Clifford phase gate."""
+
+    def __init__(self, label=None):
+        """Create a new S gate."""
+        super().__init__('s', 1, [], label=label)
+
+    def _define(self):
+        """
+        gate s a { u1(pi/2) a; }
+        """
+        from .u1 import U1Gate
+        definition = []
+        q = QuantumRegister(1, 'q')
+        rule = [
+            (U1Gate(pi / 2), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return SdgGate()
+
+    def to_matrix(self):
+        """Return a numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, 1j]], dtype=complex)
+
+
+class SdgGate(Gate):
+    """Sdg=diag(1,-i) Clifford adjoint phase gate."""
+
+    def __init__(self, label=None):
+        """Create a new Sdg gate."""
+        super().__init__('sdg', 1, [], label=label)
+
+    def _define(self):
+        """
+        gate sdg a { u1(-pi/2) a; }
+        """
+        from .u1 import U1Gate
+        definition = []
+        q = QuantumRegister(1, 'q')
+        rule = [
+            (U1Gate(-pi / 2), [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def inverse(self):
+        """Invert this gate."""
+        return SGate()
+
+    def to_matrix(self):
+        """Return a numpy.array for the Sdg gate."""
+        return numpy.array([[1, 0],
+                            [0, -1j]], dtype=complex)
