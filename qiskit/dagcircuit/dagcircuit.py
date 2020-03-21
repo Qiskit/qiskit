@@ -523,12 +523,13 @@ class DAGCircuit:
         if front:
             raise DAGCircuitError("Front composition not supported yet.")
 
+        if len(other.qubits()) > len(self.qubits()) or \
+           len(other.clbits()) > len(self.clbits()):
+            raise DAGCircuitError("Trying to compose with another DAGCircuit "
+                                  "which has more 'in' edges.")
+
         # if no edge_map given, try to do a 1-1 mapping in order
         if edge_map is None:
-            if len(other.qubits()) > len(self.qubits()) or \
-               len(other.clbits()) > len(self.clbits()):
-                raise DAGCircuitError("Trying to compose with another DAGCircuit "
-                                      "which has more 'in' edges.")
             identity_qubit_map = dict(zip(other.qubits(), self.qubits()))
             identity_clbit_map = dict(zip(other.clbits(), self.clbits()))
             edge_map = {**identity_qubit_map, **identity_clbit_map}
