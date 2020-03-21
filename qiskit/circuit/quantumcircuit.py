@@ -37,8 +37,21 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 
 # gate imports
+from .gates.barrier import Barrier
 from .gates.h import HGate, CHGate
+from .gates.i import IGate
+from .gates.ms import MSGate
+from .gates.r import RGate
+from .gates.rccx import RCCXGate
+from .gates.rcccx import RCCCXGate
+from .gates.rx import RXGate, CRXGate
+from .gates.rxx import RXXGate
+from .gates.ry import RYGate, CRYGate
+from .gates.ryy import RYYGate
+from .gates.rz import RZGate, CRZGate
+from .gates.rzz import RZZGate
 from .gates.s import SGate, SdgGate
+from .gates.swap import SwapGate, CSwapGate
 from .gates.t import TGate, TdgGate
 from .gates.u1 import U1Gate, CU1Gate
 from .gates.u2 import U2Gate
@@ -1349,6 +1362,32 @@ class QuantumCircuit:
                 self._rebind_definition(instr, old_parameter, new_parameter)
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
+    def barrier(self, *qargs):
+        """Apply barrier to circuit.
+        If qargs is None, applies to all the qbits.
+        Args is a list of QuantumRegister or single qubits.
+        For QuantumRegister, applies barrier to all the qubits in that register."""
+        qubits = []
+
+        if not qargs:  # None
+            for qreg in self.qregs:
+                for j in range(qreg.size):
+                    qubits.append(qreg[j])
+
+        for qarg in qargs:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, range):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
+        return self.append(Barrier(len(qubits)), qubits, [])
+
     @deprecate_arguments({'q': 'qubit'})
     def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         r"""Apply Hadamard (H) gate.
@@ -1414,6 +1453,201 @@ class QuantumCircuit:
         return self.append(CHGate(), [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
+    def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply Identity to to a specified qubit ``qubit``.
+
+        The Identity gate ensures that nothing is applied to a qubit for one unit
+        of gate time. It leaves the quantum states :math:`|0\\rangle` and
+        :math:`|1\\rangle` unchanged. The Identity gate should not be optimized or
+        unrolled (it is an opaque gate).
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.id(0)  # or circuit.i(0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.i import IGate
+                IGate().to_matrix()
+        """
+        return self.append(IGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def id(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Alias for ``QuantumCircuit.i``."""
+        return self.i(qubit)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Deprecated identity gate."""
+        warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.i() method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.append(IGate(), [qubit], [])
+
+    def ms(self, theta, qubits):  # pylint: disable=invalid-name
+        """Apply MS to q1 and q2."""
+        return self.append(MSGate(len(qubits), theta), qubits)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply R to q."""
+        return self.append(RGate(theta, phi), [qubit], [])
+
+    def rccx(self, control_qubit1, control_qubit2, target_qubit):
+        """Apply the simplified, relative-phase Toffoli gate."""
+        return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+
+    def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
+        """Apply the simplified, relative-phase 3-control Toffoli gate."""
+        return self.append(RCCCXGate(),
+                           [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+                           [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply Rx gate with angle theta to a specified qubit (qubit).
+        An Rx gate implements a theta radian rotation of the qubit state vector about the
+        x axis of the Bloch sphere.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                circuit = QuantumCircuit(1)
+                circuit.rx(theta,0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                import numpy
+                from qiskit.extensions.standard.rx import RXGate
+                RXGate(numpy.pi/2).to_matrix()
+        """
+        return self.append(RXGate(theta), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def crx(self, theta, control_qubit, target_qubit,
+            *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply crx from ctl to tgt with angle theta."""
+        return self.append(CRXGate(theta), [control_qubit, target_qubit], [])
+
+    def rxx(self, theta, qubit1, qubit2):
+        """Apply RXX to circuit."""
+        return self.append(RXXGate(theta), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply Ry gate with angle theta to a specified qubit (qubit).
+        An Ry gate implements a theta radian rotation of the qubit state vector about the
+        y axis of the Bloch sphere.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                circuit = QuantumCircuit(1)
+                circuit.ry(theta,0)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                import numpy
+                from qiskit.extensions.standard.ry import RYGate
+                RYGate(numpy.pi/2).to_matrix()
+        """
+        return self.append(RYGate(theta), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cry(self, theta, control_qubit, target_qubit,
+            *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cry from ctl to tgt with angle theta."""
+        return self.append(CRYGate(theta), [control_qubit, target_qubit], [])
+
+    def ryy(self, theta, qubit1, qubit2):
+        """Apply RYY to circuit."""
+        return self.append(RYYGate(theta), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply Rz gate with angle :math:`\\phi`
+
+        The gate is applied to a specified qubit `qubit`.
+        An Rz gate implemements a phi radian rotation of the qubit state vector
+        about the z axis of the Bloch sphere.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                phi = Parameter('φ')
+                circuit = QuantumCircuit(1)
+                circuit.rz(phi,0)
+                circuit.draw()
+        """
+        return self.append(RZGate(phi), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+    def crz(self, theta, control_qubit, target_qubit,
+            *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply cRz gate
+
+        Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit
+        with angle :math:`\\theta`. A cRz gate implements a :math:`\\theta` radian rotation
+        of the qubit state vector about the z axis of the Bloch sphere when the control
+        qubit is in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                theta = Parameter('θ')
+                circuit = QuantumCircuit(2)
+                circuit.crz(theta,0,1)
+                circuit.draw()
+        """
+        return self.append(CRZGate(theta), [control_qubit, target_qubit], [])
+
+    def rzz(self, theta, qubit1, qubit2):
+        """Apply RZZ to circuit."""
+        return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'q': 'qubit'})
     def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply S gate to a specified qubit (qubit).
         An S gate implements a pi/2 rotation of the qubit state vector about the
@@ -1466,6 +1700,72 @@ class QuantumCircuit:
                 SdgGate().to_matrix()
         """
         return self.append(SdgGate(), [qubit], [])
+
+    def swap(self, qubit1, qubit2):
+        """Apply SWAP gate to a pair specified qubits (qubit1, qubit2).
+        The SWAP gate canonically swaps the states of two qubits.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.swap(0,1)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.swap import SwapGate
+                SwapGate().to_matrix()
+        """
+        return self.append(SwapGate(), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt1': 'target_qubit1',
+                          'tgt2': 'target_qubit2'})
+    def cswap(self, control_qubit, target_qubit1, target_qubit2,
+              *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+        """Apply Fredkin (CSWAP) gate
+
+        From a specified control ``control_qubit`` to target1 ``target_qubit1`` and
+        target2 ``target_qubit2`` qubits. The CSWAP gate is canonically
+        used to swap the qubit states of target1 and target2 when the control qubit
+        is in state :math:`|1\\rangle`.
+
+        Examples:
+
+            Circuit Representation:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(3)
+                circuit.cswap(0,1,2)
+                circuit.draw()
+
+            Matrix Representation:
+
+            .. jupyter-execute::
+
+                from qiskit.extensions.standard.swap import CSwapGate
+                CSwapGate().to_matrix()
+        """
+        return self.append(CSwapGate(), [control_qubit, target_qubit1, target_qubit2], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt1': 'target_qubit1',
+                          'tgt2': 'target_qubit2'})
+    def fredkin(self, control_qubit, target_qubit1, target_qubit2,
+                *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+        """Alias for ``QuantumCircuit.cswap``."""
+        return self.cswap(control_qubit, target_qubit1, target_qubit2)
 
     @deprecate_arguments({'q': 'qubit'})
     def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
@@ -1743,9 +2043,10 @@ class QuantumCircuit:
             *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
         """Apply Toffoli (ccX) gate
 
-        From two specified controls ``(control_qubit1 and control_qubit2)`` to target ``target_qubit``
-        qubit. This gate is canonically used to rotate the qubit state from :math:`|0\\rangle` to
-        :math:`|1\\rangle`, or vice versa when both the control qubits are in state :math:`|1\\rangle`.
+        From two specified controls ``(control_qubit1 and control_qubit2)`` to target
+        ``target_qubit`` qubit. This gate is canonically used to rotate the qubit state from
+        :math:`|0\\rangle` to :math:`|1\\rangle`, or vice versa when both the control qubits are in
+        state :math:`|1\\rangle`.
 
         Examples:
 
@@ -1776,7 +2077,7 @@ class QuantumCircuit:
     def toffoli(self, control_qubit1, control_qubit2, target_qubit,
                 *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
         """Alias for the ``QuantumCircuit.ccx`` method."""
-        self.ccx(control_qubit1, control_qubit2, target_qubit, ctl1=ctl1, ctl2=ctl2, tgt=tgt)
+        self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     @deprecate_arguments({'q': 'qubit'})
     def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
