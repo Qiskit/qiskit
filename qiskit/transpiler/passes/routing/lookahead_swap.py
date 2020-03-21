@@ -87,14 +87,10 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-        coupling_map = self.coupling_map
-        search_depth = self.search_depth
-        search_width = self.search_width
-
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Lookahead swap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(coupling_map.physical_qubits):
+        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
@@ -106,8 +102,11 @@ class LookaheadSwap(TransformationPass):
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
-            best_step = _search_forward_n_swaps(current_layout, gates_remaining,
-                                                coupling_map, search_depth, search_width)
+            best_step = _search_forward_n_swaps(current_layout,
+                                                gates_remaining,
+                                                self.coupling_map,
+                                                self.search_depth,
+                                                self.search_width)
 
             current_layout = best_step['layout']
             gates_mapped = best_step['gates_mapped']
@@ -116,7 +115,7 @@ class LookaheadSwap(TransformationPass):
             mapped_gates.extend(gates_mapped)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = _copy_circuit_metadata(dag, coupling_map)
+        mapped_dag = _copy_circuit_metadata(dag, self.coupling_map)
 
         for node in mapped_gates:
             mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
