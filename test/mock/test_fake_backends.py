@@ -15,7 +15,7 @@
 """Test of generated fake backends."""
 import math
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, schedule, transpile, assemble, BasicAer
+from qiskit import QuantumRegister, QuantumCircuit, execute, schedule, transpile, assemble, BasicAer, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
@@ -28,21 +28,19 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.backend = FakeBackendBuilder("Tashkent", n_qubits=4).build()
 
     def test_not_even_came_up_with_name_yet(self):
-        pass
-        # desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
-        # qr = QuantumRegister(2, "qr")
-        # qc = QuantumCircuit(qr)
-        # qc.initialize(desired_vector, [qr[0], qr[1]])
-        # # job = execute(qc, self.backend)
-        # # result = job.result()
-        # # print(result)
-        #
-        # experiments = transpile(qc, backend=self.backend)
-        # experiments = schedule(circuits=experiments, backend=self.backend)
-        # qobj = assemble(experiments, backend=self.backend)
-        #
-        # job = self.backend.run(qobj)
-        #
-        # result = job.result()
-        #
-        # print(qobj)
+        desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.initialize(desired_vector, [qr[0], qr[1]])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        experiments = transpile(qc, backend=self.backend)
+        experiments = schedule(circuits=experiments, backend=self.backend)
+        qobj = assemble(experiments, backend=self.backend)
+
+        job = self.backend.run(qobj)
+
+        result = job.result()
+
