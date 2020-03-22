@@ -97,27 +97,29 @@ def control(operation: Union[Gate, ControlledGate],
     q_ancillae = None  # TODO: add
     qc = QuantumCircuit(q_control, q_target)
 
-    if isinstance(operation, XGate) or (
-            isinstance(operation, controlledgate.ControlledGate) and
-            isinstance(operation.base_gate, XGate)):
-        qc.mct(q_control[:] + q_target[:-1],
-               q_target[-1],
-               None,
+    qubit_kwargs = {
+        'q_controls': q_control[:] + q_target[:-1],
+        'q_target': q_target[-1],
+    }
+
+    if _operation_has_base_gate(operation, XGate):
+        qc.mct(**qubit_kwargs,
+               q_ancilla=q_ancillae,
                mode='noancilla')
-    elif isinstance(operation, RXGate):
-        qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
+    elif _operation_has_base_gate(operation, RXGate):
+        qc.mcrx(_get_base_gate_params(operation)[0], **qubit_kwargs,
                 use_basis_gates=True)
-    elif isinstance(operation, RYGate):
-        qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
-                q_ancillae, use_basis_gates=True)
-    elif isinstance(operation, RZGate):
-        qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
+    elif _operation_has_base_gate(operation, RYGate):
+        qc.mcry(_get_base_gate_params(operation)[0], **qubit_kwargs,
+                q_ancillae=q_ancillae, use_basis_gates=True)
+    elif _operation_has_base_gate(operation, RZGate):
+        qc.mcrz(_get_base_gate_params(operation)[0], **qubit_kwargs,
                 use_basis_gates=True)
-    elif isinstance(operation, U1Gate):
-        qc.mcu1(operation.definition[0][0].params[2], q_control, q_target[0])
-    elif isinstance(operation, U3Gate):
-        theta, phi, lamb = operation.params
-        _apply_mcu3(qc, theta, phi, lamb, q_control, q_target[0], q_ancillae)
+    elif _operation_has_base_gate(operation, U1Gate):
+        qc.mcu1(_get_base_gate_params(operation)[2], *qubit_kwargs.values())
+    elif _operation_has_base_gate(operation, U3Gate):
+        theta, phi, lamb = _get_base_gate_params(operation)
+        _apply_mcu3(qc, theta, phi, lamb, **qubit_kwargs, q_ancillae=q_ancillae)
     else:
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
@@ -176,6 +178,25 @@ def _gate_to_circuit(operation):
     else:
         qc.append(operation, qargs=qr, cargs=[])
     return qc
+
+
+def _operation_has_base_gate(operation, gate):
+    return isinstance(operation, gate) or (
+        isinstance(operation, ControlledGate) and
+        isinstance(operation.base_gate, gate))
+
+
+def _get_base_gate_params(operation):
+    if isinstance(operation, ControlledGate):
+        if isinstance(operation.base_gate, U3Gate):
+            return operation.base_gate.params
+        else:
+            return operation.base_gate.definition[0][0].params
+    else:
+        if isinstance(operation, U3Gate):
+            return operation.params
+        else:
+            return operation.definition[0][0].params
 
 
 def _unroll_gate(operation, basis_gates):
