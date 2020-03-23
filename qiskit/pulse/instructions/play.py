@@ -36,7 +36,7 @@ class Play(Instruction):
         Args:
             pulse: A pulse waveform description, such as
                    :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
-            channel: The channel that will have the pulse.
+            channel: The channel to which the pulse is applied.
             name: Name of the delay for display purposes.
         """
         self._pulse = pulse
