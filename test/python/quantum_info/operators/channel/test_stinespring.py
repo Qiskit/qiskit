@@ -34,22 +34,26 @@ class TestStinespring(ChannelTestCase):
         chan = Stinespring(self.UI)
         assert_allclose(chan.data, self.UI)
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize from Stinespring
         chan = Stinespring(self.depol_stine(0.5))
         assert_allclose(chan.data, self.depol_stine(0.5))
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize from Non-CPTP
         stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
         chan = Stinespring((stine_l, stine_r))
         assert_allclose(chan.data, (stine_l, stine_r))
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize with redundant second op
         chan = Stinespring((stine_l, stine_l))
         assert_allclose(chan.data, stine_l)
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         # Wrong input or output dims should raise exception
         self.assertRaises(

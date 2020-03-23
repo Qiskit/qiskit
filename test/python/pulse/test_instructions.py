@@ -14,7 +14,7 @@
 
 """Unit tests for pulse instructions."""
 
-from qiskit.pulse import Delay, DriveChannel, Snapshot
+from qiskit.pulse import Delay, DriveChannel, ShiftPhase, Snapshot
 from qiskit.test import QiskitTestCase
 
 
@@ -28,6 +28,18 @@ class TestDelayCommand(QiskitTestCase):
         self.assertEqual(delay.name, "test_name")
         self.assertEqual(delay.duration, 10)
         self.assertEqual(delay.operands, [10, DriveChannel(0)])
+
+
+class TestShiftPhase(QiskitTestCase):
+    """Test the instruction construction."""
+
+    def test_default(self):
+        """Test basic ShiftPhase."""
+        shift_phase = ShiftPhase(1.57, DriveChannel(0))
+
+        self.assertEqual(shift_phase.phase, 1.57)
+        self.assertEqual(shift_phase.duration, 0)
+        self.assertTrue(shift_phase.name.startswith('shiftphase'))
 
 
 class TestSnapshot(QiskitTestCase):
