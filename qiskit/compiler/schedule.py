@@ -50,8 +50,6 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
     if inst_map is None:
-        if cmd_def is not None:
-            inst_map = cmd_def
         if backend is None:
             raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
                               "scheduling passes.")
