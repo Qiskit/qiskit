@@ -58,23 +58,20 @@ class TestStatevector(QiskitTestCase):
             assert_allclose(state.data, vec)
             self.assertEqual(state.dim, 8)
             self.assertEqual(state.dims(), (2, 2, 2))
-            self.assertEqual(state.num_qubits, 3)
 
     def test_init_array(self):
         """Test initialization from array."""
         vec = self.rand_vec(3)
-        state = Statevector(vec)
-        assert_allclose(state.data, vec)
-        self.assertEqual(state.dim, 3)
-        self.assertEqual(state.dims(), (3,))
-        self.assertIsNone(state.num_qubits)
+        statevec = Statevector(vec)
+        assert_allclose(statevec.data, vec)
+        self.assertEqual(statevec.dim, 3)
+        self.assertEqual(statevec.dims(), (3,))
 
         vec = self.rand_vec(2 * 3 * 4)
         state = Statevector(vec, dims=[2, 3, 4])
         assert_allclose(state.data, vec)
         self.assertEqual(state.dim, 2 * 3 * 4)
         self.assertEqual(state.dims(), (2, 3, 4))
-        self.assertIsNone(state.num_qubits)
 
     def test_init_array_except(self):
         """Test initialization exception from array."""

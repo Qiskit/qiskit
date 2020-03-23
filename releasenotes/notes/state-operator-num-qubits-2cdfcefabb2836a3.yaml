@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add a ``num_qubits`` attribute to ``QuantumState`` and ``BaseOperator`` classes.
-    This returns the number of qubits for N-qubit states and operators, and returns
-    ``None`` for non-qubit states and operators.

@@ -34,13 +34,11 @@ class TestPTM(ChannelTestCase):
         chan = PTM(mat4)
         assert_allclose(chan.data, mat4)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertEqual(chan.num_qubits, 1)
 
         mat16 = np.eye(16) / 4
         chan = PTM(mat16)
         assert_allclose(chan.data, mat16)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertEqual(chan.num_qubits, 2)
 
         # Wrong input or output dims should raise exception
         self.assertRaises(QiskitError, PTM, mat16, input_dims=2, output_dims=4)

@@ -39,14 +39,10 @@ class QuantumState(ABC):
                 rep.__class__))
         self._rep = rep
         self._data = data
-
-        # Dimension attributes
-        # Note that the tuples of input and output dims are ordered
-        # from least-significant to most-significant subsystems
-        self._dims = None        # tuple of dimensions of each subsystem
-        self._dim = None         # combined dimension of all subsystems
-        self._num_qubits = None  # number of qubit subsystems if N-qubit state
-        self._set_dims(dims)
+        # Shape lists the dimension of each subsystem starting from
+        # least significant through to most significant.
+        self._dims = tuple(dims)
+        self._dim = np.product(dims)
 
     def __eq__(self, other):
         if (isinstance(other, self.__class__)
@@ -72,11 +68,6 @@ class QuantumState(ABC):
     def dim(self):
         """Return total state dimension."""
         return self._dim
-
-    @property
-    def num_qubits(self):
-        """Return the number of qubits if a N-qubit state or None otherwise."""
-        return self._num_qubits
 
     @property
     def data(self):
@@ -275,22 +266,6 @@ class QuantumState(ABC):
     def _automatic_dims(cls, dims, size):
         """Check if input dimension corresponds to qubit subsystems."""
         return BaseOperator._automatic_dims(dims, size)
-
-    def _set_dims(self, dims):
-        """Set dimension attribute"""
-        # Shape lists the dimension of each subsystem starting from
-        # least significant through to most significant.
-        self._dims = tuple(dims)
-        # The total input and output dimensions are given by the product
-        # of all subsystem dimensions
-        self._dim = np.product(dims)
-        # Check if an N-qubit operator
-        if set(self._dims) == set([2]):
-            # If so set the number of qubits
-            self._num_qubits = len(self._dims)
-        else:
-            # Otherwise set the number of qubits to None
-            self._num_qubits = None
 
     # Overloads
     def __matmul__(self, other):

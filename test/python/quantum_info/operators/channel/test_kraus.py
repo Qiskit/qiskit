@@ -34,33 +34,28 @@ class TestKraus(ChannelTestCase):
         chan = Kraus(self.UI)
         assert_allclose(chan.data, [self.UI])
         self.assertEqual(chan.dim, (2, 2))
-        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize from Kraus
         chan = Kraus(self.depol_kraus(0.5))
         assert_allclose(chan.data, self.depol_kraus(0.5))
         self.assertEqual(chan.dim, (2, 2))
-        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize from Non-CPTP
         kraus_l, kraus_r = [self.UI, self.UX], [self.UY, self.UZ]
         chan = Kraus((kraus_l, kraus_r))
         assert_allclose(chan.data, (kraus_l, kraus_r))
         self.assertEqual(chan.dim, (2, 2))
-        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize with redundant second op
         chan = Kraus((kraus_l, kraus_l))
         assert_allclose(chan.data, kraus_l)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertEqual(chan.num_qubits, 1)
 
         # Initialize from rectangular
         kraus = [np.zeros((4, 2))]
         chan = Kraus(kraus)
         assert_allclose(chan.data, kraus)
         self.assertEqual(chan.dim, (2, 4))
-        self.assertIsNone(chan.num_qubits)
 
         # Wrong input or output dims should raise exception
         self.assertRaises(
