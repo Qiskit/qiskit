@@ -47,7 +47,7 @@ class ScalarOpTestCase(QiskitTestCase):
 class TestScalarOpInit(ScalarOpTestCase):
     """Test initialization."""
 
-    @combine(j=range(5))
+    @combine(j=range(1, 5))
     def test_init(self, j):
         """Test {j}-qubit automatic dims."""
         dim = 2 ** j
@@ -56,6 +56,7 @@ class TestScalarOpInit(ScalarOpTestCase):
         self.assertEqual(op.input_dims(), j * (2,))
         self.assertEqual(op.output_dims(), j * (2,))
         self.assertEqual(op.coeff, 1)
+        self.assertEqual(op.num_qubits, j)
 
     def test_custom_dims(self):
         """Test custom dims."""
@@ -66,6 +67,7 @@ class TestScalarOpInit(ScalarOpTestCase):
         self.assertEqual(op.input_dims(), dims)
         self.assertEqual(op.output_dims(), dims)
         self.assertEqual(op.coeff, 1)
+        self.assertIsNone(op.num_qubits)
 
     def test_real_coeff(self):
         """Test real coeff."""

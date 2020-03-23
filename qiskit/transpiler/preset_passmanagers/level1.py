@@ -19,12 +19,10 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
 from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CXCancellation
-from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
@@ -71,12 +69,18 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     backend_properties = pass_manager_config.backend_properties
 
     # 1. Use trivial layout if no layout given
-    _set_initial_layout = SetLayout(initial_layout)
+    _given_layout = SetLayout(initial_layout)
+
+    _choose_layout_and_score = [TrivialLayout(coupling_map),
+                                Layout2qDistance(coupling_map,
+                                                 property_name='trivial_layout_score')]
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
+    _improve_layout = DenseLayout(coupling_map, backend_properties)
+
     def _not_perfect_yet(property_set):
         return property_set['trivial_layout_score'] is not None and \
                property_set['trivial_layout_score'] != 0
@@ -84,8 +88,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 4. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    # 4. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = Unroll3qOrMore()
 
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -94,11 +98,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
-             Unroll3qOrMore(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
-             Decompose(SwapGate)]
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
 
-    # 6. Fix any bad CX directions
+    # 6. Unroll to the basis
+    _unroll = Unroller(basis_gates)
+
+    # 7. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -106,10 +111,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 7. Remove zero-state reset
+    # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 8. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
+    # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -117,21 +122,20 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGates(), CXCancellation()]
 
+    # Build pass manager
     pm1 = PassManager()
     if coupling_map:
-        pm1.append(_set_initial_layout)
-        pm1.append([TrivialLayout(coupling_map),
-                    Layout2qDistance(coupling_map, property_name='trivial_layout_score')],
-                   condition=_choose_layout_condition)
-        pm1.append(DenseLayout(coupling_map, backend_properties), condition=_not_perfect_yet)
+        pm1.append(_given_layout)
+        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
+        pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
-    pm1.append(_unroll)
-    if coupling_map:
+        pm1.append(_unroll3q)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
-        if not coupling_map.is_symmetric:
-            pm1.append(_direction_check)
-            pm1.append(_direction, condition=_direction_condition)
+    pm1.append(_unroll)
+    if coupling_map and not coupling_map.is_symmetric:
+        pm1.append(_direction_check)
+        pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
 

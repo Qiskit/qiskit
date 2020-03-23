@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Standard gates."""
+
 from .barrier import Barrier
 from .h import HGate, CHGate
 from .i import IGate

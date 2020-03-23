@@ -72,7 +72,12 @@ class Parameter(ParameterExpression):
         return '{}({})'.format(self.__class__.__name__, self.name)
 
     def __eq__(self, other):
-        return isinstance(other, Parameter) and self._uuid == other._uuid
+        if isinstance(other, Parameter):
+            return self._uuid == other._uuid
+        elif isinstance(other, ParameterExpression):
+            return super().__eq__(other)
+        else:
+            return False
 
     def __hash__(self):
         return hash(self._uuid)

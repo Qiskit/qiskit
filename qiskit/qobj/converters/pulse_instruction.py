@@ -21,6 +21,7 @@ from enum import Enum
 
 from qiskit.pulse import commands, channels, instructions
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -119,7 +120,7 @@ class InstructionToQobjConverter:
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction):
+    def convert_acquire_deprecated(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -164,6 +165,52 @@ class InstructionToQobjConverter:
                 })
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Acquire)
+    def convert_acquire(self, shift, instruction):
+        """Return converted `Acquire`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Acquire): acquire instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        meas_level = self._run_config.get('meas_level', 2)
+
+        command_dict = {
+            'name': 'acquire',
+            't0': shift + instruction.start_time,
+            'duration': instruction.duration,
+            'qubits': [q.index for q in instruction.acquires],
+            'memory_slot': [m.index for m in instruction.mem_slots]
+        }
+        if meas_level == MeasLevel.CLASSIFIED:
+            # setup discriminators
+            if instruction.discriminator:
+                command_dict.update({
+                    'discriminators': [
+                        QobjMeasurementOption(
+                            name=instruction.discriminator.name,
+                            params=instruction.discriminator.params)
+                    ]
+                })
+            # setup register_slots
+            if instruction.reg_slots:
+                command_dict.update({
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                })
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+            # setup kernels
+            if instruction.kernel:
+                command_dict.update({
+                    'kernels': [
+                        QobjMeasurementOption(
+                            name=instruction.kernel.name,
+                            params=instruction.kernel.params)
+                    ]
+                })
+        return self._qobj_model(**command_dict)
+
     def convert_single_acquires(self, shift, instruction,
                                 qubits=None, memory_slot=None, register_slot=None):
         """Return converted `AcquireInstruction`, with options to override the qubits,
@@ -204,6 +251,25 @@ class InstructionToQobjConverter:
             't0': shift + instruction.start_time,
             'ch': instruction.channels[0].name,
             'phase': instruction.command.phase
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.SetFrequency)
+    def convert_set_frequency(self, shift, instruction):
+        """ Return converted `SetFrequencyInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (SetFrequency): set frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'sf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency
         }
         return self._qobj_model(**command_dict)
 
@@ -281,7 +347,7 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.Snapshot)
+    @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
@@ -356,7 +422,7 @@ class QobjToInstructionConverter:
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
-        """Return converted `AcquireInstruction`.
+        """Return converted `Acquire`.
 
         Args:
             instruction (PulseQobjInstruction): acquire qobj
@@ -385,8 +451,7 @@ class QobjToInstructionConverter:
                           "to first discriminator entry.")
         discriminator = discriminators[0]
         if discriminator:
-            discriminator = commands.Discriminator(name=discriminators[0].name,
-                                                   params=discriminators[0].params)
+            discriminator = Discriminator(name=discriminators[0].name, **discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
@@ -397,13 +462,14 @@ class QobjToInstructionConverter:
                           "kernel entry.")
         kernel = kernels[0]
         if kernel:
-            kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
+            kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
-        cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
 
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
-            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
+            schedule |= instructions.Acquire(duration, acquire_channel, mem_slot=mem_slot,
+                                             reg_slot=reg_slot, kernel=kernel,
+                                             discriminator=discriminator) << t0
 
         return schedule
 
@@ -432,6 +498,30 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
         return instructions.ShiftPhase(phase, channel) << t0
+
+    @bind_name('sf')
+    def convert_set_frequency(self, instruction):
+        """Return converted `SetFrequencyInstruction`.
+
+        Args:
+            instruction (PulseQobjInstruction): set frequency qobj instruction
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = instruction.frequency
+
+        if isinstance(frequency, str):
+            frequency_expr = parse_string_expr(frequency, partial_binding=False)
+
+            def gen_sf_schedule(*args, **kwargs):
+                _frequency = frequency_expr(*args, **kwargs)
+                return instructions.SetFrequency(_frequency, channel) << t0
+
+            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+
+        return instructions.SetFrequency(frequency, channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):
@@ -504,4 +594,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type) << t0
+        return instructions.Snapshot(instruction.label, instruction.type) << t0

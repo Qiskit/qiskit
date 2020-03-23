@@ -22,13 +22,12 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Discriminator, Kernel, Gaussian, GaussianSquare, ConstantPulse,
-                                   Drag)
-from qiskit.pulse.instructions import ShiftPhase
+                                   Gaussian, GaussianSquare, ConstantPulse, Drag)
+from qiskit.pulse.instructions import ShiftPhase, SetFrequency
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
-from qiskit.pulse import LoConfig
+from qiskit.pulse import LoConfig, Kernel, Discriminator
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -116,6 +115,20 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
         instruction = ShiftPhase(0.1, DriveChannel(0))
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
+    def test_set_frequency(self):
+        """Test converted qobj from SetFrequencyInstruction."""
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
+        instruction = SetFrequency(8.0, DriveChannel(0))
+
+        valid_qobj = PulseQobjInstruction(
+            name='sf',
+            ch='d0',
+            t0=0,
+            frequency=8.0
+        )
+
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_persistent_value(self):
@@ -224,6 +237,17 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
+    def test_set_frequency(self):
+        """Test converted qobj from FrameChangeInstruction."""
+        instruction = SetFrequency(8.0, DriveChannel(0))
+
+        qobj = PulseQobjInstruction(name='sf', ch='d0', t0=0, frequency=8.0)
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+        self.assertTrue('frequency' in qobj.to_dict())
+
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
         cmd = PersistentValue(value=0.1j)
@@ -237,13 +261,12 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
-        cmd = Acquire(10,
-                      kernel=Kernel(name='test_kern', params={'test_params': 'test'}),
-                      discriminator=Discriminator(name='test_disc', params={'test_params': 1.0}))
-
         schedule = Schedule()
         for i in range(self.n_qubits):
-            schedule |= cmd(AcquireChannel(i), MemorySlot(i), RegisterSlot(i))
+            schedule |= Acquire(10, AcquireChannel(i), MemorySlot(i), RegisterSlot(i),
+                                kernel=Kernel(name='test_kern', test_params='test'),
+                                discriminator=Discriminator(name='test_disc',
+                                                            test_params=1.0))
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
                                     memory_slot=[0, 1], register_slot=[0, 1],
@@ -254,7 +277,10 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.timeslots, schedule.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        self.assertEqual(converted_instruction.instructions[0][-1].duration, 10)
+        self.assertEqual(converted_instruction.instructions[0][-1].kernel.params,
+                         {'test_params': 'test'})
+        self.assertEqual(converted_instruction.instructions[1][-1].channel, AcquireChannel(1))
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
