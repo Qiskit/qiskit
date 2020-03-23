@@ -11,5 +11,6 @@ upgrade:
     * ``float``
     * ``complex``
     * ``str``
+    * ``list``
     * ``np.ndarray``
     * :class:`qiskit.circuit.ParameterExpression`

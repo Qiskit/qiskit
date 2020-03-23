@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import CmdDef, InstructionScheduleMap, Schedule
+from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers import BaseBackend
 from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
@@ -28,7 +28,6 @@ from qiskit.scheduler import schedule_circuit, ScheduleConfig
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              backend: Optional[BaseBackend] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
-             cmd_def: Optional[CmdDef] = None,
              meas_map: Optional[List[List[int]]] = None,
              method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
     """
@@ -40,7 +39,6 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         backend: A backend instance, which contains hardware-specific data required for scheduling
         inst_map: Mapping of circuit operations to pulse schedules. If ``None``, defaults to the
                   ``backend``\'s ``instruction_schedule_map``
-        cmd_def: Deprecated
         meas_map: List of sets of qubits that must be measured together. If ``None``, defaults to
                   the ``backend``\'s ``meas_map``
         method: Optionally specify a particular scheduling method
@@ -52,8 +50,6 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
     if inst_map is None:
-        if cmd_def is not None:
-            inst_map = cmd_def
         if backend is None:
             raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
                               "scheduling passes.")
