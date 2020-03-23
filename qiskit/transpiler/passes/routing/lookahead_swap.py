@@ -25,10 +25,6 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
 
-SEARCH_DEPTH = 4
-SEARCH_WIDTH = 4
-
-
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs.
 
@@ -51,10 +47,10 @@ class LookaheadSwap(TransformationPass):
     - For all possible SWAP gates, calculate the layout that would result from their
       application and rank them according to the distance of the resulting layout
       over upcoming gates (see _calc_layout_distance.)
-    - For the four (SEARCH_WIDTH) highest-ranking SWAPs, repeat the above process on
+    - For the four (search_width) highest-ranking SWAPs, repeat the above process on
       the layout that would be generated if they were applied.
-    - Repeat this process down to a depth of four (SEARCH_DEPTH) SWAPs away from the
-      initial layout, for a total of 256 (SEARCH_WIDTH^SEARCH_DEPTH) prospective
+    - Repeat this process down to a depth of four (search_depth) SWAPs away from the
+      initial layout, for a total of 256 (search_width^search_depth) prospective
       layouts.
     - Choose the layout which maximizes the number of two-qubit which could be
       performed. Add its mapped gates, including the SWAPs generated, to the
@@ -65,15 +61,19 @@ class LookaheadSwap(TransformationPass):
     https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, search_depth=4, search_width=4):
         """LookaheadSwap initializer.
 
-        Arguments:
+        Args:
             coupling_map (CouplingMap): CouplingMap of the target backend.
+            search_depth (int): lookahead tree depth when ranking best SWAP options.
+            search_width (int): lookahead tree width when ranking best SWAP options.
         """
 
         super().__init__()
         self.coupling_map = coupling_map
+        self.search_depth = search_depth
+        self.search_width = search_width
 
     def run(self, dag):
         """Run the LookaheadSwap pass on `dag`.
@@ -87,12 +87,10 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-        coupling_map = self.coupling_map
-
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Lookahead swap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(coupling_map.physical_qubits):
+        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
@@ -104,8 +102,11 @@ class LookaheadSwap(TransformationPass):
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
-            best_step = _search_forward_n_swaps(current_layout, gates_remaining,
-                                                coupling_map)
+            best_step = _search_forward_n_swaps(current_layout,
+                                                gates_remaining,
+                                                self.coupling_map,
+                                                self.search_depth,
+                                                self.search_width)
 
             current_layout = best_step['layout']
             gates_mapped = best_step['gates_mapped']
@@ -114,7 +115,7 @@ class LookaheadSwap(TransformationPass):
             mapped_gates.extend(gates_mapped)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = _copy_circuit_metadata(dag, coupling_map)
+        mapped_dag = _copy_circuit_metadata(dag, self.coupling_map)
 
         for node in mapped_gates:
             mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
@@ -122,11 +123,10 @@ class LookaheadSwap(TransformationPass):
         return mapped_dag
 
 
-def _search_forward_n_swaps(layout, gates, coupling_map,
-                            depth=SEARCH_DEPTH, width=SEARCH_WIDTH):
+def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
     """Search for SWAPs which allow for application of largest number of gates.
 
-    Arguments:
+    Args:
         layout (Layout): Map from virtual qubit index to physical qubit index.
         gates (list): Gates to be mapped.
         coupling_map (CouplingMap): CouplingMap of the target backend.
