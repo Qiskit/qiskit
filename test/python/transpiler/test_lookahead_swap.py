@@ -149,6 +149,45 @@ class TestLookaheadSwap(QiskitTestCase):
 
         self.assertIn(mapped_barrier_qargs, [set((qr[0], qr[1])), set((qr[1], qr[2]))])
 
+    def test_lookahead_swap_higher_depth_width_is_better(self):
+        """Test that lookahead swap finds better circuit with increasing search space.
+
+        Increasing the tree width and depth is expected to yield a better (or same) quality
+        circuit, in the form of fewer SWAPs.
+        """
+
+        qr = QuantumRegister(8, name='q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[3], qr[4])
+        circuit.cx(qr[4], qr[5])
+        circuit.cx(qr[5], qr[6])
+        circuit.cx(qr[6], qr[7])
+        circuit.cx(qr[0], qr[3])
+        circuit.cx(qr[6], qr[4])
+        circuit.cx(qr[7], qr[1])
+        circuit.cx(qr[4], qr[2])
+        circuit.cx(qr[3], qr[7])
+        circuit.cx(qr[5], qr[3])
+        circuit.cx(qr[6], qr[2])
+        circuit.cx(qr[2], qr[7])
+        circuit.cx(qr[0], qr[6])
+        circuit.cx(qr[5], qr[7])
+        original_dag = circuit_to_dag(circuit)
+
+        # Create a ring of 8 connected qubits
+        coupling_map = CouplingMap.from_grid(num_rows=2, num_columns=4)
+
+        mapped_dag_1 = LookaheadSwap(coupling_map, search_depth=3, search_width=3).run(original_dag)
+        mapped_dag_2 = LookaheadSwap(coupling_map, search_depth=5, search_width=5).run(original_dag)
+
+        num_swaps_1 = mapped_dag_1.count_ops().get('swap', 0)
+        num_swaps_2 = mapped_dag_2.count_ops().get('swap', 0)
+
+        self.assertLessEqual(num_swaps_2, num_swaps_1)
+
 
 if __name__ == '__main__':
     unittest.main()
