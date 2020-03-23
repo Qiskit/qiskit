@@ -374,24 +374,19 @@ class QobjToInstructionConverter:
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, pulse_library, buffer=0, **run_config):
+    def __init__(self, pulse_library, **run_config):
         """Create new converter.
 
         Args:
              pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
-             buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._run_config = run_config
-
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
 
     def __call__(self, instruction):
-
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 

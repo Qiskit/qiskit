@@ -28,7 +28,6 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
     inst_map = backend.defaults().instruction_schedule_map
 
 """
-import warnings
 import inspect
 
 from collections import defaultdict
@@ -222,30 +221,6 @@ class InstructionScheduleMap():
         schedule = self.get(instruction, qubits, *params, **kwparams)
         self.remove(instruction, qubits)
         return schedule
-
-    def cmds(self) -> List[str]:
-        """Deprecated.
-
-        Returns:
-            The names of all the circuit instructions which have Schedule definitions in this.
-        """
-        warnings.warn("Please use the `instructions` attribute instead of `cmds()`.",
-                      DeprecationWarning)
-        return self.instructions
-
-    def cmd_qubits(self, cmd_name: str) -> List[Union[int, Tuple[int]]]:
-        """Deprecated.
-
-        Args:
-            cmd_name: The name of the circuit instruction.
-
-        Returns:
-            Qubit indices which have the given instruction defined. This is a list of tuples if
-            the instruction has an arity greater than 1, or a flat list of ints otherwise.
-        """
-        warnings.warn("Please use qubits_with_instruction() instead of cmd_qubits().",
-                      DeprecationWarning)
-        return self.qubits_with_instruction(cmd_name)
 
     def get_parameters(self, instruction: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """Return the list of parameters taken by the given instruction on the given qubits.
