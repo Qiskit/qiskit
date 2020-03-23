@@ -34,11 +34,11 @@ class SamplePulse(Pulse):
 
         Args:
             samples: Complex array of pulse envelope
-            name: Unique name to identify the pulse
+            name: Unique name to identify the pulse.
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
-                norm is greater than 1+epsilon an error will be raised
+                norm is greater than 1+epsilon an error will be raised.
         """
         samples = np.asarray(samples, dtype=np.complex_)
         self._samples = self._clip(samples, epsilon=epsilon)
