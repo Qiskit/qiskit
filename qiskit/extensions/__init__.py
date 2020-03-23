@@ -48,6 +48,8 @@ Standard Extensions
    SGate
    SdgGate
    SwapGate
+   iSwapGate
+   DCXGate
    TdgGate
    U1Gate
    U2Gate
