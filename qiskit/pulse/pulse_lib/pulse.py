@@ -12,7 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Any command which implements a transmit signal on a channel."""
+"""Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
+to the device.
+"""
 import warnings
 from typing import Callable, Optional
 from abc import ABC, abstractmethod
@@ -25,7 +27,9 @@ from ..instructions.play import Play
 
 
 class Pulse(ABC):
-    """The abstract superclass for pulses."""
+    """The abstract superclass for pulses. Pulses are complex-valued waveform envelopes. The
+    modulation phase and frequency are specified separately from ``Pulse``s.
+    """
 
     @abstractmethod
     def __init__(self, duration: int, name: Optional[str] = None):

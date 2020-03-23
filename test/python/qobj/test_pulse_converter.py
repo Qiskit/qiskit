@@ -23,7 +23,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, ConstantPulse, Drag)
-from qiskit.pulse.instructions import ShiftPhase, SetFrequency
+from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -36,8 +36,8 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SamplePulse(np.arange(0, 0.01), name='linear')
-        instruction = command(DriveChannel(0))
+        pulse = SamplePulse(np.arange(0, 0.01), name='linear')
+        instruction = Play(pulse, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='linear',

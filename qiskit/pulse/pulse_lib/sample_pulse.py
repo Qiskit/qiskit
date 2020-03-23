@@ -23,8 +23,8 @@ from .pulse import Pulse
 
 
 class SamplePulse(Pulse):
-    """A pulse specified completely by complex-valued amplitudes; implicitly time separated by the
-    backend cycle-time, dt.
+    """A pulse specified completely by complex-valued samples; each sample is played for the
+    duration of the backend cycle-time, dt.
     """
 
     def __init__(self, samples: Union[np.ndarray, List[complex]],
@@ -105,13 +105,13 @@ class SamplePulse(Pulse):
 
         Args:
             dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
+            style (Optional[PulseStyle]): A style sheet to configure plot appearance.
+            filename: Name required to save pulse image.
+            interp_method: A function for interpolation.
+            scale: Relative visual scaling of waveform amplitudes.
+            interactive: When set true show the circuit in a new window.
+                         (This depends on the matplotlib backend being used.)
+            scaling: Deprecated, see `scale`,
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -134,10 +134,10 @@ class SamplePulse(Pulse):
         and have the same name and samples.
 
         Args:
-            other: other SamplePulse
+            other: Object to compare to.
 
         Returns:
-            bool: are self and other equal
+            True iff self and other are equal.
         """
         return super().__eq__(other) and (self.samples == other.samples).all()
 
@@ -147,8 +147,5 @@ class SamplePulse(Pulse):
     def __repr__(self):
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
-        repr_str = '%s(samples=%s, name="%s")' % (self.__class__.__name__,
-                                                  repr(self.samples),
-                                                  self.name)
         np.set_printoptions(**opt)
-        return repr_str
+        return '{}({}, name="{}")'.format(self.__class__.__name__, repr(self.samples), self.name)

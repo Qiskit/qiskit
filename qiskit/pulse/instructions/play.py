@@ -22,10 +22,10 @@ from .instruction import Instruction
 
 
 class Play(Instruction):
-    """An instruction specifying the exact time dynamics of the output signal envelope for a
-    limited time on the channel that the instruction is operating on.
+    """This instruction is responsible for applying a pulse on a channel.
 
-    This signal is modulated by a phase and frequency which are controlled by separate
+    The pulse specifies the exact time dynamics of the output signal envelope for a limited
+    time. The output is modulated by a phase and frequency which are controlled by separate
     instructions. The pulse duration must be fixed, and is implicitly given in terms of the
     cycle time, dt, of the backend.
     """
@@ -37,7 +37,7 @@ class Play(Instruction):
             pulse: A pulse waveform description, such as
                    :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
             channel: The channel to which the pulse is applied.
-            name: Name of the delay for display purposes.
+            name: Name of the instruction for display purposes.
         """
         self._pulse = pulse
         self._channel = channel
