@@ -206,8 +206,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
-        cmd = self.linear
-        instruction = cmd(DriveChannel(0))
+        instruction = self.linear(DriveChannel(0))
 
         qobj = PulseQobjInstruction(name='linear', ch='d0', t0=10)
         converted_instruction = self.converter(qobj)

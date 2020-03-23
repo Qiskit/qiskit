@@ -27,7 +27,7 @@ features:
 
         sched += Delay(5, DriveChannel(0))
         sched += ShiftPhase(np.pi, DriveChannel(0))
-        sched += Play(SamplePulse([1.0, ...], DriveChannel(0))
+        sched += Play(SamplePulse([1.0, ...]), DriveChannel(0))
         sched += SetFrequency(5.5, DriveChannel(0))  # New instruction!
         sched += Acquire(100, AcquireChannel(0), MemorySlot(0))
   - |
@@ -40,7 +40,7 @@ features:
 
     For example::
 
-        Play(SamplePulse[0.1]*10, DriveChannel(0))
+        Play(SamplePulse([0.1]*10), DriveChannel(0))
         Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
 deprecations:
   - |

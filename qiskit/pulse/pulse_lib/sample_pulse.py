@@ -33,7 +33,7 @@ class SamplePulse(Pulse):
         """Create new sample pulse command.
 
         Args:
-            samples: Complex array of pulse envelope
+            samples: Complex array of the samples in the pulse envelope.
             name: Unique name to identify the pulse.
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
@@ -55,7 +55,7 @@ class SamplePulse(Pulse):
         If difference is greater than epsilon error is raised.
 
         Args:
-            samples: Complex array of pulse envelope.
+            samples: Complex array of the samples in the pulse envelope.
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
