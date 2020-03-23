@@ -15,16 +15,74 @@
 """
 Two-qubit ZZ-rotation gate.
 """
+import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
 
 class RZZGate(Gate):
-    """The two-qubit ZZ-rotation gate."""
+    r"""A parameteric 2-qubit :math:`Z \otimes Z` interaction (rotation about ZZ).
+
+    This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        RZZ(\theta) = exp(-i\frac{\theta}{2}Z{\otimes}Z) =
+            \begin{pmatrix}
+                e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
+                0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
+                0 & 0 & e^{i\frac{\theta}{2}} & 0 \\
+                0 & 0 & 0 & e^{-i\frac{\theta}{2}}
+            \end{pmatrix}
+
+    This is a direct sum of RZ rotations, so this gate is equivalent to a
+    uniformly controlled (multiplexed) RZ gate:
+
+    .. math::
+
+        RZZ(\theta) =
+            \begin{pmatrix}
+                RZ(\theta) & 0 \\
+                0 & RZ(-\theta)
+            \end{pmatrix}
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+        q_0: ───■────
+                │zz(θ)
+        q_1: ───■────
+
+    **Examples:**
+
+        .. math::
+
+            RZZ(\theta = 0) = I
+
+        .. math::
+
+            RZZ(\theta = 2\pi) = -I
+
+        .. math::
+
+            RZZ(\theta = \pi) = - Z \otimes Z
+
+        .. math::
+
+            RZZ(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+                                    \begin{pmatrix}
+                                        1-i & 0 & 0 & 0 \\
+                                        0 & 1+i & 0 & 0 \\
+                                        0 & 0 & 1+i & 0 \\
+                                        0 & 0 & 0 & 1-i
+                                    \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new rzz gate."""
         super().__init__('rzz', 2, [theta])
 
     def _define(self):
@@ -45,8 +103,18 @@ class RZZGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
         return RZZGate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the RZZ gate."""
+    #    theta = self.params[0]
+    #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
+    #                     [0, np.exp(1j*theta/2), 0, 0],
+    #                     [0, 0, np.exp(1j*theta/2), 0],
+    #                     [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)
 
 
 def rzz(self, theta, qubit1, qubit2):

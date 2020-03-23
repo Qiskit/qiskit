@@ -30,13 +30,13 @@ class iSwapGate(Gate):
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
 
-    .. parsed-literal::
+    Circuit Symbol:
 
-             ┌───┐┌───┐     ┌───┐
-        q_0: ┤ S ├┤ H ├──■──┤ X ├─────
-             ├───┤└───┘┌─┴─┐└─┬─┘┌───┐
-        q_1: ┤ S ├─────┤ X ├──■──┤ H ├
-             └───┘     └───┘     └───┘
+    .. parsed-literal::
+           
+        q_0: ─⨂─
+              │ 
+        q_1: ─⨂─
 
     .. math::
 
@@ -98,24 +98,6 @@ class iSwapGate(Gate):
 
 def iswap(self, qubit1, qubit2):
     """Apply iSWAP gate to a pair specified qubits (qubit1, qubit2).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.iswap(0,1)
-            circuit.draw()
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.iswap import iSwapGate
-            from qiskit.quantum_info import Operator
-            Operator(iSwapGate()).data
     """
     return self.append(iSwapGate(), [qubit1, qubit2], [])
 

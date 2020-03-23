@@ -30,6 +30,8 @@ from qiskit.util import deprecate_arguments
 class XGate(Gate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
 
+    **Matrix Representation:**
+
     .. math::
 
         X = \begin{pmatrix}
@@ -37,18 +39,7 @@ class XGate(Gate):
                 1 & 0
             \end{pmatrix}
 
-    Equivalent to a :math:`\pi` radian rotation about the X axis (note a global
-    phase difference in the definitions of :math:`RX(\pi)` and :math:`X`).
-
-    .. math::
-        
-        RX(\pi) = \begin{pmatrix}
-                    0 & -i \\
-                    -i & 0
-                  \end{pmatrix}
-                = -i.X
-
-    Circuit symbol:
+    **Circuit symbol:**
 
     .. parsed-literal::
 
@@ -56,10 +47,24 @@ class XGate(Gate):
         q_0: ┤ X ├
              └───┘
 
+    Equivalent to a :math:`\pi` radian rotation about the X axis.
+
+    .. note::
+    A global phase difference exists between the definitions of
+    :math:`RX(\pi)` and :math:`X`.
+
+        .. math::
+
+            RX(\pi) = \begin{pmatrix}
+                        0 & -i \\
+                        -i & 0
+                      \end{pmatrix}
+                    = -i.X
+
     The gate is equivalent to a classical bit flip.
 
     .. math::
-        
+
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
@@ -136,16 +141,16 @@ class CXMeta(type):
 class CXGate(ControlledGate, metaclass=CXMeta):
     r"""CX gate, also known as controlled-NOT or CNOT gate.
 
-    Circuit symbol:
+    **Circuit symbol:**
 
     .. parsed-literal::
-            
+
         q_0: ──■──
              ┌─┴─┐
         q_1: ┤ X ├
              └───┘
 
-    Matrix representation:
+    **Matrix representation:**
 
     .. math::
 
@@ -179,7 +184,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
     In this sense it is similar to a classical XOR gate.
 
     .. math::
-        `|a, b\rangle \rightarrow |a, a \oplus b\rangle`    
+        `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
     def __init__(self):
@@ -255,18 +260,18 @@ class CCXMeta(type):
 class CCXGate(ControlledGate, metaclass=CCXMeta):
     r"""CCX gate, also known as Toffoli gate.
 
-    Circuit symbol:
+    **Circuit symbol:**
 
     .. parsed-literal::
-            
+
         q_0: ──■──
-               │  
+               │
         q_1: ──■──
              ┌─┴─┐
         q_2: ┤ X ├
              └───┘
 
-    Matrix representation:
+    **Matrix representation:**
 
     .. math::
 
