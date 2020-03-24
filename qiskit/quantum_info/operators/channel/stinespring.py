@@ -15,6 +15,7 @@
 Stinespring representation of a Quantum Channel.
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -73,14 +74,13 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if input data cannot be initialized as a
-            a list of Kraus matrices.
+                         a list of Kraus matrices.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. This can fail for the
-        Stinespring operator if the output dimension cannot be automatically
-        determined.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. This can fail for the
+            Stinespring operator if the output dimension cannot be automatically
+            determined.
         """
         # If the input is a list or tuple we assume it is a pair of general
         # Stinespring matrices. If it is a numpy array we assume that it is
@@ -206,7 +206,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Stinespring or has
-            incompatible dimensions.
+                         incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -238,7 +238,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Stinespring or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         return super().dot(other, qargs=qargs)
 
@@ -254,7 +254,8 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power is not
+                         an integer.
         """
         if n > 0:
             return super().power(n)
@@ -290,22 +291,27 @@ class Stinespring(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             Stinespring: the linear addition channel self + other.
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
+                         has incompatible dimensions.
         """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
-        return Stinespring(Choi(self).add(other))
+        return Stinespring(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
@@ -321,12 +327,15 @@ class Stinespring(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
+
+        ret = copy.copy(self)
         # If the number is complex or negative we need to convert to
         # general Stinespring representation so we first convert to
         # the Choi representation
         if isinstance(other, complex) or other < 1:
             # Convert to Choi-matrix
-            return Stinespring(Choi(self)._multiply(other))
+            ret._data = Stinespring(Choi(self)._multiply(other))._data
+            return ret
         # If the number is real we can update the Kraus operators
         # directly
         num = np.sqrt(other)
@@ -335,8 +344,8 @@ class Stinespring(QuantumChannel):
         stine_r = None
         if self._data[1] is not None:
             stine_r = num * self._data[1]
-        return Stinespring((stine_l, stine_r), self.input_dims(),
-                           self.output_dims())
+        ret._data = (stine_l, stine_r)
+        return ret
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
@@ -351,7 +360,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
 

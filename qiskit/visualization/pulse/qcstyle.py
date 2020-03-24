@@ -44,7 +44,8 @@ class SchedStyle:
                  dpi: int = 150,
                  remove_spacing: bool = True,
                  max_table_ratio: float = 0.5,
-                 vertical_span: float = 0.2):
+                 vertical_span: float = 0.2,
+                 axis_formatter=None):
         """Create new style sheet.
 
         Args:
@@ -77,6 +78,9 @@ class SchedStyle:
             max_table_ratio: Maximum portion of the plot the table can take up.
                 Limited to range between 0 and 1.
             vertical_span: Spacing on top and bottom of pulse canvas.
+            axis_formatter: Format of horizontal axis of the plot. This is convenient when
+                you set ``dt`` option for the drawer. For example, formatter of ``%.3e`` gives you
+                horizontal axis values in the scientific notation with 3 digits.
 
         Example:
             Height of the event table is decided by multiple parameters.::
@@ -116,6 +120,7 @@ class SchedStyle:
         self.remove_spacing = remove_spacing
         self.max_table_ratio = max(min(max_table_ratio, 0.0), 1.0)
         self.vertical_span = vertical_span
+        self.axis_formatter = axis_formatter or '%s'
 
 
 class PulseStyle:

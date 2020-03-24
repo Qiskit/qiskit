@@ -35,10 +35,10 @@ from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
+from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse, Instruction,
-                          ScheduleComponent)
-from qiskit.pulse.commands.frame_change import FrameChangeInstruction
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
+                          Instruction, ScheduleComponent)
 
 
 class EventsOutputChannels:
@@ -59,6 +59,7 @@ class EventsOutputChannels:
 
         self._waveform = None
         self._framechanges = None
+        self._frequencychanges = None
         self._conditionals = None
         self._snapshots = None
         self._labels = None
@@ -92,6 +93,14 @@ class EventsOutputChannels:
             self._build_waveform()
 
         return self._trim(self._framechanges)
+
+    @property
+    def frequencychanges(self) -> Dict[int, SetFrequency]:
+        """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
 
     @property
     def conditionals(self) -> Dict[int, str]:
@@ -142,6 +151,7 @@ class EventsOutputChannels:
         framechanges = self.framechanges
         conditionals = self.conditionals
         snapshots = self.snapshots
+        frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
             data_str = 'framechange: %.2f' % val
@@ -152,6 +162,9 @@ class EventsOutputChannels:
         for key, val in snapshots.items():
             data_str = 'snapshot: %s' % val
             time_event.append((key, name, data_str))
+        for key, val in frequencychanges.items():
+            data_str = 'frequency: %.4e' % val
+            time_event.append((key, name, data_str))
 
         return time_event
 
@@ -159,6 +172,7 @@ class EventsOutputChannels:
         """Create waveform from stored pulses.
         """
         self._framechanges = {}
+        self._frequencychanges = {}
         self._conditionals = {}
         self._snapshots = {}
         self._labels = {}
@@ -170,15 +184,20 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
+            tmp_sf = None
             for command in commands:
-                if isinstance(command, FrameChange):
+                if isinstance(command, (FrameChange, ShiftPhase)):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
+            if tmp_sf is not None:
+                self._frequencychanges[time] = tmp_sf
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
@@ -331,7 +350,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, FrameChangeInstruction):
+                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
@@ -501,37 +520,54 @@ class ScheduleDrawer:
     @staticmethod
     def _draw_snapshots(ax: Axes,
                         snapshot_channels: Dict[Channel, EventsOutputChannels],
-                        dt: float, y0: float) -> None:
+                        y0: float) -> None:
         """Draw snapshots to given mpl axis.
 
         Args:
             ax: axis object to draw snapshots.
             snapshot_channels: Event table of snapshots.
-            dt: Time interval.
             y0: vertical position to draw the snapshots.
         """
         for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
+                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax: Axes,
                            fcs: Dict[int, FrameChangeInstruction],
-                           dt: float, y0: float) -> None:
+                           y0: float) -> bool:
         """Draw frame change of given channel to given mpl axis.
 
         Args:
             ax: axis object to draw frame changes.
             fcs: Event table of frame changes.
-            dt: Time interval.
             y0: vertical position to draw the frame changes.
         """
+        framechanges_present = True
         for time in fcs.keys():
-            ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+            ax.text(x=time, y=y0, s=r'$\circlearrowleft$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center')
+        return framechanges_present
+
+    def _draw_frequency_changes(self, ax: Axes,
+                                sf: Dict[int, SetFrequency],
+                                y0: float) -> bool:
+        """Draw set frequency of given channel to given mpl axis.
+
+        Args:
+            ax: axis object to draw frame changes.
+            sf: Event table of set frequency.
+            y0: vertical position to draw the frame changes.
+        """
+        frequency_changes_present = True
+        for time in sf.keys():
+            ax.text(x=time, y=y0, s=r'$\leftrightsquigarrow$',
+                    fontsize=self.style.icon_font_size,
+                    ha='center', va='center', rotation=90)
+        return frequency_changes_present
 
     def _get_channel_color(self, channel: Channel) -> str:
         """Lookup table for waveform color.
@@ -576,14 +612,13 @@ class ScheduleDrawer:
     def _draw_labels(self, ax: Axes,
                      labels: Dict[int, Union[SamplePulse, Acquire]],
                      prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
-                     dt: float, y0: float) -> None:
+                     y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
         Args:
             ax: axis object to draw labels.
             labels: Pulse labels of channel.
             prev_labels: Pulse labels of previous channels.
-            dt: Time interval.
             y0: vertical position to draw the labels.
         """
         for t0, (tf, cmd) in labels.items():
@@ -595,8 +630,8 @@ class ScheduleDrawer:
                 name = cmd.name
 
             ax.annotate(r'%s' % name,
-                        xy=((t0+tf)//2*dt, y0),
-                        xytext=((t0+tf)//2*dt, y0-0.07),
+                        xy=((t0+tf)//2, y0),
+                        xytext=((t0+tf)//2, y0-0.07),
                         fontsize=self.style.label_font_size,
                         ha='center', va='center')
 
@@ -605,18 +640,20 @@ class ScheduleDrawer:
             color = self.style.label_ch_color
 
             if not self._prev_label_at_time(prev_labels, t0):
-                ax.axvline(t0*dt, -1, 1, color=color,
+                ax.axvline(t0, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
             if not (self._prev_label_at_time(prev_labels, tf) or tf in labels):
-                ax.axvline(tf*dt, -1, 1, color=color,
+                ax.axvline(tf, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax: Axes,
                        output_channels: Dict[Channel, EventsOutputChannels],
                        interp_method: Callable,
-                       t0: int, tf: int, dt: float,
+                       t0: int, tf: int,
                        scale_dict: Dict[Channel, float],
-                       label: bool = False, framechange: bool = True) -> float:
+                       label: bool = False,
+                       framechange: bool = True,
+                       frequencychange: bool = True) -> float:
         """Draw pulse instructions on given mpl axis.
 
         Args:
@@ -625,10 +662,10 @@ class ScheduleDrawer:
             interp_method: Callback function for waveform interpolation.
             t0: Start time of schedule.
             tf: End time of schedule.
-            dt: Time interval.
             scale_dict: Scale factor for each channel.
             label: When set `True` draw labels.
             framechange: When set `True` draw frame change symbols.
+            frequencychange: When set `True` draw frequency change symbols.
 
         Return:
             Value of final vertical axis of canvas.
@@ -641,7 +678,7 @@ class ScheduleDrawer:
                 scale = 0.5 * scale_dict.get(channel, 0.5)
                 # plot waveform
                 waveform = events.waveform
-                time = np.arange(t0, tf + 1, dtype=float) * dt
+                time = np.arange(t0, tf + 1, dtype=float)
                 if waveform.any():
                     time, re, im = interp_method(time, waveform, self.style.num_points)
                 else:
@@ -670,22 +707,26 @@ class ScheduleDrawer:
                 # plot frame changes
                 fcs = events.framechanges
                 if fcs and framechange:
-                    self._draw_framechanges(ax, fcs, dt, y0)
+                    self._draw_framechanges(ax, fcs, y0)
+                # plot frequency changes
+                sf = events.frequencychanges
+                if sf and frequencychange:
+                    self._draw_frequency_changes(ax, sf, y0 + scale)
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, labels, prev_labels, dt, y0)
+                    self._draw_labels(ax, labels, prev_labels, y0)
                 prev_labels.append(labels)
 
             else:
                 continue
 
             # plot label
-            ax.text(x=0, y=y0, s=channel.name,
+            ax.text(x=t0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
             # show scaling factor
-            ax.text(x=0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
+            ax.text(x=t0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
                     fontsize=0.7*self.style.axis_font_size,
                     ha='right', va='top')
 
@@ -757,8 +798,8 @@ class ScheduleDrawer:
 
         # setup plot range
         if plot_range:
-            t0 = int(np.floor(plot_range[0]/dt))
-            tf = int(np.floor(plot_range[1]/dt))
+            t0 = int(np.floor(plot_range[0]))
+            tf = int(np.floor(plot_range[1]))
         else:
             t0 = 0
             # when input schedule is empty or comprises only frame changes,
@@ -793,15 +834,19 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
-                                 t0, tf, dt, scale_dict, label=label,
+                                 t0, tf, scale_dict, label=label,
                                  framechange=framechange)
 
         y_ub = 0.5 + self.style.vertical_span
         y_lb = y0 + 0.5 - self.style.vertical_span
 
-        self._draw_snapshots(ax, snapshot_channels, dt, y_lb)
+        self._draw_snapshots(ax, snapshot_channels, y_lb)
 
-        ax.set_xlim(t0 * dt, tf * dt)
+        ax.set_xlim(t0, tf)
+        tick_labels = np.linspace(t0, tf, 5)
+        ax.set_xticks(tick_labels)
+        ax.set_xticklabels([self.style.axis_formatter % label for label in tick_labels * dt],
+                           fontsize=self.style.axis_font_size)
         ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
 

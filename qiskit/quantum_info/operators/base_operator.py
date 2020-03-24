@@ -43,6 +43,7 @@ class BaseOperator(ABC):
         self._output_dims = None  # tuple of output dimensions of each subsystem
         self._input_dim = None    # combined input dimension of all subsystems
         self._output_dim = None   # combined output dimension of all subsystems
+        self._num_qubits = None   # number of qubit subsystems if N-qubit operator
         self._set_dims(input_dims, output_dims)
 
     def __call__(self, qargs):
@@ -77,6 +78,11 @@ class BaseOperator(ABC):
     def dim(self):
         """Return tuple (input_shape, output_shape)."""
         return self._input_dim, self._output_dim
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits if a N-qubit operator or None otherwise."""
+        return self._num_qubits
 
     @property
     def _atol(self):
@@ -130,7 +136,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if combined size of all subsystem input dimension or
-            subsystem output dimensions is not constant.
+                         subsystem output dimensions is not constant.
         """
         clone = copy.copy(self)
         if output_dims is None and input_dims is None:
@@ -226,7 +232,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -250,7 +256,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
         """
         return self.compose(other, qargs=qargs, front=True)
 
@@ -265,7 +271,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         # NOTE: if a subclass can have negative or non-integer powers
         # this method should be overridden in that class.
@@ -326,11 +332,16 @@ class BaseOperator(ABC):
                       "the `other * op` instead", DeprecationWarning)
         return self._multiply(other)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the linear operator self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             BaseOperator: the operator self + other.
@@ -380,6 +391,14 @@ class BaseOperator(ABC):
         # of all subsystem dimension in the input_dims/output_dims.
         self._input_dim = np.product(input_dims)
         self._output_dim = np.product(output_dims)
+        # Check if an N-qubit operator
+        if (self._input_dims == self._output_dims and
+                set(self._input_dims) == set([2])):
+            # If so set the number of qubits
+            self._num_qubits = len(self._input_dims)
+        else:
+            # Otherwise set the number of qubits to None
+            self._num_qubits = None
 
     def _get_compose_dims(self, other, qargs, front):
         """Check dimensions are compatible for composition.
@@ -433,21 +452,37 @@ class BaseOperator(ABC):
                     output_dims[qubit] = other._output_dims[i]
         return input_dims, output_dims
 
-    def _validate_add_dims(self, other):
+    def _validate_add_dims(self, other, qargs=None):
         """Check dimensions are compatible for addition.
 
         Args:
             other (BaseOperator): another operator object.
+            qargs (None or list): compose qargs kwarg value.
 
         Raises:
             QiskitError: if operators have incompatibile dimensions for addition.
         """
-        # For adding we only require that operators have the same total
-        # dimensions rather than each subsystem dimension matching.
-        if self.dim != other.dim:
-            raise QiskitError(
-                "Cannot add operators with different shapes"
-                " ({} != {}).".format(self.dim, other.dim))
+        if qargs is None:
+            # For adding without qargs we only require that operators have
+            # the same total dimensions rather than each subsystem dimension
+            # matching.
+            if self.dim != other.dim:
+                raise QiskitError(
+                    "Cannot add operators with different shapes"
+                    " ({} != {}).".format(self.dim, other.dim))
+        else:
+            # If adding on subsystems the operators must have equal
+            # shape on subsystems
+            if (self._input_dims != self._output_dims or
+                    other._input_dims != other._output_dims):
+                raise QiskitError(
+                    "Cannot add operators on subsystems for non-square"
+                    " operator.")
+            if self.input_dims(qargs) != other._input_dims:
+                raise QiskitError(
+                    "Cannot add operators on subsystems with different"
+                    " dimensions ({} != {}).".format(
+                        self.input_dims(qargs), other._input_dims))
 
     # Overloads
     def __matmul__(self, other):

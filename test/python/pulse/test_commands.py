@@ -96,8 +96,7 @@ class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
 
     def test_can_construct_valid_acquire_command(self):
-        """Test if valid acquire command can be constructed.
-        """
+        """Test if valid acquire command can be constructed."""
         kernel_opts = {
             'start_window': 0,
             'stop_window': 10
@@ -111,31 +110,28 @@ class TestAcquire(QiskitTestCase):
         }
         discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
 
-        acq_command = Acquire(duration=10, kernel=kernel, discriminator=discriminator)
+        acq = Acquire(duration=10, kernel=kernel, discriminator=discriminator)
 
-        self.assertEqual(acq_command.duration, 10)
-        self.assertEqual(acq_command.discriminator.name, 'linear_discriminator')
-        self.assertEqual(acq_command.discriminator.params, discriminator_opts)
-        self.assertEqual(acq_command.kernel.name, 'boxcar')
-        self.assertEqual(acq_command.kernel.params, kernel_opts)
-        self.assertTrue(acq_command.name.startswith('acq'))
+        self.assertEqual(acq.duration, 10)
+        self.assertEqual(acq.discriminator.name, 'linear_discriminator')
+        self.assertEqual(acq.discriminator.params, discriminator_opts)
+        self.assertEqual(acq.kernel.name, 'boxcar')
+        self.assertEqual(acq.kernel.params, kernel_opts)
+        self.assertTrue(acq.name.startswith('acq'))
 
     def test_can_construct_acquire_command_with_default_values(self):
         """Test if an acquire command can be constructed with default discriminator and kernel.
         """
-        acq_command_a = Acquire(duration=10)
-        acq_command_b = Acquire(duration=10)
+        acq_a = Acquire(duration=10)
 
-        self.assertEqual(acq_command_a.duration, 10)
-        self.assertEqual(acq_command_a.discriminator, None)
-        self.assertEqual(acq_command_a.kernel, None)
-        self.assertTrue(acq_command_a.name.startswith('acq'))
-        self.assertNotEqual(acq_command_a.name, acq_command_b.name)
-        self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
+        self.assertEqual(acq_a.duration, 10)
+        self.assertEqual(acq_a.discriminator, None)
+        self.assertEqual(acq_a.kernel, None)
+        self.assertTrue(acq_a.name.startswith('acq'))
 
 
 class TestFrameChangeCommand(QiskitTestCase):
-    """FrameChange tests."""
+    """FrameChange tests. Deprecated."""
 
     def test_default(self):
         """Test default frame change.

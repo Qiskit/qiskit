@@ -73,15 +73,14 @@ class Choi(QuantumChannel):
 
         Raises:
             QiskitError: if input data cannot be initialized as a
-            Choi matrix.
+                         Choi matrix.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
-        the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
+            the input operator is not an N-qubit operator, it will assign a
+            single subsystem with dimension specified by the shape of the input.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Choi matrix.
@@ -211,7 +210,7 @@ class Choi(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power is not an integer.
         """
         if n > 0:
             return super().power(n)
@@ -278,6 +277,6 @@ class Choi(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
