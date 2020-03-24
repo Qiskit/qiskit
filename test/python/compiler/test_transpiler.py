@@ -17,8 +17,8 @@
 import math
 import unittest
 from unittest.mock import patch
-from ddt import ddt, data
 import signal
+from ddt import ddt, data
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -697,7 +697,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(qc, out)
 
 
-class test_timeout:
+class TestTimeout:
     """From https://stackoverflow.com/a/49567288/8146172 """
     def __init__(self, seconds, error_message=None):
         if error_message is None:
@@ -705,11 +705,11 @@ class test_timeout:
         self.seconds = seconds
         self.error_message = error_message
 
-    def handle_timeout(self, signum, frame):
+    def _handle_timeout(self, signum, frame):
         raise AssertionError(self.error_message)
 
     def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.signal(signal.SIGALRM, self._handle_timeout)
         signal.alarm(self.seconds)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -735,10 +735,10 @@ class TestTranspileCustomPM(QiskitTestCase):
             backend_properties=None,
             seed_transpiler=1
         )
-        pm = level_0_pass_manager(pm_conf)
+        passmanager = level_0_pass_manager(pm_conf)
 
-        with test_timeout(5):
-            transpiled = transpile([qc, qc], pass_manager=pm)
+        with TestTimeout(5):
+            transpiled = transpile([qc, qc], pass_manager=passmanager)
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         expected.u2(0, 3.141592653589793, 0)
