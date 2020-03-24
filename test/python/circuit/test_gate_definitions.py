@@ -140,7 +140,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     def test_definition_parameters(self, gate_class):
         """Verify decompositions from standard equivalence library match definitions."""
 
-        n_params = len(set(signature(gate_class.__init__).parameters) - {'label', 'self'})
+        non_param_attributes = {'self', 'label', 'num_ctrl_qubits'}
+        n_params = len(set(signature(gate_class.__init__).parameters) - non_param_attributes)
         param_vector = ParameterVector('th', n_params)
         float_vector = [0.1 * i for i in range(n_params)]
 

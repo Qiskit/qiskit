@@ -701,13 +701,12 @@ class TestControlledGate(QiskitTestCase):
         Test all gates in standard extensions which are of type ControlledGate and have a base gate
         setting.
         """
-        from qiskit.extensions.standard import MCU1Gate
         params = [0.1 * i for i in range(10)]
         num_ctrl_qubits = 5
         for gate_class in ControlledGate.__subclasses__():
             sig = signature(gate_class.__init__)
             free_params = params[0:len(sig.parameters) - 1]  # subtract "self"
-            if gate_class in [MCU1Gate]:  # last argument is the number of control qubits
+            if gate_class in [CU1Gate]:  # last argument is the number of control qubits
                 free_params[-1] = num_ctrl_qubits
 
             base_gate = gate_class(*free_params)
@@ -745,7 +744,6 @@ class TestControlledGate(QiskitTestCase):
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
         """Test controlled versions of all standard gates."""
-        from qiskit.extensions.standard.u1 import MCU1Gate
         gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
         theta = pi / 2
         for cls in gate_classes:
@@ -758,8 +756,6 @@ class TestControlledGate(QiskitTestCase):
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
-                elif cls in [MCU1Gate]:  # add the other multi controlled gates later on
-                    args[-1] = num_ctrl_qubits
 
                 gate = cls(*args)
                 try:
