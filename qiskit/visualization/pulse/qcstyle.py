@@ -45,7 +45,7 @@ class SchedStyle:
                  remove_spacing: bool = True,
                  max_table_ratio: float = 0.5,
                  vertical_span: float = 0.2,
-                 axis_formatter=None):
+                 axis_formatter: str = None):
         """Create new style sheet.
 
         Args:

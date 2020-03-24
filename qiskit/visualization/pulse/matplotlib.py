@@ -542,12 +542,10 @@ class ScheduleDrawer:
             fcs: Event table of frame changes.
             y0: vertical position to draw the frame changes.
         """
-        framechanges_present = True
         for time in fcs.keys():
             ax.text(x=time, y=y0, s=r'$\circlearrowleft$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center')
-        return framechanges_present
 
     def _draw_frequency_changes(self, ax,
                                 sf: Dict[int, SetFrequency],
@@ -559,12 +557,10 @@ class ScheduleDrawer:
             sf: Event table of set frequency.
             y0: vertical position to draw the frame changes.
         """
-        frequency_changes_present = True
         for time in sf.keys():
             ax.text(x=time, y=y0, s=r'$\leftrightsquigarrow$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center', rotation=90)
-        return frequency_changes_present
 
     def _get_channel_color(self, channel: Channel) -> str:
         """Lookup table for waveform color.
