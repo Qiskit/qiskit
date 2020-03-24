@@ -34,8 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction)
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase)
 
 
 class EventsOutputChannels:

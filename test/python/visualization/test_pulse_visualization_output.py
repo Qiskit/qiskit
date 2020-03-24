@@ -85,7 +85,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         return sched
 
     @staticmethod
-    def sample_schedule_with_instruction():
+    def sample_schedule_with_instructions():
         """Generate a sample schedule that includes the most common elements of
            pulse schedules, which is generated with new instruction set."""
         gp0 = parametricGaussian(duration=20, amp=1.0, sigma=1.0)
@@ -159,9 +159,9 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
-    def test_schedule_matplotlib_drawer(self):
+    def test_schedule_matplotlib_drawer_with_instructions(self):
         filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
-        schedule = self.sample_schedule_with_instruction()
+        schedule = self.sample_schedule_with_instructions()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
         os.remove(filename)
