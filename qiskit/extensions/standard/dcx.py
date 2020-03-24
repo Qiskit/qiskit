@@ -40,7 +40,7 @@ class DCXGate(Gate):
 
     .. math::
 
-        DCX =
+        DCX 0, 1 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & 0 & 1 \\
@@ -73,26 +73,6 @@ class DCXGate(Gate):
 
 def dcx(self, qubit1, qubit2):
     """Apply DCX gate to a pair specified qubits (qubit1, qubit2).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.dcx(0, 1)
-            print(circuit)
-            print(circuit.decompose())
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.dcx import DCXGate
-            DCXGate().to_matrix()
     """
     return self.append(DCXGate(), [qubit1, qubit2], [])
 
