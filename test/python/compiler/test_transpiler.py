@@ -17,7 +17,9 @@
 import math
 import unittest
 from unittest.mock import patch
-import signal
+from contextlib import contextmanager
+import threading
+import _thread
 from ddt import ddt, data
 
 from qiskit import BasicAer
@@ -697,23 +699,17 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(qc, out)
 
 
-class TestTimeout:
-    """From https://stackoverflow.com/a/49567288/8146172 """
-    def __init__(self, seconds, error_message=None):
-        if error_message is None:
-            error_message = 'test timed out after {}s.'.format(seconds)
-        self.seconds = seconds
-        self.error_message = error_message
-
-    def _handle_timeout(self, signum, frame):
-        raise AssertionError(self.error_message)
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self._handle_timeout)
-        signal.alarm(self.seconds)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        signal.alarm(0)
+@contextmanager
+def TestTimeout(seconds, msg=''):
+    """From https://stackoverflow.com/a/37648512/8146172"""
+    timer = threading.Timer(seconds, lambda: _thread.interrupt_main())
+    timer.start()
+    try:
+        yield
+    except KeyboardInterrupt:
+        raise AssertionError("Timed out for operation {}".format(msg))
+    finally:
+        timer.cancel()
 
 
 class TestTranspileCustomPM(QiskitTestCase):
