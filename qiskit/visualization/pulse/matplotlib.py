@@ -32,11 +32,10 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse.commands import FrameChangeInstruction, Command
+from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction)
-from qiskit.visualization.exceptions import VisualizationError
 
 
 class EventsOutputChannels:
