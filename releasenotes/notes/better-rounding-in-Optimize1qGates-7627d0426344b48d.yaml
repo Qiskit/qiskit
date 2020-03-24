@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    ```Optimize1qGates``` was missing some arity reduction opportunities because floating-point impression.
