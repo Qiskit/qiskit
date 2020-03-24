@@ -74,8 +74,11 @@ class U1Gate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply U1 gate with angle theta to a specified qubit (qubit).
-    u1(λ) := diag(1, eiλ) ∼ U(0, 0, λ) = Rz(λ) where ~ is equivalence up to a global phase.
+    """Apply U1 gate with angle theta
+
+    Applied to a specified qubit ``qubit``.
+    :math:`u1(\\lambda) := diag(1, ei\\lambda) ∼ U(0, 0, \\lambda) = Rz(\\lambda)`
+    where :math:`~` is equivalence up to a global phase.
 
     Examples:
 
@@ -182,9 +185,12 @@ class Cu1Gate(CU1Gate, metaclass=CU1Meta):
                       'tgt': 'target_qubit'})
 def cu1(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cU1 gate from a specified control (control_qubit) to target (target_qubit) qubit
-    with angle theta. A cU1 gate implements a theta radian rotation of the qubit state vector
-    about the z axis of the Bloch sphere when the control qubit is in state |1>.
+    r"""Apply cU1 gate
+
+    Applied from a specified control ``control_qubit`` to target
+    ``target_qubit`` qubit  with angle theta. A cU1 gate implements a
+    :math:`\theta` radian rotation of the qubit state vector about the z axis
+    of the Bloch sphere when the control qubit is in state :math:`|1\rangle`.
 
     Examples:
 

@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Standard gates."""
+
 from .barrier import Barrier
 from .h import HGate, CHGate
 from .i import IGate
@@ -23,10 +24,13 @@ from .rcccx import RCCCXGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
 from .ry import RYGate, CRYGate
+from .ryy import RYYGate
 from .rz import RZGate, CRZGate
 from .rzz import RZZGate
 from .s import SGate, SdgGate
 from .swap import SwapGate, CSwapGate
+from .iswap import iSwapGate
+from .dcx import DCXGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
