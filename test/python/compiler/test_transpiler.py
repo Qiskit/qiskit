@@ -18,6 +18,7 @@ import math
 import unittest
 from unittest.mock import patch
 from ddt import ddt, data
+import signal
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -33,6 +34,8 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 from qiskit.quantum_info import Operator
+from qiskit.transpiler.pass_manager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 
 
 @ddt
@@ -645,9 +648,9 @@ class TestTranspile(QiskitTestCase):
         """Verify a Rx,Ry,Rxx circuit transpile to a U3,CX target."""
 
         qc = QuantumCircuit(2)
-        qc.rx(math.pi/2, 0)
-        qc.ry(math.pi/4, 1)
-        qc.rxx(math.pi/4, 0, 1)
+        qc.rx(math.pi / 2, 0)
+        qc.ry(math.pi / 4, 1)
+        qc.rxx(math.pi / 4, 0, 1)
 
         out = transpile(qc, basis_gates=['u3', 'cx'], optimization_level=optimization_level)
 
@@ -658,9 +661,9 @@ class TestTranspile(QiskitTestCase):
         """Verify a Rx,Ry,Rxx circuit can transpile to an Rx,Ry,Rxx target."""
 
         qc = QuantumCircuit(2)
-        qc.rx(math.pi/2, 0)
-        qc.ry(math.pi/4, 1)
-        qc.rxx(math.pi/4, 0, 1)
+        qc.rx(math.pi / 2, 0)
+        qc.ry(math.pi / 4, 1)
+        qc.rxx(math.pi / 4, 0, 1)
 
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
@@ -673,7 +676,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
-        qc.rz(math.pi/4, [0, 1])
+        qc.rz(math.pi / 4, [0, 1])
 
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
@@ -684,11 +687,63 @@ class TestTranspile(QiskitTestCase):
         """Verify a measure doesn't cause an Rx,Ry,Rxx circuit to unroll to U3,CX."""
 
         qc = QuantumCircuit(2, 2)
-        qc.rx(math.pi/2, 0)
-        qc.ry(math.pi/4, 1)
-        qc.rxx(math.pi/4, 0, 1)
+        qc.rx(math.pi / 2, 0)
+        qc.ry(math.pi / 4, 1)
+        qc.rxx(math.pi / 4, 0, 1)
         qc.measure([0, 1], [0, 1])
 
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertEqual(qc, out)
+
+
+class test_timeout:
+    """From https://stackoverflow.com/a/49567288/8146172 """
+    def __init__(self, seconds, error_message=None):
+        if error_message is None:
+            error_message = 'test timed out after {}s.'.format(seconds)
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        raise AssertionError(self.error_message)
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        signal.alarm(0)
+
+
+class TestTranspileCustomPM(QiskitTestCase):
+    """Test transpile function with custom pass manager"""
+
+    def test_custom_multiple_circuits(self):
+        """Test transpiling with custom pass manager and multiple circuits.
+        This tests created a deadlock, so it needs to be monitored for timeout.
+        See: https://github.com/Qiskit/qiskit-terra/issues/3925
+        """
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        pm_conf = PassManagerConfig(
+            initial_layout=None,
+            basis_gates=['u1', 'u2', 'u3', 'cx'],
+            coupling_map=CouplingMap([[0, 1]]),
+            backend_properties=None,
+            seed_transpiler=1
+        )
+        pm = level_0_pass_manager(pm_conf)
+
+        with test_timeout(5):
+            transpiled = transpile([qc, qc], pass_manager=pm)
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        expected.u2(0, 3.141592653589793, 0)
+        expected.cx(0, 1)
+
+        self.assertEqual(len(transpiled), 2)
+        self.assertEqual(transpiled[0], expected)
+        self.assertEqual(transpiled[1], expected)
