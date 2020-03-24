@@ -16,6 +16,9 @@
 
 # Forked from testing-cabal/testtools
 
+# pylint: disable=missing-return-type-doc,missing-type-doc,missing-type-doc,invalid-name
+# pylint: disable=broad-except,attribute-defined-outside-init,unused-argument
+
 """Individual test case execution."""
 
 __all__ = [
@@ -34,7 +37,7 @@ class MultipleExceptions(Exception):
     """
 
 
-class RunTest(object):
+class RunTest:
     """An object to run a test.
     RunTest objects are used to implement the internal logic involved in
     running a test. TestCase.__init__ stores _RunTest as the class of RunTest
@@ -61,14 +64,16 @@ class RunTest(object):
 
     def __init__(self, case, handlers=None, last_resort=None):
         """Create a RunTest to run a case.
-        :param case: A testtools.TestCase test case object.
-        :param handlers: Exception handlers for this RunTest. These are stored
-            in self.handlers and can be modified later if needed.
-        :param last_resort: A handler of last resort: any exception which is
-            not handled by handlers will cause the last resort handler to be
-            called as last_resort(exc_info), and then the exception will be
-            raised - aborting the test run as this is inside the runner
-            machinery rather than the confined context of the test.
+
+        Args:
+            case: A test case object.
+            handlers: Exception handlers for this RunTest. These are stored
+                in self.handlers and can be modified later if needed.
+            last_resort: A handler of last resort: any exception which is
+                not handled by handlers will cause the last resort handler to be
+                called as last_resort(exc_info), and then the exception will be
+                raised - aborting the test run as this is inside the runner
+                machinery rather than the confined context of the test.
         """
         self.case = case
         self.handlers = handlers or []
@@ -78,8 +83,11 @@ class RunTest(object):
 
     def run(self, result=None):
         """Run self.case reporting activity to result.
-        :param result: Optional testtools.TestResult to report activity to.
-        :return: The result object the test was run against.
+        Args:
+            result: Optional testtools.TestResult to report activity to.
+
+        Returns:
+            The result object the test was run against.
         """
         if result is None:
             actual_result = self.case.defaultTestResult()

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
+# pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
 
 """Base TestCases for the unit tests.
 
@@ -20,7 +21,6 @@ the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
 """
 
-import inspect
 import itertools
 import logging
 import os
@@ -32,8 +32,8 @@ import fixtures
 from testtools.compat import advance_iterator
 from testtools import content
 
-from .runtest import RunTest
-from .utils import Path, _AssertNoLogsContext, setup_test_logging
+from .runtest import RunTest, MultipleExceptions
+from .utils import Path, _AssertNoLogsContext
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -46,9 +46,12 @@ def _copy_content(content_object):
     useful when the source of the content is volatile, a log file in a
     temporary directory for example.
 
-    :param content_object: A `content.Content` instance.
-    :return: A `content.Content` instance with the same mime-type as
-        ``content_object`` and a non-volatile copy of its content.
+    Args:
+    content_object (content.Content): A ``content.Content`` instance.
+
+    Returns:
+        content.Content: An instance with the same mime-type as
+            ``content_object`` and a non-volatile copy of its content.
     """
     content_bytes = list(content_object.iter_bytes())
 
@@ -82,10 +85,7 @@ class QiskitTestCase(unittest.TestCase):
     run_tests_with = RunTest
 
     def __init__(self, *args, **kwargs):
-        """Construct a TestCase.
-
-        :param testMethod: The name of the method to run.
-        """
+        """Construct a TestCase."""
         super(QiskitTestCase, self).__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
         self._reset()
@@ -119,13 +119,8 @@ class QiskitTestCase(unittest.TestCase):
             handler(exc_info)
 
     def _run_teardown(self, result):
-        """Run the tearDown function for this test.
-
-        :param result: A testtools.TestResult to report activity to.
-        :raises ValueError: If the base class tearDown is not called, a
-            ValueError is raised.
-        """
-        ret = self.tearDown()
+        """Run the tearDown function for this test."""
+        self.tearDown()
         if not self.__teardown_called:
             raise ValueError(
                 "In File: %s\n"
@@ -134,18 +129,13 @@ class QiskitTestCase(unittest.TestCase):
                 "super(%s, self).tearDown() from your tearDown()."
                 % (sys.modules[self.__class__.__module__].__file__,
                    self.__class__.__name__))
-        return ret
 
     def _get_test_method(self):
         method_name = getattr(self, '_testMethodName')
         return getattr(self, method_name)
 
     def _run_test_method(self, result):
-        """Run the test method for this test.
-
-        :param result: A testtools.TestResult to report activity to.
-        :return: None.
-        """
+        """Run the test method for this test."""
         return self._get_test_method()()
 
     def useFixture(self, fixture):
@@ -153,9 +143,16 @@ class QiskitTestCase(unittest.TestCase):
 
         The fixture will be setUp, and self.addCleanup(fixture.cleanUp) called.
 
-        :param fixture: The fixture to use.
-        :return: The fixture, after setting it up and scheduling a cleanup for
-           it.
+        Args:
+            fixture: The fixture to use.
+
+        Returns:
+            fixture: The fixture, after setting it up and scheduling a cleanup
+                for it.
+
+        Raises:
+            MultipleExceptions: When there is an error during fixture setUp
+            Exception: If an exception is raised during fixture setUp
         """
         try:
             fixture.setUp()
@@ -172,7 +169,7 @@ class QiskitTestCase(unittest.TestCase):
                 # the fixture.  Ideally this whole try/except is not
                 # really needed any more, however, we keep this code to
                 # remain compatible with the older setUp().
-                if (safe_hasattr(fixture, '_details') and
+                if (hasattr(fixture, '_details') and
                         fixture._details is not None):
                     gather_details(fixture.getDetails(), self.getDetails())
             except Exception:
@@ -183,6 +180,10 @@ class QiskitTestCase(unittest.TestCase):
             else:
                 # Gather_details worked, so raise the exception setUp
                 # encountered.
+                def reraise(exc_class, exc_obj, exc_tb, _marker=object()):
+                    """Re-raise an exception received from sys.exc_info() or similar."""
+                    raise exc_obj.with_traceback(exc_tb)
+
                 reraise(*exc_info)
         else:
             self.addCleanup(fixture.cleanUp)
@@ -191,13 +192,8 @@ class QiskitTestCase(unittest.TestCase):
             return fixture
 
     def _run_setup(self, result):
-        """Run the setUp function for this test.
-
-        :param result: A testtools.TestResult to report activity to.
-        :raises ValueError: If the base class setUp is not called, a
-            ValueError is raised.
-        """
-        ret = self.setUp()
+        """Run the setUp function for this test."""
+        self.setUp()
         if not self.__setup_called:
             raise ValueError(
                 "In File: %s\n"
@@ -206,7 +202,6 @@ class QiskitTestCase(unittest.TestCase):
                 "super(%s, self).setUp() from your setUp()."
                 % (sys.modules[self.__class__.__module__].__file__,
                    self.__class__.__name__))
-        return ret
 
     def _add_reason(self, reason):
         self.addDetail('reason', content.text_content(reason))
