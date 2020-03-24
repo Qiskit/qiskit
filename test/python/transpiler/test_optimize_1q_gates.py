@@ -78,7 +78,7 @@ class TestOptimize1qGates(QiskitTestCase):
         qc.u1(2 * np.pi, qr[0])
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi / 2, qr[0])  # these three should combine
-        qc.u1(np.pi, qr[0])      # to identity then
+        qc.u1(np.pi, qr[0])  # to identity then
         qc.u1(np.pi / 2, qr[0])  # optimized away.
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi, qr[1])
@@ -133,7 +133,7 @@ class TestOptimize1qGates(QiskitTestCase):
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr,)
+        expected = QuantumCircuit(qr, )
         expected.u1(0.7, qr)
         expected.h(qr)
 
@@ -224,6 +224,37 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
+class TestOptimize1qGatesParamReduction(QiskitTestCase):
+    """Test for 1q gate optimizations parameter reduction, reduce n in Un """
+
+    def test_optimize_u3_to_u2(self):
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(np.pi/2, np.pi/3, np.pi/4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(np.pi/3, np.pi/4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_to_u2_round(self):
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(1.5707963267948961, 1.0471975511965971, 0.7853981633974489, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(np.pi/3, np.pi/4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
 
 if __name__ == '__main__':
     unittest.main()

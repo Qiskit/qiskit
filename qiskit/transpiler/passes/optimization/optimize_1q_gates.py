@@ -26,7 +26,8 @@ from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators import Quaternion
 
-_CHOP_THRESHOLD = 1e-15
+_DECIMAL_ROUND = 15
+_CHOP_THRESHOLD = 10 ** -(_DECIMAL_ROUND)
 
 
 class Optimize1qGates(TransformationPass):
@@ -145,7 +146,7 @@ class Optimize1qGates(TransformationPass):
                 # exact and approximate rewriting.
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
-                if np.mod(right_parameters[0], (2 * np.pi)) == 0 \
+                if np.mod(np.round(right_parameters[0], _DECIMAL_ROUND), (2 * np.pi)) == 0 \
                         and right_name != "u1":
                     right_name = "u1"
                     right_parameters = (0, 0, right_parameters[1] +
@@ -154,20 +155,23 @@ class Optimize1qGates(TransformationPass):
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
                 if right_name == "u3":
                     # theta = pi/2 + 2*k*pi
-                    if np.mod((right_parameters[0] - np.pi / 2), (2 * np.pi)) == 0:
+                    if np.mod(np.round(right_parameters[0] - np.pi / 2, _DECIMAL_ROUND),
+                              (2 * np.pi)) == 0:
                         right_name = "u2"
                         right_parameters = (np.pi / 2, right_parameters[1],
                                             right_parameters[2] +
                                             (right_parameters[0] - np.pi / 2))
                     # theta = -pi/2 + 2*k*pi
-                    if np.mod((right_parameters[0] + np.pi / 2), (2 * np.pi)) == 0:
+                    if np.mod(np.round(right_parameters[0] + np.pi / 2, _DECIMAL_ROUND),
+                              (2 * np.pi)) == 0:
                         right_name = "u2"
                         right_parameters = (np.pi / 2, right_parameters[1] +
                                             np.pi, right_parameters[2] -
                                             np.pi + (right_parameters[0] +
                                                      np.pi / 2))
                 # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-                if right_name == "u1" and np.mod(right_parameters[2], (2 * np.pi)) == 0:
+                if right_name == "u1" and np.mod(np.round(right_parameters[2], _DECIMAL_ROUND),
+                                                 (2 * np.pi)) == 0:
                     right_name = "nop"
 
             new_op = Gate(name="", num_qubits=1, params=[])
