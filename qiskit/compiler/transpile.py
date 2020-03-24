@@ -192,6 +192,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
 
+    # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
