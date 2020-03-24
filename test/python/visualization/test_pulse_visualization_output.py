@@ -25,9 +25,11 @@ from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import (FrameChange, Acquire, ConstantPulse, Snapshot, Delay,
                                    Gaussian)
-from qiskit.pulse.instructions import SetFrequency
+from qiskit.pulse import instructions
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse import pulse_lib
+from qiskit.pulse import (pulse_lib,
+                          Gaussian as parametricGaussian,
+                          GaussianSquare as parametricGaussianSquare)
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -53,7 +55,8 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         """Generate a sample instruction."""
         return self.sample_pulse()(DriveChannel(0))
 
-    def sample_schedule(self):
+    @staticmethod
+    def sample_schedule():
         """Generate a sample schedule that includes the most common elements of
            pulse schedules."""
         gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
@@ -67,7 +70,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched = sched.append(gp0(DriveChannel(0)))
         sched = sched.insert(0, ConstantPulse(duration=60, amp=0.2 + 0.4j)(ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
-        sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
+        sched = sched.insert(60, instructions.SetFrequency(8.0, DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))
         sched = sched.insert(60, gs0(MeasureChannel(0)))
@@ -76,6 +79,33 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
                                          MemorySlot(1),
                                          RegisterSlot(1)))
         sched = sched.append(delay(DriveChannel(0)))
+        sched = sched + sched
+        sched |= Snapshot("snapshot_1", "snap_type") << 60
+        sched |= Snapshot("snapshot_2", "snap_type") << 120
+        return sched
+
+    @staticmethod
+    def sample_schedule_with_instruction():
+        """Generate a sample schedule that includes the most common elements of
+           pulse schedules, which is generated with new instruction set."""
+        gp0 = parametricGaussian(duration=20, amp=1.0, sigma=1.0)
+        gp1 = parametricGaussian(duration=20, amp=-1.0, sigma=2.0)
+        gs0 = parametricGaussianSquare(duration=20, amp=-1.0, sigma=2.0, width=20-2*3)
+
+        sched = Schedule()
+        sched = sched.append(gp0(DriveChannel(0)))
+        sched = sched.insert(0, ConstantPulse(duration=60, amp=0.2 + 0.4j)(ControlChannel(0)))
+        sched = sched.insert(60, instructions.ShiftPhase(phase=-1.57, channel=DriveChannel(0)))
+        sched = sched.insert(60, instructions.SetFrequency(8.0, DriveChannel(0)))
+        sched = sched.insert(30, gp1(DriveChannel(1)))
+        sched = sched.insert(60, gp0(ControlChannel(0)))
+        sched = sched.insert(60, gs0(MeasureChannel(0)))
+        sched = sched.insert(90, instructions.ShiftPhase(phase=1.57, channel=DriveChannel(0)))
+        sched = sched.insert(90, instructions.Acquire(duration=10,
+                                                      channel=AcquireChannel(1),
+                                                      mem_slot=MemorySlot(1),
+                                                      reg_slot=RegisterSlot(1)))
+        sched = sched.append(instructions.Delay(duration=100, channel=DriveChannel(0)))
         sched = sched + sched
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120
@@ -121,6 +151,17 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     def test_schedule_matplotlib_drawer(self):
         filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
         schedule = self.sample_schedule()
+        pulse_drawer(schedule, filename=filename)
+        self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
+        os.remove(filename)
+
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    def test_schedule_matplotlib_drawer(self):
+        filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
+        schedule = self.sample_schedule_with_instruction()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
         os.remove(filename)

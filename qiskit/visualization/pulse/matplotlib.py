@@ -32,9 +32,11 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse.commands import FrameChangeInstruction
+from qiskit.pulse.commands import FrameChangeInstruction, Command
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase)
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
+                          Instruction)
+from qiskit.visualization.exceptions import VisualizationError
 
 
 class EventsOutputChannels:
@@ -67,10 +69,17 @@ class EventsOutputChannels:
             pulse (Instruction): Instruction object to be added
         """
 
-        if start_time in self.pulses.keys():
-            self.pulses[start_time].append(pulse.command)
+        if pulse.command is not None:
+            # TODO: This will be deprecated
+            operator = pulse.command
         else:
-            self.pulses[start_time] = [pulse.command]
+            # TODO: Add if statement for Pulse: Qiskit-terra #3936 (to store pulse.pulse)
+            operator = pulse
+
+        if start_time in self.pulses.keys():
+            self.pulses[start_time].append(operator)
+        else:
+            self.pulses[start_time] = [operator]
 
     @property
     def waveform(self):
