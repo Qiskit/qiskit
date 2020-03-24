@@ -18,7 +18,7 @@ features:
 
         sched += DelayInstruction(Delay(5), DriveChannel(0))
         sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
-        sched += PulseInstruction(SamplePulse([1.0, ...], DriveChannel(0))
+        sched += PulseInstruction(SamplePulse([1.0, ...]), DriveChannel(0))
         sched += AcquireInstruction(Acquire(100), AcquireChannel(0),
                                     MemorySlot(0))
 
