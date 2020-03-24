@@ -28,7 +28,6 @@ from qiskit.visualization.pulse import matplotlib as _matplotlib
 
 try:
     from matplotlib import get_backend
-    from matplotlib.figure import Figure
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -51,7 +50,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                  channels: List[Channel] = None,
                  scaling: float = None,
                  show_framechange_channels: bool = True
-                 ) -> Figure:
+                 ):
     """Plot the interpolated envelope of pulse and schedule.
 
     Args:
@@ -83,7 +82,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
             with only framechange instructions.
 
     Returns:
-        A matplotlib figure object for the pulse envelope.
+        matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
 
     Example:
         This example shows how to visualize your pulse schedule.

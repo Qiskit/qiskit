@@ -24,8 +24,6 @@ import numpy as np
 
 try:
     from matplotlib import pyplot as plt, gridspec
-    from matplotlib.figure import Figure
-    from matplotlib.axes import Axes
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -255,8 +253,7 @@ class SamplePulseDrawer:
     def draw(self, pulse: SamplePulse,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None) \
-            -> Figure:
+             scale: float = 1, scaling: float = None):
         """Draw figure.
 
         Args:
@@ -267,7 +264,7 @@ class SamplePulseDrawer:
             scaling: Deprecated, see `scale`.
 
         Returns:
-            A matplotlib figure object of the pulse envelope.
+            matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
         if scaling is not None:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
@@ -448,18 +445,18 @@ class ScheduleDrawer:
 
         return scale_dict
 
-    def _draw_table(self, figure: Figure,
+    def _draw_table(self, figure,
                     channels: Dict[Channel, EventsOutputChannels],
-                    dt: float) -> Axes:
+                    dt: float):
         """Draw event table if events exist.
 
         Args:
-            figure: Figure object
+            figure (matpotlib.figure.Figure): Figure object
             channels: Dictionary of channel and event table
             dt: Time interval
 
         Returns:
-            Axis object for drawing pulses.
+            matplotlib.axes.Axes: Axis object for drawing pulses.
         """
         # create table
         table_data = []
@@ -518,13 +515,13 @@ class ScheduleDrawer:
         return ax
 
     @staticmethod
-    def _draw_snapshots(ax: Axes,
+    def _draw_snapshots(ax,
                         snapshot_channels: Dict[Channel, EventsOutputChannels],
                         y0: float) -> None:
         """Draw snapshots to given mpl axis.
 
         Args:
-            ax: axis object to draw snapshots.
+            ax (matplotlib.axes.Axes): axis object to draw snapshots.
             snapshot_channels: Event table of snapshots.
             y0: vertical position to draw the snapshots.
         """
@@ -535,13 +532,13 @@ class ScheduleDrawer:
                     ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
-    def _draw_framechanges(self, ax: Axes,
+    def _draw_framechanges(self, ax,
                            fcs: Dict[int, FrameChangeInstruction],
                            y0: float) -> bool:
         """Draw frame change of given channel to given mpl axis.
 
         Args:
-            ax: axis object to draw frame changes.
+            ax (matplotlib.axes.Axes): axis object to draw frame changes.
             fcs: Event table of frame changes.
             y0: vertical position to draw the frame changes.
         """
@@ -552,13 +549,13 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
-    def _draw_frequency_changes(self, ax: Axes,
+    def _draw_frequency_changes(self, ax,
                                 sf: Dict[int, SetFrequency],
                                 y0: float) -> bool:
         """Draw set frequency of given channel to given mpl axis.
 
         Args:
-            ax: axis object to draw frame changes.
+            ax (matplotlib.axes.Axes): axis object to draw frame changes.
             sf: Event table of set frequency.
             y0: vertical position to draw the frame changes.
         """
@@ -609,14 +606,14 @@ class ScheduleDrawer:
                     return True
         return False
 
-    def _draw_labels(self, ax: Axes,
+    def _draw_labels(self, ax,
                      labels: Dict[int, Union[SamplePulse, Acquire]],
                      prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
                      y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
         Args:
-            ax: axis object to draw labels.
+            ax (matplotlib.axes.Axes): axis object to draw labels.
             labels: Pulse labels of channel.
             prev_labels: Pulse labels of previous channels.
             y0: vertical position to draw the labels.
@@ -646,7 +643,7 @@ class ScheduleDrawer:
                 ax.axvline(tf, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax: Axes,
+    def _draw_channels(self, ax,
                        output_channels: Dict[Channel, EventsOutputChannels],
                        interp_method: Callable,
                        t0: int, tf: int,
@@ -657,7 +654,7 @@ class ScheduleDrawer:
         """Draw pulse instructions on given mpl axis.
 
         Args:
-            ax: axis object to draw pulses.
+            ax (matplotlib.axes.Axes): axis object to draw pulses.
             output_channels: Event table of channels.
             interp_method: Callback function for waveform interpolation.
             t0: Start time of schedule.
@@ -746,7 +743,7 @@ class ScheduleDrawer:
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
-             show_framechange_channels: bool = True) -> Figure:
+             show_framechange_channels: bool = True):
         """Draw figure.
 
         Args:
@@ -773,7 +770,7 @@ class ScheduleDrawer:
                 with only framechange instructions.
 
         Returns:
-            A matplotlib figure object for the pulse envelope.
+            matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
 
         Raises:
             VisualizationError: When schedule cannot be drawn
