@@ -224,9 +224,12 @@ QuantumCircuit.cu1 = cu1
 
 
 def mcu1(self, lam, control_qubits, target_qubit):
-    """Apply multi-cU1 gate from specified controls (control_qubits) to target (target_qubit) qubit
-    with angle ``lam``. A multi-cU1 gate implements a ``lam`` radian rotation of the qubit state
-    vector about the z axis of the Bloch sphere when the control qubits are all in state |1>.
+    r"""Apply multi-cU1 gate.
+
+    Applied from a specified controls ``control_qubits`` to target
+    ``target_qubit`` qubit  with angle ``lam``. A multi-cU1 gate implements a
+    :math:`\lambda` radian rotation of the qubit state vector about the z axis
+    of the Bloch sphere when all control qubits are in state :math:`|1\rangle`.
 
     Examples:
 
