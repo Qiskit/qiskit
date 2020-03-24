@@ -17,9 +17,6 @@
 import math
 import unittest
 from unittest.mock import patch
-from contextlib import contextmanager
-import threading
-import _thread
 from ddt import ddt, data
 
 from qiskit import BasicAer
@@ -699,19 +696,6 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(qc, out)
 
 
-@contextmanager
-def TestTimeout(seconds, msg=''):
-    """From https://stackoverflow.com/a/37648512/8146172"""
-    timer = threading.Timer(seconds, lambda: _thread.interrupt_main())
-    timer.start()
-    try:
-        yield
-    except KeyboardInterrupt:
-        raise AssertionError("Timed out for operation {}".format(msg))
-    finally:
-        timer.cancel()
-
-
 class TestTranspileCustomPM(QiskitTestCase):
     """Test transpile function with custom pass manager"""
 
@@ -733,8 +717,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         )
         passmanager = level_0_pass_manager(pm_conf)
 
-        with TestTimeout(5):
-            transpiled = transpile([qc, qc], pass_manager=passmanager)
+        transpiled = transpile([qc, qc], pass_manager=passmanager)
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         expected.u2(0, 3.141592653589793, 0)
