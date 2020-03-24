@@ -258,5 +258,6 @@ class TestOptimize1qGatesParamReduction(QiskitTestCase):
 
         self.assertEqual(expected, result)
 
+
 if __name__ == '__main__':
     unittest.main()
