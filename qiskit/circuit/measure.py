@@ -60,56 +60,44 @@ def measure_z(self, qubit, cbit):
     return self.append(Measure(), [qubit], [cbit])
 
 
-class BasisTransformationMeasurement(Instruction):
+QuantumCircuit.measure = measure
+
+
+class PauliMeasure(Measure):
     """Perform a measurement with preceding basis change operations."""
 
-    def __init__(self, measurement_basis=None, basis_transformation=None):
+    def __init__(self, basis='z'):
         """Create a new basis transformation measurement.
 
         Args:
-            measurement_basis (str): The target measurement basis, can be 'x', 'y' or 'z'.
-            basis_transformation (Instruction | list): An Instruction (or list of) to be applied
-                before the measurement.
+            basis (str): The target measurement basis, can be 'x', 'y' or 'z'.
 
         Raises:
-            ValueError: If either both or none of measurement_basis and basis_transformation are
-                specified.
-            ValueError: If an unsupported measurement_basis is specified.
+            ValueError: If an unsupported basis is specified.
         """
-        super().__init__('generalized_measure', 1, 1, [])
-        if (measurement_basis and basis_transformation) \
-                or (not measurement_basis and not basis_transformation):
-            raise ValueError('Provide either a target measurement basis or a transformation.')
+        super().__init__()
 
-        if measurement_basis:
-            if measurement_basis.lower() == 'x':
-                from qiskit.extensions.standard import HGate
-                basis_transformation = [HGate()]
-            elif measurement_basis.lower() == 'y':
-                from qiskit.extensions.standard import RXGate
-                basis_transformation = [RXGate(pi / 2)]
-            elif measurement_basis.lower() == 'z':
-                basis_transformation = []
-            else:
-                raise ValueError('Unsupported measurement basis choose either of x, y or z.')
+        if basis.lower() == 'x':
+            self.name = 'x_measure'
+            from qiskit.extensions.standard import HGate
+            basis_transformation = [HGate()]
+        elif basis.lower() == 'y':
+            self.name = 'y_measure'
+            from qiskit.extensions.standard import RXGate
+            basis_transformation = [RXGate(pi / 2)]
+        elif basis.lower() == 'z':
+            # keep the name 'measure'
+            basis_transformation = []
+        else:
+            raise ValueError('Unsupported measurement basis choose either of x, y or z.')
 
+        self.basis = basis
         self.basis_transformation = basis_transformation
 
-    def broadcast_arguments(self, qargs, cargs):
-        """Broadcast the qubit and classical arguments."""
-        qarg = qargs[0]
-        carg = cargs[0]
-
-        if len(carg) == len(qarg):
-            for qarg, carg in zip(qarg, carg):
-                yield [qarg], [carg]
-        elif len(qarg) == 1 and carg:
-            for each_carg in carg:
-                yield qarg, [each_carg]
-        else:
-            raise CircuitError('register size error')
-
     def _define(self):
+        if self.basis == 'z':
+            return
+
         definition = []
         q = QuantumRegister(1, 'q')
         c = ClassicalRegister(1, 'c')
@@ -120,17 +108,9 @@ class BasisTransformationMeasurement(Instruction):
         self.definition = definition
 
 
-def measure_x(self, qubit, cbit):
+def pauli_measure(self, qubit, cbit, basis='z'):
     """Measure in the Pauli-X basis."""
-    return self.append(BasisTransformationMeasurement(measurement_basis='x'), [qubit], [cbit])
+    return self.append(PauliMeasure(basis=basis), [qubit], [cbit])
 
 
-def measure_y(self, qubit, cbit):
-    """Measure in the Pauli-Y basis."""
-    return self.append(BasisTransformationMeasurement(measurement_basis='y'), [qubit], [cbit])
-
-
-QuantumCircuit.measure_x = measure_x
-QuantumCircuit.measure_y = measure_y
-QuantumCircuit.measure_z = measure_z
-QuantumCircuit.measure = measure_z  # keep Z measure as default
+QuantumCircuit.pauli_measure = pauli_measure
