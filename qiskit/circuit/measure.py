@@ -18,6 +18,7 @@ Quantum measurement in the computational basis.
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from numpy import pi
 
 
 class Measure(Instruction):
@@ -57,33 +58,21 @@ def measure(self, qubit, cbit):
     """
     return self.append(Measure(), [qubit], [cbit])
 
-def measure(self, qubit, cbit):
-    """Measure quantum bit into classical bit (tuples).
-
-    Args:
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
-
-    Returns:
-        qiskit.Instruction: the attached measure instruction.
-
-    Raises:
-        CircuitError: if qubit is not in this circuit or bad format;
-            if cbit is not in this circuit or not creg.
-    """
-    return self.append(Measure(), [qubit], [cbit])
-
-def measure_x(self, qubit, cbit):
-    return self.append(Measure(), [qubit], [cbit])
-
-def measure_y(self, qubit, cbit):
-    return self.append(Measure(), [qubit], [cbit])
-
-
 QuantumCircuit.measure = measure
 
+
+def measure_x(self, qubit, cbit):
+    m_x = QuantumCircuit(1,1,name='Mx')
+    m_x.h(0)
+    m_x.measure(0,0)
+    return self.append(m_x.to_instruction(), [qubit], [cbit])
+
+def measure_y(self, qubit, cbit):
+    m_y = QuantumCircuit(1,1,name='My')
+    m_y.rx(pi/2,0)
+    m_y.measure(0,0)
+    return self.append(m_y.to_instruction(), [qubit], [cbit])
+
 QuantumCircuit.measure_x = measure_x
-
 QuantumCircuit.measure_y = measure_y
-
 QuantumCircuit.measure_z = measure
