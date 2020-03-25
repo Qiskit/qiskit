@@ -141,12 +141,13 @@ class Command(SimpleNamespace):
         """Create a new Command object from a dictionary.
 
         Args:
-            data (dict): A dictionary representing the Command
+            data (dict): A dictionary representing the ``Command``
                          to create. It will be in the same format as output by
                          :meth:`to_dict`.
 
         Returns:
-            Command: The Command from the input dictionary.
+            qiskit.providers.model.Command: The ``Command`` from the input
+                dictionary.
         """
         in_data = copy.copy(data)
         if 'sequence' in in_data:
