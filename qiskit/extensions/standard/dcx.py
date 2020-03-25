@@ -40,7 +40,7 @@ class DCXGate(Gate):
 
     .. math::
 
-        DCX 0, 1 =
+        DCX\ q_0, q_1 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & 0 & 1 \\
