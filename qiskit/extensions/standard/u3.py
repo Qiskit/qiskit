@@ -201,6 +201,16 @@ def cu3(self, theta, phi, lam, control_qubit, target_qubit,
 QuantumCircuit.cu3 = cu3
 
 
+def _generate_gray_code(num_bits):
+    """Generate the gray code for ``num_bits`` bits."""
+    if num_bits <= 0:
+        raise ValueError('Cannot generate the gray code for less than 1 bit.')
+    result = [0]
+    for i in range(num_bits):
+        result += [x + 2**i for x in reversed(result)]
+    return [format(x, '0%sb' % num_bits) for x in result]
+
+
 def _gray_code_chain(q, num_ctrl_qubits, gate):
     """Apply the gate to the the last qubit in the register ``q``, controlled on all
     preceding qubits. This function uses the gray code to propagate down to the last qubit.
@@ -209,11 +219,10 @@ def _gray_code_chain(q, num_ctrl_qubits, gate):
     commit 769ca8d, file qiskit/aqua/circuits/gates/multi_control_u1_gate.py.
     """
     from qiskit.extensions.standard.x import CXGate
-    from sympy.combinatorics.graycode import GrayCode
 
     rule = []
     q_controls, q_target = q[:num_ctrl_qubits], q[num_ctrl_qubits]
-    gray_code = list(GrayCode(num_ctrl_qubits).generate_gray())
+    gray_code = _generate_gray_code(num_ctrl_qubits)
     last_pattern = None
 
     for pattern in gray_code:
