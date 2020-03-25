@@ -45,10 +45,9 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.x(1)
         cls.circuit.measure_all()
 
-    @combine(fake_backends=FAKE_PROVIDER.backends(),
+    @combine(backend=FAKE_PROVIDER.backends(),
              optimization_level=[0, 1, 2, 3])
-    def test_circuit_on_fake_backend(self, fake_backends, optimization_level):
-        backend = fake_backends
+    def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not HAS_AER and backend.configuration().n_qubits > 20:
             self.skipTest(
                 'Unable to run fake_backend %s without qiskit-aer' %
