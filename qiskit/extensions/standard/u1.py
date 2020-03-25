@@ -143,7 +143,10 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
                 (U1Gate(self.params[0] / 2), [q[1]], [])
             ]
         else:
-            rule = _mcu1_rule(q, self.params[0], self.num_ctrl_qubits)
+            from qiskit.extensions.standard.u3 import _gray_code_chain
+            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
+            bottom_gate = CU1Gate(scaled_lam)
+            rule = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
 
         for inst in rule:
             definition.append(inst)
@@ -249,68 +252,3 @@ def mcu1(self, lam, control_qubits, target_qubit):
 
 
 QuantumCircuit.mcu1 = mcu1
-
-
-def _mcu1_rule(q, lam, num_ctrl_qubits):
-    """The gate definition of the multi-controlled U1 gate.
-
-    Ported from Aqua (github.com/Qiskit/qiskit-aqua),
-    commit 769ca8d, file qiskit/aqua/circuits/gates/multi_control_u1_gate.py.
-    """
-    rule = []
-    q_controls = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    if num_ctrl_qubits == 0:
-        rule.append(
-            (U1Gate(lam), [q_target], [])
-        )
-    elif num_ctrl_qubits == 1:
-        rule.append(
-            (CU1Gate(lam), q_controls + [q_target], [])
-        )
-    else:
-        from qiskit.extensions.standard.x import CXGate
-        from sympy.combinatorics.graycode import GrayCode
-        gray_code = list(GrayCode(num_ctrl_qubits).generate_gray())
-        last_pattern = None
-
-        lam_angle = lam * (1 / (2**(num_ctrl_qubits - 1)))
-
-        for pattern in gray_code:
-            if '1' not in pattern:
-                continue
-            if last_pattern is None:
-                last_pattern = pattern
-            # find left most set bit
-            lm_pos = list(pattern).index('1')
-
-            # find changed bit
-            comp = [i != j for i, j in zip(pattern, last_pattern)]
-            if True in comp:
-                pos = comp.index(True)
-            else:
-                pos = None
-            if pos is not None:
-                if pos != lm_pos:
-                    rule.append(
-                        (CXGate(), [q_controls[pos], q_controls[lm_pos]], [])
-                    )
-                else:
-                    indices = [i for i, x in enumerate(pattern) if x == '1']
-                    for idx in indices[1:]:
-                        rule.append(
-                            (CXGate(), [q_controls[idx], q_controls[lm_pos]], [])
-                        )
-            # check parity
-            if pattern.count('1') % 2 == 0:
-                # inverse
-                rule.append(
-                    (CU1Gate(-lam_angle), [q_controls[lm_pos], q_target], [])
-                )
-            else:
-                rule.append(
-                    (CU1Gate(lam_angle), [q_controls[lm_pos], q_target], [])
-                )
-            last_pattern = pattern
-
-    return rule
