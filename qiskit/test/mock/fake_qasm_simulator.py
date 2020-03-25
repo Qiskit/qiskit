@@ -42,3 +42,6 @@ class FakeQasmSimulator(FakeBackend):
         )
 
         super().__init__(configuration)
+
+    def properties(self):
+        return None

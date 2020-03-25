@@ -123,9 +123,12 @@ class FakeBackend(BaseBackend):
                 job = sim.run(qobj, system_model)
             else:
                 sim = Aer.get_backend('qasm_simulator')
-                from qiskit.providers.aer.noise import NoiseModel
-                noise_model = NoiseModel.from_backend(self)
-                job = sim.run(qobj, noise_model=noise_model)
+                if self.properties():
+                    from qiskit.providers.aer.noise import NoiseModel
+                    noise_model = NoiseModel.from_backend(self)
+                    job = sim.run(qobj, noise_model=noise_model)
+                else:
+                    job = sim.run(qobj)
         else:
             if qobj.type == 'PULSE':
                 raise QiskitError("Unable to run pulse schedules without "
