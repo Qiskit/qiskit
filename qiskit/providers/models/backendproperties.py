@@ -132,7 +132,7 @@ class Gate(SimpleNamespace):
         out_dict = {}
         out_dict['qubits'] = self.qubits
         out_dict['gate'] = self.gate
-        out_dict['parameters'] = self.parameters.to_dict()
+        out_dict['parameters'] = [x.to_dict() for x in self.parameters]
         return out_dict
 
     def __eq__(self, other):
