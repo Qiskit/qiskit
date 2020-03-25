@@ -363,6 +363,8 @@ class QasmQobj:
         self.config = config or QasmQobjConfig()
         self.experiments = experiments or []
         self.qobj_id = qobj_id
+        self.type = 'QASM'
+        self.schema_version = '1.1.0'
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the QASM Qobj.
