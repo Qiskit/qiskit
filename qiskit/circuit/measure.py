@@ -43,7 +43,7 @@ class Measure(Instruction):
             raise CircuitError('register size error')
 
 
-def measure_z(self, qubit, cbit):
+def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 
     Args:
