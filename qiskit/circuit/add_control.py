@@ -105,7 +105,7 @@ def control(operation: Union[Gate, ControlledGate],
                 use_basis_gates=True)
     elif operation.name == 'ry':
         qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
-                q_ancillae, use_basis_gates=True)
+                q_ancillae, mode='noancilla', use_basis_gates=True)
     elif operation.name == 'rz':
         qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
