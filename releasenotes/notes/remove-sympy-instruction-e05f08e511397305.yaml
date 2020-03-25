@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The previously deprecated (in the 0.11.0 release) support for passsing in
+    :class:`qiskit.circuit.Instruction` parameters of types ``sympy.Basic``,
+    ``sympy.Expr``, ``qiskit.qasm.node.node.Node`` (QASM AST node) and
+    ``sympy.Matrix`` has been removed. The supported types for instruction
+    parameters are:
+
+    * ``int``
+    * ``float``
+    * ``complex``
+    * ``str``
+    * ``list``
+    * ``np.ndarray``
+    * :class:`qiskit.circuit.ParameterExpression`

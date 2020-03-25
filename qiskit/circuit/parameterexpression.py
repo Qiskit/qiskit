@@ -241,3 +241,9 @@ class ParameterExpression():
 
     def __deepcopy__(self, memo=None):
         return self
+
+    def __eq__(self, other):
+        from sympy import srepr
+        return (isinstance(other, ParameterExpression)
+                and self.parameters == other.parameters
+                and srepr(self._symbol_expr) == srepr(other._symbol_expr))

@@ -12,65 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Delay instruction.
-"""
-from typing import Optional
+"""Delay instruction. Deprecated path."""
+import warnings
 
-from qiskit.pulse.channels import Channel
-from .instruction import Instruction
-from .command import Command
-
-
-class Delay(Command):
-    """Delay command."""
-
-    prefix = 'delay'
-
-    def __init__(self, duration: int, name: Optional[str] = None):
-        """Create a new delay command.
-
-        No other command may be scheduled within a delay command.
-
-        Delays that exist as the last instruction on a channel will be removed.
-
-        Note: Delays are not explicitly sent to backends with the current Qobj
-        transport layer. They are only used to enforce the correct offset in time
-        for instructions that will be submitted directly to the backend.
-
-        Args:
-            duration: Length of time of the delay in terms of dt.
-            name: Name of delay command for display purposes.
-        """
-        super().__init__(duration=duration)
-        self._name = Delay.create_name(name)
-
-    # pylint: disable=arguments-differ
-    def to_instruction(self, channel: Channel, name: str = None) -> 'DelayInstruction':
-        """Create a delay instruction on the given channel.
-
-        Args:
-            channel: Channel for delay instruction to be created.
-            name: Name of delay instruction for display purposes.
-
-        Returns:
-            DelayInstruction
-        """
-        return DelayInstruction(self, channel, name=name)
-    # pylint: enable=arguments-differ
+from ..instructions import Delay
+from ..instructions import Instruction
 
 
 class DelayInstruction(Instruction):
-    """Instruction to add a blocking delay on a `Channel`.
-
-    No other may be scheduled within a delay command.
-
-    Delays that exist as the last instruction on a channel will be removed.
-
-    Note: Delay's are not explicitly sent to backends with the current Qobj
-    transport layer. They are only used to enforce the correct offset in time
-    for instructions that will be submitted directly to the backend.
-    """
+    """Deprecated."""
 
     def __init__(self, command: Delay, channel: Delay, name: str = None):
         """Create a delay instruction from a delay command.
@@ -80,4 +30,8 @@ class DelayInstruction(Instruction):
             channel: Channel for delay instruction to be created.
             name: Name of delay instruction for display purposes.
         """
+        warnings.warn("The DelayInstruction is deprecated. Use Delay, instead, with channels. "
+                      "For example: DelayInstruction(Delay(5), DriveChannel(0)) -> "
+                      "Delay(5, DriveChannel(0)).",
+                      DeprecationWarning)
         super().__init__(command, channel, name=name)
