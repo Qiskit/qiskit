@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-One-pulse single-qubit gate.
+U2 Gate.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -24,10 +24,39 @@ from qiskit.util import deprecate_arguments
 
 
 class U2Gate(Gate):
-    """One-pulse single-qubit gate."""
+    r"""Single-qubit rotation about the X+Z axis.
+
+    Implemented using one X90 pulse on IBM Quantum systems:
+    
+    .. math::
+        U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
+    
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤ U2(φ,λ) ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        U2(\phi, \lambda) = \frac{1}{\sqrt{2}}
+            \begin{pmatrix}
+                1          & e^{-i\lambda} \\
+                e^{i\phi} & e^{i(\phi+\lambda)}
+            \end{pmatrix}
+
+    .. seealso::
+
+        :class:`~qiskit.extensions.standard.U3Gate`:
+        U3 is a generalization of U2 that covers all single-qubit rotations,
+        using two X90 pulses.
+    """
 
     def __init__(self, phi, lam, label=None):
-        """Create new one-pulse single-qubit gate."""
         super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
@@ -40,9 +69,9 @@ class U2Gate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted U2 gate.
 
-        u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
+        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
@@ -65,31 +94,7 @@ class U2Gate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply U2 gate with angle phi and lam to a specified qubit (qubit).
-    u2(φ,λ) := U(π/2,φ,λ) = Rz(φ + π/2)Rx(π/2)Rz(λ − π/2)
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            phi = Parameter('φ')
-            lam = Parameter('λ')
-            circuit = QuantumCircuit(1)
-            circuit.u2(phi,lam,0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            import numpy
-            from qiskit.extensions.standard.u2 import U2Gate
-            U2Gate(numpy.pi/2,numpy.pi/2).to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.U2Gate`."""
     return self.append(U2Gate(phi, lam), [qubit], [])
 
 

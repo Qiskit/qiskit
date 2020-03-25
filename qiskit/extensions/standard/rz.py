@@ -216,24 +216,6 @@ class CrzGate(CRZGate, metaclass=CRZMeta):
 def crz(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply cRz gate
-
-    Applied from a specified control ``control_qubit`` to target ``target_qubit`` qubit
-    with angle :math:`\\theta`. A cRz gate implements a :math:`\\theta` radian rotation
-    of the qubit state vector about the z axis of the Bloch sphere when the control
-    qubit is in state :math:`|1\\rangle`.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            theta = Parameter('θ')
-            circuit = QuantumCircuit(2)
-            circuit.crz(theta,0,1)
-            circuit.draw()
     """
     return self.append(CRZGate(theta), [control_qubit, target_qubit], [])
 

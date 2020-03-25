@@ -45,17 +45,21 @@ class U1Gate(Gate):
         U1(\lambda) =
             \begin{pmatrix}
                 1 & 0 \\
-                0 & e^{i.\lambda}
+                0 & e^{i\lambda}
             \end{pmatrix}
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.RZGate`
+        :class:`~qiskit.extensions.standard.RZGate`:
         This gate is equivalent to RZ up to a phase factor.
 
             .. math::
 
-                U1(\lambda) = e^{i.{\lambda}/2}.RZ(\lambda)
+                U1(\lambda) = e^{i{\lambda}/2}.RZ(\lambda)
+
+        :class:`~qiskit.extensions.standard.U3Gate`:
+        U3 is a generalization of U2 that covers all single-qubit rotations,
+        using two X90 pulses.
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
@@ -158,7 +162,6 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
-
     def __init__(self, theta):
         super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = U1Gate(theta)
