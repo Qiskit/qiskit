@@ -42,10 +42,10 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i\frac{\theta}{2}X) =
+        RX(\theta) = exp(-i \th X) =
             \begin{pmatrix}
                 \cos{\th}   & -i\sin{\th} \\
-                -i\sin{\th} & \cos{\th}}
+                -i\sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
@@ -127,7 +127,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
     .. parsed-literal::
 
              ┌───────┐
-        q_0: ┤ Rx(λ) ├
+        q_0: ┤ Rx(ϴ) ├
              └───┬───┘
         q_1: ────■────
 
@@ -138,12 +138,12 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
         \newcommand{\th}{\frac{\theta}{2}}
 
         CRX(\theta)\ q_1, q_0 =
-        |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX =
+        |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & \cos{\th}   & -i\sin{\th} \\
-                0 & 0 & -i\sin{\th} & \cos{\th}}
+                0 & 0 & -i\sin{\th} & \cos{\th}
             \end{pmatrix}
 
     .. note::
@@ -159,11 +159,12 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
             \newcommand{\th}{\frac{\theta}{2}}
 
             CRX(\lambda)\ q_0, q_1 =
+                I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & \cos{\th} & 0 & -i\sin{\th} \\
                     0 & 0 & 1 & 0 \\
-                    0 & -i\sin{\th} & 0 & \cos{\th}}
+                    0 & -i\sin{\th} & 0 & \cos{\th}
                 \end{pmatrix}
     """
     def __init__(self, theta):

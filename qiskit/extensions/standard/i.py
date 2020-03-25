@@ -33,7 +33,7 @@ class IMeta(type):
 
 
 class IGate(Gate, metaclass=IMeta):
-    """Identity gate.
+    r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).

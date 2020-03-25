@@ -149,6 +149,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
     .. math::
 
         CY\ q_1, q_0 =
+            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes Y =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -167,6 +168,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         .. math::
 
             CY\ q_0, q_1 =
+            I \otimes |0\rangle\langle0| + Y \otimes |1\rangle\langle1|  =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 0 & 0 & -i \\

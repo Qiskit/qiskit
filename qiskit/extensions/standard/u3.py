@@ -152,6 +152,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         \newcommand{\th}{\frac{\theta}{2}}
         
         CU3(\theta, \phi, \lambda)\ q_1, q_0=
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
             \begin{pmatrix}
                 1 & 0   & 0                  & 0 \\
                 0 & 1   & 0                  & 0 \\
@@ -170,7 +171,9 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
         .. math::
 
-            CU3(\theta, \phi, \lambda)\ q_0, q_1=
+            CU3(\theta, \phi, \lambda)\ q_0, q_1 =
+                I \otimes |0\rangle\langle 0| +
+                U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
                 \begin{pmatrix}
                     1 & 0                   & 0 & 0 \\
                     0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\

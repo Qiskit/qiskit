@@ -42,10 +42,10 @@ class RYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i\frac{\theta}{2}Y) =
+        RX(\theta) = exp(-i \th Y) =
             \begin{pmatrix}
-                \cos{\th}   & -\sin{\th} \\
-                \sin{\th} & \cos{\th}}
+                \cos{\th} & -\sin{\th} \\
+                \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
@@ -127,7 +127,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
     .. parsed-literal::
 
              ┌───────┐
-        q_0: ┤ Ry(λ) ├
+        q_0: ┤ Ry(ϴ) ├
              └───┬───┘
         q_1: ────■────
 
@@ -138,12 +138,13 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\theta)\ q_1, q_0 =
+        CRY(\theta)\ q_1, q_0 =
+        |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RY(\theta) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & \cos{\th} & -\sin{\th} \\
-                0 & 0 & \sin{\th} & \cos{\th}}
+                0 & 0 & \sin{\th} & \cos{\th}
             \end{pmatrix}
 
     .. note::
@@ -158,12 +159,13 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            CRX(\lambda)\ q_0, q_1 =
+            CRY(\theta)\ q_0, q_1 =
+                I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
                 \begin{pmatrix}
                     1 & 0         & 0 & 0 \\
                     0 & \cos{\th} & 0 & -\sin{\th} \\
                     0 & 0         & 1 & 0 \\
-                    0 & \sin{\th} & 0 & \cos{\th}}
+                    0 & \sin{\th} & 0 & \cos{\th}
                 \end{pmatrix}
     """
 

@@ -150,6 +150,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     .. math::
 
         CZ\ q_1, q_0 =
+            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes Z =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\

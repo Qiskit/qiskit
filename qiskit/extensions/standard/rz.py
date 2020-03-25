@@ -142,6 +142,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     .. math::
 
         CRZ(\lambda)\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\lambda) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -160,6 +161,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         .. math::
 
             CRZ(\lambda)\ q_0, q_1 =
+                I \otimes |0\rangle\langle 0| + RZ(\lambda) \otimes |1\rangle\langle 1| =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\

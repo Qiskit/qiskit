@@ -163,6 +163,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     .. math::
 
         CU1 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U1 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
