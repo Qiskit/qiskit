@@ -32,17 +32,21 @@ features:
         sched += Acquire(100, AcquireChannel(0), MemorySlot(0))
   - |
     There is now a :py:class:`~qiskit.pulse.instructions.Play` instruction
-    which takes a description of a pulse envelope and a channel. The pulse
-    description must subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse`.
-    py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
-    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
-    now subclass from ``Pulse`` and have been moved to the ``pulse_lib``.
+    which takes a description of a pulse envelope and a channel. There is a
+    new :py:class:`~qiskit.pulse.pulse_lib.Pulse` class in the ``pulse_lib``
+    from which the pulse envelope description should subclass.
 
     For example::
 
         Play(SamplePulse([0.1]*10), DriveChannel(0))
         Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
 deprecations:
+  - |
+    py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
+    now subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse` and have been
+    moved to the ``pulse_lib``. The previous path via ``pulse.commands`` is
+    deprecated.
   - |
     ``DelayInstruction`` has been deprecated and replaced by
     :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
