@@ -214,15 +214,15 @@ class FakeOpenPulse2Q(FakeBackend):
             gates=[
                 Gate(gate='u1', qubits=[0],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=0.)]),
                 Gate(gate='u3', qubits=[0],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=2 * dt)]),
                 Gate(gate='u3', qubits=[1],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=4 * dt)]),
                 Gate(gate='cx', qubits=[0, 1],
                      parameters=[
