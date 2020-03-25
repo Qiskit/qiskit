@@ -23,12 +23,11 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock import backends
+from qiskit.test.mock import FakeProvider
 from qiskit.test.mock.fake_backend import HAS_AER
 
 
-FAKE_BACKENDS = [
-    x for x in dir(backends) if x.startswith('Fake')]
+FAKE_PROVIDER = FakeProvider()
 
 
 @ddt
@@ -46,10 +45,10 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.x(1)
         cls.circuit.measure_all()
 
-    @combine(fake_backends=FAKE_BACKENDS,
+    @combine(fake_backends=FAKE_PROVIDER.backends(),
              optimization_level=[0, 1, 2, 3])
     def test_circuit_on_fake_backend(self, fake_backends, optimization_level):
-        backend = getattr(backends, fake_backends)()
+        backend = fake_backends
         if not HAS_AER and backend.configuration().n_qubits > 20:
             self.skipTest(
                 'Unable to run fake_backend %s without qiskit-aer' %
