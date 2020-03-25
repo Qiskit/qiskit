@@ -112,8 +112,8 @@ def control(operation: Union[Gate, ControlledGate],
     elif _operation_has_base_gate(operation, RYGate):
         qc.mcry(_get_base_gate_params(operation)[0], **qubit_kwargs,
                 q_ancillae=q_ancillae, use_basis_gates=True)
-    elif _operation_has_base_gate(operation, RZGate):
-        qc.mcrz(_get_base_gate_params(operation)[0], **qubit_kwargs,
+    elif isinstance(operation, RZGate):
+        qc.mcrz(operation.definition[0][0].params[0], **qubit_kwargs,
                 use_basis_gates=True)
     elif _operation_has_base_gate(operation, U1Gate):
         qc.mcu1(_get_base_gate_params(operation)[2], *qubit_kwargs.values())
