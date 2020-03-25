@@ -99,7 +99,7 @@ class StabilizerTable(PauliTable):
         \end{array}\right)
 
     where each row is a block vector :math:`[X_i, Z_i]` with
-    :math:`X = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z = [z_{i,0}, ..., z_{i,N-1}]`
+    :math:`X_i = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z_i = [z_{i,0}, ..., z_{i,N-1}]`
     is the symplectic representation of an `N`-qubit Pauli.
     This representation is based on reference [1].
 
@@ -171,7 +171,7 @@ class StabilizerTable(PauliTable):
     """
 
     def __init__(self, data, phase=None):
-        """Initialize the PauliTable.
+        """Initialize the StabilizerTable.
 
         Args:
             data (array or str or PauliTable): input PauliTable data.
@@ -255,7 +255,7 @@ class StabilizerTable(PauliTable):
 
     def __getitem__(self, key):
         """Return a view of StabilizerTable"""
-        if isinstance(key, (int, np.int)):
+        if isinstance(key, int):
             key = [key]
         return StabilizerTable(self._array[key], self._phase[key])
 
@@ -315,7 +315,7 @@ class StabilizerTable(PauliTable):
                           Pauli rows (Default: False).
 
         Returns:
-            PauliTable: the resulting table with the entries inserted.
+            StabilizerTable: the resulting table with the entries inserted.
 
         Raises:
             QiskitError: if the insertion index is invalid.
@@ -446,7 +446,7 @@ class StabilizerTable(PauliTable):
         sort_inds = index.argsort()
         index = index[sort_inds]
         unique = self[index]
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique, )
         if return_index:
             ret += (index, )
@@ -576,14 +576,14 @@ class StabilizerTable(PauliTable):
             StabilizerTable: the compose outer product table.
 
         Raises:
-            QiskitError: if other cannot be converted to a PauliTable.
+            QiskitError: if other cannot be converted to a StabilizerTable.
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError("other PauliTable must be on the same number of qubits.")
+            raise QiskitError("other StabilizerTable must be on the same number of qubits.")
         if qargs and other.num_qubits != len(qargs):
-            raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
+            raise QiskitError("Number of qubits in the other StabilizerTable does not match qargs.")
 
         # Stack X and Z blocks for output size
         x1, x2 = self._block_stack(self.X, other.X)
@@ -650,7 +650,7 @@ class StabilizerTable(PauliTable):
             StabilizerTable: the dot outer product table.
 
         Raises:
-            QiskitError: if other cannot be converted to a PauliTable.
+            QiskitError: if other cannot be converted to a StabilizerTable.
         """
         return super().dot(other, qargs=qargs)
 
@@ -878,7 +878,7 @@ class StabilizerTable(PauliTable):
         r"""Convert to a list or array of Stabilizer matrices.
 
         For large StabilizerTables converting using the ``array=True``
-        kwarg will be more efficient since it allocates memory a full
+        kwarg will be more efficient since it allocates memory for the full
         rank-3 Numpy array of matrices in advance.
 
         .. list-table:: Stabilizer Representations
@@ -1008,7 +1008,7 @@ class StabilizerTable(PauliTable):
         the :meth:`to_labels` method.
 
         Returns:
-            LabelIterator: label iterator object for the PauliTable.
+            LabelIterator: label iterator object for the StabilizerTable.
         """
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
@@ -1033,7 +1033,7 @@ class StabilizerTable(PauliTable):
                            (Default: False)
 
         Returns:
-            MatrixIterator: matrix iterator object for the PauliTable.
+            MatrixIterator: matrix iterator object for the StabilizerTable.
         """
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
