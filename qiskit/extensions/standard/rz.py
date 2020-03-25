@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Rotation around the z-axis.
+Rotation around the Z axis.
 """
 from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
@@ -40,7 +40,7 @@ class RZGate(Gate):
 
     .. math::
 
-        RZ(\lambda) =
+        RZ(\lambda) = exp(-i\frac{\theta}{2}Z) =
             \begin{pmatrix}
                 e^{-i\frac{\lambda}{2}} & 0 \\
                 0 & e^{i\frac{\lambda}{2}}
@@ -59,6 +59,7 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
     def __init__(self, phi):
+        """Create new RZ gate."""
         super().__init__('rz', 1, [phi])
 
     def _define(self):
@@ -94,7 +95,10 @@ class RZGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted RZ gate (:math:`RZ(\lambda){\dagger} = RZ(-\lambda)`)"""
+        r"""Return inverted RZ gate
+
+        :math:`RZ(\lambda){\dagger} = RZ(-\lambda)`
+        """
         return RZGate(-self.params[0])
 
 
@@ -127,11 +131,11 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
 
     .. parsed-literal::
 
-                ┌───────┐
-        q_0: |0>┤ Rz(λ) ├
-                └───┬───┘
-        q_1: |0>────■────
-                         
+             ┌───────┐
+        q_0: ┤ Rz(λ) ├
+             └───┬───┘
+        q_1: ────■────
+
 
     **Matrix representation:**
 
@@ -171,6 +175,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         phase difference.
     """
     def __init__(self, theta):
+        """Create new CRZ gate."""
         super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RZGate(theta)
 
@@ -196,7 +201,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0])
 
 
@@ -215,8 +220,7 @@ class CrzGate(CRZGate, metaclass=CRZMeta):
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def crz(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cRz gate
-    """
+    """Apply :class:`~qiskit.extensions.standard.CRZGate`."""
     return self.append(CRZGate(theta), [control_qubit, target_qubit], [])
 
 

@@ -50,6 +50,7 @@ class DCXGate(Gate):
     """
 
     def __init__(self):
+        """Create new DCX gate."""
         super().__init__('dcx', 2, [])
 
     def _define(self):

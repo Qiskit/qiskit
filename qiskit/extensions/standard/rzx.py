@@ -109,6 +109,7 @@ class RZXGate(Gate):
     """
 
     def __init__(self, theta):
+        """Create new RZX gate."""
         super().__init__('rzx', 2, [theta])
 
     def _define(self):

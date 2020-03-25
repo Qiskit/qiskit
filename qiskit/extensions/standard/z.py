@@ -68,6 +68,7 @@ class ZGate(Gate):
     """
 
     def __init__(self, label=None):
+        """Create new Z gate."""
         super().__init__('z', 1, [], label=label)
 
     def _define(self):

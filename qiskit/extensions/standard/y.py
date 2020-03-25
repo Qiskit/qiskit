@@ -68,6 +68,7 @@ class YGate(Gate):
     """
 
     def __init__(self, label=None):
+        """Create new Y gate."""
         super().__init__('y', 1, [], label=label)
 
     def _define(self):
@@ -175,6 +176,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     """
     def __init__(self):
+        """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1)
         self.base_gate = YGate()
 

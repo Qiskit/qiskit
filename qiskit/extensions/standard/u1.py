@@ -48,6 +48,20 @@ class U1Gate(Gate):
                 0 & e^{i\lambda}
             \end{pmatrix}
 
+    **Examples:**
+
+        .. math::
+
+            U1(\lambda = \pi) = Z
+
+        .. math::
+
+            U1(\lambda = \pi/2) = S
+
+        .. math::
+
+            U1(\lambda = \pi/4) = T
+
     .. seealso::
 
         :class:`~qiskit.extensions.standard.RZGate`:
@@ -66,6 +80,7 @@ class U1Gate(Gate):
     """
 
     def __init__(self, theta, label=None):
+        """Create new U1 gate."""
         super().__init__('u1', 1, [theta], label=label)
 
     def _define(self):
@@ -162,7 +177,9 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
+
     def __init__(self, theta):
+        """Create new CU1 gate."""
         super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = U1Gate(theta)
 

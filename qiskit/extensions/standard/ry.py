@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Rotation around the y-axis.
+Rotation around the Y axis.
 """
 import math
 import numpy
@@ -26,10 +26,31 @@ from qiskit.util import deprecate_arguments
 
 
 class RYGate(Gate):
-    """The rotation around the y-axis."""
+    r"""Single-qubit rotation about the Y axis.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────┐
+        q_0: ┤ Ry(ϴ) ├
+             └───────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RX(\theta) = exp(-i\frac{\theta}{2}Y) =
+            \begin{pmatrix}
+                \cos{\th}   & -\sin{\th} \\
+                \sin{\th} & \cos{\th}}
+            \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new RY single qubit gate."""
+        """Create new RY gate."""
         super().__init__('ry', 1, [theta])
 
     def _define(self):
@@ -47,7 +68,7 @@ class RYGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -65,9 +86,9 @@ class RYGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted RY gate.
 
-        ry(theta)^dagger = ry(-theta)
+        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
         return RYGate(-self.params[0])
 
@@ -81,31 +102,7 @@ class RYGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Ry gate with angle theta to a specified qubit (qubit).
-    An Ry gate implements a theta radian rotation of the qubit state vector about the
-    y axis of the Bloch sphere.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            theta = Parameter('θ')
-            circuit = QuantumCircuit(1)
-            circuit.ry(theta,0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            import numpy
-            from qiskit.extensions.standard.ry import RYGate
-            RYGate(numpy.pi/2).to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.RYGate`."""
     return self.append(RYGate(theta), [qubit], [])
 
 
@@ -123,10 +120,55 @@ class CRYMeta(type):
 
 
 class CRYGate(ControlledGate, metaclass=CRYMeta):
-    """The controlled-ry gate."""
+    r"""Controlled-RY gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────┐
+        q_0: ┤ Ry(λ) ├
+             └───┬───┘
+        q_1: ────■────
+
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CRX(\theta)\ q_1, q_0 =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & \cos{\th} & -\sin{\th} \\
+                0 & 0 & \sin{\th} & \cos{\th}}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which is how we present the gate above as well, resulting in textbook
+        matrices. Instead, if we use q_0 as control, the matrix will be:
+
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            CRX(\lambda)\ q_0, q_1 =
+                \begin{pmatrix}
+                    1 & 0         & 0 & 0 \\
+                    0 & \cos{\th} & 0 & -\sin{\th} \\
+                    0 & 0         & 1 & 0 \\
+                    0 & \sin{\th} & 0 & \cos{\th}}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new cry gate."""
+        """Create new CRY gate."""
         super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RYGate(theta)
 
@@ -153,7 +195,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0])
 
 
@@ -173,7 +215,7 @@ class CryGate(CRYGate, metaclass=CRYMeta):
                       'tgt': 'target_qubit'})
 def cry(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cry from ctl to tgt with angle theta."""
+    """Apply :class:`~qiskit.extensions.standard.CRYGate`."""
     return self.append(CRYGate(theta), [control_qubit, target_qubit], [])
 
 

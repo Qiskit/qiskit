@@ -27,10 +27,10 @@ class U2Gate(Gate):
     r"""Single-qubit rotation about the X+Z axis.
 
     Implemented using one X90 pulse on IBM Quantum systems:
-    
+
     .. math::
         U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
-    
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -49,6 +49,12 @@ class U2Gate(Gate):
                 e^{i\phi} & e^{i(\phi+\lambda)}
             \end{pmatrix}
 
+    **Examples:**
+
+    .. math::
+
+        U2(\pi, 0) = H
+
     .. seealso::
 
         :class:`~qiskit.extensions.standard.U3Gate`:
@@ -57,6 +63,7 @@ class U2Gate(Gate):
     """
 
     def __init__(self, phi, lam, label=None):
+        """Create new U2 gate."""
         super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):

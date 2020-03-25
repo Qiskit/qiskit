@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-U3 Gate.
+U3 Gate, three-parameter single-qubit gate.
 """
 
 import numpy
@@ -29,10 +29,10 @@ class U3Gate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
     Implemented using two X90 pulses on IBM Quantum systems:
-    
+
     .. math::
         U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
-    
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -46,22 +46,33 @@ class U3Gate(Gate):
     .. math::
 
         \newcommand{\th}{\frac{\theta}{2}}
-        
+
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
                 \cos(\th)          & e^{-i\lambda}\sin(\th) \\
                 e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
+
+    **Examples:**
+
+    .. math::
+
+        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+
+    .. math::
+
+        U3(\theta, 0, 0) = RY(\theta)
     """
 
     def __init__(self, theta, phi, lam, label=None):
+        """Create new U3 gate."""
         super().__init__('u3', 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         r"""Return inverted U3 gate.
 
         :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\phi,-\lambda)`)
-        """        
+        """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -169,6 +180,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
     """
 
     def __init__(self, theta, phi, lam):
+        """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
 

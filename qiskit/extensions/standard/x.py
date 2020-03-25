@@ -71,6 +71,7 @@ class XGate(Gate):
     """
 
     def __init__(self, label=None):
+        """Create new X gate."""
         super().__init__('x', 1, [], label=label)
 
     def _define(self):
@@ -191,6 +192,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
     """
 
     def __init__(self):
+        """Create new CX gate."""
         super().__init__('cx', 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate()
 
@@ -267,52 +269,55 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
 
     .. parsed-literal::
 
-        q_0: ──■──
-               │
+             ┌───┐
+        q_0: ┤ X ├
+             └─┬─┘
         q_1: ──■──
-             ┌─┴─┐
-        q_2: ┤ X ├
-             └───┘
+               │
+        q_2: ──■──
+
 
     **Matrix representation:**
 
     .. math::
 
-        CX 0, 1, 2 =
+        CCX\ q_0, q_1, q_2 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
                 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
-                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
                 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
                 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
-                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
-                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
             \end{pmatrix}
 
     .. note::
 
-        In Qiskit's convention, lower qubit indices are less significant
-        (little endian). Textbook representations of CCX matrix implicitly
-        assume the more significant qubits to be the controls. So in order to
-        get such a matrix in Qiskit, the higher-index qubits must be the controls.
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which is how we present the gate above as well, resulting in textbook
+        matrices. Instead, if we use q_0 and q_1 as control, the matrix will be:
 
         .. math::
 
-            CCX 2, 1, 0 =
+            CCX q_2, q_1, q_0 =
                \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
-                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
                     0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
                     0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
-                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
-                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
                 \end{pmatrix}
     """
 
     def __init__(self):
+        """Create new CCX gate."""
         super().__init__('ccx', 3, [], num_ctrl_qubits=2)
         self.base_gate = XGate()
 
