@@ -702,14 +702,10 @@ class TestControlledGate(QiskitTestCase):
         setting.
         """
         params = [0.1 * i for i in range(10)]
-        num_ctrl_qubits = 5
         for gate_class in ControlledGate.__subclasses__():
             sig = signature(gate_class.__init__)
-            free_params = params[0:len(sig.parameters) - 1]  # subtract "self"
-            if gate_class in [CU1Gate]:  # last argument is the number of control qubits
-                free_params[-1] = num_ctrl_qubits
-
-            base_gate = gate_class(*free_params)
+            free_params = len(set(sig.parameters) - {'self', 'num_ctrl_qubits'})
+            base_gate = gate_class(*params[:free_params])
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
