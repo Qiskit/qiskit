@@ -75,7 +75,7 @@ deprecations:
 
         ShiftPhase(<phase>)(<channel>)
   - |
-    The call method of py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    The ``call`` method of py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
     py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s have been deprecated.
     The migration is as follows::
 
