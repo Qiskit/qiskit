@@ -30,7 +30,7 @@ class iSwapGate(Gate):
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
 
-    Circuit Symbol:
+    **Circuit Symbol:**
 
     .. parsed-literal::
 
@@ -38,6 +38,7 @@ class iSwapGate(Gate):
               │
         q_1: ─⨂─
 
+    **Matrix Representation:**
     .. math::
 
         iSWAP =

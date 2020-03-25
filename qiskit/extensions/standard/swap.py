@@ -24,7 +24,45 @@ from qiskit.util import deprecate_arguments
 
 
 class SwapGate(Gate):
-    """SWAP gate."""
+    r"""The SWAP gate.
+
+    This is a symmetric and Clifford gate.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Z = \begin{pmatrix}
+                0 & 0 & \\
+                0 & -1
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─X─
+              │
+        q_1: ─X─
+
+    **Matrix Representation:**
+
+    .. math::
+
+        SWAP =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    The gate is equivalent to a state swap and is a classical logic gate.
+
+    .. math::
+
+        |a, b\rangle \rightarrow |b, a\rangle
+    """
 
     def __init__(self):
         """Create new SWAP gate."""
@@ -47,7 +85,9 @@ class SwapGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (multi-)controlled-SWAP gate.
+
+        One control returns a CSWAP (Fredkin) gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -65,7 +105,7 @@ class SwapGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
     def to_matrix(self):
@@ -77,27 +117,7 @@ class SwapGate(Gate):
 
 
 def swap(self, qubit1, qubit2):
-    """Apply SWAP gate to a pair specified qubits (qubit1, qubit2).
-    The SWAP gate canonically swaps the states of two qubits.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.swap(0,1)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.swap import SwapGate
-            SwapGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.SwapGate`.
     """
     return self.append(SwapGate(), [qubit1, qubit2], [])
 
@@ -116,7 +136,68 @@ class CSwapMeta(type):
 
 
 class CSwapGate(ControlledGate, metaclass=CSwapMeta):
-    """The controlled-swap gate, also called Fredkin gate."""
+    r"""Controlled-X gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+           
+        q_0: |0>─X─
+                 │ 
+        q_1: |0>─X─
+                 │ 
+        q_2: |0>─■─
+
+
+    **Matrix representation:**
+
+    .. math::
+
+        CSWAP\ q_2, q_1, q_0 =
+            |0\rangle\langle0| \otimes I \otimes I + |1\rangle\langle1| \otimes SWAP =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which is how we present the gate above as well, resulting in textbook
+        matrices. Instead, if we use q_0 as control, the matrix will be:
+
+        .. math::
+
+            CSWAP\ q_0, q_1, q_2 =
+                |0\rangle\langle0| \otimes I \otimes I + |1\rangle\langle1| \otimes SWAP =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+                \end{pmatrix}
+
+    In the computational basis, this gate swaps the states of
+    the two target qubits if the control qubit is in the
+    :math:`|1\rangle` state.
+
+    .. math::
+        `|0, b, c\rangle \rightarrow |0, b, c\rangle`
+        `|1, b, c\rangle \rightarrow |1, c, b\rangle`
+    """
 
     def __init__(self):
         """Create new CSWAP gate."""
@@ -145,7 +226,7 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse CSwap gate (itself)."""
         return CSwapGate()  # self-inverse
 
     def to_matrix(self):
@@ -177,31 +258,7 @@ class FredkinGate(CSwapGate, metaclass=CSwapMeta):
                       'tgt2': 'target_qubit2'})
 def cswap(self, control_qubit, target_qubit1, target_qubit2,
           *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
-    """Apply Fredkin (CSWAP) gate
-
-    From a specified control ``control_qubit`` to target1 ``target_qubit1`` and
-    target2 ``target_qubit2`` qubits. The CSWAP gate is canonically
-    used to swap the qubit states of target1 and target2 when the control qubit
-    is in state :math:`|1\\rangle`.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(3)
-            circuit.cswap(0,1,2)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.swap import CSwapGate
-            CSwapGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.CSwapGate`.
     """
     return self.append(CSwapGate(), [control_qubit, target_qubit1, target_qubit2], [])
 
