@@ -37,6 +37,22 @@ class IGate(Gate, metaclass=IMeta):
 
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        I = \begin{pmatrix}
+                1 & 0 \\
+                0 & 1
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+             ┌───┐
+        q_0: ┤ I ├
+             └───┘
     """
 
     def __init__(self, label=None):
@@ -66,32 +82,7 @@ class IdGate(IGate, metaclass=IMeta):
 
 @deprecate_arguments({'q': 'qubit'})
 def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Identity to to a specified qubit ``qubit``.
-
-    The Identity gate ensures that nothing is applied to a qubit for one unit
-    of gate time. It leaves the quantum states :math:`|0\\rangle` and
-    :math:`|1\\rangle` unchanged. The Identity gate should not be optimized or
-    unrolled (it is an opaque gate).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.id(0)  # or circuit.i(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.i import IGate
-            IGate().to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.IGate`."""
     return self.append(IGate(), [qubit], [])
 
 
