@@ -33,6 +33,15 @@ _CHOP_THRESHOLD = 10 ** -(_DECIMAL_ROUND)
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
+    def __init__(self, basis=None):
+        """Optimize1qGates initializer.
+
+        Args:
+            basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']` .
+        """
+        super().__init__()
+        self.basis = basis if basis else ["u1", "u2", "u3"]
+
     def run(self, dag):
         """Run the Optimize1qGates pass on `dag`.
 
@@ -173,6 +182,11 @@ class Optimize1qGates(TransformationPass):
                 if right_name == "u1" and np.mod(np.round(right_parameters[2], _DECIMAL_ROUND),
                                                  (2 * np.pi)) == 0:
                     right_name = "nop"
+
+            if right_name == "u1" and "u1" not in self.basis:
+                right_name = "u2"
+            if right_name == "u2" and "u2" not in self.basis:
+                right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":

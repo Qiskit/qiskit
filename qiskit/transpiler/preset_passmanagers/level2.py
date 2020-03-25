@@ -115,7 +115,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Optimize1qGates(), CommutativeCancellation()]
+    _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
 
     # Build pass manager
     pm2 = PassManager()

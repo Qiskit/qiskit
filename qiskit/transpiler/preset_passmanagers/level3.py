@@ -110,7 +110,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [RemoveResetInZeroState(),
             Collect2qBlocks(), ConsolidateBlocks(),
             Unroller(basis_gates),  # unroll unitaries
-            Optimize1qGates(), CommutativeCancellation(),
+            Optimize1qGates(basis_gates), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
     # 6. Fix any CX direction mismatch

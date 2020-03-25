@@ -289,5 +289,36 @@ class TestOptimize1qGatesParamReduction(QiskitTestCase):
         self.assertEqual(expected, result)
 
 
+class TestOptimize1qGatesBasis(QiskitTestCase):
+    """Test for 1q gate optimizations parameter reduction with basis """
+
+    def test_optimize_u3_basis_u3(self):
+        """U3(pi/2, pi/3, pi/4) (basis[u3]) ->  U3(pi/2, pi/3, pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(np.pi / 2, np.pi / 3, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(['u3']))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(circuit, result)
+
+    def test_optimize_u3_basis_u3_u2(self):
+        """U3(0, 0, pi/4) ->  U2(pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(0, 0, np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(0, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(['u2', 'u3']))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+
 if __name__ == '__main__':
     unittest.main()
