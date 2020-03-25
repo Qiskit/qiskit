@@ -16,7 +16,6 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-from inspect import signature
 from test import combine
 import numpy as np
 from numpy import pi
@@ -42,6 +41,8 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         MSGate, Barrier, RCCXGate, RCCCXGate)
 from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
+
+from .gate_utils import _get_free_params
 
 
 @ddt
@@ -703,8 +704,7 @@ class TestControlledGate(QiskitTestCase):
         """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
-            sig = signature(gate_class.__init__)
-            free_params = len(set(sig.parameters) - {'self', 'num_ctrl_qubits'})
+            free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
             base_gate = gate_class(*params[:free_params])
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
@@ -723,11 +723,7 @@ class TestControlledGate(QiskitTestCase):
                 if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                     continue
                 try:
-                    sig = signature(cls)
-                    numargs = len([param for param in sig.parameters.values()
-                                   if param.kind == param.POSITIONAL_ONLY
-                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                       and param.default is param.empty)])
+                    numargs = len(_get_free_params(cls))
                     args = [2]*numargs
 
                     gate = cls(*args)
@@ -744,11 +740,7 @@ class TestControlledGate(QiskitTestCase):
         theta = pi / 2
         for cls in gate_classes:
             with self.subTest(i=cls):
-                sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY or
-                               (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                param.default is param.empty)])
+                numargs = len(_get_free_params(cls))
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
