@@ -57,5 +57,33 @@ def measure(self, qubit, cbit):
     """
     return self.append(Measure(), [qubit], [cbit])
 
+def measure(self, qubit, cbit):
+    """Measure quantum bit into classical bit (tuples).
+
+    Args:
+        qubit (QuantumRegister|list|tuple): quantum register
+        cbit (ClassicalRegister|list|tuple): classical register
+
+    Returns:
+        qiskit.Instruction: the attached measure instruction.
+
+    Raises:
+        CircuitError: if qubit is not in this circuit or bad format;
+            if cbit is not in this circuit or not creg.
+    """
+    return self.append(Measure(), [qubit], [cbit])
+
+def measure_x(self, qubit, cbit):
+    return self.append(Measure(), [qubit], [cbit])
+
+def measure_y(self, qubit, cbit):
+    return self.append(Measure(), [qubit], [cbit])
+
 
 QuantumCircuit.measure = measure
+
+QuantumCircuit.measure_x = measure_x
+
+QuantumCircuit.measure_y = measure_y
+
+QuantumCircuit.measure_z = measure
