@@ -26,11 +26,19 @@ class RZZGate(Gate):
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+        q_0: ───■────
+                │zz(θ)
+        q_1: ───■────
+
     **Matrix Representation:**
 
     .. math::
 
-        RZZ(\theta) = exp(-i\frac{\theta}{2}Z{\otimes}Z) =
+        RZZ(\theta) = exp(-i.\frac{\theta}{2}.Z{\otimes}Z) =
             \begin{pmatrix}
                 e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
                 0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
@@ -48,14 +56,6 @@ class RZZGate(Gate):
                 RZ(\theta) & 0 \\
                 0 & RZ(-\theta)
             \end{pmatrix}
-
-    **Circuit Symbol:**
-
-    .. parsed-literal::
-
-        q_0: ───■────
-                │zz(θ)
-        q_1: ───■────
 
     **Examples:**
 
@@ -118,7 +118,7 @@ class RZZGate(Gate):
 
 
 def rzz(self, theta, qubit1, qubit2):
-    """Apply RZZ to circuit."""
+    """Apply :class:`~qiskit.extensions.standard.RZZGate`."""
     return self.append(RZZGate(theta), [qubit1, qubit2], [])
 
 

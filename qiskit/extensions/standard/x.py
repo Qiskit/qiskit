@@ -50,8 +50,9 @@ class XGate(Gate):
     Equivalent to a :math:`\pi` radian rotation about the X axis.
 
     .. note::
-    A global phase difference exists between the definitions of
-    :math:`RX(\pi)` and :math:`X`.
+    
+        A global phase difference exists between the definitions of
+        :math:`RX(\pi)` and :math:`X`.
 
         .. math::
 
@@ -139,44 +140,46 @@ class CXMeta(type):
 
 
 class CXGate(ControlledGate, metaclass=CXMeta):
-    r"""CX gate, also known as controlled-NOT or CNOT gate.
+    r"""Controlled-X gate.
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
-        q_0: ──■──
-             ┌─┴─┐
-        q_1: ┤ X ├
-             └───┘
+                ┌───┐
+        q_0: |0>┤ X ├
+                └─┬─┘
+        q_1: |0>──■──
+
 
     **Matrix representation:**
 
     .. math::
 
-        CX 0, 1 =
+        CX\ q_1, q_0 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
                 0 & 0 & 0 & 1 \\
-                0 & 0 & 1 & 0 \\
-                0 & 1 & 0 & 0
+                0 & 0 & 1 & 0
             \end{pmatrix}
 
     .. note::
 
-        In Qiskit's convention, lower qubit indices are less significant
-        (little endian). Textbook representations of CX matrix implicitly
-        assume the more significant qubit to be the control. So in order to
-        get such a matrix in Qiskit, the higher-index qubit must be the control.
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which is how we present the gate above as well, resulting in textbook
+        matrices. Instead, if we use q_0 as control, the matrix will be:
 
         .. math::
 
-            CX 1, 0 =
+            CX\ q_0, q_1 =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
-                    0 & 1 & 0 & 0 \\
                     0 & 0 & 0 & 1 \\
-                    0 & 0 & 1 & 0
+                    0 & 0 & 1 & 0 \\
+                    0 & 1 & 0 & 0
                 \end{pmatrix}
 
     In the computational basis, this gate flips the target qubit

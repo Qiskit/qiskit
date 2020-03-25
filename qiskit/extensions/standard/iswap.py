@@ -33,9 +33,9 @@ class iSwapGate(Gate):
     Circuit Symbol:
 
     .. parsed-literal::
-           
+
         q_0: ─⨂─
-              │ 
+              │
         q_1: ─⨂─
 
     .. math::
@@ -97,7 +97,7 @@ class iSwapGate(Gate):
 
 
 def iswap(self, qubit1, qubit2):
-    """Apply iSWAP gate to a pair specified qubits (qubit1, qubit2).
+    """Apply :class:`~qiskit.extensions.standard.iSwapGate`.
     """
     return self.append(iSwapGate(), [qubit1, qubit2], [])
 

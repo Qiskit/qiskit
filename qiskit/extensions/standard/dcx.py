@@ -72,7 +72,7 @@ class DCXGate(Gate):
 
 
 def dcx(self, qubit1, qubit2):
-    """Apply DCX gate to a pair specified qubits (qubit1, qubit2).
+    """Apply :class:`~qiskit.extensions.standard.DCXGate`.
     """
     return self.append(DCXGate(), [qubit1, qubit2], [])
 

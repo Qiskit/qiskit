@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Pauli Z (phase-flip) gate.
+Z and CZ gates.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -25,7 +25,47 @@ from qiskit.util import deprecate_arguments
 
 
 class ZGate(Gate):
-    """Pauli Z (phase-flip) gate."""
+    r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Z = \begin{pmatrix}
+                1 & 0 \\
+                0 & -1
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ Z ├
+             └───┘
+
+    Equivalent to a :math:`\pi` radian rotation about the Z axis.
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RZ(\pi)` and :math:`Z`.
+
+        .. math::
+
+            RZ(\pi) = \begin{pmatrix}
+                        -1 & 0 \\
+                        0 & 1
+                      \end{pmatrix}
+                    = -Z
+
+    The gate is equivalent to a phase flip.
+
+    .. math::
+
+        |0\rangle \rightarrow |0\rangle \\
+        |1\rangle \rightarrow -|1\rangle
+    """
 
     def __init__(self, label=None):
         """Create new Z gate."""
@@ -43,7 +83,9 @@ class ZGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-Z gate.
+
+        One control returns a CZ gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -61,7 +103,7 @@ class ZGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted Z gate (:math:`Z{\dagger} = Z`)"""
         return ZGate()  # self-inverse
 
     def to_matrix(self):
@@ -72,31 +114,7 @@ class ZGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Z gate to a specified qubit (qubit).
-
-    A Z gate implements a :math:`\\pi` rotation of the qubit state vector about
-    the z axis of the Bloch sphere. This gate is canonically used to implement
-    a phase flip on the qubit state from :math:`|+\\rangle` to :math:`|-\\rangle`,
-    or vice versa.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.z(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.z import ZGate
-            ZGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.ZGate`.
     """
     return self.append(ZGate(), [qubit], [])
 
@@ -115,7 +133,33 @@ class CZMeta(type):
 
 
 class CZGate(ControlledGate, metaclass=CZMeta):
-    """The controlled-Z gate."""
+    r"""Controlled-Z gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+                ┌───┐
+        q_0: |0>┤ Z ├
+                └─┬─┘
+        q_1: |0>──■──
+
+
+    **Matrix representation:**
+
+    .. math::
+
+        CZ\ q_1, q_0 =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -1
+            \end{pmatrix}
+
+    In the computational basis, this gate flips the phase of
+    the target qubit if the control qubit is in the :math:`|1\rangle` state.
+    """
 
     def __init__(self, label=None):
         """Create new CZ gate."""
@@ -140,7 +184,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CZ gate (:math:`CZ^{\dagger} = CZ`)"""
         return CZGate()  # self-inverse
 
     def to_matrix(self):
@@ -167,35 +211,7 @@ class CzGate(CZGate, metaclass=CZMeta):
                       'tgt': 'target_qubit'})
 def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cZ gate
-
-    From a specified control ``control_qubit`` to target ``target_qubit`` qubit.
-    A cZ gate implements a :math:`\\pi` rotation of the qubit state vector about
-    the z axis of the Bloch sphere when the control qubit is in state :math:`|1\\rangle`.
-    This gate is canonically used to implement a phase flip on the qubit state from
-    :math:`|+\\rangle` to :math:`|-\\rangle`, or vice versa when the control qubit is in
-    state :math:`|1\\rangle`.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-            import numpy
-
-            circuit = QuantumCircuit(2)
-            circuit.cz(0,1)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.z import CZGate
-            CZGate().to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.CZGate`."""
     return self.append(CZGate(), [control_qubit, target_qubit], [])
 
 

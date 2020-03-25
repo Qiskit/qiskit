@@ -29,27 +29,28 @@ class RZXGate(Gate):
     The cross-resonance gate (CR) for superconducting qubits implements
     a ZX interaction (however other terms are also present in an experiment).
 
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤1        ├
+             │  Rzx(θ) │
+        q_1: ┤0        ├
+             └─────────┘
+
     **Matrix Representation:**
 
     .. math::
 
-        \newcommand{\ctheta}{\cos(\frac{\theta}{2})}
-        \newcommand{\stheta}{\sin(\frac{\theta}{2})}
+        \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{ZX}(\theta)\ q_0, q_1 = exp(-i.\frac{\theta}{2}.X{\otimes}Z) =
+        R_{ZX}(\theta)\ q_1, q_0 = exp(-i.\frac{\theta}{2}.Z{\otimes}X) =
             \begin{pmatrix}
-                \ctheta        & 0         & -i\stheta    & 0         \\
-                0               & \ctheta  & 0             & i\stheta \\
-                -i\stheta      & 0         & \ctheta      & 0         \\
-                0               & i\stheta & 0             & \ctheta
-            \end{pmatrix}
-
-        R_{ZX}(\theta)\quad q_1, q_0 = exp(-i.\frac{\theta}{2}.Z{\otimes}X) =
-            \begin{pmatrix}
-                \ctheta        & -i\stheta    & 0         & 0         \\
-                -i\stheta      & \ctheta      & 0         & 0         \\
-                0               & 0             & \ctheta  & i\stheta \\
-                0               & 0             & i\stheta & \ctheta
+                \cos(\th)   & -i\sin(\th) & 0           & 0          \\
+                -i\sin(\th) & \cos(\th)   & 0           & 0          \\
+                0           & 0           & \cos(\th)   & i\sin(\th) \\
+                0           & 0           & i\sin(\th)  & \cos(\th)
             \end{pmatrix}
 
     This is a direct sum of RX rotations, so this gate is equivalent to a
@@ -57,21 +58,30 @@ class RZXGate(Gate):
 
     .. math::
 
-        R_{ZX}(\theta) =
+        R_{ZX}(\theta)\ q_1, q_0 =
             \begin{pmatrix}
                 RX(\theta) & 0 \\
                 0 & RX(-\theta)
             \end{pmatrix}
 
-    **Circuit Symbol:**
+    .. note::
 
-    .. parsed-literal::
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In the above example we apply the gate
+        on (q_1, q_0) which results in the ZX tensor order. Instead, if we
+        apply it on (q_0, q_1), the matrix will be:
 
-             ┌─────────┐
-        q_0: ┤0        ├
-             │  Rzx(θ) │
-        q_1: ┤1        ├
-             └─────────┘
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            R_{ZX}(\theta)\ q_0, q_1 = exp(-i.\frac{\theta}{2}.X{\otimes}Z) =
+                \begin{pmatrix}
+                    \cos(\th)   & 0          & -i\sin(\th)  & 0          \\
+                    0           & \cos(\th)  & 0            & i\sin(\th) \\
+                    -i\sin(\th) & 0          & \cos(\th)    & 0          \\
+                    0           & i\sin(\th) & 0            & \cos(\th)
+                \end{pmatrix}
 
     **Examples:**
 
@@ -133,7 +143,7 @@ class RZXGate(Gate):
 
 
 def rzx(self, theta, qubit1, qubit2):
-    """Apply RZX to circuit."""
+    """Apply :class:`~qiskit.extensions.standard.RZXGate`."""
     return self.append(RZXGate(theta), [qubit1, qubit2], [])
 
 
