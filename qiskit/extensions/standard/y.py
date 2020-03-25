@@ -201,7 +201,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         self.definition = definition
 
     def inverse(self):
-        """Return inverted CY gate (:math:`CY^{\dagger} = CY`)"""
+        """Return inverted CY gate (itself)"""
         return CYGate()  # self-inverse
 
     def to_matrix(self):

@@ -137,10 +137,11 @@ class RZXGate(Gate):
     # def to_matrix(self):
     #    """Return a numpy.array for the RZX gate."""
     #    theta = self.params[0]
-    #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
-    #                     [0, np.exp(1j*theta/2), 0, 0],
-    #                     [0, 0, np.exp(1j*theta/2), 0],
-    #                     [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)
+    #    return np.array([[np.cos(theta/2), 0, -1j*np.sin(theta/2), 0],
+    #                     [0, np.cos(theta/2), 0, 1j*np.sin(theta/2)],
+    #                     [-1j*np.sin(theta/2), 0, np.cos(theta/2), 0],
+    #                     [0, 1j*np.sin(theta/2), 0, np.cos(theta/2)]],
+    #                    dtype=complex)
 
 
 def rzx(self, theta, qubit1, qubit2):

@@ -150,7 +150,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
     .. math::
 
         \newcommand{\th}{\frac{\theta}{2}}
-        
+
         CU3(\theta, \phi, \lambda)\ q_1, q_0=
             |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
             \begin{pmatrix}

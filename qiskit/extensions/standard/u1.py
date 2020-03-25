@@ -154,7 +154,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
 
 
         q_0: |0>─■──
-                 │λ 
+                 │λ
         q_1: |0>─■──
 
 

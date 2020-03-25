@@ -50,7 +50,7 @@ class XGate(Gate):
     Equivalent to a :math:`\pi` radian rotation about the X axis.
 
     .. note::
-    
+
         A global phase difference exists between the definitions of
         :math:`RX(\pi)` and :math:`X`.
 
@@ -111,7 +111,7 @@ class XGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted X gate (:math:`X{\dagger} = X`)"""
+        r"""Return inverted X gate (itself)"""
         return XGate()  # self-inverse
 
     def to_matrix(self):
@@ -217,7 +217,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Return inverted CX gate (:math:`CX^{\dagger} = CX`)"""
+        """Return inverted CX gate (itself)."""
         return CXGate()  # self-inverse
 
     def to_matrix(self):

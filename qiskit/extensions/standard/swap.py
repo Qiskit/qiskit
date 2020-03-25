@@ -142,11 +142,11 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     .. parsed-literal::
 
-           
+
         q_0: |0>─X─
-                 │ 
+                 │
         q_1: |0>─X─
-                 │ 
+                 │
         q_2: |0>─■─
 
 

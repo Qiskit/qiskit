@@ -103,7 +103,7 @@ class ZGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted Z gate (:math:`Z{\dagger} = Z`)"""
+        r"""Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
     def to_matrix(self):
@@ -185,7 +185,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         self.definition = definition
 
     def inverse(self):
-        """Return inverted CZ gate (:math:`CZ^{\dagger} = CZ`)"""
+        """Return inverted CZ gate (itself)."""
         return CZGate()  # self-inverse
 
     def to_matrix(self):
