@@ -242,7 +242,7 @@ class BackendProperties(SimpleNamespace):
                    qubits, gates, general, **in_data)
 
     def to_dict(self):
-        """Return a dictionary format representation of the BackendStatus.
+        """Return a dictionary format representation of the BackendProperties.
 
         Returns:
             dict: The dictionary form of the BackendProperties.
@@ -252,7 +252,12 @@ class BackendProperties(SimpleNamespace):
             'backend_version': self.backend_version,
             'last_update_date': self.last_update_date
         }
-        out_dict['qubits'] = [x.to_dict() for y in self.qubits for x in y]
+        out_dict['qubits'] = []
+        for qubit in self.qubits:
+            qubit_props = []
+            for item in qubit:
+                qubit_props.append(item.to_dict())
+            out_dict['qubits'].append(qubit_props)
         out_dict['gates'] = [x.to_dict() for x in self.gates]
         out_dict['general'] = [x.to_dict() for x in self.general]
         for key, value in self.__dict__.items():
