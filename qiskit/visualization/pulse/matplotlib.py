@@ -32,8 +32,8 @@ from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
-from qiskit.pulse.commands import FrameChangeInstruction
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Delay,
+from qiskit.pulse.commands import FrameChangeInstruction, PulseInstruction
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase)
 
 
@@ -66,9 +66,12 @@ class EventsOutputChannels:
             start_time (int): Starting time of instruction
             instruction (Instruction): Instruction object to be added
         """
-        if isinstance(instruction, Delay):
-            return
-        pulse = getattr(instruction, 'pulse', instruction.command)
+        if instruction.command is not None:
+            pulse = instruction.command
+        elif isinstance(instruction, Play):
+            pulse = instruction.pulse
+        else:
+            pulse = instruction
         if start_time in self.pulses.keys():
             self.pulses[start_time].append(pulse)
         else:
