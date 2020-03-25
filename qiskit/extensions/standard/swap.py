@@ -28,15 +28,6 @@ class SwapGate(Gate):
 
     This is a symmetric and Clifford gate.
 
-    **Matrix Representation:**
-
-    .. math::
-
-        Z = \begin{pmatrix}
-                0 & 0 & \\
-                0 & -1
-            \end{pmatrix}
-
     **Circuit symbol:**
 
     .. parsed-literal::

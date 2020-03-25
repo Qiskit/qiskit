@@ -39,9 +39,11 @@ class iSwapGate(Gate):
         q_1: ─⨂─
 
     **Matrix Representation:**
+
     .. math::
 
-        iSWAP =
+        iSWAP = R_{XX+YY}(-\frac{\pi}{2})
+          = exp(i.\frac{\pi}{4}.(X{\otimes}X+Y{\otimes}Y)) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & i & 0 \\
