@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    A custom pass manager was creating a deadlock when run in on multiple circuits in parallel. 
