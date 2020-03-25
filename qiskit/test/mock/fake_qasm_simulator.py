@@ -28,9 +28,7 @@ class FakeQasmSimulator(FakeBackend):
             backend_name='fake_qasm_simulator',
             backend_version='0.0.0',
             n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                         'snapshot', 'unitary'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
             coupling_map=None,
             simulator=True,
             local=True,
@@ -42,3 +40,6 @@ class FakeQasmSimulator(FakeBackend):
         )
 
         super().__init__(configuration)
+
+    def properties(self):
+        return None

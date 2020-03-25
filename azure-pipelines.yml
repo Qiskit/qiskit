@@ -139,7 +139,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
           displayName: 'Install dependencies'
@@ -190,7 +190,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -244,7 +244,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -303,7 +303,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -357,7 +357,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
           displayName: 'Install dependencies'
@@ -412,7 +412,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
