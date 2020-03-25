@@ -261,6 +261,61 @@
                                 "minItems": 1,
                                 "items": {"type": "array", "minItems": 0, "items": {"type": "string"}},
                                 "description": "An array of dimension n_qubits where each element <i> contains a list of channels mapping to qubit <i>."
+                                },
+                            "channel_config": {
+                                "type": "object",
+                                "minItems": 1,
+                                "patternProperties": {
+                                    "^d": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "number"}}
+                                                }
+                                            }
+                                        }},
+                                    "^m": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "number"}}
+                                                }
+                                            }
+                                        }},
+                                    "^u": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "number"}}
+                                                }
+                                            }
+                                        }},
+                                    "^acquire": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "minItems": 1, "items": {"type": "number"}}
+                                                }
+                                            }
+                                        }}
+                                    },
+                                "description": "An dictionary where each element <i> repesents channels and contains an dictonary of configuration values and mappings to qubits."
                                 }
                             }},
         "gateconfig": {
