@@ -51,6 +51,7 @@ Local Optimizers
    COBYLA
    L_BFGS_B
    NELDER_MEAD
+   NFT
    P_BFGS
    POWELL
    SLSQP
@@ -93,6 +94,7 @@ from .slsqp import SLSQP
 from .spsa import SPSA
 from .tnc import TNC
 from .aqgd import AQGD
+from .nft import NFT
 from .nlopts.crs import CRS
 from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
@@ -106,6 +108,7 @@ __all__ = ['Optimizer',
            'COBYLA',
            'L_BFGS_B',
            'NELDER_MEAD',
+           'NFT',
            'P_BFGS',
            'POWELL',
            'SLSQP',
