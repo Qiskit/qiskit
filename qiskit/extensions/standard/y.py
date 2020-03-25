@@ -68,7 +68,6 @@ class YGate(Gate):
     """
 
     def __init__(self, label=None):
-        """Create new Y gate."""
         super().__init__('y', 1, [], label=label)
 
     def _define(self):
@@ -114,8 +113,7 @@ class YGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply :class:`~qiskit.extensions.standard.YGate`..
-    """
+    """Apply :class:`~qiskit.extensions.standard.YGate`."""
     return self.append(YGate(), [qubit], [])
 
 
@@ -177,7 +175,6 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     """
     def __init__(self):
-        """Create a new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1)
         self.base_gate = YGate()
 
