@@ -111,6 +111,15 @@ class GateConfig:
                 return True
         return False
 
+    def __repr__(self):
+        out_str = "GateConfig(%s, %s, %s" % (self.name, self.parameters,
+                                             self.qasm_def)
+        for i in ['coupling_map', 'latency_map', 'conditional', 'description']:
+            if hasattr(self, i):
+                out_str += ', ' + repr(getattr(self, i))
+        out_str += ')'
+        return out_str
+
 
 class UchannelLO:
     """Class representing a U Channel LO
@@ -166,6 +175,9 @@ class UchannelLO:
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+    def __repr__(self):
+        return "UchannelLO(%s, %s)" % (self.q, self.scale)
 
 
 class QasmBackendConfiguration(SimpleNamespace):
@@ -309,6 +321,9 @@ class QasmBackendConfiguration(SimpleNamespace):
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+    def __contains__(self, item):
+        return item in self.__dict__
 
 
 class BackendConfiguration(QasmBackendConfiguration):

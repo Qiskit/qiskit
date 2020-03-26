@@ -79,6 +79,10 @@ class Nduv:
                 return True
         return False
 
+    def __repr__(self):
+        return "Nduv(%s, %s, %s, %s)" % (repr(self.date), self.name, self.unit,
+                                         self.value)
+
 
 class Gate(SimpleNamespace):
     """Class representing a gate's properties
