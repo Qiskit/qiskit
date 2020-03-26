@@ -270,6 +270,11 @@ def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
     return self.append(CXGate(), [control_qubit, target_qubit], [])
 
 
+# support both cx and cnot in QuantumCircuits
+QuantumCircuit.cx = cx
+QuantumCircuit.cnot = cx
+
+
 def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancilla'):
     r"""Apply multi-cX gate.
 
@@ -309,9 +314,9 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
     return self.append(CXGate(num_ctrl_qubits, mode), qubits, [])
 
 
-# support both cx and cnot in QuantumCircuits
-QuantumCircuit.cx = cx
-QuantumCircuit.cnot = cx
+# support both mcx and mct in QuantumCircuits
+QuantumCircuit.mcx = mcx
+QuantumCircuit.mct = mcx
 
 
 class CCXMeta(type):
