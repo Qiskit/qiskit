@@ -20,7 +20,7 @@ from inspect import signature
 from test import combine
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
@@ -899,6 +899,17 @@ class TestControlledGate(QiskitTestCase):
                 # assert both are representatives of one another
                 self.assertTrue(isinstance(new(*params), old))
                 self.assertTrue(isinstance(old(*params), new))
+
+
+@ddt
+class TestControlledGateIssues(QiskitTestCase):
+    @data((RXGate, CRXGate),
+          (RYGate, CRYGate),
+          (RZGate, CRZGate))
+    @unpack
+    def test_rotation_with_ctrl_state(self, gate, controlled_gate):
+        theta = 0.5
+        self.assertEqual(gate(theta).control(1, ctrl_state='1'), controlled_gate(theta))
 
 
 if __name__ == '__main__':
