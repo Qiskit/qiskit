@@ -34,7 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse.commands import FrameChangeInstruction
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction, ScheduleComponent)
 
@@ -63,18 +63,23 @@ class EventsOutputChannels:
         self._labels = None
         self.enable = False
 
-    def add_instruction(self, start_time: int, pulse: Instruction):
+    def add_instruction(self, start_time: int, instruction: Instruction):
         """Add new pulse instruction to channel.
 
         Args:
             start_time: Starting time of instruction
-            pulse: Instruction object to be added
+            instruction: Instruction object to be added
         """
-
-        if start_time in self.pulses.keys():
-            self.pulses[start_time].append(pulse.command)
+        if instruction.command is not None:
+            pulse = instruction.command
+        elif isinstance(instruction, Play):
+            pulse = instruction.pulse
         else:
-            self.pulses[start_time] = [pulse.command]
+            pulse = instruction
+        if start_time in self.pulses.keys():
+            self.pulses[start_time].append(pulse)
+        else:
+            self.pulses[start_time] = [pulse]
 
     @property
     def waveform(self) -> np.ndarray:
