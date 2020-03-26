@@ -301,4 +301,4 @@ class Instruction(ScheduleComponent, ABC):
             operands = ', '.join(str(op) for op in self.operands)
         else:
             operands = "{}, {}".format(self.command, ', '.join(str(ch) for ch in self.channels))
-        return "{}({})".format(self.__class__.__name__, operands)
+        return "{}({}, name={})".format(self.__class__.__name__, operands, self.name)

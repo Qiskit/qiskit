@@ -12,8 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Basic rescheduling functions which take a Schedule (and possibly some arguments) and return
+"""Basic rescheduling functions which take a Schedule (and possibly some arguments) and return
 a new Schedule.
 """
 import warnings

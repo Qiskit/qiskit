@@ -27,7 +27,7 @@ with operands *phase* and *channel*, for some float ``phase`` and a
 The duration of this instruction is implicitly zero. On the other hand, the
 :py:class:`~qiskit.pulse.instructions.Delay` instruction takes an explicit duration::
 
-  Delay(duration, channel)
+    Delay(duration, channel)
 
 An instruction can be added to a :py:class:`~qiskit.pulse.Schedule`, which is a
 sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`` s and
@@ -36,10 +36,11 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
 .. autosummary::
    :toctree: ../stubs/
 
-   Delay
-   ShiftPhase
-   SetFrequency
    Acquire
+   Delay
+   Play
+   SetFrequency
+   ShiftPhase
    Snapshot
 
 Abstract Classes

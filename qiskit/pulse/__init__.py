@@ -41,25 +41,25 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
 .. autosummary::
    :toctree: ../stubs/
 
-   Delay
-   ShiftPhase
-   SetFrequency
    Acquire
+   Delay
+   Play
+   SetFrequency
+   ShiftPhase
    Snapshot
 
 Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 ========================================================
 
-TODO: waiting on Pulses PR to merge
 .. autosummary::
    :toctree: ../stubs/
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
+   ConstantPulse
+   Drag
    Gaussian
    GaussianSquare
-   Drag
-   ConstantPulse
 
 .. _pulse-channels:
 

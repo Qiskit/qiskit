@@ -30,12 +30,13 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: 'Pulse', channel: PulseChannel, name: Optional[str] = None):
+    def __init__(self, pulse, channel: PulseChannel,
+                 name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
-            pulse: A pulse waveform description, such as
-                   :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
+            pulse (qiskit.pulse.Pulse): A pulse waveform description, such as
+                                        :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes.
         """
@@ -61,7 +62,3 @@ class Play(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __repr__(self):
-        return "{}({}, {}, name={})".format(self.__class__.__name__, self.pulse, self.channel,
-                                            self.name)
