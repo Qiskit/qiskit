@@ -29,6 +29,8 @@ Operators
    Pauli
    pauli_group
    Quaternion
+   PauliTable
+   pauli_basis
 
 States
 ======
@@ -115,11 +117,15 @@ from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity
 from .operators import average_gate_fidelity
 from .operators import gate_error
+from .operators.symplectic import PauliTable
+from .operators.symplectic import pauli_basis
+
 from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
                      concurrence, entanglement_of_formation,
                      mutual_information, shannon_entropy)
 from .states.states import basis_state, projector
+
 from .random import random_unitary, random_state, random_density_matrix
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)

@@ -142,8 +142,9 @@ class Operator(BaseOperator):
             Operator: The N-qubit operator.
 
         Raises:
-            QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
+            QiskitError: if the label contains invalid characters, or the
+                         length of the label is larger than an explicitly
+                         specified num_qubits.
 
         Additional Information:
             The labels correspond to the single-qubit matrices:
@@ -301,7 +302,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         return super().dot(other, qargs=qargs)
 
@@ -316,7 +317,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         if not isinstance(n, int):
             raise QiskitError("Can only take integer powers of Operator.")
@@ -382,7 +383,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if other is not an operator, or has incompatible
-            dimensions.
+                         dimensions.
         """
         # pylint: disable=import-outside-toplevel, cyclic-import
         from qiskit.quantum_info.operators.scalar_op import ScalarOp

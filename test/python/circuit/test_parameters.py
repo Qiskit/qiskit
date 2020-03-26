@@ -909,3 +909,52 @@ class TestParameterExpressions(QiskitTestCase):
             self.assertEqual(len(rz_gates), n)
             self.assertTrue(all(float(gate.params[0]) == theta_val
                                 for gate in rz_gates))
+
+
+class TestParameterEquality(QiskitTestCase):
+    """Test equality of Parameters and ParameterExpressions."""
+
+    def test_parameter_equal_self(self):
+        """Verify a parameter is equal to it self."""
+        theta = Parameter('theta')
+        self.assertEqual(theta, theta)
+
+    def test_parameter_not_equal_param_of_same_name(self):
+        """Verify a parameter is not equal to a Parameter of the same name."""
+        theta1 = Parameter('theta')
+        theta2 = Parameter('theta')
+        self.assertNotEqual(theta1, theta2)
+
+    def test_parameter_expression_equal_to_self(self):
+        """Verify an expression is equal to itself."""
+        theta = Parameter('theta')
+        expr = 2 * theta
+
+        self.assertEqual(expr, expr)
+
+    def test_parameter_expression_equal_to_identical(self):
+        """Verify an expression is equal an identical expression."""
+        theta = Parameter('theta')
+        expr1 = 2 * theta
+        expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
+    def test_parameter_expression_not_equal_if_params_differ(self):
+        """Verify expressions not equal if parameters are different."""
+        theta1 = Parameter('theta')
+        theta2 = Parameter('theta')
+        expr1 = 2 * theta1
+        expr2 = 2 * theta2
+
+        self.assertNotEqual(expr1, expr2)
+
+    def test_parameter_equal_to_identical_expression(self):
+        """Verify parameters and ParameterExpressions can be equal if identical."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        expr = (theta + phi).bind({phi: 0})
+
+        self.assertEqual(expr, theta)
+        self.assertEqual(theta, expr)

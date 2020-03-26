@@ -144,7 +144,7 @@ def _funm_svd(matrix, func):
 
     Returns:
         ndarray: funm (N, N) Value of the matrix function specified by func
-        evaluated at `A`.
+                 evaluated at `A`.
     """
     unitary1, singular_values, unitary2 = la.svd(matrix, lapack_driver='gesvd')
     diag_func_singular = np.diag(func(singular_values))

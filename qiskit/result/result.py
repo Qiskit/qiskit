@@ -165,7 +165,8 @@ class Result(BaseModel):
                 experiment, as specified by ``get_data()``.
 
         Returns:
-            dict[str:int]: a dictionary with the counts for each qubit, with
+            dict[str:int] or list[dict[str:int]]: a dictionary or a list of
+                dictionaries. A dictionary has the counts for each qubit with
                 the keys containing a string in binary format and separated
                 according to the registers in circuit (e.g. ``0100 1110``).
                 The string is little-endian (cr[0] on the right hand side).
@@ -173,20 +174,32 @@ class Result(BaseModel):
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
-        exp = self._get_experiment(experiment)
-        try:
-            header = exp.header.to_dict()
-        except (AttributeError, QiskitError):  # header is not available
-            header = None
-
-        if 'counts' in self.data(experiment).keys():
-            return postprocess.format_counts(self.data(experiment)['counts'],
-                                             header)
-        elif 'statevector' in self.data(experiment).keys():
-            vec = postprocess.format_statevector(self.data(experiment)['statevector'])
-            return state_to_counts(vec)
+        if experiment is None:
+            exp_keys = range(len(self.results))
         else:
-            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+            exp_keys = [experiment]
+
+        dict_list = []
+        for key in exp_keys:
+            exp = self._get_experiment(key)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
+
+            if 'counts' in self.data(key).keys():
+                dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
+            elif 'statevector' in self.data(key).keys():
+                vec = postprocess.format_statevector(self.data(key)['statevector'])
+                dict_list.append(state_to_counts(vec))
+            else:
+                raise QiskitError('No counts for experiment "{0}"'.format(key))
+
+        # Return first item of dict_list if size is 1
+        if len(dict_list) == 1:
+            return dict_list[0]
+        else:
+            return dict_list
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.

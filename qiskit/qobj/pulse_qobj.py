@@ -80,7 +80,7 @@ class PulseQobjInstruction:
                  duration=None, qubits=None, memory_slot=None,
                  register_slot=None, kernels=None, discriminators=None,
                  label=None, type=None, pulse_shape=None,
-                 parameters=None):
+                 parameters=None, frequency=None):
         """Instantiate a new PulseQobjInstruction object.
 
         Args:
@@ -93,6 +93,7 @@ class PulseQobjInstruction:
                 of 1.
             phase (float): if a ``fc`` instruction, the frame change phase in
                 radians.
+            frequency (float): if a ``sf`` instruction, the frequency in Hz.
             duration (int): The duration of the pulse in **dt** units.
             qubits (list): A list of ``int`` representing the qubits the
                 instruction operates on
@@ -128,6 +129,8 @@ class PulseQobjInstruction:
             self.val = val
         if phase is not None:
             self.phase = phase
+        if frequency is not None:
+            self.frequency = frequency
         if duration is not None:
             self.duration = duration
         if qubits is not None:
@@ -159,8 +162,8 @@ class PulseQobjInstruction:
             'name': self.name,
             't0': self.t0
         }
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
+        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
                      'label', 'type', 'pulse_shape', 'parameters']:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)

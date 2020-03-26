@@ -108,7 +108,7 @@ class MatplotlibDrawer:
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
-                              'Run "pip install matplotlib" before.')
+                              'To install, run "pip install matplotlib".')
 
         self._ast = None
         self._scale = DEFAULT_SCALE * scale
@@ -841,7 +841,7 @@ class MatplotlibDrawer:
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text="Unitary")
                 elif isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -852,7 +852,10 @@ class MatplotlibDrawer:
                                          ec=self._style.dispcol['multi'])
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
-                    if num_qargs == 1:
+                    if disp == 'z':
+                        self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                    elif num_qargs == 1:
                         self._gate(q_xy[-1], wide=_iswide, text=disp)
                     else:
                         self._custom_multiqubit_gate(
@@ -900,9 +903,12 @@ class MatplotlibDrawer:
                             self._ctrl_qubit(q_xy[0],
                                              fc=color,
                                              ec=color)
+                            self._ctrl_qubit(q_xy[1],
+                                             fc=color,
+                                             ec=color)
                         else:
                             self._ctrl_qubit(q_xy[0])
-                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color)
+                            self._ctrl_qubit(q_xy[1])
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
                             self._line(qreg_b, qreg_t,
