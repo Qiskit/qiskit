@@ -139,7 +139,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -158,7 +158,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -195,7 +195,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if the operator dimension does not match the
-            specified Statevector subsystem dimensions.
+                         specified Statevector subsystem dimensions.
         """
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
@@ -286,15 +286,16 @@ class Statevector(QuantumState):
              - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
 
         Args:
-            label (string): a eigenstate string ket label ``0``,``1``,``+``,``-``,``r``,``l``.
+            label (string): a eigenstate string ket label (see table for
+                            allowed values).
 
         Returns:
             Statevector: The N-qubit basis state density matrix.
 
         Raises:
-            QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
-
+            QiskitError: if the label contains invalid characters, or the
+                         length of the label is larger than an explicitly
+                         specified num_qubits.
         """
         # Check label is valid
         if re.match(r'^[01rl\-+]+$', label) is None:
@@ -347,7 +348,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
-            the statevector simulation.
+                         the statevector simulation.
         """
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):

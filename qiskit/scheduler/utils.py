@@ -15,11 +15,8 @@
 """Scheduling utility functions."""
 
 from typing import Dict, List, Optional, Union
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.channels import MemorySlot
+from qiskit.pulse import Schedule, MemorySlot, Acquire, PulseError, InstructionScheduleMap
 from qiskit.pulse.commands import AcquireInstruction
-from qiskit.pulse.exceptions import PulseError
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -96,16 +93,16 @@ def measure(qubits: List[int],
                              "{}".format(measure_name, inst_map.instructions))
 
         for time, inst in default_sched.instructions:
-            if qubit_mem_slots and isinstance(inst, AcquireInstruction):
+            if qubit_mem_slots and isinstance(inst, (Acquire, AcquireInstruction)):
                 for channel in inst.acquires:
                     if channel.index in qubit_mem_slots:
                         mem_slot = MemorySlot(qubit_mem_slots[channel.index])
                     else:
                         mem_slot = MemorySlot(unused_mem_slots.pop())
-                    schedule = schedule.insert(time, AcquireInstruction(command=inst.command,
-                                                                        acquire=channel,
-                                                                        mem_slot=mem_slot))
-            elif qubit_mem_slots is None and isinstance(inst, AcquireInstruction):
+                    schedule = schedule.insert(time, Acquire(inst.duration,
+                                                             channel,
+                                                             mem_slot=mem_slot))
+            elif qubit_mem_slots is None and isinstance(inst, (Acquire, AcquireInstruction)):
                 schedule = schedule.insert(time, inst)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:

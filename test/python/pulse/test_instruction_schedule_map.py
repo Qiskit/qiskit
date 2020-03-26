@@ -17,11 +17,11 @@
 """Test the InstructionScheduleMap."""
 import numpy as np
 
+import qiskit.pulse.pulse_lib as pulse_lib
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
-
 from qiskit.pulse import InstructionScheduleMap, SamplePulse, Schedule, PulseError
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -205,3 +205,23 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
         self.assertEqual(sched.instructions[2][-1].phase, 3)
+
+    def test_schedule_generator(self):
+        """Test schedule generator functionalty."""
+
+        x_test = 10
+        amp_test = 1.0
+
+        def test_func(x):
+            sched = Schedule()
+            sched += pulse_lib.constant(int(x), amp_test)(DriveChannel(0))
+            return sched
+
+        ref_sched = Schedule()
+        ref_sched += pulse_lib.constant(x_test, amp_test)(DriveChannel(0))
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('f', (0,), test_func)
+        self.assertEqual(inst_map.get('f', (0,), x_test), ref_sched)
+
+        self.assertEqual(inst_map.get_parameters('f', (0,)), ('x',))

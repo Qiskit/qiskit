@@ -21,11 +21,10 @@ import numpy as np
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import (Acquire, PersistentValue, Snapshot, Delay,
-                                   functional_pulse, AcquireInstruction,
-                                   PulseInstruction, Gaussian, Drag,
+                                   functional_pulse, PulseInstruction, Gaussian, Drag,
                                    GaussianSquare, ConstantPulse)
 
-from qiskit.pulse import pulse_lib, SamplePulse, ShiftPhase, Instruction, SetFrequency
+from qiskit.pulse import pulse_lib, Play, SamplePulse, ShiftPhase, Instruction, SetFrequency
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
@@ -396,7 +395,7 @@ class TestScheduleBuilding(BaseTestSchedule):
                                 sigma=8, width=140)(MeasureChannel(0)) << sched_duration
         sched += Acquire(duration=1500)(AcquireChannel(0), [MemorySlot(0)]) << sched_duration
         self.assertEqual(sched.duration, 1525)
-        self.assertTrue('sigma' in sched.instructions[0][1].command.parameters)
+        self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 
 
 class TestDelay(BaseTestSchedule):
@@ -416,7 +415,7 @@ class TestDelay(BaseTestSchedule):
         self.assertIsInstance(sched, Schedule)
         pulse_instr = sched.instructions[-1]
         # assert last instruction is pulse
-        self.assertIsInstance(pulse_instr[1], PulseInstruction)
+        self.assertIsInstance(pulse_instr[1], Play)
         # assert pulse is scheduled at time 10
         self.assertEqual(pulse_instr[0], 10)
         # should fail due to overlap
@@ -519,20 +518,20 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # test on Acquire
         only_acquire, no_acquire = \
-            self._filter_and_test_consistency(sched, instruction_types=[AcquireInstruction])
+            self._filter_and_test_consistency(sched, instruction_types=[Acquire])
         for _, inst in only_acquire.instructions:
-            self.assertIsInstance(inst, AcquireInstruction)
+            self.assertIsInstance(inst, Acquire)
         for _, inst in no_acquire.instructions:
-            self.assertFalse(isinstance(inst, AcquireInstruction))
+            self.assertFalse(isinstance(inst, Acquire))
 
         # test two instruction types
         only_pulse_and_fc, no_pulse_and_fc = \
-            self._filter_and_test_consistency(sched, instruction_types=[PulseInstruction,
+            self._filter_and_test_consistency(sched, instruction_types=[Play,
                                                                         ShiftPhase])
         for _, inst in only_pulse_and_fc.instructions:
-            self.assertIsInstance(inst, (PulseInstruction, ShiftPhase))
+            self.assertIsInstance(inst, (Play, ShiftPhase))
         for _, inst in no_pulse_and_fc.instructions:
-            self.assertFalse(isinstance(inst, (PulseInstruction, ShiftPhase)))
+            self.assertFalse(isinstance(inst, (Play, ShiftPhase)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
         self.assertEqual(len(no_pulse_and_fc.instructions), 3)
 
@@ -576,10 +575,10 @@ class TestScheduleFilter(BaseTestSchedule):
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[(59, 65)])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(filtered.instructions[0][0], 60)
-        self.assertIsInstance(filtered.instructions[0][1], AcquireInstruction)
+        self.assertIsInstance(filtered.instructions[0][1], Acquire)
         self.assertEqual(len(excluded.instructions), 4)
         self.assertEqual(excluded.instructions[3][0], 90)
-        self.assertIsInstance(excluded.instructions[3][1], PulseInstruction)
+        self.assertIsInstance(excluded.instructions[3][1], Play)
 
         # split instructions based on the interval
         # (none should be, though they have some overlap with some of the instructions)
@@ -618,35 +617,35 @@ class TestScheduleFilter(BaseTestSchedule):
         # occurring in the time interval (25, 100)
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels={self.config.drive(0)},
-                                                               instruction_types=[PulseInstruction],
+                                                               instruction_types=[Play],
                                                                time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
-            self.assertIsInstance(inst, PulseInstruction)
+            self.assertIsInstance(inst, Play)
             self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
         self.assertEqual(len(excluded.instructions), 5)
         self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
         self.assertTrue(excluded.instructions[2][0] == 30)
 
-        # split based on PulseInstructions in the specified intervals
+        # split based on Plays in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
-                                                               instruction_types=[PulseInstruction],
+                                                               instruction_types=[Play],
                                                                time_ranges=[(25, 100), (0, 11)])
         self.assertTrue(len(excluded.instructions), 3)
         for time, inst in filtered.instructions:
-            self.assertIsInstance(inst, (ShiftPhase, PulseInstruction))
+            self.assertIsInstance(inst, (ShiftPhase, Play))
         self.assertTrue(len(filtered.instructions), 4)
         # make sure the PulseInstruction not in the intervals is maintained
-        self.assertIsInstance(excluded.instructions[0][1], PulseInstruction)
+        self.assertIsInstance(excluded.instructions[0][1], Play)
 
-        # split based on AcquireInstruction in the specified intervals
+        # split based on Acquire in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                instruction_types=[
-                                                                   AcquireInstruction],
+                                                                   Acquire],
                                                                time_ranges=[(25, 100)])
         self.assertTrue(len(excluded.instructions), 4)
         for _, inst in filtered.instructions:
-            self.assertIsInstance(inst, AcquireInstruction)
+            self.assertIsInstance(inst, Acquire)
         self.assertTrue(len(filtered.instructions), 2)
 
     def test_custom_filters(self):

@@ -952,7 +952,9 @@ class TextDrawing():
                     gates.append(Bullet(conditional=conditional))
                 else:
                     gates.append(OpenBullet(conditional=conditional))
-            if len(rest) > 1:
+            if instruction.op.base_gate.name == 'z':
+                gates.append(Bullet(conditional=conditional))
+            elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
                 indexes = layer.set_qu_multibox(rest, label,
