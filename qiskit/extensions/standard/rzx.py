@@ -44,7 +44,7 @@ class RZXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{ZX}(\theta)\ q_1, q_0 = exp(-i.\frac{\theta}{2}.Z{\otimes}X) =
+        R_{ZX}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} Z{\otimes}X) =
             \begin{pmatrix}
                 \cos(\th)   & -i\sin(\th) & 0           & 0          \\
                 -i\sin(\th) & \cos(\th)   & 0           & 0          \\
