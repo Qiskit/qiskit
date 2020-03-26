@@ -31,13 +31,13 @@ def interp1d(time: np.ndarray,
     """Scipy interpolation wrapper.
 
     Args:
-        time: time vector with length of ``samples`` + 1.
-        samples: complex pulse envelope.
-        nop: number of data points for interpolation.
+        time: Time vector with length of ``samples`` + 1.
+        samples: Complex pulse envelope.
+        nop: Number of data points for interpolation.
         kind: Scipy interpolation type.
             See ``scipy.interpolate.interp1d`` documentation for more information.
     Returns:
-        interpolated time vector and real and imaginary part of waveform.
+        Interpolated time vector and real and imaginary part of waveform.
     """
     re_y = np.real(samples)
     im_y = np.imag(samples)
@@ -57,31 +57,31 @@ linear = partial(interp1d, kind='linear')
 linear.__doc__ = """Apply linear interpolation between sampling points.
 
 Args:
-    time: time vector with length of ``samples`` + 1.
-    samples: complex pulse envelope.
-    nop: number of data points for interpolation.
+    time: Time vector with length of ``samples`` + 1.
+    samples: Complex pulse envelope.
+    nop: Number of data points for interpolation.
 Returns:
-    interpolated time vector and real and imaginary part of waveform.
+    Interpolated time vector and real and imaginary part of waveform.
 """
 
 cubic_spline = partial(interp1d, kind='cubic')
 cubic_spline.__doc__ = """Apply cubic interpolation between sampling points.
 
 Args:
-    time: time vector with length of ``samples`` + 1.
-    samples: complex pulse envelope.
-    nop: number of data points for interpolation.
+    time: Time vector with length of ``samples`` + 1.
+    samples: Complex pulse envelope.
+    nop: Number of data points for interpolation.
 Returns:
-    interpolated time vector and real and imaginary part of waveform.
+    Interpolated time vector and real and imaginary part of waveform.
 """
 
 step_wise = partial(interp1d, kind='nearest')
 step_wise.__doc__ = """No interpolation.
 
 Args:
-    time: time vector with length of ``samples`` + 1.
-    samples: complex pulse envelope.
-    nop: number of data points for interpolation.
+    time: Time vector with length of ``samples`` + 1.
+    samples: Complex pulse envelope.
+    nop: Number of data points for interpolation.
 Returns:
-    interpolated time vector and real and imaginary part of waveform.
+    Interpolated time vector and real and imaginary part of waveform.
 """
