@@ -15,15 +15,16 @@
 The Grover's Search algorithm.
 """
 
-from typing import Optional
+from typing import Optional, Union
 import logging
 import operator
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
+from qiskit.providers import BaseBackend
 
-from qiskit.aqua import AquaError
+from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.utils import get_subsystem_density_matrix
 from qiskit.aqua.utils.validation import validate_min, validate_in_set
 from qiskit.aqua.algorithms import QuantumAlgorithm
@@ -76,9 +77,12 @@ class Grover(QuantumAlgorithm):
     and be used with Grover algorithm to find a satisfiable assignment.
     """
 
-    def __init__(self, oracle: Oracle, init_state: Optional[InitialState] = None,
-                 incremental: bool = False, num_iterations: int = 1,
-                 mct_mode: str = 'basic') -> None:
+    def __init__(self,
+                 oracle: Oracle, init_state: Optional[InitialState] = None,
+                 incremental: bool = False,
+                 num_iterations: int = 1,
+                 mct_mode: str = 'basic',
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         r"""
         Args:
             oracle: The oracle component
@@ -98,6 +102,7 @@ class Grover(QuantumAlgorithm):
                 repeated to amplify the amplitude(s) of the target(s). Has a minimum value of 1.
             mct_mode: Multi-Control Toffoli mode ('basic' | 'basic-dirty-ancilla' |
                 'advanced' | 'noancilla')
+            quantum_instance: Quantum Instance or Backend
 
         Raises:
             AquaError: evaluate_classically() missing from the input oracle
@@ -106,7 +111,7 @@ class Grover(QuantumAlgorithm):
         validate_in_set('mct_mode', mct_mode,
                         {'basic', 'basic-dirty-ancilla',
                          'advanced', 'noancilla'})
-        super().__init__()
+        super().__init__(quantum_instance)
 
         if not callable(getattr(oracle, "evaluate_classically", None)):
             raise AquaError(

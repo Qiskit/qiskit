@@ -18,7 +18,7 @@ The Variational Quantum Eigensolver algorithm.
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Union
 import logging
 import functools
 import warnings
@@ -27,8 +27,8 @@ from time import time
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit import ParameterVector
-
-from qiskit.aqua import AquaError
+from qiskit.providers import BaseBackend
+from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.operators import (TPBGroupedWeightedPauliOperator, WeightedPauliOperator,
                                    MatrixOperator, op_converter)
 from qiskit.aqua.utils.backend_utils import (is_statevector_backend,
@@ -89,7 +89,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                  max_evals_grouped: int = 1,
                  aux_operators: Optional[List[BaseOperator]] = None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 auto_conversion: bool = True) -> None:
+                 auto_conversion: bool = True,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         """
 
         Args:
@@ -124,6 +125,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                   :class:`~qiskit.aqua.operators.WeightedPauliOperator`
                 - for *qasm simulator or real backend:*
                   :class:`~qiskit.aqua.operators.TPBGroupedWeightedPauliOperator`
+            quantum_instance: Quantum Instance or Backend
         """
         validate_min('max_evals_grouped', max_evals_grouped, 1)
 
@@ -146,7 +148,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         super().__init__(var_form=var_form,
                          optimizer=optimizer,
                          cost_fn=self._energy_evaluation,
-                         initial_point=initial_point)
+                         initial_point=initial_point,
+                         quantum_instance=quantum_instance)
 
         self._in_operator = None
         self._operator = None

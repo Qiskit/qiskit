@@ -14,9 +14,12 @@
 
 """ The Quantum Approximate Optimization Algorithm. """
 
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Union
 import logging
 import numpy as np
+
+from qiskit.providers import BaseBackend
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import BaseOperator
 from qiskit.aqua.components.initial_states import InitialState
 from qiskit.aqua.components.optimizers import Optimizer
@@ -64,7 +67,8 @@ class QAOA(VQE):
                  mixer: Optional[BaseOperator] = None, initial_point: Optional[np.ndarray] = None,
                  max_evals_grouped: int = 1, aux_operators: Optional[List[BaseOperator]] = None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 auto_conversion: bool = True) -> None:
+                 auto_conversion: bool = True,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         """
         Args:
             operator: Qubit operator
@@ -101,6 +105,7 @@ class QAOA(VQE):
                   :class:`~qiskit.aqua.operators.WeightedPauliOperator`
                 - for *qasm simulator or real backend:*
                   :class:`~qiskit.aqua.operators.TPBGroupedWeightedPauliOperator`
+            quantum_instance: Quantum Instance or Backend
         """
         validate_min('p', p, 1)
 
@@ -112,7 +117,8 @@ class QAOA(VQE):
         # will cause the var form to be built
         super().__init__(operator, None, optimizer, initial_point=initial_point,
                          max_evals_grouped=max_evals_grouped, aux_operators=aux_operators,
-                         callback=callback, auto_conversion=auto_conversion)
+                         callback=callback, auto_conversion=auto_conversion,
+                         quantum_instance=quantum_instance)
 
     @VQE.operator.setter
     def operator(self, operator: BaseOperator) -> None:

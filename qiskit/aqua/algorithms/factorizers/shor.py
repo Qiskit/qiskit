@@ -17,6 +17,7 @@ Stephane Beauregard, "Circuit for Shor's algorithm using 2n+3 qubits",
 Quantum Information and Computation, Vol. 3, No. 2 (2003) pp. 175-185
 """
 
+from typing import Optional, Union
 import math
 import array
 import fractions
@@ -24,7 +25,8 @@ import logging
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-
+from qiskit.providers import BaseBackend
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.utils.arithmetic import is_power
 from qiskit.aqua.utils import get_subsystem_density_matrix
 from qiskit.aqua.algorithms import QuantumAlgorithm
@@ -54,17 +56,21 @@ class Shor(QuantumAlgorithm):
     See also https://arxiv.org/abs/quant-ph/0205095
     """
 
-    def __init__(self, N: int = 15, a: int = 2) -> None:
+    def __init__(self,
+                 N: int = 15,
+                 a: int = 2,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         """
         Args:
             N: The integer to be factored, has a min. value of 3.
             a: A random integer that satisfies a < N and gcd(a, N) = 1, has a min. value of 2.
+            quantum_instance: Quantum Instance or Backend
          Raises:
             ValueError: Invalid input
         """
         validate_min('N', N, 3)
         validate_min('a', a, 2)
-        super().__init__()
+        super().__init__(quantum_instance)
         self._n = None
         self._up_qreg = None
         self._down_qreg = None

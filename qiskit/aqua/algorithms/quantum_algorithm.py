@@ -34,8 +34,11 @@ class QuantumAlgorithm(ABC):
     use an exception if a component of the module is available.
     """
     @abstractmethod
-    def __init__(self) -> None:
+    def __init__(self,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]]) -> None:
         self._quantum_instance = None
+        if quantum_instance:
+            self.quantum_instance = quantum_instance
 
     @property
     def random(self):

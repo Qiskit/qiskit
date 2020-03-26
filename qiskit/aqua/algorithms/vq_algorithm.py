@@ -22,13 +22,15 @@ of this class to carry out the optimization. Alternatively, all of the functions
 overridden to opt-out of this infrastructure but still meet the interface requirements.
 """
 
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 import time
 import logging
 import warnings
 from abc import abstractmethod
 import numpy as np
 
+from qiskit.providers import BaseBackend
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.components.variational_forms import VariationalForm
@@ -46,7 +48,8 @@ class VQAlgorithm(QuantumAlgorithm):
                  var_form: VariationalForm,
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
-                 initial_point: Optional[np.ndarray] = None) -> None:
+                 initial_point: Optional[np.ndarray] = None,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         """
         Args:
             var_form: An optional parameterized variational form (ansatz).
@@ -55,10 +58,11 @@ class VQAlgorithm(QuantumAlgorithm):
                 supplied on :meth:`find_minimum`.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer.
+            quantum_instance: Quantum Instance or Backend
         Raises:
              ValueError: for invalid input
         """
-        super().__init__()
+        super().__init__(quantum_instance)
 
         self._var_form = var_form
         self._optimizer = optimizer
