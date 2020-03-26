@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels, instructions
+from qiskit.pulse import commands, channels, instructions, pulse_lib
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
@@ -347,6 +347,33 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Play)
+    def convert_play(self, shift, instruction):
+        """Return the converted `Play`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (Play): An instance of Play.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        if isinstance(instruction.pulse, pulse_lib.ParametricPulse):
+            command_dict = {
+                'name': 'parametric_pulse',
+                'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name,
+                'parameters': instruction.pulse.parameters
+            }
+        else:
+            command_dict = {
+                'name': instruction.name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name
+            }
+
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
@@ -374,24 +401,19 @@ class QobjToInstructionConverter:
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, pulse_library, buffer=0, **run_config):
+    def __init__(self, pulse_library, **run_config):
         """Create new converter.
 
         Args:
              pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
-             buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._run_config = run_config
-
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
 
     def __call__(self, instruction):
-
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
@@ -555,11 +577,11 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = commands.SamplePulse(pulse.samples, pulse.name)
+        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
-            """Return converted `PulseInstruction`.
+            """Return converted `Play`.
 
             Args:
                 instruction (PulseQobjInstruction): pulse qobj
@@ -568,7 +590,7 @@ class QobjToInstructionConverter:
             """
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
-            return pulse(channel) << t0
+            return instructions.Play(pulse, channel) << t0
 
     @bind_name('parametric_pulse')
     def convert_parametric(self, instruction):
