@@ -14,19 +14,19 @@
 
 """Model for schema-conformant Results."""
 
+import copy
+from types import SimpleNamespace
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import state_to_counts
-
-from qiskit.validation.base import BaseModel, bind_schema
+from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.qobj.utils import MeasLevel
-from .models import ResultSchema
 
 
-@bind_schema(ResultSchema)
-class Result(BaseModel):
+class Result(SimpleNamespace):
     """Model for Results.
 
     Please note that this class only describes the required fields. For the
@@ -44,15 +44,48 @@ class Result(BaseModel):
     """
 
     def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, **kwargs):
+                 results, date=None, status=None, header=None, date=None,
+                 status=None, header=None, **kwargs):
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    def to_dict(self):
+        out_dict = {
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'qobj_id': self.qobj_id,
+            'job_id': self.job_id,
+            'success': self.success,
+            'results': [x.to_dict() for x in self.results]
+        }
+        for field in self.__dict__.keys():
+            if field not in ['backend_name', 'backend_version', 'qobj_id',
+                             'job_id', 'success', 'results']:
+                out_dict[field] = getattr(self, field)
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        in_data = copy.copy()
+        in_data['results'] = [
+            ExperimentResult.from_dict(x) for x in in_data.pop('results')]
+        cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.backend_name, self.backend_version,
+                                 self.qobj_id, self.job_id, self.success,
+                                 self.results))
 
     def data(self, experiment=None):
         """Get the raw data for an experiment.

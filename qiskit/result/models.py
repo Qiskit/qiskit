@@ -14,88 +14,60 @@
 
 """Schema and helper models for schema-conformant Results."""
 
-from marshmallow.validate import Length, OneOf, Regexp, Range
+import copy
+from types import SimpleNamespace
 
-from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
-from qiskit.validation.fields import Complex, ByType
-from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested
-from qiskit.validation.fields import Raw, String, NumpyArray
-from qiskit.validation.validate import PatternProperties
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
+from qiskit.validation.exceptions import ModelValidationError
 
 
-class ExperimentResultDataSchema(BaseSchema):
-    """Schema for ExperimentResultData."""
+class ExperimentResultData:
+    """Class representing experiment result data"""
 
-    counts = Nested(ObjSchema,
-                    validate=PatternProperties(
-                        {Regexp('^0x([0-9A-Fa-f])+$'): Integer()}))
-    snapshots = Nested(ObjSchema)
-    memory = List(Raw(),
-                  validate=Length(min=1))
-    statevector = NumpyArray(Complex(),
-                             validate=Length(min=1))
-    unitary = NumpyArray(NumpyArray(Complex(),
-                                    validate=Length(min=1)),
-                         validate=Length(min=1))
+    def __init__(self, counts=None, snapshots=None, memory=None,
+                 statevector=None, unitary=None):
+        """Initialize an ExperimentalResult Data class
 
+        Args:
+            counts (dict): A dictionary where the keys are the result in
+                hexadecimal as string of the format "0xff" and the value
+                is the number of counts for that result
+            snapshots (dict): A dictionary where the key is the snapshot
+                slot and the value is a dictionary of the snapshots for
+                that slot.
+            memory (list)
+            statevector (list or numpy.array): A list or numpy array of the
+                statevector result
+            unitary (list or numpy.array): A list or numpy arrray of the
+                unitary result
+        """
 
-class ExperimentResultSchema(BaseSchema):
-    """Schema for ExperimentResult."""
+        if counts is not None:
+            self.counts = counts
+        if snapshots is not None:
+            self.snapshots = snapshots
+        if memory is not None:
+            self.memory = memory
+        if statevector is not None:
+            self.statevector = statevector
+        if unitary is not None:
+            self.unitary = unitary
 
-    # Required fields.
-    shots = ByType([Integer(), List(Integer(validate=Range(min=1)),
-                                    validate=Length(equal=2))],
-                   required=True)
-    success = Boolean(required=True)
-    data = Nested(ExperimentResultDataSchema, required=True)
+    def to_dict(self):
+        out_dict = {}
+        for field in ['counts', 'snapshots', 'memory', 'statevector',
+                      'unitary']:
+            if hasattr(self, field):
+                out_dict[field] = getattr(self, field)
+        return out_dict
 
-    # Optional fields.
-    status = String()
-    seed = Integer()
-    meas_level = Integer(validate=OneOf(choices=(MeasLevel.RAW,
-                                                 MeasLevel.KERNELED,
-                                                 MeasLevel.CLASSIFIED)))
-    meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
-                                                 MeasReturnType.SINGLE)))
-    header = Nested(ObjSchema)
-
-
-class ResultSchema(BaseSchema):
-    """Schema for Result."""
-
-    # Required fields.
-    backend_name = String(required=True)
-    backend_version = String(required=True,
-                             validate=Regexp('[0-9]+.[0-9]+.[0-9]+$'))
-    qobj_id = String(required=True)
-    job_id = String(required=True)
-    success = Boolean(required=True)
-    results = Nested(ExperimentResultSchema, required=True, many=True)
-
-    # Optional fields.
-    date = DateTime()
-    status = String()
-    header = Nested(ObjSchema)
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)
 
 
-@bind_schema(ExperimentResultDataSchema)
-class ExperimentResultData(BaseModel):
-    """Model for ExperimentResultData.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check
-    ``ExperimentResultDataSchema``.
-    """
-    pass
-
-
-@bind_schema(ExperimentResultSchema)
-class ExperimentResult(BaseModel):
-    """Model for ExperimentResult.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ExperimentResultSchema``.
+class ExperimentResult(SimpleNamespace):
+    """Class representing an Experiment Result.
 
     Attributes:
         shots (int or tuple): the starting and ending shot for this data.
@@ -104,10 +76,64 @@ class ExperimentResult(BaseModel):
         meas_level (int): Measurement result level.
     """
 
-    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED, **kwargs):
+    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED,
+                 status=None, seed=None, meas_return=None, header=None,
+                 **kwargs):
+        """Initialize an ExperimentResult object.
+
+        Args:
+            shots(int or tuple): if an integer the number of shots or if a
+                tuple the starting and ending shot for this data
+            success (bool): True if the experiment was successful
+            data (ExperimentResultData): The data for the experiment's
+                result
+            meas_level (int): Measurement result level
+            status (str): The status of the experiment
+            seed (int): The seed used for simulation (if run on a simulator)
+            meas_return (str): The type of measurement returned
+            header (dict): A free form dictionary header for the experiment
+            kwargs: Arbitrary extra fields
+
+        Raises:
+            QiskitError: If meas_return or meas_level are not valid values
+        """
         self.shots = shots
         self.success = success
         self.data = data
         self.meas_level = meas_level
+        if status is not None:
+            self.status = status
+        if seed is not None:
+            self.seed = seed
+        if meas_return is not None:
+            if meas_return not in list(MeasReturnType):
+                raise ModelValidationError('%s not a valid meas_return value')
+            self.meas_return = meas_return
+        self.__dict__.update(kwargs)
 
-        super().__init__(**kwargs)
+    def to_dict(self):
+        out_dict = {
+            'shots': self.shots,
+            'success': self.success,
+            'data': self.data.to_dict(),
+            'meas_level': self.meas_level,
+        }
+        for field in self.__dict__.keys():
+            if field not in ['shots', 'success', 'data', 'meas_level']:
+                out_dict[field] = getattr(self, field)
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        in_data = copy.copy()
+        in_data['data'] = ExperimentResultData.from_dict(in_data.pop('data'))
+        return cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.shots, self.success, self.data))
