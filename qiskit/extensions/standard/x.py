@@ -153,23 +153,26 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         if mode in name_map.keys():
             mode = name_map[mode]
 
-        super().__init__('cx', num_ctrl_qubits + 1, [], num_ctrl_qubits=num_ctrl_qubits)
-        self.base_gate = XGate()
         self.mode = mode
-        # this function also throws an error if the wrong mode was selected
-        self.num_ancillas = CXGate.num_required_ancillas(num_ctrl_qubits, mode)
+        self._num_ctrl_qubits = num_ctrl_qubits
+        self.base_gate = XGate()
 
-    @staticmethod
-    def num_required_ancillas(num_ctrl_qubits, mode):
+        name = 'cx' if num_ctrl_qubits == 1 else 'mcx'
+
+        super().__init__(name, num_ctrl_qubits + 1 + self.num_ancilla_qubits, [],
+                         num_ctrl_qubits=num_ctrl_qubits)
+
+    @property
+    def num_ancilla_qubits(self):
         """Return the number of required ancillas."""
-        required_ancillas = {'v-chain-clean-ancillas': max(0, num_ctrl_qubits - 2),
-                             'v-chain-dirty-ancillas': max(0, num_ctrl_qubits - 2),
-                             'recursion': int(num_ctrl_qubits > 4),
+        required_ancillas = {'v-chain-clean-ancillas': max(0, self._num_ctrl_qubits - 2),
+                             'v-chain-dirty-ancillas': max(0, self._num_ctrl_qubits - 2),
+                             'recursion': int(self._num_ctrl_qubits > 4),
                              'no-ancilla': 0}
         try:
-            return required_ancillas[mode]
+            return required_ancillas[self.mode]
         except KeyError:
-            raise ValueError('The mode "{}" is not supported. '.format(mode)
+            raise ValueError('The mode "{}" is not supported. '.format(self.mode)
                              + 'Choose one of {}'.format(','.join(required_ancillas.keys())))
 
     def _define(self):
@@ -230,7 +233,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
                                 [0, 1, 0, 0]], dtype=complex)
         else:
             from qiskit.extensions.unitary import _compute_control_matrix
-            base_mat = XGate().get_matrix()
+            base_mat = XGate().to_matrix()
             return _compute_control_matrix(base_mat, self.num_ctrl_qubits)
 
 
@@ -317,9 +320,10 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
     """
     num_ctrl_qubits = len(control_qubits)
     qubits = control_qubits[:] + [target_qubit]
+    gate = CXGate(num_ctrl_qubits, mode)
     if ancilla_qubits:
-        qubits += ancilla_qubits[:]
-    return self.append(CXGate(num_ctrl_qubits, mode), qubits, [])
+        qubits += ancilla_qubits[:gate.num_ancilla_qubits]
+    return self.append(gate, qubits, [])
 
 
 # support both mcx and mct in QuantumCircuits
@@ -631,7 +635,7 @@ class CCCCXGate(ControlledGate):
         """
         from qiskit.extensions.standard.u1 import CU1Gate
         definition = []
-        q = QuantumRegister(4)
+        q = QuantumRegister(5)
         rule = [
             (HGate(), [q[4]], []),
             (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
