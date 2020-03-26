@@ -145,6 +145,14 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         Raises:
             ValueError: If an invalid mode has been specified.
         """
+        # map the modes to the new names
+        name_map = {'noancilla': 'no-ancilla',
+                    'advanced': 'recursion',
+                    'basic': 'v-chain-clean-ancillas',
+                    'basic-dirty-ancilla': 'v-chain-dirty-ancillas'}
+        if mode in name_map.keys():
+            mode = name_map[mode]
+
         super().__init__('cx', num_ctrl_qubits + 1, [], num_ctrl_qubits=num_ctrl_qubits)
         self.base_gate = XGate()
         self.mode = mode
