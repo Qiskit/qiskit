@@ -21,6 +21,7 @@ import re
 from numbers import Number
 
 import numpy as np
+from scipy.sparse import spmatrix
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
@@ -75,6 +76,9 @@ class Operator(BaseOperator):
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
+        elif isinstance(data, spmatrix):
+            # Initialization from SciPy sparse matrices
+            self._data = data.astype(dtype=complex)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             # If the input is a Terra QuantumCircuit or Instruction we
             # perform a simulation to construct the unitary operator.
