@@ -307,7 +307,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         .. math::
 
             CCX q_0, q_1, q_2 =
-                |0\rangle\langle 0| \otimes I \otimes I + |1\rangle\langle1| \otimes CX =
+                |0\rangle\langle 0| \otimes I \otimes I + |1\rangle\langle 1| \otimes CX =
                \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
