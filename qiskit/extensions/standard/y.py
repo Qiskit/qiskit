@@ -57,7 +57,7 @@ class YGate(Gate):
                         0 & -1 \\
                         1 & 0
                       \end{pmatrix}
-                    = -i.Y
+                    = -i Y
 
     The gate is equivalent to a bit and phase flip.
 
