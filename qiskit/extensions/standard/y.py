@@ -138,42 +138,47 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     .. parsed-literal::
 
-             ┌───┐
-        q_0: ┤ Y ├
-             └─┬─┘
-        q_1: ──■──
-
-
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ Y ├
+             └───┘
     **Matrix representation:**
 
     .. math::
 
-        CY\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Y =
+        CY\ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + Y \otimes |1 \rangle\langle 1|  =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
                 0 & 0 & 0 & -i \\
-                0 & 0 & i & 0
+                0 & 0 & 1 & 0 \\
+                0 & i & 0 & 0
             \end{pmatrix}
+
 
     .. note::
 
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ Y ├
+                 └─┬─┘
+            q_1: ──■──
 
         .. math::
 
-            CY\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + Y \otimes |1\rangle\langle 1|  =
+            CY\ q_1, q_0 =
+                |0 \rangle\langle 0| \otimes I + |1 \rangle\langle 1| \otimes Y =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
                     0 & 0 & 0 & -i \\
-                    0 & 0 & 1 & 0 \\
-                    0 & i & 0 & 0
+                    0 & 0 & i & 0
                 \end{pmatrix}
 
     """
