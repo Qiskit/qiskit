@@ -34,4 +34,5 @@ from .delay import Delay
 from .instruction import Instruction
 from .frequency import SetFrequency
 from .phase import ShiftPhase
+from .play import Play
 from .snapshot import Snapshot
