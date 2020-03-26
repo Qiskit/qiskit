@@ -60,7 +60,7 @@ class XGate(Gate):
                         0 & -i \\
                         -i & 0
                       \end{pmatrix}
-                    = -i.X
+                    = -i X
 
     The gate is equivalent to a classical bit flip.
 
