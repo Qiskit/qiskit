@@ -69,7 +69,7 @@ class U1Gate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2}.RZ(\lambda)
+                U1(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
 
         :class:`~qiskit.extensions.standard.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
