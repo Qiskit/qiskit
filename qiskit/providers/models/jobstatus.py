@@ -46,7 +46,8 @@ class JobStatus(SimpleNamespace):
                          :meth:`to_dict`.
 
         Returns:
-            JobStatus: The JobStatus from the input dictionary.
+            qiskit.providers.model.JobStatus: The ``JobStatus`` from the input
+                dictionary.
         """
         return cls(**data)
 
