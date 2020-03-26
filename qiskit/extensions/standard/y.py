@@ -149,7 +149,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
     .. math::
 
         CY\ q_1, q_0 =
-            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes Y =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Y =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
