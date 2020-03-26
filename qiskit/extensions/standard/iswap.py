@@ -25,7 +25,7 @@ from qiskit.circuit import QuantumRegister
 class iSwapGate(Gate):
     r"""iSWAP gate.
 
-    A 2-qubit XX+YY interaction that is equivalent to a SWAP up to a diagonal.
+    A 2-qubit XX+YY interaction.
     This is a Clifford and symmetric gate. Its action is to swap two qubit
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
@@ -37,6 +37,16 @@ class iSwapGate(Gate):
         q_0: ─⨂─
               │
         q_1: ─⨂─
+
+    **Reference Implementation:**
+
+    .. parsed-literal::
+
+             ┌───┐┌───┐     ┌───┐     
+        q_0: ┤ S ├┤ H ├──■──┤ X ├─────
+             ├───┤└───┘┌─┴─┐└─┬─┘┌───┐
+        q_1: ┤ S ├─────┤ X ├──■──┤ H ├
+             └───┘     └───┘     └───┘
 
     **Matrix Representation:**
 
@@ -50,7 +60,13 @@ class iSwapGate(Gate):
                 0 & i & 0 & 0 \\
                 0 & 0 & 0 & 1
             \end{pmatrix}
-          = \begin{pmatrix}
+
+    This gate is equivalent to a SWAP up to a diagonal.
+
+    .. math::
+
+         iSWAP =
+            \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 0 & 1 & 0 & 0 \\

@@ -21,14 +21,57 @@ from qiskit.circuit import QuantumRegister
 
 
 class RXXGate(Gate):
-    """Two-qubit XX-rotation gate.
+    r"""A parameteric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
 
-    This gate corresponds to the rotation U(θ) = exp(-1j * θ * X⊗X / 2)
-    up to the phase exp(-1j * θ/2).
+    This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤1        ├
+             │  Rxx(ϴ) │
+        q_1: ┤0        ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        R_{XX}(\theta) = exp(-i.\frac{\theta}{2}.X{\otimes}X) =
+            \begin{pmatrix}
+                \cos(\th)   & 0           & 0           & -i\sin(\th) \\
+                0           & \cos(\th)   & -i\sin(\th) & 0 \\
+                0           & -i\sin(\th) & \cos(\th)   & 0 \\
+                -i\sin(\th) & 0           & 0           & \cos(\th)}
+            \end{pmatrix}
+
+    **Examples:**
+
+        .. math::
+
+            R_{XX}(\theta = 0) = I
+
+        .. math::
+
+            R_{XX}(\theta = \pi) = i X \otimes X
+
+        .. math::
+
+            R_{XX}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+                                    \begin{pmatrix}
+                                        1  & 0  & 0  & -i \\
+                                        0  & 1  & -i & 0 \\
+                                        0  & -i & 1  & 0 \\
+                                        -i & 0  & 0  & 1
+                                    \end{pmatrix}
     """
 
     def __init__(self, theta):
-        """Create new rxx gate."""
+        """Create new RXX gate."""
         super().__init__('rxx', 2, [theta])
 
     def _define(self):
@@ -53,7 +96,7 @@ class RXXGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
     # NOTE: we should use the following as the canonical matrix
@@ -70,7 +113,7 @@ class RXXGate(Gate):
 
 
 def rxx(self, theta, qubit1, qubit2):
-    """Apply RXX to circuit."""
+    """Apply :class:`~qiskit.extensions.standard.RXXGate`."""
     return self.append(RXXGate(theta), [qubit1, qubit2], [])
 
 

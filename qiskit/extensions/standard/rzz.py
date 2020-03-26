@@ -37,7 +37,7 @@ class RZZGate(Gate):
 
     .. math::
 
-        RZZ(\theta) = exp(-i.\frac{\theta}{2}.Z{\otimes}Z) =
+        R_{ZZ}(\theta) = exp(-i.\frac{\theta}{2}.Z{\otimes}Z) =
             \begin{pmatrix}
                 e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
                 0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
@@ -50,7 +50,7 @@ class RZZGate(Gate):
 
     .. math::
 
-        RZZ(\theta) =
+        R_{ZZ}(\theta) =
             \begin{pmatrix}
                 RZ(\theta) & 0 \\
                 0 & RZ(-\theta)
@@ -60,19 +60,19 @@ class RZZGate(Gate):
 
         .. math::
 
-            RZZ(\theta = 0) = I
+            R_{ZZ}(\theta = 0) = I
 
         .. math::
 
-            RZZ(\theta = 2\pi) = -I
+            R_{ZZ}(\theta = 2\pi) = -I
 
         .. math::
 
-            RZZ(\theta = \pi) = - Z \otimes Z
+            R_{ZZ}(\theta = \pi) = - Z \otimes Z
 
         .. math::
 
-            RZZ(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{ZZ}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1-i & 0 & 0 & 0 \\
                                         0 & 1+i & 0 & 0 \\
@@ -82,6 +82,7 @@ class RZZGate(Gate):
     """
 
     def __init__(self, theta):
+        """Create new RZZ gate."""
         super().__init__('rzz', 2, [theta])
 
     def _define(self):
@@ -121,5 +122,4 @@ def rzz(self, theta, qubit1, qubit2):
     return self.append(RZZGate(theta), [qubit1, qubit2], [])
 
 
-# Add to QuantumCircuit class
 QuantumCircuit.rzz = rzz
