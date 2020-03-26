@@ -37,7 +37,7 @@ class RZZGate(Gate):
 
     .. math::
 
-        R_{ZZ}(\theta) = exp(-i.\frac{\theta}{2}.Z{\otimes}Z) =
+        R_{ZZ}(\theta) = exp(-i \frac{\theta}{2} Z{\otimes}Z) =
             \begin{pmatrix}
                 e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
                 0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
