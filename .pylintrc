@@ -120,7 +120,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # op = operation iterator
 # b = basis iterator
 good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
-    __unittest
+    __unittest,iSwapGate
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,toto,tutu,tata

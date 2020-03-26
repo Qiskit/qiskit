@@ -19,10 +19,9 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 
 from qiskit.transpiler.pass_manager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import Decompose
+from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
@@ -72,8 +71,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 3. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    # 3. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = Unroll3qOrMore()
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -82,10 +81,12 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
-             Decompose(SwapGate)]
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
 
-    # 5. Fix any bad CX directions
+    # 5. Unroll to the basis
+    _unroll = Unroller(basis_gates)
+
+    # 6. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -93,21 +94,22 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 6. Remove zero-state reset
+    # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
+    # Build pass manager
     pm0 = PassManager()
     if coupling_map:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
-    pm0.append(_unroll)
-    if coupling_map:
+        pm0.append(_unroll3q)
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
-        if not coupling_map.is_symmetric:
-            pm0.append(_direction_check)
-            pm0.append(_direction, condition=_direction_condition)
+    pm0.append(_unroll)
+    if coupling_map and not coupling_map.is_symmetric:
+        pm0.append(_direction_check)
+        pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
 
     return pm0
