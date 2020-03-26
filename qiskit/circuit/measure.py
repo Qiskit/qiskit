@@ -95,9 +95,6 @@ class PauliMeasure(Measure):
         self.basis_transformation = basis_transformation
 
     def _define(self):
-        if self.basis == 'z':
-            return
-
         definition = []
         q = QuantumRegister(1, 'q')
         c = ClassicalRegister(1, 'c')
