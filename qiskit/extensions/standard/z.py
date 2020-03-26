@@ -139,11 +139,10 @@ class CZGate(ControlledGate, metaclass=CZMeta):
 
     .. parsed-literal::
 
-                ┌───┐
-        q_0: |0>┤ Z ├
-                └─┬─┘
-        q_1: |0>──■──
-
+             ┌───┐
+        q_0: ┤ Z ├
+             └─┬─┘
+        q_1: ──■──
 
     **Matrix representation:**
 

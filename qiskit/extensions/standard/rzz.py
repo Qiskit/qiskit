@@ -87,15 +87,15 @@ class RZZGate(Gate):
 
     def _define(self):
         """
-        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
+        gate rzz(theta) a, b { cx a, b; rz(theta) b; cx a, b; }
         """
-        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.rz import RZGate
         from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
+            (RZGate(self.params[0]), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
@@ -106,11 +106,11 @@ class RZZGate(Gate):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
         return RZZGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
     #    """Return a numpy.array for the RZZ gate."""
-    #    theta = self.params[0]
+    #    theta = float(self.params[0])
     #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
     #                     [0, np.exp(1j*theta/2), 0, 0],
     #                     [0, 0, np.exp(1j*theta/2), 0],

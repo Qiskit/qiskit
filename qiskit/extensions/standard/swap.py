@@ -134,11 +134,11 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     .. parsed-literal::
 
 
-        q_0: |0>─X─
-                 │
-        q_1: |0>─X─
-                 │
-        q_2: |0>─■─
+        q_0: ─X─
+              │
+        q_1: ─X─
+              │
+        q_2: ─■─
 
 
     **Matrix representation:**
@@ -146,7 +146,8 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     .. math::
 
         CSWAP\ q_2, q_1, q_0 =
-            |0\rangle\langle 0| \otimes I \otimes I + |1\rangle\langle 1| \otimes SWAP =
+            |0 \rangle \langle 0| \otimes I \otimes I +
+            |1 \rangle \langle 1| \otimes SWAP =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
@@ -169,7 +170,8 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         .. math::
 
             CSWAP\ q_0, q_1, q_2 =
-                |0\rangle\langle 0| \otimes I \otimes I + |1\rangle\langle 1| \otimes SWAP =
+                |0 \rangle \langle 0| \otimes I \otimes I +
+                |1 \rangle \langle 1| \otimes SWAP =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
@@ -186,8 +188,8 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     :math:`|1\rangle` state.
 
     .. math::
-        `|0, b, c\rangle \rightarrow |0, b, c\rangle`
-        `|1, b, c\rangle \rightarrow |1, c, b\rangle`
+        |0, b, c\rangle \rightarrow |0, b, c\rangle
+        |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
     def __init__(self):

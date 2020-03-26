@@ -77,7 +77,7 @@ class RXXGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         from qiskit.extensions.standard.x import CXGate
-        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.rz import RZGate
         from qiskit.extensions.standard.h import HGate
         definition = []
         q = QuantumRegister(2, 'q')
@@ -86,7 +86,7 @@ class RXXGate(Gate):
             (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(theta), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
             (HGate(), [q[0]], []),
@@ -99,17 +99,18 @@ class RXXGate(Gate):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
-    # NOTE: we should use the following as the canonical matrix
-    # definition but we don't include it yet since it differs from
-    # the circuit decomposition matrix by a global phase
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
-    #   """Return a Numpy.array for the RXX gate."""
-    #    theta = float(self.params[0])
-    #    return np.array([
-    #        [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
-    #        [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #        [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #        [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+    #     """Return a Numpy.array for the RXX gate."""
+    #     theta = float(self.params[0])
+    #     cos = np.cos(theta / 2)
+    #     sin = np.sin(theta / 2)
+    #     return np.array([
+    #             [cos, 0, 0, -1j * sin],
+    #             [0, cos, -1j * sin, 0],
+    #             [0, -1j * sin, cos, 0],
+    #             [-1j * sin, 0, 0, cos]], dtype=complex)
 
 
 def rxx(self, theta, qubit1, qubit2):

@@ -101,6 +101,14 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
+    # TODO: this is the correct matrix however the control mechanism
+    # cannot distinguish U1 and RZ yet.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the RZ gate."""
+    #    lam = float(self.params[0])
+    #    return np.array([[np.exp(-1j * lam / 2), 0],
+    #                     [0, np.exp(1j * lam / 2)]], dtype=complex)
+
 
 @deprecate_arguments({'q': 'qubit'})
 def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument

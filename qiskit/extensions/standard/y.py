@@ -138,10 +138,10 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     .. parsed-literal::
 
-                ┌───┐
-        q_0: |0>┤ Y ├
-                └─┬─┘
-        q_1: |0>──■──
+             ┌───┐
+        q_0: ┤ Y ├
+             └─┬─┘
+        q_1: ──■──
 
 
     **Matrix representation:**

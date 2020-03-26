@@ -101,16 +101,18 @@ class RYYGate(Gate):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
     #     """Return a numpy.arry for the RYY gate."""
     #     theta = self.params[0]
+    #     cos = np.cos(theta / 2)
+    #     sin = np.sin(theta / 2)
     #     return np.array([
-    #         [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
-    #         [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #         [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #         [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
+    #         [cos, 0, 0, 1j * sin],
+    #         [0, cos, -1j * sin, 0],
+    #         [0, -1j * sin, cos, 0],
+    #         [1j * sin, 0, 0, cos]
     #     ], dtype=complex)
 
 

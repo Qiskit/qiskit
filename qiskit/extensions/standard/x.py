@@ -147,10 +147,10 @@ class CXGate(ControlledGate, metaclass=CXMeta):
 
     .. parsed-literal::
 
-                ┌───┐
-        q_0: |0>┤ X ├
-                └─┬─┘
-        q_1: |0>──■──
+             ┌───┐
+        q_0: ┤ X ├
+             └─┬─┘
+        q_1: ──■──
 
 
     **Matrix representation:**

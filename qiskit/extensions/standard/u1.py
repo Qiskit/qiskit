@@ -153,9 +153,9 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     .. parsed-literal::
 
 
-        q_0: |0>─■──
-                 │λ
-        q_1: |0>─■──
+        q_0: ─■──
+              │λ
+        q_1: ─■──
 
 
     **Matrix representation:**
