@@ -903,11 +903,15 @@ class TestControlledGate(QiskitTestCase):
 
 @ddt
 class TestControlledGateIssues(QiskitTestCase):
+    """Did you find a specific failing case? add it here with a reference to the issue."""
     @data((RXGate, CRXGate),
           (RYGate, CRYGate),
           (RZGate, CRZGate))
     @unpack
     def test_rotation_with_ctrl_state(self, gate, controlled_gate):
+        """Test rotation with ctrl_state
+        See https://github.com/Qiskit/qiskit-terra/pull/4025
+        """
         theta = 0.5
         self.assertEqual(gate(theta).control(1, ctrl_state='1'), controlled_gate(theta))
 
