@@ -53,7 +53,7 @@ class RZGate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i.{\lambda}/2}.RZ(\lambda)
+                U1(\lambda) = e^{i{\lambda}/2}RZ(\lambda)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
