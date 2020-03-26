@@ -41,7 +41,7 @@ class RXXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{XX}(\theta) = exp(-i.\frac{\theta}{2}.X{\otimes}X) =
+        R_{XX}(\theta) = exp(-i \frac{\theta}{2} X{\otimes}X) =
             \begin{pmatrix}
                 \cos(\th)   & 0           & 0           & -i\sin(\th) \\
                 0           & \cos(\th)   & -i\sin(\th) & 0 \\
