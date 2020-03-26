@@ -386,7 +386,11 @@ class PulseLibraryItem:
                 shape.
         """
         self.name = name
-        self.samples = samples
+        if isinstance(samples[0], list):
+            self.samples = numpy.array(
+                [complex(sample[0], sample[1]) for sample in samples])
+        else:
+            self.samples = samples
 
     def to_dict(self):
         """Return a dictionary format representation of the pulse library item.
