@@ -139,7 +139,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         \newcommand{\th}{\frac{\theta}{2}}
 
         CRY(\theta)\ q_1, q_0 =
-        |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RY(\theta) =
+        |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
