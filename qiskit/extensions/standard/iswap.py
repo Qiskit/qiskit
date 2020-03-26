@@ -53,7 +53,7 @@ class iSwapGate(Gate):
     .. math::
 
         iSWAP = R_{XX+YY}(-\frac{\pi}{2})
-          = exp(i.\frac{\pi}{4}.(X{\otimes}X+Y{\otimes}Y)) =
+          = exp(i \frac{\pi}{4} (X{\otimes}X+Y{\otimes}Y)) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & i & 0 \\
