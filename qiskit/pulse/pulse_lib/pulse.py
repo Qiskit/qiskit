@@ -85,3 +85,7 @@ class Pulse(ABC):
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        raise NotImplementedError
