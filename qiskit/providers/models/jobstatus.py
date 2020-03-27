@@ -15,7 +15,6 @@
 """Class for job status."""
 
 from types import SimpleNamespace
-from qiskit.exceptions import QiskitError
 
 
 class JobStatus(SimpleNamespace):
