@@ -59,7 +59,6 @@ class FakeBackend(BaseBackend):
         """Return backend properties"""
         coupling_map = self.configuration().coupling_map
         unique_qubits = list(set().union(*coupling_map))
-
         properties = {
             'backend_name': self.name(),
             'backend_version': self.configuration().backend_version,
@@ -89,12 +88,19 @@ class FakeBackend(BaseBackend):
                         "name": "readout_error",
                         "unit": "",
                         "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "operational",
+                        "unit": "",
+                        "value": True
                     }
                 ] for _ in range(len(unique_qubits))
             ],
             'gates': [{
                 "gate": "cx",
                 "name": "CX" + str(pair[0]) + "_" + str(pair[1]),
+                "operational": True,
                 "parameters": [
                     {
                         "date": "2000-01-01 00:00:00Z",

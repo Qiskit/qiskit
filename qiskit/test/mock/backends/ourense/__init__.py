@@ -15,3 +15,4 @@
 # pylint: disable=missing-docstring
 
 from .fake_ourense import FakeOurense
+from .fake_ourense_faulty_q4 import FakeOurenseFaultyQ4

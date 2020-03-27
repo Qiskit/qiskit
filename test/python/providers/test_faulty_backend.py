@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base TestCase for testing Providers."""
+"""Base TestCase for testing a Faulty Provider."""
 
-from qiskit.test.mock import FakeOurense
+from qiskit.test.mock import FakeOurenseFaultyQ4
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.providers.exceptions import BackendPropertyError
@@ -23,7 +23,7 @@ from qiskit.providers.exceptions import BackendPropertyError
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
-    backend = FakeOurense()
+    backend = FakeOurenseFaultyQ4()
     backend_name = 'fake_ourense'
 
     def setUp(self):
