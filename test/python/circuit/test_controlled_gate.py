@@ -604,30 +604,35 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    def test_multi_control_multi_target_edge_cases(self):
+    @data('no-ancilla', 'v-chain')
+    def test_multi_control_multi_target_edge_cases(self, mode):
         """Test the MCMT edge cases."""
         with self.subTest(msg='use as normal control'):
             qc = QuantumCircuit(2)
-            qc.mcmt(CHGate(), 0, 1)
+            qc.mcmt(CHGate(), 0, 1, mode=mode)
 
             ref = QuantumCircuit(2)
             ref.ch(0, 1)
 
             self.assertEqual(qc.decompose(), ref)
 
-        with self.subTest(msg='insufficient number of ancillas'):
-            qc = QuantumCircuit(5)
-            with self.assertRaises(QiskitError):
-                qc.mcmt(CZGate(), [0, 1, 2], 3, [4])
+        if mode == 'v-chain':
+            with self.subTest(msg='insufficient number of ancillas'):
+                qc = QuantumCircuit(5)
+                with self.assertRaises(QiskitError):
+                    qc.mcmt(CZGate(), [0, 1, 2], 3, [4], mode='v-chain')
 
         with self.subTest(msg='too many ancillas works'):
             qc = QuantumCircuit(8)
-            qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7])
+            qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7], mode=mode)
 
             ref = QuantumCircuit(8)
-            ref.mcmt(CZGate(), [0, 1, 2], 3, [4, 5])
+            if mode == 'v-chain':
+                ref.mcmt(CZGate(), [0, 1, 2], 3, [4, 5], mode=mode)
+            elif mode == 'no-ancilla':
+                ref.mcmt(CZGate(), [0, 1, 2], 3, mode=mode)
 
-            self.assertEqual(qc, ref)
+            self.assertEqual(qc.decompose(), ref.decompose())
 
         with self.subTest(msg='control qubit is missing'):
             qc = QuantumCircuit(3)
@@ -635,16 +640,16 @@ class TestControlledGate(QiskitTestCase):
             with self.assertRaises(QiskitError):
                 qc.mcmt(CRXGate(0.1), [], [1, 2])
 
-        with self.subTest(msg='test function input'):
+        for input_gate in [QuantumCircuit.cx, QuantumCircuit.x, 'cx', 'x', CXGate()]:
+            with self.subTest(input_gate=input_gate):
+                qc = QuantumCircuit(7)
+                qc.mcmt(input_gate, [0, 1, 2], [3, 4], [5, 6], mode=mode)
 
-            qc = QuantumCircuit(7)
-            qc.mcmt(QuantumCircuit.cx, [0, 1, 2], [3, 4], [5, 6])
+                ref = QuantumCircuit(7)
+                ref.mcmt(XGate(), [0, 1, 2], [3, 4], [5, 6], mode=mode)
 
-            ref = QuantumCircuit(7)
-            ref.mcmt(CXGate(), [0, 1, 2], [3, 4], [5, 6])
-
-            basis_gates = ['cx', 'ccx']
-            self.assertEqual(*[transpile(c, basis_gates=basis_gates) for c in [ref, qc]])
+                basis_gates = ['u1', 'u2', 'u3', 'id', 'cx']
+                self.assertEqual(*[transpile(c, basis_gates=basis_gates) for c in [ref, qc]])
 
     @data(
         [CZGate(), 1, 1], [CHGate(), 1, 1],
@@ -680,7 +685,7 @@ class TestControlledGate(QiskitTestCase):
             for i in subset:
                 qc.x(controls[i])
 
-            qc.mcmt(cgate, controls, targets, ancillas)
+            qc.mcmt(cgate, controls, targets, ancillas, mode='v-chain')
 
             for i in subset:
                 qc.x(controls[i])
@@ -833,7 +838,7 @@ class TestControlledGate(QiskitTestCase):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             with self.subTest(i=cls):
-                if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
+                if issubclass(cls, ControlledGate) or issubclass(cls, (allGates.IGate)):
                     continue
                 try:
                     sig = signature(cls)
@@ -842,6 +847,8 @@ class TestControlledGate(QiskitTestCase):
                                    or (param.kind == param.POSITIONAL_OR_KEYWORD
                                        and param.default is param.empty)])
                     args = [2]*numargs
+                    if issubclass(cls, allGates.MCMTGate):
+                        args[0] = 'ch'
 
                     gate = cls(*args)
                     self.assertEqual(gate.inverse().control(2),
