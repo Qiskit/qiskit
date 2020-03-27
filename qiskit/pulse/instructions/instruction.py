@@ -68,7 +68,12 @@ class Instruction(ScheduleComponent, ABC):
                                                for channel in channels if channel is not None))
 
         if name is None:
-            name = "{}{}".format(self.__class__.__name__.lower(), str(hex(self.__hash__()))[3:8])
+            if self.operands:
+                name = "{}{}".format(self.__class__.__name__.lower(),
+                                     str(hex(hash(self.operands)))[3:8])
+            else:
+                name = "{}{}".format(self.__class__.__name__.lower(),
+                                     str(hex(hash(self.command, self.channels)))[3:8])
         self._name = name
 
     @property
@@ -282,7 +287,7 @@ class Instruction(ScheduleComponent, ABC):
         if self.command:
             # Backwards compatibility for Instructions with Commands
             return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((type(self), self.operands, getattr(self, 'name', '')))
+        return hash((type(self), self.operands, self.name))
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
@@ -301,4 +306,4 @@ class Instruction(ScheduleComponent, ABC):
             operands = ', '.join(str(op) for op in self.operands)
         else:
             operands = "{}, {}".format(self.command, ', '.join(str(ch) for ch in self.channels))
-        return "{}({}, name={})".format(self.__class__.__name__, operands, self.name)
+        return "{}({}, name='{}')".format(self.__class__.__name__, operands, self.name)

@@ -139,4 +139,4 @@ class SamplePulse(Pulse):
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
         np.set_printoptions(**opt)
-        return '{}({}, name="{}")'.format(self.__class__.__name__, repr(self.samples), self.name)
+        return "{}({}, name='{}')".format(self.__class__.__name__, repr(self.samples), self.name)
