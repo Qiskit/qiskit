@@ -59,7 +59,7 @@ class Delay(Instruction):
 
     @property
     def operands(self) -> Tuple[int, PulseChannel]:
-        """Return a list of instruction operands."""
+        """Return instruction operands."""
         return (self.duration, self.channel)
 
     @property

@@ -61,7 +61,7 @@ class ShiftPhase(Instruction):
 
     @property
     def operands(self) -> Tuple[float, PulseChannel]:
-        """Return a list of instruction operands."""
+        """Return instruction operands."""
         return (self.phase, self.channel)
 
     @property

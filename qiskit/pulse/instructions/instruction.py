@@ -85,7 +85,7 @@ class Instruction(ScheduleComponent, ABC):
 
     @property
     def operands(self) -> Tuple:
-        """Return a list of instruction operands."""
+        """Return instruction operands."""
         # This cannot be a true abstractmethod While old Command style classes are still
         # implemented, because they do not have an operands method.
         if self.command is None:

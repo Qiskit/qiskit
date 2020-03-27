@@ -127,7 +127,7 @@ class Acquire(Instruction):
 
     @property
     def operands(self) -> Tuple[int, AcquireChannel, MemorySlot, RegisterSlot]:
-        """Return a list of instruction operands."""
+        """Return instruction operands."""
         return (self.duration, self.channel,
                 self.mem_slot, self.reg_slot)
 

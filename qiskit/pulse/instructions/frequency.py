@@ -51,7 +51,7 @@ class SetFrequency(Instruction):
 
     @property
     def operands(self) -> Tuple[float, PulseChannel]:
-        """Return a list of instruction operands."""
+        """Return instruction operands."""
         return (self.frequency, self.channel)
 
     @property
