@@ -160,7 +160,7 @@ class BackendProperties(SimpleNamespace):
 
     This holds backend properties measured by the provider. All properties
     which are provided optionally. These properties may describe qubits, gates,
-    or other general propeties of the backend
+    or other general propeties of the backend.
     """
 
     def __init__(self, backend_name, backend_version, last_update_date, qubits,
