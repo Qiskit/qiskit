@@ -17,6 +17,7 @@
 Kraus representation of a Quantum Channel.
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -76,15 +77,15 @@ class Kraus(QuantumChannel):
 
         Raises:
             QiskitError: if input data cannot be initialized as a
-            a list of Kraus matrices.
+                         a list of Kraus matrices.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. If the input data is
-        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
-        the input does not correspond to an N-qubit channel, it will assign a
-        single subsystem with dimension specified by the shape of the input.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. If the input data is
+            a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be
+            used. If the input does not correspond to an N-qubit channel, it
+            will assign a single subsystem with dimension specified by the
+            shape of the input.
         """
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
@@ -117,7 +118,7 @@ class Kraus(QuantumChannel):
             # E(rho) = sum_i A_i * rho * B_i^dagger
             elif isinstance(data,
                             tuple) and len(data) == 2 and len(data[0]) > 0:
-                kraus_left = [np.array(data[0][0], dtype=complex)]
+                kraus_left = [np.asarray(data[0][0], dtype=complex)]
                 shape = kraus_left[0].shape
                 for i in data[0][1:]:
                     op = np.asarray(i, dtype=complex)
@@ -229,7 +230,7 @@ class Kraus(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Kraus or has
-            incompatible dimensions.
+                         incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -237,6 +238,8 @@ class Kraus(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Kraus(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -277,7 +280,7 @@ class Kraus(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Kraus or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         return super().dot(other, qargs=qargs)
 
@@ -292,7 +295,8 @@ class Kraus(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power
+                         is not an integer.
         """
         if n > 0:
             return super().power(n)
@@ -328,23 +332,28 @@ class Kraus(QuantumChannel):
         """
         return self._tensor_product(other, reverse=True)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             Kraus: the linear addition channel self + other.
 
         Raises:
             QiskitError: if other cannot be converted to a channel, or
-            has incompatible dimensions.
+                         has incompatible dimensions.
         """
         # Since we cannot directly add two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
-        return Kraus(Choi(self).add(other))
+        return Kraus(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
@@ -360,11 +369,14 @@ class Kraus(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
+
+        ret = copy.copy(self)
         # If the number is complex we need to convert to general
         # kraus channel so we multiply via Choi representation
         if isinstance(other, complex) or other < 0:
             # Convert to Choi-matrix
-            return Kraus(Choi(self)._multiply(other))
+            ret._data = Kraus(Choi(self)._multiply(other))._data
+            return ret
         # If the number is real we can update the Kraus operators
         # directly
         val = np.sqrt(other)
@@ -372,7 +384,8 @@ class Kraus(QuantumChannel):
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:
             kraus_r = [val * k for k in self._data[1]]
-        return Kraus((kraus_l, kraus_r), self._input_dim, self._output_dim)
+        ret._data = (kraus_l, kraus_r)
+        return ret
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
@@ -387,7 +400,7 @@ class Kraus(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
 

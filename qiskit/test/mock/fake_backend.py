@@ -32,6 +32,15 @@ except ImportError:
     from qiskit.providers.basicaer import BasicAer
 
 
+class _Credentials():
+    def __init__(self, token='123456', url='https://'):
+        self.token = token
+        self.url = url
+        self.hub = 'hub'
+        self.group = 'group'
+        self.project = 'project'
+
+
 class FakeBackend(BaseBackend):
     """This is a dummy backend just for testing purposes."""
 
@@ -44,6 +53,7 @@ class FakeBackend(BaseBackend):
         """
         super().__init__(configuration)
         self.time_alive = time_alive
+        self._credentials = _Credentials()
 
     def properties(self):
         """Return backend properties"""
@@ -113,9 +123,12 @@ class FakeBackend(BaseBackend):
                 job = sim.run(qobj, system_model)
             else:
                 sim = Aer.get_backend('qasm_simulator')
-                from qiskit.providers.aer.noise import NoiseModel
-                noise_model = NoiseModel.from_backend(self)
-                job = sim.run(qobj, noise_model=noise_model)
+                if self.properties():
+                    from qiskit.providers.aer.noise import NoiseModel
+                    noise_model = NoiseModel.from_backend(self)
+                    job = sim.run(qobj, noise_model=noise_model)
+                else:
+                    job = sim.run(qobj)
         else:
             if qobj.type == 'PULSE':
                 raise QiskitError("Unable to run pulse schedules without "
@@ -125,3 +138,7 @@ class FakeBackend(BaseBackend):
             sim = BasicAer.get_backend('qasm_simulator')
             job = sim.run(qobj)
         return job
+
+    def jobs(self, **kwargs):  # pylint: disable=unused-argument
+        """Fake a job history"""
+        return []

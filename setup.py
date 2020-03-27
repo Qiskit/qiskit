@@ -31,12 +31,14 @@ REQUIREMENTS = [
     "networkx>=2.2;python_version>'3.5'",
     # Networkx 2.4 is the final version with python 3.5 support.
     "networkx>=2.2,<2.4;python_version=='3.5'",
+    "retworkx>=0.3.2",
     "numpy>=1.13",
     "ply>=3.10",
     "psutil>=5",
     "scipy>=1.0",
     "sympy>=1.3",
     "dill>=0.3",
+    "fastjsonschema>=2.10",
     "python-constraint>=1.4",
 ]
 

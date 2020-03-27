@@ -43,6 +43,7 @@ Gates and Instructions
    Reset
    Instruction
    InstructionSet
+   EquivalenceLibrary
 
 Parametric Quantum Circuits
 ===========================
@@ -75,3 +76,4 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .equivalence import EquivalenceLibrary

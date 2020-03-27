@@ -13,13 +13,14 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
-from typing import Any, Dict, List, Tuple
 from collections import defaultdict
+from typing import Any, Dict, List, Tuple
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule
-from qiskit.pulse.commands import (Command, PulseInstruction, Acquire, AcquireInstruction,
-                                   DelayInstruction, SamplePulse, ParametricInstruction)
+from qiskit.pulse import Schedule, Acquire, Delay, Play
+from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
+from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
+                                   DelayInstruction, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -99,11 +100,11 @@ def _assemble_experiments(
     user_pulselib = {}
     experiments = []
     for idx, schedule in enumerate(schedules):
-        qobj_instructions, user_pulses, max_memory_slot = _assemble_instructions(
+        qobj_instructions, max_memory_slot = _assemble_instructions(
             schedule,
             instruction_converter,
-            run_config)
-        user_pulselib.update(user_pulses)
+            run_config,
+            user_pulselib)
 
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = QobjExperimentHeader(
@@ -144,16 +145,21 @@ def _assemble_experiments(
 def _assemble_instructions(
         schedule: Schedule,
         instruction_converter: InstructionToQobjConverter,
-        run_config: RunConfig
-) -> Tuple[List[PulseQobjInstruction], Dict[str, Command], int]:
+        run_config: RunConfig,
+        user_pulselib: Dict[str, Command]
+) -> Tuple[List[PulseQobjInstruction], int]:
     """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
-    related metadata that will be assembled into the Qobj configuration.
+    related metadata that will be assembled into the Qobj configuration. Lookup table for
+    pulses defined in all experiments are registered in ``user_pulselib``. This object should be
+    mutable python dictionary so that items are properly updated after each instruction assemble.
+    The dictionary is not returned to avoid redundancy.
 
     Args:
         schedule: Schedule to assemble.
         instruction_converter: A converter instance which can convert PulseInstructions to
                                PulseQobjInstructions.
         run_config: Configuration of the runtime environment.
+        user_pulselib: User pulse library from previous schedule.
 
     Returns:
         A list of converted instructions, the user pulse library dictionary (from pulse name to
@@ -161,12 +167,18 @@ def _assemble_instructions(
     """
     max_memory_slot = 0
     qobj_instructions = []
-    user_pulselib = {}
 
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
 
-        if isinstance(instruction, ParametricInstruction):
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, ParametricPulse):
+            pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
+            if pulse_shape not in run_config.parametric_pulses:
+                instruction = Play(instruction.pulse.get_sample_pulse(),
+                                   instruction.channel,
+                                   name=instruction.name)
+
+        if isinstance(instruction, ParametricInstruction):  # deprecated
             pulse_shape = ParametricPulseShapes(type(instruction.command)).name
             if pulse_shape not in run_config.parametric_pulses:
                 # Convert to SamplePulse if the backend does not support it
@@ -174,7 +186,16 @@ def _assemble_instructions(
                                                instruction.channels[0],
                                                name=instruction.name)
 
-        if isinstance(instruction, PulseInstruction):
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, SamplePulse):
+            name = instruction.pulse.name
+            if instruction.pulse != user_pulselib.get(name):
+                name = "{0}-{1:x}".format(name, hash(instruction.pulse.samples.tostring()))
+                instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
+                                   channel=instruction.channel,
+                                   name=instruction.name)
+            user_pulselib[name] = instruction.pulse
+
+        if isinstance(instruction, PulseInstruction):  # deprecated
             name = instruction.command.name
             if name in user_pulselib and instruction.command != user_pulselib[name]:
                 name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
@@ -185,7 +206,7 @@ def _assemble_instructions(
             # add samples to pulse library
             user_pulselib[name] = instruction.command
 
-        if isinstance(instruction, AcquireInstruction):
+        if isinstance(instruction, (AcquireInstruction, Acquire)):
             max_memory_slot = max(max_memory_slot,
                                   *[slot.index for slot in instruction.mem_slots])
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
@@ -193,7 +214,7 @@ def _assemble_instructions(
             acquire_instruction_map[(time, instruction.command)].append(instruction)
             continue
 
-        if isinstance(instruction, DelayInstruction):
+        if isinstance(instruction, (DelayInstruction, Delay)):
             # delay instructions are ignored as timing is explicit within qobj
             continue
 
@@ -209,7 +230,7 @@ def _assemble_instructions(
                     time, instructions[0],
                     qubits=qubits, memory_slot=mem_slots, register_slot=reg_slots))
 
-    return qobj_instructions, user_pulselib, max_memory_slot
+    return qobj_instructions, max_memory_slot
 
 
 def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireInstruction]],
