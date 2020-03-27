@@ -26,12 +26,9 @@ class JobStatus(SimpleNamespace):
         status (str): status of the job.
         status_msg (str): status message.
     """
-    job_states = ['DONE', 'QUEUED', 'CANCELLED', 'RUNNING', 'ERROR']
 
     def __init__(self, job_id, status, status_msg, **kwargs):
         self.job_id = job_id
-        if status not in self.job_states:
-            raise QiskitError("Job status of %s not a valid job state")
         self.status = status
         self.status_msg = status_msg
         self.__dict__.update(kwargs)
