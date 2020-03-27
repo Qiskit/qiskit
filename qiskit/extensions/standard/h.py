@@ -122,6 +122,7 @@ class CHGate(ControlledGate):
              ┌─┴─┐
         q_1: ┤ H ├
              └───┘
+
     **Matrix Representation:**
 
     .. math::
@@ -161,6 +162,7 @@ class CHGate(ControlledGate):
                     0 & 0 & 1 & 1 \\
                     0 & 0 & 1 & -1
                 \end{pmatrix}
+
     """
 
     def __init__(self):

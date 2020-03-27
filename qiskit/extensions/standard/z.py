@@ -140,11 +140,11 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     **Circuit symbol:**
 
     .. parsed-literal::
-           
+
         q_0: ─■─
-              │ 
+              │
         q_1: ─■─
-           
+
     **Matrix representation:**
 
     .. math::
