@@ -27,6 +27,7 @@ from .ry import RYGate, CRYGate
 from .ryy import RYYGate
 from .rz import RZGate, CRZGate
 from .rzz import RZZGate
+from .rzx import RZXGate
 from .s import SGate, SdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
