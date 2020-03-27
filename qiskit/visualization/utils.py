@@ -64,7 +64,7 @@ def _validate_input_state(quantum_state):
     """Validates the input to state visualization functions.
 
     Args:
-        quantum_state (ndarray): Input state / density matrix.
+        quantum_state (ndarray): Input state / density matrix / quantum channel.
     Returns:
         rho: A 2d numpy array for the density matrix.
     Raises:
