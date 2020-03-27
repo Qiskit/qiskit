@@ -142,6 +142,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
              ┌─┴─┐
         q_1: ┤ Y ├
              └───┘
+
     **Matrix representation:**
 
     .. math::
