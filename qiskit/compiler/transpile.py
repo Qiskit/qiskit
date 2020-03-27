@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+import warnings
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers import BaseBackend
@@ -111,6 +112,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive')
+            Sometimes a perfect layout can be available in which case the layout_method
+            may not run.
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic')
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
@@ -282,6 +285,9 @@ def _parse_transpile_args(circuits, backend,
     Returns:
         list[dicts]: a list of transpile parameters.
     """
+    if initial_layout is not None and layout_method is not None:
+        warnings.warn("initial_layout provided; layout_method is ignored.",
+                      UserWarning)
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
@@ -300,7 +306,7 @@ def _parse_transpile_args(circuits, backend,
 
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties,
-                    initial_layout, layout_method, routing_method, 
+                    initial_layout, layout_method, routing_method,
                     seed_transpiler, optimization_level,
                     pass_manager, output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],

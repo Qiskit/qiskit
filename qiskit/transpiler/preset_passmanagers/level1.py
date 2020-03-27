@@ -42,16 +42,18 @@ from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Layout2qDistance
-from qiskit.transpiler.passes import DenseLayout
+
+from qiskit.transpiler import TranspilerError
 
 
 def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     """Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
-    This pass manager applies the user-given initial layout. If none is given, and a trivial
-    layout (i-th virtual -> i-th physical) makes the circuit fit the coupling map, that is used.
-    Otherwise, the circuit is mapped to the most densely connected coupling subgraph, and swaps
-    are inserted to map. Any unused physical qubit is allocated as ancilla space.
+    This pass manager applies the user-given initial layout. If none is given,
+    and a trivial layout (i-th virtual -> i-th physical) makes the circuit fit
+    the coupling map, that is used.
+    Otherwise, the circuit is mapped to the most densely connected coupling subgraph,
+    and swaps are inserted to map. Any unused physical qubit is allocated as ancilla space.
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map. Finally, optimizations in the form of adjacent
     gate collapse and redundant reset removal are performed.
@@ -65,6 +67,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     Returns:
         a level 1 pass manager.
+
+    Raises:
+        TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
@@ -92,7 +97,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif layout_method == 'noise_adaptive':
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     else:
-        raise TranspilerError("Invalid layout method %s.", layout_method)
+        raise TranspilerError("Invalid layout method %s." % layout_method)
 
     def _not_perfect_yet(property_set):
         return property_set['trivial_layout_score'] is not None and \
@@ -118,7 +123,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
     else:
-        raise TranspilerError("Invalid routing method %s.", routing_method)
+        raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 6. Unroll to the basis
     _unroll = Unroller(basis_gates)

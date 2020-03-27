@@ -44,6 +44,8 @@ from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
+from qiskit.transpiler import TranspilerError
+
 
 def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     """Level 2 pass manager: medium optimization by initial layout selection and
@@ -68,6 +70,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     Returns:
         a level 2 pass manager.
+
+    Raises:
+        TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
@@ -91,7 +96,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif layout_method == 'noise_adaptive':
         _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
     else:
-        raise TranspilerError("Invalid layout method %s.", layout_method)
+        raise TranspilerError("Invalid layout method %s." % layout_method)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -113,7 +118,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     else:
-        raise TranspilerError("Invalid routing method %s.", routing_method)
+        raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
     _unroll = Unroller(basis_gates)

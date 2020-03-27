@@ -60,13 +60,17 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     Returns:
         a level 0 pass manager.
+
+    Raises:
+        TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or 'dense'
+    layout_method = pass_manager_config.layout_method or 'trivial'
     routing_method = pass_manager_config.routing_method or 'stochastic'
     seed_transpiler = pass_manager_config.seed_transpiler
+    backend_properties = pass_manager_config.backend_properties
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -77,11 +81,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == 'trivial':
         _choose_layout = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
-        _choose_layout = DenseLayout(coupling_map)
+        _choose_layout = DenseLayout(coupling_map, backend_properties)
     elif layout_method == 'noise_adaptive':
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     else:
-        raise TranspilerError("Invalid layout method %s.", layout_method)
+        raise TranspilerError("Invalid layout method %s." % layout_method)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -103,7 +107,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
     else:
-        raise TranspilerError("Invalid routing method %s.", routing_method)
+        raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
     _unroll = Unroller(basis_gates)
