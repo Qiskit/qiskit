@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=line-length
+# pylint: disable=line-too-long
 
 """Test for the DAGCircuit object"""
 
@@ -67,7 +67,7 @@ class TestDagCompose(QiskitTestCase):
 
     def test_compose_inorder(self):
         """Composing two dags of the same width, default order.
-                       ┌───┐                                                ┌───┐ 
+                       ┌───┐                                                ┌───┐
         lqr_1_0: |0>───┤ H ├───     rqr_0: |0>──■───────     lqr_1_0: |0>───┤ H ├─────■───────
                        ├───┤                    │  ┌───┐                    ├───┤     │  ┌───┐
         lqr_1_1: |0>───┤ X ├───     rqr_1: |0>──┼──┤ X ├     lqr_1_1: |0>───┤ X ├─────┼──┤ X ├
@@ -79,7 +79,7 @@ class TestDagCompose(QiskitTestCase):
         lqr_2_1: |0>───┤ X ├───     rqr_4: |0>─────┤ Z ├     lqr_2_1: |0>───┤ X ├────────┤ Z ├
                        └───┘                       └───┘                    └───┘        └───┘
         lcr_0: 0 ═══════════                                 lcr_0: 0 ════════════════════════
-                                                                                              
+
         lcr_1: 0 ═══════════                                 lcr_1: 0 ════════════════════════
 
         """
@@ -126,7 +126,7 @@ class TestDagCompose(QiskitTestCase):
         lqr_2_1: |0>───┤ X ├───                                 lqr_2_1: |0>───┤ X ├───────────────
                        └───┘                                                   └───┘
         lcr_0: 0 ══════════════                                 lcr_0: 0 ══════════════════════════
-                                                                                                   
+
         lcr_1: 0 ══════════════                                 lcr_1: 0 ══════════════════════════
 
         """
@@ -167,7 +167,7 @@ class TestDagCompose(QiskitTestCase):
          lqr_2_1: |0>───┤ X ├───      rqr_4: |0>─────┤ Z ├      lqr_2_1: |0>───┤ X ├───┤ X ├
                         └───┘                        └───┘                     └───┘   └───┘
          lcr_0: 0 ══════════════                                lcr_0: 0 ═══════════════════
-                                                                                            
+
          lcr_1: 0 ══════════════                                lcr_1: 0 ═══════════════════
 
         """
@@ -220,7 +220,7 @@ class TestDagCompose(QiskitTestCase):
         lqr_2_1: |0>───┤ X ├───                                 lqr_2_1: |0>───┤ X ├───────────────
                        └───┘                                                   └───┘
         lcr_0: 0 ══════════════                                 lcr_0: 0 ══════════════════════════
-                                                                                                   
+
         lcr_1: 0 ══════════════                                 lcr_1: 0 ══════════════════════════
 
         """
