@@ -28,9 +28,21 @@ QASM Routines
    Qasm
    QasmError
 
+
+Pygments
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpenQASMLexer
+   QasmHTMLStyle
+   QasmTerminalStyle
+
 """
 
 from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
+from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
