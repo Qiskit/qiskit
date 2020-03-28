@@ -126,10 +126,10 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
     .. parsed-literal::
 
-             ┌───────┐
-        q_0: ┤ Rx(ϴ) ├
-             └───┬───┘
-        q_1: ────■────
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Rx(ϴ) ├
+             └───────┘
 
     **Matrix representation:**
 
@@ -137,13 +137,13 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\theta)\ q_1, q_0 =
-        |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
+        CRX(\lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & \cos{\th}   & -i\sin{\th} \\
-                0 & 0 & -i\sin{\th} & \cos{\th}
+                0 & \cos{\th} & 0 & -i\sin{\th} \\
+                0 & 0 & 1 & 0 \\
+                0 & -i\sin{\th} & 0 & \cos{\th}
             \end{pmatrix}
 
     .. note::
@@ -151,20 +151,26 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Rx(ϴ) ├
+                 └───┬───┘
+            q_1: ────■────
 
         .. math::
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            CRX(\lambda)\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
+            CRX(\theta)\ q_1, q_0 =
+            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
-                    0 & \cos{\th} & 0 & -i\sin{\th} \\
-                    0 & 0 & 1 & 0 \\
-                    0 & -i\sin{\th} & 0 & \cos{\th}
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & \cos{\th}   & -i\sin{\th} \\
+                    0 & 0 & -i\sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
     def __init__(self, theta):
