@@ -48,6 +48,7 @@ class Instruction(ScheduleComponent):
                                                for channel in channels if channel is not None))
 
         channels = self.channels
+        self._update_hash()
 
     @property
     def name(self) -> str:
@@ -241,9 +242,12 @@ class Instruction(ScheduleComponent):
         Equality is determined by the instruction sharing the same command and channels.
         """
         return (self.command == other.command) and (set(self.channels) == set(other.channels))
-
+    
+    def _update_hash(self):
+        self._hash = hash((self.command.__hash__(), self.channels.__hash__()))
+        
     def __hash__(self):
-        return hash((self.command.__hash__(), self.channels.__hash__()))
+        return self._hash
 
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""

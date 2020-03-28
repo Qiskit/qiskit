@@ -50,6 +50,7 @@ class Channel(metaclass=ABCMeta):
         if not isinstance(index, int) or index < 0:
             raise PulseError('Channel index must be a nonnegative integer')
         self._index = index
+        self._update_hash()
 
     @property
     def index(self) -> int:
@@ -79,8 +80,11 @@ class Channel(metaclass=ABCMeta):
         """
         return type(self) is type(other) and self._index == other._index
 
+    def _update_hash(self):
+        self._hash = hash((type(self), self._index))
+
     def __hash__(self):
-        return hash((type(self), self._index))
+        return self._hash
 
 
 class PulseChannel(Channel, metaclass=ABCMeta):

@@ -32,6 +32,7 @@ class MeasOpts:
         """
         self._name = name
         self._params = params
+        self._update_hash()
 
     @property
     def name(self):
@@ -56,9 +57,12 @@ class MeasOpts:
         return (type(self) is type(other) and
                 self.name == other.name and
                 self.params == other.params)
-
+    
+    def _update_hash(self):
+        self._hash = hash((super().__hash__(), self.name, frozenset(self.params)))
+    
     def __hash__(self):
-        return hash((super().__hash__(), self.name, self.params))
+        return self._hash
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.name)

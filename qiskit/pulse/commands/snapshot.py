@@ -73,9 +73,11 @@ class Snapshot(Command, Instruction):
         return (super().__eq__(other) and
                 self.label == other.label and
                 self.type == other.type)
-
+    def _update_hash(self):
+        self._hash = hash((super().__hash__(), self.label, self.type))
+    
     def __hash__(self):
-        return hash((super().__hash__(), self.label, self.type))
+        return self._hash
 
     # pylint: disable=arguments-differ
     def to_instruction(self):
