@@ -147,23 +147,22 @@ class CXGate(ControlledGate, metaclass=CXMeta):
 
     .. parsed-literal::
 
-             ┌───┐
-        q_0: ┤ X ├
-             └─┬─┘
-        q_1: ──■──
-
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ X ├
+             └───┘
 
     **Matrix representation:**
 
     .. math::
 
-        CX\ q_1, q_0 =
-            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes X =
+        CX\ q_0, q_1 =
+            I \otimes |0\rangle\langle0| + X \otimes |1\rangle\langle1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
                 0 & 0 & 0 & 1 \\
-                0 & 0 & 1 & 0
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0
             \end{pmatrix}
 
     .. note::
@@ -171,19 +170,26 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ X ├
+                 └─┬─┘
+            q_1: ──■──
 
         .. math::
 
-            CX\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| + Y \otimes |1\rangle\langle 1| =
+            CX\ q_1, q_0 =
+                |0 \rangle\langle 0| \otimes I + |1 \rangle\langle 1| \otimes X =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
                     0 & 0 & 0 & 1 \\
-                    0 & 0 & 1 & 0 \\
-                    0 & 1 & 0 & 0
+                    0 & 0 & 1 & 0
                 \end{pmatrix}
+
 
     In the computational basis, this gate flips the target qubit
     if the control qubit is in the :math:`|1\rangle` state.
@@ -271,29 +277,28 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
 
     .. parsed-literal::
 
-             ┌───┐
-        q_0: ┤ X ├
-             └─┬─┘
-        q_1: ──■──
+        q_0: ──■──
                │
-        q_2: ──■──
-
+        q_1: ──■──
+             ┌─┴─┐
+        q_2: ┤ X ├
+             └───┘
 
     **Matrix representation:**
 
     .. math::
 
-        CCX\ q_2, q_1, q_0 =
-            I \otimes I \otimes |0\rangle\langle 0| + CX \otimes |1\rangle\langle 1| =
-            \begin{pmatrix}
+        CCX q_0, q_1, q_2 =
+            |0 \rangle \langle 0| \otimes I \otimes I + |1 \rangle \langle 1| \otimes CX =
+           \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
                 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
-                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
                 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
                 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
-                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
-                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
             \end{pmatrix}
 
     .. note::
@@ -301,23 +306,32 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 and q_1 as control, the matrix will be:
+        which in our case would be q_2 and q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ X ├
+                 └─┬─┘
+            q_1: ──■──
+                   │
+            q_2: ──■──
 
         .. math::
 
-            CCX q_0, q_1, q_2 =
-                |0\rangle\langle 0| \otimes I \otimes I + |1\rangle\langle 1| \otimes CX =
-               \begin{pmatrix}
+            CCX\ q_2, q_1, q_0 =
+                I \otimes I \otimes |0 \rangle \langle 0| + CX \otimes |1 \rangle \langle 1| =
+                \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
-                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
                     0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
                     0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
-                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
-                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
                 \end{pmatrix}
+
     """
 
     def __init__(self):

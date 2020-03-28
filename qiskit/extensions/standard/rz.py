@@ -139,22 +139,21 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
 
     .. parsed-literal::
 
-             ┌───────┐
-        q_0: ┤ Rz(λ) ├
-             └───┬───┘
-        q_1: ────■────
-
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Rz(λ) ├
+             └───────┘
 
     **Matrix representation:**
 
     .. math::
 
-        CRZ(\lambda)\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\lambda) =
+        CRZ(\lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RZ(\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & e^{-i\frac{\lambda}{2}} & 0 \\
+                0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & e^{i\frac{\lambda}{2}}
             \end{pmatrix}
 
@@ -163,17 +162,23 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Rz(λ) ├
+                 └───┬───┘
+            q_1: ────■────
 
         .. math::
 
-            CRZ(\lambda)\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| + RZ(\lambda) \otimes |1\rangle\langle 1| =
+            CRZ(\lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\lambda) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
-                    0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
-                    0 & 0 & 1 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & e^{-i\frac{\lambda}{2}} & 0 \\
                     0 & 0 & 0 & e^{i\frac{\lambda}{2}}
                 \end{pmatrix}
 
