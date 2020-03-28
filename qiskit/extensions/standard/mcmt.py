@@ -17,6 +17,7 @@
 from typing import Union, Callable, List, Tuple
 
 import warnings
+from abc import abstractproperty
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.util import deprecate_arguments
@@ -95,6 +96,11 @@ class MCMTGate(Gate):
 
         super().__init__('mcmt', num_qubits, [])
 
+    @abstractproperty
+    def num_ancilla_qubits(self):
+        """Return the number of ancillas."""
+        raise NotImplementedError
+
     def _identify_gate(self, gate):
         """Case the gate input to a gate."""
         valid_gates = {
@@ -141,9 +147,10 @@ class MCMTGate(Gate):
 class MCMTGateNoAncilla(MCMTGate):
     """The MCMT implementation without ancilla qubits."""
 
-    def __init__(self, gate, num_ctrl_qubits, num_target_qubits):
-        self.num_ancilla_qubits = 0
-        super().__init__(gate, num_ctrl_qubits, num_target_qubits)
+    @property
+    def num_ancilla_qubits(self):
+        """Return the number of ancilla qubits required."""
+        return 0
 
     def _define(self):
         """Define the MCMT gate without ancillas."""
@@ -167,9 +174,10 @@ class MCMTGateNoAncilla(MCMTGate):
 class MCMTGateVChain(MCMTGate):
     """The MCMT implementation using the CCX V-chain."""
 
-    def __init__(self, gate, num_ctrl_qubits, num_target_qubits):
-        self.num_ancilla_qubits = max(0, num_ctrl_qubits - 1)
-        super().__init__(gate, num_ctrl_qubits, num_target_qubits)
+    @property
+    def num_ancilla_qubits(self):
+        """Return the number of ancilla qubits required."""
+        return max(0, self.num_ctrl_qubits - 1)
 
     def _define(self):
         """Define the MCMT gate."""
