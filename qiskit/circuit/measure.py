@@ -66,11 +66,11 @@ QuantumCircuit.measure = measure
 class PauliMeasure(Measure):
     """Perform a measurement with preceding basis change operations."""
 
-    def __init__(self, basis='z'):
+    def __init__(self, basis):
         """Create a new basis transformation measurement.
 
         Args:
-            basis (str): The target measurement basis, can be 'x', 'y' or 'z'.
+            basis (str): The target measurement basis, can be 'X', 'Y' or 'Z'.
 
         Raises:
             ValueError: If an unsupported basis is specified.
@@ -83,13 +83,12 @@ class PauliMeasure(Measure):
             basis_transformation = [HGate()]
         elif basis.lower() == 'y':
             self.name = 'y_measure'
-            from qiskit.extensions.standard import RXGate
-            basis_transformation = [RXGate(pi / 2)]
+            from qiskit.extensions.standard import HGate, SdgGate
+            basis_transformation = [SdgGate(), HGate(), SdgGate()]
         elif basis.lower() == 'z':
-            # keep the name 'measure'
             basis_transformation = []
         else:
-            raise ValueError('Unsupported measurement basis choose either of x, y or z.')
+            raise ValueError('Unsupported measurement basis choose either of X, Y or Z.')
 
         self.basis = basis
         self.basis_transformation = basis_transformation
@@ -98,14 +97,22 @@ class PauliMeasure(Measure):
         definition = []
         q = QuantumRegister(1, 'q')
         c = ClassicalRegister(1, 'c')
+
+        # switch to the measurement basis
         for gate in self.basis_transformation:
             definition.append((gate, [q[0]], []))
+
+        # measure
         definition.append((Measure(), [q[0]], [c[0]]))
+
+        # apply inverse basis transformation for correct post-measurement state
+        for gate in reversed(self.basis_transformation):
+            definition.append((gate.inverse(), [q[0]], []))
 
         self.definition = definition
 
 
-def pauli_measure(self, qubit, cbit, basis='z'):
+def pauli_measure(self, basis, qubit, cbit):
     """Measure in the Pauli-X basis."""
     return self.append(PauliMeasure(basis=basis), [qubit], [cbit])
 
