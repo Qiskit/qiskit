@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The S gate (Clifford phase gate) and its inverse."""
+"""The S and Sdg gate."""
 
 import numpy
 from qiskit.qasm import pi
@@ -21,10 +21,34 @@ from ..quantumregister import QuantumRegister
 
 
 class SGate(Gate):
-    """The S gate, also called Clifford phase gate."""
+    r"""Single qubit S gate (Z**0.5).
+
+    It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
+
+    This is a Clifford gate and a square-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        S = \begin{pmatrix}
+                1 & 0 \\
+                0 & i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ S ├
+             └───┘
+
+    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    """
 
     def __init__(self, label=None):
-        """Create a new S gate."""
+        """Create new S gate."""
         super().__init__('s', 1, [], label=label)
 
     def _define(self):
@@ -42,7 +66,7 @@ class SGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse of S (SdgGate)."""
         return SdgGate()
 
     def to_matrix(self):
@@ -52,10 +76,34 @@ class SGate(Gate):
 
 
 class SdgGate(Gate):
-    """Sdg=diag(1,-i) Clifford adjoint phase gate."""
+    r"""Single qubit S-adjoint gate (~Z**0.5).
+
+    It induces a :math:`-\pi/2` phase.
+
+    This is a Clifford gate and a square-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Sdg = \begin{pmatrix}
+                1 & 0 \\
+                0 & -i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌─────┐
+        q_0: ┤ Sdg ├
+             └─────┘
+
+    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    """
 
     def __init__(self, label=None):
-        """Create a new Sdg gate."""
+        """Create new Sdg gate."""
         super().__init__('sdg', 1, [], label=label)
 
     def _define(self):
@@ -73,7 +121,7 @@ class SdgGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse of Sdg (SGate)."""
         return SGate()
 
     def to_matrix(self):

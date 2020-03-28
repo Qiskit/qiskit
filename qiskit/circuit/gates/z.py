@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pauli Z (phase-flip) gate."""
+"""Z and CZ gates."""
 
 import numpy
 from qiskit.qasm import pi
@@ -22,7 +22,47 @@ from ..quantumregister import QuantumRegister
 
 
 class ZGate(Gate):
-    """Pauli Z (phase-flip) gate."""
+    r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Z = \begin{pmatrix}
+                1 & 0 \\
+                0 & -1
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ Z ├
+             └───┘
+
+    Equivalent to a :math:`\pi` radian rotation about the Z axis.
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RZ(\pi)` and :math:`Z`.
+
+        .. math::
+
+            RZ(\pi) = \begin{pmatrix}
+                        -1 & 0 \\
+                        0 & 1
+                      \end{pmatrix}
+                    = -Z
+
+    The gate is equivalent to a phase flip.
+
+    .. math::
+
+        |0\rangle \rightarrow |0\rangle \\
+        |1\rangle \rightarrow -|1\rangle
+    """
 
     def __init__(self, label=None):
         """Create new Z gate."""
@@ -40,7 +80,9 @@ class ZGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-Z gate.
+
+        One control returns a CZ gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -58,7 +100,7 @@ class ZGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
     def to_matrix(self):
@@ -78,7 +120,34 @@ class CZMeta(type):
 
 
 class CZGate(ControlledGate, metaclass=CZMeta):
-    """The controlled-Z gate."""
+    r"""Controlled-Z gate.
+
+    This is a Clifford and symmetric gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─■─
+              │
+        q_1: ─■─
+
+    **Matrix representation:**
+
+    .. math::
+
+        CZ\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Z =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -1
+            \end{pmatrix}
+
+    In the computational basis, this gate flips the phase of
+    the target qubit if the control qubit is in the :math:`|1\rangle` state.
+    """
 
     def __init__(self, label=None):
         """Create new CZ gate."""
@@ -103,7 +172,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CZ gate (itself)."""
         return CZGate()  # self-inverse
 
     def to_matrix(self):

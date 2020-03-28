@@ -30,10 +30,26 @@ class IMeta(type):
 
 
 class IGate(Gate, metaclass=IMeta):
-    """Identity gate.
+    r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        I = \begin{pmatrix}
+                1 & 0 \\
+                0 & 1
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+             ┌───┐
+        q_0: ┤ I ├
+             └───┘
     """
 
     def __init__(self, label=None):

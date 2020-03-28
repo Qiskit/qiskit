@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Rotation around the x-axis."""
+"""Rotation around the X axis."""
 
 import math
 import numpy
@@ -23,10 +23,31 @@ from ..quantumregister import QuantumRegister
 
 
 class RXGate(Gate):
-    """The rotation around the x-axis."""
+    r"""Single-qubit rotation about the X axis.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────┐
+        q_0: ┤ Rx(ϴ) ├
+             └───────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RX(\theta) = exp(-i \th X) =
+            \begin{pmatrix}
+                \cos{\th}   & -i\sin{\th} \\
+                -i\sin{\th} & \cos{\th}
+            \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new rx single qubit gate."""
+        """Create new RX gate."""
         super().__init__('rx', 1, [theta])
 
     def _define(self):
@@ -44,7 +65,7 @@ class RXGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-RX gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -62,9 +83,9 @@ class RXGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted RX gate.
 
-        rx(theta)^dagger = rx(-theta)
+        :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
         """
         return RXGate(-self.params[0])
 
@@ -87,10 +108,62 @@ class CRXMeta(type):
 
 
 class CRXGate(ControlledGate, metaclass=CRXMeta):
-    """The controlled-rx gate."""
+    r"""Controlled-RX gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Rx(ϴ) ├
+             └───────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CRX(\lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & \cos{\th} & 0 & -i\sin{\th} \\
+                0 & 0 & 1 & 0 \\
+                0 & -i\sin{\th} & 0 & \cos{\th}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Rx(ϴ) ├
+                 └───┬───┘
+            q_1: ────■────
+
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            CRX(\theta)\ q_1, q_0 =
+            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & \cos{\th}   & -i\sin{\th} \\
+                    0 & 0 & -i\sin{\th} & \cos{\th}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new crx gate."""
+        """Create new CRX gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RXGate(theta)
 
@@ -121,7 +194,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0])
 
 

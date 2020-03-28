@@ -21,14 +21,50 @@ from ..quantumregister import QuantumRegister
 
 
 class U2Gate(Gate):
-    """One-pulse single-qubit gate."""
+    r"""Single-qubit rotation about the X+Z axis.
+
+    Implemented using one X90 pulse on IBM Quantum systems:
+
+    .. math::
+        U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤ U2(φ,λ) ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        U2(\phi, \lambda) = \frac{1}{\sqrt{2}}
+            \begin{pmatrix}
+                1          & e^{-i\lambda} \\
+                e^{i\phi} & e^{i(\phi+\lambda)}
+            \end{pmatrix}
+
+    **Examples:**
+
+    .. math::
+
+        U2(\pi, 0) = H
+
+    .. seealso::
+
+        :class:`~qiskit.extensions.standard.U3Gate`:
+        U3 is a generalization of U2 that covers all single-qubit rotations,
+        using two X90 pulses.
+    """
 
     def __init__(self, phi, lam, label=None):
-        """Create new one-pulse single-qubit gate."""
+        """Create new U2 gate."""
         super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
-        from qiskit.extensions.standard.u3 import U3Gate
+        from .u3 import U3Gate
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
@@ -37,9 +73,9 @@ class U2Gate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted U2 gate.
 
-        u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
+        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 

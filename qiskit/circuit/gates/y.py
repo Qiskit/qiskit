@@ -12,9 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pauli Y (bit-phase-flip) gate.
-"""
+"""Y and CY gates."""
+
 import numpy
 from qiskit.qasm import pi
 from ..controlledgate import ControlledGate
@@ -23,7 +22,47 @@ from ..quantumregister import QuantumRegister
 
 
 class YGate(Gate):
-    """Pauli Y (bit-phase-flip) gate."""
+    r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Y = \begin{pmatrix}
+                0 & -i \\
+                i & 0
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ Y ├
+             └───┘
+
+    Equivalent to a :math:`\pi` radian rotation about the Y axis.
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RY(\pi)` and :math:`Y`.
+
+        .. math::
+
+            RY(\pi) = \begin{pmatrix}
+                        0 & -1 \\
+                        1 & 0
+                      \end{pmatrix}
+                    = -i Y
+
+    The gate is equivalent to a bit and phase flip.
+
+    .. math::
+
+        |0\rangle \rightarrow i|1\rangle \\
+        |1\rangle \rightarrow -i|0\rangle
+    """
 
     def __init__(self, label=None):
         """Create new Y gate."""
@@ -41,7 +80,9 @@ class YGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-Y gate.
+
+        One control returns a CY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -59,7 +100,7 @@ class YGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
     def to_matrix(self):
@@ -79,10 +120,60 @@ class CYMeta(type):
 
 
 class CYGate(ControlledGate, metaclass=CYMeta):
-    """The controlled-Y gate."""
+    r"""Controlled-Y gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ Y ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CY\ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + Y \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & -i \\
+                0 & 0 & 1 & 0 \\
+                0 & i & 0 & 0
+            \end{pmatrix}
+
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ Y ├
+                 └─┬─┘
+            q_1: ──■──
+
+        .. math::
+
+            CY\ q_1, q_0 =
+                |0 \rangle\langle 0| \otimes I + |1 \rangle\langle 1| \otimes Y =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & -i \\
+                    0 & 0 & i & 0
+                \end{pmatrix}
+
+    """
 
     def __init__(self):
-        """Create a new CY gate."""
+        """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1)
         self.base_gate = YGate()
 
@@ -104,7 +195,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CY gate (itself)."""
         return CYGate()  # self-inverse
 
     def to_matrix(self):

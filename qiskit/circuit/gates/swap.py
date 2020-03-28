@@ -21,7 +21,36 @@ from ..quantumregister import QuantumRegister
 
 
 class SwapGate(Gate):
-    """SWAP gate."""
+    r"""The SWAP gate.
+
+    This is a symmetric and Clifford gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─X─
+              │
+        q_1: ─X─
+
+    **Matrix Representation:**
+
+    .. math::
+
+        SWAP =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    The gate is equivalent to a state swap and is a classical logic gate.
+
+    .. math::
+
+        |a, b\rangle \rightarrow |b, a\rangle
+    """
 
     def __init__(self):
         """Create new SWAP gate."""
@@ -44,7 +73,9 @@ class SwapGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (multi-)controlled-SWAP gate.
+
+        One control returns a CSWAP (Fredkin) gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -62,7 +93,7 @@ class SwapGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
     def to_matrix(self):
@@ -84,7 +115,77 @@ class CSwapMeta(type):
 
 
 class CSwapGate(ControlledGate, metaclass=CSwapMeta):
-    """The controlled-swap gate, also called Fredkin gate."""
+    r"""Controlled-X gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─X─
+              │
+        q_1: ─X─
+              │
+        q_2: ─■─
+
+
+    **Matrix representation:**
+
+    .. math::
+
+        CSWAP\ q_0, q_1, q_2 =
+            |0 \rangle \langle 0| \otimes I \otimes I +
+            |1 \rangle \langle 1| \otimes SWAP =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_2. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+
+            q_0: ─■─
+                  │
+            q_1: ─X─
+                  │
+            q_2: ─X─
+
+        .. math::
+
+            CSWAP\ q_2, q_1, q_0 =
+                |0 \rangle \langle 0| \otimes I \otimes I +
+                |1 \rangle \langle 1| \otimes SWAP =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+                \end{pmatrix}
+
+    In the computational basis, this gate swaps the states of
+    the two target qubits if the control qubit is in the
+    :math:`|1\rangle` state.
+
+    .. math::
+        |0, b, c\rangle \rightarrow |0, b, c\rangle
+        |1, b, c\rangle \rightarrow |1, c, b\rangle
+    """
 
     def __init__(self):
         """Create new CSWAP gate."""
@@ -112,7 +213,7 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse CSwap gate (itself)."""
         return CSwapGate()  # self-inverse
 
     def to_matrix(self):

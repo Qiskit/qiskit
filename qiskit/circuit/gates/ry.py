@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Rotation around the y-axis."""
+"""Rotation around the Y axis."""
 
 import math
 import numpy
@@ -23,10 +23,31 @@ from ..quantumregister import QuantumRegister
 
 
 class RYGate(Gate):
-    """The rotation around the y-axis."""
+    r"""Single-qubit rotation about the Y axis.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────┐
+        q_0: ┤ Ry(ϴ) ├
+             └───────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RX(\theta) = exp(-i \th Y) =
+            \begin{pmatrix}
+                \cos{\th} & -\sin{\th} \\
+                \sin{\th} & \cos{\th}
+            \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new RY single qubit gate."""
+        """Create new RY gate."""
         super().__init__('ry', 1, [theta])
 
     def _define(self):
@@ -44,7 +65,7 @@ class RYGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -62,9 +83,9 @@ class RYGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted RY gate.
 
-        ry(theta)^dagger = ry(-theta)
+        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
         return RYGate(-self.params[0])
 
@@ -87,10 +108,60 @@ class CRYMeta(type):
 
 
 class CRYGate(ControlledGate, metaclass=CRYMeta):
-    """The controlled-ry gate."""
+    r"""Controlled-RY gate.
+
+    **Circuit symbol:**
+
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Ry(ϴ) ├
+             └───────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CRY(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0         & 0 & 0 \\
+                0 & \cos{\th} & 0 & -\sin{\th} \\
+                0 & 0         & 1 & 0 \\
+                0 & \sin{\th} & 0 & \cos{\th}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Ry(ϴ) ├
+                 └───┬───┘
+            q_1: ────■────
+
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            CRY(\theta)\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & \cos{\th} & -\sin{\th} \\
+                    0 & 0 & \sin{\th} & \cos{\th}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new cry gate."""
+        """Create new CRY gate."""
         super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RYGate(theta)
 
@@ -100,7 +171,6 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         { u3(lambda/2,0,0) b; cx a,b;
           u3(-lambda/2,0,0) b; cx a,b;
         }
-
         """
         from .u3 import U3Gate
         from .x import CXGate
@@ -117,7 +187,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0])
 
 

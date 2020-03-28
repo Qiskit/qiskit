@@ -12,21 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Global Mølmer–Sørensen gate.
-
-The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
-applied to multiple ions to entangle multiple qubits simultaneously.
-
-In the two-qubit case, this is equivalent to an XX(theta) interaction,
-and is thus reduced to the RXXGate.
-"""
+"""Global Mølmer–Sørensen gate."""
 
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
 
 
 class MSGate(Gate):
-    """Global Molmer-Sorensen gate."""
+    """Global Mølmer–Sørensen gate.
+
+    The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
+    applied to multiple ions to entangle multiple qubits simultaneously.
+
+    In the two-qubit case, this is equivalent to an XX(theta) interaction,
+    and is thus reduced to the RXXGate.
+    """
 
     def __init__(self, n_qubits, theta):
         """Create new MS gate."""

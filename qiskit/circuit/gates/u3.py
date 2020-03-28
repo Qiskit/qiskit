@@ -17,7 +17,6 @@ Two-pulse single-qubit gate.
 """
 
 import numpy
-from qiskit.util import deprecate_arguments
 from ..controlledgate import ControlledGate
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
@@ -26,21 +25,57 @@ from ..quantumregister import QuantumRegister
 
 
 class U3Gate(Gate):
-    """Two-pulse single-qubit gate."""
+    r"""Generic single-qubit rotation gate with 3 Euler angles.
+
+    Implemented using two X90 pulses on IBM Quantum systems:
+
+    .. math::
+        U2(\phi, \lambda) = RZ(\phi+\pi/2) RX(\frac{\pi}{2}) RZ(\lambda-\pi/2)
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────────┐
+        q_0: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        U3(\theta, \phi, \lambda) =
+            \begin{pmatrix}
+                \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+            \end{pmatrix}
+
+    **Examples:**
+
+    .. math::
+
+        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+
+    .. math::
+
+        U3(\theta, 0, 0) = RY(\theta)
+    """
 
     def __init__(self, theta, phi, lam, label=None):
-        """Create new two-pulse single qubit gate."""
+        """Create new U3 gate."""
         super().__init__('u3', 1, [theta, phi, lam], label=label)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted U3 gate.
 
-        u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
+        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\phi,-\lambda)`)
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-U3 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -84,10 +119,66 @@ class CU3Meta(type):
 
 
 class CU3Gate(ControlledGate, metaclass=CU3Meta):
-    """The controlled-u3 gate."""
+    r"""Controlled-U3 gate (3-parameter two-qubit gate).
+
+    This is a controlled version of the U3 gate (generic single qubit rotation).
+    It is restricted to 3 parameters, and so cannot cover generic two-qubit
+    controlled gates).
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──────■──────
+             ┌─────┴─────┐
+        q_1: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CU3(\theta, \phi, \lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| +
+            U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0                   & 0 & 0 \\
+                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & 0                   & 1 & 0 \\
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────────┐
+            q_0: ┤ U3(ϴ,φ,λ) ├
+                 └─────┬─────┘
+            q_1: ──────■──────
+
+        .. math::
+
+            CU3(\theta, \phi, \lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I +
+                |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+                \begin{pmatrix}
+                    1 & 0   & 0                  & 0 \\
+                    0 & 1   & 0                  & 0 \\
+                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta, phi, lam):
-        """Create new cu3 gate."""
+        """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
 
@@ -102,8 +193,8 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
           u3(theta/2,phi,0) t;
         }
         """
-        from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.x import CXGate
+        from .u1 import U1Gate
+        from .x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
@@ -119,7 +210,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted CU3 gate.
+
+        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
+        """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 

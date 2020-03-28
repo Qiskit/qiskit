@@ -25,10 +25,33 @@ from ..quantumregister import QuantumRegister
 
 # pylint: disable=cyclic-import
 class HGate(Gate):
-    """Hadamard gate."""
+    r"""Single-qubit Hadamard gate.
+
+    This gate is a \pi rotation about the X+Z axis, and has the effect of
+    changing computation basis from :math:`|0\rangle,|1\rangle` to
+    :math:`|+\rangle,|-\rangle` and vice-versa.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ H ├
+             └───┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        H = \frac{1}{\sqrt{2}}
+            \begin{pmatrix}
+                1 & 1 \\
+                1 & -1
+            \end{pmatrix}
+    """
 
     def __init__(self, label=None):
-        """Create new Hadamard gate."""
+        """Create new H gate."""
         super().__init__('h', 1, [], label=label)
 
     def _define(self):
@@ -46,7 +69,9 @@ class HGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (multi-)controlled-H gate.
+
+        One control qubit returns a CH gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -64,7 +89,7 @@ class HGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
     def to_matrix(self):
@@ -74,7 +99,59 @@ class HGate(Gate):
 
 
 class CHGate(ControlledGate):
-    """The controlled-H gate."""
+    r"""Controlled-Hadamard gate.
+
+    Applies a Hadamard on the target qubit if the control is
+    in the :math:`|1\rangle` state.
+
+    **Circuit symbol:**
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ H ├
+             └───┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        CH\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
+            \frac{1}{\sqrt{2}}
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 1 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & -1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ H ├
+                 └─┬─┘
+            q_1: ──■──
+
+        .. math::
+
+            CH\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes H =
+                \frac{1}{\sqrt{2}}
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & 1 & 1 \\
+                    0 & 0 & 1 & -1
+                \end{pmatrix}
+
+    """
 
     def __init__(self):
         """Create new CH gate."""
@@ -110,7 +187,7 @@ class CHGate(ControlledGate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CH gate (itself)."""
         return CHGate()  # self-inverse
 
     def to_matrix(self):

@@ -20,14 +20,57 @@ from ..quantumregister import QuantumRegister
 
 
 class RYYGate(Gate):
-    r"""Two-qubit YY-rotation gate.
+    r"""A parameteric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
 
-    This gate corresponds to the rotation :math:`U(\theta) = e^{-i\theta / 2 Y \otimes Y)`,
-    multiplied by the phase :math:`e^{i \theta / 2}`.
+    This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤1        ├
+             │  Ryy(ϴ) │
+        q_1: ┤0        ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        R_{YY}(\theta) = exp(-i.\frac{\theta}{2}.Y{\otimes}Y) =
+            \begin{pmatrix}
+                \cos(\th)   & 0           & 0           & i\sin(\th) \\
+                0           & \cos(\th)   & -i\sin(\th) & 0 \\
+                0           & -i\sin(\th) & \cos(\th)   & 0 \\
+                i\sin(\th)  & 0           & 0           & \cos(\th)}
+            \end{pmatrix}
+
+    **Examples:**
+
+        .. math::
+
+            R_{YY}(\theta = 0) = I
+
+        .. math::
+
+            R_{YY}(\theta = \pi) = i Y \otimes Y
+
+        .. math::
+
+            R_{YY}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+                                    \begin{pmatrix}
+                                        1 & 0 & 0 & i \\
+                                        0 & 1 & -i & 0 \\
+                                        0 & -i & 1 & 0 \\
+                                        i & 0 & 0 & 1
+                                    \end{pmatrix}
     """
 
     def __init__(self, theta):
-        """Create new ryy gate."""
+        """Create new RYY gate."""
         super().__init__('ryy', 2, [theta])
 
     def _define(self):
@@ -53,15 +96,17 @@ class RYYGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    def to_matrix(self):
-        """Return a numpy.arry for the RYY gate."""
-        theta = self.params[0]
-        return np.exp(0.5j * theta) * np.array([
-            [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
-            [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-            [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-            [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
-        ], dtype=complex)
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
+    # def to_matrix(self):
+    #     """Return a numpy.array for the RYY gate."""
+    #     theta = self.params[0]
+    #     return np.exp(0.5j * theta) * np.array([
+    #         [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
+    #         [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
+    #         [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+    #         [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
+    #     ], dtype=complex)
