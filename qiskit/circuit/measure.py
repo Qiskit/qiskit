@@ -76,21 +76,29 @@ class PauliMeasure(Measure):
         """
         super().__init__()
 
+        post_rotation = None
+
         if basis.lower() == 'x':
             self.name = 'x_measure'
             from qiskit.extensions.standard import HGate
-            basis_transformation = [HGate()]
+            pre_rotation = [HGate()]
         elif basis.lower() == 'y':
             self.name = 'y_measure'
             from qiskit.extensions.standard import HGate, SdgGate
-            basis_transformation = [SdgGate(), HGate(), SdgGate()]
+            # since measure and S commute, S and Sdg cancel each other
+            pre_rotation = [SdgGate(), HGate()]
+            post_rotation = [HGate(), SdgGate()]
         elif basis.lower() == 'z':
-            basis_transformation = []
+            pre_rotation = []
         else:
             raise ValueError('Unsupported measurement basis choose either of X, Y or Z.')
 
+        if post_rotation is None:
+            post_rotation = [gate.inverse() for gate in reversed(pre_rotation)]
+
         self.basis = basis
-        self.basis_transformation = basis_transformation
+        self.pre_rotation = pre_rotation
+        self.post_rotation = post_rotation
 
     def _define(self):
         definition = []
@@ -98,17 +106,17 @@ class PauliMeasure(Measure):
         c = ClassicalRegister(1, 'c')
 
         # switch to the measurement basis
-        for gate in self.basis_transformation:
+        for gate in self.pre_rotation:
             definition.append((gate, [q[0]], []))
 
         # measure
         definition.append((Measure(), [q[0]], [c[0]]))
 
         # apply inverse basis transformation for correct post-measurement state
-        for gate in reversed(self.basis_transformation):
-            definition.append((gate.inverse(), [q[0]], []))
+        for gate in self.post_rotation:
+            definition.append(gate, [q[0]], []))
 
-        self.definition = definition
+        self.definition=definition
 
 
 def pauli_measure(self, basis, qubit, cbit):
@@ -116,4 +124,4 @@ def pauli_measure(self, basis, qubit, cbit):
     return self.append(PauliMeasure(basis=basis), [qubit], [cbit])
 
 
-QuantumCircuit.pauli_measure = pauli_measure
+QuantumCircuit.pauli_measure=pauli_measure
