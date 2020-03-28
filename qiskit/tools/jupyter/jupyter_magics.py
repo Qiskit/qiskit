@@ -192,7 +192,7 @@ class ProgressBarMagic(Magics):
         return pbar
 
 
-if HAS_MATPLOTLIB:
+if HAS_MATPLOTLIB and get_ipython():
     @register_line_magic
     def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:
         """Displays library information for a quantum circuit.
