@@ -162,7 +162,7 @@ def squ(self, unitary_matrix, qubit, mode='ZYZ', up_to_diagonal=False, *, u=None
         u (ndarray): Deprecated, use ``unitary_matrix`` instead.
 
     Returns:
-        Instruction: The single-qubit unitary attached to the circuit.
+        InstructionSet: The single-qubit unitary instruction attached to the circuit.
 
     Raises:
         QiskitError: if the format is wrong; if the array u is not unitary
