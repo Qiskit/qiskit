@@ -15,6 +15,7 @@
 """Delay instruction. Deprecated path."""
 import warnings
 
+from ..channels import Channel
 from ..instructions import Delay
 from ..instructions import Instruction
 
@@ -22,7 +23,7 @@ from ..instructions import Instruction
 class DelayInstruction(Instruction):
     """Deprecated."""
 
-    def __init__(self, command: Delay, channel: Delay, name: str = None):
+    def __init__(self, command: Delay, channel: Channel, name: str = None):
         """Create a delay instruction from a delay command.
 
         Args:
