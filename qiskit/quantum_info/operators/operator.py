@@ -120,7 +120,7 @@ class Operator(BaseOperator):
         if not super().__eq__(other):
             return False
         return np.allclose(
-            self.data, other.data, rtol=self._rtol, atol=self._atol)
+            self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
@@ -187,9 +187,9 @@ class Operator(BaseOperator):
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
     def to_operator(self):
@@ -434,9 +434,9 @@ class Operator(BaseOperator):
         if self.dim != other.dim:
             return False
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 

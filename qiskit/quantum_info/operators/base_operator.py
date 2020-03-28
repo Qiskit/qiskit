@@ -85,22 +85,17 @@ class BaseOperator(ABC):
         return self._num_qubits
 
     @property
-    def _atol(self):
+    def atol(self):
         """The default absolute tolerance parameter for float comparisons."""
         return self.__class__._ATOL_DEFAULT
 
-    @_atol.setter
-    def _atol(self, value):
-        """Set the class default absolute tolerance parameter for float comparisons."""
-        warnings.warn(
-            'Setting default atol default value with `_atol` is deprecated as'
-            ' of 0.13.0, and will be removed no earlier than 3 months after'
-            ' that release date. You should use the `set_atol` class method'
-            ' instead.', DeprecationWarning, stacklevel=2)
-        self.__class__._set_atol(value)
+    @property
+    def rtol(self):
+        """The relative tolerance parameter for float comparisons."""
+        return self.__class__._RTOL_DEFAULT
 
     @classmethod
-    def _set_atol(cls, value):
+    def set_atol(cls, value):
         """Set the class default absolute tolerance parameter for float comparisons."""
         if value < 0:
             raise QiskitError(
@@ -111,23 +106,8 @@ class BaseOperator(ABC):
                     value, cls._MAX_TOL))
         cls._ATOL_DEFAULT = value
 
-    @property
-    def _rtol(self):
-        """The relative tolerance parameter for float comparisons."""
-        return self.__class__._RTOL_DEFAULT
-
-    @_rtol.setter
-    def _rtol(self, value):
-        """Set the class default relative tolerance parameter for float comparisons."""
-        warnings.warn(
-            'Setting default rtol default value with `_rtol` is deprecated as'
-            ' of 0.13.0, and will be removed no earlier than 3 months after'
-            ' that release date. You should use the `set_rtol` class method'
-            ' instead.', DeprecationWarning, stacklevel=2)
-        self.__class__._set_rtol(value)
-
     @classmethod
-    def _set_rtol(cls, value):
+    def set_rtol(cls, value):
         """Set the class default relative tolerance parameter for float comparisons."""
         if value < 0:
             raise QiskitError(
