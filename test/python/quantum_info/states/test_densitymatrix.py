@@ -18,7 +18,6 @@
 
 import unittest
 import logging
-
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -335,6 +334,216 @@ class TestDensityMatrix(QiskitTestCase):
             rho = self.rand_rho(4)
             state = DensityMatrix(rho)
             self.assertEqual(-state, DensityMatrix(-1 * rho))
+
+    def test_to_dict(self):
+        """Test to_dict method"""
+
+        with self.subTest(msg='dims = (2, 2)'):
+            rho = DensityMatrix(np.arange(1, 17).reshape(4, 4))
+            target = {
+                '00|00': 1, '01|00': 2, '10|00': 3, '11|00': 4,
+                '00|01': 5, '01|01': 6, '10|01': 7, '11|01': 8,
+                '00|10': 9, '01|10': 10, '10|10': 11, '11|10': 12,
+                '00|11': 13, '01|11': 14, '10|11': 15, '11|11': 16
+            }
+            self.assertDictAlmostEqual(target, rho.to_dict())
+
+        with self.subTest(msg='dims = (2, 3)'):
+            rho = DensityMatrix(np.diag(np.arange(1, 7)), dims=(2, 3))
+            target = {}
+            for i in range(2):
+                for j in range(3):
+                    key = '{1}{0}|{1}{0}'.format(i, j)
+                    target[key] = 2 * j + i + 1
+            self.assertDictAlmostEqual(target, rho.to_dict())
+
+        with self.subTest(msg='dims = (2, 11)'):
+            vec = DensityMatrix(np.diag(np.arange(1, 23)), dims=(2, 11))
+            target = {}
+            for i in range(2):
+                for j in range(11):
+                    key = '{1},{0}|{1},{0}'.format(i, j)
+                    target[key] = 2 * j + i + 1
+            self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_probabilities_product(self):
+        """Test probabilities method for product state"""
+
+        state = DensityMatrix.from_label('+0')
+
+        # 2-qubit qargs
+        with self.subTest(msg='P(None)'):
+            probs = state.probabilities()
+            target = np.array([0.5, 0, 0.5, 0])
+            self.assertTrue(np.allclose(probs, target))
+
+        with self.subTest(msg='P([0, 1])'):
+            probs = state.probabilities([0, 1])
+            target = np.array([0.5, 0, 0.5, 0])
+            self.assertTrue(np.allclose(probs, target))
+
+        with self.subTest(msg='P([1, 0]'):
+            probs = state.probabilities([1, 0])
+            target = np.array([0.5, 0.5, 0, 0])
+            self.assertTrue(np.allclose(probs, target))
+
+        # 1-qubit qargs
+        with self.subTest(msg='P([0])'):
+            probs = state.probabilities([0])
+            target = np.array([1, 0])
+            self.assertTrue(np.allclose(probs, target))
+
+        with self.subTest(msg='P([1])'):
+            probs = state.probabilities([1])
+            target = np.array([0.5, 0.5])
+            self.assertTrue(np.allclose(probs, target))
+
+    def test_probabilities_ghz(self):
+        """Test probabilities method for GHZ state"""
+
+        psi = (Statevector.from_label('000') +
+               Statevector.from_label('111')) / np.sqrt(2)
+        state = DensityMatrix(psi)
+
+        # 3-qubit qargs
+        target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+        # 2-qubit qargs
+        target = np.array([0.5, 0, 0, 0.5])
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+        # 1-qubit qargs
+        target = np.array([0.5, 0.5])
+        for qargs in [[0], [1], [2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+    def test_probabilities_w(self):
+        """Test probabilities method with W state"""
+
+        psi = (Statevector.from_label('001') +
+               Statevector.from_label('010') +
+               Statevector.from_label('100')) / np.sqrt(3)
+        state = DensityMatrix(psi)
+
+        # 3-qubit qargs
+        target = np.array([0, 1/3, 1/3, 0, 1/3, 0, 0, 0])
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+        # 2-qubit qargs
+        target = np.array([1/3, 1/3, 1/3, 0])
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+        # 1-qubit qargs
+        target = np.array([2/3, 1/3])
+        for qargs in [[0], [1], [2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities(qargs)
+                self.assertTrue(np.allclose(probs, target))
+
+    def test_probabilities_dict_product(self):
+        """Test probabilities_dict method for product state"""
+
+        state = DensityMatrix.from_label('+0')
+
+        # 2-qubit qargs
+        with self.subTest(msg='P(None)'):
+            probs = state.probabilities_dict()
+            target = {'00': 0.5, '10': 0.5}
+            self.assertDictAlmostEqual(probs, target)
+
+        with self.subTest(msg='P([0, 1])'):
+            probs = state.probabilities_dict([0, 1])
+            target = {'00': 0.5, '10': 0.5}
+            self.assertDictAlmostEqual(probs, target)
+
+        with self.subTest(msg='P([1, 0]'):
+            probs = state.probabilities_dict([1, 0])
+            target = {'00': 0.5, '01': 0.5}
+            self.assertDictAlmostEqual(probs, target)
+
+        # 1-qubit qargs
+        with self.subTest(msg='P([0])'):
+            probs = state.probabilities_dict([0])
+            target = {'0': 1}
+            self.assertDictAlmostEqual(probs, target)
+
+        with self.subTest(msg='P([1])'):
+            probs = state.probabilities_dict([1])
+            target = {'0': 0.5, '1': 0.5}
+            self.assertDictAlmostEqual(probs, target)
+
+    def test_probabilities_dict_ghz(self):
+        """Test probabilities_dict method for GHZ state"""
+
+        psi = (Statevector.from_label('000') +
+               Statevector.from_label('111')) / np.sqrt(2)
+        state = DensityMatrix(psi)
+
+        # 3-qubit qargs
+        target = {'000': 0.5, '111': 0.5}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 2-qubit qargs
+        target = {'00': 0.5, '11': 0.5}
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 1-qubit qargs
+        target = {'0': 0.5, '1': 0.5}
+        for qargs in [[0], [1], [2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+    def test_probabilities_dict_w(self):
+        """Test probabilities_dict method with W state"""
+
+        psi = (Statevector.from_label('001') +
+               Statevector.from_label('010') +
+               Statevector.from_label('100')) / np.sqrt(3)
+        state = DensityMatrix(psi)
+
+        # 3-qubit qargs
+        target = np.array([0, 1/3, 1/3, 0, 1/3, 0, 0, 0])
+        target = {'001': 1/3, '010': 1/3, '100': 1/3}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 2-qubit qargs
+        target = {'00': 1/3, '01': 1/3, '10': 1/3}
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 1-qubit qargs
+        target = {'0': 2/3, '1': 1/3}
+        for qargs in [[0], [1], [2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = state.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
 
 
 if __name__ == '__main__':

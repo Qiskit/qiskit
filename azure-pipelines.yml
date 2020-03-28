@@ -142,6 +142,7 @@ stages:
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -246,6 +247,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -305,6 +307,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -360,6 +363,7 @@ stages:
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -414,6 +418,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
