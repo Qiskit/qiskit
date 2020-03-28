@@ -76,7 +76,7 @@ class PauliMeasure(Measure):
         """
         super().__init__()
 
-        post_rotation = None
+        pre_rotation, post_rotation = None, None
 
         if basis.lower() == 'x':
             self.name = 'x_measure'
@@ -93,6 +93,7 @@ class PauliMeasure(Measure):
         else:
             raise ValueError('Unsupported measurement basis choose either of X, Y or Z.')
 
+        # default post rotation is the inverse of the pre rotations
         if post_rotation is None:
             post_rotation = [gate.inverse() for gate in reversed(pre_rotation)]
 
@@ -114,9 +115,9 @@ class PauliMeasure(Measure):
 
         # apply inverse basis transformation for correct post-measurement state
         for gate in self.post_rotation:
-            definition.append(gate, [q[0]], []))
+            definition.append(gate, [q[0]], [])
 
-        self.definition=definition
+        self.definition = definition
 
 
 def pauli_measure(self, basis, qubit, cbit):
@@ -124,4 +125,4 @@ def pauli_measure(self, basis, qubit, cbit):
     return self.append(PauliMeasure(basis=basis), [qubit], [cbit])
 
 
-QuantumCircuit.pauli_measure=pauli_measure
+QuantumCircuit.pauli_measure = pauli_measure
