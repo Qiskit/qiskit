@@ -19,19 +19,15 @@ Qasm (:mod:`qiskit.qasm`)
 
 .. currentmodule:: qiskit.qasm
 
+QASM Routines
+=============
+
 .. autosummary::
    :toctree: ../stubs/
 
    Qasm
    QasmError
 
-Submodules
-==========
-
-.. autosummary::
-   :toctree:
-
-   pygments
 """
 
 from numpy import pi
