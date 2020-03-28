@@ -15,7 +15,6 @@
 """
 Quantum measurement in the computational basis.
 """
-from numpy import pi
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
