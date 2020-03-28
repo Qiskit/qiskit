@@ -49,6 +49,6 @@ class PassManagerConfig:
         self.basis_gates = basis_gates
         self.coupling_map = coupling_map
         self.layout_method = layout_method
-        self.routing_method=routing_method,
+        self.routing_method = routing_method
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler
