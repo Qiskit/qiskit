@@ -63,6 +63,7 @@ class TestDensityMatrix(QiskitTestCase):
             assert_allclose(state.data, rho)
             self.assertEqual(state.dim, 8)
             self.assertEqual(state.dims(), (2, 2, 2))
+            self.assertEqual(state.num_qubits, 3)
 
     def test_init_array(self):
         """Test initialization from array."""
@@ -71,12 +72,14 @@ class TestDensityMatrix(QiskitTestCase):
         assert_allclose(state.data, rho)
         self.assertEqual(state.dim, 3)
         self.assertEqual(state.dims(), (3,))
+        self.assertIsNone(state.num_qubits)
 
         rho = self.rand_rho(2 * 3 * 4)
         state = DensityMatrix(rho, dims=[2, 3, 4])
         assert_allclose(state.data, rho)
         self.assertEqual(state.dim, 2 * 3 * 4)
         self.assertEqual(state.dims(), (2, 3, 4))
+        self.assertIsNone(state.num_qubits)
 
     def test_init_array_except(self):
         """Test initialization exception from array."""

@@ -158,7 +158,7 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
@@ -177,7 +177,7 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
@@ -215,7 +215,7 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+                         specified QuantumState subsystem dimensions.
         """
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
@@ -232,26 +232,36 @@ class DensityMatrix(QuantumState):
 
     @classmethod
     def from_label(cls, label):
-        """Return a tensor product of Pauli X,Y,Z eigenstates.
+        r"""Return a tensor product of Pauli X,Y,Z eigenstates.
+
+        .. list-table:: Single-qubit state labels
+           :header-rows: 1
+
+           * - Label
+             - Statevector
+           * - ``"0"``
+             - :math:`\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}`
+           * - ``"1"``
+             - :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
+           * - ``"+"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}`
+           * - ``"-"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}`
+           * - ``"r"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -i \\ i & 1 \end{pmatrix}`
+           * - ``"l"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & i \\ -i & 1 \end{pmatrix}`
 
         Args:
-            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+            label (string): a eigenstate string ket label (see table for
+                            allowed values).
 
         Returns:
             Statevector: The N-qubit basis state density matrix.
 
         Raises:
             QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
-
-        Additional Information:
-            The labels correspond to the single-qubit states:
-            '0': [[1, 0], [0, 0]]
-            '1': [[0, 0], [0, 1]]
-            '+': [[0.5, 0.5], [0.5 , 0.5]]
-            '-': [[0.5, -0.5], [-0.5 , 0.5]]
-            'r': [[0.5, -0.5j], [0.5j , 0.5]]
-            'l': [[0.5, 0.5j], [-0.5j , 0.5]]
+                         of the label is larger than an explicitly specified num_qubits.
         """
         return DensityMatrix(Statevector.from_label(label))
 
@@ -259,19 +269,19 @@ class DensityMatrix(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output density matrix of an instruction.
 
-        The statevector is initialized in the state |0,...,0> of the same
-        number of qubits as the input instruction or circuit, evolved
+        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of
+        the same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             DensityMatrix: the final density matrix.
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
-            density matrix simulation.
+                         density matrix simulation.
         """
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -369,8 +379,7 @@ class DensityMatrix(QuantumState):
         return vec
 
     def to_counts(self):
-        """Returns the density matrix as a counts dict
-        of probabilities.
+        """Returns the density matrix as a counts dict of probabilities.
 
         Returns:
             dict: Counts of probabilities.

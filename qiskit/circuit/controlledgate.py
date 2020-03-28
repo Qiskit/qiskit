@@ -29,7 +29,6 @@ class ControlledGate(Gate):
 
         Attributes:
             num_ctrl_qubits (int): The number of control qubits.
-            ctrl_state (int): The control state in decimal notation.
 
         Args:
             name (str): The Qobj name of the gate.
