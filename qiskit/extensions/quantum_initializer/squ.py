@@ -46,14 +46,16 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
-    def __init__(self, u, mode='ZYZ', up_to_diagonal=False):
+    # pylint: disable=unused-argument
+    @deprecate_arguments({'u': 'unitary'})
+    def __init__(self, unitary_matrix, mode='ZYZ', up_to_diagonal=False, *, u=None):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ['ZYZ']:
             raise QiskitError("The decomposition mode is not known.")
         # Check if the matrix u has the right dimensions and if it is a unitary
-        if u.shape != (2, 2):
+        if unitary_matrix.shape != (2, 2):
             raise QiskitError("The dimension of the input matrix is not equal to (2,2).")
-        if not is_unitary_matrix(u):
+        if not is_unitary_matrix(unitary_matrix):
             raise QiskitError("The 2*2 matrix is not unitary.")
 
         self.mode = mode
@@ -61,7 +63,7 @@ class SingleQubitUnitary(Gate):
         self._diag = None
 
         # Create new gate
-        super().__init__("unitary", 1, [u])
+        super().__init__("unitary", 1, [unitary_matrix])
 
     @property
     def diag(self):
@@ -157,7 +159,7 @@ def squ(self, unitary_matrix, qubit, mode='ZYZ', up_to_diagonal=False, *, u=None
         up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
             a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
             diagonal gate d with u = d.dot(u')
-        u (ndarray): Deprecated, use ``unitart_matrix`` instead.
+        u (ndarray): Deprecated, use ``unitary_matrix`` instead.
 
     Returns:
         Instruction: The single-qubit unitary attached to the circuit.
@@ -176,7 +178,7 @@ def squ(self, unitary_matrix, qubit, mode='ZYZ', up_to_diagonal=False, *, u=None
     # Check if there is one target qubit provided
     if not isinstance(qubit, Qubit):
         raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-    return self.append(SingleQubitUnitary(u, mode, up_to_diagonal), [qubit], [])
+    return self.append(SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal), [qubit], [])
 
 
 QuantumCircuit.squ = squ

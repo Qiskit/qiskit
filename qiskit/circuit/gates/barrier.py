@@ -15,7 +15,6 @@
 """Barrier instruction."""
 
 from qiskit.exceptions import QiskitError
-from ..quantumregister import QuantumRegister
 from ..instruction import Instruction
 
 

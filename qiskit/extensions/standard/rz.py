@@ -12,8 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from qiskit.circuit.gates.rz import RZGate, CRZGate, CrzGate
-
 """The standard gates moved to qiskit/circuit/gates."""
+
+from qiskit.circuit.gates.rz import RZGate, CRZGate, CrzGate
 
 __all__ = ['RZGate', 'CRZGate', 'CrzGate']

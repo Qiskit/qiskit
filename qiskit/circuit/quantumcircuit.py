@@ -38,14 +38,17 @@ from .quantumcircuitdata import QuantumCircuitData
 
 # gate imports
 from .gates.barrier import Barrier
+from .gates.dcx import DCXGate
 from .gates.h import HGate, CHGate
 from .gates.i import IGate
+from .gates.iswap import iSwapGate
 from .gates.ms import MSGate
 from .gates.r import RGate
 from .gates.rccx import RCCXGate
 from .gates.rcccx import RCCCXGate
 from .gates.rx import RXGate, CRXGate
 from .gates.rxx import RXXGate
+from .gates.rzx import RZXGate
 from .gates.ry import RYGate, CRYGate
 from .gates.ryy import RYYGate
 from .gates.rz import RZGate, CRZGate
@@ -1477,6 +1480,10 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.gates.CRZGate`."""
         return self.append(CRZGate(theta), [control_qubit, target_qubit], [])
 
+    def rzx(self, theta, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.gates.RZXGate`."""
+        return self.append(RZXGate(theta), [qubit1, qubit2], [])
+
     def rzz(self, theta, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.gates.RZZGate`."""
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
@@ -1494,6 +1501,10 @@ class QuantumCircuit:
     def swap(self, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.gates.SwapGate`."""
         return self.append(SwapGate(), [qubit1, qubit2], [])
+
+    def iswap(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.gates.iSwapGate`."""
+        return self.append(iSwapGate(), [qubit1, qubit2], [])
 
     @deprecate_arguments({'ctl': 'control_qubit',
                           'tgt1': 'target_qubit1',
@@ -1568,6 +1579,10 @@ class QuantumCircuit:
              *, ctl=None, tgt=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.gates.CXGate`."""
         self.cx(control_qubit, target_qubit, ctl=ctl, tgt=tgt)
+
+    def dcx(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.gate.DCXGate`."""
+        return self.append(DCXGate(), [qubit1, qubit2], [])
 
     @deprecate_arguments({'ctl1': 'control_qubit1',
                           'ctl2': 'control_qubit2',
