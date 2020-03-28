@@ -157,7 +157,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
     .. math::
 
         CX\ q_0, q_1 =
-            I \otimes |0\rangle\langle0| + Y \otimes |1\rangle\langle1| =
+            I \otimes |0\rangle\langle0| + X \otimes |1\rangle\langle1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & 0 & 1 \\
