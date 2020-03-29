@@ -841,20 +841,24 @@ class MatplotlibDrawer:
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text="Unitary")
                 elif isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
 
+                    if disp in ['y', 'h', 's', 'sdg']:
+                        gatecol = self._style.dispcol[disp]
+                    else:
+                        gatecol = self._style.dispcol['multi']
                     for i in range(num_ctrl_qubits):
-                        self._ctrl_qubit(q_xy[i], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
+                        self._ctrl_qubit(q_xy[i], fc=gatecol,
+                                         ec=gatecol)
                     # add qubit-qubit wiring
-                    self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
+                    self._line(qreg_b, qreg_t, lc=gatecol)
                     if disp == 'z':
-                        self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
+                        self._ctrl_qubit(q_xy[i+1], fc=gatecol,
+                                         ec=gatecol)
                     elif num_qargs == 1:
                         self._gate(q_xy[-1], wide=_iswide, text=disp)
                     else:
@@ -920,7 +924,9 @@ class MatplotlibDrawer:
                         disp = op.name.replace('c', '')
 
                         color = None
-                        if self._style.name != 'bw':
+                        if disp in ['y', 'h']:
+                            color = self._style.dispcol[disp]
+                        elif self._style.name != 'bw':
                             color = self._style.dispcol['multi']
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
