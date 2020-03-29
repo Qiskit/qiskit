@@ -81,19 +81,31 @@ class TestParameters(QiskitTestCase):
         h_gate = HGate()
         self.assertFalse(h_gate.is_parameterized())
 
-    def test_fix_variable(self):
+    @data(True, False)
+    def test_fix_variable(self, in_place):
         """Test setting a variable to a constant value"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
-        bqc = qc.bind_parameters({theta: 0.5})
-        self.assertEqual(float(bqc.data[0][0].params[0]), 0.5)
-        self.assertEqual(float(bqc.data[1][0].params[1]), 0.5)
-        bqc = qc.bind_parameters({theta: 0.6})
-        self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
-        self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
+
+        if in_place:
+            qc.bind_parameters({theta: 0.5}, in_place=True)
+            self.assertEqual(float(qc.data[0][0].params[0]), 0.5)
+            self.assertEqual(float(qc.data[1][0].params[1]), 0.5)
+
+            with self.assertRaises(CircuitError):
+                # cannot rebind because the parameter has been replaced in the original circuit
+                bqc = qc.bind_parameters({theta: 0.6})
+
+        else:
+            bqc = qc.bind_parameters({theta: 0.5})
+            self.assertEqual(float(bqc.data[0][0].params[0]), 0.5)
+            self.assertEqual(float(bqc.data[1][0].params[1]), 0.5)
+            bqc = qc.bind_parameters({theta: 0.6})
+            self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
+            self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
@@ -120,6 +132,22 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(float(pqc.data[0][0].params[0]), 2)
         self.assertEqual(float(pqc.data[1][0].params[1]), 2)
+
+    @data(True, False)
+    def test_mixed_binding(self, in_place):
+        """Test we can bind a mixed dict with Parameter objects and floats."""
+        theta = Parameter('θ')
+        x, new_x = Parameter('x'), Parameter('new_x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+
+        pqc = qc.bind_parameters({theta: 2, x: new_x}, in_place=in_place)
+        if in_place:
+            self.assertEqual(qc.parameters, {new_x})
+        else:
+            self.assertEqual(pqc.parameters, {new_x})
 
     def test_expression_partial_binding(self):
         """Test that binding a subset of expression parameters returns a new

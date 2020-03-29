@@ -28,6 +28,7 @@ from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
+from .parameter import Parameter
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
@@ -1267,19 +1268,26 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def bind_parameters(self, value_dict):
+    def bind_parameters(self, value_dict, in_place=False):
         """Assign parameters to values yielding a new circuit.
 
         Args:
             value_dict (dict): {parameter: value, ...}
+            in_place (bool): If False, a copy of the circuit with the bound parameters is
+                returned, if True the circuit instance itself is modified.
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
 
         Returns:
-            QuantumCircuit: copy of self with assignment substitution.
+            QuantumCircuit: The circuit or a copy of it (depending on the value of ``in_place``)
+                with assignment substitution.
         """
-        new_circuit = self.copy()
+        if in_place:
+            new_circuit = self
+        else:
+            new_circuit = self.copy()
+
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         if unrolled_value_dict.keys() > self.parameters:
@@ -1287,10 +1295,12 @@ class QuantumCircuit:
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
         for parameter, value in unrolled_value_dict.items():
-            new_circuit._bind_parameter(parameter, value)
-        # clear evaluated expressions
-        for parameter in unrolled_value_dict:
-            del new_circuit._parameter_table[parameter]
+            if isinstance(value, Parameter):
+                new_circuit._substitute_parameter(parameter, value)
+            else:
+                new_circuit._bind_parameter(parameter, value)
+                del new_circuit._parameter_table[parameter]  # clear evaluated expressions
+
         return new_circuit
 
     def _unroll_param_dict(self, value_dict):
@@ -1316,6 +1326,14 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
 
+    def _substitute_parameter(self, old_parameter, new_parameter):
+        """Substitute an existing parameter in all circuit instructions and the parameter table."""
+        for instr, param_index in self._parameter_table[old_parameter]:
+            new_param = instr.params[param_index].subs({old_parameter: new_parameter})
+            instr.params[param_index] = new_param
+            self._rebind_definition(instr, old_parameter, new_parameter)
+        self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
             for op, _, _ in instruction._definition:
@@ -1332,12 +1350,7 @@ class QuantumCircuit:
         parameter_map, substitute replacement for existing in all
         circuit instructions and the parameter table.
         """
-        for old_parameter, new_parameter in parameter_map.items():
-            for (instr, param_index) in self._parameter_table[old_parameter]:
-                new_param = instr.params[param_index].subs({old_parameter: new_parameter})
-                instr.params[param_index] = new_param
-                self._rebind_definition(instr, old_parameter, new_parameter)
-            self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+        _ = self.bind_parameters(parameter_map, in_place=True)
 
 
 def _circuit_from_qasm(qasm):
