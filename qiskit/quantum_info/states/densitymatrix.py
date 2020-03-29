@@ -77,9 +77,9 @@ class DensityMatrix(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if trace 1 and positive semidefinite."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         # Check trace == 1
         if not np.allclose(self.trace(), 1, rtol=rtol, atol=atol):
             return False

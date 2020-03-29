@@ -71,7 +71,7 @@ class QuantumChannel(BaseOperator):
         if not super().__eq__(other):
             return False
         return np.allclose(
-            self.data, other.data, rtol=self._rtol, atol=self._atol)
+            self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
@@ -225,17 +225,17 @@ class QuantumChannel(BaseOperator):
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return is_positive_semidefinite_matrix(choi, rtol=rtol, atol=atol)
 
     def _is_tp_helper(self, choi, atol, rtol):
         """Test if Choi-matrix is trace-preserving (TP)"""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         # Check if the partial trace is the identity matrix
         d_in, d_out = self.dim
         mat = np.trace(
