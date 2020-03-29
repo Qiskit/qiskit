@@ -1283,25 +1283,26 @@ class QuantumCircuit:
             QuantumCircuit: The circuit or a copy of it (depending on the value of ``in_place``)
                 with assignment substitution.
         """
-        if in_place:
-            new_circuit = self
-        else:
-            new_circuit = self.copy()
+        # replace in self or in a copy depending on the value of in_place
+        bound_circuit = self if in_place else self.copy()
 
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
+        # check that only existing parameters are in the parameter dictionary
         if unrolled_value_dict.keys() > self.parameters:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():
             if isinstance(value, Parameter):
-                new_circuit._substitute_parameter(parameter, value)
+                bound_circuit._substitute_parameter(parameter, value)
             else:
-                new_circuit._bind_parameter(parameter, value)
-                del new_circuit._parameter_table[parameter]  # clear evaluated expressions
+                bound_circuit._bind_parameter(parameter, value)
+                del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
 
-        return new_circuit
+        return bound_circuit
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
