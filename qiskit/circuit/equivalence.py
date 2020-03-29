@@ -174,7 +174,7 @@ def _rebind_equiv(equiv, query_params):
         lambda k, v: isinstance(v, ParameterExpression))
 
     equiv = equiv_circuit.bind_parameters(numeric_param_map)
-    equiv._substitute_parameters(symbolic_param_map)
+    equiv.bind_parameters(symbolic_param_map, in_place=True)
 
     return equiv
 

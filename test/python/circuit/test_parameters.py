@@ -513,8 +513,7 @@ class TestParameters(QiskitTestCase):
             expected_qc2.rx(0.5, 0)
         else:
             phi = Parameter('ph')
-            bound_qc2 = qc2.copy()
-            bound_qc2._substitute_parameters({theta: phi})
+            bound_qc2 = qc2.bind_parameters({theta: phi})
             expected_parameters = {phi}
             expected_qc2 = QuantumCircuit(1)
             expected_qc2.rx(phi, 0)
@@ -563,8 +562,7 @@ class TestParameters(QiskitTestCase):
             expected_qc3.rx(0.5, 0)
         else:
             phi = Parameter('ph')
-            bound_qc3 = qc3.copy()
-            bound_qc3._substitute_parameters({theta: phi})
+            bound_qc3 = qc3.bind_parameters({theta: phi})
             expected_parameters = {phi}
             expected_qc3 = QuantumCircuit(1)
             expected_qc3.rx(phi, 0)

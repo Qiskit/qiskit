@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The ``QuantumCircuit.bind_parameters`` method now accepts a parameter dictionary with both
+    floats and Parameters objects in a single dictionary. I.e. the method allows to bind
+    floats, Parameters or both in a single dictionary.
+    Also, by using the ``in_place`` argument it can be specified if a copy with the
+    new parameter values should be returned (``in_place=False``, default behaviour), or
+    if the original circuit should be modified (``in_place=True``).
+    This makes the existing ``_substitute_parameters`` method obsolete, since this is
+    equal to ``bind_parameters(param_dict, in_place=True)```.
