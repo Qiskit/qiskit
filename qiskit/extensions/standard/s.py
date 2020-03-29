@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-S=diag(1,i) Clifford phase gate or its inverse.
+S and Sdg gate.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -24,11 +24,34 @@ from qiskit.util import deprecate_arguments
 
 
 class SGate(Gate):
-    """S=diag(1,i) Clifford phase gate."""
+    r"""Single qubit S gate (Z**0.5).
 
+    It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
+
+    This is a Clifford gate and a square-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        S = \begin{pmatrix}
+                1 & 0 \\
+                0 & i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ S ├
+             └───┘
+
+    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    """
     def __init__(self, label=None):
-        """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        """Create a new S gate."""
+        super().__init__('s', 1, [], label=label)
 
     def _define(self):
         """
@@ -36,7 +59,7 @@ class SGate(Gate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
@@ -45,21 +68,45 @@ class SGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse of S (SdgGate)."""
         return SdgGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the S gate."""
+        """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 
 
 class SdgGate(Gate):
-    """Sdg=diag(1,-i) Clifford adjoint phase gate."""
+    r"""Single qubit S-adjoint gate (~Z**0.5).
+
+    It induces a :math:`-\pi/2` phase.
+
+    This is a Clifford gate and a square-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Sdg = \begin{pmatrix}
+                1 & 0 \\
+                0 & -i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌─────┐
+        q_0: ┤ Sdg ├
+             └─────┘
+
+    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    """
 
     def __init__(self, label=None):
-        """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        """Create a new Sdg gate."""
+        super().__init__('sdg', 1, [], label=label)
 
     def _define(self):
         """
@@ -67,7 +114,7 @@ class SdgGate(Gate):
         """
         from qiskit.extensions.standard.u1 import U1Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
@@ -76,67 +123,25 @@ class SdgGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse of Sdg (SGate)."""
         return SGate()
 
     def to_matrix(self):
-        """Return a Numpy.array for the Sdg gate."""
+        """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)
 
 
 @deprecate_arguments({'q': 'qubit'})
 def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply S gate to a specified qubit (qubit).
-    An S gate implements a pi/2 rotation of the qubit state vector about the
-    z axis of the Bloch sphere.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.s(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.s import SGate
-            SGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.SGate`.
     """
     return self.append(SGate(), [qubit], [])
 
 
 @deprecate_arguments({'q': 'qubit'})
 def sdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Sdg gate to a specified qubit (qubit).
-    An Sdg gate implements a -pi/2 rotation of the qubit state vector about the
-    z axis of the Bloch sphere. It is the inverse of S gate.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.sdg(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.s import SdgGate
-            SdgGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.SdgGate`.
     """
     return self.append(SdgGate(), [qubit], [])
 

@@ -29,10 +29,10 @@ from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 from qiskit.extensions.standard import (
-    HGate, CHGate, IdGate, RGate, RXGate, CrxGate, RYGate, CryGate, RZGate,
-    CrzGate, SGate, SdgGate, FredkinGate, TGate, TdgGate, U1Gate, Cu1Gate,
-    U2Gate, U3Gate, Cu3Gate, XGate, CnotGate, ToffoliGate, YGate, CyGate,
-    ZGate, CzGate
+    HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
+    CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
+    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    ZGate, CZGate
 )
 
 
@@ -383,33 +383,33 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
 
     def test_iden(self):
-        self.circuit.iden(self.qr[1])
+        self.circuit.i(self.qr[1])
         op, _, _ = self.circuit[0]
         self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
     def test_iden_wires(self):
-        self.circuit.iden(1)
+        self.circuit.i(1)
         op, _, _ = self.circuit[0]
         self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
     def test_iden_invalid(self):
         qc = self.circuit
-        self.assertRaises(CircuitError, qc.iden, self.cr[0])
-        self.assertRaises(CircuitError, qc.iden, self.cr)
-        self.assertRaises(CircuitError, qc.iden, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.iden, (self.qr, 'a'))
-        self.assertRaises(CircuitError, qc.iden, .0)
+        self.assertRaises(CircuitError, qc.i, self.cr[0])
+        self.assertRaises(CircuitError, qc.i, self.cr)
+        self.assertRaises(CircuitError, qc.i, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.i, (self.qr, 'a'))
+        self.assertRaises(CircuitError, qc.i, .0)
 
     def test_iden_reg(self):
-        instruction_set = self.circuit.iden(self.qr)
+        instruction_set = self.circuit.i(self.qr)
         self.assertEqual(len(instruction_set.instructions), 3)
         self.assertEqual(instruction_set.instructions[0].name, 'id')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
 
     def test_iden_reg_inv(self):
-        instruction_set = self.circuit.iden(self.qr).inverse()
+        instruction_set = self.circuit.i(self.qr).inverse()
         self.assertEqual(len(instruction_set.instructions), 3)
         self.assertEqual(instruction_set.instructions[0].name, 'id')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
@@ -1390,18 +1390,18 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
     @data(
         ('h',    HGate,    0, [('q', 'qubit')]),
         ('ch',   CHGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('iden', IdGate,   0, [('q', 'qubit')]),
+        ('id',   IGate,    0, [('q', 'qubit')]),
         ('r',    RGate,    2, [('q', 'qubit')]),
         ('rx',   RXGate,   1, [('q', 'qubit')]),
-        ('crx',  CrxGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('crx',  CRXGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('ry',   RYGate,   1, [('q', 'qubit')]),
-        ('cry',  CryGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cry',  CRYGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('rz',   RZGate,   1, [('q', 'qubit')]),
-        ('crz',  CrzGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('crz',  CRZGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('s',    SGate,    0, [('q', 'qubit')]),
         ('sdg',  SdgGate,  0, [('q', 'qubit')]),
         ('cswap',
-         FredkinGate,
+         CSwapGate,
          0,
          [('ctl', 'control_qubit'),
           ('tgt1', 'target_qubit1'),
@@ -1409,22 +1409,22 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
         ('t',    TGate,    0, [('q', 'qubit')]),
         ('tdg',  TdgGate,  0, [('q', 'qubit')]),
         ('u1',   U1Gate,   1, [('q', 'qubit')]),
-        ('cu1',  Cu1Gate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cu1',  CU1Gate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('u2',   U2Gate,   2, [('q', 'qubit')]),
         ('u3',   U3Gate,   3, [('q', 'qubit')]),
-        ('cu3',  Cu3Gate,  3, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cu3',  CU3Gate,  3, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('x',    XGate,    0, [('q', 'qubit')]),
-        ('cx',   CnotGate, 0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cx',   CXGate, 0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('ccx',
-         ToffoliGate,
+         CCXGate,
          0,
          [('ctl1', 'control_qubit1'),
           ('ctl2', 'control_qubit2'),
           ('tgt', 'target_qubit')]),
         ('y',    YGate,    0, [('q', 'qubit')]),
-        ('cy',   CyGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cy',   CYGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
         ('z',    ZGate,    0, [('q', 'qubit')]),
-        ('cz',   CzGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
+        ('cz',   CZGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
     )
     # pylint: enable=bad-whitespace
     def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):

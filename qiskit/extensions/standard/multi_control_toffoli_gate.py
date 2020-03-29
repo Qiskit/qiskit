@@ -20,10 +20,7 @@ import logging
 from math import pi, ceil
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-
-from qiskit import QiskitError
-# pylint: disable=unused-import
-from .relative_phase_toffoli import rccx
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 

@@ -120,7 +120,8 @@ def plot_gate_map(backend, figsize=None,
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, '
+                          'run "pip install matplotlib".')
 
     if backend.configuration().simulator:
         raise QiskitError('Requires a device backend, not simulator.')
@@ -147,6 +148,14 @@ def plot_gate_map(backend, figsize=None,
                     [1, 6], [1, 5], [1, 4], [1, 3], [1, 2], [1, 1]]
 
     mpl_data[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
+
+    mpl_data[28] = [[0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
+                    [1, 2], [1, 6],
+                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
+                    [2, 5], [2, 6], [2, 7], [2, 8],
+                    [3, 0], [3, 4], [3, 8],
+                    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
+                    [4, 5], [4, 6], [4, 7], [4, 8]]
 
     mpl_data[53] = [[0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
                     [1, 2], [1, 6],
@@ -401,7 +410,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError:
-        raise ImportError('Must have seaborn installed to use plot_error_map')
+        raise ImportError('Must have seaborn installed to use plot_error_map. '
+                          'To install, run "pip install seaborn".')
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 

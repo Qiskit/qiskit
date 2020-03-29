@@ -29,7 +29,7 @@ class RGate(Gate):
 
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+        super().__init__('r', 1, [theta, phi])
 
     def _define(self):
         """
@@ -37,7 +37,7 @@ class RGate(Gate):
         """
         from qiskit.extensions.standard.u3 import U3Gate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         theta = self.params[0]
         phi = self.params[1]
         rule = [
@@ -55,7 +55,7 @@ class RGate(Gate):
         return RGate(-self.params[0], self.params[1])
 
     def to_matrix(self):
-        """Return a Numpy.array for the R gate."""
+        """Return a numpy.array for the R gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         exp_m = numpy.exp(-1j * self.params[1])

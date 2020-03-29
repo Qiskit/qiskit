@@ -12,6 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for builtin pulse_lib."""
+"""Module for builtin ``pulse_lib``."""
 
 from .discrete import *
+from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
+from .pulse import Pulse
+from .sample_pulse import SamplePulse
