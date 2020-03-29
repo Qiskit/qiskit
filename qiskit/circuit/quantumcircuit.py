@@ -1262,6 +1262,11 @@ class QuantumCircuit:
         """Convenience function to get the parameters defined in the parameter table."""
         return set(self._parameter_table.keys())
 
+    @property
+    def num_parameters(self):
+        """Convenience function to get the number of parameter objects in the circuit."""
+        return len(self.parameters)
+
     def bind_parameters(self, value_dict):
         """Assign parameters to values yielding a new circuit.
 
