@@ -15,10 +15,22 @@
 """Test of generated fake backends."""
 import math
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, schedule, transpile, assemble, BasicAer, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit, schedule, transpile, assemble, ClassicalRegister
+from qiskit.pulse import Schedule
+from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
+
+
+def get_test_circuit():
+    desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, 'cr')
+    qc = QuantumCircuit(qr, cr)
+    qc.initialize(desired_vector, [qr[0], qr[1]])
+    qc.measure(qr[0], cr[0])
+    qc.measure(qr[1], cr[1])
+    return qc
 
 
 class GeneratedFakeBackendsTest(QiskitTestCase):
@@ -27,20 +39,22 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = FakeBackendBuilder("Tashkent", n_qubits=4).build()
 
-    def test_not_even_came_up_with_name_yet(self):
-        desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, 'cr')
-        qc = QuantumCircuit(qr, cr)
-        qc.initialize(desired_vector, [qr[0], qr[1]])
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
+    def test_transpile_schedule_and_assemble(self):
+        """Test transpile, schedule and assemble on generated backend."""
+        qc = get_test_circuit()
 
-        experiments = transpile(qc, backend=self.backend)
-        experiments = schedule(circuits=experiments, backend=self.backend)
+        circuit = transpile(qc, backend=self.backend)
+        self.assertTrue(isinstance(circuit, QuantumCircuit))
+        self.assertEqual(circuit.n_qubits, 4)
+
+        experiments = schedule(circuits=circuit, backend=self.backend)
+        self.assertTrue(isinstance(experiments, Schedule))
+        self.assertGreater(experiments.duration, 0)
+
         qobj = assemble(experiments, backend=self.backend)
+        self.assertTrue(isinstance(qobj, PulseQobj))
+        self.assertEqual(qobj.header.backend_name, "Tashkent")
+        self.assertEqual(len(qobj.experiments), 1)
 
-        job = self.backend.run(qobj)
 
-        result = job.result()
 
