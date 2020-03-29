@@ -142,27 +142,15 @@ class Clifford(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the Clifford."""
-        # TODO: Needs testing to see if correct
-        x = self.table.X
-        z = self.table.Z
-        ret = self.copy()
-        ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
-        return ret
+        return Clifford._conjugate_transpose(self, 'C')
+
+    def adjoint(self):
+        """Return the conjugate transpose of the Clifford"""
+        return Clifford._conjugate_transpose(self, 'A')
 
     def transpose(self):
         """Return the transpose of the Clifford."""
-
-        # TODO: Needs testing to see if correct
-        # This is done using block matrix multiplication
-        # [[0, 1], [1, 0]] * table.T * [[0, 1], [1, 0]]
-
-        ret = self.copy()
-        tmp = ret.destabilizer.X.copy()
-        ret.destabilizer.X = ret.stabilizer.Z
-        ret.destabilizer.Z = ret.destabilizer.Z.T
-        ret.stabilizer.X = ret.stabilizer.X.T
-        ret.stabilizer.Z = tmp
-        return ret
+        return Clifford._conjugate_transpose(self, 'T')
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
@@ -325,6 +313,33 @@ class Clifford(BaseOperator):
         arr = mat.astype(np.int)
         return np.array_equal(np.mod(arr.T.dot(seye).dot(arr), 2), seye)
 
+    @staticmethod
+    def _conjugate_transpose(clifford, method):
+        """Return the adjoint, conjugate, or transpose of the Clifford.
+
+        Args:
+            method (str): what function to apply 'A', 'C', or 'T'.
+
+        Returns:
+            Clifford: the modified clifford.
+        """
+        ret = clifford.copy()
+        if method in ['A', 'T']:
+            # Apply inverse
+            # Update table
+            tmp = ret.destabilizer.X.copy()
+            ret.destabilizer.X = ret.stabilizer.Z.T
+            ret.destabilizer.Z = ret.destabilizer.Z.T
+            ret.stabilizer.X = ret.stabilizer.X.T
+            ret.stabilizer.Z = tmp.T
+            # Update phase
+            ret.table.phase ^= clifford.dot(ret).table.phase
+        if method in ['C', 'T']:
+            # Apply conjugate
+            ret.table.phase ^= np.mod(np.sum(
+                ret.table.X & ret.table.Z, axis=1), 2).astype(np.bool)
+        return ret
+
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product operator.
 
@@ -357,9 +372,6 @@ class Clifford(BaseOperator):
         # Add the padded table
         return Clifford(destab + stab, validate=False)
 
-    # ---------------------------------------------------------------------
-    # Internal composition methods
-    # ---------------------------------------------------------------------
     def _pad_with_identity(self, clifford, qargs):
         """Pad Clifford with identities on other subsystems."""
         if qargs is None:

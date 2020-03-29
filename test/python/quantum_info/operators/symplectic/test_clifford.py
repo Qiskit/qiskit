@@ -433,7 +433,6 @@ class TestCliffordOperators(QiskitTestCase):
             target = Operator(circ).conjugate()
             self.assertTrue(target.equiv(value))
 
-    @unittest.skip("Currently failing")
     @combine(num_qubits=[1, 2, 3])
     def test_transpose(self, num_qubits):
         """Test transpose method"""
