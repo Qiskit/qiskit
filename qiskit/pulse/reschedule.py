@@ -18,13 +18,12 @@ Basic rescheduling functions which take schedules or instructions
 """
 import warnings
 
-from typing import List, Optional, Iterable, Union
+from typing import List, Optional, Iterable
 
 import numpy as np
 
 from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
-                          InstructionScheduleMap, ScheduleComponent, Schedule,
-                          Instruction)
+                          InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
 
@@ -33,7 +32,8 @@ def align_measures(schedules: Iterable[ScheduleComponent],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
-                   align_time: Optional[int] = None) -> List[Schedule]:
+                   align_time: Optional[int] = None
+                   ) -> List[Schedule]:
     """Return new schedules where measurements occur at the same physical time. Minimum measurement
     wait time (to allow for calibration pulses) is enforced.
 
@@ -118,7 +118,9 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     return new_schedules
 
 
-def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+def add_implicit_acquires(schedule: ScheduleComponent,
+                          meas_map: List[List[int]]
+                          ) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -166,12 +168,11 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     return new_schedule
 
 
-def pad(
-    schedule: Schedule,
-    channels: Optional[Iterable[Channel]] = None,
-    until: Optional[int] = None,
-    mutate: bool = False
-) -> Schedule:
+def pad(schedule: Schedule,
+        channels: Optional[Iterable[Channel]] = None,
+        until: Optional[int] = None,
+        mutate: bool = False
+        ) -> Schedule:
     """Pad the input Schedule with ``Delay``s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
 
@@ -206,62 +207,64 @@ def pad(
     return schedule
 
 
-def push_append(
-    this: List[ScheduleComponent],
-    other: List[ScheduleComponent]
-) -> Schedule:
-        r"""Return a new schedule with `schedule` inserted at the maximum time over
-        all channels shared between `self` and `schedule`.
+def push_append(this: List[ScheduleComponent],
+                other: List[ScheduleComponent]
+                ) -> Schedule:
+    r"""Return a new schedule with `schedule` inserted at the maximum time over
+    all channels shared between `self` and `schedule`.
 
-       $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
+   $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
 
-        Args:
-            schedule: schedule to be appended
-            buffer: Whether to obey buffer when appending
-        """
-        channels = list(set(this.channels) & set(other.channels))
+    Args:
+        this: Input schedule to which ``other`` will be inserted.
+        other: Other schedule to insert.
 
-        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                     for channel in channels]
+    Returns:
+        Joined schedule
+    """
+    channels = list(set(this.channels) & set(other.channels))
 
-        if ch_slacks:
-            slack_chan = channels[np.argmin(ch_slacks)]
-            insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
-        else:
-            insert_time = 0
-        return this.insert(insert_time, other)
+    ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+                 for channel in channels]
+
+    if ch_slacks:
+        slack_chan = channels[np.argmin(ch_slacks)]
+        insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
+    else:
+        insert_time = 0
+    return this.insert(insert_time, other)
 
 
-def left_align(
-    *instructions: List[Union[Instruction, Schedule]]
-) -> Schedule:
+def left_align(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
-        instructions: List of pulse instructions to align.
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
 
     Returns:
-        pulse.Schedule
+        New schedule with input `schedule`` child schedules and instructions
+        left aligned.
     """
     aligned = Schedule()
-    for instruction in instructions:
-        aligned = push_append(aligned, instruction)
+    for child in schedule._children:
+        aligned = push_append(aligned, child)
 
     return aligned
 
 
-def right_align(
-    *instructions: List[ScheduleComponent]
-) -> Schedule:
+def right_align(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
-        instructions: List of pulse instructions to align.
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
 
     Returns:
-        pulse.Schedule
+        New schedule with input `schedule`` child schedules and instructions
+        right aligned.
     """
-    left_aligned = left_align(*instructions)
+    left_aligned = left_align(schedule)
     max_duration = 0
 
     channel_durations = {}
@@ -281,48 +284,58 @@ def right_align(
     return aligned
 
 
-def align_in_sequence(
-    *instructions: List[ScheduleComponent]
-) -> Schedule:
+def sequential(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions sequentially in time.
+
     Args:
-        instructions: List of pulse instructions to align.
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+
     Returns:
-        A new pulse schedule with instructions`
+        New schedule with input `schedule`` child schedules and instructions
+        applied sequentially across channels
     """
     aligned = Schedule()
-    for instruction in instructions:
-        aligned.insert(aligned.duration, instruction, mutate=True)
+    for child in schedule._children:
+        aligned.insert(aligned.duration, child, mutate=True)
     return aligned
 
 
-def left_barrier(
-    *instructions: List[ScheduleComponent], channels=None
-) -> Schedule:
+def left_barrier(schedule: Schedule,
+                 channels: Optional[Iterable[Channel]] = None
+                 ) -> Schedule:
     """Align on the left and create a barrier so that pulses cannot be inserted
         within this pulse interval.
 
     Args:
-        instructions: List of pulse instructions to align.
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+        channels: Channels to barrier. Defaults to all channels in ``schedule``
+            if not in supplied.
 
     Returns:
-        pulse.Schedule
+        New schedule with input `schedule`` child schedules and instructions
+        left barriered.
     """
-    aligned = left_align(*instructions)
+    aligned = left_align(schedule)
     return pad(aligned, channels=channels)
 
 
-def right_barrier(
-    *instructions: List[ScheduleComponent], channels=None
-) -> Schedule:
+def right_barrier(schedule: Schedule,
+                  channels: Optional[Iterable[Channel]] = None
+                  ) -> Schedule:
     """Align on the right and create a barrier so that pulses cannot be
         inserted within this pulse interval.
 
     Args:
-        instructions: List of pulse instructions to align.
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+        channels: Channels to barrier. Defaults to all channels in ``schedule``
+            if not in supplied.
 
     Returns:
-        pulse.Schedule
+        New schedule with input `schedule`` child schedules and instructions
+        right barriered.
     """
-    aligned = right_align(*instructions)
+    aligned = right_align(schedule)
     return pad(aligned, channels=channels)
