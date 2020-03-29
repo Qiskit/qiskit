@@ -49,6 +49,7 @@ class Snapshot(Command, Instruction):
 
         Instruction.__init__(self, self, self._channel, name=self.name)
         self._buffer = 0
+        self._update_snp_hash()
 
     @property
     def label(self) -> str:
@@ -73,9 +74,10 @@ class Snapshot(Command, Instruction):
         return (super().__eq__(other) and
                 self.label == other.label and
                 self.type == other.type)
-    def _update_hash(self):
+
+    def _update_snp_hash(self):
         self._hash = hash((super().__hash__(), self.label, self.type))
-    
+
     def __hash__(self):
         return self._hash
 

@@ -59,6 +59,7 @@ class Acquire(Command):
         if discriminator and not isinstance(discriminator, Discriminator):
             raise PulseError('Invalid discriminator object is specified.')
         self._discriminator = discriminator
+        self._update_hash()
 
     @property
     def kernel(self):
@@ -84,8 +85,11 @@ class Acquire(Command):
                 self.kernel == other.kernel and
                 self.discriminator == other.discriminator)
 
+    def _update_hash(self):
+        self._hash = hash((super().__hash__(), self.kernel, self.discriminator))
+
     def __hash__(self):
-        return hash((super().__hash__(), self.kernel, self.discriminator))
+        return self._hash
 
     def __repr__(self):
         return '%s(duration=%d, kernel=%s, discriminator=%s, name="%s")' % \

@@ -48,6 +48,7 @@ class SamplePulse(PulseCommand):
 
         self._samples = self._clip(samples, epsilon=epsilon)
         self._name = SamplePulse.create_name(name)
+        self._update_hash()
 
     @property
     def samples(self):
@@ -144,9 +145,12 @@ class SamplePulse(PulseCommand):
             bool: are self and other equal
         """
         return super().__eq__(other) and (self.samples == other.samples).all()
+    
+    def _update_hash(self):
+        self._hash = hash((super().__hash__(), self.samples.tostring()))
 
     def __hash__(self):
-        return hash((super().__hash__(), self.samples.tostring()))
+        return self._hash
 
     def __repr__(self):
         opt = np.get_printoptions()

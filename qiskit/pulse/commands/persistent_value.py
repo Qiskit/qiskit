@@ -50,6 +50,7 @@ class PersistentValue(Command):
 
         self._value = complex(value)
         self._name = PersistentValue.create_name(name)
+        self._update_hash()
 
     @property
     def value(self):
@@ -68,8 +69,11 @@ class PersistentValue(Command):
         """
         return super().__eq__(other) and self.value == other.value
 
+    def _update_hash(self):
+        self._hash = hash((super().__hash__(), self.value))
+
     def __hash__(self):
-        return hash((super().__hash__(), self.value))
+        return self._hash
 
     def __repr__(self):
         return '%s(value=%s, name="%s")' % (self.__class__.__name__,
