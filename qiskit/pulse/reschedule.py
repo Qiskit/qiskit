@@ -22,7 +22,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (CmdDef, Acquire, AcquireInstruction, Delay,
+from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
                           InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
@@ -30,7 +30,6 @@ from .exceptions import PulseError
 
 def align_measures(schedules: Iterable[ScheduleComponent],
                    inst_map: Optional[InstructionScheduleMap] = None,
-                   cmd_def: Optional[CmdDef] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
                    align_time: Optional[int] = None) -> Schedule:
@@ -44,9 +43,8 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     Args:
         schedules: Collection of schedules to be aligned together
         inst_map: Mapping of circuit operations to pulse schedules
-        cmd_def: Deprecated
         cal_gate: The name of the gate to inspect for the calibration time
-        max_calibration_duration: If provided, cmd_def and cal_gate will be ignored
+        max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
 
     Returns:
@@ -56,9 +54,6 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         PulseError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire, or if align_time is negative
     """
-    if inst_map is None:
-        inst_map = cmd_def
-
     def calculate_align_time():
         """Return the the max between the duration of the calibration time and the absolute time
         of the latest scheduled acquire.

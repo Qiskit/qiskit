@@ -177,6 +177,26 @@ class Instruction:
         """Set matrix representation"""
         self._definition = array
 
+    @property
+    def decompositions(self):
+        """Get the decompositions of the instruction from the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        return sel.get_entry(self)
+
+    @decompositions.setter
+    def decompositions(self, decompositions):
+        """Set the decompositions of the instruction from the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        sel.set_entry(self, decompositions)
+
+    def add_decomposition(self, decomposition):
+        """Add a decomposition of the instruction to the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        sel.add_equivalence(self, decomposition)
+
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
         instruction = QasmQobjInstruction(name=self.name)

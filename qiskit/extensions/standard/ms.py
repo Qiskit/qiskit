@@ -16,12 +16,6 @@
 
 """
 Global Mølmer–Sørensen gate.
-
-The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
-applied to multiple ions to entangle multiple qubits simultaneously.
-
-In the two-qubit case, this is equivalent to an XX(theta) interaction,
-and is thus reduced to the RXXGate.
 """
 
 
@@ -32,7 +26,14 @@ from qiskit.util import deprecate_arguments
 
 
 class MSGate(Gate):
-    """Global Molmer-Sorensen gate."""
+    """Global Mølmer–Sørensen gate.
+
+    The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
+    applied to multiple ions to entangle multiple qubits simultaneously.
+
+    In the two-qubit case, this is equivalent to an XX(theta) interaction,
+    and is thus reduced to the RXXGate.
+    """
 
     @deprecate_arguments({'n_qubits': 'num_qubits'})
     def __init__(self, num_qubits, theta, *, n_qubits=None):  # pylint:disable=unused-argument
@@ -54,7 +55,7 @@ class MSGate(Gate):
 
 
 def ms(self, theta, qubits):
-    """Apply MS to q1 and q2."""
+    """Apply :class:`~qiskit.extensions.standard.MSGate`."""
     return self.append(MSGate(len(qubits), theta), qubits)
 
 
