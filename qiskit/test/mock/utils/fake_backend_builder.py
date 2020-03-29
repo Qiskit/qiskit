@@ -31,7 +31,7 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class FakeBackendBuilder(object):
+class FakeBackendBuilder:
     """FakeBackend builder.
 
     For example:
@@ -63,7 +63,7 @@ class FakeBackendBuilder(object):
             qubit_t2 (float, optional): Transverse coherence time.
             qubit_frequency (float, optional): Frequency of qubit.
             qubit_readout_error (float, optional): Readout error of qubit.
-            single_qubit_gates (list, optional: List of single qubit gates for backend properties.
+            single_qubit_gates (list, optional): List of single qubit gates for backend properties.
         """
         if version is None:
             version = '0.0.0'
@@ -100,6 +100,7 @@ class FakeBackendBuilder(object):
 
     @property
     def cmap(self):
+        """Returns cmap of provided else generated Almadel like cmap."""
         return self.coupling_map if self.coupling_map else self._generate_cmap()
 
     def _generate_cmap(self) -> List[List[int]]:
@@ -110,14 +111,14 @@ class FakeBackendBuilder(object):
         for row in range(grid_size):
             for column in range(grid_size):
                 if column + 1 < grid_size and column + row * grid_size + 1 < self.n_qubits:
-                    q1 = column + row * grid_size
-                    q2 = q1 + 1
-                    cmap.append([q1, q2])
+                    qubit1 = column + row * grid_size
+                    qubit2 = qubit1 + 1
+                    cmap.append([qubit1, qubit2])
                 if row + 1 < grid_size and (column + row) % 2 == 0\
                         and column + (row + 1) * grid_size < self.n_qubits:
-                    q1 = column + row * grid_size
-                    q2 = q1 + grid_size
-                    cmap.append([q1, q2])
+                    qubit1 = column + row * grid_size
+                    qubit2 = qubit1 + grid_size
+                    cmap.append([qubit1, qubit2])
 
         self.coupling_map = cmap
 
@@ -145,10 +146,12 @@ class FakeBackendBuilder(object):
                     gates.append(Gate(gate=gate, name="{0}_{1}".format(gate, i),
                                       qubits=[i], parameters=parameters))
             elif gate == 'cx':
-                for (q1, q2) in list(itertools.combinations(range(self.n_qubits), 2)):
+                for (qubit1, qubit2) in list(itertools.combinations(range(self.n_qubits), 2)):
                     gates.append(Gate(gate=gate,
-                                      name="{gate}{q1}_{q2}".format(gate=gate, q1=q1, q2=q2),
-                                      qubits=[q1, q2],
+                                      name="{gate}{q1}_{q2}".format(gate=gate,
+                                                                    q1=qubit1,
+                                                                    q2=qubit2),
+                                      qubits=[qubit1, qubit2],
                                       parameters=parameters))
             else:
                 raise QiskitError("{gate} is not supported by fake backend builder."
@@ -170,15 +173,15 @@ class FakeBackendBuilder(object):
                       "omegad{i}*X{i}||D{i}]"])
         ]
         variables = []
-        for (q1, q2) in self.cmap:
+        for (qubit1, qubit2) in self.cmap:
             h_str += [
-                "jq{q1}q{q2}*Sp{q1}*Sm{q2}".format(q1=q1, q2=q2),
-                "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=q1, q2=q2)
+                "jq{q1}q{q2}*Sp{q1}*Sm{q2}".format(q1=qubit1, q2=qubit2),
+                "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=qubit1, q2=qubit2)
             ]
 
-            variables.append(("jq{q1}q{q2}".format(q1=q1, q2=q2), 0))
-        for i, (q1, q2) in enumerate(list(itertools.combinations(range(self.n_qubits), 2))):
-            h_str.append("omegad{0}*X{1}||U{2}".format(q1, q2, i))
+            variables.append(("jq{q1}q{q2}".format(q1=qubit1, q2=qubit2), 0))
+        for i, (qubit1, qubit2) in enumerate(list(itertools.combinations(range(self.n_qubits), 2))):
+            h_str.append("omegad{0}*X{1}||U{2}".format(qubit1, qubit2, i))
         for i in range(self.n_qubits):
             variables += [
                 ("omegad{}".format(i), 0),
@@ -299,21 +302,21 @@ class FakeBackendBuilder(object):
             ]
 
         for couple in self.cmap:
-            q1, q2 = couple
+            qubit1, qubit2 = couple
             cmd_def += [
                 Command.from_dict({
                     'name': 'cx',
-                    'qubits': [q1, q2],
+                    'qubits': [qubit1, qubit2],
                     'sequence': [PulseQobjInstruction(name='test_pulse_1',
-                                                      ch='d{}'.format(q1),
+                                                      ch='d{}'.format(qubit1),
                                                       t0=0).to_dict(),
                                  PulseQobjInstruction(name='test_pulse_2',
-                                                      ch='u{}'.format(q1),
+                                                      ch='u{}'.format(qubit1),
                                                       t0=10).to_dict(),
                                  PulseQobjInstruction(name='test_pulse_1',
-                                                      ch='d{}'.format(q2),
+                                                      ch='d{}'.format(qubit2),
                                                       t0=20).to_dict(),
-                                 PulseQobjInstruction(name='fc', ch='d{}'.format(q2),
+                                 PulseQobjInstruction(name='fc', ch='d{}'.format(qubit2),
                                                       t0=20, phase=2.1).to_dict()]
                 }).to_dict()
             ]
@@ -328,14 +331,14 @@ class FakeBackendBuilder(object):
 
     def dump(self, folder: str):
         """Dumps backend configuration files to specifier folder."""
-        with open('{0}/props_{1}.json'.format(folder, self.name), 'w') as f:
-            json.dump(self.build_props().to_dict(), f, indent=4, sort_keys=True)
+        with open('{0}/props_{1}.json'.format(folder, self.name), 'w') as file:
+            json.dump(self.build_props().to_dict(), file, indent=4, sort_keys=True)
 
-        with open('{0}/conf_{1}.json'.format(folder, self.name), 'w') as f:
-            json.dump(self.build_conf().to_dict(), f, indent=4, sort_keys=True)
+        with open('{0}/conf_{1}.json'.format(folder, self.name), 'w') as file:
+            json.dump(self.build_conf().to_dict(), file, indent=4, sort_keys=True)
 
-        with open('{0}/defs_{1}.json'.format(folder, self.name), 'w') as f:
-            json.dump(self.build_defaults().to_dict(), f,
+        with open('{0}/defs_{1}.json'.format(folder, self.name), 'w') as file:
+            json.dump(self.build_defaults().to_dict(), file,
                       indent=4, sort_keys=True,
                       default=lambda o: '')
 

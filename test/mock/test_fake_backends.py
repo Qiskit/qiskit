@@ -24,6 +24,7 @@ from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
 
 
 def get_test_circuit():
+    """Generates simple circuit for tests."""
     desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
     qr = QuantumRegister(2, "qr")
     cr = ClassicalRegister(2, 'cr')
