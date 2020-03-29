@@ -24,9 +24,10 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import (PulseBackendConfiguration,
-                                     BackendProperties, PulseDefaults, GateConfig, Command, UchannelLO)
+                                     BackendProperties, PulseDefaults,
+                                     GateConfig, Command, UchannelLO)
 from qiskit.providers.models.backendproperties import Nduv, Gate
-from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
+from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -150,7 +151,8 @@ class FakeBackendBuilder(object):
                                       qubits=[q1, q2],
                                       parameters=parameters))
             else:
-                raise QiskitError("{gate} is not supported by fake backend builder.".format(gate=gate))
+                raise QiskitError("{gate} is not supported by fake backend builder."
+                                  "".format(gate=gate))
 
         return BackendProperties(backend_name=self.name,
                                  backend_version=self.version,

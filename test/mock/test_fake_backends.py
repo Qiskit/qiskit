@@ -15,7 +15,8 @@
 """Test of generated fake backends."""
 import math
 
-from qiskit import QuantumRegister, QuantumCircuit, schedule, transpile, assemble, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit, schedule, transpile, assemble, \
+    ClassicalRegister
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
@@ -55,6 +56,3 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.assertTrue(isinstance(qobj, PulseQobj))
         self.assertEqual(qobj.header.backend_name, "Tashkent")
         self.assertEqual(len(qobj.experiments), 1)
-
-
-
