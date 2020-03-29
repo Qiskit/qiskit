@@ -964,6 +964,12 @@ class MatplotlibDrawer:
                         self._swap(q_xy[1])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
+
+                    # dcx and iswap gate
+                    elif op.name in ['dcx', 'iswap']:
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                                                     fc=self._style.dispcol[op.name], text=op.name)
+
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
