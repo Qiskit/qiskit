@@ -610,6 +610,29 @@ class TestParameters(QiskitTestCase):
         job = execute(bound_qc, backend=BasicAer.get_backend('qasm_simulator'), shots=shots)
         self.assertDictAlmostEqual(job.result().get_counts(), {'1': shots}, 0.05 * shots)
 
+    def test_num_parameters(self):
+        """Test the num_parameters property."""
+        with self.subTest(msg='standard case'):
+            theta = Parameter('θ')
+            x = Parameter('x')
+            qc = QuantumCircuit(1)
+            qc.rx(theta, 0)
+            qc.u3(0, theta, x, 0)
+            self.assertEqual(qc.num_parameters, 2)
+
+        with self.subTest(msg='parameter vector'):
+            params = ParameterVector('x', length=3)
+            qc = QuantumCircuit(4)
+            qc.rx(params[0], 2)
+            qc.ry(params[1], 1)
+            qc.rz(params[2], 3)
+            self.assertEqual(qc.num_parameters, 3)
+
+        with self.subTest(msg='no params'):
+            qc = QuantumCircuit(1)
+            qc.x(0)
+            self.assertEqual(qc.num_parameters, 0)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
