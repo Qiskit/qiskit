@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=line-too-long
-
 """Test for the DAGCircuit object"""
 
 import unittest
@@ -246,7 +244,7 @@ class TestDagCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
-    def test_compose_classical(self):
+    def test_compose_classical(self):  # pylint: disable=line-too-long
         """Composing on classical bits.
 
         qubit map: {0: 1, 1: 4}
