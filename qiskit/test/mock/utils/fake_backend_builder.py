@@ -24,7 +24,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import (PulseBackendConfiguration,
-                                     BackendProperties, PulseDefaults, GateConfig, Command)
+                                     BackendProperties, PulseDefaults, GateConfig, Command, UchannelLO)
 from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.test.mock.fake_backend import FakeBackend
@@ -161,7 +161,6 @@ class FakeBackendBuilder(object):
 
     def build_conf(self) -> PulseBackendConfiguration:
         """Build configuration for backend."""
-        # TODO: correct values
         h_str = [
             ",".join(["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits),
                       "wq{i}/2*(I{i}-Z{i})]"]),
@@ -191,16 +190,10 @@ class FakeBackendBuilder(object):
         }
 
         meas_map = [list(range(self.n_qubits))]
-        conditional_latency = []
-        acquisition_latency = []
-        discriminators = []
-        meas_kernels = []
-        channel_bandwidth = []
-        rep_times = [1000]
-        meas_level = []
-        qubit_lo_range = []
-        meas_lo_range = []
-        u_channel_lo = []
+        qubit_lo_range = [[self.qubit_frequency - .5, self.qubit_frequency + .5]
+                          for _ in range(self.n_qubits)]
+        meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
+        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(self.n_qubits)]
 
         return PulseBackendConfiguration(
             backend_name=self.name,
@@ -215,22 +208,22 @@ class FakeBackendBuilder(object):
             memory=False,
             max_shots=65536,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=self._generate_cmap(),
+            coupling_map=self.cmap,
             n_registers=self.n_qubits,
             n_uchannels=self.n_qubits,
             u_channel_lo=u_channel_lo,
-            meas_level=meas_level,
+            meas_level=[1, 2],
             qubit_lo_range=qubit_lo_range,
             meas_lo_range=meas_lo_range,
             dt=1.3333,
             dtm=10.5,
-            rep_times=rep_times,
+            rep_times=[1000],
             meas_map=meas_map,
-            channel_bandwidth=channel_bandwidth,
-            meas_kernels=meas_kernels,
-            discriminators=discriminators,
-            acquisition_latency=acquisition_latency,
-            conditional_latency=conditional_latency,
+            channel_bandwidth=[],
+            meas_kernels=['kernel1'],
+            discriminators=['max_1Q_fidelity'],
+            acquisition_latency=[],
+            conditional_latency=[],
             hamiltonian=hamiltonian
         )
 
@@ -349,31 +342,3 @@ class FakeBackendBuilder(object):
         backend.defaults = self.build_defaults
         backend.properties = self.build_props
         return backend
-
-    # def build(self) -> Type[FakeBackend]:
-    #     """Generates fake backend type."""
-    #     configuration = self.build_conf()
-    #
-    #     def fake_init(cls):
-    #         super(FakeBackend, cls).__init__(configuration)
-    #
-    #     def properties(cls) -> BackendProperties:
-    #         return self.build_props()
-    #
-    #     def defaults(cls) -> PulseDefaults:
-    #         return self.build_defaults()
-    #
-    #     def fake_getstate(cls):
-    #         return {'name': 'lel'}
-    #
-    #     def fake_setstate(cls, state):
-    #         pass
-    #
-    #     return type('FakeOpenPulse{}Q'.format(self.n_qubits),
-    #                 (FakeBackend,),
-    #                 {
-    #                     '__init__': fake_init,
-    #                     'backend_name': self.name,
-    #                     'properties': properties,
-    #                     'defaults': defaults
-    #                 })

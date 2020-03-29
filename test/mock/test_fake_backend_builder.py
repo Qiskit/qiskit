@@ -23,16 +23,16 @@ class FakeBackendBuilderTest(QiskitTestCase):
 
     def test_default_parameters(self):
         """Test default parameters."""
-        fake_backend = FakeBackendBuilder("FakeTashkent", n_qubits=10).build()
+        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
 
         properties = fake_backend.properties()
         self.assertEqual(len(properties.qubits), 10)
         self.assertEqual(properties.backend_version, "0.0.0")
-        self.assertEqual(properties.backend_name, "FakeTashkent")
+        self.assertEqual(properties.backend_name, "Tashkent")
 
         configuration = fake_backend.configuration()
         self.assertEqual(configuration.backend_version, "0.0.0")
-        self.assertEqual(configuration.backend_name, "FakeTashkent")
+        self.assertEqual(configuration.backend_name, "Tashkent")
         self.assertEqual(configuration.n_qubits, 10)
         self.assertEqual(configuration.basis_gates, ['id', 'u1', 'u2', 'u3', 'cx'])
         self.assertTrue(configuration.local)
@@ -94,12 +94,34 @@ class FakeBackendBuilderTest(QiskitTestCase):
 
     def test_configuration(self):
         """Test backend configuration."""
-        # TODO: implement
+        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        configuration = fake_backend.configuration()
+
+        self.assertEqual(configuration.n_qubits, 10)
+        self.assertEqual(configuration.meas_map, [list(range(10))])
+        self.assertEqual(len(configuration.hamiltonian['qub']), 10)
+        self.assertEqual(len(configuration.hamiltonian['vars']), 30)
+        self.assertEqual(len(configuration.u_channel_lo), 10)
+        self.assertEqual(len(configuration.meas_lo_range), 10)
+        self.assertEqual(len(configuration.qubit_lo_range), 10)
 
     def test_defaults(self):
         """Test backend defaults."""
-        # TODO: implement
+        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        defaults = fake_backend.defaults()
+
+        self.assertEqual(len(defaults.cmd_def), 41)
+        self.assertEqual(len(defaults.meas_freq_est), 10)
+        self.assertEqual(len(defaults.qubit_freq_est), 10)
 
     def test_with_coupling_map(self):
         """Test backend generation with coupling map."""
-        # TODO: implement
+        target_coupling_map = [[0, 1], [1, 2], [2, 3]]
+        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=4,
+                                          coupling_map=target_coupling_map).build()
+        cmd_def = fake_backend.defaults().cmd_def
+        configured_cmap = fake_backend.configuration().coupling_map
+        controlled_not_qubits = [cmd.qubits for cmd in cmd_def if cmd.name == 'cx']
+
+        self.assertEqual(controlled_not_qubits, target_coupling_map)
+        self.assertEqual(configured_cmap, target_coupling_map)
