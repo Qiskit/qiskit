@@ -866,7 +866,8 @@ class TextDrawing():
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
 
-        elif instruction.name == 'measure':
+        elif instruction.name[:7] == 'measure' and len(instruction.qargs) == 1 and \
+                instruction.cargs and len(instruction.cargs) == 1:
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
