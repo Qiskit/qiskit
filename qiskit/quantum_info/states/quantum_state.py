@@ -16,7 +16,6 @@
 Abstract QuantumState class.
 """
 
-import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
