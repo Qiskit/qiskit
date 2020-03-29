@@ -18,7 +18,7 @@ Fake backend generation.
 import itertools
 import json
 from datetime import datetime
-from typing import Optional, List, Type
+from typing import Optional, List
 
 import numpy as np
 
@@ -239,25 +239,23 @@ class FakeBackendBuilder:
         meas_freq_est = np.linspace(6.4, 6.6, self.n_qubits).tolist()
         buffer = 10
         pulse_library = [
-                {
-                    'name': 'test_pulse_1',
-                    'samples': [[0.0, 0.0], [0.0, 0.1]]
-                },
-                {
-                    'name': 'test_pulse_2',
-                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]
-                },
-                {
-                    'name': 'test_pulse_3',
-                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
-                },
-                {
-                    'name': 'test_pulse_4',
-                    'samples': 7 * [
-                        [0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]
-                    ]
-                }
-            ]
+            {
+                'name': 'test_pulse_1',
+                'samples': [[0.0, 0.0], [0.0, 0.1]]
+            },
+            {
+                'name': 'test_pulse_2',
+                'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]
+            },
+            {
+                'name': 'test_pulse_3',
+                'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+            },
+            {
+                'name': 'test_pulse_4',
+                'samples': 7 * [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+            }
+        ]
 
         measure_command_sequence = [PulseQobjInstruction(name='acquire', duration=10, t0=0,
                                                          qubits=list(range(self.n_qubits)),
@@ -343,6 +341,7 @@ class FakeBackendBuilder:
                       default=lambda o: '')
 
     def build(self):
+        """Builds fake backend with specified parameters."""
         backend = FakeBackend(self.build_conf())
         backend.defaults = self.build_defaults
         backend.properties = self.build_props
