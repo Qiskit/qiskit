@@ -92,6 +92,18 @@ been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
    qiskit.pulse.commands
    qiskit.pulse.channels
 
+Circuit Scheduler
+=================
+The :mod:`~qiskit.pulse.circuit_scheduler` contains a scheduler that will lower
+a :class:`~qiskit.circuit.QuantumCircuit` to a :class:`~qiskit.pulse.Schedule`
+following a configurable scheduling policy.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.circuit_scheduler
+
+
 Configuration
 =============
 

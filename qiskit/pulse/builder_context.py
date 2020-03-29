@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -133,7 +133,7 @@ syntax. For example::
 from contextlib import contextmanager
 import contextvars
 
-from qiskit.scheduler import measure as measure_schedule
+from .circuit_scheduler import measure as measure_schedule
 
 from . import reschedule
 from .channels import Channel

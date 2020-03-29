@@ -14,16 +14,12 @@
 
 """
 ===========================================
-Circuit Scheduler (:mod:`qiskit.scheduler`)
+Circuit Scheduler (:mod:`qiskit.pulse.circuit_scheduler`)
 ===========================================
 
-.. currentmodule:: qiskit.scheduler
+.. currentmodule:: qiskit.pulse.circuit_scheduler
 
-..deprecated:: 0.13
-
-A scheduler compiles a circuit program to a pulse program.
-
-This module has been moved to :mod:`qiskit.pulse.circuit_scheduler`.
+A circuit scheduler compiles a circuit program to a pulse program.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -31,20 +27,9 @@ This module has been moved to :mod:`qiskit.pulse.circuit_scheduler`.
    schedule_circuit
    ScheduleConfig
 
-Scheduling utility functions
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qiskit.scheduler.utils
-
-.. automodule:: qiskit.scheduler.methods
+.. automodule:: qiskit.pulse.circuit_scheduler.methods
 """
-import warnings
 
 from .config import ScheduleConfig
 from .schedule_circuit import schedule_circuit
-from .utils import measure, measure_all
-
-warnings.warn('The scheduler module has been moved to '
-              '"qiskit.pulse.circuit_scheduler".', DeprecationWarning)
+from qiskit.pulse.macros import measure, measure_all

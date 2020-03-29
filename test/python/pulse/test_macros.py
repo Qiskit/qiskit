@@ -12,25 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for Scheduler Utility functions."""
+"""Test cases for Pulse Macro functions."""
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire, InstructionScheduleMap,
                           MeasureChannel, MemorySlot, GaussianSquare)
-from qiskit.scheduler import measure, measure_all
+from qiskit.pulse.circuit_scheduler import measure, measure_all
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
 
 
-class TestUtils(QiskitTestCase):
-    """Utils tests."""
+class TestMacros(QiskitTestCase):
+    """Pulse Macro tests."""
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_measure(self):
-        """Test utility function - measure."""
+        """Test macro - measure."""
         acquire = Acquire(duration=10)
         sched = measure(qubits=[0],
                         backend=self.backend)

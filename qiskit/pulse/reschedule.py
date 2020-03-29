@@ -22,10 +22,13 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
-                          InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
+from .commands import AcquireInstruction
 from .exceptions import PulseError
+from .instructions import Acquire, Delay
+from .instruction_schedule_map import InstructionScheduleMap
+from .interfaces import ScheduleComponent
+from .schedule import Schedule
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],

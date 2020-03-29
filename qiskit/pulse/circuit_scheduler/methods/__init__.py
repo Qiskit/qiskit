@@ -13,7 +13,14 @@
 # that they have been altered from the originals.
 
 """
-Deprecated module. Moved to ``qiskit.pulse.circuit_scheduler.config``.
+.. currentmodule:: qiskit.pulse.circuit_scheduler.methods
+
+Pulse scheduling methods.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   basic
 """
 
-from qiskit.pulse.circuit_scheduler.config import *
+from .basic import *
