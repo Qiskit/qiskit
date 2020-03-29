@@ -13,17 +13,18 @@
 # that they have been altered from the originals.
 
 """
-Basic rescheduling functions which take a Schedule (and possibly some arguments) and return
-a new Schedule.
+Basic rescheduling functions which take schedules or instructions
+(and possibly some arguments) and return new schedules.
 """
 import warnings
 
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Union
 
 import numpy as np
 
 from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
-                          InstructionScheduleMap, ScheduleComponent, Schedule)
+                          InstructionScheduleMap, ScheduleComponent, Schedule,
+                          Instruction)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
 
@@ -32,7 +33,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
-                   align_time: Optional[int] = None) -> Schedule:
+                   align_time: Optional[int] = None) -> List[Schedule]:
     """Return new schedules where measurements occur at the same physical time. Minimum measurement
     wait time (to allow for calibration pulses) is enforced.
 
@@ -46,9 +47,6 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         cal_gate: The name of the gate to inspect for the calibration time
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
-
-    Returns:
-        Schedule
 
     Raises:
         PulseError: if an acquire or pulse is encountered on a channel that has already been part
@@ -168,8 +166,12 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     return new_schedule
 
 
-def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
-        until: Optional[int] = None, mutate: bool = False) -> Schedule:
+def pad(
+    schedule: Schedule,
+    channels: Optional[Iterable[Channel]] = None,
+    until: Optional[int] = None,
+    mutate: bool = False
+) -> Schedule:
     """Pad the input Schedule with ``Delay``s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
 
@@ -202,3 +204,125 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
         schedule = schedule.insert(0, Delay(until)(channel), mutate=mutate)
 
     return schedule
+
+
+def push_append(
+    this: List[ScheduleComponent],
+    other: List[ScheduleComponent]
+) -> Schedule:
+        r"""Return a new schedule with `schedule` inserted at the maximum time over
+        all channels shared between `self` and `schedule`.
+
+       $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
+
+        Args:
+            schedule: schedule to be appended
+            buffer: Whether to obey buffer when appending
+        """
+        channels = list(set(this.channels) & set(other.channels))
+
+        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+                     for channel in channels]
+
+        if ch_slacks:
+            slack_chan = channels[np.argmin(ch_slacks)]
+            insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
+        else:
+            insert_time = 0
+        return this.insert(insert_time, other)
+
+
+def left_align(
+    *instructions: List[Union[Instruction, Schedule]]
+) -> Schedule:
+    """Align a list of pulse instructions on the left.
+
+    Args:
+        instructions: List of pulse instructions to align.
+
+    Returns:
+        pulse.Schedule
+    """
+    aligned = Schedule()
+    for instruction in instructions:
+        aligned = push_append(aligned, instruction)
+
+    return aligned
+
+
+def right_align(
+    *instructions: List[ScheduleComponent]
+) -> Schedule:
+    """Align a list of pulse instructions on the right.
+
+    Args:
+        instructions: List of pulse instructions to align.
+
+    Returns:
+        pulse.Schedule
+    """
+    left_aligned = left_align(*instructions)
+    max_duration = 0
+
+    channel_durations = {}
+    for channel in left_aligned.channels:
+        channel_sched = left_aligned.filter(channels=[channel])
+        channel_duration = channel_sched.duration-channel_sched.start_time
+        channel_durations[channel] = channel_sched.duration
+        max_duration = max(max_duration, channel_duration)
+
+    aligned = Schedule()
+    for instr_time, instruction in left_aligned.instructions:
+        instr_max_dur = max(channel_durations[channel] for channel in
+                            instruction.channels)
+        instr_delayed_time = max_duration - instr_max_dur + instr_time
+        aligned.insert(instr_delayed_time, instruction, mutate=True)
+
+    return aligned
+
+
+def align_in_sequence(
+    *instructions: List[ScheduleComponent]
+) -> Schedule:
+    """Align a list of pulse instructions sequentially in time.
+    Args:
+        instructions: List of pulse instructions to align.
+    Returns:
+        A new pulse schedule with instructions`
+    """
+    aligned = Schedule()
+    for instruction in instructions:
+        aligned.insert(aligned.duration, instruction, mutate=True)
+    return aligned
+
+
+def left_barrier(
+    *instructions: List[ScheduleComponent], channels=None
+) -> Schedule:
+    """Align on the left and create a barrier so that pulses cannot be inserted
+        within this pulse interval.
+
+    Args:
+        instructions: List of pulse instructions to align.
+
+    Returns:
+        pulse.Schedule
+    """
+    aligned = left_align(*instructions)
+    return pad(aligned, channels=channels)
+
+
+def right_barrier(
+    *instructions: List[ScheduleComponent], channels=None
+) -> Schedule:
+    """Align on the right and create a barrier so that pulses cannot be
+        inserted within this pulse interval.
+
+    Args:
+        instructions: List of pulse instructions to align.
+
+    Returns:
+        pulse.Schedule
+    """
+    aligned = right_align(*instructions)
+    return pad(aligned, channels=channels)

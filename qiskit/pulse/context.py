@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import contextvars
 
-from . import alignment
+from . import reschedule
 from .channels import Channel, DriveChannel, MeasureChannel, AcquireChannel
 from .commands.delay import Delay
 from .commands.frame_change import FrameChange
@@ -30,7 +30,7 @@ def build(backend, schedule):
     try:
         yield
     finally:
-        schedule.append(alignment.left_align(*instruction_list_ctx.get()), mutate=True)
+        schedule.append(reschedule.left_align(*instruction_list_ctx.get()), mutate=True)
         backend_ctx.reset(token1)
         schedule_ctx.reset(token2)
         instruction_list_ctx.reset(token3)
@@ -43,7 +43,7 @@ def left_barrier():
     try:
         yield
     finally:
-        aligned_schedule = alignment.left_barrier(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.left_barrier(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -58,7 +58,7 @@ def right_barrier():
     try:
         yield
     finally:
-        aligned_schedule = alignment.right_barrier(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.right_barrier(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -73,7 +73,7 @@ def left_align():
     try:
         yield
     finally:
-        aligned_schedule = alignment.left_align(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.left_align(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -88,7 +88,7 @@ def right_align():
     try:
         yield
     finally:
-        aligned_schedule = alignment.right_align(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.right_align(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -103,7 +103,7 @@ def sequence():
     try:
         yield
     finally:
-        aligned_schedule = alignment.align_in_sequence(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.align_in_sequence(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -118,7 +118,7 @@ def sprinkle(instruction, pts):
     try:
         yield
     finally:
-        aligned_schedule = alignment.sprinkle(*instruction_list_ctx.get(),
+        aligned_schedule = reschedule.sprinkle(*instruction_list_ctx.get(),
                                               instruction,
                                               pts)
         # restore the containing context instruction list
@@ -135,7 +135,7 @@ def align_center():
     try:
         yield
     finally:
-        aligned_schedule = alignment.align_center(*instruction_list_ctx.get())
+        aligned_schedule = reschedule.align_center(*instruction_list_ctx.get())
         # restore the containing context instruction list
         instruction_list_ctx.reset(token)
         # add our aligned schedule to the outer context instruction list
