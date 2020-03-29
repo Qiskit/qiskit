@@ -175,11 +175,11 @@ class Schedule(ScheduleComponent):
             yield from child_sched._instructions(time + insert_time)
 
     def union(
-        self, 
+        self,
         *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
         name: Optional[str] = None,
         mutate: bool = False
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a new schedule which is the union of both ``self`` and ``schedules``.
 
         Args:
@@ -195,11 +195,11 @@ class Schedule(ScheduleComponent):
             return self._immutable_insert(0, *schedules, name=name)
 
     def shift(
-        self, 
-        time: int, 
+        self,
+        time: int,
         name: Optional[str] = None,
         mutate: bool = False
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a new schedule shifted forward by ``time``.
 
         Args:
@@ -213,10 +213,10 @@ class Schedule(ScheduleComponent):
             return self._mutable_shift(time)
 
     def _immutable_shift(
-        self, 
-        time: int, 
+        self,
+        time: int,
         name: Optional[str] = None
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
         Args:
             time: Time to shift by
@@ -228,9 +228,9 @@ class Schedule(ScheduleComponent):
         return Schedule((time, self), name=name)
 
     def _mutable_shift(
-        self, 
+        self,
         time: int
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return this schedule shifted forward by `time`.
         Args:
             time: Time to shift by
@@ -242,12 +242,12 @@ class Schedule(ScheduleComponent):
         return self
 
     def insert(
-        self, 
-        start_time: int, 
+        self,
+        start_time: int,
         schedule: ScheduleComponent,
         name: Optional[str] = None,
         mutate: bool = False
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         Args:
@@ -259,12 +259,12 @@ class Schedule(ScheduleComponent):
         if mutate:
             return self._mutable_insert(start_time, schedule)
         return self._immutable_insert(start_time, schedule, name=name)
-    
+
     def _mutable_insert(
-        self, 
-        start_time: int, 
+        self,
+        start_time: int,
         schedule: ScheduleComponent
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
@@ -284,11 +284,11 @@ class Schedule(ScheduleComponent):
         self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def _immutable_insert(
-        self, 
-        start_time: int, 
+        self,
+        start_time: int,
         schedule: ScheduleComponent,
         name: Optional[str] = None,
-        ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         Args:
