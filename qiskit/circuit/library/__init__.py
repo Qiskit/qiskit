@@ -29,7 +29,6 @@ Boolean Logic Circuits
    Permutation
    XOR
 
-
 Arithmetic Circuits
 ===================
 
@@ -60,6 +59,12 @@ Comparators
 
    IntegerComparator
 
+Benchmarking
+============
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumVolume
 """
 
 
@@ -72,3 +77,4 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder
 )
+from .quantum_volume import QuantumVolume
