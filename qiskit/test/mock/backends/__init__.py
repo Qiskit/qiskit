@@ -20,7 +20,7 @@ Mocked versions of real quantum backends.
 from .yorktown import FakeYorktown
 from .tenerife import FakeTenerife
 from .ourense import FakeOurense
-from .ourense import FakeOurenseFaultyQ4
+from .ourense import FakeOurenseFaultyQ1
 from .vigo import FakeVigo
 from .burlington import FakeBurlington
 from .melbourne import FakeMelbourne

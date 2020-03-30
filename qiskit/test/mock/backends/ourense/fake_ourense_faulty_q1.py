@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Ourense device (5 qubit). With a faulty q4
+Fake Ourense device (5 qubit). With a faulty q1
 """
 
 import os
@@ -24,9 +24,9 @@ from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
 from .fake_ourense import FakeOurense
 
 
-class FakeOurenseFaultyQ4(FakeOurense):
-    """A fake 5 qubit backend, with a faulty q4
-         0 ↔ 1 ↔ 3 ↔ (4)
+class FakeOurenseFaultyQ1(FakeOurense):
+    """A fake 5 qubit backend, with a faulty q1
+         0 ↔ (1) ↔ 3 ↔ 4
              ↕
              2
     """
@@ -38,5 +38,8 @@ class FakeOurenseFaultyQ4(FakeOurense):
         filename = "props_ourense.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
-        # TODO add faulty qubit.
+        props['qubits'][1].append({"date": "2000-01-01 00:00:00Z",
+                                   "name": "operational",
+                                   "unit": "",
+                                   "value": False})
         return BackendProperties.from_dict(props)
