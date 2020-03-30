@@ -311,7 +311,7 @@ class BackendProperties(BaseModel):
         """
         properties = self.qubit_property(qubit)
         if 'operational' in properties:
-            return properties['operational'][0]
+            return bool(properties['operational'][0])
         return True  # if property operational not existant, then True
 
     def _apply_prefix(self, value: float, unit: str) -> float:

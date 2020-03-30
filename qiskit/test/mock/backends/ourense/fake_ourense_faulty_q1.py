@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Ourense device (5 qubit). With a faulty q1
+Fake Ourense device (5 qubit). With a faulty Q1
 """
 
 import os
@@ -33,6 +33,7 @@ class FakeOurenseFaultyQ1(FakeOurense):
 
     def properties(self):
         """Returns a snapshot of device properties as recorded on 8/30/19.
+        Sets the qubit 1 as non-operational.
         """
         dirname = os.path.dirname(__file__)
         filename = "props_ourense.json"
@@ -41,5 +42,5 @@ class FakeOurenseFaultyQ1(FakeOurense):
         props['qubits'][1].append({"date": "2000-01-01 00:00:00Z",
                                    "name": "operational",
                                    "unit": "",
-                                   "value": False})
+                                   "value": 0})
         return BackendProperties.from_dict(props)

@@ -92,8 +92,8 @@ class FakeBackend(BaseBackend):
                     {
                         "date": "2000-01-01 00:00:00Z",
                         "name": "operational",
-                        "unit": "",
-                        "value": True
+                        "unit": "0/1",
+                        "value": 1
                     }
                 ] for _ in range(len(unique_qubits))
             ],
