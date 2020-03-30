@@ -40,6 +40,7 @@ class Node:
         self.name = name
         self.parameters = parameters
 
+
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
@@ -201,7 +202,7 @@ class Optimize1qGates(TransformationPass):
         if left_node.name == 'u2' and right_node.name == 'u2':
             temp = - 0.5 * np.e**(left_node.parameters[2]*1j) * \
                    np.e**(right_node.parameters[1]*1j)+0.5
-            if np.abs(np.imag(temp) < 1e-6) and np.real(temp) >= 0:
+            if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
         if left_node.name == 'u2' and right_node.name == 'u3':
@@ -210,7 +211,7 @@ class Optimize1qGates(TransformationPass):
                    np.sin(right_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(right_node.parameters[0]/2)
 
-            if np.abs(np.imag(temp) < 1e-6) and np.real(temp) >= 0:
+            if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
         if left_node.name == 'u3' and right_node.name == 'u2':
@@ -218,14 +219,14 @@ class Optimize1qGates(TransformationPass):
                    np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) \
                    * np.sin(left_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(left_node.parameters[0]/2)
-            if np.abs(np.imag(temp) < 1e-6) and np.real(temp) >= 0:
+            if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
         if left_node.name == 'u3' and right_node.name == 'u3':
             temp = -np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) \
                    * np.sin(left_node.parameters[0] / 2) * np.sin(right_node.parameters[0] / 2) + \
                    np.cos(left_node.parameters[0]/2) * np.cos(right_node.parameters[0]/2)
-            if np.abs(np.imag(temp) < 1e-6) and np.real(temp) >= 0:
+            if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
         return False
@@ -249,6 +250,7 @@ class Optimize1qGates(TransformationPass):
         for run in runs:
             num_gates = 0 # pylint: disable = attribute-defined-outside-init
             final_gates = []
+            final_nodes = []
             right_node = Node("u1", (0, 0, 0))
 
             for current_node in run:
@@ -257,6 +259,7 @@ class Optimize1qGates(TransformationPass):
                     self.combine_gates_into_right_node(left_node, right_node)
                 else:
                     new_op = self.generate_gate(right_node)
+                    final_nodes.append(Node(right_node.name, right_node.parameters))
                     final_gates.append(new_op)
                     right_node.name = left_node.name
                     right_node.parameters = left_node.parameters
@@ -283,6 +286,7 @@ class Optimize1qGates(TransformationPass):
         for node_op in run:
             if node_op.name == '':
                 dag.remove_op_node(node_op)
+
 
     def simplify_right_node(self, right_node):
         """

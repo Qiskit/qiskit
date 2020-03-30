@@ -17,7 +17,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister, execute, BasicAer
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
@@ -29,6 +29,28 @@ from qiskit.circuit import Parameter
 
 class TestOptimize1qGates(QiskitTestCase):
     """Test for 1q gate optimizations. """
+
+    def test_global_phase(self):
+        """https://github.com/Qiskit/qiskit-terra/issues/3083"""
+
+
+        q = QuantumRegister(1)
+        c = ClassicalRegister(1)
+        circuit = QuantumCircuit(q, c)
+        circuit.h(q[0])
+        circuit.z(q[0])
+        circuit.x(q[0])
+
+        backend = BasicAer.get_backend('unitary_simulator')
+
+        job = execute(circuit, backend, optimization_level=0)
+        result = job.result()
+
+        job1 = execute(circuit, backend, optimization_level=1)
+        result1 = job1.result()
+        print(result.get_unitary(circuit))
+        print(result1.get_unitary(circuit))
+        self.assertTrue(np.allclose(result.get_unitary(circuit), result1.get_unitary(circuit)))
 
     def test_dont_optimize_id(self):
         """Identity gates are like 'wait' commands.
