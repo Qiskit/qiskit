@@ -168,24 +168,30 @@ class Optimize1qGates(TransformationPass):
         return new_op
 
     def add_right_node_to_dag(self, dag, new_op, right_node, run):
-        if right_node.name != 'nop':
-            dag.substitute_node(run[0], new_op, inplace=True)
+        for k, new_op in enumerate(right_node):
+            dag.substitute_node(run[k], new_op, inplace=True)
 
     def extract_simplified_gates(self, dag, right_node, run):
         '''
         Delete the other nodes in the run
         '''
-        for current_node in run[1:]:
+        for current_node in run[self.num_gates:]:
             dag.remove_op_node(current_node)
-        if right_node.name == "nop":
-            dag.remove_op_node(run[0])
+        # if right_node.name == "nop":
+        #     dag.remove_op_node(run[0])
 
-    def can_cambine(self, left_node, right_node):
-        # TODO
+    def can_combine(self, left_node, right_node):
+        if left_node.name == 'u1' or right_node.name == 'u1':
+            return True
+        if left_node.name == 'u2' or left_node.name == 'u3' or left_node.name == 'u2' or left_node.name == 'u3':
+            return False
+
         return True
         
 
     def run(self, dag):
+        self.dag = dag
+        self.num_gates = 0
         """Run the Optimize1qGates pass on `dag`.
 
         Args:
@@ -199,24 +205,40 @@ class Optimize1qGates(TransformationPass):
         """
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
-        for run in runs:
-            right_node = node("u1", (0, 0, 0))
 
+        for run in runs:
+            self.num_gates = 0
+            final_gates = []
+            right_node = node("u1", (0, 0, 0))
 
             for current_node in run:
                 left_node = self.define_left_node(current_node)
-                a = self.can_cambine(left_node, right_node)
-                self.combine_gates_into_right_node(left_node, right_node)
+                if self.can_combine(left_node, right_node):
+                    self.combine_gates_into_right_node(left_node, right_node)
+                else:
+                    new_op = self.generate_gate(right_node)
+                    final_gates.append(new_op)
+                    right_node.name = left_node.name
+                    right_node.parameters = left_node.parameters
+                    self.num_gates = self.num_gates + 1
+
+
                 self.simplify_right_node(right_node)
 
+
             new_op = self.generate_gate(right_node)
-
-            self.add_right_node_to_dag(dag, new_op, right_node, run)
-
+            final_gates.append(new_op)
+            self.num_gates = self.num_gates + 1
+            self.add_right_node_to_dag(dag, new_op, final_gates, run)
             self.extract_simplified_gates(dag, right_node, run)
+
 
         return dag
 
+    def check(self, run):
+        for node in run:
+            if node.name == '':
+                print(1)
 
     def simplify_right_node(self, right_node):
         '''
@@ -254,8 +276,8 @@ class Optimize1qGates(TransformationPass):
                                          np.pi + (right_node.parameters[0] +
                                                   np.pi / 2))
         # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-        if right_node.name == "u1" and np.mod(right_node.parameters[2], (2 * np.pi)) == 0:
-            right_node.name = "nop"
+        # if right_node.name == "u1" and np.mod(right_node.parameters[2], (2 * np.pi)) == 0:
+        #     right_node.name = "nop"
 
     @staticmethod
     def compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
