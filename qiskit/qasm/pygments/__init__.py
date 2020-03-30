@@ -26,4 +26,6 @@ Qasm Pygments tools (:mod:`qiskit.qasm.pygments`)
    QasmTerminalStyle
    QasmHTMLStyle
 """
-from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
+from .lexer import HAS_PYGMENTS
+if HAS_PYGMENTS:
+    from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
