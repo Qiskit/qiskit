@@ -20,13 +20,11 @@ import sys
 import warnings
 import multiprocessing as mp
 from collections import OrderedDict
-import pygments
-from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
 import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.qasm.pygments import OpenQASMLexer, QasmTerminalStyle
+
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -37,6 +35,14 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer, QasmTerminalStyle
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
 
 class QuantumCircuit:
@@ -668,6 +674,10 @@ class QuantumCircuit:
             file.close()
 
         if formatted:
+            if not HAS_PYGMENTS:
+                raise ImportError("To use the formatted output pygments must "
+                                  'be installed. To install run "pip install '
+                                  'pygments".')
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))

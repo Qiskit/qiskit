@@ -17,10 +17,15 @@
 
 import ipywidgets as wid
 from IPython.display import display
-import pygments
-from pygments.formatters import HtmlFormatter
 from qiskit import QuantumCircuit
-from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
+
+try:
+    import pygments
+    from pygments.formatters import HtmlFormatter
+    from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
 
 def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
@@ -114,6 +119,9 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         Output widget.
 
     """
+    if not HAS_PYGMENTS:
+        raise ImportError("pygments must be installed for to use the qasm "
+                          'widget. To install run "pip install pygments"')
     qasm_code = circuit.qasm()
     code = pygments.highlight(qasm_code, OpenQASMLexer(),
                               HtmlFormatter())

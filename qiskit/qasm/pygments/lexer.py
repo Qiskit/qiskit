@@ -13,96 +13,99 @@
 # that they have been altered from the originals.
 """Pygments tools for Qasm.
 """
-from pygments.lexer import RegexLexer
-from pygments.token import (Comment, String, Keyword,
-                            Name, Number, Text)
-from pygments.style import Style
+try:
+    from pygments.lexer import RegexLexer
+    from pygments.token import (Comment, String, Keyword,
+                                Name, Number, Text)
+    from pygments.style import Style
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
+if HAS_PYGMENTS:
+    class QasmTerminalStyle(Style):
+        """A style for OpenQasm in a Terminal env (e.g. Jupyter print)
+        """
+        styles = {
+            String:              'ansibrightred',
+            Number:              'ansibrightcyan',
+            Keyword.Reserved:    'ansibrightgreen',
+            Keyword.Declaration: 'ansibrightgreen',
+            Keyword.Type:        'ansibrightmagenta',
+            Name.Builtin:        'ansibrightblue',
+            Name.Function:       'ansibrightyellow'}
 
-class QasmTerminalStyle(Style):
-    """A style for OpenQasm in a Terminal env (e.g. Jupyter print)
-    """
-    styles = {
-        String:              'ansibrightred',
-        Number:              'ansibrightcyan',
-        Keyword.Reserved:    'ansibrightgreen',
-        Keyword.Declaration: 'ansibrightgreen',
-        Keyword.Type:        'ansibrightmagenta',
-        Name.Builtin:        'ansibrightblue',
-        Name.Function:       'ansibrightyellow'}
+    class QasmHTMLStyle(Style):
+        """A style for OpenQasm in a HTML env (e.g. Jupyter widget)
+        """
+        styles = {
+            String:              'ansired',
+            Number:              'ansicyan',
+            Keyword.Reserved:    'ansigreen',
+            Keyword.Declaration: 'ansigreen',
+            Keyword.Type:        'ansimagenta',
+            Name.Builtin:        'ansiblue',
+            Name.Function:       'ansiyellow'}
 
+    class OpenQASMLexer(RegexLexer):
+        """A pygments lexer for OpenQasm
+        """
+        name = 'OpenQASM'
+        aliases = ['qasm']
+        filenames = ['*.qasm']
 
-class QasmHTMLStyle(Style):
-    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)
-    """
-    styles = {
-        String:              'ansired',
-        Number:              'ansicyan',
-        Keyword.Reserved:    'ansigreen',
-        Keyword.Declaration: 'ansigreen',
-        Keyword.Type:        'ansimagenta',
-        Name.Builtin:        'ansiblue',
-        Name.Function:       'ansiyellow'}
+        gates = ['id', 'cx', 'x', 'y', 'z', 's', 'sdg', 'h',
+                 't', 'tdg', 'ccx', 'rx', 'ry', 'rz',
+                 'cz', 'cy', 'ch', 'swap', 'cswap', 'crx',
+                 'cry', 'crz', 'cu1', 'cu3', 'rxx', 'rzz',
+                 'rccx', 'rcccx', 'u1', 'u2', 'u3']
 
+        tokens = {
+            'root': [
+                (r'\n', Text),
+                (r'[^\S\n]+', Text),
+                (r'//\n', Comment),
+                (r'//.*?$', Comment.Single),
 
-class OpenQASMLexer(RegexLexer):
-    """A pygments lexer for OpenQasm
-    """
-    name = 'OpenQASM'
-    aliases = ['qasm']
-    filenames = ['*.qasm']
+                # Keywords
+                (r'(OPENQASM|include)\b', Keyword.Reserved, 'keywords'),
+                (r'(qreg|creg)\b', Keyword.Declaration),
 
-    gates = ['id', 'cx', 'x', 'y', 'z', 's', 'sdg', 'h',
-             't', 'tdg', 'ccx', 'rx', 'ry', 'rz',
-             'cz', 'cy', 'ch', 'swap', 'cswap', 'crx',
-             'cry', 'crz', 'cu1', 'cu3', 'rxx', 'rzz',
-             'rccx', 'rcccx', 'u1', 'u2', 'u3']
+                # Treat 'if' special
+                (r'(if)\b', Keyword.Reserved, 'if_keywords'),
 
-    tokens = {
-        'root': [
-            (r'\n', Text),
-            (r'[^\S\n]+', Text),
-            (r'//\n', Comment),
-            (r'//.*?$', Comment.Single),
+                # Constants
+                (r'(pi)\b', Name.Constant),
 
-            # Keywords
-            (r'(OPENQASM|include)\b', Keyword.Reserved, 'keywords'),
-            (r'(qreg|creg)\b', Keyword.Declaration),
+                # Special
+                (r'(barrier|measure|reset)\b', Name.Builtin, 'params'),
 
-            # Treat 'if' special
-            (r'(if)\b', Keyword.Reserved, 'if_keywords'),
+                # Gates (Types)
+                ('(' + '|'.join(gates) + r')\b', Keyword.Type, 'params'),
+                (r'[unitary\d+]', Keyword.Type),
 
-            # Constants
-            (r'(pi)\b', Name.Constant),
+                # Functions
+                (r'(gate)\b', Name.Function, 'gate'),
 
-            # Special
-            (r'(barrier|measure|reset)\b', Name.Builtin, 'params'),
+                # Generic text
+                (r"[a-zA-Z_][a-zA-Z0-9_]*", Text, 'index')],
 
-            # Gates (Types)
-            ('(' + '|'.join(gates) + r')\b', Keyword.Type, 'params'),
-            (r'[unitary\d+]', Keyword.Type),
+            'keywords': [(r'\s*("([^"]|"")*")', String, '#push'),
+                         (r"\d+", Number, '#push'),
+                         (r'.*\(', Text, 'params')],
 
-            # Functions
-            (r'(gate)\b', Name.Function, 'gate'),
+            'if_keywords': [(r'[a-zA-Z0-9_]*', String, '#pop'),
+                            (r"\d+", Number, '#push'),
+                            (r'.*\(', Text, 'params')],
 
-            # Generic text
-            (r"[a-zA-Z_][a-zA-Z0-9_]*", Text, 'index')],
+            'params': [(r"[a-zA-Z_][a-zA-Z0-9_]*", Text, '#push'),
+                       (r'\d+', Number, '#push'),
+                       (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?',
+                        Number, '#push'),
+                       (r'\)', Text)],
 
-        'keywords': [(r'\s*("([^"]|"")*")', String, '#push'),
-                     (r"\d+", Number, '#push'),
-                     (r'.*\(', Text, 'params')],
+            'gate': [(r'[unitary\d+]', Keyword.Type, '#push'),
+                     (r'p\d+', Text, '#push')],
 
-        'if_keywords': [(r'[a-zA-Z0-9_]*', String, '#pop'),
-                        (r"\d+", Number, '#push'),
-                        (r'.*\(', Text, 'params')],
-
-        'params': [(r"[a-zA-Z_][a-zA-Z0-9_]*", Text, '#push'),
-                   (r'\d+', Number, '#push'),
-                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number, '#push'),
-                   (r'\)', Text)],
-
-        'gate': [(r'[unitary\d+]', Keyword.Type, '#push'),
-                 (r'p\d+', Text, '#push')],
-
-        'index': [(r"\d+", Number, '#pop')]
-        }
+            'index': [(r"\d+", Number, '#pop')]
+            }
