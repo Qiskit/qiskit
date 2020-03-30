@@ -214,12 +214,10 @@ class HoareOptimizer(TransformationPass):
 
         if isinstance(gate1, ControlledGate):
             gate1 = gate1.base_gate
-        else:
-            gate1 = type(gate1)
+        gate1 = type(gate1)
         if isinstance(gate2, ControlledGate):
             gate2 = gate2.base_gate
-        else:
-            gate2 = type(gate2)
+        gate2 = type(gate2)
 
         # equality of gates can be determined via type and parameters, unless
         # the gates have no specific type, in which case definition is used
