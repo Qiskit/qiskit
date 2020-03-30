@@ -139,11 +139,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
     .. parsed-literal::
 
-             ┌───────────┐
-        q_0: ┤ U3(ϴ,φ,λ) ├
-             └─────┬─────┘
-        q_1: ──────■──────
-
+        q_0: ──────■──────
+             ┌─────┴─────┐
+        q_1: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
 
     **Matrix representation:**
 
@@ -151,34 +150,40 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CU3(\theta, \phi, \lambda)\ q_1, q_0=
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+        CU3(\theta, \phi, \lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| +
+            U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0   & 0                  & 0 \\
-                0 & 1   & 0                  & 0 \\
-                0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                1 & 0                   & 0 & 0 \\
+                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & 0                   & 1 & 0 \\
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
-
 
     .. note::
 
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────────┐
+            q_0: ┤ U3(ϴ,φ,λ) ├
+                 └─────┬─────┘
+            q_1: ──────■──────
 
         .. math::
 
-            CU3(\theta, \phi, \lambda)\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| +
-                U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            CU3(\theta, \phi, \lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I +
+                |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
                 \begin{pmatrix}
-                    1 & 0                   & 0 & 0 \\
-                    0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
-                    0 & 0                   & 1 & 0 \\
-                    0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                    1 & 0   & 0                  & 0 \\
+                    0 & 1   & 0                  & 0 \\
+                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
 

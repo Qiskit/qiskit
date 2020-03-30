@@ -118,25 +118,23 @@ class CHGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
-
-             ┌───┐
-        q_0: ┤ H ├
-             └─┬─┘
-        q_1: ──■──
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ H ├
+             └───┘
 
     **Matrix Representation:**
 
     .. math::
 
-        CH\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes H =
+        CH\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
             \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & 1 & 1 \\
-                0 & 0 & 1 & -1
+                0 & 1 & 0 & 1 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & -1
             \end{pmatrix}
 
     .. note::
@@ -144,20 +142,27 @@ class CHGate(ControlledGate):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ H ├
+                 └─┬─┘
+            q_1: ──■──
 
         .. math::
 
-            CH\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
+            CH\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes H =
                 \frac{1}{\sqrt{2}}
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
-                    0 & 1 & 0 & 1 \\
-                    0 & 0 & 1 & 0 \\
-                    0 & 1 & 0 & -1
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & 1 & 1 \\
+                    0 & 0 & 1 & -1
                 \end{pmatrix}
+
     """
 
     def __init__(self):
