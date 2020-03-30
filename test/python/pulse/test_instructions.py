@@ -39,15 +39,17 @@ class TestAcquire(QiskitTestCase):
         discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
 
         acq = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                      kernel=kernel, discriminator=discriminator)
+                      kernel=kernel, discriminator=discriminator, name='acquire')
 
         self.assertEqual(acq.duration, 10)
-        self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0)))
         self.assertEqual(acq.discriminator.name, 'linear_discriminator')
         self.assertEqual(acq.discriminator.params, discriminator_opts)
         self.assertEqual(acq.kernel.name, 'boxcar')
         self.assertEqual(acq.kernel.params, kernel_opts)
-        self.assertTrue(acq.name.startswith('acquire'))
+        self.assertIsInstance(acq.id, int)
+        self.assertEqual(acq.id, 1)
+        self.assertEqual(acq.name, 'acquire')
+        self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
 
 
 class TestDelay(QiskitTestCase):
@@ -57,7 +59,9 @@ class TestDelay(QiskitTestCase):
         """Test delay."""
         delay = Delay(10, DriveChannel(0), name='test_name')
 
-        self.assertEqual(delay.name, "test_name")
+        self.assertIsInstance(delay.id, int)
+        self.assertEqual(delay.id, 1)
+        self.assertEqual(delay.name, 'test_name')
         self.assertEqual(delay.duration, 10)
         self.assertEqual(delay.operands, (10, DriveChannel(0)))
         self.assertEqual(delay, Delay(10, DriveChannel(0)))
@@ -72,8 +76,9 @@ class TestSetFrequency(QiskitTestCase):
         """Test set frequency basic functionality."""
         set_freq = SetFrequency(4.5e9, DriveChannel(1), name='test')
 
-        self.assertEqual(set_freq.frequency, 4.5e9)
+        self.assertEqual(set_freq.id, 1)
         self.assertEqual(set_freq.duration, 0)
+        self.assertEqual(set_freq.frequency, 4.5e9)
         self.assertEqual(set_freq.operands, (4.5e9, DriveChannel(1)))
         self.assertEqual(set_freq, SetFrequency(4.5e9, DriveChannel(1), name='test'))
         self.assertNotEqual(set_freq, SetFrequency(4.5e8, DriveChannel(1), name='test'))
@@ -88,13 +93,14 @@ class TestShiftPhase(QiskitTestCase):
         """Test basic ShiftPhase."""
         shift_phase = ShiftPhase(1.57, DriveChannel(0))
 
-        self.assertEqual(shift_phase.phase, 1.57)
+        self.assertEqual(shift_phase.id, 1)
+        self.assertEqual(shift_phase.name, 'shiftphase')
         self.assertEqual(shift_phase.duration, 0)
-        self.assertTrue(shift_phase.name.startswith('shiftphase'))
+        self.assertEqual(shift_phase.phase, 1.57)
         self.assertEqual(shift_phase.operands, (1.57, DriveChannel(0)))
         self.assertEqual(shift_phase, ShiftPhase(1.57, DriveChannel(0), name='test'))
         self.assertNotEqual(shift_phase, ShiftPhase(1.57j, DriveChannel(0), name='test'))
-        self.assertEqual(repr(shift_phase)[:-7], "ShiftPhase(1.57, DriveChannel(0), name='shiftphase")
+        self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0), name='shiftphase')")
 
 
 class TestSnapshot(QiskitTestCase):
@@ -104,8 +110,9 @@ class TestSnapshot(QiskitTestCase):
         """Test default snapshot."""
         snapshot = Snapshot(label='test_name', snapshot_type='state')
 
-        self.assertEqual(snapshot.name, "test_name")
-        self.assertEqual(snapshot.type, "state")
+        self.assertEqual(snapshot.id, 1)
+        self.assertEqual(snapshot.name, 'test_name')
+        self.assertEqual(snapshot.type, 'state')
         self.assertEqual(snapshot.duration, 0)
         self.assertNotEqual(snapshot, Delay(10, DriveChannel(0)))
         self.assertEqual(repr(snapshot), "Snapshot(test_name, state, name='test_name')")
@@ -120,6 +127,7 @@ class TestPlay(QiskitTestCase):
         pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
         play = Play(pulse, DriveChannel(1))
 
+        self.assertEqual(play.id, 1)
         self.assertEqual(play.name, pulse.name)
         self.assertEqual(play.duration, duration)
         self.assertEqual(repr(play),

@@ -121,6 +121,10 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, new_sched.start_time)
         self.assertEqual(200, new_sched.stop_time)
         self.assertEqual(200, new_sched.duration)
+        ids = set()
+        for time, inst in sched.instructions:
+            self.assertFalse(inst.id in ids)
+            ids.add(inst.id)
 
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test that in place operations on schedule are still immutable

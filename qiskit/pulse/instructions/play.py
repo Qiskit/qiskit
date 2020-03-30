@@ -43,7 +43,9 @@ class Play(Instruction):
         """
         self._pulse = pulse
         self._channel = channel
-        super().__init__(pulse.duration, channel, name=name if name is not None else pulse.name)
+        if name is None:
+            name = pulse.name if pulse.name is not None else 'play'
+        super().__init__(pulse.duration, channel, name=name)
 
     @property
     def operands(self) -> Tuple[Any, PulseChannel]:

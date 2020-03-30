@@ -43,6 +43,9 @@ class Instruction(ScheduleComponent, ABC):
     channels.
     """
 
+    id_counter = 0
+    """The number of instruction instances, used to give new instructions a unique ID."""
+
     def __init__(self, duration: Union['commands.Command', int],
                  *channels: Channel,
                  name: Optional[str] = None):
@@ -62,19 +65,15 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 name = self.command.name
             duration = self.command.duration
+        self._name = name
         self._duration = duration
+
+        Instruction.id_counter += 1
+        self.id = self.id_counter
+        """Unique identifier for this instruction."""
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
-
-        if name is None:
-            if self.operands:
-                name = "{}{}".format(self.__class__.__name__.lower(),
-                                     str(hex(hash(self.operands)))[3:8])
-            else:
-                name = "{}{}".format(self.__class__.__name__.lower(),
-                                     str(hex(hash(self.command, self.channels)))[3:8])
-        self._name = name
 
     @property
     def name(self) -> str:

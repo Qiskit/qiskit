@@ -51,7 +51,7 @@ class Acquire(Instruction):
                  reg_slot: Optional[RegisterSlot] = None,
                  kernel: Optional[Kernel] = None,
                  discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None):
+                 name: Optional[str] = 'acquire'):
         """Create a new Acquire instruction.
 
         Args:

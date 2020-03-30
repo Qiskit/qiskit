@@ -37,7 +37,7 @@ class SetFrequency(Instruction):
 
     def __init__(self, frequency: float,
                  channel: Optional[PulseChannel],
-                 name: Optional[str] = None):
+                 name: Optional[str] = 'setfrequency'):
         """Creates a new set channel frequency instruction.
 
         Args:
