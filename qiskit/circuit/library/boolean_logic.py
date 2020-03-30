@@ -42,6 +42,16 @@ class Permutation(QuantumCircuit):
 
         Raises:
             CircuitError: if permutation pattern is malformed.
+
+        Reference Circuit:
+            .. jupyter-execute::
+                :hide-code:
+
+                from qiskit.circuit.library import Permutation
+                import qiskit.tools.jupyter
+                circuit = Permutation(5, seed=42)
+                %circuit_library_info circuit
+
         """
         super().__init__(n_qubits, name="permutation")
 
@@ -85,6 +95,15 @@ class XOR(QuantumCircuit):
 
         Raises:
             CircuitError: if the xor bitstring exceeds available qubits.
+
+        Reference Circuit:
+            .. jupyter-execute::
+                :hide-code:
+
+                from qiskit.circuit.library import XOR
+                import qiskit.tools.jupyter
+                circuit = XOR(5, seed=42)
+                %circuit_library_info circuit
         """
         super().__init__(n_qubits, name="xor")
 
@@ -115,6 +134,15 @@ class InnerProduct(QuantumCircuit):
 
         Returns:
             A circuit computing inner product of two registers.
+
+        Reference Circuit:
+            .. jupyter-execute::
+                :hide-code:
+
+                from qiskit.circuit.library import InnerProduct
+                import qiskit.tools.jupyter
+                circuit = InnerProduct(5)
+                %circuit_library_info circuit
         """
         qr_a = QuantumRegister(n_qubits)
         qr_b = QuantumRegister(n_qubits)
