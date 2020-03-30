@@ -45,6 +45,11 @@ from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
-from .pygments import HAS_PYGMENTS
+try:
+    import pygments
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
+
 if HAS_PYGMENTS:
     from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
