@@ -25,10 +25,20 @@ from qiskit.circuit import QuantumRegister
 class iSwapGate(Gate):
     r"""iSWAP gate.
 
-    A 2-qubit XY interaction that is equivalent to a SWAP up to a diagonal.
+    A 2-qubit XX+YY interaction.
     This is a Clifford and symmetric gate. Its action is to swap two qubit
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─⨂─
+              │
+        q_1: ─⨂─
+
+    **Reference Implementation:**
 
     .. parsed-literal::
 
@@ -38,16 +48,25 @@ class iSwapGate(Gate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
+    **Matrix Representation:**
+
     .. math::
 
-        iSWAP =
+        iSWAP = R_{XX+YY}(-\frac{\pi}{2})
+          = exp(i \frac{\pi}{4} (X{\otimes}X+Y{\otimes}Y)) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & i & 0 \\
                 0 & i & 0 & 0 \\
                 0 & 0 & 0 & 1
             \end{pmatrix}
-          = \begin{pmatrix}
+
+    This gate is equivalent to a SWAP up to a diagonal.
+
+    .. math::
+
+         iSWAP =
+            \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -62,6 +81,7 @@ class iSwapGate(Gate):
     """
 
     def __init__(self):
+        """Create new iSwap gate."""
         super().__init__('iswap', 2, [])
 
     def _define(self):
@@ -97,25 +117,7 @@ class iSwapGate(Gate):
 
 
 def iswap(self, qubit1, qubit2):
-    """Apply iSWAP gate to a pair specified qubits (qubit1, qubit2).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.iswap(0,1)
-            circuit.draw()
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.iswap import iSwapGate
-            from qiskit.quantum_info import Operator
-            Operator(iSwapGate()).data
+    """Apply :class:`~qiskit.extensions.standard.iSwapGate`.
     """
     return self.append(iSwapGate(), [qubit1, qubit2], [])
 
