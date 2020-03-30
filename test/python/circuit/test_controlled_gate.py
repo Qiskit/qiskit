@@ -900,20 +900,27 @@ class TestControlledGate(QiskitTestCase):
                 self.assertTrue(isinstance(new(*params), old))
                 self.assertTrue(isinstance(old(*params), new))
 
-
 @ddt
-class TestControlledGateIssues(QiskitTestCase):
-    """Did you find a specific failing case? add it here with a reference to the issue."""
-    @data((RXGate, CRXGate),
-          (RYGate, CRYGate),
-          (RZGate, CRZGate))
+class TestParameterCtrlState(QiskitTestCase):
+    """Test controlled gates with ctrl_state"""
+    @data((RXGate(0.5), CRXGate(0.5)),
+          (RYGate(0.5), CRYGate(0.5)),
+          (RZGate(0.5), CRZGate(0.5)),
+          (XGate(), CXGate()),
+          (YGate(), CYGate()),
+          (ZGate(), CZGate()),
+          (U1Gate(0.5), CU1Gate(0.5)),
+          (SwapGate(), CSwapGate()),
+          (HGate(), CHGate()),
+          (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)))
     @unpack
-    def test_rotation_with_ctrl_state(self, gate, controlled_gate):
-        """Test rotation with ctrl_state
+    def test_ctrl_state_one(self, gate, controlled_gate):
+        """Test controlled gates with ctrl_state
         See https://github.com/Qiskit/qiskit-terra/pull/4025
         """
-        theta = 0.5
-        self.assertEqual(gate(theta).control(1, ctrl_state='1'), controlled_gate(theta))
+        self.assertEqual(gate.control(1, ctrl_state='1'), controlled_gate)
+        # TODO: once https://github.com/Qiskit/qiskit-terra/issues/3304 is fixed, move this test
+        # to use _compute_control_matrix instead of plain assertEqual
 
 
 if __name__ == '__main__':
