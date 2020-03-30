@@ -24,7 +24,6 @@ import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -39,7 +38,8 @@ from .quantumcircuitdata import QuantumCircuitData
 try:
     import pygments
     from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer, QasmTerminalStyle
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False
@@ -642,6 +642,10 @@ class QuantumCircuit:
 
         Returns:
             str: If formatted=False.
+
+        Raises:
+            ImportError: If pygments is not installed and ``formatted`` is
+                ``True``.
         """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
