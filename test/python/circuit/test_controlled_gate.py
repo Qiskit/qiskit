@@ -900,6 +900,7 @@ class TestControlledGate(QiskitTestCase):
                 self.assertTrue(isinstance(new(*params), old))
                 self.assertTrue(isinstance(old(*params), new))
 
+
 @ddt
 class TestParameterCtrlState(QiskitTestCase):
     """Test controlled gates with ctrl_state"""
