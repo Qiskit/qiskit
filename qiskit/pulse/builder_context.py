@@ -129,22 +129,69 @@ syntax. For example::
       with frequency_offset(d0, 0.1e9):
         play(d0, gaussian_pulse)
 """
-
-from contextlib import contextmanager
 import contextvars
-
-from .circuit_scheduler import measure as measure_schedule
+from contextlib import contextmanager
+import functools
+from typing import Callable
 
 from . import transforms
 from .channels import Channel
-from .commands.delay import Delay
-from .commands.frame_change import FrameChange
-from .commands.sample_pulse import SamplePulse
+from .circuit_scheduler import measure as measure_schedule
+from .commands import Delay, FrameChange, SamplePulse
+from .schedule import Schedule
 
 
-BACKEND_CTX = contextvars.ContextVar("backend")
-SCHEDULE_CTX = contextvars.ContextVar("schedule")
-INSTRUCTION_LIST_CTX = contextvars.ContextVar("instruction_list")
+#: contextvars.ContextVar[BuilderContext]: Active builder
+BUILDER_CONTEXT = contextvars.ContextVar("backend")
+
+
+class BuilderContext():
+    """Builder context class."""
+
+    def __init__(self, backend, block: Schedule = None):
+        """Initialize builder context.
+
+        TODO: This should contain a builder class rather than manipulating the
+        IR directly.
+
+        Args:
+            backend (BaseBackend):
+        """
+
+        #: BaseBackend: Backend instance for context builder.
+        self.backend = backend
+
+        #: Schedule: Current active schedule of BuilderContext.
+        self.block = None
+
+        if block is None:
+            block = Schedule()
+
+        self.set_active_block(block)
+
+        #: Set[Schedule]: Collection of all builder blocks.
+        self.blocks = set()
+
+        #: Schedule: Final Schedule program block.
+        self._program = block
+
+    def __enter__(self):
+        """Enter Builder Context."""
+        self._backend_ctx_token = BUILDER_CONTEXT.set(self)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit Builder Context."""
+        BUILDER_CONTEXT.reset(self._backend_ctx_token)
+
+    def set_active_block(self, block: Schedule) -> Schedule:
+        """Set the active block."""
+        assert isinstance(block, Schedule)
+        self.block = block
+        return block
+
+    def compile(self) -> Schedule:
+        """Compile final pulse schedule program."""
+        return self._program
 
 
 @contextmanager
@@ -156,93 +203,54 @@ def build(backend, schedule):
         backend: a qiskit backend
         schedule: a *mutable* pulse Schedule
     """
-    backend_ctx_token = BACKEND_CTX.set(backend)
-    schedule_ctx_token = SCHEDULE_CTX.set(schedule)
-    instruction_list_ctx_token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        schedule.append(transforms.left_align(*INSTRUCTION_LIST_CTX.get()),
-                        mutate=True)
-        BACKEND_CTX.reset(backend_ctx_token)
-        SCHEDULE_CTX.reset(schedule_ctx_token)
-        INSTRUCTION_LIST_CTX.reset(instruction_list_ctx_token)
+    return BuilderContext(backend, schedule)
 
 
-@contextmanager
+def transform_context(transform: Callable) -> Callable:
+    """A tranform context.
+
+    Args:
+        transform: Transform to decorate as context.
+    """
+    @functools.wraps(transform)
+    def wrap(fn):
+        @contextmanager
+        def wrapped_transform(blocks, *args, **kwargs):
+            builder = BUILDER_CONTEXT.get()
+            block = builder.set_active_block(Schedule())
+            try:
+                yield
+            finally:
+                builder.set_active_block(transform(block, *args, **kwargs))
+
+        return wrapped_transform
+
+    return wrap
+
+
+@transform_context(transforms.left_barrier)
 def left_barrier():
-    # clear the instruction list in this context
-    token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        aligned_schedule = transforms.left_barrier(*INSTRUCTION_LIST_CTX.get())
-        # restore the containing context instruction list
-        INSTRUCTION_LIST_CTX.reset(token)
-        # add our aligned schedule to the outer context instruction list
-        instruction_list = INSTRUCTION_LIST_CTX.get()
-        instruction_list.append(aligned_schedule)
+    """Left barrier transform builder context."""
 
 
-@contextmanager
+@transform_context(transforms.right_barrier)
 def right_barrier():
-    # clear the instruction list in this context
-    token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        aligned_schedule = transforms.right_barrier(*INSTRUCTION_LIST_CTX.get())
-        # restore the containing context instruction list
-        INSTRUCTION_LIST_CTX.reset(token)
-        # add our aligned schedule to the outer context instruction list
-        instruction_list = INSTRUCTION_LIST_CTX.get()
-        instruction_list.append(aligned_schedule)
+    """Right barrier transform builder context."""
 
 
-@contextmanager
+@transform_context(transforms.left_align)
 def left_align():
-    # clear the instruction list in this context
-    token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        aligned_schedule = transforms.left_align(*INSTRUCTION_LIST_CTX.get())
-        # restore the containing context instruction list
-        INSTRUCTION_LIST_CTX.reset(token)
-        # add our aligned schedule to the outer context instruction list
-        instruction_list = INSTRUCTION_LIST_CTX.get()
-        instruction_list.append(aligned_schedule)
+    """Left align transform builder context."""
 
 
-@contextmanager
+@transform_context(transforms.right_align)
 def right_align():
-    # clear the instruction list in this context
-    token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        aligned_schedule = transforms.right_align(*INSTRUCTION_LIST_CTX.get())
-        # restore the containing context instruction list
-        INSTRUCTION_LIST_CTX.reset(token)
-        # add our aligned schedule to the outer context instruction list
-        instruction_list = INSTRUCTION_LIST_CTX.get()
-        instruction_list.append(aligned_schedule)
+    """Right align transform builder context."""
 
 
-@contextmanager
+@transform_context(transforms.sequential)
 def sequential():
-    # clear the instruction list in this context
-    token = INSTRUCTION_LIST_CTX.set([])
-    try:
-        yield
-    finally:
-        aligned_schedule = transforms.align_in_sequence(
-            *INSTRUCTION_LIST_CTX.get())
-        # restore the containing context instruction list
-        INSTRUCTION_LIST_CTX.reset(token)
-        # add our aligned schedule to the outer context instruction list
-        instruction_list = INSTRUCTION_LIST_CTX.get()
-        instruction_list.append(aligned_schedule)
+    """Sequential transform builder context."""
 
 
 def qubit_channels(qubit: int):
