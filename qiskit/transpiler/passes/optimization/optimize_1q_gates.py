@@ -12,7 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+"""
+Optimize chains of single-qubit u1, u2, u3 gates
+by combining them into a single gate.
+"""
 
 from itertools import groupby
 
@@ -28,6 +31,7 @@ from qiskit.quantum_info.operators import Quaternion
 
 _CHOP_THRESHOLD = 1e-15
 
+
 class Node:
     """
     Operator description in Optimize1qGates(TransformationPass)
@@ -42,7 +46,10 @@ class Node:
 
 
 class Optimize1qGates(TransformationPass):
-    """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+    """
+    Optimize chains of single-qubit u1, u2, u3 gates
+    by combining them into a single gate.
+    """
 
     def define_left_node(self, current_node):
         """
@@ -79,24 +86,30 @@ class Optimize1qGates(TransformationPass):
         """
         u1(lambda1) * u2(phi2, lambda2) = u2(phi2 + lambda1, lambda2)
         """
-        right_node.parameters = (np.pi / 2, right_node.parameters[1] +
-                                 left_node.parameters[2], right_node.parameters[2])
+        right_node.parameters = (np.pi / 2,
+                                 right_node.parameters[1] +
+                                 left_node.parameters[2],
+                                 right_node.parameters[2])
 
     def combine_u1u3_into_right_node(self, left_node, right_node):
         """
         u1(lambda1) * u3(theta2, phi2, lambda2) =
              u3(theta2, phi2 + lambda1, lambda2)
         """
-        right_node.parameters = (right_node.parameters[0], right_node.parameters[1] +
-                                 left_node.parameters[2], right_node.parameters[2])
+        right_node.parameters = (right_node.parameters[0],
+                                 right_node.parameters[1] +
+                                 left_node.parameters[2],
+                                 right_node.parameters[2])
 
     def combine_u2u1_into_right_node(self, left_node, right_node):
         """
         u2(phi1, lambda1) * u1(lambda2) = u2(phi1, lambda1 + lambda2)
         """
         right_node.name = "u2"
-        right_node.parameters = (np.pi / 2, left_node.parameters[1],
-                                 right_node.parameters[2] + left_node.parameters[2])
+        right_node.parameters = (np.pi / 2,
+                                 left_node.parameters[1],
+                                 right_node.parameters[2] +
+                                 left_node.parameters[2])
 
     def combine_u2u2_into_right_node(self, left_node, right_node):
         """
@@ -107,8 +120,9 @@ class Optimize1qGates(TransformationPass):
         """
         right_node.name = "u3"
         right_node.parameters = (np.pi - left_node.parameters[2] -
-                                 right_node.parameters[1], left_node.parameters[1] +
-                                 np.pi / 2, right_node.parameters[2] +
+                                 right_node.parameters[1],
+                                 left_node.parameters[1] + np.pi / 2,
+                                 right_node.parameters[2] +
                                  np.pi / 2)
 
     def combine_u3u1_into_right_node(self, left_node, right_node):
@@ -117,8 +131,10 @@ class Optimize1qGates(TransformationPass):
             u3(theta1, phi1, lambda1 + lambda2)
         """
         right_node.name = "u3"
-        right_node.parameters = (left_node.parameters[0], left_node.parameters[1],
-                                 right_node.parameters[2] + left_node.parameters[2])
+        right_node.parameters = (left_node.parameters[0],
+                                 left_node.parameters[1],
+                                 right_node.parameters[2] +
+                                 left_node.parameters[2])
 
     def combine_u2oru3u3_into_right_node(self, left_node, right_node):
         """
@@ -128,12 +144,13 @@ class Optimize1qGates(TransformationPass):
         """
         right_node.name = "u3"
         # Evaluate the symbolic expressions for efficiency
-        right_node.parameters = Optimize1qGates.compose_u3(left_node.parameters[0],
-                                                           left_node.parameters[1],
-                                                           left_node.parameters[2],
-                                                           right_node.parameters[0],
-                                                           right_node.parameters[1],
-                                                           right_node.parameters[2])
+        right_node.parameters = \
+            Optimize1qGates.compose_u3(left_node.parameters[0],
+                                       left_node.parameters[1],
+                                       left_node.parameters[2],
+                                       right_node.parameters[0],
+                                       right_node.parameters[1],
+                                       right_node.parameters[2])
 
     def combine_gates_into_right_node(self, left_node, right_node):
         """
@@ -195,7 +212,8 @@ class Optimize1qGates(TransformationPass):
 
     def can_combine(self, left_node, right_node):
         """
-            Check if left_node and right_node can be combined preserving global phase
+            Check if left_node and right_node can
+            be combined preserving global phase
         """
         if left_node.name == 'u1' or right_node.name == 'u1':
             return True
@@ -207,7 +225,8 @@ class Optimize1qGates(TransformationPass):
 
         if left_node.name == 'u2' and right_node.name == 'u3':
             temp = - 0.707106781186547 * \
-                   np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) * \
+                   np.e**((left_node.parameters[2] +
+                           right_node.parameters[1])*1j) * \
                    np.sin(right_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(right_node.parameters[0]/2)
 
@@ -216,16 +235,21 @@ class Optimize1qGates(TransformationPass):
 
         if left_node.name == 'u3' and right_node.name == 'u2':
             temp = - 0.707106781186547 * \
-                   np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) \
+                   np.e**((left_node.parameters[2] +
+                           right_node.parameters[1])*1j) \
                    * np.sin(left_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(left_node.parameters[0]/2)
             if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
         if left_node.name == 'u3' and right_node.name == 'u3':
-            temp = -np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) \
-                   * np.sin(left_node.parameters[0] / 2) * np.sin(right_node.parameters[0] / 2) + \
-                   np.cos(left_node.parameters[0]/2) * np.cos(right_node.parameters[0]/2)
+            temp = -np.e**((left_node.parameters[2] +
+                            right_node.parameters[1])*1j) \
+                   * np.sin(left_node.parameters[0] / 2) \
+                   * np.sin(right_node.parameters[0] / 2) \
+                   + np.cos(left_node.parameters[0]/2) \
+                   * np.cos(right_node.parameters[0]/2)
+
             if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:
                 return True
 
@@ -241,14 +265,15 @@ class Optimize1qGates(TransformationPass):
                     DAGCircuit: the optimized DAG.
 
                 Raises:
-                    TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
+                    TranspilerError: if YZY and ZYZ angles do not
+                     give same rotation matrix.
                 """
 
         runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
 
         for run in runs:
-            num_gates = 0 # pylint: disable = attribute-defined-outside-init
+            num_gates = 0
             final_gates = []
             final_nodes = []
             right_node = Node("u1", (0, 0, 0))
@@ -259,15 +284,14 @@ class Optimize1qGates(TransformationPass):
                     self.combine_gates_into_right_node(left_node, right_node)
                 else:
                     new_op = self.generate_gate(right_node)
-                    final_nodes.append(Node(right_node.name, right_node.parameters))
+                    new_node = Node(right_node.name, right_node.parameters)
+                    final_nodes.append(new_node)
                     final_gates.append(new_op)
                     right_node.name = left_node.name
                     right_node.parameters = left_node.parameters
                     num_gates = num_gates + 1
 
-
                 self.simplify_right_node(right_node)
-
 
             new_op = self.generate_gate(right_node)
             final_gates.append(new_op)
@@ -275,7 +299,6 @@ class Optimize1qGates(TransformationPass):
             self.add_right_node_to_dag(dag, final_gates, run)
             self.extract_simplified_gates(dag, run, num_gates)
             self.check(run, dag)
-
 
         return dag
 
@@ -286,7 +309,6 @@ class Optimize1qGates(TransformationPass):
         for node_op in run:
             if node_op.name == '':
                 dag.remove_op_node(node_op)
-
 
     def simplify_right_node(self, right_node):
         """
@@ -311,20 +333,25 @@ class Optimize1qGates(TransformationPass):
         # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
         if right_node.name == "u3":
             # theta = pi/2 + 2*k*pi
-            if np.mod((right_node.parameters[0] - np.pi / 2), (2 * np.pi)) == 0:
+            if np.mod((right_node.parameters[0] - np.pi / 2),
+                      (2 * np.pi)) == 0:
                 right_node.name = "u2"
-                right_node.parameters = (np.pi / 2, right_node.parameters[1],
-                                         right_node.parameters[2] +
-                                         (right_node.parameters[0] - np.pi / 2))
+                right_node.parameters = \
+                    (np.pi / 2, right_node.parameters[1],
+                     right_node.parameters[2] +
+                     (right_node.parameters[0] - np.pi / 2))
+
             # theta = -pi/2 + 2*k*pi
-            if np.mod((right_node.parameters[0] + np.pi / 2), (2 * np.pi)) == 0:
+            if np.mod((right_node.parameters[0] + np.pi / 2),
+                      (2 * np.pi)) == 0:
                 right_node.name = "u2"
                 right_node.parameters = (np.pi / 2, right_node.parameters[1] +
                                          np.pi, right_node.parameters[2] -
                                          np.pi + (right_node.parameters[0] +
                                                   np.pi / 2))
         # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-        if right_node.name == "u1" and np.mod(right_node.parameters[2], (2 * np.pi)) == 0:
+        if right_node.name == "u1" and \
+                np.mod(right_node.parameters[2], (2 * np.pi)) == 0:
             right_node.name = "nop"
 
     @staticmethod
@@ -340,14 +367,17 @@ class Optimize1qGates(TransformationPass):
         Return theta, phi, lambda.
         """
         # Careful with the factor of two in yzy_to_zyz
-        thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
+        thetap, phip, lambdap = \
+            Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
+
         (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
 
         return (theta, phi, lamb)
 
     @staticmethod
-    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):  # pylint: disable=invalid-name
-        """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
+    def yzy_to_zyz(x_i, theta1, theta2, eps=1e-9):
+        """
+        Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
         Solve the equation
 
@@ -359,22 +389,23 @@ class Optimize1qGates(TransformationPass):
 
         Return a solution theta, phi, and lambda.
         """
-        quaternion_yzy = Quaternion.from_euler([theta1, xi, theta2], 'yzy')
+        quaternion_yzy = Quaternion.from_euler([theta1, x_i, theta2], 'yzy')
         euler = quaternion_yzy.to_zyz()
         quaternion_zyz = Quaternion.from_euler(euler, 'zyz')
         # output order different than rotation order
         out_angles = (euler[1], euler[0], euler[2])
         abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))
         if not np.allclose(abs_inner, 1, eps):
-            raise TranspilerError('YZY and ZYZ angles do not give same rotation matrix.')
+            raise TranspilerError(
+                'YZY and ZYZ angles do not give same rotation matrix.')
         out_angles = tuple(0 if np.abs(angle) < _CHOP_THRESHOLD else angle
                            for angle in out_angles)
         return out_angles
 
 
 def _split_runs_on_parameters(runs):
-    """Finds runs containing parameterized gates and splits them into sequential
-    runs excluding the parameterized gates.
+    """Finds runs containing parameterized gates and splits them into
+    sequential runs excluding the parameterized gates.
     """
 
     out = []
