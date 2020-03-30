@@ -15,6 +15,7 @@
 """Assemble function for converting a list of circuits into a qobj."""
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
+import hashlib
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Delay, Play
@@ -134,8 +135,8 @@ def _assemble_experiments(
 
     # Top level Qobj configuration
     experiment_config = {
-        'pulse_library': [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
-                          for pulse in user_pulselib.values()],
+        'pulse_library': [PulseLibraryItem(name=name, samples=samples)
+                          for name, samples in user_pulselib.items()],
         'memory_slots': max([exp.header.memory_slots for exp in experiments])
     }
 
@@ -171,6 +172,9 @@ def _assemble_instructions(
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
 
+        if isinstance(instruction, ParametricInstruction):  # deprecated
+            instruction = Play(instruction.command, instruction.channels[0], name=instruction.name)
+
         if isinstance(instruction, Play) and isinstance(instruction.pulse, ParametricPulse):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
@@ -178,33 +182,18 @@ def _assemble_instructions(
                                    instruction.channel,
                                    name=instruction.name)
 
-        if isinstance(instruction, ParametricInstruction):  # deprecated
-            pulse_shape = ParametricPulseShapes(type(instruction.command)).name
-            if pulse_shape not in run_config.parametric_pulses:
-                # Convert to SamplePulse if the backend does not support it
-                instruction = PulseInstruction(instruction.command.get_sample_pulse(),
-                                               instruction.channels[0],
-                                               name=instruction.name)
+        if isinstance(instruction, PulseInstruction):  # deprecated
+            instruction = Play(SamplePulse(name=name, samples=instruction.command.samples),
+                               instruction.channels[0], name=name)
 
         if isinstance(instruction, Play) and isinstance(instruction.pulse, SamplePulse):
-            name = instruction.pulse.name
-            if instruction.pulse != user_pulselib.get(name):
-                name = "{0}-{1:x}".format(name, hash(instruction.pulse.samples.tostring()))
-                instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
-                                   channel=instruction.channel,
-                                   name=instruction.name)
-            user_pulselib[name] = instruction.pulse
-
-        if isinstance(instruction, PulseInstruction):  # deprecated
-            name = instruction.command.name
-            if name in user_pulselib and instruction.command != user_pulselib[name]:
-                name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
-                instruction = PulseInstruction(
-                    command=SamplePulse(name=name, samples=instruction.command.samples),
-                    name=instruction.name,
-                    channel=instruction.channels[0])
-            # add samples to pulse library
-            user_pulselib[name] = instruction.command
+            name = hashlib.sha256(instruction.pulse.samples).hexdigest()
+            instruction =  Play(SamplePulse(name=name, samples=instruction.pulse.samples),
+                                channel=instruction.channel,
+                                name=name)
+            if name in user_pulselib and not np.allclose(user_pulselib[name], instruction.pulse.samples):
+                name += str(instruction.pulse.id)
+            user_pulselib[name] = instruction.pulse.samples
 
         if isinstance(instruction, (AcquireInstruction, Acquire)):
             max_memory_slot = max(max_memory_slot,
