@@ -20,7 +20,7 @@ from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import XGate, RZGate, FredkinGate, SwapGate
+from qiskit.extensions.standard import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.dagcircuit import DAGNode
 
@@ -287,7 +287,7 @@ class TestHoareOptimizer(QiskitTestCase):
                DAGNode({'type': 'op', 'op': RZGate(pi/2).control(2)})]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': FredkinGate()}),
+        seq = [DAGNode({'type': 'op', 'op': CSwapGate()}),
                DAGNode({'type': 'op', 'op': SwapGate()})]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
