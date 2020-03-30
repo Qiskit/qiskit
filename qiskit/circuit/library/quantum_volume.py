@@ -18,6 +18,7 @@
 
 from typing import List, Optional
 
+import sys
 import numpy as np
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit import QuantumCircuit
@@ -26,9 +27,6 @@ from qiskit.circuit.exceptions import CircuitError
 
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
-
-    Create quantum volume model circuit of size num_qubits x depth
-    (default depth is equal to num_qubits), with a random seed.
 
     The model circuits consist of layers of Haar random
     elements of SU(4) applied between corresponding pairs
@@ -42,7 +40,7 @@ class QuantumVolume(QuantumCircuit):
                  num_qubits: int,
                  depth: Optional[int] = None,
                  seed: Optional[int] = None) -> QuantumCircuit:
-        """Create a quantum volume model circuit.
+        """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits (int): number of active qubits in model circuit
@@ -63,20 +61,18 @@ class QuantumVolume(QuantumCircuit):
         """
         super().__init__(num_qubits, name="volume")
 
-        depth = depth or num_qubits
+        depth = depth or num_qubits  # how many layers of SU(4)
+        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
+        rng = np.random.RandomState(seed)
 
-        circuit = QuantumCircuit(num_qubits)
+        unitary_seeds = rng.randint(low=1, high=1000, size=[depth, width])
 
-        for _ in range(depth):
-
-            # Generate uniformly random permutation Pj of [0...n-1]
-            rng = np.random.RandomState(seed)
-            perm = rng.permutation(width)
-
-            # For each pair p in Pj, generate Haar random SU(4)
-            for k in range(int(np.floor(width/2))):
-                U = random_unitary(4, seed=seed)
-                physical_qubits = int(perm[2*k]), int(perm[2*k+1])
-                circuit.append(U, [physical_qubits[0], physical_qubits[1]])
-
-        return circuit
+        # For each layer, generate a permutation of qubits
+        # Then generate and apply a Haar-random SU(4) to each pair
+        perm_0 = list(range(num_qubits))
+        for d in range(depth):
+            perm = rng.permutation(perm_0)
+            for w in range(width):
+                physical_qubits = int(perm[2*w]), int(perm[2*w+1])
+                su = random_unitary(4, seed=unitary_seeds[d][w])
+                self.append(su, [physical_qubits[0], physical_qubits[1]])

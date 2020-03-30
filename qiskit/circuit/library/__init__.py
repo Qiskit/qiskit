@@ -59,8 +59,9 @@ Comparators
 
    IntegerComparator
 
-Benchmarking
-============
+Characterization and Validation Circuits
+========================================
+
 .. autosummary::
    :toctree: ../stubs/
 
