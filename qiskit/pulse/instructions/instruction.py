@@ -69,7 +69,7 @@ class Instruction(ScheduleComponent, ABC):
         self._duration = duration
 
         Instruction.id_counter += 1
-        self.id = self.id_counter
+        self.id = Instruction.id_counter
         """Unique identifier for this instruction."""
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
