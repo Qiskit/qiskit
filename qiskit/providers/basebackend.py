@@ -19,6 +19,7 @@ Doing so requires that the required backend interface is implemented.
 """
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 from qiskit.version import VERSION as __version__
 from .models import BackendStatus
@@ -43,6 +44,7 @@ class BaseBackend(ABC):
             QiskitError: if an error occurred when instantiating the backend.
         """
         self._configuration = configuration
+        self._functional_configuration = None
         self._provider = provider
 
     @abstractmethod
@@ -60,7 +62,30 @@ class BaseBackend(ABC):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        return self._configuration
+        if self._functional_configuration:
+            return self._functional_configuration
+
+        faulty_qubits = self._faulty_qubits()
+        if faulty_qubits:
+            self._functional_configuration = deepcopy(self._configuration)
+            for faulty_qubit in self._faulty_qubits():
+                self._functional_configuration.n_qubits -= 1
+                self._functional_configuration.coupling_map = [edge for edge in
+                                                               self._configuration.coupling_map if
+                                                               not faulty_qubit in edge]
+            return self._functional_configuration
+        else:
+            return self._configuration
+
+    def _faulty_qubits(self):
+        """Return a list of faulty qubits.
+        """
+        properties = self.properties()
+        faulty = set()
+        for qubit in range(self._configuration.n_qubits):
+            if not properties.operational(qubit):
+                faulty.add(qubit)
+        return faulty
 
     def properties(self):
         """Return the backend properties.

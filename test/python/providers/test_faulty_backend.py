@@ -23,8 +23,12 @@ class BackendpropertiesTestCase(QiskitTestCase):
     which is like FakeOurense but with a faulty 1Q"""
 
     backend = FakeOurenseFaultyQ1()
-    properties = backend.properties()
 
     def test_operational_false(self):
         """Test operation status of the qubit. Q1 is non-operational """
-        self.assertFalse(self.properties.operational(1))
+        self.assertFalse(self.backend.properties().operational(1))
+
+    def test_coupling_map(self):
+        """Test coupling map with a faulty qubit."""
+        coupling_map = self.backend.configuration().coupling_map
+        self.assertEqual(coupling_map, [[3, 4], [4, 3]])
