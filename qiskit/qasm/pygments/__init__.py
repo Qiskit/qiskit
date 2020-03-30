@@ -13,22 +13,17 @@
 # that they have been altered from the originals.
 
 """
-===============================================
-Circuit Library (:mod:`qiskit.circuit.library`)
-===============================================
+=================================================
+Qasm Pygments tools (:mod:`qiskit.qasm.pygments`)
+=================================================
 
-.. currentmodule:: qiskit.circuit.library
-
-Boolean Logic Circuits
-======================
+.. currentmodule:: qiskit.qasm.pygments
 
 .. autosummary::
    :toctree: ../stubs/
 
-   InnerProduct
-   Permutation
-   XOR
+   OpenQASMLexer
+   QasmTerminalStyle
+   QasmHTMLStyle
 """
-
-
-from .boolean_logic import Permutation, XOR, InnerProduct
+from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
