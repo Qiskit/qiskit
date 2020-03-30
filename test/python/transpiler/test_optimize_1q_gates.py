@@ -78,7 +78,7 @@ class TestOptimize1qGates(QiskitTestCase):
         qc.u1(2 * np.pi, qr[0])
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi / 2, qr[0])  # these three should combine
-        qc.u1(np.pi, qr[0])  # to identity then
+        qc.u1(np.pi, qr[0])      # to identity then
         qc.u1(np.pi / 2, qr[0])  # optimized away.
         qc.cx(qr[1], qr[0])
         qc.u1(np.pi, qr[1])
