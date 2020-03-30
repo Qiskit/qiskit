@@ -589,7 +589,7 @@ class MatplotlibDrawer:
                 idx += 1
 
         # 7 is the length of the smallest possible label
-        self.x_offset = -.5 + 0.18 * (len_longest_label - 7)
+        self.x_offset = -.5 + 0.3 * (len_longest_label - 7)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
