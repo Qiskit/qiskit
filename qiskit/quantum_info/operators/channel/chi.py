@@ -117,8 +117,8 @@ class Chi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        n_qubits = int(np.log2(input_dim))
-        if 2**n_qubits != input_dim:
+        num_qubits = int(np.log2(input_dim))
+        if 2**num_qubits != input_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
