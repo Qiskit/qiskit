@@ -265,7 +265,7 @@ class Pauli:
     @property
     def numberofqubits(self):
         """Deprecated, use ``num_qubits`` instead. Number of qubits."""
-        warnings.warn('The Pauli.numberofqubits method is deprecated as of 0.14.0, and '
+        warnings.warn('The Pauli.numberofqubits method is deprecated as of 0.13.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the Pauli.num_qubits method instead.',
                       DeprecationWarning, stacklevel=2)
