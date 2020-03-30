@@ -170,8 +170,9 @@ class Gaussian(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, name='{}')" \
-               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.name)
+        return "{}(duration={}, amp={}, sigma={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma,
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class GaussianSquare(ParametricPulse):
@@ -250,9 +251,9 @@ class GaussianSquare(ParametricPulse):
                 "width": self.width}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, width={}, name='{}')" \
+        return "{}(duration={}, amp={}, sigma={}, width={}{})" \
                "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width,
-                         self.name)
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class Drag(ParametricPulse):
@@ -364,9 +365,9 @@ class Drag(ParametricPulse):
                 "beta": self.beta}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, beta={}, name='{}')" \
+        return "{}(duration={}, amp={}, sigma={}, beta={}{})" \
                "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta,
-                         self.name)
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class ConstantPulse(ParametricPulse):
@@ -412,5 +413,6 @@ class ConstantPulse(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, name='{}')" \
-               "".format(self.__class__.__name__, self.duration, self.amp, self.name)
+        return "{}(duration={}, amp={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp,
+                         ", name='{}'".format(self.name) if self.name is not None else "")

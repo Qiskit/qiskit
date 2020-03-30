@@ -39,7 +39,8 @@ class TestAcquire(QiskitTestCase):
         }
         discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
 
-        acq = Acquire(duration=10, kernel=kernel, discriminator=discriminator)
+        with self.assertWarns(DeprecationWarning):
+            acq = Acquire(duration=10, kernel=kernel, discriminator=discriminator)
 
         self.assertEqual(acq.duration, 10)
         self.assertEqual(acq.discriminator.name, 'linear_discriminator')
@@ -51,7 +52,8 @@ class TestAcquire(QiskitTestCase):
     def test_can_construct_acquire_command_with_default_values(self):
         """Test if an acquire command can be constructed with default discriminator and kernel.
         """
-        acq_a = Acquire(duration=10)
+        with self.assertWarns(DeprecationWarning):
+            acq_a = Acquire(duration=10)
 
         self.assertEqual(acq_a.duration, 10)
         self.assertEqual(acq_a.discriminator, None)
@@ -65,7 +67,8 @@ class TestFrameChangeCommand(QiskitTestCase):
     def test_default(self):
         """Test default frame change.
         """
-        fc_command = FrameChange(phase=1.57)
+        with self.assertWarns(DeprecationWarning):
+            fc_command = FrameChange(phase=1.57)
 
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
@@ -78,7 +81,8 @@ class TestPersistentValueCommand(QiskitTestCase):
     def test_default(self):
         """Test default persistent value.
         """
-        pv_command = PersistentValue(value=0.5 - 0.5j)
+        with self.assertWarns(DeprecationWarning):
+            pv_command = PersistentValue(value=0.5 - 0.5j)
 
         self.assertEqual(pv_command.value, 0.5-0.5j)
         self.assertEqual(pv_command.duration, 0)
@@ -103,7 +107,8 @@ class TestDelayCommand(QiskitTestCase):
 
     def test_delay(self):
         """Test delay."""
-        delay_command = Delay(10, name='test_name')
+        with self.assertWarns(DeprecationWarning):
+            delay_command = Delay(10, name='test_name')
 
         self.assertEqual(delay_command.name, "test_name")
         self.assertEqual(delay_command.duration, 10)

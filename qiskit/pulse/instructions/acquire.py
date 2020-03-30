@@ -123,6 +123,9 @@ class Acquire(Instruction):
         if channels is not None:
             super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
         else:
+            warnings.warn("Usage of Acquire without specifying a channel is deprecated. For "
+                          "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
+                          "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
             super().__init__(duration, name=name)
 
     @property

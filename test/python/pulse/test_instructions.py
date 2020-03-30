@@ -47,7 +47,6 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.kernel.name, 'boxcar')
         self.assertEqual(acq.kernel.params, kernel_opts)
         self.assertIsInstance(acq.id, int)
-        self.assertEqual(acq.id, 1)
         self.assertEqual(acq.name, 'acquire')
         self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
 
@@ -60,7 +59,6 @@ class TestDelay(QiskitTestCase):
         delay = Delay(10, DriveChannel(0), name='test_name')
 
         self.assertIsInstance(delay.id, int)
-        self.assertEqual(delay.id, 1)
         self.assertEqual(delay.name, 'test_name')
         self.assertEqual(delay.duration, 10)
         self.assertEqual(delay.operands, (10, DriveChannel(0)))
@@ -76,7 +74,7 @@ class TestSetFrequency(QiskitTestCase):
         """Test set frequency basic functionality."""
         set_freq = SetFrequency(4.5e9, DriveChannel(1), name='test')
 
-        self.assertEqual(set_freq.id, 1)
+        self.assertIsInstance(set_freq.id, int)
         self.assertEqual(set_freq.duration, 0)
         self.assertEqual(set_freq.frequency, 4.5e9)
         self.assertEqual(set_freq.operands, (4.5e9, DriveChannel(1)))
@@ -93,7 +91,7 @@ class TestShiftPhase(QiskitTestCase):
         """Test basic ShiftPhase."""
         shift_phase = ShiftPhase(1.57, DriveChannel(0))
 
-        self.assertEqual(shift_phase.id, 1)
+        self.assertIsInstance(shift_phase.id, int)
         self.assertEqual(shift_phase.name, 'shiftphase')
         self.assertEqual(shift_phase.duration, 0)
         self.assertEqual(shift_phase.phase, 1.57)
@@ -110,7 +108,7 @@ class TestSnapshot(QiskitTestCase):
         """Test default snapshot."""
         snapshot = Snapshot(label='test_name', snapshot_type='state')
 
-        self.assertEqual(snapshot.id, 1)
+        self.assertIsInstance(snapshot.id, int)
         self.assertEqual(snapshot.name, 'test_name')
         self.assertEqual(snapshot.type, 'state')
         self.assertEqual(snapshot.duration, 0)
@@ -127,7 +125,7 @@ class TestPlay(QiskitTestCase):
         pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
         play = Play(pulse, DriveChannel(1))
 
-        self.assertEqual(play.id, 1)
+        self.assertIsInstance(play.id, int)
         self.assertEqual(play.name, pulse.name)
         self.assertEqual(play.duration, duration)
         self.assertEqual(repr(play),
