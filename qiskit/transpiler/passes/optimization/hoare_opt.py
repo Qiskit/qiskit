@@ -13,19 +13,17 @@
 # that they have been altered from the originals.
 
 """ Pass for hoare logic circuit optimization. """
-
-import sys
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.transpiler.exceptions import TranspilerError
 from . import _gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
+    HAS_Z3 = True
 except ModuleNotFoundError:
-    print("""Z3 package not found, which is required to run this pass.
-             Please install Z3 via 'pip install z3-solver'.""")
-    sys.exit(1)
+    HAS_Z3 = False
 
 
 class HoareOptimizer(TransformationPass):
@@ -331,7 +329,12 @@ class HoareOptimizer(TransformationPass):
             dag (DAGCircuit): the directed acyclic graph to run on.
         Returns:
             DAGCircuit: Transformed DAG.
+        Raises:
+            TranspilerError: if unable to import z3 solver
         """
+        if not HAS_Z3:
+            raise TranspilerError('z3-solver is required to use HoareOptimizer. '
+                                  'To install, run "pip install z3-solver".')
         self._initialize(dag)
         self._traverse_dag(dag)
         if self.size > 1:
