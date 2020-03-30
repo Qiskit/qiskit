@@ -22,11 +22,11 @@ from .instruction import Instruction
 
 
 class SetFrequency(Instruction):
-    """Set the channel frequency. This command operates on PulseChannels.
+    r"""Set the channel frequency. This command operates on PulseChannels.
     A PulseChannel creates pulses of the form
 
     .. math::
-        Re[exp(i 2pi f jdt + phase) d_j].
+        Re[\exp(i 2\pi f jdt + \phi) d_j].
 
     Here, *f* is the frequency of the channel. The command SetFrequency allows
     the user to set the value of *f*. All pulses that are played on a channel

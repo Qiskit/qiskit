@@ -43,7 +43,7 @@ class Instruction(ScheduleComponent, ABC):
     channels.
     """
 
-    id_counter = 0
+    _id_counter = 0
     """The number of instruction instances, used to give new instructions a unique ID."""
 
     def __init__(self, duration: Union['commands.Command', int],
@@ -68,8 +68,8 @@ class Instruction(ScheduleComponent, ABC):
         self._name = name
         self._duration = duration
 
-        Instruction.id_counter += 1
-        self.id = Instruction.id_counter
+        Instruction._id_counter += 1
+        self.id = Instruction._id_counter  # pylint: disable=invalid-name
         """Unique identifier for this instruction."""
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)

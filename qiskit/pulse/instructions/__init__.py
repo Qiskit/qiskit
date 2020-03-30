@@ -20,7 +20,7 @@ whether implicitly or explicitly defined.
 
 For instance, a :py:class:`~qiskit.pulse.instructions.ShiftPhase` instruction can be instantiated
 with operands *phase* and *channel*, for some float ``phase`` and a
-:py:class`~qiskit.pulse.channels.Channel` ``channel``::
+:py:class:`~qiskit.pulse.channels.Channel` ``channel``::
 
     ShiftPhase(phase, channel)
 

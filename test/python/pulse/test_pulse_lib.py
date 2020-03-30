@@ -219,8 +219,8 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_repr(self):
         """Test the repr methods for parametric pulses."""
-        gaussian = Gaussian(duration=25, amp=0.7, sigma=4)
-        self.assertEqual(repr(gaussian), 'Gaussian(duration=25, amp=(0.7+0j), sigma=4)')
+        gaus = Gaussian(duration=25, amp=0.7, sigma=4)
+        self.assertEqual(repr(gaus), 'Gaussian(duration=25, amp=(0.7+0j), sigma=4)')
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(repr(gaus_square),
                          'GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=3)')
@@ -248,6 +248,9 @@ class TestParametricPulses(QiskitTestCase):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
 
 
+# pylint: disable=invalid-name,unexpected-keyword-arg
+
+
 class TestFunctionalPulse(QiskitTestCase):
     """SamplePulse tests."""
 
@@ -256,11 +259,11 @@ class TestFunctionalPulse(QiskitTestCase):
         """
 
         @functional_pulse
-        def gaussian(duration, amp, t0, sig):
+        def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_command = gaussian(duration=10, name='test_pulse', amp=1, t0=5, sig=1)
+        pulse_command = local_gaussian(duration=10, amp=1, t0=5, sig=1, name='test_pulse')
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
         self.assertListEqual(list(pulse_command.samples), list(_y))
@@ -276,14 +279,14 @@ class TestFunctionalPulse(QiskitTestCase):
         """
 
         @functional_pulse
-        def gaussian(duration, amp, t0, sig):
+        def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
         _durations = np.arange(10, 15, 1)
 
         for _duration in _durations:
-            pulse_command = gaussian(duration=_duration, amp=1, t0=5, sig=1)
+            pulse_command = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_command.samples), _duration)
 
 

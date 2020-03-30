@@ -12,15 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,unexpected-keyword-arg
-
 """Test cases for the pulse command group."""
 
 import unittest
-import numpy as np
 
 from qiskit.pulse import (Acquire, FrameChange, PersistentValue, Snapshot, Kernel, Discriminator,
-                          Delay, PulseError)
+                          Delay)
 from qiskit.test import QiskitTestCase
 
 

@@ -133,7 +133,3 @@ class TestPlay(QiskitTestCase):
         self.assertEqual(repr(play),
                          "Play(SamplePulse(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
                          " DriveChannel(1), name='test')")
-
-
-if __name__ == '__main__':
-    unittest.main()

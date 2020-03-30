@@ -87,20 +87,12 @@ Schedules
 =========
 
 Schedules are Pulse programs. They describe instruction sequences for the control hardware.
-An :class:`~qiskit.pulse.Instruction` is a :py:class:`~qiskit.pulse.commands.Command` which has
-been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
 
 .. autosummary::
    :toctree: ../stubs/
 
    Schedule
    Instruction
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qiskit.pulse.instructions
-   qiskit.pulse.channels
 
 Configuration
 =============

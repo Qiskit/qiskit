@@ -122,7 +122,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(200, new_sched.stop_time)
         self.assertEqual(200, new_sched.duration)
         ids = set()
-        for time, inst in sched.instructions:
+        for _, inst in sched.instructions:
             self.assertFalse(inst.id in ids)
             ids.add(inst.id)
 
