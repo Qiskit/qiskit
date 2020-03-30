@@ -62,8 +62,8 @@ class UnitaryGate(Gate):
             raise ExtensionError("Input matrix is not unitary.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        n_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2**n_qubits != input_dim:
+        num_qubits = int(numpy.log2(input_dim))
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
 
@@ -71,7 +71,7 @@ class UnitaryGate(Gate):
         self._qasm_definition = None
         self._qasm_def_written = False
         # Store instruction params
-        super().__init__('unitary', n_qubits, [data], label=label)
+        super().__init__('unitary', num_qubits, [data], label=label)
 
     def __eq__(self, other):
         if not isinstance(other, UnitaryGate):

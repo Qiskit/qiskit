@@ -264,9 +264,9 @@ class Layout():
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
-        n_qubits = sum(reg.size for reg in qregs)
+        num_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
-        if len(int_list) < n_qubits:
+        if len(int_list) < num_qubits:
             err_msg = 'Integer list length must equal number of qubits in circuit.'
             raise LayoutError(err_msg)
         out = Layout()
