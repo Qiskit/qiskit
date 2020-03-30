@@ -112,7 +112,7 @@ Configuration
 
    InstructionScheduleMap
 
-Rescheduling Utilities
+Pulse Program Transformations
 ======================
 
 These utilities return modified :class:`~qiskit.pulse.Schedule` s.
@@ -120,9 +120,9 @@ These utilities return modified :class:`~qiskit.pulse.Schedule` s.
 .. autosummary::
    :toctree: ../stubs/
 
-   ~reschedule.align_measures
-   ~reschedule.add_implicit_acquires
-   ~reschedule.pad
+   ~transforms.align_measures
+   ~transforms.add_implicit_acquires
+   ~transforms.pad
 
 Pulse Library
 =============

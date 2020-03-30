@@ -135,7 +135,7 @@ import contextvars
 
 from .circuit_scheduler import measure as measure_schedule
 
-from . import reschedule
+from . import transforms
 from .channels import Channel
 from .commands.delay import Delay
 from .commands.frame_change import FrameChange
@@ -162,7 +162,7 @@ def build(backend, schedule):
     try:
         yield
     finally:
-        schedule.append(reschedule.left_align(*INSTRUCTION_LIST_CTX.get()),
+        schedule.append(transforms.left_align(*INSTRUCTION_LIST_CTX.get()),
                         mutate=True)
         BACKEND_CTX.reset(backend_ctx_token)
         SCHEDULE_CTX.reset(schedule_ctx_token)
@@ -176,7 +176,7 @@ def left_barrier():
     try:
         yield
     finally:
-        aligned_schedule = reschedule.left_barrier(*INSTRUCTION_LIST_CTX.get())
+        aligned_schedule = transforms.left_barrier(*INSTRUCTION_LIST_CTX.get())
         # restore the containing context instruction list
         INSTRUCTION_LIST_CTX.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -191,7 +191,7 @@ def right_barrier():
     try:
         yield
     finally:
-        aligned_schedule = reschedule.right_barrier(*INSTRUCTION_LIST_CTX.get())
+        aligned_schedule = transforms.right_barrier(*INSTRUCTION_LIST_CTX.get())
         # restore the containing context instruction list
         INSTRUCTION_LIST_CTX.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -206,7 +206,7 @@ def left_align():
     try:
         yield
     finally:
-        aligned_schedule = reschedule.left_align(*INSTRUCTION_LIST_CTX.get())
+        aligned_schedule = transforms.left_align(*INSTRUCTION_LIST_CTX.get())
         # restore the containing context instruction list
         INSTRUCTION_LIST_CTX.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -221,7 +221,7 @@ def right_align():
     try:
         yield
     finally:
-        aligned_schedule = reschedule.right_align(*INSTRUCTION_LIST_CTX.get())
+        aligned_schedule = transforms.right_align(*INSTRUCTION_LIST_CTX.get())
         # restore the containing context instruction list
         INSTRUCTION_LIST_CTX.reset(token)
         # add our aligned schedule to the outer context instruction list
@@ -236,7 +236,7 @@ def sequential():
     try:
         yield
     finally:
-        aligned_schedule = reschedule.align_in_sequence(
+        aligned_schedule = transforms.align_in_sequence(
             *INSTRUCTION_LIST_CTX.get())
         # restore the containing context instruction list
         INSTRUCTION_LIST_CTX.reset(token)
