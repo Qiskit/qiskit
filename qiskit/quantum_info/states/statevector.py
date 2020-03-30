@@ -65,9 +65,9 @@ class Statevector(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if a Statevector has norm 1."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         norm = np.linalg.norm(self.data)
         return np.allclose(norm, 1, rtol=rtol, atol=atol)
 
@@ -197,6 +197,9 @@ class Statevector(QuantumState):
             QiskitError: if the operator dimension does not match the
                          specified Statevector subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
@@ -248,9 +251,9 @@ class Statevector(QuantumState):
         if self.dim != other.dim:
             return False
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 
