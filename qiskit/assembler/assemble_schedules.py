@@ -191,8 +191,6 @@ def _assemble_instructions(
             instruction =  Play(SamplePulse(name=name, samples=instruction.pulse.samples),
                                 channel=instruction.channel,
                                 name=name)
-            if name in user_pulselib and not np.allclose(user_pulselib[name], instruction.pulse.samples):
-                name += str(instruction.pulse.id)
             user_pulselib[name] = instruction.pulse.samples
 
         if isinstance(instruction, (AcquireInstruction, Acquire)):
