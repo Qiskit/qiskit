@@ -134,6 +134,7 @@ from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
+from .optimization import HoareOptimizer
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -154,5 +155,3 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
-
-from .hoare_opt import HoareOptimizer

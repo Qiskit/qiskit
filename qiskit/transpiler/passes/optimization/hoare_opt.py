@@ -19,7 +19,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
-import qiskit.transpiler.passes._gate_extension  # pylint: disable=W0611
+from . import _gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
 except ModuleNotFoundError:
