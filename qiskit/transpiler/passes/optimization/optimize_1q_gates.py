@@ -225,8 +225,7 @@ class Optimize1qGates(TransformationPass):
 
         if left_node.name == 'u2' and right_node.name == 'u3':
             temp = - 0.707106781186547 * \
-                   np.e**((left_node.parameters[2] +
-                           right_node.parameters[1])*1j) * \
+                   np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) * \
                    np.sin(right_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(right_node.parameters[0]/2)
 
@@ -235,8 +234,7 @@ class Optimize1qGates(TransformationPass):
 
         if left_node.name == 'u3' and right_node.name == 'u2':
             temp = - 0.707106781186547 * \
-                   np.e**((left_node.parameters[2] +
-                           right_node.parameters[1])*1j) \
+                   np.e**((left_node.parameters[2] + right_node.parameters[1])*1j) \
                    * np.sin(left_node.parameters[0] / 2) + \
                    0.707106781186548 * np.cos(left_node.parameters[0]/2)
             if np.abs(np.imag(temp) < _CHOP_THRESHOLD) and np.real(temp) >= 0:

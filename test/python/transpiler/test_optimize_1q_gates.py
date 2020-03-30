@@ -33,7 +33,6 @@ class TestOptimize1qGates(QiskitTestCase):
     def test_global_phase(self):
         """https://github.com/Qiskit/qiskit-terra/issues/3083"""
 
-
         q = QuantumRegister(1)
         c = ClassicalRegister(1)
         circuit = QuantumCircuit(q, c)
@@ -50,7 +49,8 @@ class TestOptimize1qGates(QiskitTestCase):
         result1 = job1.result()
         print(result.get_unitary(circuit))
         print(result1.get_unitary(circuit))
-        self.assertTrue(np.allclose(result.get_unitary(circuit), result1.get_unitary(circuit)))
+        self.assertTrue(np.allclose(result.get_unitary(circuit),
+                                    result1.get_unitary(circuit)))
 
     def test_dont_optimize_id(self):
         """Identity gates are like 'wait' commands.
