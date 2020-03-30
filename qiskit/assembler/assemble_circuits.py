@@ -21,7 +21,7 @@ from qiskit.tools.parallel import parallel_map
 
 def _assemble_circuit(circuit):
     # header stuff
-    n_qubits = 0
+    num_qubits = 0
     memory_slots = 0
     qubit_labels = []
     clbit_labels = []
@@ -32,7 +32,7 @@ def _assemble_circuit(circuit):
         qreg_sizes.append([qreg.name, qreg.size])
         for j in range(qreg.size):
             qubit_labels.append([qreg.name, j])
-        n_qubits += qreg.size
+        num_qubits += qreg.size
     for creg in circuit.cregs:
         creg_sizes.append([creg.name, creg.size])
         for j in range(creg.size):
@@ -42,14 +42,14 @@ def _assemble_circuit(circuit):
     # TODO: why do we need creq_sizes and qreg_sizes in header
     # TODO: we need to rethink memory_slots as they are tied to classical bit
     header = QobjExperimentHeader(qubit_labels=qubit_labels,
-                                  n_qubits=n_qubits,
+                                  n_qubits=num_qubits,
                                   qreg_sizes=qreg_sizes,
                                   clbit_labels=clbit_labels,
                                   memory_slots=memory_slots,
                                   creg_sizes=creg_sizes,
                                   name=circuit.name)
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
-    config = QasmQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
+    config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
 
     # Convert conditionals from QASM-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
@@ -128,13 +128,13 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
     qubit_sizes = []
     memory_slot_sizes = []
     for circ in circuits:
-        n_qubits = 0
+        num_qubits = 0
         memory_slots = 0
         for qreg in circ.qregs:
-            n_qubits += qreg.size
+            num_qubits += qreg.size
         for creg in circ.cregs:
             memory_slots += creg.size
-        qubit_sizes.append(n_qubits)
+        qubit_sizes.append(num_qubits)
         memory_slot_sizes.append(memory_slots)
     qobj_config.memory_slots = max(memory_slot_sizes)
     qobj_config.n_qubits = max(qubit_sizes)
