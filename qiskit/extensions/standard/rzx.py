@@ -33,9 +33,9 @@ class RZXGate(Gate):
     .. parsed-literal::
 
              ┌─────────┐
-        q_0: ┤1        ├
+        q_0: ┤0        ├
              │  Rzx(θ) │
-        q_1: ┤0        ├
+        q_1: ┤1        ├
              └─────────┘
 
     **Matrix Representation:**
@@ -44,42 +44,51 @@ class RZXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{ZX}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} Z{\otimes}X) =
+        R_{ZX}(\theta)\ q_0, q_1 = exp(-i \frac{\theta}{2} X{\otimes}Z) =
             \begin{pmatrix}
-                \cos(\th)   & -i\sin(\th) & 0           & 0          \\
-                -i\sin(\th) & \cos(\th)   & 0           & 0          \\
-                0           & 0           & \cos(\th)   & i\sin(\th) \\
-                0           & 0           & i\sin(\th)  & \cos(\th)
-            \end{pmatrix}
-
-    This is a direct sum of RX rotations, so this gate is equivalent to a
-    uniformly controlled (multiplexed) RX gate:
-
-    .. math::
-
-        R_{ZX}(\theta)\ q_1, q_0 =
-            \begin{pmatrix}
-                RX(\theta) & 0 \\
-                0 & RX(-\theta)
+                \cos(\th)   & 0          & -i\sin(\th)  & 0          \\
+                0           & \cos(\th)  & 0            & i\sin(\th) \\
+                -i\sin(\th) & 0          & \cos(\th)    & 0          \\
+                0           & i\sin(\th) & 0            & \cos(\th)
             \end{pmatrix}
 
     .. note::
 
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In the above example we apply the gate
-        on (q_1, q_0) which results in the ZX tensor order. Instead, if we
-        apply it on (q_0, q_1), the matrix will be:
+        on (q_0, q_1) which results in the :math:`X \otimes Z` tensor order.
+        Instead, if we apply it on (q_1, q_0), the matrix will
+        be :math:`Z \otimes X`:
+
+        .. parsed-literal::
+
+                 ┌─────────┐
+            q_0: ┤1        ├
+                 │  Rzx(θ) │
+            q_1: ┤0        ├
+                 └─────────┘
 
         .. math::
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            R_{ZX}(\theta)\ q_0, q_1 = exp(-i \frac{\theta}{2} X{\otimes}Z) =
+            R_{ZX}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} Z{\otimes}X) =
                 \begin{pmatrix}
-                    \cos(\th)   & 0          & -i\sin(\th)  & 0          \\
-                    0           & \cos(\th)  & 0            & i\sin(\th) \\
-                    -i\sin(\th) & 0          & \cos(\th)    & 0          \\
-                    0           & i\sin(\th) & 0            & \cos(\th)
+                    \cos(\th)   & -i\sin(\th) & 0           & 0          \\
+                    -i\sin(\th) & \cos(\th)   & 0           & 0          \\
+                    0           & 0           & \cos(\th)   & i\sin(\th) \\
+                    0           & 0           & i\sin(\th)  & \cos(\th)
+                \end{pmatrix}
+
+        This is a direct sum of RX rotations, so this gate is equivalent to a
+        uniformly controlled (multiplexed) RX gate:
+
+        .. math::
+
+            R_{ZX}(\theta)\ q_1, q_0 =
+                \begin{pmatrix}
+                    RX(\theta) & 0 \\
+                    0 & RX(-\theta)
                 \end{pmatrix}
 
     **Examples:**
@@ -100,10 +109,10 @@ class RZXGate(Gate):
 
             RZX(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
-                                        1 & -i & 0 & 0 \\
-                                        -i & 1 & 0 & 0 \\
-                                        0 & 0 & 1 & i \\
-                                        0 & 0 & i & 1
+                                        1  & 0 & -i & 0 \\
+                                        0  & 1 & 0  & i \\
+                                        -i & 0 & 1  & 0 \\
+                                        0  & i & 0  & 1
                                     \end{pmatrix}
     """
 
