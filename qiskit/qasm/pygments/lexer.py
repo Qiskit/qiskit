@@ -13,15 +13,19 @@
 # that they have been altered from the originals.
 """Pygments tools for Qasm.
 """
-from pygments.lexer import RegexLexer
-from pygments.token import (Comment, String, Keyword,
-                            Name, Number, Text)
-from pygments.style import Style
+
+try:
+    from pygments.lexer import RegexLexer
+    from pygments.token import (Comment, String, Keyword,
+                                Name, Number, Text)
+    from pygments.style import Style
+except ImportError:
+    raise ImportError("To use 'qiskit.qasm.pygments' pygments must be "
+                      'installed. To install run "pip install pygments".')
 
 
 class QasmTerminalStyle(Style):
-    """A style for OpenQasm in a Terminal env (e.g. Jupyter print)
-    """
+    """A style for OpenQasm in a Terminal env (e.g. Jupyter print)."""
     styles = {
         String:              'ansibrightred',
         Number:              'ansibrightcyan',
@@ -33,8 +37,7 @@ class QasmTerminalStyle(Style):
 
 
 class QasmHTMLStyle(Style):
-    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)
-    """
+    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)."""
     styles = {
         String:              'ansired',
         Number:              'ansicyan',
@@ -46,8 +49,7 @@ class QasmHTMLStyle(Style):
 
 
 class OpenQASMLexer(RegexLexer):
-    """A pygments lexer for OpenQasm
-    """
+    """A pygments lexer for OpenQasm."""
     name = 'OpenQASM'
     aliases = ['qasm']
     filenames = ['*.qasm']
@@ -98,7 +100,8 @@ class OpenQASMLexer(RegexLexer):
 
         'params': [(r"[a-zA-Z_][a-zA-Z0-9_]*", Text, '#push'),
                    (r'\d+', Number, '#push'),
-                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number, '#push'),
+                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?',
+                    Number, '#push'),
                    (r'\)', Text)],
 
         'gate': [(r'[unitary\d+]', Keyword.Type, '#push'),
