@@ -28,7 +28,77 @@ from .clifford_circuits import append_gate, decompose_clifford
 
 
 class Clifford(BaseOperator):
-    """Clifford table operator class"""
+    """An N-qubit unitary operator from the Clifford group.
+
+    **Representation**
+
+    An *N*-qubit Clifford operator is stored as a length *2N*
+    :class:`~qiskit.quantum_info.StabilizerTable` using the convention
+    from reference [1].
+
+    * Rows 0 to *N-1* are the *destabilizer* group generators
+    * Rows *N-1* to *2N-1* are the *stabilizer* group generators.
+
+    The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
+    can be accessed using the :attr:`table` attribute. The destabilizer or
+    stabilizer rows can each be accessed as a length-N Stabilizer table using
+    :attr:`destabilizer` and :attr:`stabilizer` attributes.
+
+    A more easily human readible representation of the Clifford operator can
+    be obtained by calling the :meth:`to_dict` method. This representation is
+    also used if a Clifford object is printed as in the following example
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import Clifford
+
+        # Bell state generation circuit
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        cliff = Clifford(qc)
+
+        # Print the Clifford
+        print(cliff)
+
+        # Print the Clifford destabilizer rows
+        print(cliff.destabilizer)
+
+        # Print the Clifford destabilizer rows
+        print(cliff.stabilizer)
+
+    **Circuit Conversion**
+
+    Clifford operators can be initialized from circuits containing *only* the
+    following Clifford gates: :class:`~qiskit.extensions.IGate`,
+    :class:`~qiskit.extensions.XGate`, :class:`~qiskit.extensions.YGate`,
+    :class:`~qiskit.extensions.ZGate`, :class:`~qiskit.extensions.HGate`,
+    :class:`~qiskit.extensions.SGate`, :class:`~qiskit.extensions.SdgGate`,
+    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`.
+    They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
+    or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
+    or :meth:`~Clifford.to_instruction` methods respectively. Note that this
+    decomposition is not necessarily optimal in terms of number of gates.
+
+    .. note::
+
+        A minimally generating set of gates for Clifford circuits is
+        the :class:`~qiskit.extensions.HGate` and
+        :class:`~qiskit.extensions.SGate` gate and *either* the
+        :class:`~qiskit.extensions.CXGate` or
+        :class:`~qiskit.extensions.CZGate` two-qubit gate.
+
+    Clifford operators can also be converted to
+    :class:`~qiskit.quantum_info.Operator` objects using the
+    :meth:`to_operator` method. This is done via decomposing to a circuit, and then
+    simulating the circuit as a unitary operator.
+
+    References:
+        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+           Phys. Rev. A 70, 052328 (2004).
+           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+    """
 
     def __init__(self, data, validate=True):
         """Initialize an operator object."""
@@ -94,7 +164,7 @@ class Clifford(BaseOperator):
     @table.setter
     def table(self, value):
         """Set the stabilizer table"""
-        # Note that is setup so it can't change the size of the Clifford
+        # Note this setter cannot change the size of the Clifford
         # It can only replace the contents of the StabilizerTable with
         # another StabilizerTable of the same size.
         if not isinstance(value, StabilizerTable):
@@ -236,7 +306,7 @@ class Clifford(BaseOperator):
     # ---------------------------------------------------------------------
 
     def to_dict(self):
-        """Return dictionary represenation of Clifford object"""
+        """Return dictionary represenation of Clifford object."""
         return {
             "stabilizer": self.stabilizer.to_labels(),
             "destabilizer": self.destabilizer.to_labels()
@@ -255,13 +325,13 @@ class Clifford(BaseOperator):
 
     def to_operator(self):
         """Convert to an Operator object."""
-        return Operator(self.to_gate())
+        return Operator(self.to_instruction())
 
     def to_circuit(self):
         """Return a QuantumCircuit implementing the Clifford."""
         return decompose_clifford(self)
 
-    def to_gate(self):
+    def to_instruction(self):
         """Return a Gate instruction implementing the Clifford."""
         return self.to_circuit().to_gate()
 

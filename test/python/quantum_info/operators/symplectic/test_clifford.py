@@ -606,7 +606,8 @@ class TestCliffordOperators(QiskitTestCase):
                                            seed=seed + i)
             value = Clifford(Clifford(circ).to_circuit()).to_operator()
             target = Operator(circ)
-            self.assertTrue(value)
+            self.assertTrue(value.equiv(target))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -25,6 +25,7 @@ Operators
    :toctree: ../stubs/
 
    Operator
+   Clifford
    ScalarOp
    Pauli
    pauli_group
