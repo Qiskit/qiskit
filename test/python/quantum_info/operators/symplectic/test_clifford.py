@@ -545,6 +545,68 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ)
             self.assertEqual(target, value)
 
+    @combine(num_qubits_1=[4, 5, 6], num_qubits_2=[1, 2, 3])
+    def test_compose_subsystem(self, num_qubits_1, num_qubits_2):
+        """Test compose method of subsystems"""
+        samples = 10
+        num_gates = 10
+        seed = 600
+        gates = 'all'
+        for i in range(samples):
+            circ1 = random_clifford_circuit(num_qubits_1,
+                                            num_gates,
+                                            gates=gates,
+                                            seed=seed + i)
+            circ2 = random_clifford_circuit(num_qubits_2,
+                                            num_gates,
+                                            gates=gates,
+                                            seed=seed + samples + i)
+            qargs = sorted(np.random.choice(range(num_qubits_1), num_qubits_2, replace=False))
+            circ = circ1.copy()
+            circ.append(circ2.to_instruction(), qargs)
+            value = Clifford(circ1).compose(Clifford(circ2), qargs)
+            target = Clifford(circ)
+            self.assertEqual(target, value)
+
+    @combine(num_qubits_1=[4, 5, 6], num_qubits_2=[1, 2, 3])
+    def test_dot_subsystem(self, num_qubits_1, num_qubits_2):
+        """Test dot method of subsystems"""
+        samples = 10
+        num_gates = 10
+        seed = 600
+        gates = 'all'
+        for i in range(samples):
+            circ1 = random_clifford_circuit(num_qubits_1,
+                                            num_gates,
+                                            gates=gates,
+                                            seed=seed + i)
+            circ2 = random_clifford_circuit(num_qubits_2,
+                                            num_gates,
+                                            gates=gates,
+                                            seed=seed + samples + i)
+            qargs = sorted(np.random.choice(range(num_qubits_1), num_qubits_2, replace=False))
+            circ = QuantumCircuit(num_qubits_1)
+            circ.append(circ2.to_instruction(), qargs)
+            circ.append(circ1.to_instruction(), range(num_qubits_1))
+            value = Clifford(circ1).dot(Clifford(circ2), qargs)
+            target = Clifford(circ)
+            self.assertEqual(target, value)
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_to_circuit(self, num_qubits):
+        """Test to_circuit method (decompose)"""
+        samples = 10
+        num_gates = 10
+        seed = 700
+        gates = 'all'
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits,
+                                           num_gates,
+                                           gates=gates,
+                                           seed=seed + i)
+            value = Clifford(Clifford(circ).to_circuit()).to_operator()
+            target = Operator(circ)
+            self.assertTrue(value)
 
 if __name__ == '__main__':
     unittest.main()
