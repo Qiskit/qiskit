@@ -23,6 +23,17 @@ The parametric pulses, :py:class:`~qiskit.pulse.pulse_lib.Gaussian`,
 :py:class:`~qiskit.pulse.pulse_lib.GaussianSquare`, :py:class:`~qiskit.pulse.pulse_lib.Drag` and
 :py:class:`~qiskit.pulse.pulse_lib.ConstantPulse` will generate parameterized descriptions of
 those pulses, which can greatly reduce the size of the job sent to the backend.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib.discrete
+   SamplePulse
+   ConstantPulse
+   Drag
+   Gaussian
+   GaussianSquare
+
 """
 
 from .discrete import *
