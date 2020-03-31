@@ -41,7 +41,7 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
 .. autosummary::
    :toctree: ../stubs/
 
-   qiskit.pulse.instructions
+   ~qiskit.pulse.instructions
 
    Acquire
    Delay
@@ -56,7 +56,7 @@ Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 .. autosummary::
    :toctree: ../stubs/
 
-   qiskit.pulse.pulse_lib
+   ~qiskit.pulse.pulse_lib
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
@@ -80,7 +80,7 @@ Channels are characterized by their type and their index. See each channel type 
 .. autosummary::
    :toctree: ../stubs/
 
-   qiskit.pulse.channels
+   ~qiskit.pulse.channels
 
    DriveChannel
    MeasureChannel
