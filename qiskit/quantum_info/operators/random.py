@@ -30,7 +30,7 @@ def random_unitary(dims, seed=None):
 
     Args:
         dims (int or tuple): the input dimensions of the Operator.
-        seed (int): Optional. To set a random seed.
+        seed (int): Optional. Set a fixed seed for RNG.
 
     Returns:
         Operator: a unitary operator.
@@ -50,7 +50,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         traceless (bool): Optional. If True subtract diagonal entries to
                           return a traceless hermitian operator
                           (Default: False).
-        seed (int): Optional. To set a random seed.
+        seed (int): Optional. Set a fixed seed for RNG.
 
     Returns:
         Operator: a Hermitian operator.
@@ -90,7 +90,7 @@ def random_quantum_channel(input_dims=None,
         input_dims (int or tuple): the input dimension of the channel.
         output_dims (int or tuple): the input dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
-        seed (int): Optional. To set a random seed.
+        seed (int): Optional. Set a fixed seed for RNG.
 
     Returns:
         Stinespring: a quantum channel operator.

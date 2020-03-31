@@ -50,8 +50,7 @@ def random_statevector(dims, seed=None):
 
 def random_state(dim, seed=None):
     """
-    Return a random quantum state from the uniform (Haar) measure on
-    state space.
+    DEPRECATED Return a random quantum state.
 
     Args:
         dim (int): the dim of the state space
@@ -69,7 +68,7 @@ def random_state(dim, seed=None):
 
 
 def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt', seed=None):
-    """Generator a random DensityMatrix
+    """Generator a random DensityMatrix.
 
     Args:
         dims (int or tuple): the dimensions of the DensityMatrix.
