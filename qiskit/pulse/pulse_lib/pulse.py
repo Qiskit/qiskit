@@ -54,8 +54,9 @@ class Pulse(ABC):
         Return:
             Complete and ready to schedule ``Play``.
         """
-        warnings.warn("Calling a ``Pulse`` with a channel is deprecated. Instantiate ``Play`` "
-                      "directly with a pulse and a channel.", DeprecationWarning)
+        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate `Play` "
+                      "directly with a pulse and a channel.".format(self.__class__.__name__),
+                      DeprecationWarning)
         return Play(self, channel)
 
     @abstractmethod

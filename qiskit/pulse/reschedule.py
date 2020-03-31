@@ -193,9 +193,9 @@ def pad(schedule: Schedule,
 
     for channel in channels:
         for timeslot in empty_timeslot_collection.ch_timeslots(channel):
-            schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
+            schedule |= Delay(timeslot.duration, timeslot.channel).shift(timeslot.start)
 
     for channel in unoccupied_channels:
-        schedule |= Delay(until)(channel)
+        schedule |= Delay(until, channel)
 
     return schedule
