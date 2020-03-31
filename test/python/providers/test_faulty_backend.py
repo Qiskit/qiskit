@@ -27,16 +27,23 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
 
     def test_operational_false(self):
         """Test operation status of the qubit. Q1 is non-operational """
-        self.assertFalse(self.backend.properties().operational(1))
+        self.assertFalse(self.backend.properties().is_qubit_operational(1))
 
-    def test_coupling_map(self):
-        """Test coupling map with a faulty qubit."""
-        coupling_map = self.backend.configuration().coupling_map
-        self.assertEqual(coupling_map, [[3, 4], [4, 3]])
+    def test_faulty_qubits(self):
+        """Test faulty_qubits method. """
+        self.assertEqual(self.backend.faulty_qubits(), [1])
 
 
 class FaultyGateBackendTestCase(QiskitTestCase):
     backend = FakeOurenseFaultyCX13()
 
     def test_operational_gate(self):
-        self.assertFalse(self.properties.operational_gate('cx', [1, 3]))
+        self.assertFalse(self.backend.properties().is_gate_operational('cx', [1, 3]))
+
+    def test_faulty_gates(self):
+        """Test faulty_gates method. """
+        gates = self.backend.faulty_gates()
+        self.assertEqual(len(gates), 1)
+        self.assertEqual(gates[0].gate, 'cx')
+        self.assertEqual(gates[0].qubits, [1, 3])
+        self.assertEqual(gates[0].name, 'cx1_3')

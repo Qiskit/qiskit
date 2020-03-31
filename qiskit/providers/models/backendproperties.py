@@ -197,6 +197,24 @@ class BackendProperties(BaseModel):
             raise BackendPropertyError("Could not find the desired property for {g}".format(g=gate))
         return result
 
+    def is_gate_operational(self,
+                            gate: str,
+                            qubits: Union[int, Iterable[int]] = None,
+                            name: str = None) -> bool:
+        """
+        Return the operational status of the given gate.
+
+        Args:
+            qubit: Qubit for which to return operational status of.
+
+        Returns:
+            Operational status of the given qubit.
+        """
+        properties = self.gate_property(gate, qubits, name)
+        if 'operational' in properties:
+            return bool(properties['operational'][0])
+        return True  # if property operational not existant, then True
+
     def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
         Return gate error estimates from backend properties.
@@ -299,7 +317,7 @@ class BackendProperties(BaseModel):
         """
         return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
 
-    def operational(self, qubit: int) -> bool:
+    def is_qubit_operational(self, qubit: int) -> bool:
         """
         Return the operational status of the given qubit.
 

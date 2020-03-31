@@ -19,7 +19,6 @@ Doing so requires that the required backend interface is implemented.
 """
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
 
 from qiskit.version import VERSION as __version__
 from .models import BackendStatus
@@ -44,7 +43,6 @@ class BaseBackend(ABC):
             QiskitError: if an error occurred when instantiating the backend.
         """
         self._configuration = configuration
-        self._functional_configuration = None
         self._provider = provider
 
     @abstractmethod
@@ -62,29 +60,26 @@ class BaseBackend(ABC):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        if self._functional_configuration:
-            return self._functional_configuration
+        return self._configuration
 
-        faulty_qubits = self._faulty_qubits()
-        if faulty_qubits:
-            self._functional_configuration = deepcopy(self._configuration)
-            for faulty_qubit in self._faulty_qubits():
-                self._functional_configuration.n_qubits -= 1
-                self._functional_configuration.coupling_map = [edge for edge in
-                                                               self._configuration.coupling_map if
-                                                               not faulty_qubit in edge]
-            return self._functional_configuration
-        else:
-            return self._configuration
-
-    def _faulty_qubits(self):
+    def faulty_qubits(self):
         """Return a list of faulty qubits.
         """
         properties = self.properties()
-        faulty = set()
+        faulty = []
         for qubit in range(self._configuration.n_qubits):
-            if not properties.operational(qubit):
-                faulty.add(qubit)
+            if not properties.is_qubit_operational(qubit):
+                faulty.append(qubit)
+        return faulty
+
+    def faulty_gates(self):
+        """Return a list of faulty gates.
+        """
+        properties = self.properties()
+        faulty = []
+        for gate in properties.gates:
+            if not properties.is_gate_operational(gate.gate, gate.qubits):
+                faulty.append(gate)
         return faulty
 
     def properties(self):
