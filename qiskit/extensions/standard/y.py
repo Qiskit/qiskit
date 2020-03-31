@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Pauli Y (bit-phase-flip) gate.
+Y and CY gates.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -25,7 +25,47 @@ from qiskit.util import deprecate_arguments
 
 
 class YGate(Gate):
-    """Pauli Y (bit-phase-flip) gate."""
+    r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Y = \begin{pmatrix}
+                0 & -i \\
+                i & 0
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ Y ├
+             └───┘
+
+    Equivalent to a :math:`\pi` radian rotation about the Y axis.
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RY(\pi)` and :math:`Y`.
+
+        .. math::
+
+            RY(\pi) = \begin{pmatrix}
+                        0 & -1 \\
+                        1 & 0
+                      \end{pmatrix}
+                    = -i Y
+
+    The gate is equivalent to a bit and phase flip.
+
+    .. math::
+
+        |0\rangle \rightarrow i|1\rangle \\
+        |1\rangle \rightarrow -i|0\rangle
+    """
 
     def __init__(self, label=None):
         """Create new Y gate."""
@@ -43,7 +83,9 @@ class YGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-Y gate.
+
+        One control returns a CY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -61,7 +103,7 @@ class YGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
     def to_matrix(self):
@@ -72,31 +114,7 @@ class YGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Y gate to a specified qubit (qubit).
-    A Y gate implements a pi rotation of the qubit state vector about the
-    y axis of the Bloch sphere.
-    This gate is canonically used to implement a bit flip and phase flip on the qubit state
-    from |0⟩ to i|1⟩, or from |1> to -i|0>.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.y(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.y import YGate
-            YGate().to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.YGate`."""
     return self.append(YGate(), [qubit], [])
 
 
@@ -114,10 +132,59 @@ class CYMeta(type):
 
 
 class CYGate(ControlledGate, metaclass=CYMeta):
-    """The controlled-Y gate."""
+    r"""Controlled-Y gate.
 
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ Y ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CY\ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + Y \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & -i \\
+                0 & 0 & 1 & 0 \\
+                0 & i & 0 & 0
+            \end{pmatrix}
+
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ Y ├
+                 └─┬─┘
+            q_1: ──■──
+
+        .. math::
+
+            CY\ q_1, q_0 =
+                |0 \rangle\langle 0| \otimes I + |1 \rangle\langle 1| \otimes Y =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & -i \\
+                    0 & 0 & i & 0
+                \end{pmatrix}
+
+    """
     def __init__(self):
-        """Create a new CY gate."""
+        """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1)
         self.base_gate = YGate()
 
@@ -140,7 +207,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CY gate (itself)"""
         return CYGate()  # self-inverse
 
     def to_matrix(self):
@@ -167,24 +234,7 @@ class CyGate(CYGate, metaclass=CYMeta):
                       'tgt': 'target_qubit'})
 def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cY gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    A cY gate implements a pi rotation of the qubit state vector about the y axis
-    of the Bloch sphere when the control qubit is in state |1>.
-    This gate is canonically used to implement a bit flip and phase flip on the qubit state
-    from |0⟩ to i|1⟩, or from |1> to -i|0> when the control qubit is in state |1>.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.cy(0,1)
-            circuit.draw()
-    """
+    """Apply :class:`~qiskit.extensions.standard.CYGate`."""
     return self.append(CYGate(), [control_qubit, target_qubit], [])
 
 

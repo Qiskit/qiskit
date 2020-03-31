@@ -80,6 +80,11 @@ def circuit_to_gate(circuit, parameter_map=None):
     target = circuit.copy()
     target._substitute_parameters(parameter_dict)
 
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+    # pylint: enable=cyclic-import
+    sel.add_equivalence(gate, target)
+
     definition = target.data
 
     if gate.num_qubits > 0:

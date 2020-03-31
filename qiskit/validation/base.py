@@ -250,6 +250,7 @@ def bind_schema(schema, **kwargs):
     """Class decorator for adding schema validation to its instances.
 
     The decorator acts on the model class by adding:
+
     * a class attribute ``schema`` with the schema used for validation
     * a class attribute ``shallow_schema`` used for validation during
       instantiation.

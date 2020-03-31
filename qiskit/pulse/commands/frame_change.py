@@ -12,18 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Frame change pulse.
-"""
+"""Frame change pulse. Deprecated."""
+import warnings
+
 from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
 class FrameChange(Command):
-    """Frame change pulse."""
+    """Deprecated."""
 
     prefix = 'fc'
 
@@ -34,6 +34,11 @@ class FrameChange(Command):
             phase: Frame change phase in radians. The allowable precision is device specific
             name: Name of this framechange command.
         """
+        warnings.warn("FrameChange is deprecated. Use ShiftPhase, instead, with channels "
+                      "specified. For example: FrameChange(3.14)(DriveChannel(0)) -> "
+                      "ShiftPhase(3.14, DriveChannel(0)). This can be called to add a channel: "
+                      "ShiftPhase(3.14)(DriveChannel(0)).",
+                      DeprecationWarning)
         super().__init__(duration=0)
         self._phase = float(phase)
         self._name = FrameChange.create_name(name)
@@ -69,7 +74,12 @@ class FrameChange(Command):
 
 
 class FrameChangeInstruction(Instruction):
-    """Instruction to change frame of an `PulseChannel`."""
+    """Deprecated."""
 
     def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
+        warnings.warn("The FrameChangeInstruction is deprecated. Use ShiftPhase, instead, with "
+                      "channels specified. For example: "
+                      "FrameChangeInstruction(FrameChange(3.14), DriveChannel(0)) -> "
+                      "ShiftPhase(3.14, DriveChannel(0)).",
+                      DeprecationWarning)
         super().__init__(command, channel, name=name)

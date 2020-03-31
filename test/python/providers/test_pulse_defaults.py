@@ -51,7 +51,7 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertTrue(self.inst_map.has('cx', (0, 1)))
         self.assertEqual(self.inst_map.get_parameters('u1', 0), ('P0',))
         u1_minus_pi = self.inst_map.get('u1', 0, P0=np.pi)
-        fc_cmd = u1_minus_pi.instructions[0][-1].command
+        fc_cmd = u1_minus_pi.instructions[0][-1]
         self.assertEqual(fc_cmd.phase, -np.pi)
 
     def test_str(self):

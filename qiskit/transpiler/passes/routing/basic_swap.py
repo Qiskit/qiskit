@@ -52,6 +52,10 @@ class BasicSwap(TransformationPass):
             compatible with the DAG.
         """
         new_dag = DAGCircuit()
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
 
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Basic swap runs on physical circuits only')
@@ -66,7 +70,7 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for gate in subdag.twoQ_gates():
+            for gate in subdag.two_qubit_ops():
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
@@ -89,13 +93,13 @@ class BasicSwap(TransformationPass):
 
                     # layer insertion
                     edge_map = current_layout.combine_into_edge_map(trivial_layout)
-                    new_dag.compose_back(swap_layer, edge_map)
+                    new_dag.compose(swap_layer, edge_map)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
             edge_map = current_layout.combine_into_edge_map(trivial_layout)
-            new_dag.extend_back(subdag, edge_map)
+            new_dag.compose(subdag, edge_map)
 
         return new_dag

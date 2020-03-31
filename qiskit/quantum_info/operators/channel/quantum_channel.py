@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
 class QuantumChannel(BaseOperator):
@@ -58,16 +59,19 @@ class QuantumChannel(BaseOperator):
         super().__init__(input_dims, output_dims)
 
     def __repr__(self):
-        return '{}({}, input_dims={}, output_dims={})'.format(
-            self._channel_rep, self._data, self._input_dims,
-            self._output_dims)
+        prefix = '{}('.format(self._channel_rep)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}input_dims={}, output_dims={})'.format(
+            prefix, np.array2string(
+                np.asarray(self.data), separator=', ', prefix=prefix),
+            pad, self._input_dims, self._output_dims)
 
     def __eq__(self, other):
         """Test if two QuantumChannels are equal."""
         if not super().__eq__(other):
             return False
         return np.allclose(
-            self.data, other.data, rtol=self._rtol, atol=self._atol)
+            self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
@@ -100,25 +104,37 @@ class QuantumChannel(BaseOperator):
         """
         pass
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the QuantumChannel self + other.
+
+        If ``qargs`` are specified the other channel will be added
+        assuming it is the identity channel on all other subsystems.
 
         Args:
             other (QuantumChannel): a quantum channel.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
-            QuantumChannel: the linear addition channel self + other.
+            QuantumChannel: the linear addition self + other as a SuperOp object.
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
+                         has incompatible dimensions.
         """
         # NOTE: this method must be overriden for subclasses
         # that don't have a linear matrix representation
         # ie Kraus and Stinespring
+
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
-        self._validate_add_dims(other)
+
+        self._validate_add_dims(other, qargs)
+        other = ScalarOp._pad_with_identity(self, other, qargs)
+
         ret = copy.copy(self)
         ret._data = self._data + other._data
         return ret
@@ -180,15 +196,15 @@ class QuantumChannel(BaseOperator):
         otherwise it will be added as a kraus simulator instruction.
 
         Returns:
-            Instruction: A kraus instruction for the channel.
+            qiskit.circuit.Instruction: A kraus instruction for the channel.
 
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
         """
         from qiskit.circuit.instruction import Instruction
         # Check if input is an N-qubit CPTP channel.
-        n_qubits = int(np.log2(self._input_dim))
-        if self._input_dim != self._output_dim or 2**n_qubits != self._input_dim:
+        num_qubits = int(np.log2(self._input_dim))
+        if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 'Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel.'
             )
@@ -204,22 +220,22 @@ class QuantumChannel(BaseOperator):
         # converting to an Operator and using its to_instruction method
         if len(kraus) == 1:
             return Operator(kraus[0]).to_instruction()
-        return Instruction('kraus', n_qubits, 0, kraus)
+        return Instruction('kraus', num_qubits, 0, kraus)
 
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return is_positive_semidefinite_matrix(choi, rtol=rtol, atol=atol)
 
     def _is_tp_helper(self, choi, atol, rtol):
         """Test if Choi-matrix is trace-preserving (TP)"""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         # Check if the partial trace is the identity matrix
         d_in, d_out = self.dim
         mat = np.trace(
@@ -259,7 +275,7 @@ class QuantumChannel(BaseOperator):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         pass
 

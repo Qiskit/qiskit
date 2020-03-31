@@ -15,7 +15,6 @@
 """Test the optimize-1q-gate pass"""
 
 import unittest
-import sympy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
@@ -92,41 +91,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
-
-    def test_optimize_1q_gates_sympy_expressions(self):
-        """optimizes single qubit gate sequences with sympy expressions.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/172
-        """
-        qr = QuantumRegister(4)
-        cr = ClassicalRegister(4)
-        circ = QuantumCircuit(qr, cr)
-        # unary
-        circ.u1(-sympy.pi, qr[0])
-        circ.u1(-sympy.pi / 2, qr[0])
-        # binary
-        circ.u1(0.2 * sympy.pi + 0.3 * sympy.pi, qr[1])
-        circ.u1(1.3 - 0.3, qr[1])
-        circ.u1(0.1 * sympy.pi / 2, qr[1])
-        # extern
-        circ.u1(sympy.sin(0.2 + 0.3 - sympy.pi), qr[2])
-        # power
-        circ.u1(sympy.pi, qr[3])
-        circ.u1(0.3 + (-sympy.pi) ** 2, qr[3])
-
-        dag = circuit_to_dag(circ)
-        simplified_dag = Optimize1qGates().run(dag)
-
-        params = set()
-        for node in simplified_dag.named_nodes('u1'):
-            params.add(node.op.params[0])
-
-        expected_params = {-3 * np.pi / 2,
-                           1.0 + 0.55 * np.pi,
-                           -0.479425538604203,
-                           0.3 + np.pi + np.pi ** 2}
-
-        self.assertEqual(params, expected_params)
 
     def test_ignores_conditional_rotations(self):
         """Conditional rotations should not be considered in the chain.

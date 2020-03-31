@@ -67,13 +67,12 @@ class Chi(QuantumChannel):
 
         Raises:
             QiskitError: if input data is not an N-qubit channel or
-            cannot be initialized as a Chi-matrix.
+                         cannot be initialized as a Chi-matrix.
 
-        Additional Information
-        ----------------------
-        If the input or output dimensions are None, they will be
-        automatically determined from the input data. The Chi matrix
-        representation is only valid for N-qubit channels.
+        Additional Information:
+            If the input or output dimensions are None, they will be
+            automatically determined from the input data. The Chi matrix
+            representation is only valid for N-qubit channels.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.
@@ -118,8 +117,8 @@ class Chi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        n_qubits = int(np.log2(input_dim))
-        if 2**n_qubits != input_dim:
+        num_qubits = int(np.log2(input_dim))
+        if 2**num_qubits != input_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
@@ -169,6 +168,8 @@ class Chi(QuantumChannel):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Chi(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -187,7 +188,7 @@ class Chi(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power is not an integer.
         """
         if n > 0:
             return super().power(n)
@@ -244,6 +245,6 @@ class Chi(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
