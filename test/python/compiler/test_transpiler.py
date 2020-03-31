@@ -606,7 +606,6 @@ class TestTranspile(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
 
-    @unittest.skip('skipping due to MacOS specific failure, unrolling to u2')
     def test_basis_subset(self):
         """Test a transpilation with a basis subset of the standard basis"""
         qr = QuantumRegister(1, 'q1')
