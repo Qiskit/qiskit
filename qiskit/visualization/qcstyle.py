@@ -77,8 +77,13 @@ class DefaultStyle:
             'z': pauli_color,
             'h': clifford_color,
             'cx': clifford_color,
+            'cy': clifford_color,
+            'cz': clifford_color,
+            'swap': clifford_color,
             's': clifford_color,
             'sdg': clifford_color,
+            'dcx': clifford_color,
+            'iswap': clifford_color,
             't': other_color,
             'tdg': other_color,
             'r': other_color,
@@ -87,7 +92,6 @@ class DefaultStyle:
             'rz': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
-            'swap': other_color,
             'multi': other_color,
             'meas': non_gate_color
         }

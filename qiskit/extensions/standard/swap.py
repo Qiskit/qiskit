@@ -133,7 +133,6 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     .. parsed-literal::
 
-
         q_0: ─X─
               │
         q_1: ─X─
@@ -145,17 +144,17 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     .. math::
 
-        CSWAP\ q_2, q_1, q_0 =
+        CSWAP\ q_0, q_1, q_2 =
             |0 \rangle \langle 0| \otimes I \otimes I +
             |1 \rangle \langle 1| \otimes SWAP =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
                 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
-                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
-                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
-                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
             \end{pmatrix}
 
@@ -164,22 +163,30 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_2. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+
+            q_0: ─■─
+                  │
+            q_1: ─X─
+                  │
+            q_2: ─X─
 
         .. math::
 
-            CSWAP\ q_0, q_1, q_2 =
+            CSWAP\ q_2, q_1, q_0 =
                 |0 \rangle \langle 0| \otimes I \otimes I +
                 |1 \rangle \langle 1| \otimes SWAP =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
                     0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
-                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
-                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
                     0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
                     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
                     0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
                 \end{pmatrix}
 

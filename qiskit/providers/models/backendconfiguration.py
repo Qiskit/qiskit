@@ -316,6 +316,16 @@ class QasmBackendConfiguration(SimpleNamespace):
         out_dict['gates'] = [x.to_dict() for x in self.gates]
         return out_dict
 
+    @property
+    def num_qubits(self):
+        """Returns the number of qubits.
+
+        In future, `n_qubits` should be replaced in favor of `num_qubits` for consistent use
+        throughout Qiskit. Until this is properly refactored, this property serves as intermediate
+        solution.
+        """
+        return self.n_qubits
+
     def __eq__(self, other):
         if isinstance(other, QasmBackendConfiguration):
             if self.to_dict() == other.to_dict():
