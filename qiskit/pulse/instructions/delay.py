@@ -63,13 +63,13 @@ class Delay(Instruction):
         return (self.duration, self.channel)
 
     @property
-    def channel(self) -> PulseChannel:
+    def channel(self) -> Channel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
         return self._channel
 
-    def __call__(self, channel: PulseChannel) -> 'Delay':
+    def __call__(self, channel: Channel) -> 'Delay':
         """Return new ``Delay`` that is fully instantiated with both ``duration`` and a ``channel``.
 
         Args:
