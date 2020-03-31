@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Models for PassManagerConfig and RunConfig."""
+"""
+Symplectic Operators
+"""
 
-from qiskit.validation import BaseSchema
-
-
-class PassManagerConfigSchema(BaseSchema):
-    """Schema for PassManagerConfig."""
-
-    # Required properties.
-
-    # Optional properties.
+from .pauli_table import PauliTable
+from .pauli_utils import pauli_basis
+from .stabilizer_table import StabilizerTable

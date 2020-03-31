@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-T=sqrt(S) phase gate or its inverse.
+T and Tdg gate.
 """
 import numpy
 from qiskit.circuit import Gate
@@ -24,7 +24,32 @@ from qiskit.util import deprecate_arguments
 
 
 class TGate(Gate):
-    """T Gate: pi/4 rotation around Z axis."""
+    r"""Single qubit T gate (Z**0.25).
+
+    It induces a :math:`\pi/4` phase, and is sometimes called the pi/8 gate
+    (because of how the RZ(\pi/4) matrix looks like).
+
+    This is a non-Clifford gate and a fourth-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        T = \begin{pmatrix}
+                1 & 0 \\
+                0 & 1+i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ T ├
+             └───┘
+
+    Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
+    """
 
     def __init__(self, label=None):
         """Create new T gate."""
@@ -45,7 +70,7 @@ class TGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
     def to_matrix(self):
@@ -55,7 +80,31 @@ class TGate(Gate):
 
 
 class TdgGate(Gate):
-    """Tdg Gate: -pi/4 rotation around Z axis."""
+    r"""Single qubit T-adjoint gate (~Z**0.25).
+
+    It induces a :math:`-\pi/4` phase.
+
+    This is a non-Clifford gate and a fourth-root of Pauli-Z.
+
+    **Matrix Representation:**
+
+    .. math::
+
+        Tdg = \begin{pmatrix}
+                1 & 0 \\
+                0 & 1-i
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌─────┐
+        q_0: ┤ Tdg ├
+             └─────┘
+
+    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    """
 
     def __init__(self, label=None):
         """Create a new Tdg gate."""
@@ -76,7 +125,7 @@ class TdgGate(Gate):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse Tdg gate (i.e. T)."""
         return TGate()
 
     def to_matrix(self):
@@ -87,56 +136,14 @@ class TdgGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply T gate to a specified qubit (qubit).
-    A T gate implements a pi/4 rotation of a qubit state vector about the
-    z axis of the Bloch sphere.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.t(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.t import TGate
-            TGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.TGate`.
     """
     return self.append(TGate(), [qubit], [])
 
 
 @deprecate_arguments({'q': 'qubit'})
 def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply Tdg gate to a specified qubit (qubit).
-    A Tdg gate implements a -pi/4 rotation of a qubit state vector about the
-    z axis of the Bloch sphere. It is the inverse of T-gate.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.tdg(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.t import TdgGate
-            TdgGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.TdgGate`.
     """
     return self.append(TdgGate(), [qubit], [])
 

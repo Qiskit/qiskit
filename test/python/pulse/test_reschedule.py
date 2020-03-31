@@ -33,7 +33,7 @@ class TestAutoMerge(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.cmd_def = self.backend.defaults().instruction_schedule_map
+        self.inst_map = self.backend.defaults().instruction_schedule_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -46,12 +46,12 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(10, acquire(self.config.acquire(1), MemorySlot(1)))
         sched = sched.insert(10, self.short_pulse(self.config.measure(0)))
         sched = sched.insert(10, self.short_pulse(self.config.measure(1)))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.inst_map)[0]
         self.assertEqual(sched.name, 'fake_experiment')
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
-        sched = align_measures([sched], self.cmd_def, align_time=20)[0]
+        sched = align_measures([sched], self.inst_map, align_time=20)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 20)
@@ -65,11 +65,11 @@ class TestAutoMerge(QiskitTestCase):
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, self.short_pulse(self.config.drive(0)))
         sched = sched.insert(1, acquire(self.config.acquire(0), MemorySlot(0)))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.inst_map)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 4)
-        sched = align_measures([sched], self.cmd_def, max_calibration_duration=10)[0]
+        sched = align_measures([sched], self.inst_map, max_calibration_duration=10)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
@@ -82,20 +82,20 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.config.acquire(0), MemorySlot(0)))
         sched = sched.insert(10, acquire(self.config.acquire(0), MemorySlot(0)))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.inst_map)
 
         # Test for measure channel
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(10, self.short_pulse(self.config.measure(0)))
         sched = sched.insert(30, self.short_pulse(self.config.measure(0)))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.inst_map)
 
-        # Test both using cmd_def
+        # Test both using inst_map
         sched = pulse.Schedule()
-        sched += self.cmd_def.get('measure', (0, 1))
+        sched += self.inst_map.get('measure', (0, 1))
         align_measures([sched], align_time=50)
-        sched += self.cmd_def.get('measure', (0, 1))
+        sched += self.inst_map.get('measure', (0, 1))
         with self.assertRaises(PulseError):
             align_measures([sched], align_time=50)
 
@@ -107,10 +107,10 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.config.acquire(0), MemorySlot(0)))
         # No error with separate channel
         sched = sched.insert(10, self.short_pulse(self.config.drive(1)))
-        align_measures([sched], self.cmd_def)
+        align_measures([sched], self.inst_map)
         sched = sched.insert(10, self.short_pulse(self.config.drive(0)))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.inst_map)
 
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
@@ -121,7 +121,7 @@ class TestAutoMerge(QiskitTestCase):
         sched2 = pulse.Schedule(name='fake_experiment')
         sched2 = sched2.insert(3, self.short_pulse(self.config.drive(0)))
         sched2 = sched2.insert(25, acquire(self.config.acquire(0), MemorySlot(0)))
-        schedules = align_measures([sched1, sched2], self.cmd_def)
+        schedules = align_measures([sched1, sched2], self.inst_map)
         for time, inst in schedules[0].instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
@@ -136,7 +136,6 @@ class TestAddImplicitAcquires(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.cmd_def = self.backend.defaults().instruction_schedule_map
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
         acquire = pulse.Acquire(5)
