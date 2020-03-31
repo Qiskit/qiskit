@@ -398,6 +398,8 @@ class TestCliffordCircuits(QiskitTestCase):
 
 @ddt
 class TestCliffordOperators(QiskitTestCase):
+    """Test Clifford operator class methods."""
+
     @combine(num_qubits=[1, 2, 3])
     def test_is_unitary(self, num_qubits):
         """Test is_unitary method"""

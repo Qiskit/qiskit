@@ -340,8 +340,8 @@ class Clifford(BaseOperator):
         """Initialize from a QuantumCircuit or Instruction.
 
         Args:
-            instruction (QuantumCircuit or Instruction): instruction to
-                                                         initialize.
+            instruction (QuantumCircuit or ~qiskit.circuit.Instruction):
+                instruction to initialize.
 
         Returns:
             Clifford: the Clifford object for the instruction.
@@ -388,6 +388,7 @@ class Clifford(BaseOperator):
         """Return the adjoint, conjugate, or transpose of the Clifford.
 
         Args:
+            clifford (Clifford): a clifford object.
             method (str): what function to apply 'A', 'C', or 'T'.
 
         Returns:
