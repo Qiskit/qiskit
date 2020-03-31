@@ -89,9 +89,8 @@ class SwapGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CSwapGate()
+        if num_ctrl_qubits == 1:
+            return CSwapGate(label=None, ctrl_state=None)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -199,9 +198,10 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
-        super().__init__('cswap', 3, [], num_ctrl_qubits=1)
+        super().__init__('cswap', 3, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = SwapGate()
 
     def _define(self):
@@ -257,10 +257,12 @@ class FredkinGate(CSwapGate, metaclass=CSwapMeta):
                       'tgt1': 'target_qubit1',
                       'tgt2': 'target_qubit2'})
 def cswap(self, control_qubit, target_qubit1, target_qubit2,
-          *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+          *, label=None, ctrl_state=None,
+          ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CSwapGate`.
     """
-    return self.append(CSwapGate(), [control_qubit, target_qubit1, target_qubit2], [])
+    return self.append(CSwapGate(label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit1, target_qubit2], [])
 
 
 # support both cswap and fredkin as methods of QuantumCircuit

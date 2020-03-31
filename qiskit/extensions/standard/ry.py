@@ -79,9 +79,8 @@ class RYGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRYGate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -101,9 +100,11 @@ class RYGate(Gate):
 
 
 @deprecate_arguments({'q': 'qubit'})
-def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+def ry(self, theta, qubit, *, label=None, ctrl_state=None,
+       q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply :class:`~qiskit.extensions.standard.RYGate`."""
-    return self.append(RYGate(theta), [qubit], [])
+    return self.append(RYGate(theta, label=label, ctrl_state=ctrl_state),
+                       [qubit], [])
 
 
 QuantumCircuit.ry = ry
@@ -172,9 +173,10 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRY gate."""
-        super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('cry', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = RYGate(theta)
 
     def _define(self):
@@ -207,21 +209,23 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 class CryGate(CRYGate, metaclass=CRYMeta):
     """The deprecated CRYGate class."""
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CryGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CRYGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+        super().__init__(theta, label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cry(self, theta, control_qubit, target_qubit,
-        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        *, label=None, ctrl_state=None,
+        ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CRYGate`."""
-    return self.append(CRYGate(theta), [control_qubit, target_qubit], [])
+    return self.append(CRYGate(theta, label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cry = cry

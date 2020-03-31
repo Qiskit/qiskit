@@ -16,6 +16,7 @@
 Controlled unitary gate.
 """
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit._utils import _compute_control_matrix
 from .gate import Gate
 from . import QuantumRegister
 
@@ -50,6 +51,7 @@ class ControlledGate(Gate):
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise CircuitError('number of control qubits must be less than the number of qubits')
+        self.base_gate = None
         if definition:
             self.definition = definition
             if len(definition) == 1:
@@ -140,3 +142,15 @@ class ControlledGate(Gate):
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""
         return self.base_gate.inverse().control(self.num_ctrl_qubits)
+
+    def to_matrix(self):
+        """Return numpy array for this controlled matrix"""
+        if self.base_gate:
+            return _compute_control_matrix(self.base_gate.to_matrix(),
+                                           self.num_ctrl_qubits,
+                                           ctrl_state=self.ctrl_state)
+        # elif self.definition():
+        #     return Operator(self).data
+        else:
+            raise QiskitError('This opaque gate has no matrix represention')
+            

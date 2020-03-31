@@ -20,6 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions._utils import _compute_control_matrix
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
@@ -102,11 +103,11 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CXGate()
-            elif num_ctrl_qubits == 2:
-                return CCXGate()
+
+        if num_ctrl_qubits == 1:
+            return CXGate(label=label, ctrl_state=ctrl_state)
+        elif num_ctrl_qubits == 2:
+            return CCXGate(label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -121,10 +122,10 @@ class XGate(Gate):
 
 
 @deprecate_arguments({'q': 'qubit'})
-def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
+def x(self, qubit, *, label=None, ctrl_state=None, q=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.XGate`.
     """
-    return self.append(XGate(), [qubit], [])
+    return self.append(XGate(label=label, ctrl_state=ctrl_state), [qubit], [])
 
 
 QuantumCircuit.x = x
@@ -199,9 +200,10 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
-    def __init__(self):
+    def __init__(self, ctrl_state=None, label=None):
         """Create new CX gate."""
-        super().__init__('cx', 2, [], num_ctrl_qubits=1)
+        super().__init__('cx', 2, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -216,9 +218,8 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CCXGate()
+        if num_ctrl_qubits == 1:
+            return CCXGate(label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -226,33 +227,40 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         """Return inverted CX gate (itself)."""
         return CXGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a numpy.array for the CX gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, 1],
-                            [0, 0, 1, 0],
-                            [0, 1, 0, 0]], dtype=complex)
+    # def to_matrix(self):
+    #     """Return a numpy.array for the CX gate."""
+    #     if self.ctrl_state:
+    #         return numpy.array([[1, 0, 0, 0],
+    #                             [0, 0, 0, 1],
+    #                             [0, 0, 1, 0],
+    #                             [0, 1, 0, 0]], dtype=complex)
+    #     else:
+    #         return numpy.array([[0, 0, 1, 0],
+    #                             [0, 1, 0, 0],
+    #                             [1, 0, 0, 0],
+    #                             [0, 0, 0, 1]], dtype=complex)
 
 
 class CnotGate(CXGate, metaclass=CXMeta):
     """The deprecated CXGate class."""
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CnotGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CXGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+       *, label=None, ctrl_state=None, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CXGate`.
     """
-    return self.append(CXGate(), [control_qubit, target_qubit], [])
+    return self.append(CXGate(label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 # support both cx and cnot in QuantumCircuits
@@ -334,9 +342,10 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
 
     """
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CCX gate."""
-        super().__init__('ccx', 3, [], num_ctrl_qubits=2)
+        super().__init__('ccx', 3, [], num_ctrl_qubits=2, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = XGate()
 
     def _define(self):
@@ -375,28 +384,22 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a numpy.array for the CCX gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
+    # def to_matrix(self):
+    #     """Return a numpy.array for the CCX gate."""
+    #     return _compute_control_matrix(self.base_gate.to_matrix(), 2,
+    #                                    ctrl_state=self.ctrl_state)
 
 
 class ToffoliGate(CCXGate, metaclass=CCXMeta):
     """The deprecated CCXGate class."""
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class ToffoliGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CCXGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl1': 'control_qubit1',
