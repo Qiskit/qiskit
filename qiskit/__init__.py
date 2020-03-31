@@ -57,24 +57,22 @@ try:
     from qiskit.providers.aer import Aer
 except ImportError:
     suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
-    if not _config.get('suppress_packaging_warnings') or (_config.get(
-            'suppress_packaging_warnings') and
-            suppress_warnings.upper() != 'N') or suppress_warnings.upper() != 'Y':
-        warnings.warn('Could not import the Aer provider from the qiskit-aer '
-                      'package. Install qiskit-aer or check your installation.',
-                      RuntimeWarning)
+    if suppress_warnings.upper() != 'Y':
+        if not _config.get('suppress_packaging_warnings') or suppress_warnings.upper() == 'N':
+            warnings.warn('Could not import the Aer provider from the qiskit-aer '
+                          'package. Install qiskit-aer or check your installation.',
+                          RuntimeWarning)
 # Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
     suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
-    if not _config.get('suppress_packaging_warnings') or (_config.get(
-            'suppress_packaging_warnings') and
-            suppress_warnings.upper() != 'N') or suppress_warnings.upper() != 'Y':
-        warnings.warn('Could not import the IBMQ provider from the '
-                      'qiskit-ibmq-provider package. Install '
-                      'qiskit-ibmq-provider or check your installation.',
-                      RuntimeWarning)
+    if suppress_warnings.upper() != 'Y':
+        if not _config.get('suppress_packaging_warnings') or suppress_warnings.upper() == 'N':
+            warnings.warn('Could not import the IBMQ provider from the '
+                          'qiskit-ibmq-provider package. Install '
+                          'qiskit-ibmq-provider or check your installation.',
+                          RuntimeWarning)
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
