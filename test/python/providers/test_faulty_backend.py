@@ -15,10 +15,11 @@
 """Testing a Faulty Backend (1Q)."""
 
 from qiskit.test.mock import FakeOurenseFaultyQ1
+from qiskit.test.mock import FakeOurenseFaultyCX13
 from qiskit.test import QiskitTestCase
 
 
-class BackendpropertiesTestCase(QiskitTestCase):
+class FaultyQubitBackendTestCase(QiskitTestCase):
     """Test usability methods of backend.properties() with FakeOurenseFaultyQ1,
     which is like FakeOurense but with a faulty 1Q"""
 
@@ -32,3 +33,10 @@ class BackendpropertiesTestCase(QiskitTestCase):
         """Test coupling map with a faulty qubit."""
         coupling_map = self.backend.configuration().coupling_map
         self.assertEqual(coupling_map, [[3, 4], [4, 3]])
+
+
+class FaultyGateBackendTestCase(QiskitTestCase):
+    backend = FakeOurenseFaultyCX13()
+
+    def test_operational_gate(self):
+        self.assertFalse(self.properties.operational_gate('cx', [1, 3]))
