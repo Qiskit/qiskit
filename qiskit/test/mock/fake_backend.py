@@ -100,7 +100,6 @@ class FakeBackend(BaseBackend):
             'gates': [{
                 "gate": "cx",
                 "name": "CX" + str(pair[0]) + "_" + str(pair[1]),
-                "operational": True,
                 "parameters": [
                     {
                         "date": "2000-01-01 00:00:00Z",
