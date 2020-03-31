@@ -318,21 +318,17 @@ class QuantumState(ABC):
             self.dims(qargs),
             string_labels=True)
 
-    def sample_measure(self, qargs=None, shots=1, memory=False):
-        """Sample measurement outcomes in the computational basis.
+    def sample_memory(self, shots, qargs=None):
+        """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
+            shots (int): number of samples to generate.
             qargs (None or list): subsystems to sample measurements for,
                                 if None sample measurement of all
                                 subsystems (Default: None).
-            shots (int): number of samples to generate (Default: 1).
-            memory (bool): if True return a list of all samples in order
-                        otherwise return a counts dictionary of samples
-                        (Default: False).
 
         Returns:
-            dict: sampled counts dict if ``memory=False``.
-            np.array: sampled counts in order if ``memory=True``.
+            np.array: list of sampled counts if the order sampled.
 
         Additional Information:
 
@@ -352,11 +348,32 @@ class QuantumState(ABC):
             np.arange(len(probs)), self.dims(qargs), string_labels=True)
 
         # Sample outcomes
-        samples = self._rng.choice(labels, p=probs, size=shots)
+        return self._rng.choice(labels, p=probs, size=shots)
 
-        if memory:
-            # Return all samples in order they were generated
-            return samples
+    def sample_counts(self, shots, qargs=None):
+        """Sample a dict of qubit measurement outcomes in the computational basis.
+
+        Args:
+            shots (int): number of samples to generate.
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+
+        Returns:
+            dict: sampled counts dictionary.
+
+        Additional Information:
+
+            This function *samples* measurement outcomes using the measure
+            :meth:`probabilities` for the current state and `qargs`. It does
+            not actually implement the measurement so the current state is
+            not modified.
+
+            The seed for random number generator used for sampling can be
+            set to a fixed value by using the stats :meth:`seed` method.
+        """
+        # Sample list of outcomes
+        samples = self.sample_memory(shots, qargs=qargs)
 
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)

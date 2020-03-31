@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    Add ``sample_measure`` methods to the :class:`~qiskit.quantum_info.Statevector`
+    Add :meth:`~qiskit.quantum_info.Statevector.sample_counts` and
+    :meth:`~qiskit.quantum_info.Statevector.sample_memory` methods to the :class:`~qiskit.quantum_info.Statevector`
     and :class:`~qiskit.quantum_info.DensityMatrix` classes for sampling
     measurement outcomes on subsystems.
 
@@ -17,15 +18,15 @@ features:
         shots = 1024
   
         # Sample counts dictionary
-        counts = psi.sample_measure(shots=shots)
+        counts = psi.sample_counts(shots)
         print('Measure both:', counts)
 
         # Qubit-0
-        counts0 = psi.sample_measure([0], shots=shots)
+        counts0 = psi.sample_counts(shots, [0])
         print('Measure Qubit-0:', counts0)
 
         # Qubit-1
-        counts1 = psi.sample_measure([1], shots=shots)
+        counts1 = psi.sample_counts(shots, [1])
         print('Measure Qubit-1:', counts1)
 
       Return the array of measurement outcomes for each sample
@@ -38,13 +39,13 @@ features:
         shots = 10
   
         # Sample memory
-        mem = psi.sample_measure(shots=shots, memory=True)
+        mem = psi.sample_memory(shots)
         print('Measure both:', mem)
 
         # Qubit-0
-        mem0 = psi.sample_measure([0], shots=shots, memory=True)
+        mem0 = psi.sample_memory(shots, [0])
         print('Measure Qubit-0:', mem0)
 
         # Qubit-1
-        mem1 = psi.sample_measure([1], shots=shots, memory=True)
+        mem1 = psi.sample_memory(shots, [1])
         print('Measure Qubit-1:', mem1)
