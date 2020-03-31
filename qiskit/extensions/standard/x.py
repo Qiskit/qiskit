@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Pauli X (bit-flip) gate.
+X, CX and CCX gates.
 """
 import numpy
 from qiskit.circuit import ControlledGate
@@ -28,7 +28,47 @@ from qiskit.util import deprecate_arguments
 
 
 class XGate(Gate):
-    """Pauli X (bit-flip) gate."""
+    r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
+
+    **Matrix Representation:**
+
+    .. math::
+
+        X = \begin{pmatrix}
+                0 & 1 \\
+                1 & 0
+            \end{pmatrix}
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───┐
+        q_0: ┤ X ├
+             └───┘
+
+    Equivalent to a :math:`\pi` radian rotation about the X axis.
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RX(\pi)` and :math:`X`.
+
+        .. math::
+
+            RX(\pi) = \begin{pmatrix}
+                        0 & -i \\
+                        -i & 0
+                      \end{pmatrix}
+                    = -i X
+
+    The gate is equivalent to a classical bit flip.
+
+    .. math::
+
+        |0\rangle \rightarrow |1\rangle \\
+        |1\rangle \rightarrow |0\rangle
+    """
 
     def __init__(self, label=None):
         """Create new X gate."""
@@ -36,9 +76,7 @@ class XGate(Gate):
 
     def _define(self):
         """
-        gate x a {
-        u3(pi,0,pi) a;
-        }
+        gate x a { u3(pi,0,pi) a; }
         """
         from qiskit.extensions.standard.u3 import U3Gate
         definition = []
@@ -51,7 +89,9 @@ class XGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-X gate.
+
+        One control returns a CX gate. Two controls returns a CCX gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -71,7 +111,7 @@ class XGate(Gate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted X gate (itself)"""
         return XGate()  # self-inverse
 
     def to_matrix(self):
@@ -82,30 +122,7 @@ class XGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def x(self, qubit, *, q=None):  # pylint: disable=unused-argument
-    """Apply X gate to a specified qubit (qubit).
-    An X gate implements a pi rotation of the qubit state vector about the
-    x axis of the Bloch sphere.
-    This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
-    or vice versa.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.x(0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.x import XGate
-            XGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.XGate`.
     """
     return self.append(XGate(), [qubit], [])
 
@@ -124,15 +141,71 @@ class CXMeta(type):
 
 
 class CXGate(ControlledGate, metaclass=CXMeta):
-    """The controlled-X gate."""
+    r"""Controlled-X gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ X ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CX\ q_0, q_1 =
+            I \otimes |0\rangle\langle0| + X \otimes |1\rangle\langle1| =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 \\
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ X ├
+                 └─┬─┘
+            q_1: ──■──
+
+        .. math::
+
+            CX\ q_1, q_0 =
+                |0 \rangle\langle 0| \otimes I + |1 \rangle\langle 1| \otimes X =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & 1 \\
+                    0 & 0 & 1 & 0
+                \end{pmatrix}
+
+
+    In the computational basis, this gate flips the target qubit
+    if the control qubit is in the :math:`|1\rangle` state.
+    In this sense it is similar to a classical XOR gate.
+
+    .. math::
+        `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
+    """
 
     def __init__(self):
-        """Create new cx gate."""
+        """Create new CX gate."""
         super().__init__('cx', 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate()
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a controlled-X gate with more control lines.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -150,7 +223,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverted CX gate (itself)."""
         return CXGate()  # self-inverse
 
     def to_matrix(self):
@@ -177,30 +250,7 @@ class CnotGate(CXGate, metaclass=CXMeta):
                       'tgt': 'target_qubit'})
 def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply CX gate from a specified control (control_qubit) to target (target_qubit) qubit.
-    A CX gate implements a pi rotation of the qubit state vector about the x axis
-    of the Bloch sphere when the control qubit is in state |1>.
-    This gate is canonically used to implement a bit flip on the qubit state from |0⟩ to |1⟩,
-    or vice versa when the control qubit is in state |1>.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(2)
-            circuit.cx(0,1)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.x import CXGate
-            CXGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.CXGate`.
     """
     return self.append(CXGate(), [control_qubit, target_qubit], [])
 
@@ -221,7 +271,68 @@ class CCXMeta(type):
 
 
 class CCXGate(ControlledGate, metaclass=CCXMeta):
-    """The double-controlled-not gate, also called Toffoli gate."""
+    r"""CCX gate, also known as Toffoli gate.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+               │
+        q_1: ──■──
+             ┌─┴─┐
+        q_2: ┤ X ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CCX q_0, q_1, q_2 =
+            |0 \rangle \langle 0| \otimes I \otimes I + |1 \rangle \langle 1| \otimes CX =
+           \begin{pmatrix}
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_2 and q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───┐
+            q_0: ┤ X ├
+                 └─┬─┘
+            q_1: ──■──
+                   │
+            q_2: ──■──
+
+        .. math::
+
+            CCX\ q_2, q_1, q_0 =
+                I \otimes I \otimes |0 \rangle \langle 0| + CX \otimes |1 \rangle \langle 1| =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+                    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+                    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+                \end{pmatrix}
+
+    """
 
     def __init__(self):
         """Create new CCX gate."""
@@ -261,7 +372,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return an inverted CCX gate (also a CCX)."""
         return CCXGate()  # self-inverse
 
     def to_matrix(self):
@@ -293,28 +404,7 @@ class ToffoliGate(CCXGate, metaclass=CCXMeta):
                       'tgt': 'target_qubit'})
 def ccx(self, control_qubit1, control_qubit2, target_qubit,
         *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply Toffoli (ccX) gate from two specified controls (control_qubit1 and control_qubit2)
-    to target (target_qubit) qubit. This gate is canonically used to rotate the qubit state from
-    |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1>.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(3)
-            circuit.ccx(0,1,2)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.extensions.standard.x import CCXGate
-            CCXGate().to_matrix()
+    """Apply :class:`~qiskit.extensions.standard.CCXGate` (Toffoli).
     """
 
     return self.append(CCXGate(),

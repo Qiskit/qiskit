@@ -38,7 +38,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
         QiskitError: if parameter_map is not compatible with circuit
 
     Return:
-        Instruction: an instruction equivalent to the action of the
+        qiskit.circuit.Instruction: an instruction equivalent to the action of the
         input circuit. Upon decomposition, this instruction will
         yield the components comprising the original circuit.
 
@@ -88,6 +88,11 @@ def circuit_to_instruction(circuit, parameter_map=None):
 
     target = circuit.copy()
     target._substitute_parameters(parameter_dict)
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+    # pylint: enable=cyclic-import
+    sel.add_equivalence(instruction, target)
 
     definition = target.data
 

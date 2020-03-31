@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=cyclic-import
+
 """
 Supported command types in Pulse.
 
@@ -37,7 +39,6 @@ Abstract Classes
    Command
 
  """
-from .instruction import Instruction
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel
