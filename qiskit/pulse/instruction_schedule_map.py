@@ -48,7 +48,7 @@ class InstructionScheduleMap():
     second key is a tuple of qubit indices, and the final value is a Schedule implementing the
     requested instruction.
 
-    These can usually be thought of as gate calibrations.
+    These can usually be seen as gate calibrations.
     """
 
     def __init__(self):

@@ -17,7 +17,7 @@ import warnings
 
 from typing import Optional, Tuple
 
-from ..channels import PulseChannel
+from ..channels import Channel
 from ..exceptions import PulseError
 from .instruction import Instruction
 
@@ -39,7 +39,7 @@ class Delay(Instruction):
     """
 
     def __init__(self, duration: int,
-                 channel: Optional[PulseChannel] = None,
+                 channel: Optional[Channel] = None,
                  name: Optional[str] = 'delay'):
         """Create a new delay instruction.
 
@@ -58,7 +58,7 @@ class Delay(Instruction):
         super().__init__(duration, channel, name=name)
 
     @property
-    def operands(self) -> Tuple[int, PulseChannel]:
+    def operands(self) -> Tuple[int, Channel]:
         """Return instruction operands."""
         return (self.duration, self.channel)
 

@@ -22,14 +22,14 @@ from .instruction import Instruction
 
 
 class SetFrequency(Instruction):
-    r"""Set the channel frequency. This command operates on PulseChannels.
-    A PulseChannel creates pulses of the form
+    r"""Set the channel frequency. This command operates on ``PulseChannel`` s.
+    A ``PulseChannel`` creates pulses of the form
 
     .. math::
         Re[\exp(i 2\pi f jdt + \phi) d_j].
 
-    Here, *f* is the frequency of the channel. The command SetFrequency allows
-    the user to set the value of *f*. All pulses that are played on a channel
+    Here, :math:`f` is the frequency of the channel. The command ``SetFrequency`` allows
+    the user to set the value of :math:`f`. All pulses that are played on a channel
     after SetFrequency has been called will have the corresponding frequency.
 
     The duration of SetFrequency is 0.
