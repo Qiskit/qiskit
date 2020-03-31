@@ -1,0 +1,27 @@
+---
+prelude: >
+    The 0.13.0 release includes several new features and bug fixes. There are
+    many big changes this release.
+
+    For the transpiler we have switched the graph library used to build the
+    :class:`qiskit.dagcircuit.DAGCircuit` class which is the underlying data
+    structure behind all operations to be based on
+    `retworkx <https://pypi.org/project/retworkx/>_` for greatly improved
+    performance. Circuit transpilation speed in the 0.13.0 release should
+
+    A library of quantum circuits is introduced in
+    :mod:`qiskit.circuit.library`. This library contains useful circuits which
+    can be used for experiments or be used as subcircuits in building up other
+    circuits. The contents of this library will grow over time and better
+    implementations will be introduced.
+
+    --- Pulse TODO ---
+
+    --- Quantum Info TODO ---
+
+    This release also has vastly improved documentation across Qiskit,
+    including improved documentation for the :mod:`qiskit.circuit`,
+    :mod:`qiskit.pulse` and :mod:`qiskit.quantum_info` modules.
+
+    For full details on all the changes made in this release see the detailed
+    release notes below.

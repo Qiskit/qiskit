@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A few simple circuits for basic boolean logic operations such as ``shift``,
+    ``permutation``, and ``inner_product`` are added to
+    ``qiskit.circuit.library``.
