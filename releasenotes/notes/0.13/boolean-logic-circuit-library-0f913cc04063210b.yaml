@@ -1,6 +1,9 @@
 ---
 features:
   - |
-    A few simple circuits for basic boolean logic operations such as ``shift``,
-    ``permutation``, and ``inner_product`` are added to
-    ``qiskit.circuit.library``.
+    The circuit library module :mod:`qiskit.circuit.library` has new circuit
+    definitions for basic boolean logic operations:
+
+    * :class:`~qiskit.circuit.library.InnerProduct`
+    * :class:`~qiskit.circuit.library.Permutation`
+    * :class:`~qiskit.circuit.library.XOR`

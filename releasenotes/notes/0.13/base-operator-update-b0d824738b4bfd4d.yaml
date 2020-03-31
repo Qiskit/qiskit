@@ -1,17 +1,21 @@
 ---
 features:
   - |
-    Adds a `reshape` method to the `BaseOperator` class that allows return a
-    shallow copy of an operator subclass with reshaped subsystem input or
-    output dimensions. The combined dimensions of all subsystems must be the
-    same as the original operator or an exception will be raised.
+    A new method, :meth:`~qiskit.quantum_info.Operator.reshape`, has been added
+    to the ``BaseOperator`` class that returns a shallow copy of an operator
+    subclass with reshaped subsystem input or output dimensions. The combined
+    dimensions of all subsystems must be the same as the original operator or
+    an exception will be raised.
+upgrade:
   - |
-    Simplifies BaseOperator class so that addition, subtraction and scalar
-    multiplication are no longer abstract methods. Their base class definitions
-    now raise a NotImplementedError, so subclasses don't need to implement
-    these methods if they don't support them.
+    The ``BaseOperator`` class no longer has been updated so that addition,
+    subtraction and scalar multiplication are no longer abstract methods. This
+    means that they are no longer required to be implemented in subclasses if
+    they are not supported. The base class will raise a ``NotImplementedError``
+    when the methods are not defined.
 deprecations:
   - |
-    The `BaseOperator` methods have been deprecated: `add`,
-    `subtract`, `multiply`. Use operators `+`, `-`, `*` to obtain previous
-    functionality.
+    The ``BaseOperator`` methods ``add``, ``subtract``, and ``multiply`` have
+    been deprecated and will be removed in a future release. Use operators the
+    Python operators ``+``, ``-``, and ``*`` to obtain the functionality
+    provided by these deprecated methods.

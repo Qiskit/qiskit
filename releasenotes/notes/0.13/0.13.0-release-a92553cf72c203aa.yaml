@@ -6,7 +6,7 @@ prelude: >
     For the transpiler we have switched the graph library used to build the
     :class:`qiskit.dagcircuit.DAGCircuit` class which is the underlying data
     structure behind all operations to be based on
-    `retworkx <https://pypi.org/project/retworkx/>_` for greatly improved
+    `retworkx <https://pypi.org/project/retworkx/>`_ for greatly improved
     performance. Circuit transpilation speed in the 0.13.0 release should
 
     A library of quantum circuits is introduced in

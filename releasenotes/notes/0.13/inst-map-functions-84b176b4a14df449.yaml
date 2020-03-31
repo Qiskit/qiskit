@@ -11,6 +11,7 @@
            sched = Schedule()
            sched += pulse_lib.constant(int(x), amp_test)(DriveChannel(0))
            return sched
+
         inst_map = InstructionScheduleMap()
         inst_map.add('f', (0,), test_func)
         output_sched = inst_map.get('f', (0,), 10)

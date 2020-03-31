@@ -1,19 +1,40 @@
 ---
 features:
   - |
-    The number of qubits in ``BackendConfiguration`` can be accessed additionally via the
-    property ``num_qubits`` (previously only ``n_qubits`` was supported).
+    The number of qubits in
+    :class:`~qiskit.providers.models.BackendConfiguration` can now be accessed
+    via the property
+    :py:attr:`~qiskit.providers.models.BackendConfiguration.num_qubits`. It
+    was previously only accessible via the ``n_qubits`` attribute.
 deprecations:
   - |
     The ``n_qubits`` and ``numberofqubits`` keywords are deprecated throughout
-    Terra and replaced by ``num_qubits``. The objects affected by this change are listed below.
+    Terra and replaced by ``num_qubits``. The old names will be removed in
+    a future release. The objects affected by this change are listed below:
 
-    class                  | old method      | new method
-    -----------------------+-----------------+--------------------------------
-    QuantumCircuit         | n_qubits        | num_qubits
-    Pauli                  | numberofqubits  | num_qubits
+    .. list-table:: New Methods
+       :header-rows: 1
 
-    function               | old argument   | new argument
-    -----------------------+----------------+-------------
-    random_circuit         | n_qubits       | num_qubits
-    MSGate.__init__        | n_qubit        | num_qubits
+       * - Class
+         - Old Method
+         - New Method
+       * - :class:`~qiskit.circuit.QuantumCircuit`
+         - ``n_qubits``
+         - :meth:`~qiskit.circuit.QuantumCircuit.num_qubits`
+       * - :class:`~qiskit.quantum_info.Pauli`
+         - ``numberofqubits``
+         - :meth:`~qiskit.quantum_info.Pauli.num_qubits`
+
+    .. list-table:: New arguments
+       :header-rows: 1
+
+       * - Function
+         - Old Argument
+         - New Argument
+       * - :func:`~qiskit.circuit.random.random_circuit`
+         - ``n_qubits``
+         - ``num_qubits``
+       * - :class:`~qiskit.extensions.MSGate`
+         - ``n_qubit``
+         - ``num_qubits``
+

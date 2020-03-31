@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    A new jupyter widget, ``%circuit_library_info`` for visualizing
+    A new jupyter widget, ``%circuit_library_info`` has been added to
+    :mod:`qiskit.tools.jupyter`. This widget is used for visualizing
     details about circuits built from the circuit library. For example
 
     .. jupyter-execute::
@@ -16,12 +17,12 @@ features:
     :meth:`qiskit.circuit.QuantumCircuit.qasm` . When set to ``True`` the
     the method will print a syntax highlighted version (using pygments) to
     stdout and return ``None`` (which differs from the normal behavior of
-    returning the QASM code as a string)
+    returning the QASM code as a string).
   - |
     A new kwarg option, ``filename`` , has been added to
     :meth:`qiskit.circuit.QuantumCircuit.qasm`. When set to a path the method
     will write the QASM code to that file. It will then continue to output as
-    normal
+    normal.
 upgrade:
   - |
     A new optional visualization requirement,

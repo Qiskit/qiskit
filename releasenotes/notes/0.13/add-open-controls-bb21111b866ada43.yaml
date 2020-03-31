@@ -3,7 +3,7 @@ features:
   - |
     Add ability to specify control conditioned on a qubit being in the
     ground state. The state of the control qubits is represented by a
-    decimal integer. For example:
+    decimal integer. For example::
 
       from qiskit import QuantumCircuit
       from qiskit.extensions.standard import XGate
@@ -14,6 +14,6 @@ features:
 
     Creates a four qubit gate where the fourth qubit gets flipped if
     the first qubit is in the ground state and the second and third
-    qubits are in the excited state. If ctrl_state is None, the
+    qubits are in the excited state. If ``ctrl_state`` is ``None``, the
     default, control is conditioned on all control qubits being
     excited.
