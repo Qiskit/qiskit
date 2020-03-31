@@ -448,7 +448,7 @@ class SparsePauliOp(BaseOperator):
         return SparsePauliOp(pauli, coeffs)
 
     @staticmethod
-    def from_labels(obj):
+    def from_list(obj):
         """Construct from a list [(coeff, Pauli_Str)]"""
         num_qubits = len(PauliTable._from_label(obj[0][0]))
         size = len(obj)
