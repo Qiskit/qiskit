@@ -43,7 +43,8 @@ class TestStates(QiskitTestCase):
         """TO BE REMOVED with qiskit.quantum_info.basis_state"""
         with self.assertWarns(DeprecationWarning):
             state = basis_state('010', 3)
-        state_ideal = np.array([0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j])
+        state_ideal = np.array(
+            [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j])
         state_fidelity(state, state_ideal)
         self.assertEqual(state_fidelity(state, state_ideal), 1.0)
 
@@ -66,13 +67,15 @@ class TestStates(QiskitTestCase):
         for ii in range(number):
             with self.assertWarns(DeprecationWarning):
                 state = basis_state(bin(3)[2:].zfill(3), 3)
-            E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(state, random_state(2**3, seed=ii))/(ii+1)
-            E_P0_last = E_P0
+                E_P0 = (E_P0_last*ii)/(ii+1)+state_fidelity(
+                    state, random_state(2**3, seed=ii))/(ii+1)
+                E_P0_last = E_P0
         self.assertAlmostEqual(E_P0, 1/8, places=2)
 
     def test_random_state_circuit(self):
         """Run initizalized circuit"""
-        state = random_state(2**3, seed=40)
+        with self.assertWarns(DeprecationWarning):
+            state = random_state(2**3, seed=40)
         q = QuantumRegister(3)
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
