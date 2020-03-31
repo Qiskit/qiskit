@@ -380,7 +380,7 @@ class QuantumState(ABC):
         inds, counts = np.unique(samples, return_counts=True)
         return dict(zip(inds, counts))
 
-    def measure(self, qargs=None, integer=False):
+    def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
