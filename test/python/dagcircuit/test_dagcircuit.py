@@ -35,7 +35,7 @@ from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 
 try:
@@ -185,8 +185,8 @@ class TestDagRegisters(QiskitTestCase):
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
 
 
-class TestDagOperations(QiskitTestCase):
-    """Test ops inside the dag"""
+class TestDagApplyOperation(QiskitTestCase):
+    """Test adding an op node to a dag."""
 
     def setUp(self):
         self.dag = DAGCircuit()
@@ -363,6 +363,24 @@ class TestDagOperations(QiskitTestCase):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+
+class TestDagNodeSelection(QiskitTestCase):
+    """Test methods that select certain dag nodes"""
+
+    def setUp(self):
+        self.dag = DAGCircuit()
+        qreg = QuantumRegister(3, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        self.dag.add_qreg(qreg)
+        self.dag.add_creg(creg)
+
+        self.qubit0 = qreg[0]
+        self.qubit1 = qreg[1]
+        self.qubit2 = qreg[2]
+        self.clbit0 = creg[0]
+        self.clbit1 = creg[1]
+        self.condition = (creg, 3)
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
@@ -750,57 +768,6 @@ class TestDagLayers(QiskitTestCase):
             self.assertEqual(comp, truth)
 
 
-class TestCircuitProperties(QiskitTestCase):
-    """DAGCircuit properties test."""
-
-    def setUp(self):
-        qr1 = QuantumRegister(4)
-        qr2 = QuantumRegister(2)
-        circ = QuantumCircuit(qr1, qr2)
-        circ.h(qr1[0])
-        circ.cx(qr1[2], qr1[3])
-        circ.h(qr1[2])
-        circ.t(qr1[2])
-        circ.ch(qr1[2], qr1[1])
-        circ.u2(0.1, 0.2, qr1[3])
-        circ.ccx(qr2[0], qr2[1], qr1[0])
-
-        self.dag = circuit_to_dag(circ)
-
-    def test_circuit_size(self):
-        """Test total number of operations in circuit."""
-        self.assertEqual(self.dag.size(), 7)
-
-    def test_circuit_depth(self):
-        """Test circuit depth."""
-        self.assertEqual(self.dag.depth(), 4)
-
-    def test_circuit_width(self):
-        """Test number of qubits + clbits in circuit."""
-        self.assertEqual(self.dag.width(), 6)
-
-    def test_circuit_num_qubits(self):
-        """Test number of qubits in circuit."""
-        self.assertEqual(self.dag.num_qubits(), 6)
-
-    def test_circuit_operations(self):
-        """Test circuit operations breakdown by kind of op."""
-        operations = {
-            'h': 2,
-            't': 1,
-            'u2': 1,
-            'cx': 1,
-            'ch': 1,
-            'ccx': 1
-        }
-
-        self.assertDictEqual(self.dag.count_ops(), operations)
-
-    def test_circuit_factors(self):
-        """Test number of separable factors in circuit."""
-        self.assertEqual(self.dag.num_tensor_factors(), 2)
-
-
 class TestCircuitSpecialCases(QiskitTestCase):
     """DAGCircuit test for special cases, usually for regression."""
 
@@ -1034,6 +1001,52 @@ class TestDagSubstituteNode(QiskitTestCase):
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties.
     """
+    def setUp(self):
+        qr1 = QuantumRegister(4)
+        qr2 = QuantumRegister(2)
+        circ = QuantumCircuit(qr1, qr2)
+        circ.h(qr1[0])
+        circ.cx(qr1[2], qr1[3])
+        circ.h(qr1[2])
+        circ.t(qr1[2])
+        circ.ch(qr1[2], qr1[1])
+        circ.u2(0.1, 0.2, qr1[3])
+        circ.ccx(qr2[0], qr2[1], qr1[0])
+
+        self.dag = circuit_to_dag(circ)
+
+    def test_dag_size(self):
+        """Test total number of operations in dag."""
+        self.assertEqual(self.dag.size(), 7)
+
+    def test_dag_depth(self):
+        """Test dag depth."""
+        self.assertEqual(self.dag.depth(), 4)
+
+    def test_dag_width(self):
+        """Test number of qubits + clbits in dag."""
+        self.assertEqual(self.dag.width(), 6)
+
+    def test_dag_num_qubits(self):
+        """Test number of qubits in dag."""
+        self.assertEqual(self.dag.num_qubits(), 6)
+
+    def test_dag_operations(self):
+        """Test dag operations breakdown by kind of op."""
+        operations = {
+            'h': 2,
+            't': 1,
+            'u2': 1,
+            'cx': 1,
+            'ch': 1,
+            'ccx': 1
+        }
+
+        self.assertDictEqual(self.dag.count_ops(), operations)
+
+    def test_dag_factors(self):
+        """Test number of separable factors in circuit."""
+        self.assertEqual(self.dag.num_tensor_factors(), 2)
 
     def test_dag_depth_empty(self):
         """Empty circuit DAG is zero depth

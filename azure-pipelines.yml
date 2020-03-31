@@ -27,7 +27,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -35,7 +35,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.0.0
+            pip install cibuildwheel==1.3.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -71,7 +71,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -79,7 +79,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.0.0
+          pip install cibuildwheel==1.3.0
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -94,7 +94,7 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
@@ -109,7 +109,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.0.0
+            pip install cibuildwheel==1.3.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -139,9 +139,10 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -190,7 +191,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -244,8 +245,9 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -303,8 +305,9 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -357,9 +360,10 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
@@ -412,8 +416,9 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e

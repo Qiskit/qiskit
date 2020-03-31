@@ -202,18 +202,16 @@ class TestQobjToInstructionConverter(QiskitTestCase):
                                                samples=self.linear.samples.tolist())]
 
         self.converter = QobjToInstructionConverter(self.pulse_library, buffer=0)
-        self.n_qubits = 2
+        self.num_qubits = 2
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
-        cmd = self.linear
-        instruction = cmd(DriveChannel(0)) << 10
+        instruction = self.linear(DriveChannel(0))
 
         qobj = PulseQobjInstruction(name='linear', ch='d0', t0=10)
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
@@ -226,7 +224,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
             parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
         converted_instruction = self.converter(qobj)
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1].command, instruction.command)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
@@ -262,7 +260,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
         schedule = Schedule()
-        for i in range(self.n_qubits):
+        for i in range(self.num_qubits):
             schedule |= Acquire(10, AcquireChannel(i), MemorySlot(i), RegisterSlot(i),
                                 kernel=Kernel(name='test_kern', test_params='test'),
                                 discriminator=Discriminator(name='test_disc',

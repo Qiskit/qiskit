@@ -841,7 +841,7 @@ class MatplotlibDrawer:
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text="Unitary")
                 elif isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -856,10 +856,12 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
                                          ec=self._style.dispcol['multi'])
                     elif num_qargs == 1:
-                        self._gate(q_xy[-1], wide=_iswide, text=disp)
+                        self._gate(q_xy[-1], wide=_iswide, fc=self._style.dispcol['multi'],
+                                   text=disp)
                     else:
                         self._custom_multiqubit_gate(
-                            q_xy[num_ctrl_qubits:], wide=_iswide, text=disp)
+                            q_xy[num_ctrl_qubits:], wide=_iswide, fc=self._style.dispcol['multi'],
+                            text=disp)
 
                 #
                 # draw single qubit gates
@@ -899,7 +901,7 @@ class MatplotlibDrawer:
                     elif op.name == 'cz':
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
-                            color = self._style.dispcol['multi']
+                            color = self._style.dispcol['cz']
                             self._ctrl_qubit(q_xy[0],
                                              fc=color,
                                              ec=color)
@@ -912,7 +914,7 @@ class MatplotlibDrawer:
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
                             self._line(qreg_b, qreg_t,
-                                       lc=self._style.dispcol['multi'])
+                                       lc=color)
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
@@ -921,7 +923,10 @@ class MatplotlibDrawer:
 
                         color = None
                         if self._style.name != 'bw':
-                            color = self._style.dispcol['multi']
+                            if op.name == 'cy':
+                                color = self._style.dispcol['cy']
+                            else:
+                                color = self._style.dispcol['multi']
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
@@ -959,6 +964,12 @@ class MatplotlibDrawer:
                         self._swap(q_xy[1])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
+
+                    # dcx and iswap gate
+                    elif op.name in ['dcx', 'iswap']:
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                                                     fc=self._style.dispcol[op.name], text=op.name)
+
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
