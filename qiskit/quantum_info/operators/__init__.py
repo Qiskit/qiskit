@@ -23,5 +23,5 @@ from .measures import (process_fidelity,
                        average_gate_fidelity,
                        gate_error,
                        diamond_norm)
-from .symplectic import (Clifford, WeightedPauli, PauliTable, StabilizerTable)
+from .symplectic import (Clifford, SparsePauliOp, PauliTable, StabilizerTable)
 from .symplectic import pauli_basis

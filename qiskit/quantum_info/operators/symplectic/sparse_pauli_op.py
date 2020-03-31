@@ -26,26 +26,26 @@ from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
-class WeightedPauli(BaseOperator):
-    """Weighted Pauli operator class.
+class SparsePauliOp(BaseOperator):
+    """Sparse N-qubit operator in a Pauli basis representation.
 
     This is a sparse representation of an N-qubit matrix
-    :class:`~qiskit.quantum_info.Operator` in terms of N-qubit Pauli basis
-    components and complex coefficients.
+    :class:`~qiskit.quantum_info.Operator` in terms of N-qubit
+    :class:`~qiskit.quantum_info.PauliTable` and complex coefficients.
 
-    It can be used for performing operator arithmatic on operators for
-    hundred of qubits if the number of non-zero Pauli basis terms is small.
+    It can be used for performing operator arithmetic for hundred of qubits
+    if the number of non-zero Pauli basis terms is sufficiently small.
 
     The Pauli basis components are stored as a
     :class:`~qiskit.quantum_info.PauliTable` object and can be accessed
-    using the :attr:`~WeightedPauli.pauli` attribute. The coefficients
+    using the :attr:`~SparsePauliOp.pauli` attribute. The coefficients
     are stored as a complex Numpy array vector and can be accessed using
-    the :attr:`~WeightedPauli.coeffs` attribute.
+    the :attr:`~SparsePauliOp.coeffs` attribute.
     """
 
     def __init__(self, data, coeffs=None):
         """Initialize an operator object."""
-        if isinstance(data, WeightedPauli):
+        if isinstance(data, SparsePauliOp):
             pauli = data._pauli
             coeffs = data._coeffs
         else:
@@ -65,7 +65,7 @@ class WeightedPauli(BaseOperator):
         super().__init__(pauli._input_dims, pauli._output_dims)
 
     def __repr__(self):
-        prefix = 'WeightedPauli('
+        prefix = 'SparsePauliOp('
         pad = len(prefix) * ' '
         return '{}{},\n{}coeffs={})'.format(
             prefix, np.array2string(
@@ -73,7 +73,7 @@ class WeightedPauli(BaseOperator):
             pad, np.array2string(self.coeffs, separator=', '))
 
     def __eq__(self, other):
-        """Check if two WeightedPauli operators are equal"""
+        """Check if two SparsePauliOp operators are equal"""
         return (super().__eq__(other)
                 and np.allclose(self.coeffs, other.coeffs)
                 and self.pauli == other.pauli)
@@ -113,18 +113,18 @@ class WeightedPauli(BaseOperator):
         self._coeffs[:] = value
 
     def __getitem__(self, key):
-        """Return a view of the WeightedPauli."""
+        """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
         if isinstance(key, (int, np.int)):
             key = [key]
-        return WeightedPauli(self.pauli[key], self.coeffs[key])
+        return SparsePauliOp(self.pauli[key], self.coeffs[key])
 
     def __setitem__(self, key, value):
-        """Update WeightedPauli."""
+        """Update SparsePauliOp."""
         # Modify specified rows of the PauliTable
-        if not isinstance(value, WeightedPauli):
-            value = WeightedPauli(value)
+        if not isinstance(value, SparsePauliOp):
+            value = SparsePauliOp(value)
         self.pauli[key] = value.pauli
         self.coeffs[key] = value.coeffs
 
@@ -190,14 +190,14 @@ class WeightedPauli(BaseOperator):
         """Return the composition channel self∘other.
 
         Args:
-            other (WeightedPauli): an operator object.
+            other (SparsePauliOp): an operator object.
             qargs (list or None): a list of subsystem positions to compose other on.
             front (bool or None): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
 
         Returns:
-            WeightedPauli: The composed operator.
+            SparsePauliOp: The composed operator.
 
         Raises:
             QiskitError: if other cannot be converted to an Operator or has
@@ -207,8 +207,8 @@ class WeightedPauli(BaseOperator):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
-        if not isinstance(other, WeightedPauli):
-            other = WeightedPauli(other)
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
 
         # Validate composition dimensions and qargs match
         self._get_compose_dims(other, qargs, front)
@@ -241,17 +241,17 @@ class WeightedPauli(BaseOperator):
             plus_i = (x2 & ~z2 & x1 & z1) | (x2 & z2 & ~x1 & z1) | (~x2 & z2 & x1 & ~z1)
         coeffs *= 1j ** np.array(np.sum(plus_i, axis=1), dtype=int)
         coeffs *= (-1j) ** np.array(np.sum(minus_i, axis=1), dtype=int)
-        return WeightedPauli(pauli, coeffs)
+        return SparsePauliOp(pauli, coeffs)
 
     def dot(self, other, qargs=None):
         """Return the composition channel self∘other.
 
         Args:
-            other (WeightedPauli): an operator object.
+            other (SparsePauliOp): an operator object.
             qargs (list or None): a list of subsystem positions to compose other on.
 
         Returns:
-            WeightedPauli: The composed operator.
+            SparsePauliOp: The composed operator.
 
         Raises:
             QiskitError: if other cannot be converted to an Operator or has
@@ -263,39 +263,39 @@ class WeightedPauli(BaseOperator):
         """Return the tensor product operator self ⊗ other.
 
         Args:
-            other (WeightedPauli): a operator subclass object.
+            other (SparsePauliOp): a operator subclass object.
 
         Returns:
-            WeightedPauli: the tensor product operator self ⊗ other.
+            SparsePauliOp: the tensor product operator self ⊗ other.
 
         Raises:
-            QiskitError: if other cannot be converted to a WeightedPauli
+            QiskitError: if other cannot be converted to a SparsePauliOp
                          operator.
         """
-        if not isinstance(other, WeightedPauli):
-            other = WeightedPauli(other)
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
         pauli = self.pauli.tensor(other.pauli)
         coeffs = np.concatenate([self.coeffs, other.coeffs])
-        return WeightedPauli(pauli, coeffs)
+        return SparsePauliOp(pauli, coeffs)
 
     def expand(self, other):
         """Return the tensor product operator other ⊗ self.
 
         Args:
-            other (WeightedPauli): an operator object.
+            other (SparsePauliOp): an operator object.
 
         Returns:
-            WeightedPauli: the tensor product operator other ⊗ self.
+            SparsePauliOp: the tensor product operator other ⊗ self.
 
         Raises:
-            QiskitError: if other cannot be converted to a WeightedPauli
+            QiskitError: if other cannot be converted to a SparsePauliOp
                          operator.
         """
-        if not isinstance(other, WeightedPauli):
-            other = WeightedPauli(other)
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
         pauli = self.pauli.expand(other.pauli)
         coeffs = np.concatenate([self.coeffs, other.coeffs])
-        return WeightedPauli(pauli, coeffs)
+        return SparsePauliOp(pauli, coeffs)
 
     def _add(self, other, qargs=None):
         """Return the operator self + other.
@@ -304,28 +304,28 @@ class WeightedPauli(BaseOperator):
         assuming it is identity on all other subsystems.
 
         Args:
-            other (WeightedPauli): an operator object.
+            other (SparsePauliOp): an operator object.
             qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:
-            WeightedPauli: the operator self + other.
+            SparsePauliOp: the operator self + other.
 
         Raises:
-            QiskitError: if other cannot be converted to a WeightedPauli
+            QiskitError: if other cannot be converted to a SparsePauliOp
                          or has incompatible dimensions.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
-        if not isinstance(other, WeightedPauli):
-            other = WeightedPauli(other)
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
 
         self._validate_add_dims(other, qargs)
 
         table = self.pauli._add(other.pauli, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
-        ret = WeightedPauli(table, coeffs)
+        ret = SparsePauliOp(table, coeffs)
         return ret
 
     def _multiply(self, other):
@@ -335,7 +335,7 @@ class WeightedPauli(BaseOperator):
             other (complex): a complex number.
 
         Returns:
-            WeightedPauli: the operator other * self.
+            SparsePauliOp: the operator other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
@@ -347,9 +347,9 @@ class WeightedPauli(BaseOperator):
             # In this case we return an identity Pauli with a zero coefficient
             table = np.zeros((1, 2 * self.num_qubits), dtype=np.bool)
             coeffs = np.array([0j])
-            return WeightedPauli(table, coeffs)
+            return SparsePauliOp(table, coeffs)
         # Otherwise we just update the phases
-        return WeightedPauli(self.pauli, other * self.coeffs)
+        return SparsePauliOp(self.pauli, other * self.coeffs)
 
     # ---------------------------------------------------------------------
     # Utility Methods
@@ -365,7 +365,7 @@ class WeightedPauli(BaseOperator):
                           coefficients are zero (Default: 1e-5).
 
         Returns:
-            WeightedPauli: the simplified WeightedPauli operator.
+            SparsePauliOp: the simplified SparsePauliOp operator.
         """
         # Get default atol and rtol
         if atol is None:
@@ -389,7 +389,7 @@ class WeightedPauli(BaseOperator):
         if coeffs.size == 0:
             table = np.zeros((1, 2*self.num_qubits), dtype=np.bool)
             coeffs = np.array([0j])
-        return WeightedPauli(table, coeffs)
+        return SparsePauliOp(table, coeffs)
 
     # ---------------------------------------------------------------------
     # Additional conversions
@@ -410,16 +410,16 @@ class WeightedPauli(BaseOperator):
                           coefficients are zero (Default: 1e-5).
 
         Returns:
-            WeightedPauli: the WeightedPauli representation of the operator.
+            SparsePauliOp: the SparsePauliOp representation of the operator.
 
         Raises:
             QiskitError: if the input operator is not an N-qubit operator.
         """
         # Get default atol and rtol
         if atol is None:
-            atol = WeightedPauli.atol
+            atol = SparsePauliOp.atol
         if rtol is None:
-            rtol = WeightedPauli.rtol
+            rtol = SparsePauliOp.rtol
 
         if not isinstance(obj, Operator):
             obj = Operator(obj)
@@ -445,7 +445,7 @@ class WeightedPauli(BaseOperator):
                 coeffs.append(coeff)
         # Get Non-zero coeff PauliTable terms
         pauli = basis[inds]
-        return WeightedPauli(pauli, coeffs)
+        return SparsePauliOp(pauli, coeffs)
 
     @staticmethod
     def from_labels(obj):
@@ -458,9 +458,9 @@ class WeightedPauli(BaseOperator):
             labels[i] = item[0]
             coeffs[i] = item[1]
         table = PauliTable.from_labels(labels)
-        return WeightedPauli(table, coeffs)
+        return SparsePauliOp(table, coeffs)
 
-    def to_labels(self, array=False):
+    def to_list(self, array=False):
         """Convert to a list Pauli string labels and coefficients.
 
         For operators with a lot of terms converting using the ``array=True``
@@ -515,7 +515,7 @@ class WeightedPauli(BaseOperator):
     def label_iter(self):
         """Return a label representation iterator.
 
-        This is a lazy iterator that converts each term in the WeightedPauli
+        This is a lazy iterator that converts each term in the SparsePauliOp
         into a tuple (label, coeff). To convert the entire table to labels
         use the :meth:`to_labels` method.
 
@@ -525,7 +525,7 @@ class WeightedPauli(BaseOperator):
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
             def __repr__(self):
-                return "<WeightedPauli_label_iterator at {}>".format(
+                return "<SparsePauliOp_label_iterator at {}>".format(
                     hex(id(self)))
 
             def __getitem__(self, key):
@@ -538,7 +538,7 @@ class WeightedPauli(BaseOperator):
     def matrix_iter(self, sparse=False):
         """Return a matrix representation iterator.
 
-        This is a lazy iterator that converts each term in the WeightedPauli
+        This is a lazy iterator that converts each term in the SparsePauliOp
         into a matrix as it is used. To convert to a single matrix use the
         :meth:`to_matrix` method.
 
@@ -553,7 +553,7 @@ class WeightedPauli(BaseOperator):
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
             def __repr__(self):
-                return "<WeightedPauli_matrix_iterator at {}>".format(hex(id(self)))
+                return "<SparsePauliOp_matrix_iterator at {}>".format(hex(id(self)))
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
