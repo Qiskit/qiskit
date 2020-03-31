@@ -48,26 +48,6 @@ def random_state(dim, seed=None):
     phases = rng.rand(dim) * 2.0 * np.pi
     return np.sqrt(x / sumx) * np.exp(1j * phases)
 
-
-def random_unitary(dim, seed=None):
-    """
-    Return a random dim x dim unitary Operator from the Haar measure.
-
-    Args:
-        dim (int): the dim of the state space.
-        seed (int): Optional. To set a random seed.
-
-    Returns:
-        Operator: (dim, dim) unitary operator.
-
-    Raises:
-        QiskitError: if dim is not a positive power of 2.
-    """
-    if dim == 0 or not math.log2(dim).is_integer():
-        raise QiskitError("Desired unitary dimension not a positive power of 2.")
-    return Operator(unitary_group.rvs(dim, random_state=seed))
-
-
 # TODO: return a DensityMatrix object.
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):
     """

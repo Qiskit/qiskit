@@ -89,6 +89,8 @@ Random
    :toctree: ../stubs/
 
    random_unitary
+   random_hermitian
+   random_quantum_channel
    random_state
    random_density_matrix
 
@@ -128,7 +130,8 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
                      mutual_information, shannon_entropy)
 from .states.states import basis_state, projector
 
-from .random import random_unitary, random_state, random_density_matrix
+from .random import (random_quantum_channel, random_unitary,
+                     random_hermitian, random_state, random_density_matrix)
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)
 from .analysis import hellinger_fidelity

@@ -14,4 +14,7 @@
 
 """Methods for generating random quantum information objects."""
 
-from .utils import random_unitary, random_state, random_density_matrix
+from qiskit.quantum_info.operators.random import (random_unitary,
+                                                  random_quantum_channel,
+                                                  random_hermitian)
+from .utils import random_state, random_density_matrix
