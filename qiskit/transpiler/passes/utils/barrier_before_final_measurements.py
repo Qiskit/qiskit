@@ -57,7 +57,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = {final_op.qargs[0] for final_op in final_ops}
+        # Add a barrier across all qubits so swap mapper doesn't add a swap
+        # from an unmeasured qubit after a measure.
+        final_qubits = dag.qubits()
 
         barrier_layer.apply_operation_back(
             Barrier(len(final_qubits)), list(final_qubits), [])
