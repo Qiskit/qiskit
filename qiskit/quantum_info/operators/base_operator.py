@@ -29,9 +29,9 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 class BaseOperator(ABC):
     """Abstract linear operator base class."""
 
-    ATOL = ATOL_DEFAULT
-    RTOL = RTOL_DEFAULT
-    MAX_TOL = 1e-4
+    _ATOL_DEFAULT = ATOL_DEFAULT
+    _RTOL_DEFAULT = RTOL_DEFAULT
+    _MAX_TOL = 1e-4
 
     def __init__(self, input_dims, output_dims):
         """Initialize an operator object."""
@@ -43,6 +43,7 @@ class BaseOperator(ABC):
         self._output_dims = None  # tuple of output dimensions of each subsystem
         self._input_dim = None    # combined input dimension of all subsystems
         self._output_dim = None   # combined output dimension of all subsystems
+        self._num_qubits = None   # number of qubit subsystems if N-qubit operator
         self._set_dims(input_dims, output_dims)
 
     def __call__(self, qargs):
@@ -79,40 +80,43 @@ class BaseOperator(ABC):
         return self._input_dim, self._output_dim
 
     @property
-    def _atol(self):
-        """The absolute tolerance parameter for float comparisons."""
-        return self.__class__.ATOL
-
-    @_atol.setter
-    def _atol(self, atol):
-        """Set the absolute tolerance parameter for float comparisons."""
-        # NOTE: that this overrides the class value so applies to all
-        # instances of the class.
-        max_tol = self.__class__.MAX_TOL
-        if atol < 0:
-            raise QiskitError("Invalid atol: must be non-negative.")
-        if atol > max_tol:
-            raise QiskitError(
-                "Invalid atol: must be less than {}.".format(max_tol))
-        self.__class__.ATOL = atol
+    def num_qubits(self):
+        """Return the number of qubits if a N-qubit operator or None otherwise."""
+        return self._num_qubits
 
     @property
-    def _rtol(self):
-        """The relative tolerance parameter for float comparisons."""
-        return self.__class__.RTOL
+    def atol(self):
+        """The default absolute tolerance parameter for float comparisons."""
+        return self.__class__._ATOL_DEFAULT
 
-    @_rtol.setter
-    def _rtol(self, rtol):
-        """Set the relative tolerance parameter for float comparisons."""
-        # NOTE: that this overrides the class value so applies to all
-        # instances of the class.
-        max_tol = self.__class__.MAX_TOL
-        if rtol < 0:
-            raise QiskitError("Invalid rtol: must be non-negative.")
-        if rtol > max_tol:
+    @property
+    def rtol(self):
+        """The relative tolerance parameter for float comparisons."""
+        return self.__class__._RTOL_DEFAULT
+
+    @classmethod
+    def set_atol(cls, value):
+        """Set the class default absolute tolerance parameter for float comparisons."""
+        if value < 0:
             raise QiskitError(
-                "Invalid rtol: must be less than {}.".format(max_tol))
-        self.__class__.RTOL = rtol
+                "Invalid atol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise QiskitError(
+                "Invalid atol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._ATOL_DEFAULT = value
+
+    @classmethod
+    def set_rtol(cls, value):
+        """Set the class default relative tolerance parameter for float comparisons."""
+        if value < 0:
+            raise QiskitError(
+                "Invalid atol ({}) must be non-negative.".format(value))
+        if value > cls._MAX_TOL:
+            raise QiskitError(
+                "Invalid atol ({}) must be less than {}.".format(
+                    value, cls._MAX_TOL))
+        cls._RTOL_DEFAULT = value
 
     def reshape(self, input_dims=None, output_dims=None):
         """Return a shallow copy with reshaped input and output subsystem dimensions.
@@ -130,7 +134,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if combined size of all subsystem input dimension or
-            subsystem output dimensions is not constant.
+                         subsystem output dimensions is not constant.
         """
         clone = copy.copy(self)
         if output_dims is None and input_dims is None:
@@ -226,7 +230,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -250,7 +254,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
-            incompatible dimensions for specified subsystems.
+                         incompatible dimensions for specified subsystems.
         """
         return self.compose(other, qargs=qargs, front=True)
 
@@ -265,7 +269,7 @@ class BaseOperator(ABC):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         # NOTE: if a subclass can have negative or non-integer powers
         # this method should be overridden in that class.
@@ -326,11 +330,16 @@ class BaseOperator(ABC):
                       "the `other * op` instead", DeprecationWarning)
         return self._multiply(other)
 
-    def _add(self, other):
+    def _add(self, other, qargs=None):
         """Return the linear operator self + other.
+
+        If ``qargs`` are specified the other operator will be added
+        assuming it is identity on all other subsystems.
 
         Args:
             other (BaseOperator): an operator object.
+            qargs (None or list): optional subsystems to add on
+                                  (Default: None)
 
         Returns:
             BaseOperator: the operator self + other.
@@ -380,6 +389,14 @@ class BaseOperator(ABC):
         # of all subsystem dimension in the input_dims/output_dims.
         self._input_dim = np.product(input_dims)
         self._output_dim = np.product(output_dims)
+        # Check if an N-qubit operator
+        if (self._input_dims == self._output_dims and
+                set(self._input_dims) == set([2])):
+            # If so set the number of qubits
+            self._num_qubits = len(self._input_dims)
+        else:
+            # Otherwise set the number of qubits to None
+            self._num_qubits = None
 
     def _get_compose_dims(self, other, qargs, front):
         """Check dimensions are compatible for composition.
@@ -433,21 +450,37 @@ class BaseOperator(ABC):
                     output_dims[qubit] = other._output_dims[i]
         return input_dims, output_dims
 
-    def _validate_add_dims(self, other):
+    def _validate_add_dims(self, other, qargs=None):
         """Check dimensions are compatible for addition.
 
         Args:
             other (BaseOperator): another operator object.
+            qargs (None or list): compose qargs kwarg value.
 
         Raises:
             QiskitError: if operators have incompatibile dimensions for addition.
         """
-        # For adding we only require that operators have the same total
-        # dimensions rather than each subsystem dimension matching.
-        if self.dim != other.dim:
-            raise QiskitError(
-                "Cannot add operators with different shapes"
-                " ({} != {}).".format(self.dim, other.dim))
+        if qargs is None:
+            # For adding without qargs we only require that operators have
+            # the same total dimensions rather than each subsystem dimension
+            # matching.
+            if self.dim != other.dim:
+                raise QiskitError(
+                    "Cannot add operators with different shapes"
+                    " ({} != {}).".format(self.dim, other.dim))
+        else:
+            # If adding on subsystems the operators must have equal
+            # shape on subsystems
+            if (self._input_dims != self._output_dims or
+                    other._input_dims != other._output_dims):
+                raise QiskitError(
+                    "Cannot add operators on subsystems for non-square"
+                    " operator.")
+            if self.input_dims(qargs) != other._input_dims:
+                raise QiskitError(
+                    "Cannot add operators on subsystems with different"
+                    " dimensions ({} != {}).".format(
+                        self.input_dims(qargs), other._input_dims))
 
     # Overloads
     def __matmul__(self, other):
