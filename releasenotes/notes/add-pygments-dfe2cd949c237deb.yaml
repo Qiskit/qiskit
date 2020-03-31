@@ -24,6 +24,10 @@ features:
     normal
 upgrade:
   - |
-    A new requirement, `pygments <https://pygments.org/>`_ , has been added
-    to the requirements list. It is used for providing syntax highlighting
-    of OpenQASM 2.0 code in Jupyter widgets.
+    A new optional visualization requirement,
+    `pygments <https://pygments.org/>`_ , has been added. It is used for
+    providing syntax highlighting of OpenQASM 2.0 code in Jupyter widgets and
+    optionally for the :meth:`qiskit.circuit.QuantumCircuit.qasm` method. It
+    must be installed (either with ``pip install pygments`` or
+    ``pip install qiskit-terra[visualization]``) prior to using the widget or
+    the ``formatted`` kwarg on the ``qasm()`` method.
