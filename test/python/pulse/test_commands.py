@@ -59,6 +59,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_a.kernel, None)
         self.assertEqual(acq_a.name, None)
 
+
 class TestFrameChangeCommand(QiskitTestCase):
     """FrameChange tests. Deprecated."""
 
