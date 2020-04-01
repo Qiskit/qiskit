@@ -15,7 +15,9 @@ prelude: >
     circuits. The contents of this library will grow over time and better
     implementations will be introduced.
 
-    --- Pulse TODO ---
+    There has been a significant simplification to the style in which Pulse
+    instructions are built. Now, ``Command`` s are deprecated and a unified
+    set of :py:class:`~qiskit.pulse.instruction.Instruction` s are supported.
 
     --- Quantum Info TODO ---
 
