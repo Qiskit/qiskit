@@ -26,19 +26,23 @@ from .integer_comparator import IntegerComparator
 
 
 class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
-    """Piecewise-linearly-controlled Pauli rotations.
+    r"""Piecewise-linearly-controlled Pauli rotations.
 
-    For a piecewise linear (not necessarily continuous) function f(x).
-    The function f(x) is defined through breakpoints, slopes and offsets as follows.
-    Suppose the breakpoints { x_0, ..., x_J } are a subset of [0,  2^n-1], where
-    n is the number of state qubits.
-    Further on, denote the corresponding slopes and offsets by a_j, b_j respectively.
+    For a piecewise linear (not necessarily continuous) function :math:`f(x)`, which is defined
+    through breakpoints, slopes and offsets as follows.
+    Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
+    :math:`n` is the number of state qubits. Further on, denote the corresponding slopes and
+    offsets by :math:`a_j` and :math:`b_j` respectively.
     Then f(x) is defined as:
 
-        x < x_0            --> f(x) = 0
-        x_j <= x < x_{j+1} --> f(x) = a_j * (x - x_j) + b_j
+    .. math::
 
-    where we implicitly assume x_{J+1} = 2^n.
+        f(x) = \begin{cases}
+            0, x < x_0 \\
+            a_j (x - x_j) + b_j, x_j \leq x < x_{j+1}
+            \end{cases}
+
+    where we implicitly assume :math:`x_{J+1} = 2^n`.
     """
 
     def __init__(self,
@@ -53,12 +57,12 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         Args:
             num_state_qubits: The number of qubits representing the state.
             breakpoints: The breakpoints to define the piecewise-linear function.
-                Defaults to [0].
+                Defaults to ``[0]``.
             slopes: The slopes for different segments of the piecewise-linear function.
-                Defaults to [1].
+                Defaults to ``[1]``.
             offsets: The offsets for different segments of the piecewise-linear function.
-                Defaults to [0].
-            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+                Defaults to ``[0]``.
+            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
             name: The name of the circuit.
         """
         # store parameters

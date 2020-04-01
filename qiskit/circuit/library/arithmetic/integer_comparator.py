@@ -25,15 +25,17 @@ from qiskit.aqua.circuits.gates import logical_or  # pylint: disable=unused-impo
 class IntegerComparator(QuantumCircuit):
     r"""Integer Comparator.
 
-    Operator compares basis states \|i>_n against a classically given integer L
-    of fixed value and flips a target qubit if i >= L (or < depending on parameters):
+    Operator compares basis states :math:`|i\rangle_n` against a classically given integer
+    :math:`L` of fixed value and flips a target qubit if :math:`i \geq L`
+    (or :math:`<` depending on parameters):
 
-        \|i>_n\|0> --> \|i>_n\|1> if i >= L else \|i>\|0>
+    .. math::
 
-    Operator is based on two's complement implementation of binary
-    subtraction but only uses carry bits and no actual result bits.
-    If the most significant carry bit (= results bit) is 1, the ">="
-    condition is True otherwise it is False.
+        |i\rangle_n |0\rangle \mapsto |i\rangle_n |i \geq L\rangle
+
+    This operation is based on two's complement implementation of binary subtraction but only
+    uses carry bits and no actual result bits. If the most significant carry bit
+    (the results bit) is 1, the :math:`\geq` condition is ``True`` otherwise it is ``False``.
     """
 
     def __init__(self, num_state_qubits: Optional[int] = None,
@@ -46,7 +48,7 @@ class IntegerComparator(QuantumCircuit):
             num_state_qubits: Number of state qubits. If this is set it will determine the number
                 of qubits required for the circuit.
             value: The fixed value to compare with.
-            geq: Evaluate ">=" condition of "<" condition.
+            geq: If True, evaluate a ``>=`` condition, else ``<``.
             name: Name of the circuit.
         """
         super().__init__(name=name)
@@ -80,7 +82,7 @@ class IntegerComparator(QuantumCircuit):
         """Return whether the comparator compares greater or less equal.
 
         Returns:
-            True, if the comparator compares '>=', False if '<'.
+            True, if the comparator compares ``>=``, False if ``<``.
         """
         return self._geq
 
@@ -89,7 +91,7 @@ class IntegerComparator(QuantumCircuit):
         """Set whether the comparator compares greater or less equal.
 
         Args:
-            geq: If True, the comparator compares '>=', if False '<'.
+            geq: If True, the comparator compares ``>=``, if False ``<``.
         """
         if geq != self._geq:
             self._data = None  # reset data
@@ -138,10 +140,10 @@ class IntegerComparator(QuantumCircuit):
         return self._num_state_qubits - 1
 
     def _get_twos_complement(self) -> List[int]:
-        """Returns the 2's complement of self.value as array.
+        """Returns the 2's complement of ``self.value`` as array.
 
         Returns:
-             The 2's complement of self.value.
+             The 2's complement of ``self.value``.
         """
         twos_complement = pow(2, self.num_state_qubits) - int(np.ceil(self.value))
         twos_complement = '{0:b}'.format(twos_complement).rjust(self.num_state_qubits, '0')

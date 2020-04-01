@@ -172,7 +172,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             A dictionary with pairs ``{control_state: rotation angle}`` where ``control_state``
-            is a tuple of 0/1 bits.
+            is a tuple of ``0`` or ``1`` bits.
         """
         # determine the control states
         all_combinations = list(product([0, 1], repeat=self.num_state_qubits))
