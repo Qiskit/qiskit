@@ -305,6 +305,7 @@ class TestIntegerComparator(QiskitTestCase):
 class TestAquaApplications(QiskitTestCase):
     """Test applications of the arithmetic library in Aqua use-cases."""
 
+    @unittest.skip('Aqua integration test pending')
     def test_asian_barrier_spread(self):
         """Test the asian barrier spread model."""
         from qiskit.aqua.circuits import WeightedSumOperator, FixedValueComparator as Comparator
