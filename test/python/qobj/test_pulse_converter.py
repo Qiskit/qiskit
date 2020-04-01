@@ -257,7 +257,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
                                                samples=self.linear.samples.tolist())]
 
         self.converter = QobjToInstructionConverter(self.pulse_library, buffer=0)
-        self.n_qubits = 2
+        self.num_qubits = 2
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
@@ -326,7 +326,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     def test_acquire(self):
         """Test converted qobj from Acquire."""
         schedule = Schedule()
-        for i in range(self.n_qubits):
+        for i in range(self.num_qubits):
             schedule |= Acquire(10, AcquireChannel(i), MemorySlot(i), RegisterSlot(i),
                                 kernel=Kernel(name='test_kern', test_params='test'),
                                 discriminator=Discriminator(name='test_disc',
