@@ -66,6 +66,14 @@ Characterization and Validation Circuits
    :toctree: ../stubs/
 
    QuantumVolume
+
+Quantum Complexity Advantage Circuits
+=====================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FourierChecking
 """
 
 
@@ -79,3 +87,4 @@ from .arithmetic import (
     WeightedAdder
 )
 from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking

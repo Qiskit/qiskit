@@ -12,28 +12,31 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Quantum Volume model circuit."""
 
-from typing import List, Optional
+from typing import Optional
 
-import sys
 import numpy as np
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
 
 
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
 
+    The model circuits are random instances of circuits used to measure
+    the Quantum Volume metric, as introduced in [1].
+
     The model circuits consist of layers of Haar random
     elements of SU(4) applied between corresponding pairs
     of qubits in a random bipartition.
 
-    Based on Cross et al. "Validating quantum computers using
-    randomized model circuits", arXiv:1811.12926
+    **References:**
+
+    [1] A. Cross et al. Validating quantum computers using
+    randomized model circuits, 2018.
+    `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_
     """
 
     def __init__(self,
@@ -43,9 +46,9 @@ class QuantumVolume(QuantumCircuit):
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
-            num_qubits (int): number of active qubits in model circuit
-            depth (int): layers of SU(4) operations in model circuit
-            seed (int): randomization seed
+            num_qubits: number of active qubits in model circuit.
+            depth: layers of SU(4) operations in model circuit.
+            seed: randomization seed.
 
         Returns:
             QuantumCircuit: a randomly constructed quantum volume model circuit.
@@ -74,5 +77,5 @@ class QuantumVolume(QuantumCircuit):
             perm = rng.permutation(perm_0)
             for w in range(width):
                 physical_qubits = int(perm[2*w]), int(perm[2*w+1])
-                su = random_unitary(4, seed=unitary_seeds[d][w])
-                self.append(su, [physical_qubits[0], physical_qubits[1]])
+                su4 = random_unitary(4, seed=unitary_seeds[d][w])
+                self.append(su4, [physical_qubits[0], physical_qubits[1]])
