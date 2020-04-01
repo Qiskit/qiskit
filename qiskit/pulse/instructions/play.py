@@ -56,7 +56,7 @@ class Play(Instruction):
     def pulse(self):
         """A description of the samples that will be played.
 
-        Return:
+        Returns:
             qiskit.pulse.Pulse: A subclass of ``Pulse``, e.g. ``SamplePulse`` or ``Gaussian``.
         """
         return self._pulse
