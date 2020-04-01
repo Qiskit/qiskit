@@ -271,4 +271,4 @@ def _check_conflicting_argument(**kargs):
     conflicting_args = [arg for arg, value in kargs.items() if value]
     if conflicting_args:
         raise QiskitError("The parameters pass_manager conflicts with the following "
-                              "parameter(s): {}.".format(', '.join(conflicting_args)))
+                          "parameter(s): {}.".format(', '.join(conflicting_args)))
