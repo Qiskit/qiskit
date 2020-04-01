@@ -47,7 +47,6 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.discriminator.params, discriminator_opts)
         self.assertEqual(acq.kernel.name, 'boxcar')
         self.assertEqual(acq.kernel.params, kernel_opts)
-        self.assertTrue(acq.name.startswith('acq'))
 
     def test_can_construct_acquire_command_with_default_values(self):
         """Test if an acquire command can be constructed with default discriminator and kernel.
@@ -58,8 +57,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_a.duration, 10)
         self.assertEqual(acq_a.discriminator, None)
         self.assertEqual(acq_a.kernel, None)
-        self.assertTrue(acq_a.name.startswith('acq'))
-
+        self.assertEqual(acq_a.name, None)
 
 class TestFrameChangeCommand(QiskitTestCase):
     """FrameChange tests. Deprecated."""

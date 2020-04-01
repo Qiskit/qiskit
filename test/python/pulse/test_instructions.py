@@ -92,13 +92,13 @@ class TestShiftPhase(QiskitTestCase):
         shift_phase = ShiftPhase(1.57, DriveChannel(0))
 
         self.assertIsInstance(shift_phase.id, int)
-        self.assertEqual(shift_phase.name, 'shiftphase')
+        self.assertEqual(shift_phase.name, None)
         self.assertEqual(shift_phase.duration, 0)
         self.assertEqual(shift_phase.phase, 1.57)
         self.assertEqual(shift_phase.operands, (1.57, DriveChannel(0)))
         self.assertEqual(shift_phase, ShiftPhase(1.57, DriveChannel(0), name='test'))
         self.assertNotEqual(shift_phase, ShiftPhase(1.57j, DriveChannel(0), name='test'))
-        self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0), name='shiftphase')")
+        self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
 
 
 class TestSnapshot(QiskitTestCase):
