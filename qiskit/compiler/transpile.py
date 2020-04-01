@@ -227,6 +227,7 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
 
+
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
