@@ -18,6 +18,7 @@ Random state generation.
 
 import warnings
 import numpy as np
+from numpy.random import RandomState
 from qiskit.exceptions import QiskitError
 
 from .statevector import Statevector
@@ -32,19 +33,27 @@ def random_statevector(dims, seed=None):
 
     Args:
         dims (int or tuple): the dimensions of the state.
-        seed (int): Optional. Set a fixed seed for RNG.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                   generator for RNG.
 
     Returns:
         Statevector: the random statevector.
     """
+    if seed is None:
+        random_state = np.random
+    elif isinstance(seed, RandomState):
+        random_state = seed
+    else:
+        random_state = RandomState(seed)
+
     dim = np.product(dims)
-    rng = np.random.RandomState(seed)
+
     # Random array over interval (0, 1]
-    x = rng.rand(dim)
+    x = random_state.rand(dim)
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = rng.rand(dim) * 2.0 * np.pi
+    phases = random_state.rand(dim) * 2.0 * np.pi
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
@@ -54,7 +63,8 @@ def random_state(dim, seed=None):
 
     Args:
         dim (int): the dim of the state space
-        seed (int): Optional. To set a random seed.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                   generator for RNG.
 
     Returns:
         ndarray:  state(2**num) a random quantum state.
@@ -64,20 +74,23 @@ def random_state(dim, seed=None):
         ' and will be removed no earlier than 3 months after that '
         'release date. You should use the `random_statevector`'
         ' function instead.', DeprecationWarning, stacklevel=2)
-    return random_statevector(dim).data
+    return random_statevector(dim, seed=seed).data
 
 
-def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt', seed=None):
+def random_density_matrix(dims, rank=None, random_state=None,
+                          method='Hilbert-Schmidt',
+                          seed=None):
     """Generator a random DensityMatrix.
 
     Args:
         dims (int or tuple): the dimensions of the DensityMatrix.
         rank (int or None): Optional, the rank of the density matrix.
                             The default value is full-rank.
-        method (string): the method to use.
-            'Hilbert-Schmidt': sample from the Hilbert-Schmidt metric.
+        method (string): Optional. The method to use.
+            'Hilbert-Schmidt': (Default) sample from the Hilbert-Schmidt metric.
             'Bures': sample from the Bures metric.
-        seed (int): Optional. Set a fixed seed for RNG.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                   generator for RNG.
 
     Returns:
         DensityMatrix: the random density matrix.
@@ -85,63 +98,75 @@ def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt', seed=None):
     Raises:
         QiskitError: if the method is not valid.
     """
+    # Flatten dimensions
+    dim = np.product(dims)
+    if rank is None:
+        rank = dim  # Use full rank
+
     if method == 'Hilbert-Schmidt':
-        return _random_density_hs(dims, rank, seed)
+        rho = _random_density_hs(dim, rank, seed)
     elif method == 'Bures':
-        return _random_density_bures(dims, rank, seed)
-    raise QiskitError('Error: unrecognized method {}'.format(method))
+        rho = _random_density_bures(dim, rank, seed)
+    else:
+        raise QiskitError('Error: unrecognized method {}'.format(method))
+    return DensityMatrix(rho, dims=dims)
 
 
-def _ginibre_matrix(nrow, ncol=None, seed=None):
+def _ginibre_matrix(nrow, ncol, seed):
     """Return a normally distributed complex random matrix.
 
     Args:
         nrow (int): number of rows in output matrix.
         ncol (int): number of columns in output matrix.
-        seed (int): Optional. To set a random seed.
+        seed(int or RandomState): RandomState for rng.
 
     Returns:
         ndarray: A complex rectangular matrix where each real and imaginary
             entry is sampled from the normal distribution.
     """
-    if ncol is None:
-        ncol = nrow
-    rng = np.random.RandomState(seed)
+    if seed is None:
+        random_state = np.random
+    elif isinstance(seed, RandomState):
+        random_state = seed
+    else:
+        random_state = RandomState(seed)
 
-    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
+    ginibre = random_state.normal(
+        size=(nrow, ncol)) + random_state.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 
-def _random_density_hs(dims, rank=None, seed=None):
+def _random_density_hs(dim, rank, seed):
     """
     Generate a random density matrix from the Hilbert-Schmidt metric.
 
     Args:
-        length (int or tuple): the dimensions of the density matrix.
+        dim (int): the dimensions of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int): Optional. To set a random seed.
+        seed (int or RandomState): RandomState for rng.
+
     Returns:
         ndarray: rho (N,N)  a density matrix.
     """
-    ginibre = _ginibre_matrix(np.product(dims), rank, seed)
-    ginibre = ginibre.dot(ginibre.conj().T)
-    return DensityMatrix(ginibre / np.trace(ginibre), dims=dims)
+    mat = _ginibre_matrix(dim, rank, seed)
+    mat = mat.dot(mat.conj().T)
+    return mat / np.trace(mat)
 
 
-def _random_density_bures(dims, rank=None, seed=None):
+def _random_density_bures(dim, rank, seed):
     """Generate a random density matrix from the Bures metric.
 
     Args:
-        length (int or tuple): the length of the density matrix.
+        dim (int: the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int): Optional. To set a random seed.
+        seed (int or RandomState): RandomState for rng.
+
     Returns:
         ndarray: rho (N,N) a density matrix.
     """
-    dim = np.product(dims)
-    density = np.eye(dim) + random_unitary(dim, seed=seed * 2).data
-    ginibre = density.dot(_ginibre_matrix(dim, rank, seed))
-    ginibre = ginibre.dot(ginibre.conj().T)
-    return DensityMatrix(ginibre / np.trace(ginibre), dims=dims)
+    density = np.eye(dim) + random_unitary(dim, seed=seed).data
+    mat = density.dot(_ginibre_matrix(dim, rank, seed))
+    mat = mat.dot(mat.conj().T)
+    return mat / np.trace(mat)

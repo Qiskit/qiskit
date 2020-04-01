@@ -17,6 +17,7 @@ Methods to create random operators.
 """
 
 import numpy as np
+from numpy.random import RandomState
 from scipy import stats
 
 from qiskit.quantum_info.operators import Operator, Stinespring
@@ -30,13 +31,21 @@ def random_unitary(dims, seed=None):
 
     Args:
         dims (int or tuple): the input dimensions of the Operator.
-        seed (int): Optional. Set a fixed seed for RNG.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                   generator for RNG.
 
     Returns:
         Operator: a unitary operator.
     """
+    if seed is None:
+        random_state = np.random
+    elif isinstance(seed, RandomState):
+        random_state = seed
+    else:
+        random_state = RandomState(seed)
+
     dim = np.product(dims)
-    mat = stats.unitary_group.rvs(dim, random_state=seed)
+    mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
@@ -50,11 +59,19 @@ def random_hermitian(dims, traceless=False, seed=None):
         traceless (bool): Optional. If True subtract diagonal entries to
                           return a traceless hermitian operator
                           (Default: False).
-        seed (int): Optional. Set a fixed seed for RNG.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                      generator for RNG.
 
     Returns:
         Operator: a Hermitian operator.
     """
+    if seed is None:
+        random_state = np.random
+    elif isinstance(seed, RandomState):
+        random_state = seed
+    else:
+        random_state = RandomState(seed)
+
     # Total dimension
     dim = np.product(dims)
 
@@ -62,18 +79,19 @@ def random_hermitian(dims, traceless=False, seed=None):
         mat = np.zeros((dim, dim), dtype=complex)
     else:
         # Generate diagonal part of matrix for Gaussian N(0, 1)
-        mat = np.diag(stats.norm.rvs(scale=1, size=dim).astype(complex))
+        mat = np.diag(stats.norm.rvs(
+            scale=1, size=dim, random_state=random_state).astype(complex))
 
-    # Generate off diagonal parts from Gaussian N(0, 0.5)
-    # We will construct the upper triangular real part from
-    # the upper triangular part of the generated matrix, and
-    # the upper triangular imaginary part from the lower
-    # triangular part of the generated matrix.
-    offdiag = stats.norm.rvs(scale=0.5, size=(dim, dim))
-    offd_re = np.triu(offdiag, 1)
-    offd_im = np.tril(offdiag, -1)
-    mat += offd_re + offd_re.T + 1j * (offd_im - offd_im.T)
-
+    # Generate lower triangular values from Gaussian N(0, 0.5)
+    num_tril = (dim * (dim - 1)) // 2
+    real_tril = stats.norm.rvs(
+        scale=0.5, size=num_tril, random_state=random_state)
+    imag_tril = stats.norm.rvs(
+        scale=0.5, size=num_tril, random_state=random_state)
+    # Get lower triangular indicies
+    rows, cols = np.tril_indices(dim, -1)
+    mat[(rows, cols)] = real_tril + 1j * imag_tril
+    mat[(cols, rows)] = real_tril - 1j * imag_tril
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
@@ -90,7 +108,8 @@ def random_quantum_channel(input_dims=None,
         input_dims (int or tuple): the input dimension of the channel.
         output_dims (int or tuple): the input dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
-        seed (int): Optional. Set a fixed seed for RNG.
+        seed (int or RandomState): Optional. Set a fixed seed or
+                                   generator for RNG.
 
     Returns:
         Stinespring: a quantum channel operator.
