@@ -194,9 +194,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_transpiler=self.seed_transpiler,
-                           pass_manager=self.create_passmanager(coupling_map))
+        result = self.create_passmanager(coupling_map).run(circuit)
         self.assertResult(result, circuit)
 
     def test_initial_layout(self):
@@ -232,9 +230,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
 
         layout = {qr[3]: 0, qr[0]: 1, qr[1]: 2, qr[2]: 3}
 
-        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_transpiler=self.seed_transpiler,
-                           pass_manager=self.create_passmanager(coupling_map, layout))
+        result = self.create_passmanager(coupling_map, layout).run(circuit)
         self.assertResult(result, circuit)
 
     def test_handle_measurement(self):
@@ -272,9 +268,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.cx(qr[3], qr[0])
         circuit.measure(qr, cr)
 
-        result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_transpiler=self.seed_transpiler,
-                           pass_manager=self.create_passmanager(coupling_map))
+        result = self.create_passmanager(coupling_map).run(circuit)
         self.assertResult(result, circuit)
 
 

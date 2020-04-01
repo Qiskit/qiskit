@@ -61,7 +61,7 @@ class TestOptimize1qGates(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
-        result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        result = transpile(circuit, pass_manager=passmanager)
 
         self.assertEqual(expected, result)
 

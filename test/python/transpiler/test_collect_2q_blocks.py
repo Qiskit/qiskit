@@ -130,12 +130,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
         qc = QuantumCircuit.from_qasm_str(qasmstr)
-        backend = FakeMelbourne()
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, backend, pass_manager=pass_manager)
+        transpile(qc, pass_manager=pass_manager)
 
         self.assertEqual([['cx']],
                          [[n.name for n in block]

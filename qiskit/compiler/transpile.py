@@ -169,10 +169,12 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
         return circuits
 
-    if pass_manager and optimization_level:
-        raise TranspilerError("The parameters pass_manager and optimization_level are conflicting.")
-
     if pass_manager:
+        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
+                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
+                                    backend_properties=backend_properties,
+                                    initial_layout=initial_layout, layout_method=layout_method,
+                                    routing_method=routing_method, backend=backend)
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
@@ -195,6 +197,14 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     if len(circuits) == 1:
         return circuits[0]
     return circuits
+
+
+def _check_conflicting_argument(**kargs):
+    conflicting_args = [arg for arg, value in kargs.items() if value]
+    if conflicting_args:
+        raise TranspilerError("The parameters pass_manager conflicts with the following "
+                              "parameter(s): {}.".format(', '.join(conflicting_args)))
+
 
 def _check_circuits_coupling_map(circuits, transpile_args, backend):
     # Check circuit width against number of qubits in coupling_map(s)

@@ -21,7 +21,6 @@ from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import ResourceEstimation
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 
 
 class TestResourceEstimationPass(QiskitTestCase):
@@ -32,7 +31,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         circuit = QuantumCircuit()
         passmanager = PassManager()
         passmanager.append(ResourceEstimation())
-        _ = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        _ = transpile(circuit, pass_manager=passmanager)
 
         self.assertEqual(passmanager.property_set['size'], 0)
         self.assertEqual(passmanager.property_set['depth'], 0)
@@ -54,7 +53,7 @@ class TestResourceEstimationPass(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(ResourceEstimation())
-        _ = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        _ = transpile(circuit, pass_manager=passmanager)
 
         self.assertEqual(passmanager.property_set['size'], 8)
         self.assertEqual(passmanager.property_set['depth'], 7)
