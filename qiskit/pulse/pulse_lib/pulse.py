@@ -31,18 +31,17 @@ class Pulse(ABC):
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
 
-    _id_counter = 0
-    """The number of pulse instances, used to give new pulses a unique ID."""
-
     @abstractmethod
     def __init__(self, duration: int, name: Optional[str] = None):
         if not isinstance(duration, (int, np.integer)):
             raise PulseError('Pulse duration should be integer.')
         self.duration = int(duration)
         self.name = name
-        Pulse._id_counter += 1
-        self.id = Pulse._id_counter  # pylint: disable=invalid-name
+
+    @property
+    def id(self) -> int:
         """Unique identifier for this pulse."""
+        return id(self)
 
     def __call__(self, channel: PulseChannel) -> Play:
         """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
