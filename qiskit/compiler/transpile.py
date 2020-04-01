@@ -161,25 +161,27 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
+    circuits = circuits if isinstance(circuits, list) else [circuits]
+
     # transpiling schedules is not supported yet.
-    if isinstance(circuits, Schedule) or \
-            (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
+    if all(isinstance(c, Schedule) for c in circuits):
+        warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
         return circuits
 
-    if pass_manager:
-        return pass_manager.run(circuits, output_name=output_name, callback=callback)
+    if pass_manager and optimization_level:
+        raise TranspilerError("The parameters pass_manager and optimization_level are conflicting.")
 
     if optimization_level is None:
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', None)
 
     # Get transpile_args to configure the circuit transpilation job(s)
-    circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method,
                                            seed_transpiler, optimization_level,
                                            pass_manager, callback, output_name)
+
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in
                               transpile_args)
