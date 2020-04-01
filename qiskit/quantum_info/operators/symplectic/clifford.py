@@ -24,7 +24,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from .stabilizer_table import StabilizerTable
-from .clifford_circuits import append_gate, decompose_clifford
+from .clifford_circuits import _append_circuit, decompose_clifford
 
 
 class Clifford(BaseOperator):
@@ -249,6 +249,15 @@ class Clifford(BaseOperator):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
+        # If other is a QuantumCircuit we can more efficiently compose
+        # using the _append_circuit method to update each gate recursively
+        # to the current Clifford, rather than converting to a Clifford first
+        # and then doing the composition of tables.
+        if not front and isinstance(other, (QuantumCircuit, Instruction)):
+            ret = self.copy()
+            _append_circuit(ret, other, qargs=qargs)
+            return ret
+
         if not isinstance(other, Clifford):
             other = Clifford(other)
 
@@ -359,7 +368,7 @@ class Clifford(BaseOperator):
 
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * instruction.num_qubits), validate=False)
-        append_gate(clifford, instruction)
+        _append_circuit(clifford, instruction)
         return clifford
 
     # ---------------------------------------------------------------------

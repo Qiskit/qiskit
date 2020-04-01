@@ -25,12 +25,50 @@ from qiskit.circuit import QuantumCircuit
 # Main functions
 # ---------------------------------------------------------------------
 
-def append_gate(clifford, gate, qargs=None):
-    """Update Clifford inplace by applying a Clifford gate.
+def decompose_clifford(clifford):
+    """Decompose a Clifford into a QuantumCircuit.
+
+    Args:
+        clifford (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+    """
+    # Compose a circuit which we will convert to an instruction
+    circuit = QuantumCircuit(clifford.num_qubits,
+                             name=str(clifford))
+
+    # Make a copy of Clifford as we are going to do row reduction to
+    # reduce it to an identity
+    clifford_cpy = clifford.copy()
+
+    for i in range(clifford.num_qubits):
+        # put a 1 one into position by permuting and using Hadamards(i,i)
+        _set_qubit_x_true(clifford_cpy, circuit, i)
+        # make all entries in row i except ith equal to 0
+        # by using phase gate and CNOTS
+        _set_row_x_zero(clifford_cpy, circuit, i)
+        # treat Zs
+        _set_row_z_zero(clifford_cpy, circuit, i)
+
+    for i in range(clifford.num_qubits):
+        if clifford_cpy.destabilizer.phase[i]:
+            _append_z(clifford_cpy, i)
+            circuit.z(i)
+        if clifford_cpy.stabilizer.phase[i]:
+            _append_x(clifford_cpy, i)
+            circuit.x(i)
+    # Next we invert the circuit to undo the row reduction and return the
+    # result as a gate instruction
+    return circuit.inverse()
+
+
+def _append_circuit(clifford, circuit, qargs=None):
+    """Update Clifford inplace by applying a Clifford circuit.
 
     Args:
         clifford (Clifford): the Clifford to update.
-        gate (Gate or str): the gate or composite gate to apply.
+        gate (QuantumCircuit or Instruction): the gate or composite gate to apply.
         qargs (list or None): The qubits to apply gate to.
 
     Returns:
@@ -41,6 +79,11 @@ def append_gate(clifford, gate, qargs=None):
     """
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
+
+    if isinstance(circuit, QuantumCircuit):
+        gate = circuit.to_instruction()
+    else:
+        gate = circuit
 
     # Basis Clifford Gates
     basis_1q = {
@@ -91,46 +134,8 @@ def append_gate(clifford, gate, qargs=None):
                     instr.name))
         # Get the integer position of the flat register
         new_qubits = [qargs[tup.index] for tup in qregs]
-        append_gate(clifford, instr, new_qubits)
+        _append_circuit(clifford, instr, new_qubits)
     return clifford
-
-
-def decompose_clifford(clifford):
-    """Decompose a Clifford into a QuantumCircuit.
-
-    Args:
-        clifford (Clifford): a clifford operator.
-
-    Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
-    """
-    # Compose a circuit which we will convert to an instruction
-    circuit = QuantumCircuit(clifford.num_qubits,
-                             name=str(clifford))
-
-    # Make a copy of Clifford as we are going to do row reduction to
-    # reduce it to an identity
-    clifford_cpy = clifford.copy()
-
-    for i in range(clifford.num_qubits):
-        # put a 1 one into position by permuting and using Hadamards(i,i)
-        _set_qubit_x_true(clifford_cpy, circuit, i)
-        # make all entries in row i except ith equal to 0
-        # by using phase gate and CNOTS
-        _set_row_x_zero(clifford_cpy, circuit, i)
-        # treat Zs
-        _set_row_z_zero(clifford_cpy, circuit, i)
-
-    for i in range(clifford.num_qubits):
-        if clifford_cpy.destabilizer.phase[i]:
-            _append_z(clifford_cpy, i)
-            circuit.z(i)
-        if clifford_cpy.stabilizer.phase[i]:
-            _append_x(clifford_cpy, i)
-            circuit.x(i)
-    # Next we invert the circuit to undo the row reduction and return the
-    # result as a gate instruction
-    return circuit.inverse()
 
 
 # ---------------------------------------------------------------------
