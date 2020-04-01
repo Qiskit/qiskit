@@ -31,7 +31,7 @@ class TestResourceEstimationPass(QiskitTestCase):
         circuit = QuantumCircuit()
         passmanager = PassManager()
         passmanager.append(ResourceEstimation())
-        _ = transpile(circuit, pass_manager=passmanager)
+        passmanager.run(circuit)
 
         self.assertEqual(passmanager.property_set['size'], 0)
         self.assertEqual(passmanager.property_set['depth'], 0)
@@ -53,7 +53,7 @@ class TestResourceEstimationPass(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(ResourceEstimation())
-        _ = transpile(circuit, pass_manager=passmanager)
+        passmanager.run(circuit)
 
         self.assertEqual(passmanager.property_set['size'], 8)
         self.assertEqual(passmanager.property_set['depth'], 7)

@@ -201,7 +201,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 
@@ -231,7 +231,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 
@@ -268,7 +268,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 
@@ -283,7 +283,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 

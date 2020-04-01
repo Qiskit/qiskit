@@ -48,7 +48,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            out = transpile(circuit, pass_manager=passmanager)
+            out = passmanager.run(circuit)
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
@@ -65,7 +65,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            self.assertRaises(exception_type, transpile, circuit, pass_manager=passmanager)
+            self.assertRaises(exception_type, passmanager.run, circuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
 
@@ -550,7 +550,7 @@ class TestLogPasses(QiskitTestCase):
     def assertPassLog(self, passmanager, list_of_passes):
         """ Runs the passmanager and checks that the elements in
         passmanager.property_set['pass_log'] match list_of_passes (the names)."""
-        transpile(self.circuit, pass_manager=passmanager)
+        passmanager.run(self.circuit)
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()

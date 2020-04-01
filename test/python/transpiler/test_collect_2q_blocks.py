@@ -133,7 +133,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, pass_manager=pass_manager)
+        pass_manager.run(qc)
 
         self.assertEqual([['cx']],
                          [[n.name for n in block]
@@ -176,7 +176,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, pass_manager=pass_manager)
+        pass_manager.run(qc)
         self.assertEqual([['cx']],
                          [[n.name for n in block]
                           for block in pass_manager.property_set['block_list']])
