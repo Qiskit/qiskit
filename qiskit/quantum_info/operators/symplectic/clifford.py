@@ -118,7 +118,7 @@ class Clifford(BaseOperator):
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
-            self._table = Clifford.from_instruction(data)._table
+            self._table = Clifford.from_circuit(data)._table
 
         # Initialize StabilizerTable directly from the data
         else:
@@ -345,11 +345,11 @@ class Clifford(BaseOperator):
         return self.to_circuit().to_gate()
 
     @staticmethod
-    def from_instruction(instruction):
+    def from_circuit(circuit):
         """Initialize from a QuantumCircuit or Instruction.
 
         Args:
-            instruction (QuantumCircuit or ~qiskit.circuit.Instruction):
+            circuit (QuantumCircuit or ~qiskit.circuit.Instruction):
                 instruction to initialize.
 
         Returns:
@@ -359,16 +359,16 @@ class Clifford(BaseOperator):
             QiskitError: if the input instruction is non-Clifford or contains
                          classical register instruction.
         """
-        if not isinstance(instruction, (QuantumCircuit, Instruction)):
+        if not isinstance(circuit, (QuantumCircuit, Instruction)):
             raise QiskitError("Input must be a QuantumCircuit or Instruction")
 
         # Convert circuit to an instruction
-        if isinstance(instruction, QuantumCircuit):
-            instruction = instruction.to_instruction()
+        if isinstance(circuit, QuantumCircuit):
+            circuit = circuit.to_instruction()
 
         # Initialize an identity Clifford
-        clifford = Clifford(np.eye(2 * instruction.num_qubits), validate=False)
-        _append_circuit(clifford, instruction)
+        clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
+        _append_circuit(clifford, circuit)
         return clifford
 
     # ---------------------------------------------------------------------
