@@ -24,7 +24,9 @@ from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=unused-import
-from .symplectic import random_clifford
+from .symplectic.random import random_clifford
+from .symplectic.random import random_pauli_table
+from .symplectic.random import random_stabilizer_table
 
 
 def random_unitary(dims, seed=None):

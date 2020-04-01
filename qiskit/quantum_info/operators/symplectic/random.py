@@ -20,7 +20,50 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
+from .pauli_table import PauliTable
 
+
+def random_pauli_table(num_qubits, size=1, random_state=None):
+    """Return a random PauliTable.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        size (int): Optional. The number of rows of the table (Default: 1).
+        random_state(np.RandomState or int): Optional. A specific random
+                                             state for RNG.
+
+    Returns:
+        PauliTable: a random PauliTable.
+    """
+    if random_state is None:
+        random_state = np.random
+    elif isinstance(random_state, int):
+        random_state = np.random.RandomState(random_state)
+
+    table = random_state.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    return PauliTable(table)
+
+
+def random_stabilizer_table(num_qubits, size=1, random_state=None):
+    """Return a random StabilizerTable.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        size (int): Optional. The number of rows of the table (Default: 1).
+        random_state(np.RandomState or int): Optional. A specific random
+                                             state for RNG.
+
+    Returns:
+        PauliTable: a random StabilizerTable.
+    """
+    if random_state is None:
+        random_state = np.random
+    elif isinstance(random_state, int):
+        random_state = np.random.RandomState(random_state)
+
+    table = random_state.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    phase = random_state.randint(2, size=size).astype(np.bool)
+    return StabilizerTable(table, phase)
 
 def random_clifford(num_qubits, random_state=None):
     """Return a random Clifford operator.
