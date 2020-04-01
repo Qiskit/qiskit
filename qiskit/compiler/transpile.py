@@ -176,8 +176,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
+        # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get('transpile_optimization_level', None)
+        optimization_level = config.get('transpile_optimization_level', 1)
 
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
@@ -249,11 +250,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager_config.basis_gates = list(
             set(['u3', 'cx']).union(pass_manager_config.basis_gates))
 
-    # we choose an appropriate one based on desired optimization level (default: level 1)
-    if transpile_config['optimization_level'] is not None:
-        level = transpile_config['optimization_level']
-    else:
-        level = 1
+    # we choose an appropriate one based on desired optimization level
+    level = transpile_config['optimization_level']
 
     if level == 0:
         pass_manager = level_0_pass_manager(pass_manager_config)
