@@ -39,7 +39,7 @@ class Pulse(ABC):
         self.name = name
 
     @property
-    def id(self) -> int:
+    def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this pulse."""
         return id(self)
 

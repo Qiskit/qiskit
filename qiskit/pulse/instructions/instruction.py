@@ -80,7 +80,7 @@ class Instruction(ScheduleComponent, ABC):
         return self._command
 
     @property
-    def id(self) -> int:
+    def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this instruction."""
         return id(self)
 
