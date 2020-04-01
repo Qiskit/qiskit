@@ -167,6 +167,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     # transpiling schedules is not supported yet.
     if all(isinstance(c, Schedule) for c in circuits):
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
+        if len(circuits) == 1:
+            return circuits[0]
         return circuits
 
     if pass_manager is not None:
