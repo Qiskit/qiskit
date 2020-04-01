@@ -47,3 +47,23 @@ class TestBuilderContext(QiskitTestCase):
                 u2(1, 0, pi/2)
                 u2(0, 0, pi/2)
             measure(0)
+
+
+class TestTransforms(TestBuilderContext):
+    """Test builder transforms."""
+
+
+class TestInstructions(TestBuilderContext):
+    """Test builder instructions."""
+
+
+class TestUtilities(TestBuilderContext):
+    """Test builder utilities."""
+
+
+class TestMacros(TestBuilderContext):
+    """Test builder macros."""
+
+
+class TestGates(TestBuilderContext):
+    """Test builder gates."""

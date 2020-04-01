@@ -134,10 +134,13 @@ import functools
 from contextlib import contextmanager
 from typing import Callable, Union
 
-from . import Pulse, PulseError, transforms
+from qiskit.circuit import QuantumCircuit
+
+
+from . import Pulse, PulseError, transforms, macros
 from .channels import (AcquireChannel, Channel, MemorySlot,
                        PulseChannel, RegisterSlot)
-from .circuit_scheduler import measure as measure_schedule
+from .circuit_scheduler import schedule_circuit
 from .configuration import Discriminator, Kernel
 from .instructions import (Acquire, Delay, Instruction, Play,
                            SetFrequency, ShiftPhase, Snapshot)
@@ -209,6 +212,29 @@ def build(backend, schedule):
     return BuilderContext(backend, schedule)
 
 
+# Builder Utilities ############################################################
+def context_backend():
+    """Get the backend of the current context.
+
+    Returns:
+        BaseBackend
+    """
+    return BUILDER_CONTEXT.get().backend
+
+
+def append_statement(statement):
+    """Append a statement in the current builder context."""
+    current_block = BUILDER_CONTEXT.get().current_block
+    current_block.append(statement)
+
+
+def qubit_channels(qubit: int):
+    """
+    Returns the 'typical' set of channels associated with a qubit.
+    """
+    raise NotImplementedError('Qubit channels is not yet implemented.')
+
+
 # Transform Contexts ###########################################################
 def _transform_context(transform: Callable) -> Callable:
     """A tranform context.
@@ -258,87 +284,84 @@ def sequential():
 
 
 # Base Instructions ############################################################
-def _instruction(instruction_fn):
-    """Decorator that wraps a function that generates instructions and appends
-    to current block.
-    """
-    @functools.wraps(instruction_fn)
-    def instruction_wrapper(*args, **kwargs) -> Instruction:
-        current_block = BUILDER_CONTEXT.get().current_block
-        instruction = instruction_fn(*args, **kwargs)
-        current_block.append(instruction)
-        return instruction
-    return instruction_wrapper
-
-
-@_instruction
-def delay(channel: Channel, duration: int) -> Delay:
+def delay(channel: Channel, duration: int):
     """Delay on a ``channel`` for a ``duration``."""
-    return Delay(duration, channel)
+    append_statement(Delay(duration, channel))
 
 
-@_instruction
-def play(channel: PulseChannel, pulse: Pulse) -> Play:
+def play(channel: PulseChannel, pulse: Pulse):
     """Play a ``pulse`` on a ``channel``."""
-    return Play(pulse, channel)
+    append_statement(Play(pulse, channel))
 
 
-@_instruction
 def acquire(channel: Union[AcquireChannel, int],
             register: Union[RegisterSlot, MemorySlot],
             duration: int,
-            **metadata: Union[Kernel, Discriminator]
-            ) -> Acquire:
+            **metadata: Union[Kernel, Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result in a ``register``."""
     if isinstance(register, MemorySlot):
-        return Acquire(duration, channel, mem_slot=register, **metadata)
+        append_statement(Acquire(duration, channel, mem_slot=register, **metadata))
     elif isinstance(register, RegisterSlot):
-        return Acquire(duration, channel, reg_slot=register, **metadata)
+        append_statement(Acquire(duration, channel, reg_slot=register, **metadata))
     raise PulseError(
         'Register of type: "{}" is not supported'.format(type(register)))
 
 
-@_instruction
 def set_frequency(channel: PulseChannel, frequency: float):
     """Set the ``frequency`` of a pulse ``channel``."""
-    return SetFrequency(frequency, channel)
+    append_statement(SetFrequency(frequency, channel))
 
 
-@_instruction
 def shift_frequency(channel: PulseChannel, frequency: float):
     """Shift the ``frequency`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-@_instruction
 def set_phase(channel: PulseChannel, phase: float):
     """Set the ``phase`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-@_instruction
 def shift_phase(channel: PulseChannel, phase: float):
     """Shift the ``phase`` of a pulse ``channel``."""
-    return ShiftPhase(phase, channel)
+    append_statement(ShiftPhase(phase, channel))
 
 
-# Macro Instructions ###########################################################
-def qubit_channels(qubit: int):
-    """
-    Returns the 'typical' set of channels associated with a qubit.
-    """
-    raise NotImplementedError('Qubit channels is not yet implemented.')
+def call_schedule(schedule: Schedule):
+    """Call a pulse ``schedule`` in the builder context."""
+    raise NotImplementedError()
 
 
+def call_circuit(circuit: QuantumCircuit, **settings):
+    """Call a quantum ``circuit`` in the builder context."""
+    sched = schedule_circuit(circuit, context_backend(), **settings)
+    call_schedule(sched)
+
+
+def call(target: Union[QuantumCircuit, Schedule], **settings):
+    """Call the ``target`` within this builder context."""
+    if isinstance(target, QuantumCircuit):
+        call_circuit(target, **settings)
+    elif isinstance(target, Schedule):
+        call_schedule(target)
+    raise PulseError(
+        'Target of type "{}" is not supported.'.format(type(target)))
+
+
+# Macros #######################################################################
 def measure(qubit: int):
-    sched = measure_schedule(
-        qubits=[qubit],
-        inst_map=BACKEND_CTX.get().defaults().instruction_schedule_map,
-        meas_map=BACKEND_CTX.get().configuration().meas_map)
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(sched)
+    backend = context_backend()
+    call_schedule(macros.measure(qubits=[qubit],
+                  inst_map=backend.defaults().instruction_schedule_map,
+                  meas_map=backend.get().configuration().meas_map))
 
 
+def delay_qubit(qubit: int, duration: int):
+    for channel in qubit_channels(qubit):
+        instruction_list.append(Delay(duration)(channel))
+
+
+# Gate instructions ############################################################
 def u1(qubit: int, p0):
     ism = BACKEND_CTX.get().defaults().instruction_schedule_map
     instruction_list = INSTRUCTION_LIST_CTX.get()
@@ -361,12 +384,6 @@ def cx(control: int, target: int):
     ism = BACKEND_CTX.get().defaults().instruction_schedule_map
     instruction_list = INSTRUCTION_LIST_CTX.get()
     instruction_list.append(ism.get('cx', (control, target)))
-
-
-def delay_qubit(qubit: int, duration: int):
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    for channel in qubit_channels(qubit):
-        instruction_list.append(Delay(duration)(channel))
 
 
 def x(qubit: int):
