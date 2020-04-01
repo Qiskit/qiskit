@@ -68,7 +68,7 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     Args:
         clifford (Clifford): the Clifford to update.
-        gate (QuantumCircuit or Instruction): the gate or composite gate to apply.
+        circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
         qargs (list or None): The qubits to apply gate to.
 
     Returns:
