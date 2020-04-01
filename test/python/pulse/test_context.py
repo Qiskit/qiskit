@@ -28,11 +28,12 @@ class TestBuilderContext(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
 
-    def context_test(self):
+    def test_context(self):
         backend = FakeOpenPulse2Q()
 
         schedule = Schedule()
         with build(backend, schedule):
+            delay(0, 1000)
             u2(0, 0, pi/2)
             delay(0, 1000)
             u2(0, 0, pi)

@@ -130,18 +130,21 @@ syntax. For example::
         play(d0, gaussian_pulse)
 """
 import contextvars
-from contextlib import contextmanager
 import functools
-from typing import Callable
+from contextlib import contextmanager
+from typing import Callable, Union
 
-from . import transforms
-from .channels import Channel
+from . import Pulse, PulseError, transforms
+from .channels import (AcquireChannel, Channel, MemorySlot,
+                       PulseChannel, RegisterSlot)
 from .circuit_scheduler import measure as measure_schedule
-from .commands import Delay, FrameChange, SamplePulse
+from .configuration import Discriminator, Kernel
+from .instructions import (Acquire, Delay, Instruction, Play,
+                           SetFrequency, ShiftPhase, Snapshot)
 from .schedule import Schedule
 
 
-#: contextvars.ContextVar[BuilderContext]: Active builder
+#: contextvars.ContextVar[BuilderContext]: current builder
 BUILDER_CONTEXT = contextvars.ContextVar("backend")
 
 
@@ -161,13 +164,13 @@ class BuilderContext():
         #: BaseBackend: Backend instance for context builder.
         self.backend = backend
 
-        #: Schedule: Current active schedule of BuilderContext.
+        #: Schedule: Current current schedule of BuilderContext.
         self.block = None
 
         if block is None:
             block = Schedule()
 
-        self.set_active_block(block)
+        self.set_current_block(block)
 
         #: Set[Schedule]: Collection of all builder blocks.
         self.blocks = set()
@@ -178,13 +181,14 @@ class BuilderContext():
     def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXT.set(self)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
         BUILDER_CONTEXT.reset(self._backend_ctx_token)
 
-    def set_active_block(self, block: Schedule) -> Schedule:
-        """Set the active block."""
+    def set_current_block(self, block: Schedule) -> Schedule:
+        """Set the current block."""
         assert isinstance(block, Schedule)
         self.block = block
         return block
@@ -194,7 +198,6 @@ class BuilderContext():
         return self._program
 
 
-@contextmanager
 def build(backend, schedule):
     """
     A context manager for the pulse DSL.
@@ -206,7 +209,8 @@ def build(backend, schedule):
     return BuilderContext(backend, schedule)
 
 
-def transform_context(transform: Callable) -> Callable:
+# Transform Contexts ###########################################################
+def _transform_context(transform: Callable) -> Callable:
     """A tranform context.
 
     Args:
@@ -217,42 +221,108 @@ def transform_context(transform: Callable) -> Callable:
         @contextmanager
         def wrapped_transform(blocks, *args, **kwargs):
             builder = BUILDER_CONTEXT.get()
-            block = builder.set_active_block(Schedule())
+            block = builder.set_current_block(Schedule())
             try:
                 yield
             finally:
-                builder.set_active_block(transform(block, *args, **kwargs))
+                builder.set_current_block(transform(block, *args, **kwargs))
 
         return wrapped_transform
 
     return wrap
 
 
-@transform_context(transforms.left_barrier)
+@_transform_context(transforms.left_barrier)
 def left_barrier():
     """Left barrier transform builder context."""
 
 
-@transform_context(transforms.right_barrier)
+@_transform_context(transforms.right_barrier)
 def right_barrier():
     """Right barrier transform builder context."""
 
 
-@transform_context(transforms.left_align)
+@_transform_context(transforms.left_align)
 def left_align():
     """Left align transform builder context."""
 
 
-@transform_context(transforms.right_align)
+@_transform_context(transforms.right_align)
 def right_align():
     """Right align transform builder context."""
 
 
-@transform_context(transforms.sequential)
+@_transform_context(transforms.sequential)
 def sequential():
     """Sequential transform builder context."""
 
 
+# Base Instructions ############################################################
+def _instruction(instruction_fn):
+    """Decorator that wraps a function that generates instructions and appends
+    to current block.
+    """
+    @functools.wraps(instruction_fn)
+    def instruction_wrapper(*args, **kwargs) -> Instruction:
+        current_block = BUILDER_CONTEXT.get().current_block
+        instruction = instruction_fn(*args, **kwargs)
+        current_block.append(instruction)
+        return instruction
+    return instruction_wrapper
+
+
+@_instruction
+def delay(channel: Channel, duration: int) -> Delay:
+    """Delay on a ``channel`` for a ``duration``."""
+    return Delay(duration, channel)
+
+
+@_instruction
+def play(channel: PulseChannel, pulse: Pulse) -> Play:
+    """Play a ``pulse`` on a ``channel``."""
+    return Play(pulse, channel)
+
+
+@_instruction
+def acquire(channel: Union[AcquireChannel, int],
+            register: Union[RegisterSlot, MemorySlot],
+            duration: int,
+            **metadata: Union[Kernel, Discriminator]
+            ) -> Acquire:
+    """Acquire for a ``duration`` on a ``channel`` and store the result in a ``register``."""
+    if isinstance(register, MemorySlot):
+        return Acquire(duration, channel, mem_slot=register, **metadata)
+    elif isinstance(register, RegisterSlot):
+        return Acquire(duration, channel, reg_slot=register, **metadata)
+    raise PulseError(
+        'Register of type: "{}" is not supported'.format(type(register)))
+
+
+@_instruction
+def set_frequency(channel: PulseChannel, frequency: float):
+    """Set the ``frequency`` of a pulse ``channel``."""
+    return SetFrequency(frequency, channel)
+
+
+@_instruction
+def shift_frequency(channel: PulseChannel, frequency: float):
+    """Shift the ``frequency`` of a pulse ``channel``."""
+    raise NotImplementedError()
+
+
+@_instruction
+def set_phase(channel: PulseChannel, phase: float):
+    """Set the ``phase`` of a pulse ``channel``."""
+    raise NotImplementedError()
+
+
+@_instruction
+def shift_phase(channel: PulseChannel, phase: float):
+    """Shift the ``phase`` of a pulse ``channel``."""
+    return ShiftPhase(phase, channel)
+
+
+# Macro Instructions ###########################################################
 def qubit_channels(qubit: int):
     """
     Returns the 'typical' set of channels associated with a qubit.
@@ -297,21 +367,6 @@ def delay_qubit(qubit: int, duration: int):
     instruction_list = INSTRUCTION_LIST_CTX.get()
     for channel in qubit_channels(qubit):
         instruction_list.append(Delay(duration)(channel))
-
-
-def delay(channel: Channel, duration: int):
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(Delay(duration)(Channel))
-
-
-def play(channel: Channel, pulse: SamplePulse):
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(pulse(channel))
-
-
-def shift_phase(channel: Channel, phase: float):
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(FrameChange(phase)(channel))
 
 
 def x(qubit: int):
