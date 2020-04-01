@@ -319,6 +319,52 @@ class Statevector(QuantumState):
             probs = probs.round(decimals=decimals)
         return probs
 
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            Statevector: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform a measurement on those subsystems and
+            evolve the subsystems so that the collapsed post-measurement
+            states are rotated to the 0-state. The RNG seed for this
+            sampling can be set using the :meth:`seed` method.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(self._dim, dtype=complex)
+            state[0] = 1
+            return Statevector(state, dims=self._dims)
+
+        # Sample a single measurement outcome
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Rotate outcome to 0
+        reset = np.eye(len(probs))
+        reset[0, 0] = 0
+        reset[sample, sample] = 0
+        reset[0, sample] = 1
+
+        # compose with reset projection
+        reset = np.dot(reset, np.diag(proj))
+        return self.evolve(
+            Operator(reset, input_dims=dims, output_dims=dims),
+            qargs=qargs)
+
     def to_counts(self):
         """Returns the statevector as a counts dict
         of probabilities.
