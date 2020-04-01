@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
@@ -378,6 +379,46 @@ class QuantumState(ABC):
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)
         return dict(zip(inds, counts))
+
+    def measure(self, qargs=None):
+        """Measure subsystems and return outcome and post-measure state.
+
+        Note that this function uses the QuantumStates internal random
+        number generator for sampling the measurement outcome. The RNG
+        seed can be set using the :meth:`seed` method.
+
+        Args:
+            qargs (list or None): subsystems to sample measurements for,
+                                  if None sample measurement of all
+                                  subsystems (Default: None).
+
+        Returns:
+            tuple: the pair ``(outcome, state)`` where ``outcome`` is the
+                   measurement outcome string label, and ``state`` is the
+                   collapsed post-measurement state for the corresponding
+                   outcome.
+        """
+        # Sample a single measurement outcome from probabilities
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Format outcome
+        outcome = self._index_to_ket_array(
+            sample, self.dims(qargs), string_labels=True)[0]
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Update state object
+        # TODO: implement a more efficient state update method for
+        # diagonal matrix multiplication
+        ret = self.evolve(
+            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
+            qargs=qargs)
+
+        return outcome, ret
 
     @classmethod
     def _automatic_dims(cls, dims, size):
