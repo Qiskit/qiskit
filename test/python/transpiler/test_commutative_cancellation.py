@@ -20,7 +20,6 @@ from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, PropertySet
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 
 

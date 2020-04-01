@@ -20,7 +20,6 @@ import unittest
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase

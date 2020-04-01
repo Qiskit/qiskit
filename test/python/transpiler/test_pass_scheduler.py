@@ -23,7 +23,6 @@ import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
-from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
     FlowController
 from qiskit.test import QiskitTestCase

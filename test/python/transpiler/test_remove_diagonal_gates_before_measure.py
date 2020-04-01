@@ -19,7 +19,6 @@ from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase

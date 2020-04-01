@@ -21,7 +21,6 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import PropertySet
-from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller

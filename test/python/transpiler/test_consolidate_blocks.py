@@ -19,7 +19,6 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
-from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
