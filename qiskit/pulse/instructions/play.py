@@ -53,9 +53,11 @@ class Play(Instruction):
         return (self.pulse, self.channel)
 
     @property
-    def pulse(self):  # -> Pulse
-        """A description of the samples that will be played; for instance, exact sample data or
-        a known function like Gaussian with parameters.
+    def pulse(self):
+        """A description of the samples that will be played.
+
+        Return:
+            qiskit.pulse.Pulse: A subclass of ``Pulse``, e.g. ``SamplePulse`` or ``Gaussian``.
         """
         return self._pulse
 
