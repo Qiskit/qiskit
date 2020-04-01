@@ -138,9 +138,9 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            self._params.append(self._normalize_parameter(single_param))
+            self._params.append(self.normalize_parameter(single_param))
 
-    def _normalize_parameter(self, parameter):
+    def normalize_parameter(self, parameter):
         if isinstance(parameter, (int, float, ParameterExpression, numpy.ndarray)):
             return parameter
         # example: OpenQASM parsed instruction

@@ -219,7 +219,7 @@ class Gate(Instruction):
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
 
-    def _normalize_parameter(self, parameter):
+    def normalize_parameter(self, parameter):
         # examples:
         #  u3(0.1, 0.2, 0.3)
         #  u2(pi/2, sin(pi/4))
@@ -227,4 +227,4 @@ class Gate(Instruction):
             return parameter
 
         else:
-            return super()._normalize_parameter(parameter)
+            return super().normalize_parameter(parameter)

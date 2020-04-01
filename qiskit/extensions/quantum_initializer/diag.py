@@ -91,11 +91,11 @@ class DiagGate(Gate):
             n //= 2
         return circuit
 
-    def _normalize_parameter(self, parameter):
+    def normalize_parameter(self, parameter):
         if isinstance(parameter, complex):
             return parameter
         else:
-            return super()._normalize_parameter(parameter)
+            return super().normalize_parameter(parameter)
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
