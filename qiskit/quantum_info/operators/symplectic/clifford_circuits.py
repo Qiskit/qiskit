@@ -78,9 +78,9 @@ def append_gate(clifford, gate, qargs=None):
             raise QiskitError("Invalid qubits for 2-qubit gate.")
         return basis_2q[name](clifford, qargs[0], qargs[1])
 
-    # If not a Clifford basis gate we try to unroll the gate,
-    # raising an exception if unrolling reaches a non-Clifford gate.
-    # TODO: We could check for also check u3 params to see if they
+    # If not a Clifford basis gate we try to unroll the gate and
+    # raise an exception if unrolling reaches a non-Clifford gate.
+    # TODO: We could also check u3 params to see if they
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
@@ -113,15 +113,11 @@ def decompose_clifford(clifford):
     clifford_cpy = clifford.copy()
 
     for i in range(clifford.num_qubits):
-        # * make1forXkk(i)
-
         # put a 1 one into position by permuting and using Hadamards(i,i)
         set_qubit_x_true(clifford_cpy, circuit, i)
-        # * .makeXrowzero(i)
         # make all entries in row i except ith equal to 0
         # by using phase gate and CNOTS
         set_row_x_zero(clifford_cpy, circuit, i)
-        #  * makeZrowzero(i)
         # treat Zs
         set_row_z_zero(clifford_cpy, circuit, i)
 

@@ -65,7 +65,7 @@ class Clifford(BaseOperator):
         # Print the Clifford destabilizer rows
         print(cliff.destabilizer)
 
-        # Print the Clifford destabilizer rows
+        # Print the Clifford stabilizer rows
         print(cliff.stabilizer)
 
     **Circuit Conversion**
@@ -75,7 +75,8 @@ class Clifford(BaseOperator):
     :class:`~qiskit.extensions.XGate`, :class:`~qiskit.extensions.YGate`,
     :class:`~qiskit.extensions.ZGate`, :class:`~qiskit.extensions.HGate`,
     :class:`~qiskit.extensions.SGate`, :class:`~qiskit.extensions.SdgGate`,
-    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`.
+    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`,
+    :class:`~qiskit.extensions.SwapGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -198,9 +199,8 @@ class Clifford(BaseOperator):
     # Utility Operator methods
     # ---------------------------------------------------------------------
 
-    def is_unitary(self, atol=None, rtol=None):
+    def is_unitary(self):
         """Return True if the Clifford table is valid."""
-        # pylint: disable=unused-argument
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
@@ -417,7 +417,7 @@ class Clifford(BaseOperator):
         Args:
             other (Clifford): another Clifford operator.
             reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
+                            if True return (other ⊗ self) [Default: False].
         Returns:
             Clifford: the tensor product operator.
 
@@ -487,7 +487,7 @@ class Clifford(BaseOperator):
         # Add phases
         phase = np.mod(array2.dot(phase1) + phase2, 2)
 
-        # Correcting for phase due to Pauli multiplicatio
+        # Correcting for phase due to Pauli multiplication
         ifacts = np.zeros(2 * num_qubits, dtype=np.int)
 
         for k in range(2 * num_qubits):
