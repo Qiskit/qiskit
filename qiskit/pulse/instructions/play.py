@@ -57,7 +57,10 @@ class Play(Instruction):
         """A description of the samples that will be played.
 
         Returns:
-            qiskit.pulse.Pulse: A subclass of ``Pulse``, e.g. ``SamplePulse`` or ``Gaussian``.
+            :class:`~qiskit.pulse.pulse_lib.Pulse`: A subclass of 
+            :class:`~qiskit.pulse.pulse_lib.Pulse`, e.g. 
+            :class:`~qiskit.pulse.pulse_lib.SamplePulse` or 
+            :class:`~qiskit.pulse.pulse_lib.Gaussian`.
         """
         return self._pulse
 
