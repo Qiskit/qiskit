@@ -287,23 +287,6 @@ def right_align(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def sequential(schedule: Schedule) -> Schedule:
-    """Align a list of pulse instructions sequentially in time.
-
-    Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        applied sequentially across channels
-    """
-    aligned = Schedule()
-    for child in schedule._children:
-        aligned.insert(aligned.duration, child, mutate=True)
-    return aligned
-
-
 def left_barrier(schedule: Schedule,
                  channels: Optional[Iterable[Channel]] = None
                  ) -> Schedule:
@@ -342,3 +325,38 @@ def right_barrier(schedule: Schedule,
     """
     aligned = right_align(schedule)
     return pad(aligned, channels=channels)
+
+
+def sequentialize(schedule: Schedule) -> Schedule:
+    """Schedule all top-level nodes in parallel.
+
+    Args:
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+
+    Returns:
+        New schedule with input `schedule`` child schedules and instructions
+        applied sequentially across channels
+    """
+    aligned = Schedule()
+    for child in schedule._children:
+        aligned.insert(aligned.duration, child, mutate=True)
+    return aligned
+
+
+def parallelize(schedule):
+    """Schedule all top-level nodes in parallel."""
+    raise NotImplementedError()
+
+
+def group(schedule):
+    """Group all instructions in a node.
+
+    With the current schedule implementation this is trivial.
+    """
+    return schedule
+
+
+def flatten(schedule):
+    """Flatten any grouped nodes."""
+    return schedule.flatten()

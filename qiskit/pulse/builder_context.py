@@ -132,10 +132,10 @@ syntax. For example::
 import contextvars
 import functools
 from contextlib import contextmanager
-from typing import Callable, Union
+from typing import Any, Callable, Dict, Union
 
+from qiskit.extensions.standard import (CnotGate, U1Gate, U2Gate, U3Gate, XGate)
 from qiskit.circuit import QuantumCircuit
-
 
 from . import Pulse, PulseError, transforms, macros
 from .channels import (AcquireChannel, Channel, MemorySlot,
@@ -213,19 +213,30 @@ def build(backend, schedule):
 
 
 # Builder Utilities ############################################################
-def context_backend():
+def active_builder() -> BuilderContext:
+    """Get the active builder in the current context."""
+    return BUILDER_CONTEXT.get()
+
+
+def active_backend():
     """Get the backend of the current context.
 
     Returns:
         BaseBackend
     """
-    return BUILDER_CONTEXT.get().backend
+    return active_builder().backend
 
 
-def append_statement(statement):
-    """Append a statement in the current builder context."""
-    current_block = BUILDER_CONTEXT.get().current_block
-    current_block.append(statement)
+def append_instruction(instruction: Instruction):
+    """Append an instruction to current context."""
+    current_block = active_builder().current_block
+    current_block.append(instruction)
+
+
+def append_block(block: Schedule):
+    """Append a block to the current block. The current block is not changed."""
+    current_block = active_builder().current_block
+    current_block.append(block)
 
 
 def qubit_channels(qubit: int):
@@ -278,20 +289,56 @@ def right_align():
     """Right align transform builder context."""
 
 
-@_transform_context(transforms.sequential)
+@_transform_context(transforms.sequentialize)
 def sequential():
     """Sequential transform builder context."""
+
+
+@_transform_context(transforms.parallelize)
+def parallel():
+    """Parallel transform builder context."""
+
+
+@_transform_context(transforms.group)
+def group():
+    """Group the instructions within this context fixing their relative timing."""
+
+
+@_transform_context(transforms.flatten)
+def flatten():
+    """Flatten any grouped instructions upon exiting context."""
+
+
+# Compiler Directive Contexts ##################################################
+@contextmanager
+def transpiler_settings(**settings):
+    """Set the current active tranpiler settings for this context."""
+    raise NotImplementedError()
+
+
+@contextmanager
+def circuit_scheduling_settings(**settings):
+    """Set the current active circuit scheduling settings for this context."""
+    raise NotImplementedError()
+
+
+def active_transpiler_settings() -> Dict[str, Any]:
+    """Return current context transpiler settings."""
+
+
+def active_circuit_scheduler_settings() -> Dict[str, Any]:
+    """Return current context circuit scheduler settings."""
 
 
 # Base Instructions ############################################################
 def delay(channel: Channel, duration: int):
     """Delay on a ``channel`` for a ``duration``."""
-    append_statement(Delay(duration, channel))
+    append_instruction(Delay(duration, channel))
 
 
 def play(channel: PulseChannel, pulse: Pulse):
     """Play a ``pulse`` on a ``channel``."""
-    append_statement(Play(pulse, channel))
+    append_instruction(Play(pulse, channel))
 
 
 def acquire(channel: Union[AcquireChannel, int],
@@ -300,16 +347,16 @@ def acquire(channel: Union[AcquireChannel, int],
             **metadata: Union[Kernel, Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result in a ``register``."""
     if isinstance(register, MemorySlot):
-        append_statement(Acquire(duration, channel, mem_slot=register, **metadata))
+        append_instruction(Acquire(duration, channel, mem_slot=register, **metadata))
     elif isinstance(register, RegisterSlot):
-        append_statement(Acquire(duration, channel, reg_slot=register, **metadata))
+        append_instruction(Acquire(duration, channel, reg_slot=register, **metadata))
     raise PulseError(
         'Register of type: "{}" is not supported'.format(type(register)))
 
 
 def set_frequency(channel: PulseChannel, frequency: float):
     """Set the ``frequency`` of a pulse ``channel``."""
-    append_statement(SetFrequency(frequency, channel))
+    append_instruction(SetFrequency(frequency, channel))
 
 
 def shift_frequency(channel: PulseChannel, frequency: float):
@@ -324,24 +371,35 @@ def set_phase(channel: PulseChannel, phase: float):
 
 def shift_phase(channel: PulseChannel, phase: float):
     """Shift the ``phase`` of a pulse ``channel``."""
-    append_statement(ShiftPhase(phase, channel))
+    append_instruction(ShiftPhase(phase, channel))
+
+
+def snapshot(label: str, snapshot_type: str = 'statevector'):
+    """Simulator snapshot."""
+    append_instruction(Snapshot(label, snapshot_type=snapshot_type))
 
 
 def call_schedule(schedule: Schedule):
     """Call a pulse ``schedule`` in the builder context."""
-    raise NotImplementedError()
+    append_block(schedule)
 
 
-def call_circuit(circuit: QuantumCircuit, **settings):
+def call_circuit(circuit: QuantumCircuit, transpile=True):
     """Call a quantum ``circuit`` in the builder context."""
-    sched = schedule_circuit(circuit, context_backend(), **settings)
+    if transpile:
+        circuit = transpile(circuit,
+                            active_backend(),
+                            **active_transpiler_settings())
+    sched = schedule_circuit(circuit,
+                             active_backend(),
+                             **active_circuit_scheduler_settings())
     call_schedule(sched)
 
 
-def call(target: Union[QuantumCircuit, Schedule], **settings):
+def call(target: Union[QuantumCircuit, Schedule]):
     """Call the ``target`` within this builder context."""
     if isinstance(target, QuantumCircuit):
-        call_circuit(target, **settings)
+        call_circuit(target)
     elif isinstance(target, Schedule):
         call_schedule(target)
     raise PulseError(
@@ -350,43 +408,47 @@ def call(target: Union[QuantumCircuit, Schedule], **settings):
 
 # Macros #######################################################################
 def measure(qubit: int):
-    backend = context_backend()
+    backend = active_backend()
     call_schedule(macros.measure(qubits=[qubit],
                   inst_map=backend.defaults().instruction_schedule_map,
                   meas_map=backend.get().configuration().meas_map))
 
 
 def delay_qubit(qubit: int, duration: int):
-    for channel in qubit_channels(qubit):
-        instruction_list.append(Delay(duration)(channel))
+    with parallel(), group():
+        for channel in qubit_channels(qubit):
+            delay(channel, duration)
 
 
 # Gate instructions ############################################################
-def u1(qubit: int, p0):
-    ism = BACKEND_CTX.get().defaults().instruction_schedule_map
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(ism.get('u1', qubit, P0=p0))
+def call_gate(gate, qubits):
+    """Lower a circuit gate to pulse instruction."""
+    try:
+        iter(qubits)
+    except TypeError:
+        qubits = (qubits,)
 
-
-def u2(qubit: int, p0, p1):
-    ism = BACKEND_CTX.get().defaults().instruction_schedule_map
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(ism.get('u2', qubit, P0=p0, P1=p1))
-
-
-def u3(qubit: int, p0, p1, p2):
-    ism = BACKEND_CTX.get().defaults().instruction_schedule_map
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(ism.get('u3', qubit, P0=p0, P1=p1, P2=p2))
+    qc = QuantumCircuit(len(qubits))
+    qc.append(gate, qargs=qubits)
+    with transpiler_settings(initial_layout=qubits):
+        call_circuit(qc)
 
 
 def cx(control: int, target: int):
-    ism = BACKEND_CTX.get().defaults().instruction_schedule_map
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(ism.get('cx', (control, target)))
+    call_gate(CnotGate(), control, target)
+
+
+def u1(qubit: int, theta):
+    call_gate(U1Gate(theta), qubit)
+
+
+def u2(qubit: int, phi, lam):
+    call_gate(U2Gate(phi, lam), qubit)
+
+
+def u3(qubit: int, theta, phi, lam):
+    call_gate(U3Gate(phi, lam), qubit)
 
 
 def x(qubit: int):
-    ism = BACKEND_CTX.get().defaults().instruction_schedule_map
-    instruction_list = INSTRUCTION_LIST_CTX.get()
-    instruction_list.append(ism.get('x', qubit))
+    call_gate(XGate(), qubit)
