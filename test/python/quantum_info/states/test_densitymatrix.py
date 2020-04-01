@@ -708,6 +708,129 @@ class TestDensityMatrix(QiskitTestCase):
             self.assertEqual(len(memory), shots)
             self.assertEqual(set(memory), set(['0', '2']))
 
+    def test_reset_2qubit(self):
+        """Test reset method for 2-qubit state"""
+
+        state = DensityMatrix(np.diag([0.5, 0, 0, 0.5]))
+
+        with self.subTest(msg='reset'):
+            rho = state.copy()
+            value = rho.reset()
+            target = DensityMatrix(np.diag([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset'):
+            rho = state.copy()
+            value = rho.reset([0, 1])
+            target = DensityMatrix(np.diag([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset [0]'):
+            rho = state.copy()
+            value = rho.reset([0])
+            target = DensityMatrix(np.diag([0.5, 0, 0.5, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset [0]'):
+            rho = state.copy()
+            value = rho.reset([1])
+            target = DensityMatrix(np.diag([0.5, 0.5, 0, 0]))
+            self.assertEqual(value, target)
+
+    def test_reset_qutrit(self):
+        """Test reset method for qutrit"""
+
+        state = DensityMatrix(np.diag([1, 1, 1]) / 3)
+        state.seed(200)
+        value = state.reset()
+        target = DensityMatrix(np.diag([1, 0, 0]))
+        self.assertEqual(value, target)
+
+    def test_measure_2qubit(self):
+        """Test measure method for 2-qubit state"""
+
+        state = DensityMatrix.from_label('+0')
+        seed = 200
+        shots = 100
+
+        with self.subTest(msg='measure'):
+            for i in range(shots):
+                rho = state.copy()
+                rho.seed(seed + i)
+                outcome, value = rho.measure()
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [0, 1]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([0, 1])
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1, 0]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([1, 0])
+                self.assertIn(outcome, ['00', '01'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+        with self.subTest(msg='measure [0]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([0])
+                self.assertEqual(outcome, '0')
+                target = DensityMatrix.from_label('+0')
+                self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([1])
+                self.assertIn(outcome, ['0', '1'])
+                if outcome == '0':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+    def test_measure_qutrit(self):
+        """Test measure method for qutrit"""
+
+        state = DensityMatrix(np.diag([1, 1, 1]) / 3)
+        seed = 200
+        shots = 100
+
+        for i in range(shots):
+            rho = state.copy()
+            rho.seed(seed + i)
+            outcome, value = rho.measure()
+            self.assertIn(outcome, ['0', '1', '2'])
+            if outcome == '0':
+                target = DensityMatrix(np.diag([1, 0, 0]))
+                self.assertEqual(value, target)
+            elif outcome == '1':
+                target = DensityMatrix(np.diag([0, 1, 0]))
+                self.assertEqual(value, target)
+            else:
+                target = DensityMatrix(np.diag([0, 0, 1]))
+                self.assertEqual(value, target)
+
 
 if __name__ == '__main__':
     unittest.main()
