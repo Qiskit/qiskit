@@ -343,8 +343,8 @@ class TestCliffordGates(QiskitTestCase):
 
 
 @ddt
-class TestCliffordCircuits(QiskitTestCase):
-    """Stress tests for random clifford circuits."""
+class TestCliffordDecomposition(QiskitTestCase):
+    """Test Clifford decompositions."""
     @combine(gates=[['h', 's'], ['h', 's', 'i', 'x', 'y', 'z'],
                     ['h', 's', 'sdg'], ['h', 's', 'v'], ['h', 's', 'w'],
                     ['h', 's', 'sdg', 'i', 'x', 'y', 'z', 'v', 'w']])
@@ -394,6 +394,62 @@ class TestCliffordCircuits(QiskitTestCase):
             value = Clifford(circ).to_operator()
             target = Operator(circ)
             self.assertTrue(target.equiv(value))
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_to_matrix(self, num_qubits):
+        """Test to_matrix method"""
+        samples = 10
+        num_gates = 10
+        seed = 333
+        gates = 'all'
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits,
+                                           num_gates,
+                                           gates=gates,
+                                           seed=seed + i)
+            mat = Clifford(circ).to_matrix()
+            self.assertIsInstance(mat, np.ndarray)
+            self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+            target = Operator(circ)
+            self.assertTrue(value.equiv(target))
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_to_circuit(self, num_qubits):
+        """Test to_circuit method"""
+        samples = 10
+        num_gates = 10
+        seed = 700
+        gates = 'all'
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits,
+                                           num_gates,
+                                           gates=gates,
+                                           seed=seed + i)
+            decomp = Clifford(circ).to_circuit()
+            self.assertIsInstance(decomp, QuantumCircuit)
+            self.assertEqual(decomp.num_qubits, circ.num_qubits)
+            value = Operator(decomp)
+            target = Operator(circ)
+            self.assertTrue(value.equiv(target))
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_to_instruction(self, num_qubits):
+        """Test to_instruction method"""
+        samples = 10
+        num_gates = 10
+        seed = 800
+        gates = 'all'
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits,
+                                           num_gates,
+                                           gates=gates,
+                                           seed=seed + i)
+            decomp = Clifford(circ).to_instruction()
+            self.assertIsInstance(decomp, Gate)
+            self.assertEqual(decomp.num_qubits, circ.num_qubits)
+            value = Operator(decomp)
+            target = Operator(circ)
+            self.assertTrue(value.equiv(target))
 
 
 @ddt
@@ -593,22 +649,6 @@ class TestCliffordOperators(QiskitTestCase):
             value = Clifford(circ1).dot(Clifford(circ2), qargs)
             target = Clifford(circ)
             self.assertEqual(target, value)
-
-    @combine(num_qubits=[1, 2, 3])
-    def test_to_circuit(self, num_qubits):
-        """Test to_circuit method (decompose)"""
-        samples = 10
-        num_gates = 10
-        seed = 700
-        gates = 'all'
-        for i in range(samples):
-            circ = random_clifford_circuit(num_qubits,
-                                           num_gates,
-                                           gates=gates,
-                                           seed=seed + i)
-            value = Clifford(Clifford(circ).to_circuit()).to_operator()
-            target = Operator(circ)
-            self.assertTrue(value.equiv(target))
 
 
 if __name__ == '__main__':
