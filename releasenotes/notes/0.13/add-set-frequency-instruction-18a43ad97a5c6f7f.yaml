@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    A new instruction :py:class:`~qiskit.pulse.instructions.SetFrequency`
-    which allows users to change the frequency of the
-    :class:`~qiskit.pulse.PulseChannel`. This is done in the following way::
+    A new instruction :py:class:`~qiskit.pulse.SetFrequency` which allows users
+    to change the frequency of the :class:`~qiskit.pulse.PulseChannel`. This is
+    done in the following way::
 
         from qiskit.pulse import Schedule
         from qiskit.pulse import SetFrequency

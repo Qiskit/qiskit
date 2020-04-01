@@ -2,8 +2,8 @@
 features:
   - |
     Add ability to specify control conditioned on a qubit being in the
-    ground state. The state of the control qubits is represented by a
-    decimal integer. For example::
+    ground state. The state of the control qubits is represented by an
+    integer. For example::
 
       from qiskit import QuantumCircuit
       from qiskit.extensions.standard import XGate

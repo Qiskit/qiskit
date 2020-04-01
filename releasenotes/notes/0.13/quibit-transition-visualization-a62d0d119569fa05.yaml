@@ -1,37 +1,38 @@
 ---
 features:
   - |
-    Single-qubit gate transition visualization tool. Give 
-    it a single-qubit circuit and it will return an animation
-    of qubit state transitions. A video codec must be installed
-    on the system in order to use this feature (ffmpeg).
+    A new visualization function
+    :func:`qiskit.visualization.visualize_transition` for visualizing
+    single qubit gate transitions. It takes in a circuit with a single
+    qubit and will return an animation of the. It takes in a single qubit
+    circuit and returns an animation of qubit state transitions on a bloch
+    sphere. To use this function you must have installed
+    the dependencies for and configured globally a matplotlib animtion
+    writer. You can refer to the `matplotlib documentation
+    <https://matplotlib.org/api/animation_api.html#writer-classes>`_ for
+    more details on this. However, in the basic/default case simply ensuring
+    that `FFmpeg <https://www.ffmpeg.org/>`_ is installed is sufficient to
+    use this function.
 
-    Gates h,x, y, z, rx, ry, rz, s, sdg, t, tdg, u1 supported.
+    It supports circuits with the following gates:
 
-    Argument fpg controls how many frames will be drawn per gate
-    and spg controls how many seconds animation will spend drawing
-    each gate transition. Default values make animation very smooth
-    but it takes longer to render in jupyter notebook because the
-    animation must be rendered with a video codec.
+    * :class:`~qiskit.extensions.HGate`
+    * :class:`~qiskit.extensions.XGate`
+    * :class:`~qiskit.extensions.YGate`
+    * :class:`~qiskit.extensions.ZGate`
+    * :class:`~qiskit.extensions.RXGate`
+    * :class:`~qiskit.extensions.RYGate`
+    * :class:`~qiskit.extensions.RZGate`
+    * :class:`~qiskit.extensions.SGate`
+    * :class:`~qiskit.extensions.SdgGate`
+    * :class:`~qiskit.extensions.TGate`
+    * :class:`~qiskit.extensions.TdgGate`
+    * :class:`~qiskit.extensions.U1Gate`
 
-    Optional argument trace controls whether to show trailing points
-    or not. 
+    For example:
 
+    .. jupyter-execute::
 
-    Non-jupyter example::
-
-      from qiskit.visualization import visualize_transition
-      from qiskit import *
-
-      qc = QuantumCircuit(1)
-      qc.h(0)
-      qc.ry(70,0)
-      qc.rx(90,0)
-      qc.rz(120,0)
-
-      visualize_transition(qc)
-
-    Jupyter example with trace::
       from qiskit.visualization import visualize_transition
       from qiskit import *
 

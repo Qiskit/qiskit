@@ -1,17 +1,17 @@
 ---
 features:
   - |
-    Adds the :class:`qiskit.quantum_info.PauliTable` class. This is an efficient
-    symplectic representation of a list of N-qubit Pauli operators. Some features
-    of this class are:
+    A new class :class:`qiskit.quantum_info.PauliTable` has been added. This
+    is an efficient symplectic representation of a list of N-qubit Pauli
+    operators. Some features of this class are:
  
-      * PauliTables may be composed, and tensored which will return a PauliTable
-        with the combination of the operation (
+      * ``PauliTable`` objects may be composed, and tensored which will
+        return a ``PauliTable`` object with the combination of the operation (
         :meth:`~qiskit.quantum_info.PauliTable.compose`,
         :meth:`~qiskit.quantum_info.PauliTable.dot`,
         :meth:`~qiskit.quantum_info.PauliTable.expand`,
-        :meth:`~qiskit.quantum_info.PauliTable.tensor`) between each element of
-        the first table, with each element of the second table.
+        :meth:`~qiskit.quantum_info.PauliTable.tensor`) between each element
+        of  the first table, with each element of the second table.
 
       * Addition of two tables acts as list concatination of the terms in each
         table (``+``).
@@ -24,15 +24,16 @@ features:
 
       * The PauliTable may be iterated over in either its native symplectic
         boolean array representation, as Pauli string labels
-        (:meth:`~qiskit.quantum_info.PauliTable.label_iter`), or as dense Numpy
-        array or sparse CSR matrices
+        (:meth:`~qiskit.quantum_info.PauliTable.label_iter`), or as dense
+        Numpy array or sparse CSR matrices
         (:meth:`~qiskit.quantum_info.PauliTable.matrix_iter`).
 
       * Checking commutation between elements of the Pauli table and another
-        Pauli (:meth:`~qiskit.quantum_info.PauliTable.commutes`) or Pauli table
-        (:meth:`~qiskit.quantum_info.PauliTable.commutes_with_all`)
+        Pauli (:meth:`~qiskit.quantum_info.PauliTable.commutes`) or Pauli
+        table (:meth:`~qiskit.quantum_info.PauliTable.commutes_with_all`)
     
-    See the class API documentation for additional details. 
+    See the :class:`qiskit.quantum_info.PauliTable` class API documentation for
+    additional details.
   - |
     Adds :func:`qiskit.quantum_info.pauli_basis` function which returns an N-qubit
     Pauli basis as a :class:`qiskit.quantum_info.PauliTable` object. The ordering
