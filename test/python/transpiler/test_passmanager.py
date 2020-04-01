@@ -25,7 +25,6 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
 

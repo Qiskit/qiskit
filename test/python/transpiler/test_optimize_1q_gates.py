@@ -23,7 +23,6 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.circuit import Parameter
 
 

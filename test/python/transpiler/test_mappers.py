@@ -78,7 +78,6 @@ import os
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 

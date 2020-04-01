@@ -24,7 +24,6 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
 
 
 class TestCollect2qBlocks(QiskitTestCase):
