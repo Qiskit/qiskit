@@ -129,6 +129,8 @@ stages:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -235,6 +237,8 @@ stages:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -295,6 +299,8 @@ stages:
             python.version: '3.7'
           Python38:
             python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -350,6 +356,8 @@ stages:
             python.version: '3.5'
           Python38:
             python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -406,6 +414,8 @@ stages:
             python.version: '3.5'
           Python38:
             python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       steps:
         - task: UsePythonVersion@0
           inputs:
