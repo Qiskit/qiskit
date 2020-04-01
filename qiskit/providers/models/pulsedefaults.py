@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-type-doc
+
 """Model and schema for pulse defaults."""
 import warnings
 
@@ -20,7 +22,8 @@ from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema, fields
 from qiskit.validation.base import ObjSchema
-from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
+from qiskit.qobj.models.pulse import PulseLibraryItemSchema, PulseQobjInstructionSchema
+from qiskit.qobj import PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -112,8 +115,6 @@ class PulseDefaults(BaseModel):
     scheduling.
     """
 
-    _freq_warning_done = False
-
     def __init__(self,
                  qubit_freq_est: List[float],
                  meas_freq_est: List[float],
@@ -135,39 +136,26 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self._qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
-        self._meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        """Qubit frequencies in Hertz."""
+        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        """Measurement frequencies in Hertz."""
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
-        self.circuit_instruction_map = InstructionScheduleMap()
+        self.instruction_schedule_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
-            self.circuit_instruction_map.add(inst.name, inst.qubits, schedule)
+            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
     @property
-    def qubit_freq_est(self) -> float:  # pylint: disable=invalid-name
-        """Qubit frequencies in Hertz(Hz)."""
-        # only raise qubit_freq_est warning once
-        if not PulseDefaults._freq_warning_done:
-            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
-                          'Hertz(Hz) rather than gigahertz(GHz).')
-            PulseDefaults._freq_warning_done = True
-
-        return self._qubit_freq_est
-
-    @property
-    def meas_freq_est(self) -> float:  # pylint: disable=invalid-name
-        """Measurement frequencies in Hertz(Hz)."""
-        # only raise qubit_freq_est warning once
-        if not PulseDefaults._freq_warning_done:
-            warnings.warn('`qubit_freq_est` and `meas_freq_est` now have units of '
-                          'Hertz(Hz) rather than gigahertz(GHz).')
-            PulseDefaults._freq_warning_done = True
-
-        return self._meas_freq_est
+    def circuit_instruction_map(self):
+        """Deprecated property, use ``instruction_schedule_map`` instead."""
+        warnings.warn("The `circuit_instruction_map` attribute has been renamed to "
+                      "`instruction_schedule_map`.", DeprecationWarning)
+        return self.instruction_schedule_map
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
@@ -175,17 +163,5 @@ class PulseDefaults(BaseModel):
         qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
         mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
         return ("<{name}({insts}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, insts=str(self.circuit_instruction_map),
+                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedule_map),
                           qfreq=qfreq, mfreq=mfreq))
-
-    def build_cmd_def(self) -> InstructionScheduleMap:
-        """
-        Return the InstructionScheduleMap built for this PulseDefaults instance.
-
-        Returns:
-            InstructionScheduleMap: Generated from defaults.
-        """
-        warnings.warn("This method is deprecated. Returning a InstructionScheduleMap instead. "
-                      "This can be accessed simply through the `circuit_instruction_map` attribute "
-                      "of this PulseDefaults instance.", DeprecationWarning)
-        return self.circuit_instruction_map

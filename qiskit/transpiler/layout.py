@@ -212,7 +212,7 @@ class Layout():
            qr_2 -> 2        2 <- q_1         qr_2 -> q_1
            qr_3 -> 3        3 <- q_0         qr_3 -> q_0
 
-        The edge map is used to compose dags via, for example, compose_back.
+        The edge map is used to compose dags via, for example, compose.
 
         Args:
             another_layout (Layout): The other layout to combine.
@@ -264,9 +264,9 @@ class Layout():
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
-        n_qubits = sum(reg.size for reg in qregs)
+        num_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
-        if len(int_list) < n_qubits:
+        if len(int_list) < num_qubits:
             err_msg = 'Integer list length must equal number of qubits in circuit.'
             raise LayoutError(err_msg)
         out = Layout()
@@ -298,7 +298,7 @@ class Layout():
         for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif isinstance(virtual, Qubit):
+            if isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical

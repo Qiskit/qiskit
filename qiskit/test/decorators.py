@@ -76,13 +76,8 @@ def slow_test(func):
     return _wrapper
 
 
-def _get_credentials(test_object, test_options):
+def _get_credentials():
     """Finds the credentials for a specific test and options.
-
-    Args:
-        test_object (QiskitTestCase): The test object asking for credentials
-        test_options (dict): Options after QISKIT_TESTS was parsed by
-            get_test_options.
 
     Returns:
         Credentials: set of credentials
@@ -95,7 +90,9 @@ def _get_credentials(test_object, test_options):
                                                        discover_credentials)
     except ImportError:
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
-                                'and is required for executing online tests.')
+                                'and is required for executing online tests. '
+                                'To install, run "pip install qiskit-ibmq-provider" '
+                                'or check your installation.')
 
     if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
@@ -128,7 +125,7 @@ def requires_qe_access(func):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        credentials = _get_credentials(self, TEST_OPTIONS)
+        credentials = _get_credentials()
         self.using_ibmq_credentials = credentials.is_ibmq()
         kwargs.update({'qe_token': credentials.token,
                        'qe_url': credentials.url})
@@ -173,7 +170,7 @@ def online_test(func):
         if not HAS_NET_CONNECTION:
             raise unittest.SkipTest("Test requires internet connection.")
 
-        credentials = _get_credentials(self, TEST_OPTIONS)
+        credentials = _get_credentials()
         self.using_ibmq_credentials = credentials.is_ibmq()
         kwargs.update({'qe_token': credentials.token,
                        'qe_url': credentials.url})

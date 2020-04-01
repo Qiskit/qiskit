@@ -17,6 +17,7 @@ Statevector quantum state class.
 """
 
 import re
+import warnings
 from numbers import Number
 
 import numpy as np
@@ -25,7 +26,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.quantum_info.states.counts import state_to_counts
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -65,9 +65,9 @@ class Statevector(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if a Statevector has norm 1."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         norm = np.linalg.norm(self.data)
         return np.allclose(norm, 1, rtol=rtol, atol=atol)
 
@@ -139,7 +139,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -158,7 +158,7 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -195,8 +195,11 @@ class Statevector(QuantumState):
 
         Raises:
             QiskitError: if the operator dimension does not match the
-            specified Statevector subsystem dimensions.
+                         specified Statevector subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
@@ -248,43 +251,169 @@ class Statevector(QuantumState):
         if self.dim != other.dim:
             return False
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
+
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+
+        Examples:
+
+            Consider a 2-qubit product state
+            :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import Statevector
+
+                psi = Statevector.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = psi.probabilities()
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring only qubit-0
+                probs_qubit_0 = psi.probabilities([0])
+                print('Qubit-0 probs: {}'.format(probs_qubit_0))
+
+                # Probabilities for measuring only qubit-1
+                probs_qubit_1 = psi.probabilities([1])
+                print('Qubit-1 probs: {}'.format(probs_qubit_1))
+
+            We can also permute the order of qubits in the ``qargs`` list
+            to change the qubit position in the probabilities output
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import Statevector
+
+                psi = Statevector.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = psi.probabilities([0, 1])
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring both qubits
+                # but swapping qubits 0 and 1 in output
+                probs_swapped = psi.probabilities([1, 0])
+                print('Swapped probs: {}'.format(probs_swapped))
+        """
+        probs = self._subsystem_probabilities(
+            np.abs(self.data) ** 2, self._dims, qargs=qargs)
+        if decimals is not None:
+            probs = probs.round(decimals=decimals)
+        return probs
+
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            Statevector: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform a measurement on those subsystems and
+            evolve the subsystems so that the collapsed post-measurement
+            states are rotated to the 0-state. The RNG seed for this
+            sampling can be set using the :meth:`seed` method.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(self._dim, dtype=complex)
+            state[0] = 1
+            return Statevector(state, dims=self._dims)
+
+        # Sample a single measurement outcome
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Rotate outcome to 0
+        reset = np.eye(len(probs))
+        reset[0, 0] = 0
+        reset[sample, sample] = 0
+        reset[0, sample] = 1
+
+        # compose with reset projection
+        reset = np.dot(reset, np.diag(proj))
+        return self.evolve(
+            Operator(reset, input_dims=dims, output_dims=dims),
+            qargs=qargs)
 
     def to_counts(self):
         """Returns the statevector as a counts dict
         of probabilities.
 
+        DEPRECATED: use :meth:`probabilities_dict` instead.
+
         Returns:
             dict: Counts of probabilities.
         """
-        return state_to_counts(self.data.ravel(), self._atol)
+        warnings.warn(
+            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
+            ' and will be removed no earlier than 3 months after that '
+            'release date. You should use the `Statevector.probabilities_dict`'
+            ' method instead.', DeprecationWarning, stacklevel=2)
+        return self.probabilities_dict()
 
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
 
+        .. list-table:: Single-qubit state labels
+           :header-rows: 1
+
+           * - Label
+             - Statevector
+           * - ``"0"``
+             - :math:`[1, 0]`
+           * - ``"1"``
+             - :math:`[0, 1]`
+           * - ``"+"``
+             - :math:`[1 / \\sqrt{2},  1 / \\sqrt{2}]`
+           * - ``"-"``
+             - :math:`[1 / \\sqrt{2},  -1 / \\sqrt{2}]`
+           * - ``"r"``
+             - :math:`[1 / \\sqrt{2},  i / \\sqrt{2}]`
+           * - ``"l"``
+             - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
+
         Args:
-            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+            label (string): a eigenstate string ket label (see table for
+                            allowed values).
 
         Returns:
             Statevector: The N-qubit basis state density matrix.
 
         Raises:
-            QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
-
-        Additional Information:
-            The labels correspond to the single-qubit states:
-            '0': [1, 0]
-            '1': [0, 1]
-            '+': [1 / sqrt(2), 1 / sqrt(2)]
-            '-': [1 / sqrt(2), -1 / sqrt(2)]
-            'r': [1 / sqrt(2), 1j / sqrt(2)]
-            'l': [1 / sqrt(2), -1j / sqrt(2)]
+            QiskitError: if the label contains invalid characters, or the
+                         length of the label is larger than an explicitly
+                         specified num_qubits.
         """
         # Check label is valid
         if re.match(r'^[01rl\-+]+$', label) is None:
@@ -325,19 +454,19 @@ class Statevector(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output statevector of an instruction.
 
-        The statevector is initialized in the state |0,...,0> of the same
-        number of qubits as the input instruction or circuit, evolved
+        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
+        same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             Statevector: The final statevector.
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
-            the statevector simulation.
+                         the statevector simulation.
         """
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -348,6 +477,68 @@ class Statevector(QuantumState):
         vec = Statevector(init, dims=instruction.num_qubits * [2])
         vec._append_instruction(instruction)
         return vec
+
+    def to_dict(self, decimals=None):
+        r"""Convert the statevector to dictionary form.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            decimals (None or int): the number of decimal places to round
+                                    values. If None no rounding is done
+                                    (Default: None).
+
+        Returns:
+            dict: the dictionary form of the Statevector.
+
+        Example:
+
+            The ket-form of a 2-qubit statevector
+            :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import Statevector
+
+                psi = Statevector.from_label('-0')
+                print(psi.to_dict())
+
+            For non-qubit subsystems the integer range can go from 0 to 9. For
+            example in a qutrit system
+
+            .. jupyter-execute::
+
+                import numpy as np
+                from qiskit.quantum_info import Statevector
+
+                vec = np.zeros(9)
+                vec[0] = 1 / np.sqrt(2)
+                vec[-1] = 1 / np.sqrt(2)
+                psi = Statevector(vec, dims=(3, 3))
+                print(psi.to_dict())
+
+            For large subsystem dimensions delimeters are required. The
+            following example is for a 20-dimensional system consisting of
+            a qubit and 10-dimensional qudit.
+
+            .. jupyter-execute::
+
+                import numpy as np
+                from qiskit.quantum_info import Statevector
+
+                vec = np.zeros(2 * 10)
+                vec[0] = 1 / np.sqrt(2)
+                vec[-1] = 1 / np.sqrt(2)
+                psi = Statevector(vec, dims=(2, 10))
+                print(psi.to_dict())
+        """
+        return self._vector_to_dict(self.data,
+                                    self._dims,
+                                    decimals=decimals,
+                                    string_labels=True)
 
     @property
     def _shape(self):

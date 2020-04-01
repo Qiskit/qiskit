@@ -19,14 +19,6 @@ Transpiler (:mod:`qiskit.transpiler`)
 
 .. currentmodule:: qiskit.transpiler
 
-Circuit Transpilation
-=====================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   transpile_circuit
-
 Pass Managment
 ==============
 
@@ -73,4 +65,3 @@ from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
-from .transpile_circuit import transpile_circuit

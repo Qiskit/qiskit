@@ -159,8 +159,8 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
     def test_preserve_measure_for_conditional(self):
         """Test barrier is inserted after any measurements used for conditionals
 
-         q0:--[H]--[m]------------     q0:--[H]--[m]---------------
-                    |                             |
+         q0:--[H]--[m]------------     q0:--[H]--[m]-------|-------
+                    |                             |        |
          q1:--------|--[ z]--[m]--  -> q1:--------|--[ z]--|--[m]--
                     |    |    |                   |    |       |
          c0:--------.--[=1]---|---     c0:--------.--[=1]------|---
@@ -182,7 +182,7 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
         expected.h(qr0)
         expected.measure(qr0, cr0)
         expected.z(qr1).c_if(cr0, 1)
-        expected.barrier(qr1)
+        expected.barrier(qr0, qr1)
         expected.measure(qr1, cr1)
 
         pass_ = BarrierBeforeFinalMeasurements()

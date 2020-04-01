@@ -17,10 +17,11 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
+import warnings
 from typing import Union, Tuple, Optional
 
 import numpy as np
-from qiskit.pulse import PulseError
+from qiskit.pulse.exceptions import PulseError
 
 
 def constant(times: np.ndarray, amp: complex) -> np.ndarray:
@@ -42,42 +43,82 @@ def zero(times: np.ndarray) -> np.ndarray:
     return constant(times, 0)
 
 
-def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def square(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+           phase: float = 0) -> np.ndarray:
     """Continuous square wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    x = times/period+phase/np.pi
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    x = times*freq+phase/np.pi
     return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
 
 
-def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def sawtooth(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+             phase: float = 0) -> np.ndarray:
     """Continuous sawtooth wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    x = times/period+phase/np.pi
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    x = times*freq+phase/np.pi
     return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
 
 
-def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def triangle(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+             phase: float = 0) -> np.ndarray:
     """Continuous triangle wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    return amp*(-2*np.abs(sawtooth(times, 1, period, (phase-np.pi/2)/2)) + 1).astype(np.complex_)
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    return amp*(-2*np.abs(
+        sawtooth(times, 1, freq, phase=(phase-np.pi/2)/2)) + 1).astype(np.complex_)
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -184,7 +225,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         ret_gaussian: Return gaussian with which derivative was taken with.
     """
     gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
-    gauss_deriv = -x/sigma*gauss
+    gauss_deriv = -x / sigma * gauss
     if ret_gaussian:
         return gauss_deriv, gauss
     return gauss_deriv
@@ -317,7 +358,6 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
         in a weakly nonlinear oscillator. Phys. Rev. A 83, 012308 (2011).
-
 
     Args:
         times: Times to output pulse for.

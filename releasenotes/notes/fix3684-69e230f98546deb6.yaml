@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The MPL drawer has been fixed and renders cU1 gate correctly.
+    Fixes `issue #3684 <https://github.com/Qiskit/qiskit-terra/issues/3684>`

@@ -18,7 +18,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +35,22 @@ def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
         circuit.cu3(theta, phi, lam, control, target)
 
 
+def _generate_gray_code(num_bits):
+    if num_bits <= 0:
+        raise QiskitError("Must have at least 1 control in a controlled gate")
+    result = [0]
+    for i in range(num_bits):
+        result += [x + 2**i for x in reversed(result)]
+    return [format(x, "0%sb" % num_bits) for x in result]
+
+
 def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
     """Apply multi-controlled u3 gate from ctls to tgt using graycode
     pattern with single-step angles theta, phi, lam."""
 
     n = len(ctls)
 
-    from sympy.combinatorics.graycode import GrayCode
-    gray_code = list(GrayCode(n).generate_gray())
+    gray_code = _generate_gray_code(n)
     last_pattern = None
 
     for pattern in gray_code:
@@ -94,7 +102,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:
@@ -142,7 +150,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:
@@ -159,7 +167,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     if q_ancillae is None:
         ancillary_qubits = []
     elif isinstance(q_ancillae, QuantumRegister):
-        ancillary_qubits = [qb for qb in q_ancillae]
+        ancillary_qubits = list(q_ancillae)
     elif isinstance(q_ancillae, list):
         ancillary_qubits = q_ancillae
     else:
@@ -206,7 +214,7 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
 
     # check controls
     if isinstance(q_controls, QuantumRegister):
-        control_qubits = [qb for qb in q_controls]
+        control_qubits = list(q_controls)
     elif isinstance(q_controls, list):
         control_qubits = q_controls
     else:

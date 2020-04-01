@@ -522,17 +522,16 @@ def _latex_circuit_drawer(circuit,
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                base + '.pdf', base])
+                                base + '.pdf', base], check=True)
                 image = Image.open(base + '.png')
                 image = utils._trim(image)
                 os.remove(base + '.png')
                 if filename:
                     image.save(filename, 'PNG')
-            except OSError as ex:
-                if ex.errno == errno.ENOENT:
-                    logger.warning('WARNING: Unable to convert pdf to image. '
-                                   'Is `poppler` installed? '
-                                   'Skipping circuit drawing...')
+            except (OSError, subprocess.CalledProcessError) as ex:
+                logger.warning('WARNING: Unable to convert pdf to image. '
+                               'Is `poppler` installed? '
+                               'Skipping circuit drawing...')
                 raise
         return image
 

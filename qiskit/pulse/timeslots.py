@@ -280,7 +280,7 @@ class TimeslotCollection:
 
             if interval.start >= ch_interval.stop:
                 break
-            elif interval.has_overlap(ch_interval):
+            if interval.has_overlap(ch_interval):
                 overlap_start = interval.start if interval.start > ch_interval.start \
                     else ch_interval.start
                 overlap_end = ch_interval.stop if interval.stop > ch_interval.stop \

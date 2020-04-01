@@ -54,7 +54,7 @@
             "type": "array"
         },
         "complex_matrix": {
-            "description": "JSON representaiton of a complex matrix",
+            "description": "JSON representation of a complex matrix",
             "items": {
                 "$ref": "#/definitions/complex_array"
             },
@@ -96,7 +96,8 @@
                                 "enum": [
                                     "pv",
                                     "fc",
-                                    "acquire"
+                                    "acquire",
+                                    "parametric_pulse"
                                 ]
                             }
                         }
@@ -151,6 +152,24 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "parametric_pulse"
+                            ]
+                        },
+                        "pulse_shape": {"type": "string"},
+                        "parameters": {"type": "object"}
+                    },
+                    "required": [
+                        "pulse_shape",
+                        "parameters",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Parametric pulse"
                 },
                 {
                     "properties": {
@@ -887,7 +906,6 @@
                     "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
                     "properties": {
                         "max_credits": {
-                            "default": 3,
                             "type": "integer"
                         },
                         "memory_slots": {
@@ -901,7 +919,6 @@
                             "type": "integer"
                         },
                         "seed": {
-                            "default": 1,
                             "type": "integer"
                         },
                         "shots": {
