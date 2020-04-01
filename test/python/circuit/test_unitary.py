@@ -23,7 +23,6 @@ from numpy.testing import assert_allclose
 import qiskit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
@@ -102,7 +101,6 @@ class TestUnitaryCircuit(QiskitTestCase):
 
     def test_2q_unitary(self):
         """test 2 qubit unitary matrix"""
-        backend = BasicAer.get_backend('qasm_simulator')
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -114,7 +112,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
         passman.append(CXCancellation())
-        qc2 = transpile(qc, backend, pass_manager=passman)
+        qc2 = transpile(qc, pass_manager=passman)
         # test of qasm output
         self.log.info(qc2.qasm())
         # test of text drawer
