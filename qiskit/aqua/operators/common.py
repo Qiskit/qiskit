@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -42,7 +42,7 @@ def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
     Returns:
         QuantumCircuit: the original circuit object with post-rotation gate
     """
-    num_qubits = pauli.numberofqubits
+    num_qubits = pauli.num_qubits
     for qubit_idx in range(num_qubits):
         if pauli.x[qubit_idx]:
             if pauli.z[qubit_idx]:
@@ -260,7 +260,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
     if not isinstance(power, (int, np.int)) or power < 1:
         raise AquaError("power must be an integer and greater or equal to 1.")
 
-    state_registers = QuantumRegister(pauli_list[0][1].numberofqubits)
+    state_registers = QuantumRegister(pauli_list[0][1].num_qubits)
     if controlled:
         inst_name = 'Controlled-Evolution^{}'.format(power)
         ancillary_registers = QuantumRegister(1)
@@ -275,7 +275,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
     top_xyz_pauli_indices = [-1] * len(pauli_list)
 
     for pauli_idx, pauli in enumerate(reversed(pauli_list)):
-        n_qubits = pauli[1].numberofqubits
+        n_qubits = pauli[1].num_qubits
         # changes bases if necessary
         nontrivial_pauli_indices = []
         for qubit_idx in range(n_qubits):
