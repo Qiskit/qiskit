@@ -28,13 +28,15 @@ class LinearPauliRotations(FunctionalPauliRotations):
     For a register of state qubits |x>, a target qubit |0> and the basis 'Y' this
     circuit acts as:
 
-    q_0:     |0>─────────────────────────■───────── ... ──────────────────────
+    .. parsed-literal::
+
+        q_0     ─────────────────────────■───────── ... ──────────────────────
                                          │
                                          .
                                          │
-    q_(n-1): |0>─────────────────────────┼───────── ... ───────────■──────────
+        q_(n-1) ─────────────────────────┼───────── ... ───────────■──────────
                  ┌────────────┐  ┌───────┴───────┐       ┌─────────┴─────────┐
-    q_n:     |0>─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
+        q_n     ─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
                  └────────────┘  └───────────────┘       └───────────────────┘
 
     This can for example be used to approximate linear functions, with :math:`a/2` = slope
