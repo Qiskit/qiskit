@@ -23,6 +23,9 @@ from scipy import stats
 from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
 
+# pylint: disable=unused-import
+from .symplectic import random_clifford
+
 
 def random_unitary(dims, seed=None):
     """Return a random unitary Operator.

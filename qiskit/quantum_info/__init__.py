@@ -92,6 +92,7 @@ Random
    random_density_matrix
    random_unitary
    random_hermitian
+   random_clifford
    random_quantum_channel
    random_state
 
@@ -132,7 +133,7 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
 from .states.states import basis_state, projector
 
 from .random import (random_quantum_channel, random_unitary,
-                     random_hermitian, random_statevector,
+                     random_clifford, random_hermitian, random_statevector,
                      random_density_matrix, random_state)
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)
