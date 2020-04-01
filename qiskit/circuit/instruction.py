@@ -140,13 +140,6 @@ class Instruction:
             self._params.append(self.normalize_parameter(single_param))
 
     def normalize_parameter(self, parameter):
-        if isinstance(parameter, (int, float, ParameterExpression, numpy.ndarray)):
-            return parameter
-        # example: u2(pi/2, sin(pi/4))
-        # example: u3(0.1, 0.2, 0.3)
-        # example: Initialize([complex(0,1), complex(0,0)])
-        # example: snapshot('label')
-        # example: Aer expectation_value_snapshot [complex, 'X']
         if isinstance(parameter, (ParameterExpression, int, float, complex, str, list)):
             return parameter
         # example: numpy.array([[1, 0], [0, 1]])
