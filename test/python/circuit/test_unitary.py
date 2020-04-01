@@ -112,7 +112,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
         passman.append(CXCancellation())
-        qc2 = transpile(qc, pass_manager=passman)
+        qc2 = passman.run(qc)
         # test of qasm output
         self.log.info(qc2.qasm())
         # test of text drawer
