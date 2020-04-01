@@ -169,7 +169,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
         return circuits
 
-    if pass_manager:
+    if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
