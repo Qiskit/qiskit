@@ -175,6 +175,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     backend_properties=backend_properties,
                                     initial_layout=initial_layout, layout_method=layout_method,
                                     routing_method=routing_method, backend=backend)
+
+        warnings.warn("The parameter pass_manager in transpile is being deprecated. "
+                      "The preferred way to tranpile a circuit using a custom pass manager is"
+                      " pass_manager.run(circuit)", DeprecationWarning, stacklevel=2)
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
