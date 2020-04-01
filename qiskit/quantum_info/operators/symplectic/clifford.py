@@ -23,8 +23,9 @@ from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
+from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from .stabilizer_table import StabilizerTable
-from .clifford_circuits import _append_circuit, decompose_clifford
+from .clifford_circuits import _append_circuit
 
 
 class Clifford(BaseOperator):
