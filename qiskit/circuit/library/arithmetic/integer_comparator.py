@@ -19,7 +19,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.aqua.circuits.gates import logical_or  # pylint: disable=unused-import
 
 
 class IntegerComparator(QuantumCircuit):

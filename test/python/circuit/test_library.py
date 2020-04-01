@@ -14,6 +14,7 @@
 
 """Test library of quantum circuits."""
 
+import unittest
 from collections import defaultdict
 from ddt import ddt, data, unpack
 import numpy as np
