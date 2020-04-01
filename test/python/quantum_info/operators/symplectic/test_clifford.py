@@ -22,6 +22,7 @@ from ddt import ddt
 import numpy as np
 
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
 from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate, HGate,
                                         SGate, SdgGate, CXGate, CZGate,
@@ -410,6 +411,7 @@ class TestCliffordDecomposition(QiskitTestCase):
             mat = Clifford(circ).to_matrix()
             self.assertIsInstance(mat, np.ndarray)
             self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+            value = Operator(mat)
             target = Operator(circ)
             self.assertTrue(value.equiv(target))
 
@@ -649,6 +651,73 @@ class TestCliffordOperators(QiskitTestCase):
             value = Clifford(circ1).dot(Clifford(circ2), qargs)
             target = Clifford(circ)
             self.assertEqual(target, value)
+
+    def test_to_dict(self):
+        """Test to_dict method"""
+
+        with self.subTest(msg="Identity"):
+            cliff = Clifford(np.eye(8))
+            value = cliff.to_dict()
+
+            keys_value = set(value.keys())
+            keys_target = set(['destabilizer', 'stabilizer'])
+            self.assertEqual(keys_value, keys_target)
+
+            stabilizer_value = set(value['stabilizer'])
+            stabilizer_target = set(['+IIIZ', '+IIZI', '+IZII', '+ZIII'])
+            self.assertEqual(stabilizer_value, stabilizer_target)
+
+            destabilizer_value = set(value['destabilizer'])
+            destabilizer_target = set(['+IIIX', '+IIXI', '+IXII', '+XIII'])
+            self.assertEqual(destabilizer_value, destabilizer_target)
+
+        with self.subTest(msg="bell"):
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+            cliff = Clifford(qc)
+            value = cliff.to_dict()
+
+            keys_value = set(value.keys())
+            keys_target = set(['destabilizer', 'stabilizer'])
+            self.assertEqual(keys_value, keys_target)
+
+            stabilizer_value = set(value['stabilizer'])
+            stabilizer_target = set(['+XX', '+ZZ'])
+            self.assertEqual(stabilizer_value, stabilizer_target)
+
+            destabilizer_value = set(value['destabilizer'])
+            destabilizer_target = set(['+IZ', '+XI'])
+            self.assertEqual(destabilizer_value, destabilizer_target)
+
+    def test_from_dict(self):
+        """Test from_dict method"""
+
+        with self.subTest(msg='test raises not unitary'):
+            cliff_dict = {
+                "stabilizer": ['+XX', '+ZZ'],
+                "destabilizer": ['+IZ', '+IY']}
+            self.assertRaises(QiskitError, Clifford.from_dict, cliff_dict)
+
+        with self.subTest(msg='test raises wrong shape'):
+            cliff_dict = {
+                "stabilizer": ['+XX', '+ZZ', '+YY'],
+                "destabilizer": ['+IZ', '+XI', '+IY']}
+            self.assertRaises(QiskitError, Clifford.from_dict, cliff_dict)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_dict_round_trip(self, num_qubits):
+        """Test round trip conversion to and from dict"""
+        num_gates = 10
+        seed = 655
+        gates = 'all'
+        circ = random_clifford_circuit(num_qubits,
+                                       num_gates,
+                                       gates=gates,
+                                       seed=seed + num_qubits)
+        target = Clifford(circ)
+        value = Clifford.from_dict(target.to_dict())
+        self.assertEqual(value, target)
 
 
 if __name__ == '__main__':
