@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
@@ -318,21 +319,17 @@ class QuantumState(ABC):
             self.dims(qargs),
             string_labels=True)
 
-    def sample_measure(self, qargs=None, shots=1, memory=False):
-        """Sample measurement outcomes in the computational basis.
+    def sample_memory(self, shots, qargs=None):
+        """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
+            shots (int): number of samples to generate.
             qargs (None or list): subsystems to sample measurements for,
                                 if None sample measurement of all
                                 subsystems (Default: None).
-            shots (int): number of samples to generate (Default: 1).
-            memory (bool): if True return a list of all samples in order
-                        otherwise return a counts dictionary of samples
-                        (Default: False).
 
         Returns:
-            dict: sampled counts dict if ``memory=False``.
-            np.array: sampled counts in order if ``memory=True``.
+            np.array: list of sampled counts if the order sampled.
 
         Additional Information:
 
@@ -352,15 +349,76 @@ class QuantumState(ABC):
             np.arange(len(probs)), self.dims(qargs), string_labels=True)
 
         # Sample outcomes
-        samples = self._rng.choice(labels, p=probs, size=shots)
+        return self._rng.choice(labels, p=probs, size=shots)
 
-        if memory:
-            # Return all samples in order they were generated
-            return samples
+    def sample_counts(self, shots, qargs=None):
+        """Sample a dict of qubit measurement outcomes in the computational basis.
+
+        Args:
+            shots (int): number of samples to generate.
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+
+        Returns:
+            dict: sampled counts dictionary.
+
+        Additional Information:
+
+            This function *samples* measurement outcomes using the measure
+            :meth:`probabilities` for the current state and `qargs`. It does
+            not actually implement the measurement so the current state is
+            not modified.
+
+            The seed for random number generator used for sampling can be
+            set to a fixed value by using the stats :meth:`seed` method.
+        """
+        # Sample list of outcomes
+        samples = self.sample_memory(shots, qargs=qargs)
 
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)
         return dict(zip(inds, counts))
+
+    def measure(self, qargs=None):
+        """Measure subsystems and return outcome and post-measure state.
+
+        Note that this function uses the QuantumStates internal random
+        number generator for sampling the measurement outcome. The RNG
+        seed can be set using the :meth:`seed` method.
+
+        Args:
+            qargs (list or None): subsystems to sample measurements for,
+                                  if None sample measurement of all
+                                  subsystems (Default: None).
+
+        Returns:
+            tuple: the pair ``(outcome, state)`` where ``outcome`` is the
+                   measurement outcome string label, and ``state`` is the
+                   collapsed post-measurement state for the corresponding
+                   outcome.
+        """
+        # Sample a single measurement outcome from probabilities
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Format outcome
+        outcome = self._index_to_ket_array(
+            sample, self.dims(qargs), string_labels=True)[0]
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Update state object
+        # TODO: implement a more efficient state update method for
+        # diagonal matrix multiplication
+        ret = self.evolve(
+            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
+            qargs=qargs)
+
+        return outcome, ret
 
     @classmethod
     def _automatic_dims(cls, dims, size):
