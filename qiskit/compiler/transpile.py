@@ -159,7 +159,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         The transpiled circuit(s).
 
     Raises:
-        TranspilerError: in case of bad inputs to transpiler or errors in passes
+        TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
+            or errors in passes
     """
     circuits = circuits if isinstance(circuits, list) else [circuits]
 
@@ -170,6 +171,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     if pass_manager and optimization_level:
         raise TranspilerError("The parameters pass_manager and optimization_level are conflicting.")
+
+    if pass_manager:
+        return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
         config = user_config.get_config()
@@ -182,6 +186,16 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                            seed_transpiler, optimization_level,
                                            pass_manager, callback, output_name)
 
+    _check_circuits_coupling_map(circuits, transpile_args, backend)
+
+    # Transpile circuits in parallel
+    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
+
+    if len(circuits) == 1:
+        return circuits[0]
+    return circuits
+
+def _check_circuits_coupling_map(circuits, transpile_args, backend):
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in
                               transpile_args)
@@ -201,14 +215,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
-
-    # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
-
-    if len(circuits) == 1:
-        return circuits[0]
-    return circuits
-
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
