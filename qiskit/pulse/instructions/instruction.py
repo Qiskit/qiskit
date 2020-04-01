@@ -52,7 +52,7 @@ class Instruction(ScheduleComponent, ABC):
             duration: Length of time taken by the instruction in terms of dt.
                       Deprecated: the first argument used to be the Command.
             *channels: List of pulse channels that this instruction operates on.
-            name: Display name for this instruction.
+            name: Optional display name for this instruction.
         """
         self._command = None
         if not isinstance(duration, int):

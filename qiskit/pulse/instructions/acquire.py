@@ -51,7 +51,7 @@ class Acquire(Instruction):
                  reg_slot: Optional[RegisterSlot] = None,
                  kernel: Optional[Kernel] = None,
                  discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = 'acquire'):
+                 name: Optional[str] = None):
         """Create a new Acquire instruction.
 
         Args:
@@ -106,12 +106,6 @@ class Acquire(Instruction):
                                  "channels.")
         else:
             reg_slot = []
-
-        if name is None and channels is None:
-            name = 'acq{:10x}'.format(hash((duration, kernel, discriminator)))
-        elif name is None:
-            name = 'acq{:10x}'.format(hash((duration, tuple(channels), tuple(mem_slot),
-                                            tuple(reg_slot), kernel, discriminator)))
 
         self._acquires = channels
         self._channel = channels[0] if channels else None

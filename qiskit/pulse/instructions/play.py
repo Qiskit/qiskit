@@ -39,12 +39,12 @@ class Play(Instruction):
             pulse (qiskit.pulse.Pulse): A pulse waveform description, such as
                                         :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
             channel: The channel to which the pulse is applied.
-            name: Name of the instruction for display purposes.
+            name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
         """
         self._pulse = pulse
         self._channel = channel
         if name is None:
-            name = pulse.name if pulse.name is not None else 'play'
+            name = pulse.name
         super().__init__(pulse.duration, channel, name=name)
 
     @property

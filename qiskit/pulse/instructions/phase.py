@@ -42,7 +42,7 @@ class ShiftPhase(Instruction):
 
     def __init__(self, phase: float,
                  channel: Optional[PulseChannel] = None,
-                 name: Optional[str] = 'shiftphase'):
+                 name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
         by ``phase`` [radians].
 

@@ -40,7 +40,7 @@ class Delay(Instruction):
 
     def __init__(self, duration: int,
                  channel: Optional[Channel] = None,
-                 name: Optional[str] = 'delay'):
+                 name: Optional[str] = None):
         """Create a new delay instruction.
 
         No other instruction may be scheduled within a ``Delay``.
