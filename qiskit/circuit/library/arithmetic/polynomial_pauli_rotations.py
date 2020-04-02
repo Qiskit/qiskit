@@ -18,7 +18,6 @@ from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 from sympy.ntheory.multinomial import multinomial_coefficients
-import numpy as np
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
@@ -247,7 +246,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
             elif len(qr_control) == 1:
                 if self.basis == 'x':
-                    self.u3(rotation_coeffs[c], -np.pi / 2, np.pi / 2, qr_control[0], qr_target)
+                    self.crx(rotation_coeffs[c], qr_control[0], qr_target)
                 elif self.basis == 'y':
                     self.cry(rotation_coeffs[c], qr_control[0], qr_target)
                 else:

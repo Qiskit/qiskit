@@ -14,7 +14,6 @@
 
 """Test library of quantum circuits."""
 
-import unittest
 from collections import defaultdict
 from ddt import ddt, data, unpack
 import numpy as np
@@ -306,15 +305,19 @@ class TestIntegerComparator(QiskitTestCase):
 class TestAquaApplications(QiskitTestCase):
     """Test applications of the arithmetic library in Aqua use-cases."""
 
-    @unittest.skip('Aqua integration test pending')
     def test_asian_barrier_spread(self):
         """Test the asian barrier spread model."""
-        from qiskit.aqua.circuits import WeightedSumOperator, FixedValueComparator as Comparator
-        from qiskit.aqua.components.uncertainty_problems import (
-            UnivariatePiecewiseLinearObjective as PwlObjective,
-            MultivariateProblem
-        )
-        from qiskit.aqua.components.uncertainty_models import MultivariateLogNormalDistribution
+        try:
+            from qiskit.aqua.circuits import WeightedSumOperator, FixedValueComparator as Comparator
+            from qiskit.aqua.components.uncertainty_problems import (
+                UnivariatePiecewiseLinearObjective as PwlObjective,
+                MultivariateProblem
+            )
+            from qiskit.aqua.components.uncertainty_models import MultivariateLogNormalDistribution
+        except ImportError:
+            import warnings
+            warnings.warn('Qiskit Aqua is not installed, skipping the application test.')
+            return
 
         # number of qubits per dimension to represent the uncertainty
         num_uncertainty_qubits = 2
