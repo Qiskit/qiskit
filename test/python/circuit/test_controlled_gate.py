@@ -704,8 +704,11 @@ class TestControlledGate(QiskitTestCase):
         """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
-            free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
-            base_gate = gate_class(*params[:free_params])
+            num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+            free_params = params[:num_free_params]
+            if gate_class in [allGates.MCU1Gate]:
+                free_params[1] = 3
+            base_gate = gate_class(*free_params)
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
@@ -744,6 +747,8 @@ class TestControlledGate(QiskitTestCase):
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
+                elif cls in [allGates.MCU1Gate]:
+                    args[1] = 2
 
                 gate = cls(*args)
                 try:
