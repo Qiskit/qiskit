@@ -71,7 +71,7 @@ class TestUtils(QiskitTestCase):
     def test_measure_with_custom_inst_map(self):
         """Test measure with custom inst_map, meas_map with measure_name."""
         q0_sched = GaussianSquare(1200, 1, 0.4, 1150)(MeasureChannel(0))
-        q0_sched += Acquire(1200)(AcquireChannel(0), MemorySlot(0))
+        q0_sched += Acquire(1200, AcquireChannel(0), MemorySlot(0))
         inst_map = InstructionScheduleMap()
         inst_map.add('my_sched', 0, q0_sched)
         sched = measure(qubits=[0],

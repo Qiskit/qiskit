@@ -1,0 +1,7 @@
+---
+prelude: >
+    This release has vastly improved documentation across Qiskit. This
+    includes documentation for the circuit, pulse and quantum_info modules.
+    The documentation can be navigated at
+    `qiskit.org <qiskit.org/documentation>`_.
+    

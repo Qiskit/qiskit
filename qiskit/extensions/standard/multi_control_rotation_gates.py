@@ -19,6 +19,7 @@ import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
+from qiskit.extensions.standard.u3 import _generate_gray_code
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +42,7 @@ def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 
     n = len(ctls)
 
-    from sympy.combinatorics.graycode import GrayCode
-    gray_code = list(GrayCode(n).generate_gray())
+    gray_code = _generate_gray_code(n)
     last_pattern = None
 
     for pattern in gray_code:

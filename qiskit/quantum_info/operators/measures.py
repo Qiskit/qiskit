@@ -59,10 +59,11 @@ def process_fidelity(channel,
         float: The process fidelity :math:`F_{\text{pro}}`.
 
     Raises:
-        QiskitError: if the channel and target do not have the same
-        dimensions, or have different input and output dimensions, or are
-        not completely-positive (with ``require_cp=True``) or not
-        trace-preserving (with ``require_tp=True``).
+        QiskitError: if the channel and target do not have the same dimensions,
+                     or have different input and output dimensions.
+        QiskitError: if the channel and target or are not completely-positive
+                     (with ``require_cp=True``) or not trace-preserving
+                     (with ``require_tp=True``).
     """
     # Format inputs
     if isinstance(channel, (list, np.ndarray, Operator, Pauli)):
@@ -147,10 +148,11 @@ def average_gate_fidelity(channel,
         float: The average gate fidelity :math:`F_{\text{ave}}`.
 
     Raises:
-        QiskitError: if the channel and target do not have the same
-        dimensions, or have different input and output dimensions, or are
-        not completely-positive (with ``require_cp=True``) or not
-        trace-preserving (with ``require_tp=True``).
+        QiskitError: if the channel and target do not have the same dimensions,
+                     or have different input and output dimensions.
+        QiskitError: if the channel and target or are not completely-positive
+                     (with ``require_cp=True``) or not trace-preserving
+                     (with ``require_tp=True``).
     """
     if isinstance(channel, (list, np.ndarray, Operator, Pauli)):
         channel = Operator(channel)
@@ -190,10 +192,11 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
         float: The average gate error :math:`E`.
 
     Raises:
-        QiskitError: if the channel and target do not have the same
-        dimensions, or have different input and output dimensions, or are
-        not completely-positive (with ``require_cp=True``) or not
-        trace-preserving (with ``require_tp=True``).
+        QiskitError: if the channel and target do not have the same dimensions,
+                     or have different input and output dimensions.
+        QiskitError: if the channel and target or are not completely-positive
+                     (with ``require_cp=True``) or not trace-preserving
+                     (with ``require_tp=True``).
     """
     return 1 - average_gate_fidelity(
         channel, target=target, require_cp=require_cp, require_tp=require_tp)

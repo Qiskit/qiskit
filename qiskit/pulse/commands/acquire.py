@@ -12,102 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Acquire.
-"""
+"""Acquire. Deprecated path."""
 import warnings
+
 from typing import Optional, Union, List
 
-from qiskit.pulse.exceptions import PulseError
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..exceptions import PulseError
+
+# pylint: disable=unused-import
+
+from ..instructions import Acquire
 from ..instructions import Instruction
-from .meas_opts import Discriminator, Kernel
-from .command import Command
-
-
-class Acquire(Command):
-    """Acquire."""
-
-    ALIAS = 'acquire'
-    prefix = 'acq'
-
-    def __init__(self, duration: int, kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None):
-        """Create new acquire command.
-
-        Args:
-            duration: Duration of acquisition
-            kernel: The data structures defining the measurement kernels
-                to be used (from the list of available kernels) and set of parameters
-                (if applicable) if the measurement level is 1 or 2.
-            discriminator: Discriminators to be used (from the list of available discriminator)
-                if the measurement level is 2
-            name: Name of this command.
-
-        Raises:
-            PulseError: when invalid discriminator or kernel object is input.
-        """
-        super().__init__(duration=duration)
-
-        self._name = Acquire.create_name(name)
-
-        if kernel and not isinstance(kernel, Kernel):
-            raise PulseError('Invalid kernel object is specified.')
-        self._kernel = kernel
-
-        if discriminator and not isinstance(discriminator, Discriminator):
-            raise PulseError('Invalid discriminator object is specified.')
-        self._discriminator = discriminator
-
-    @property
-    def kernel(self):
-        """Return kernel settings."""
-        return self._kernel
-
-    @property
-    def discriminator(self):
-        """Return discrimination settings."""
-        return self._discriminator
-
-    def __eq__(self, other: 'Acquire'):
-        """Two Acquires are the same if they are of the same type
-        and have the same kernel and discriminator.
-
-        Args:
-            other: Other Acquire
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return (super().__eq__(other) and
-                self.kernel == other.kernel and
-                self.discriminator == other.discriminator)
-
-    def __hash__(self):
-        return hash((super().__hash__(), self.kernel, self.discriminator))
-
-    def __repr__(self):
-        return '%s(duration=%d, kernel=%s, discriminator=%s, name="%s")' % \
-               (self.__class__.__name__, self.duration, self.name,
-                self.kernel, self.discriminator)
-
-    # pylint: disable=arguments-differ
-    def to_instruction(self,
-                       qubit: Union[AcquireChannel, List[AcquireChannel]],
-                       mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                       mem_slots: Optional[Union[List[MemorySlot]]] = None,
-                       reg_slot: Optional[RegisterSlot] = None,
-                       name: Optional[str] = None) -> 'AcquireInstruction':
-
-        return AcquireInstruction(self, qubit, mem_slot=mem_slot, reg_slot=reg_slot,
-                                  mem_slots=mem_slots, reg_slots=reg_slots, name=name)
-    # pylint: enable=arguments-differ
 
 
 class AcquireInstruction(Instruction):
-    """Pulse to acquire measurement result."""
+    """Deprecated."""
 
     def __init__(self,
                  command: Acquire,
@@ -117,6 +37,12 @@ class AcquireInstruction(Instruction):
                  mem_slots: Optional[Union[List[MemorySlot]]] = None,
                  reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
+
+        warnings.warn("The ``AcquireInstruction`` has been deprecated. Please use Acquire with "
+                      "channels instead. For example, AcquireInstruction(Acquire(duration), "
+                      "AcquireChannel(0), MemorySlot(0)) becomes Acquire(duration, "
+                      "AcquireChannel(0), MemorySlot(0)).",
+                      DeprecationWarning)
 
         if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
             warnings.warn('The AcquireInstruction on multiple qubits, multiple '

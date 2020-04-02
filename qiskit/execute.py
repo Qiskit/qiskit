@@ -225,16 +225,21 @@ def execute(experiments, backend,
             job = execute(qc, backend, shots=4321)
     """
     # transpiling the circuits using given transpile options
-    experiments = transpile(experiments,
-                            basis_gates=basis_gates,
-                            coupling_map=coupling_map,
-                            backend_properties=backend_properties,
-                            initial_layout=initial_layout,
-                            seed_transpiler=seed_transpiler,
-                            optimization_level=optimization_level,
-                            backend=backend,
-                            pass_manager=pass_manager,
-                            )
+    if pass_manager is not None:
+        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
+                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
+                                    backend_properties=backend_properties,
+                                    initial_layout=initial_layout, backend=backend)
+        experiments = pass_manager.run(experiments)
+    else:
+        experiments = transpile(experiments,
+                                basis_gates=basis_gates,
+                                coupling_map=coupling_map,
+                                backend_properties=backend_properties,
+                                initial_layout=initial_layout,
+                                seed_transpiler=seed_transpiler,
+                                optimization_level=optimization_level,
+                                backend=backend)
 
     if schedule_circuit:
         if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
@@ -273,3 +278,11 @@ def execute(experiments, backend,
     end_time = time()
     _log_submission_time(start_time, end_time)
     return job
+
+
+def _check_conflicting_argument(**kargs):
+    conflicting_args = [arg for arg, value in kargs.items() if value]
+    if conflicting_args:
+        raise QiskitError("The parameters pass_manager conflicts with the following "
+                          "parameter(s): {}.".format(', '.join(conflicting_args)))
+

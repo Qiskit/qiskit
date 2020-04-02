@@ -18,10 +18,12 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile, assemble
+from qiskit.transpiler import CouplingMap
 from qiskit.extensions.standard import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
+from qiskit.converters import circuit_to_dag
 
 
 def emptycircuit():
@@ -303,6 +305,7 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
 
         ancilla = QuantumRegister(15, 'ancilla')
+
         trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
                           5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
                           9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
@@ -315,19 +318,17 @@ class TestFinalLayouts(QiskitTestCase):
                         15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
                         19: ancilla[14]}
 
-        noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4], 0: ancilla[0],
-                                 1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4],
-                                 7: ancilla[5], 8: ancilla[6], 9: ancilla[7], 12: ancilla[8],
-                                 13: ancilla[9], 14: ancilla[10], 16: ancilla[11], 17: ancilla[12],
-                                 18: ancilla[13], 19: ancilla[14]}
+        # noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4],
+        #                          0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
+        #                          4: ancilla[4], 7: ancilla[5], 8: ancilla[6], 9: ancilla[7],
+        #                          12: ancilla[8], 13: ancilla[9], 14: ancilla[10],
+        #                          16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
+        #                          19: ancilla[14]}
 
-        # Trivial layout
         expected_layout_level0 = trivial_layout
-        # Dense layout
         expected_layout_level1 = dense_layout
         expected_layout_level2 = dense_layout
-        # Noise adaptive layout
-        expected_layout_level3 = noise_adaptive_layout
+        expected_layout_level3 = dense_layout
 
         expected_layouts = [expected_layout_level0,
                             expected_layout_level1,
@@ -394,3 +395,52 @@ class TestFinalLayouts(QiskitTestCase):
 
         for physical, virtual in initial_layout.items():
             self.assertEqual(result._layout._p2v[physical], virtual)
+
+
+@ddt
+class TestTranspileLevelsSwap(QiskitTestCase):
+    """Test if swap is in the basis, do not unroll
+    See https://github.com/Qiskit/qiskit-terra/pull/3963
+    The circuit in combine should require a swap and that swap should exit at the end
+    for the transpilation"""
+
+    @combine(circuit=[circuit_2532],
+             level=[0, 1, 2, 3],
+             dsc='circuit: {circuit.__name__}, level: {level}',
+             name='{circuit.__name__}_level{level}')
+    def test_1(self, circuit, level):
+        """Simple coupling map (linear 5 qubits)."""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit(),
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42,
+                           initial_layout=[0, 1, 2, 3, 4])
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)
+
+    @combine(level=[0, 1, 2, 3],
+             dsc='If swap in basis, do not decompose it. level: {level}',
+             name='level{level}')
+    def test_2(self, level):
+        """Simple coupling map (linear 5 qubits).
+        The circuit requires a swap and that swap should exit at the end
+        for the transpilation"""
+        basis = ['u1', 'u2', 'cx', 'swap']
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 4)
+        circuit.cx(1, 4)
+        circuit.cx(2, 4)
+        circuit.cx(3, 4)
+        coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        result = transpile(circuit,
+                           optimization_level=level,
+                           basis_gates=basis,
+                           coupling_map=coupling_map,
+                           seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+        resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
+        self.assertIn('swap', resulting_basis)
