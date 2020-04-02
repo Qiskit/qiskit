@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds :class:`qiskit.quantum_info.Clifford` operator class to the
+    `quantum_info` module. This operator is an efficient symplectic
+    representation an N-qubit unitary operator from the Clifford group.
