@@ -53,7 +53,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.log_output = io.StringIO()
-        logger.addHandler(StreamHandlerRaiseException(self.output))
+        logger.addHandler(StreamHandlerRaiseException(self.log_output))
 
     def assertExecuteLog(self, log_msg):
         """ Runs execute and check for logs containing specified message"""
@@ -66,15 +66,15 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             backend=self.backend,
             shots=shots,
             seed_simulator=self.seed)
-        self.output.seek(0)
+        self.log_output.seek(0)
         # Filter unrelated log lines
-        output_lines = self.output.readlines()
+        output_lines = self.log_output.readlines()
         execute_log_lines = [x for x in output_lines if x.__contains__(log_msg)]
         self.assertTrue(len(execute_log_lines) > 0)
 
-    def test_execute_log_time(self):
-        """Check Total Transpile Time is logged"""
-        self.assertExecuteLog('Total Execution Time')
+    def test_submission_log_time(self):
+        """Check Total Job Submission Time is logged"""
+        self.assertExecuteLog('Total Job Submission Time')
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
