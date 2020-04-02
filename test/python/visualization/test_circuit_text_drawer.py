@@ -2360,6 +2360,8 @@ class TestTextWithLayout(QiskitTestCase):
 
 
 class TestTextInitialValue(QiskitTestCase):
+    """Testing the initial_value parameter"""
+
     def setUp(self) -> None:
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
