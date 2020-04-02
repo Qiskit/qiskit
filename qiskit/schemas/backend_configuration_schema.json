@@ -258,7 +258,6 @@
                                 "items": {"type": "string"}},
                             "channels": {
                                 "type": "object",
-                                "minItems": 1,
                                 "patternProperties": {
                                     "^[a-z0-9]+$": {
                                         "type": "object",
