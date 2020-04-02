@@ -28,7 +28,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _log_execution_time(start_time, end_time):
