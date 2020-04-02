@@ -351,11 +351,14 @@ class PulseQobjExperiment:
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = '[' + ', '.join(instructions_str) + ']'
         out = "PulseQobjExperiment("
+        out += instructions_repr
+        if hasattr(self, 'config') or hasattr(self, 'header'):
+            out += ', '
         if hasattr(self, 'config'):
-            out += str(repr(self.config)) + ", "
+            out += "config=" + str(repr(self.config)) + ", "
         if hasattr(self, 'header'):
-            out += str(repr(self.header)) + ", "
-        out += instructions_repr + ')'
+            out += "header=" + str(repr(self.header)) + ", "
+        out += ')'
         return out
 
     def __str__(self):
