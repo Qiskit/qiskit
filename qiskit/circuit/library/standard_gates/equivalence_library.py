@@ -20,6 +20,8 @@
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
 
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+
 from . import (
     HGate,
     CHGate,
@@ -296,6 +298,14 @@ def_rz = QuantumCircuit(q)
 def_rz.append(U1Gate(theta), [q[0]], [])
 _sel.add_equivalence(RZGate(theta), def_rz)
 
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+rz_to_rxry = QuantumCircuit(q)
+rz_to_rxry.append(RXGate(pi/2), [q[0]], [])
+rz_to_rxry.append(RYGate(-theta), [q[0]], [])
+rz_to_rxry.append(RXGate(-pi/2), [q[0]], [])
+_sel.add_equivalence(RZGate(theta), rz_to_rxry)
+
 # CRZGate
 
 q = QuantumRegister(2, 'q')
@@ -447,6 +457,18 @@ _sel.add_equivalence(U1Gate(theta), def_u1)
 
 # U3Gate
 
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+u3_qasm_def = QuantumCircuit(q)
+u3_qasm_def.rz(lam, 0)
+u3_qasm_def.rx(pi/2, 0)
+u3_qasm_def.rz(theta+pi, 0)
+u3_qasm_def.rx(pi/2, 0)
+u3_qasm_def.rz(phi+3*pi, 0)
+_sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
+
 # CU3Gate
 
 q = QuantumRegister(2, 'q')
@@ -473,6 +495,11 @@ def_x.append(U3Gate(pi, 0, pi), [q[0]], [])
 _sel.add_equivalence(XGate(), def_x)
 
 # CXGate
+
+for plus_ry in [False, True]:
+    for plus_rxx in [False, True]:
+        cx_to_rxx = cnot_rxx_decompose(plus_ry, plus_rxx)
+        _sel.add_equivalence(CXGate(), cx_to_rxx)
 
 # CCXGate
 
