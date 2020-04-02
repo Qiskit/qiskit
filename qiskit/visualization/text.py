@@ -495,11 +495,13 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high', layout=None):
+                 line_length=None, vertical_compression='high', layout=None, initial_value=True):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
+        self.initial_value = initial_value
+
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -591,7 +593,7 @@ class TextDrawing():
                 rest_of_the_line = line_length - layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(
-                    InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
+                    InputWire.fillup_layer(self.wire_names()))
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(layer)
@@ -604,7 +606,7 @@ class TextDrawing():
 
         return lines
 
-    def wire_names(self, with_initial_value=True):
+    def wire_names(self):
         """Returns a list of names for each wire.
 
         Args:
@@ -614,7 +616,7 @@ class TextDrawing():
         Returns:
             List: The list of wire names.
         """
-        if with_initial_value:
+        if self.initial_value:
             initial_qubit_value = '|0>'
             initial_clbit_value = '0 '
         else:
@@ -997,7 +999,7 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        wire_names = self.wire_names(with_initial_value=True)
+        wire_names = self.wire_names()
         if not wire_names:
             return []
 

@@ -2326,5 +2326,29 @@ class TestTextWithLayout(QiskitTestCase):
         self.assertEqual(qc_result.draw(output='text', fold=86).single_string(), expected)
 
 
+class TestTextInitialValue(QiskitTestCase):
+    def setUp(self) -> None:
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        self.circuit = QuantumCircuit(qr, cr)
+        self.circuit.measure(qr, cr)
+
+    def test_initial_value_false(self):
+        """ Remove QuWires and ClWires. """
+        expected = '\n'.join(["     ┌─┐   ",
+                              "q_0: ┤M├───",
+                              "     └╥┘┌─┐",
+                              "q_1: ─╫─┤M├",
+                              "      ║ └╥┘",
+                              "c_0: ═╩══╬═",
+                              "         ║ ",
+                              "c_1: ════╩═",
+                              "           "])
+
+        self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_value=False)), expected)
+        # self.assertEqual(circuit.draw(output='text', initial_layout=False).single_string(),
+        #                  expected)
+
+
 if __name__ == '__main__':
     unittest.main()
