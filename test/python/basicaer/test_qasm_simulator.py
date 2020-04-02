@@ -52,7 +52,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.qobj = assemble(transpiled_circuit, shots=1000)
         logger = getLogger()
         logger.setLevel('DEBUG')
-        self.output = io.StringIO()
+        self.log_output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))
 
     def assertExecuteLog(self, log_msg):
