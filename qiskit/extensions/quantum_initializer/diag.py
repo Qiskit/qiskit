@@ -16,6 +16,7 @@
 
 This module is deprecated, see diagonal.py
 """
+
 import warnings
 # pylint: disable=unused-import
 from qiskit.extensions.quantum_initializer.diagonal import DiagGate, diag_gate
