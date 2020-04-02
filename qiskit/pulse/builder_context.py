@@ -133,9 +133,9 @@ import collections
 import contextvars
 import functools
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Mapping, Union
 
-from qiskit.extensions.standard import (CnotGate, U1Gate, U2Gate, U3Gate, XGate)
+from qiskit.extensions.standard import CnotGate, U1Gate, U2Gate, U3Gate, XGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 
@@ -185,6 +185,9 @@ class PulseBuilderContext():
         #: Schedule: Final Schedule program block.
         self._program = block
 
+        self._transpiler_settings = {}
+        self._circuit_scheduler_settings = {}
+
     def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXT.set(self)
@@ -199,15 +202,27 @@ class PulseBuilderContext():
         """Get the number of qubits in the backend."""
         return self.backend.configuration().num_qubits
 
+    @property
+    def transpiler_settings(self) -> Mapping:
+        return self._transpiler_settings
+
+    @transpiler_settings.setter
+    def transpiler_settings(self, settings: Mapping):
+        self._schedule_lazy_circuit()
+        self._transpiler_settings = settings
+
+    @property
+    def circuit_scheduler_settings(self) -> Mapping:
+        return self._transpiler_settings
+
+    @circuit_scheduler_settings.setter
+    def circuit_scheduler_settings(self, settings: Mapping):
+        self._schedule_lazy_circuit()
+        self._circuit_scheduler_settings = settings
+
     def new_circuit(self):
         """Create a new circuit for scheduling."""
         return QuantumCircuit(self.num_qubits)
-
-    def set_current_block(self, block: Schedule) -> Schedule:
-        """Set the current block."""
-        assert isinstance(block, Schedule)
-        self.block = block
-        return block
 
     def _schedule_lazy_circuit_before(self, fn):
         """Decorator thats schedules and calls the active circuit executing
@@ -219,6 +234,13 @@ class PulseBuilderContext():
         return wrapper
 
     @_schedule_lazy_circuit_before
+    def set_current_block(self, block: Schedule) -> Schedule:
+        """Set the current block."""
+        assert isinstance(block, Schedule)
+        self.block = block
+        return block
+
+    @_schedule_lazy_circuit_before
     def append_block(self, block: Schedule):
         """Add a block to the current active block."""
         self.current_block.append(block)
@@ -228,7 +250,6 @@ class PulseBuilderContext():
         """Add an instruction to the current active block."""
         self.current_block.append(instruction)
 
-    @_schedule_lazy_circuit_before
     def call_schedule(self, schedule: Schedule):
         """Call a schedule."""
         self.append_block(schedule)
@@ -250,6 +271,17 @@ class PulseBuilderContext():
         self._lazy_circuit.extend(circuit)
         if not lazy:
             self._schedule_lazy_circuit()
+
+    def call_gate(self, gate, qubits, lazy=True):
+        """Lower a circuit gate to pulse instruction."""
+        try:
+            iter(qubits)
+        except TypeError:
+            qubits = (qubits,)
+
+        qc = QuantumCircuit(self.num_qubits)
+        qc.append(gate, qargs=qubits)
+        self.call_circuit(qc)
 
     def compile(self) -> Schedule:
         """Compile final pulse schedule program."""
@@ -366,27 +398,31 @@ def flatten():
 @contextmanager
 def transpiler_settings(**settings):
     """Set the current active tranpiler settings for this context."""
-    builder = active_builder()
-    transpiler_settings = builder.transpiler_settings
-    builder.transpiler_settings = collections.ChainMap(
-        settings, transpiler_settings)
-    try:
-        yield
-    finally:
-        builder.transpiler_settings = transpiler_settings
+    if settings:
+        builder = active_builder()
+        transpiler_settings = builder.transpiler_settings
+        builder.transpiler_settings = collections.ChainMap(
+            settings, transpiler_settings)
+        try:
+            yield
+        finally:
+            builder.transpiler_settings = transpiler_settings
+    yield
 
 
 @contextmanager
 def circuit_scheduling_settings(**settings):
     """Set the current active circuit scheduling settings for this context."""
-    builder = active_builder()
-    circuit_scheduler_settings = builder.circuit_scheduler_settings
-    builder.circuit_scheduler_settings = collections.ChainMap(
-        settings, circuit_scheduler_settings)
-    try:
-        yield
-    finally:
-        builder.circuit_scheduler_settings = circuit_scheduler_settings
+    if settings:
+        builder = active_builder()
+        circuit_scheduler_settings = builder.circuit_scheduler_settings
+        builder.circuit_scheduler_settings = collections.ChainMap(
+            settings, circuit_scheduler_settings)
+        try:
+            yield
+        finally:
+            builder.circuit_scheduler_settings = circuit_scheduler_settings
+    yield
 
 
 def active_transpiler_settings() -> Dict[str, Any]:
@@ -483,14 +519,7 @@ def delay_qubit(qubit: int, duration: int):
 # Gate instructions ############################################################
 def call_gate(gate, qubits):
     """Lower a circuit gate to pulse instruction."""
-    try:
-        iter(qubits)
-    except TypeError:
-        qubits = (qubits,)
-
-    qc = QuantumCircuit(len(active_backend().configuration().n_qubits))
-    qc.append(gate, qargs=qubits)
-    call_circuit(qc)
+    active_builder().call_gate(gate, qubits)
 
 
 def cx(control: int, target: int):
