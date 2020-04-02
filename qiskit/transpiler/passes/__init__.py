@@ -54,6 +54,7 @@ Basis Change
    Unroller
    Unroll3qOrMore
    Decompose
+   UnrollCustomDefinitions
 
 Optimizations
 =============
@@ -121,6 +122,7 @@ from .routing import StochasticSwap
 # basis change
 from .basis import Decompose
 from .basis import Unroller
+from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 
 # optimization
