@@ -17,6 +17,7 @@
 import numpy as np
 from scipy.linalg import schur
 
+from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
@@ -219,3 +220,10 @@ class Gate(Instruction):
             return Gate._broadcast_3_or_more_args(qargs)
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
+
+    def normalize_parameter(self, parameter):
+        if isinstance(parameter, (int, float, ParameterExpression)):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))

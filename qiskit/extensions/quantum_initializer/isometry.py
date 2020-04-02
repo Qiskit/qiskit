@@ -28,6 +28,7 @@ import numpy as np
 from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.extensions.quantum_initializer.uc import UCGate
@@ -257,6 +258,12 @@ class Isometry(Instruction):
         q_ancillas_dirty = q[n + self.num_ancillas_zero:]
         return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
 
+    def normalize_parameter(self, parameter):
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 # basis_state=1 respectively

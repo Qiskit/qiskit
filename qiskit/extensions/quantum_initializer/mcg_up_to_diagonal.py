@@ -116,3 +116,10 @@ class MCGupDiag(Gate):
         q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
         q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
+
+    def normalize_parameter(self, parameter):
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in instruction "
+                               "{1}".format(type(parameter), self.name))

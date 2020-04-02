@@ -23,6 +23,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.standard import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -181,6 +182,14 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
+    def normalize_parameter(self, parameter):
+        if isinstance(parameter, numpy.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in instruction "
+                               "{1}".format(type(parameter), self.name))
+
+
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     r"""
@@ -219,8 +228,6 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
             raise QiskitError('Invalid control state value specified.')
     else:
         raise QiskitError('Invalid control state type specified.')
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))
     full_mat = (numpy.kron(numpy.eye(2**num_target),
                            numpy.eye(ctrl_dim) - ctrl_proj)

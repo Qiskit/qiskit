@@ -140,11 +140,7 @@ class Instruction:
             self._params.append(self.normalize_parameter(single_param))
 
     def normalize_parameter(self, parameter):
-        if isinstance(parameter, (int, float, ParameterExpression, numpy.ndarray)):
-            return parameter
-        else:
-            raise CircuitError("invalid param type {0} in instruction "
-                               "{1}".format(type(parameter), self.name))
+        return parameter
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
