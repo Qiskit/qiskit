@@ -129,6 +129,7 @@ syntax. For example::
       with frequency_offset(d0, 0.1e9):
         play(d0, gaussian_pulse)
 """
+import collections
 import contextvars
 import functools
 from contextlib import contextmanager
@@ -257,7 +258,7 @@ def _transform_context(transform: Callable) -> Callable:
     def wrap(fn):
         @contextmanager
         def wrapped_transform(blocks, *args, **kwargs):
-            builder = BUILDER_CONTEXT.get()
+            builder = active_builder()
             block = builder.set_current_block(Schedule())
             try:
                 yield
@@ -313,13 +314,27 @@ def flatten():
 @contextmanager
 def transpiler_settings(**settings):
     """Set the current active tranpiler settings for this context."""
-    raise NotImplementedError()
+    builder = active_builder()
+    transpiler_settings = builder.transpiler_settings
+    builder.transpiler_settings = collections.ChainMap(
+        settings, transpiler_settings)
+    try:
+        yield
+    finally:
+        builder.transpiler_settings = transpiler_settings
 
 
 @contextmanager
 def circuit_scheduling_settings(**settings):
     """Set the current active circuit scheduling settings for this context."""
-    raise NotImplementedError()
+    builder = active_builder()
+    circuit_scheduler_settings = builder.circuit_scheduler_settings
+    builder.circuit_scheduler_settings = collections.ChainMap(
+        settings, circuit_scheduler_settings)
+    try:
+        yield
+    finally:
+        builder.circuit_scheduler_settings = circuit_scheduler_settings
 
 
 def active_transpiler_settings() -> Dict[str, Any]:
@@ -428,10 +443,9 @@ def call_gate(gate, qubits):
     except TypeError:
         qubits = (qubits,)
 
-    qc = QuantumCircuit(len(qubits))
+    qc = QuantumCircuit(len(active_backend().configuration().n_qubits))
     qc.append(gate, qargs=qubits)
-    with transpiler_settings(initial_layout=qubits):
-        call_circuit(qc)
+    call_circuit(qc)
 
 
 def cx(control: int, target: int):
