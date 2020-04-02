@@ -137,6 +137,7 @@ from typing import Any, Callable, Dict, Union
 
 from qiskit.extensions.standard import (CnotGate, U1Gate, U2Gate, U3Gate, XGate)
 from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import transpile
 
 from . import Pulse, PulseError, transforms, macros
 from .channels import (AcquireChannel, Channel, MemorySlot,
@@ -152,7 +153,7 @@ from .schedule import Schedule
 BUILDER_CONTEXT = contextvars.ContextVar("backend")
 
 
-class BuilderContext():
+class PulseBuilderContext():
     """Builder context class."""
 
     def __init__(self, backend, block: Schedule = None):
@@ -179,6 +180,8 @@ class BuilderContext():
         #: Set[Schedule]: Collection of all builder blocks.
         self.blocks = set()
 
+        #: QuantumCircuit: Lazily constructed quantum circuit
+        self._lazy_circuit = self.new_circuit()
         #: Schedule: Final Schedule program block.
         self._program = block
 
@@ -191,11 +194,62 @@ class BuilderContext():
         """Exit Builder Context."""
         BUILDER_CONTEXT.reset(self._backend_ctx_token)
 
+    @property
+    def num_qubits(self):
+        """Get the number of qubits in the backend."""
+        return self.backend.configuration().num_qubits
+
+    def new_circuit(self):
+        """Create a new circuit for scheduling."""
+        return QuantumCircuit(self.num_qubits)
+
     def set_current_block(self, block: Schedule) -> Schedule:
         """Set the current block."""
         assert isinstance(block, Schedule)
         self.block = block
         return block
+
+    def _schedule_lazy_circuit_before(self, fn):
+        """Decorator thats schedules and calls the active circuit executing
+        the decorated function."""
+        @functools.wraps(fn)
+        def wrapper(*args, **kwds):
+            self._schedule_lazy_circuit()
+            return fn(*args, **kwds)
+        return wrapper
+
+    @_schedule_lazy_circuit_before
+    def append_block(self, block: Schedule):
+        """Add a block to the current active block."""
+        self.current_block.append(block)
+
+    @_schedule_lazy_circuit_before
+    def append_instruction(self, instruction: Instruction):
+        """Add an instruction to the current active block."""
+        self.current_block.append(instruction)
+
+    @_schedule_lazy_circuit_before
+    def call_schedule(self, schedule: Schedule):
+        """Call a schedule."""
+        self.append_block(schedule)
+
+    def _schedule_lazy_circuit(self):
+        """Call a QuantumCircuit."""
+        if len(self._lazy_circuit):
+            circuit = transpile(self.lazy_circuit,
+                                self.backend,
+                                **self.transpiler_settings)
+            sched = schedule_circuit(circuit,
+                                     self.backend,
+                                     **self.circuit_scheduler_settings)
+            self.call_schedule(sched)
+            # reset active circuit
+            self._lazy_circuit = self.new_circuit()
+
+    def call_circuit(self, circuit: QuantumCircuit, lazy=True):
+        self._lazy_circuit.extend(circuit)
+        if not lazy:
+            self._schedule_lazy_circuit()
 
     def compile(self) -> Schedule:
         """Compile final pulse schedule program."""
@@ -210,11 +264,11 @@ def build(backend, schedule):
         backend: a qiskit backend
         schedule: a *mutable* pulse Schedule
     """
-    return BuilderContext(backend, schedule)
+    return PulseBuilderContext(backend, schedule)
 
 
 # Builder Utilities ############################################################
-def active_builder() -> BuilderContext:
+def active_builder() -> PulseBuilderContext:
     """Get the active builder in the current context."""
     return BUILDER_CONTEXT.get()
 
@@ -228,16 +282,14 @@ def active_backend():
     return active_builder().backend
 
 
-def append_instruction(instruction: Instruction):
-    """Append an instruction to current context."""
-    current_block = active_builder().current_block
-    current_block.append(instruction)
-
-
 def append_block(block: Schedule):
     """Append a block to the current block. The current block is not changed."""
-    current_block = active_builder().current_block
-    current_block.append(block)
+    active_builder().append_block(block)
+
+
+def append_instruction(instruction: Instruction):
+    """Append an instruction to current context."""
+    active_builder().append_instruction(instruction)
 
 
 def qubit_channels(qubit: int):
@@ -396,19 +448,12 @@ def snapshot(label: str, snapshot_type: str = 'statevector'):
 
 def call_schedule(schedule: Schedule):
     """Call a pulse ``schedule`` in the builder context."""
-    append_block(schedule)
+    active_builder().call_schedule(schedule)
 
 
-def call_circuit(circuit: QuantumCircuit, transpile=True):
+def call_circuit(circuit: QuantumCircuit, lazy=True):
     """Call a quantum ``circuit`` in the builder context."""
-    if transpile:
-        circuit = transpile(circuit,
-                            active_backend(),
-                            **active_transpiler_settings())
-    sched = schedule_circuit(circuit,
-                             active_backend(),
-                             **active_circuit_scheduler_settings())
-    call_schedule(sched)
+    active_builder().call_circuit(circuit, lazy=True)
 
 
 def call(target: Union[QuantumCircuit, Schedule]):
