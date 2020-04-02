@@ -219,13 +219,3 @@ class Gate(Instruction):
             return Gate._broadcast_3_or_more_args(qargs)
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
-
-    def normalize_parameter(self, parameter):
-        # examples:
-        #  u3(0.1, 0.2, 0.3)
-        #  u2(pi/2, sin(pi/4))
-        if isinstance(parameter, (int, float)):
-            return parameter
-
-        else:
-            return super().normalize_parameter(parameter)
