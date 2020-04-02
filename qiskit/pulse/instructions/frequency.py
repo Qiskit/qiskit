@@ -15,7 +15,7 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Optional, Tuple
+from typing import Optional
 
 from ..channels import PulseChannel
 from .instruction import Instruction
@@ -47,12 +47,7 @@ class SetFrequency(Instruction):
         """
         self._frequency = float(frequency)
         self._channel = channel
-        super().__init__(0, channel, name=name)
-
-    @property
-    def operands(self) -> Tuple[float, PulseChannel]:
-        """Return instruction operands."""
-        return (self.frequency, self.channel)
+        super().__init__((frequency, channel), 0, [channel], name=name)
 
     @property
     def frequency(self) -> float:

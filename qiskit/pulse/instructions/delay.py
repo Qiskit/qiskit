@@ -15,7 +15,7 @@
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
 import warnings
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from ..channels import Channel
 from ..exceptions import PulseError
@@ -55,12 +55,7 @@ class Delay(Instruction):
                           "example, Delay(5)(DriveChannel(0)) should be replaced by "
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
         self._channel = channel
-        super().__init__(duration, channel, name=name)
-
-    @property
-    def operands(self) -> Tuple[int, Channel]:
-        """Return instruction operands."""
-        return (self.duration, self.channel)
+        super().__init__((duration, channel), duration, [channel], name=name)
 
     @property
     def channel(self) -> Channel:

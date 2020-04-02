@@ -17,7 +17,7 @@ some metadata for the acquisition process; for example, where to store classifie
 """
 import warnings
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
 from ..configuration import Kernel, Discriminator
@@ -114,19 +114,16 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-        if channels is not None:
-            super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
-        else:
+        if channels is None:
             warnings.warn("Usage of Acquire without specifying a channel is deprecated. For "
                           "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
                           "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
-            super().__init__(duration, name=name)
-
-    @property
-    def operands(self) -> Tuple[int, AcquireChannel, MemorySlot, RegisterSlot]:
-        """Return instruction operands."""
-        return (self.duration, self.channel,
-                self.mem_slot, self.reg_slot)
+        all_channels = [group for group in [channels, mem_slot, reg_slot] if group is not None]
+        flattened_channels = []
+        for channels in all_channels:
+            flattened_channels.extend(channels)
+        super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
+                         duration, flattened_channels, name=name)
 
     @property
     def channel(self) -> AcquireChannel:

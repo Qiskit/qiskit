@@ -15,7 +15,7 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Optional, Tuple, Any
+from typing import Optional
 
 from ..channels import PulseChannel
 from .instruction import Instruction
@@ -45,12 +45,7 @@ class Play(Instruction):
         self._channel = channel
         if name is None:
             name = pulse.name
-        super().__init__(pulse.duration, channel, name=name)
-
-    @property
-    def operands(self) -> Tuple[Any, PulseChannel]:
-        """Return instruction operands: ``(Pulse, PulseChannel)``."""
-        return (self.pulse, self.channel)
+        super().__init__((pulse, channel), pulse.duration, [channel], name=name)
 
     @property
     def pulse(self):

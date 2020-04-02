@@ -43,15 +43,18 @@ class Instruction(ScheduleComponent, ABC):
     channels.
     """
 
-    def __init__(self, duration: Union['commands.Command', int],
-                 *channels: Channel,
+    def __init__(self,
+                 operands: List,
+                 duration: Union['commands.Command', int],
+                 channels: List[Channel],
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
+            operands: The argument list.
             duration: Length of time taken by the instruction in terms of dt.
                       Deprecated: the first argument used to be the Command.
-            *channels: List of pulse channels that this instruction operates on.
+            channels: List of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
         """
         self._command = None
@@ -62,10 +65,11 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 name = self.command.name
             duration = self.command.duration
-        self._name = name
         self._duration = duration
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
+        self._operands = operands
+        self._name = name
 
     @property
     def name(self) -> str:
@@ -87,10 +91,10 @@ class Instruction(ScheduleComponent, ABC):
     @property
     def operands(self) -> Tuple:
         """Return instruction operands."""
-        # This cannot be a true abstractmethod While old Command style classes are still
-        # implemented, because they do not have an operands method.
-        if self.command is None:
-            raise NotImplementedError
+        if self.command is not None:
+            raise NotImplementedError("This is a deprecated instruction with a ``Command``, "
+                                      "and it does not have `operands`.")
+        return self._operands
 
     @property
     def channels(self) -> Tuple[Channel]:

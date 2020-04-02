@@ -78,7 +78,11 @@ class AcquireInstruction(Instruction):
         else:
             reg_slot = []
 
-        super().__init__(command, *acquire, *mem_slot, *reg_slot, name=name)
+        all_channels = [group for group in [acquire, mem_slot, reg_slot] if group is not None]
+        flattened_channels = []
+        for channels in all_channels:
+            flattened_channels.extend(channels)
+        super().__init__((), command, flattened_channels, name=name)
 
         self._acquires = acquire
         self._mem_slots = mem_slot

@@ -16,7 +16,7 @@
 
 import warnings
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
@@ -57,12 +57,7 @@ class ShiftPhase(Instruction):
                           "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
         self._phase = phase
         self._channel = channel
-        super().__init__(0, channel, name=name)
-
-    @property
-    def operands(self) -> Tuple[float, PulseChannel]:
-        """Return instruction operands."""
-        return (self.phase, self.channel)
+        super().__init__((phase, channel), 0, [channel], name=name)
 
     @property
     def phase(self) -> float:
