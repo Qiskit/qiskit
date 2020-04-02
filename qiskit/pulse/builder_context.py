@@ -153,14 +153,13 @@ from .schedule import Schedule
 BUILDER_CONTEXT = contextvars.ContextVar("backend")
 
 
-class PulseBuilderContext():
+class _PulseBuilderContext():
     """Builder context class."""
 
     def __init__(self, backend, block: Schedule = None):
         """Initialize builder context.
 
-        TODO: This should contain a builder class rather than manipulating the
-        IR directly.
+        This is not a public class
 
         Args:
             backend (BaseBackend):
@@ -208,7 +207,7 @@ class PulseBuilderContext():
 
     @transpiler_settings.setter
     def transpiler_settings(self, settings: Mapping):
-        self._schedule_lazy_circuit()
+        self.schedule_lazy_circuit()
         self._transpiler_settings = settings
 
     @property
@@ -217,7 +216,7 @@ class PulseBuilderContext():
 
     @circuit_scheduler_settings.setter
     def circuit_scheduler_settings(self, settings: Mapping):
-        self._schedule_lazy_circuit()
+        self.schedule_lazy_circuit()
         self._circuit_scheduler_settings = settings
 
     def new_circuit(self):
@@ -229,7 +228,7 @@ class PulseBuilderContext():
         the decorated function."""
         @functools.wraps(fn)
         def wrapper(*args, **kwds):
-            self._schedule_lazy_circuit()
+            self.schedule_lazy_circuit()
             return fn(*args, **kwds)
         return wrapper
 
@@ -254,7 +253,7 @@ class PulseBuilderContext():
         """Call a schedule."""
         self.append_block(schedule)
 
-    def _schedule_lazy_circuit(self):
+    def schedule_lazy_circuit(self):
         """Call a QuantumCircuit."""
         if len(self._lazy_circuit):
             circuit = transpile(self.lazy_circuit,
@@ -270,7 +269,7 @@ class PulseBuilderContext():
     def call_circuit(self, circuit: QuantumCircuit, lazy=True):
         self._lazy_circuit.extend(circuit)
         if not lazy:
-            self._schedule_lazy_circuit()
+            self.schedule_lazy_circuit()
 
     def call_gate(self, gate, qubits, lazy=True):
         """Lower a circuit gate to pulse instruction."""
@@ -296,11 +295,11 @@ def build(backend, schedule):
         backend: a qiskit backend
         schedule: a *mutable* pulse Schedule
     """
-    return PulseBuilderContext(backend, schedule)
+    return _PulseBuilderContext(backend, schedule)
 
 
 # Builder Utilities ############################################################
-def active_builder() -> PulseBuilderContext:
+def active_builder() -> _PulseBuilderContext:
     """Get the active builder in the current context."""
     return BUILDER_CONTEXT.get()
 
