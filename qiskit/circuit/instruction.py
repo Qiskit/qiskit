@@ -140,13 +140,8 @@ class Instruction:
             self._params.append(self.normalize_parameter(single_param))
 
     def normalize_parameter(self, parameter):
-        if isinstance(parameter, (ParameterExpression, int, float, complex, str, list)):
+        if isinstance(parameter, (int, float, ParameterExpression, numpy.ndarray)):
             return parameter
-        # example: numpy.array([[1, 0], [0, 1]])
-        elif isinstance(parameter, numpy.ndarray):
-            self._params.append(parameter)
-        elif isinstance(parameter, numpy.number):
-            self._params.append(parameter.item())
         else:
             raise CircuitError("invalid param type {0} in instruction "
                                "{1}".format(type(parameter), self.name))
