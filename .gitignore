@@ -141,5 +141,4 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 # Cython pass
 qiskit/transpiler/passes/**/cython/**/*.cpp
 
-docs/api/*
 docs/stubs/*
