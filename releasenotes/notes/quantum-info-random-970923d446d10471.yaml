@@ -11,7 +11,7 @@ features:
   - |
     Add :func:`qiskit.quantum_info.random_statevector` for generating
     a random :class:`~qiskit.quantum_info.Statevector`.
-updates:
+upgrade:
   - |
     Updates :func:`qiskit.quantum_info.random_density_matrix` to return a
     a random :class:`~qiskit.quantum_info.DensityMatrix` object.
