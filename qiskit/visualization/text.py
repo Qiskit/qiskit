@@ -502,7 +502,6 @@ class TextDrawing():
         self.layout = layout
         self.initial_value = initial_value
 
-
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
