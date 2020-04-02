@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,99 +11,122 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Quantum Fourier Transform Circuit.
-"""
+
+"""Quantum Fourier Transform Circuit."""
 
 import numpy as np
-
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit  # pylint: disable=unused-import
-
-from qiskit.aqua import AquaError
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-class FourierTransformCircuits:
-    """
-    Quantum Fourier Transform Circuit.
-    """
-    @staticmethod
-    def _do_swaps(circuit, qubits):
-        num_qubits = len(qubits)
-        for i in range(num_qubits // 2):
-            circuit.cx(qubits[i], qubits[num_qubits - i - 1])
-            circuit.cx(qubits[num_qubits - i - 1], qubits[i])
-            circuit.cx(qubits[i], qubits[num_qubits - i - 1])
+class QFT(QuantumCircuit):
+    """Quantum Fourier Transform Circuit."""
 
-    @staticmethod
-    def construct_circuit(
-            circuit=None,
-            qubits=None,
-            inverse=False,
-            approximation_degree=0,
-            do_swaps=True
-    ):
-        """
-        Construct the circuit representing the desired state vector.
+    def __init__(self, *regs,
+                 approximation_degree: int = 0,
+                 do_swaps: bool = True,
+                 name: str = 'qft') -> None:
+        """Construct a new QFT circuit.
 
         Args:
-            circuit (QuantumCircuit): The optional circuit to extend from.
-            qubits (Union(QuantumRegister, list[Qubit])): The optional qubits to construct
-                the circuit with.
-            approximation_degree (int): degree of approximation for the desired circuit
-            inverse (bool): Boolean flag to indicate Inverse Quantum Fourier Transform
-            do_swaps (bool): Boolean flag to specify if swaps should be included to align
-                the qubit order of
-                input and output. The output qubits would be in reversed order without the swaps.
+            *regs: The number of qubits or qubit registers on which the QFT acts.
+            approximation_degree: The degree of approximation (0 for no approximation).
+            do_swaps: Whether to include the final swaps in the QFT.
+            name: The name of the circuit.
+        """
+        super().__init__(*regs, name=name)
+
+        self._approximation_degree = approximation_degree
+        self._do_swaps = do_swaps
+
+    @QuantumCircuit.num_qubits.setter
+    def num_qubits(self, num_qubits: int) -> None:
+        """Set the number of qubits.
+
+        Args:
+            num_qubits: The new number of qubits.
+        """
+        # pad with new qubits if the circuit is too small
+        if num_qubits > super().num_qubits:
+            self.add_register(QuantumRegister(num_qubits - super().num_qubits))
+            self._data = []
+        # reset if the circuit is being shrunk
+        elif num_qubits < super().num_qubits:
+            self.qregs = [QuantumRegister(num_qubits)]
+            self._data = []
+
+    @property
+    def approximation_degree(self) -> int:
+        """The approximation degree of the QFT.
 
         Returns:
-            QuantumCircuit: quantum circuit
-        Raises:
-            AquaError: invalid input
+            The currently set approximation degree.
         """
+        return self._approximation_degree
 
-        if circuit is None:
-            raise AquaError('Missing input QuantumCircuit.')
+    @approximation_degree.setter
+    def approximation_degree(self, approximation_degree: int) -> None:
+        """Set the approximation degree of the QFT.
 
-        if qubits is None:
-            raise AquaError('Missing input qubits.')
+        Args:
+            approximation_degree: The new approximation degree.
 
-        if isinstance(qubits, QuantumRegister):
-            if not circuit.has_register(qubits):
-                circuit.add_register(qubits)
-        elif isinstance(qubits, list):
-            for qubit in qubits:
-                if isinstance(qubit, Qubit):
-                    if not circuit.has_register(qubit.register):
-                        circuit.add_register(qubit.register)
-                else:
-                    raise AquaError('A QuantumRegister or a list of qubits '
-                                    'is expected for the input qubits.')
-        else:
-            raise AquaError('A QuantumRegister or a list of qubits '
-                            'is expected for the input qubits.')
+        Raises:
+            ValueError: If the approximation degree is smaller than 0.
+        """
+        if approximation_degree < 0:
+            raise ValueError('Approximation degree cannot be smaller than 0.')
 
-        if do_swaps and not inverse:
-            FourierTransformCircuits._do_swaps(circuit, qubits)
+        self._is_built = approximation_degree == self._approximation_degree
+        self._approximation_degree = approximation_degree
 
-        qubit_range = reversed(range(len(qubits))) if inverse else range(len(qubits))
+    def _swap_qubits(self):
+        num_qubits = self.num_qubits
+        for i in range(num_qubits // 2):
+            self.cx(i, num_qubits - i - 1)
+            self.cx(num_qubits - i - 1, i)
+            self.cx(i, num_qubits - i - 1)
+
+    def inverse(self) -> QuantumCircuit:
+        """Return the inverse QFT."""
+        iqft = self.copy(name=self.name + '_dg')
+        iqft._data = []
+        iqft._build(inverse=True)
+        return iqft
+
+    def _build(self, inverse: bool = False) -> None:
+        """Construct the circuit representing the desired state vector.
+
+        Args:
+            inverse: Boolean flag to indicate Inverse Quantum Fourier Transform.
+        """
+        if len(self._data) > 0:
+            return
+
+        if self._do_swaps and not inverse:
+            self._swap_qubits()
+
+        qubit_range = reversed(range(self.num_qubits)) if inverse else range(self.num_qubits)
         for j in qubit_range:
-            neighbor_range = range(np.max([0, j - len(qubits) + approximation_degree + 1]), j)
+            neighbor_range = range(max(0, j - self.num_qubits + self._approximation_degree + 1), j)
             if inverse:
                 neighbor_range = reversed(neighbor_range)
-                circuit.u2(0, np.pi, qubits[j])
+                self.u2(0, np.pi, j)
             for k in neighbor_range:
                 lam = 1.0 * np.pi / float(2 ** (j - k))
                 if inverse:
                     lam *= -1
-                circuit.u1(lam / 2, qubits[j])
-                circuit.cx(qubits[j], qubits[k])
-                circuit.u1(-lam / 2, qubits[k])
-                circuit.cx(qubits[j], qubits[k])
-                circuit.u1(lam / 2, qubits[k])
+                self.u1(lam / 2, j)
+                self.cx(j, k)
+                self.u1(-lam / 2, k)
+                self.cx(j, k)
+                self.u1(lam / 2, k)
             if not inverse:
-                circuit.u2(0, np.pi, qubits[j])
+                self.u2(0, np.pi, j)
 
-        if do_swaps and inverse:
-            FourierTransformCircuits._do_swaps(circuit, qubits)
+        if self._do_swaps and inverse:
+            self._swap_qubits()
 
-        return circuit
+    @property
+    def data(self):
+        self._build()
+        return super().data
