@@ -107,7 +107,7 @@ class TestTextDrawerElement(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.cx(qr[1], qr[0])
         circuit.cx(qr[0], qr[1])
-        self.assertEqual(str(_text_circuit_drawer(circuit, line_length=20)), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, fold=20)), expected)
 
     def test_text_no_pager(self):
         """ The pager can be disable."""
@@ -115,7 +115,7 @@ class TestTextDrawerElement(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         for _ in range(100):
             circuit.h(qr[0])
-        amount_of_lines = str(_text_circuit_drawer(circuit, line_length=-1)).count('\n')
+        amount_of_lines = str(_text_circuit_drawer(circuit, fold=-1)).count('\n')
         self.assertEqual(amount_of_lines, 2)
 
 
@@ -1552,12 +1552,11 @@ class TestTextNonRational(QiskitTestCase):
     def test_text_complex(self):
         """Complex numbers show up in the text
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
-        expected = '\n'.join(["        ┌────────────────────────────────────┐",
-                              "q_0: |0>┤0                                   ├",
-                              "        │  Initialize(0.5+0.1j,0,0,0.86023j) │",
-                              "q_1: |0>┤1                                   ├",
-                              "        └────────────────────────────────────┘"
-                              ])
+        expected = '\n'.join(["     ┌────────────────────────────────────┐",
+                              "q_0: ┤0                                   ├",
+                              "     │  Initialize(0.5+0.1j,0,0,0.86023j) │",
+                              "q_1: ┤1                                   ├",
+                              "     └────────────────────────────────────┘"])
         ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
@@ -1575,7 +1574,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(circuit.draw(output='text', initial_value=True).single_string(), expected)
 
     def test_text_complex_piimaginary(self):
         """Complex numbers including pi show up in the text
@@ -1589,7 +1588,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(circuit.draw(output='text', initial_value=True).single_string(), expected)
 
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
@@ -2309,6 +2308,40 @@ class TestTextWithLayout(QiskitTestCase):
             "«                  ║ ",
             "«           c0_1: ═╩═",
             "«                    "])
+        expected = '\n'.join([
+            "                 ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐   ",
+            "   userqr_0 -> 0 ┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───",
+            "                 ├──────────┤└──────────┘└─┬─┘├──────────┤└─┬─────────────┬──┘└╥┘┌─┐",
+            "   userqr_1 -> 1 ┤ U2(0,pi) ├──────────────■──┤ U2(0,pi) ├──┤ U3(pi,0,pi) ├────╫─┤M├",
+            "                 └──────────┘                 └──────────┘  └─────────────┘    ║ └╥┘",
+            "  ancilla_0 -> 2 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_1 -> 3 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_2 -> 4 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_3 -> 5 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_4 -> 6 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_5 -> 7 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_6 -> 8 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "  ancilla_7 -> 9 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            " ancilla_8 -> 10 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            " ancilla_9 -> 11 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "ancilla_10 -> 12 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "ancilla_11 -> 13 ──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                               ║  ║ ",
+            "           c0_0: ══════════════════════════════════════════════════════════════╩══╬═",
+            "                                                                                  ║ ",
+            "           c0_1: ═════════════════════════════════════════════════════════════════╩═",
+            "                                                                                    "])
         qr = QuantumRegister(2, 'userqr')
         cr = ClassicalRegister(2, 'c0')
         qc = QuantumCircuit(qr, cr)
@@ -2323,7 +2356,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0)
-        self.assertEqual(qc_result.draw(output='text', fold=86).single_string(), expected)
+        self.assertEqual(qc_result.draw(output='text').single_string(), expected)
 
 
 class TestTextInitialValue(QiskitTestCase):
@@ -2333,8 +2366,36 @@ class TestTextInitialValue(QiskitTestCase):
         self.circuit = QuantumCircuit(qr, cr)
         self.circuit.measure(qr, cr)
 
+    def test_draw_initial_value_default(self):
+        """ Text drawer (.draw) default initial_value parameter (False). """
+        expected = '\n'.join(["     ┌─┐   ",
+                              "q_0: ┤M├───",
+                              "     └╥┘┌─┐",
+                              "q_1: ─╫─┤M├",
+                              "      ║ └╥┘",
+                              "c_0: ═╩══╬═",
+                              "         ║ ",
+                              "c_1: ════╩═",
+                              "           "])
+
+        self.assertEqual(self.circuit.draw(output='text').single_string(), expected)
+
+    def test_draw_initial_value_true(self):
+        """ Text drawer .draw(initial_value=True). """
+        expected = '\n'.join(["        ┌─┐   ",
+                              "q_0: |0>┤M├───",
+                              "        └╥┘┌─┐",
+                              "q_1: |0>─╫─┤M├",
+                              "         ║ └╥┘",
+                              " c_0: 0 ═╩══╬═",
+                              "            ║ ",
+                              " c_1: 0 ════╩═",
+                              "              "])
+        self.assertEqual(self.circuit.draw(output='text', initial_value=True).single_string(),
+                         expected)
+
     def test_initial_value_false(self):
-        """ Remove QuWires and ClWires. """
+        """ Text drawer with initial_value parameter False. """
         expected = '\n'.join(["     ┌─┐   ",
                               "q_0: ┤M├───",
                               "     └╥┘┌─┐",
@@ -2346,8 +2407,6 @@ class TestTextInitialValue(QiskitTestCase):
                               "           "])
 
         self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_value=False)), expected)
-        # self.assertEqual(circuit.draw(output='text', initial_layout=False).single_string(),
-        #                  expected)
 
 
 if __name__ == '__main__':

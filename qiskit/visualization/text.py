@@ -593,7 +593,7 @@ class TextDrawing():
                 rest_of_the_line = line_length - layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(
-                    InputWire.fillup_layer(self.wire_names()))
+                    InputWire.fillup_layer(self.wire_names(with_initial_value=False)))
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
                 layer_groups[-1].append(layer)
@@ -606,17 +606,17 @@ class TextDrawing():
 
         return lines
 
-    def wire_names(self):
+    def wire_names(self, with_initial_value=False):
         """Returns a list of names for each wire.
 
         Args:
-            with_initial_value (bool): Optional (Default: True). If true, adds
+            with_initial_value (bool): Optional (Default: False). If true, adds
                 the initial value to the name.
 
         Returns:
             List: The list of wire names.
         """
-        if self.initial_value:
+        if with_initial_value:
             initial_qubit_value = '|0>'
             initial_clbit_value = '0 '
         else:
@@ -999,7 +999,7 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        wire_names = self.wire_names()
+        wire_names = self.wire_names(with_initial_value=self.initial_value)
         if not wire_names:
             return []
 

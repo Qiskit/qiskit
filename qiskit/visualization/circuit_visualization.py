@@ -64,7 +64,8 @@ def circuit_drawer(circuit,
                    idle_wires=True,
                    with_layout=True,
                    fold=None,
-                   ax=None):
+                   ax=None,
+                   initial_value=False):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -133,6 +134,7 @@ def circuit_drawer(circuit,
             will be no returned Figure since it is redundant. This is only used
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
             will be silently ignored with all other outputs.
+        initial_value (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
 
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -282,7 +284,8 @@ def circuit_drawer(circuit,
                                     vertical_compression=vertical_compression,
                                     idle_wires=idle_wires,
                                     with_layout=with_layout,
-                                    fold=fold)
+                                    fold=fold,
+                                    initial_value=initial_value)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
@@ -400,7 +403,7 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=True, fold=None,):
+                         idle_wires=True, with_layout=True, fold=None, initial_value=True):
     """Draws a circuit using ascii art.
 
     Args:
@@ -421,6 +424,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                     None (default), it will try to guess the console width using
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
+        initial_value (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -435,7 +439,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     if line_length:
         warn('The parameter "line_length" is being replaced by "fold"', DeprecationWarning, 3)
         fold = line_length
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_value=initial_value)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression

@@ -693,7 +693,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_value=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -763,6 +763,7 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_value (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -904,7 +905,8 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_value=initial_value)
 
     def size(self):
         """Returns total number of gate operations in circuit.
