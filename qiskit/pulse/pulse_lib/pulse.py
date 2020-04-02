@@ -23,7 +23,7 @@ import numpy as np
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..instructions.play import Play
+from ..instructions import Play
 
 
 class Pulse(ABC):
@@ -44,17 +44,9 @@ class Pulse(ABC):
         return id(self)
 
     def __call__(self, channel: PulseChannel) -> Play:
-        """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
-        ``channel``.
-
-        Args:
-            channel: The channel that will have the pulse.
-
-        Return:
-            Complete and ready to schedule ``Play``.
-        """
-        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate `Play` "
-                      "directly with a pulse and a channel.".format(self.__class__.__name__),
+        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
+                      "instruction directly with a pulse and a channel. In this case, please "
+                      "use: `Play({}, {})`.".format(self.__class__.__name__, repr(self), channel),
                       DeprecationWarning)
         return Play(self, channel)
 

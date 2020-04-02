@@ -18,7 +18,9 @@ from typing import Callable, Union, List, Optional
 
 import numpy as np
 
+from ..channels import PulseChannel
 from ..exceptions import PulseError
+from ..instructions import Play
 from .pulse import Pulse
 
 
@@ -139,4 +141,13 @@ class SamplePulse(Pulse):
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
         np.set_printoptions(**opt)
-        return "{}({}, name='{}')".format(self.__class__.__name__, repr(self.samples), self.name)
+        return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
+                                 ", name='{}'".format(self.name) if self.name is not None else "")
+
+    def __call__(self, channel: PulseChannel) -> Play:
+        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
+                      "instruction directly with a pulse and a channel. In this case, please "
+                      "use: `Play(SamplePulse(samples), {})`."
+                      "".format(self.__class__.__name__, channel),
+                      DeprecationWarning)
+        return Play(self, channel)
