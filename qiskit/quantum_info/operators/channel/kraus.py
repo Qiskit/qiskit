@@ -188,9 +188,9 @@ class Kraus(QuantumChannel):
         if self._data[1] is not None:
             return False
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         accum = 0j
         for op in self._data[0]:
             accum += np.dot(np.transpose(np.conj(op)), op)

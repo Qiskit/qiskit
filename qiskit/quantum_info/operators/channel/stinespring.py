@@ -158,13 +158,13 @@ class Stinespring(QuantumChannel):
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         if self._data[1] is not None:
             return False
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
-        return is_identity_matrix(check, rtol=self._rtol, atol=self._atol)
+        return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
     def conjugate(self):
         """Return the conjugate of the QuantumChannel."""

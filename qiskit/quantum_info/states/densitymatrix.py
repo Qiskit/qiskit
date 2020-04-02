@@ -25,6 +25,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -77,9 +78,9 @@ class DensityMatrix(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if trace 1 and positive semidefinite."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         # Check trace == 1
         if not np.allclose(self.trace(), 1, rtol=rtol, atol=atol):
             return False
@@ -216,6 +217,9 @@ class DensityMatrix(QuantumState):
             QiskitError: if the operator dimension does not match the
                          specified QuantumState subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
@@ -292,6 +296,35 @@ class DensityMatrix(QuantumState):
             probs = probs.round(decimals=decimals)
         return probs
 
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            DensityMatrix: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform evolution by the reset
+            :class:`~qiskit.quantum_info.SuperOp` of the reset subsystems.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(2 * (self._dim, ), dtype=complex)
+            state[0, 0] = 1
+            return DensityMatrix(state, dims=self._dims)
+
+        # Reset by evolving by reset SuperOp
+        dims = self.dims(qargs)
+        reset_superop = SuperOp(ScalarOp(dims, coeff=0))
+        reset_superop.data[0] = Operator(ScalarOp(dims)).data.ravel()
+        return self.evolve(reset_superop, qargs=qargs)
+
     @classmethod
     def from_label(cls, label):
         r"""Return a tensor product of Pauli X,Y,Z eigenstates.
@@ -349,10 +382,10 @@ class DensityMatrix(QuantumState):
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
-        n_qubits = instruction.num_qubits
-        init = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
+        num_qubits = instruction.num_qubits
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
-        vec = DensityMatrix(init, dims=n_qubits * [2])
+        vec = DensityMatrix(init, dims=num_qubits * [2])
         vec._append_instruction(instruction)
         return vec
 

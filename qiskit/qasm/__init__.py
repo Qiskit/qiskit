@@ -19,14 +19,37 @@ Qasm (:mod:`qiskit.qasm`)
 
 .. currentmodule:: qiskit.qasm
 
+QASM Routines
+=============
+
 .. autosummary::
    :toctree: ../stubs/
 
    Qasm
    QasmError
+
+
+Pygments
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpenQASMLexer
+   QasmHTMLStyle
+   QasmTerminalStyle
+
 """
 
 from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
+try:
+    import pygments
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
+
+if HAS_PYGMENTS:
+    from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
