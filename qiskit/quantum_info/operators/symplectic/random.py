@@ -18,7 +18,6 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import RandomState
 
-from qiskit.exceptions import QiskitError
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
 from .pauli_table import PauliTable
