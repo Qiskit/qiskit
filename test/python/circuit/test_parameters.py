@@ -82,7 +82,7 @@ class TestParameters(QiskitTestCase):
         self.assertFalse(h_gate.is_parameterized())
 
     @data(True, False)
-    def test_fix_variable(self, in_place):
+    def test_fix_variable(self, inplace):
         """Test setting a variable to a constant value"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
@@ -90,8 +90,8 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
 
-        if in_place:
-            qc.bind_parameters({theta: 0.5}, in_place=True)
+        if inplace:
+            qc.bind_parameters({theta: 0.5}, inplace=True)
             self.assertEqual(float(qc.data[0][0].params[0]), 0.5)
             self.assertEqual(float(qc.data[1][0].params[1]), 0.5)
 
@@ -134,7 +134,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(float(pqc.data[1][0].params[1]), 2)
 
     @data(True, False)
-    def test_mixed_binding(self, in_place):
+    def test_mixed_binding(self, inplace):
         """Test we can bind a mixed dict with Parameter objects and floats."""
         theta = Parameter('θ')
         x, new_x = Parameter('x'), Parameter('new_x')
@@ -143,8 +143,8 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
 
-        pqc = qc.bind_parameters({theta: 2, x: new_x}, in_place=in_place)
-        if in_place:
+        pqc = qc.bind_parameters({theta: 2, x: new_x}, inplace=inplace)
+        if inplace:
             self.assertEqual(qc.parameters, {new_x})
         else:
             self.assertEqual(pqc.parameters, {new_x})

@@ -1268,23 +1268,23 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def bind_parameters(self, value_dict, in_place=False):
+    def bind_parameters(self, value_dict, inplace=False):
         """Assign parameters to values yielding a new circuit.
 
         Args:
             value_dict (dict): {parameter: value, ...}
-            in_place (bool): If False, a copy of the circuit with the bound parameters is
+            inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned, if True the circuit instance itself is modified.
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
 
         Returns:
-            QuantumCircuit: The circuit or a copy of it (depending on the value of ``in_place``)
-                with assignment substitution.
+            optional(QuantumCircuit): A copy of the circuit with bound parameters, if
+                ``inplace`` is True, otherwise None.
         """
         # replace in self or in a copy depending on the value of in_place
-        bound_circuit = self if in_place else self.copy()
+        bound_circuit = self if inplace else self.copy()
 
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_value_dict = self._unroll_param_dict(value_dict)
@@ -1302,7 +1302,7 @@ class QuantumCircuit:
                 bound_circuit._bind_parameter(parameter, value)
                 del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
 
-        return bound_circuit
+        return None if inplace else bound_circuit
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
@@ -1345,13 +1345,6 @@ class QuantumCircuit:
                         else:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
-
-    def _substitute_parameters(self, parameter_map):
-        """For every {existing_parameter: replacement_parameter} pair in
-        parameter_map, substitute replacement for existing in all
-        circuit instructions and the parameter table.
-        """
-        _ = self.bind_parameters(parameter_map, in_place=True)
 
 
 def _circuit_from_qasm(qasm):

@@ -77,7 +77,7 @@ def circuit_to_gate(circuit, parameter_map=None):
         reg_index = ordered_regs.index(bit.register)
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
-    target = circuit.bind_parameters(parameter_dict, in_place=False)
+    target = circuit.bind_parameters(parameter_dict, inplace=False)
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
