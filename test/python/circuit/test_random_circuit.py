@@ -28,7 +28,7 @@ class TestCircuitRandom(QiskitTestCase):
     def test_simple_random(self):
         """Test creating a simple random circuit.
         """
-        circ = random_circuit(n_qubits=5, depth=4)
+        circ = random_circuit(num_qubits=5, depth=4)
         self.assertIsInstance(circ, QuantumCircuit)
         self.assertEqual(circ.width(), 5)
         self.assertEqual(circ.depth(), 4)
@@ -36,25 +36,25 @@ class TestCircuitRandom(QiskitTestCase):
     def test_random_depth_0(self):
         """Test random depth 0 circuit.
         """
-        circ = random_circuit(n_qubits=1, depth=0)
+        circ = random_circuit(num_qubits=1, depth=0)
         self.assertEqual(circ.width(), 1)
         self.assertEqual(circ.depth(), 0)
 
     def test_random_measure(self):
         """Test random circuit with final measurement.
         """
-        n_qubits = depth = 3
-        circ = random_circuit(n_qubits, depth, measure=True)
-        self.assertEqual(circ.width(), 2*n_qubits)
+        num_qubits = depth = 3
+        circ = random_circuit(num_qubits, depth, measure=True)
+        self.assertEqual(circ.width(), 2*num_qubits)
         dag = circuit_to_dag(circ)
-        for nd in list(dag.topological_op_nodes())[-n_qubits:]:
+        for nd in list(dag.topological_op_nodes())[-num_qubits:]:
             self.assertIsInstance(nd.op, Measure)
 
     def test_random_circuit_conditional_reset(self):
         """Test generating random circuits with conditional and reset.
         """
-        n_qubits = 1
+        num_qubits = 1
         depth = 100
-        circ = random_circuit(n_qubits, depth, conditional=True, reset=True, seed=5)
-        self.assertEqual(circ.width(), 2*n_qubits)
+        circ = random_circuit(num_qubits, depth, conditional=True, reset=True, seed=5)
+        self.assertEqual(circ.width(), 2*num_qubits)
         self.assertIn('reset', circ.count_ops())
