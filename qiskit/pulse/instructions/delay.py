@@ -55,7 +55,7 @@ class Delay(Instruction):
                           "example, Delay(5)(DriveChannel(0)) should be replaced by "
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
         self._channel = channel
-        super().__init__((duration, channel), duration, [channel], name=name)
+        super().__init__((duration, channel), duration, (channel,), name=name)
 
     @property
     def channel(self) -> Channel:

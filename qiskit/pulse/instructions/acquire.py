@@ -16,6 +16,7 @@
 some metadata for the acquisition process; for example, where to store classified readout data.
 """
 import warnings
+import itertools
 
 from typing import List, Optional, Union
 
@@ -119,9 +120,7 @@ class Acquire(Instruction):
                           "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
                           "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
         all_channels = [group for group in [channels, mem_slot, reg_slot] if group is not None]
-        flattened_channels = []
-        for channels in all_channels:
-            flattened_channels.extend(channels)
+        flattened_channels = tuple(itertools.chain.from_iterable(all_channels))
         super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
                          duration, flattened_channels, name=name)
 

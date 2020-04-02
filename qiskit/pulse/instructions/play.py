@@ -45,7 +45,7 @@ class Play(Instruction):
         self._channel = channel
         if name is None:
             name = pulse.name
-        super().__init__((pulse, channel), pulse.duration, [channel], name=name)
+        super().__init__((pulse, channel), pulse.duration, (channel,), name=name)
 
     @property
     def pulse(self):

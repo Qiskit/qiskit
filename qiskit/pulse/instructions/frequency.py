@@ -47,7 +47,7 @@ class SetFrequency(Instruction):
         """
         self._frequency = float(frequency)
         self._channel = channel
-        super().__init__((frequency, channel), 0, [channel], name=name)
+        super().__init__((frequency, channel), 0, (channel,), name=name)
 
     @property
     def frequency(self) -> float:

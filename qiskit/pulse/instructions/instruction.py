@@ -44,9 +44,9 @@ class Instruction(ScheduleComponent, ABC):
     """
 
     def __init__(self,
-                 operands: List,
+                 operands: Tuple,
                  duration: Union['commands.Command', int],
-                 channels: List[Channel],
+                 channels: Tuple[Channel],
                  name: Optional[str] = None):
         """Instruction initializer.
 
@@ -54,7 +54,7 @@ class Instruction(ScheduleComponent, ABC):
             operands: The argument list.
             duration: Length of time taken by the instruction in terms of dt.
                       Deprecated: the first argument used to be the Command.
-            channels: List of pulse channels that this instruction operates on.
+            channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
         """
         self._command = None
