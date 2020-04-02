@@ -159,27 +159,60 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         The transpiled circuit(s).
 
     Raises:
-        TranspilerError: in case of bad inputs to transpiler or errors in passes
+        TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
+            or errors in passes
     """
+    circuits = circuits if isinstance(circuits, list) else [circuits]
+
     # transpiling schedules is not supported yet.
-    if isinstance(circuits, Schedule) or \
-            (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
+    if all(isinstance(c, Schedule) for c in circuits):
+        warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
+        if len(circuits) == 1:
+            return circuits[0]
         return circuits
 
-    if pass_manager:
+    if pass_manager is not None:
+        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
+                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
+                                    backend_properties=backend_properties,
+                                    initial_layout=initial_layout, layout_method=layout_method,
+                                    routing_method=routing_method, backend=backend)
+
+        warnings.warn("The parameter pass_manager in transpile is being deprecated. "
+                      "The preferred way to tranpile a circuit using a custom pass manager is"
+                      " pass_manager.run(circuit)", DeprecationWarning, stacklevel=2)
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
+        # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get('transpile_optimization_level', None)
+        optimization_level = config.get('transpile_optimization_level', 1)
 
     # Get transpile_args to configure the circuit transpilation job(s)
-    circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method,
                                            seed_transpiler, optimization_level,
-                                           pass_manager, callback, output_name)
+                                           callback, output_name)
+
+    _check_circuits_coupling_map(circuits, transpile_args, backend)
+
+    # Transpile circuits in parallel
+    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
+
+    if len(circuits) == 1:
+        return circuits[0]
+    return circuits
+
+
+def _check_conflicting_argument(**kargs):
+    conflicting_args = [arg for arg, value in kargs.items() if value]
+    if conflicting_args:
+        raise TranspilerError("The parameters pass_manager conflicts with the following "
+                              "parameter(s): {}.".format(', '.join(conflicting_args)))
+
+
+def _check_circuits_coupling_map(circuits, transpile_args, backend):
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in
                               transpile_args)
@@ -199,13 +232,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
-
-    # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
-
-    if len(circuits) == 1:
-        return circuits[0]
-    return circuits
 
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
@@ -241,26 +267,19 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager_config.basis_gates = list(
             set(['u3', 'cx']).union(pass_manager_config.basis_gates))
 
-    if transpile_config['pass_manager'] is not None:
-        # either the pass manager is already selected...
-        pass_manager = transpile_config['pass_manager']
-    else:
-        # or we choose an appropriate one based on desired optimization level (default: level 1)
-        if transpile_config['optimization_level'] is not None:
-            level = transpile_config['optimization_level']
-        else:
-            level = 1
+    # we choose an appropriate one based on desired optimization level
+    level = transpile_config['optimization_level']
 
-        if level == 0:
-            pass_manager = level_0_pass_manager(pass_manager_config)
-        elif level == 1:
-            pass_manager = level_1_pass_manager(pass_manager_config)
-        elif level == 2:
-            pass_manager = level_2_pass_manager(pass_manager_config)
-        elif level == 3:
-            pass_manager = level_3_pass_manager(pass_manager_config)
-        else:
-            raise TranspilerError("optimization_level can range from 0 to 3.")
+    if level == 0:
+        pass_manager = level_0_pass_manager(pass_manager_config)
+    elif level == 1:
+        pass_manager = level_1_pass_manager(pass_manager_config)
+    elif level == 2:
+        pass_manager = level_2_pass_manager(pass_manager_config)
+    elif level == 3:
+        pass_manager = level_3_pass_manager(pass_manager_config)
+    else:
+        raise TranspilerError("optimization_level can range from 0 to 3.")
 
     if ms_basis_swap is not None:
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
@@ -273,7 +292,7 @@ def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method,
                           seed_transpiler, optimization_level,
-                          pass_manager, callback, output_name) -> List[Dict]:
+                          callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -300,7 +319,6 @@ def _parse_transpile_args(circuits, backend,
     routing_method = _parse_routing_method(routing_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
-    pass_manager = _parse_pass_manager(pass_manager, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
 
@@ -308,7 +326,7 @@ def _parse_transpile_args(circuits, backend,
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, layout_method, routing_method,
                     seed_transpiler, optimization_level,
-                    pass_manager, output_name, callback):
+                    output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
                                                                    backend_properties=args[2],
@@ -317,9 +335,8 @@ def _parse_transpile_args(circuits, backend,
                                                                    routing_method=args[5],
                                                                    seed_transpiler=args[6]),
                           'optimization_level': args[7],
-                          'pass_manager': args[8],
-                          'output_name': args[9],
-                          'callback': args[10]}
+                          'output_name': args[8],
+                          'callback': args[9]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
