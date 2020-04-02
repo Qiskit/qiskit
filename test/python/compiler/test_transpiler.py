@@ -535,7 +535,7 @@ class TestTranspile(QiskitTestCase):
         resources_before = circuit.count_ops()
 
         pass_manager = PassManager()
-        out_circuit = transpile(circuit, pass_manager=pass_manager)
+        out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
@@ -717,7 +717,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         )
         passmanager = level_0_pass_manager(pm_conf)
 
-        transpiled = transpile([qc, qc], pass_manager=passmanager)
+        transpiled = passmanager.run([qc, qc])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         expected.u2(0, 3.141592653589793, 0)
