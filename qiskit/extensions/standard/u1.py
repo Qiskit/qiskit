@@ -108,7 +108,8 @@ class U1Gate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CU1Gate(*self.params)
+                return CU1Gate(self.params[0])
+            return MCU1Gate(self.params[0], num_ctrl_qubits)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -192,9 +193,9 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
           u1(lambda/2) b;
         }
         """
-        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
+        from qiskit.extensions.standard.x import CXGate
         rule = [
             (U1Gate(self.params[0] / 2), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
@@ -202,9 +203,27 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0] / 2), [q[1]], [])
         ]
+
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            return MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
@@ -232,3 +251,79 @@ def cu1(self, theta, control_qubit, target_qubit,
 
 
 QuantumCircuit.cu1 = cu1
+
+
+class MCU1Gate(ControlledGate):
+    r"""Multi-controlled-U1 gate.
+
+    This is a diagonal and symmetric gate that induces a
+    phase on the state of the target qubit, depending on the state of the control qubits.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+            q_0: ────■────
+                     │
+                     .
+                     │
+        q_(n-1): ────■────
+                 ┌───┴───┐
+            q_n: ┤ U1(λ) ├
+                 └───────┘
+
+    .. seealso::
+
+        :class:`~qiskit.extensions.standard.CU1Gate`:
+        The singly-controlled-version of this gate.
+    """
+
+    def __init__(self, lam, num_ctrl_qubits):
+        """Create new MCU1 gate."""
+        super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits)
+        self.base_gate = U1Gate(lam)
+
+    def _define(self):
+        q = QuantumRegister(self.num_qubits, 'q')
+
+        if self.num_ctrl_qubits == 0:
+            definition = U1Gate(self.params[0]).definition
+        if self.num_ctrl_qubits == 1:
+            definition = CU1Gate(self.params[0]).definition
+        else:
+            from qiskit.extensions.standard.u3 import _gray_code_chain
+            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
+            bottom_gate = CU1Gate(scaled_lam)
+            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
+
+        self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            return MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
+
+    def inverse(self):
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
+        return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+
+
+def mcu1(self, lam, control_qubits, target_qubit):
+    """Apply :class:`~qiskit.extensions.standard.CU1Gate`."""
+    num_ctrl_qubits = len(control_qubits)
+    return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
+
+
+QuantumCircuit.mcu1 = mcu1
