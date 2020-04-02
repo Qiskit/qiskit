@@ -92,8 +92,8 @@ class Instruction(ScheduleComponent, ABC):
     def operands(self) -> Tuple:
         """Return instruction operands."""
         if self.command is not None:
-            raise NotImplementedError("This is a deprecated instruction with a ``Command``, "
-                                      "and it does not have `operands`.")
+            warnings.warn("This is a deprecated instruction with a ``Command``, and it does "
+                          "not populate its `operands`.")
         return self._operands
 
     @property
