@@ -264,7 +264,7 @@ class UCGate(Gate, metaclass=UCMeta):
     def _rz(alpha):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:

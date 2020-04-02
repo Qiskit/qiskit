@@ -221,7 +221,7 @@ class Gate(Instruction):
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, (int, float, ParameterExpression)):
             return parameter
         else:

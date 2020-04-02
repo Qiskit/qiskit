@@ -137,9 +137,9 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            self._params.append(self.normalize_parameter(single_param))
+            self._params.append(self.validate_parameter(single_param))
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         return parameter
 
     def is_parameterized(self):

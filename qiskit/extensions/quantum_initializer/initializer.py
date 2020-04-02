@@ -246,11 +246,11 @@ class Initialize(Instruction):
                               (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, (int, float, complex)):
             return parameter
         else:
-            return super().normalize_parameter(parameter)
+            return super().validate_parameter(parameter)
 
 
 def initialize(self, params, qubits):

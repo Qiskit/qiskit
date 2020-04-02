@@ -79,11 +79,11 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
         diag_circuit.append(gate, q[:])
         self.definition = diag_circuit.data
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, complex):
             return parameter
         else:
-            return super().normalize_parameter(parameter)
+            return super().validate_parameter(parameter)
 
     def _dec_diag(self):
         """

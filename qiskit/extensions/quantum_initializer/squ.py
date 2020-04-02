@@ -133,7 +133,7 @@ class SingleQubitUnitary(Gate):
         # Therefore, we have to take the inverse of the angles at the end.
         return -a, -b, -c, d
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:

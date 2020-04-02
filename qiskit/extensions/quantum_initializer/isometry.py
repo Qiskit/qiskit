@@ -258,7 +258,7 @@ class Isometry(Instruction):
         q_ancillas_dirty = q[n + self.num_ancillas_zero:]
         return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:

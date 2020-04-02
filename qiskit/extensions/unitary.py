@@ -182,7 +182,7 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
-    def normalize_parameter(self, parameter):
+    def validate_parameter(self, parameter):
         if isinstance(parameter, numpy.ndarray):
             return parameter
         else:
