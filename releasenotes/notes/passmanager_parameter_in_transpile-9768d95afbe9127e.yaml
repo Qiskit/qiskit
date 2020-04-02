@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The parameter ```pass_manager``` in the function ```transpile``` is going to be removed. 
+    The preferred way to transpile a circuit with a custom pass manger is ```pass_manager.run(circuit)```.
