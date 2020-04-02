@@ -2275,7 +2275,7 @@ class TestTextWithLayout(QiskitTestCase):
             "                                                              ║ ",
             "           c0_1: ═════════════════════════════════════════════╩═",
             "                                                                "])
-        self.maxDiff = None
+
         qr = QuantumRegister(2, 'userqr')
         cr = ClassicalRegister(2, 'c0')
         qc = QuantumCircuit(qr, cr)
