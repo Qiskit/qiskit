@@ -106,6 +106,7 @@ class TestRandomHermitian(QiskitTestCase):
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 
+
 @ddt
 class TestRandomQuantumChannel(QiskitTestCase):
     """Testing random_quantum_channel function."""
@@ -123,8 +124,8 @@ class TestRandomQuantumChannel(QiskitTestCase):
     def test_int_dims(self, dim):
         """Test random_quantum_channel is valid with dims {dim}."""
         value = random_quantum_channel(dim)
-        self.assertIsInstance(value, Operator)
-        self.assertTrue(value.is_unitary())
+        self.assertIsInstance(value, Stinespring)
+        self.assertTrue(value.is_cptp())
         self.assertEqual(np.product(value.input_dims()), dim)
         self.assertEqual(np.product(value.output_dims()), dim)
 
@@ -133,7 +134,7 @@ class TestRandomQuantumChannel(QiskitTestCase):
         """Test random_quantum_channel with fixed rank {rank}"""
         choi = Choi(random_quantum_channel(2, rank=rank))
         # Get number of non-zero eigenvalues
-        evals = np.linalg.eigvals(choi).round(8)
+        evals = np.linalg.eigvals(choi.data).round(8)
         value = len(evals[evals > 0])
         self.assertEqual(value, rank)
 

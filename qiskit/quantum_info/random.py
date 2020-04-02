@@ -14,6 +14,7 @@
 
 """Methods for generating random quantum information objects."""
 
+# pylint: disable=unused-import
 from qiskit.quantum_info.operators.random import (random_unitary,
                                                   random_quantum_channel,
                                                   random_hermitian)

@@ -66,11 +66,11 @@ def random_hermitian(dims, traceless=False, seed=None):
         Operator: a Hermitian operator.
     """
     if seed is None:
-        random_state = np.random
+        rng = np.random
     elif isinstance(seed, RandomState):
-        random_state = seed
+        rng = seed
     else:
-        random_state = RandomState(seed)
+        rng = RandomState(seed)
 
     # Total dimension
     dim = np.product(dims)
@@ -80,14 +80,14 @@ def random_hermitian(dims, traceless=False, seed=None):
     else:
         # Generate diagonal part of matrix for Gaussian N(0, 1)
         mat = np.diag(stats.norm.rvs(
-            scale=1, size=dim, random_state=random_state).astype(complex))
+            scale=1, size=dim, random_state=rng).astype(complex))
 
     # Generate lower triangular values from Gaussian N(0, 0.5)
     num_tril = (dim * (dim - 1)) // 2
     real_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=random_state)
+        scale=0.5, size=num_tril, random_state=rng)
     imag_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=random_state)
+        scale=0.5, size=num_tril, random_state=rng)
     # Get lower triangular indicies
     rows, cols = np.tril_indices(dim, -1)
     mat[(rows, cols)] = real_tril + 1j * imag_tril
@@ -113,6 +113,9 @@ def random_quantum_channel(input_dims=None,
 
     Returns:
         Stinespring: a quantum channel operator.
+
+    Raises:
+        QiskitError: if rank or dimensions are invalid.
     """
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:
@@ -132,7 +135,7 @@ def random_quantum_channel(input_dims=None,
     if rank is None or rank > d_in * d_out:
         rank = d_in * d_out
     if rank < 1:
-        raise Exception("Rank {} must be greater than 0.".format(rank))
+        raise QiskitError("Rank {} must be greater than 0.".format(rank))
 
     # Generate a random unitary matrix
     unitary = stats.unitary_group.rvs(

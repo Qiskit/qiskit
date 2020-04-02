@@ -19,11 +19,11 @@ Random state generation.
 import warnings
 import numpy as np
 from numpy.random import RandomState
-from qiskit.exceptions import QiskitError
 
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.random import random_unitary
 from .statevector import Statevector
 from .densitymatrix import DensityMatrix
-from qiskit.quantum_info.operators.random import random_unitary
 
 
 def random_statevector(dims, seed=None):
@@ -40,20 +40,20 @@ def random_statevector(dims, seed=None):
         Statevector: the random statevector.
     """
     if seed is None:
-        random_state = np.random
+        rng = np.random
     elif isinstance(seed, RandomState):
-        random_state = seed
+        rng = seed
     else:
-        random_state = RandomState(seed)
+        rng = RandomState(seed)
 
     dim = np.product(dims)
 
     # Random array over interval (0, 1]
-    x = random_state.rand(dim)
+    x = rng.rand(dim)
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = random_state.rand(dim) * 2.0 * np.pi
+    phases = rng.rand(dim) * 2.0 * np.pi
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
@@ -77,8 +77,7 @@ def random_state(dim, seed=None):
     return random_statevector(dim, seed=seed).data
 
 
-def random_density_matrix(dims, rank=None, random_state=None,
-                          method='Hilbert-Schmidt',
+def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
                           seed=None):
     """Generator a random DensityMatrix.
 
@@ -125,14 +124,14 @@ def _ginibre_matrix(nrow, ncol, seed):
             entry is sampled from the normal distribution.
     """
     if seed is None:
-        random_state = np.random
+        rng = np.random
     elif isinstance(seed, RandomState):
-        random_state = seed
+        rng = seed
     else:
-        random_state = RandomState(seed)
+        rng = RandomState(seed)
 
-    ginibre = random_state.normal(
-        size=(nrow, ncol)) + random_state.normal(size=(nrow, ncol)) * 1j
+    ginibre = rng.normal(
+        size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 
@@ -158,7 +157,7 @@ def _random_density_bures(dim, rank, seed):
     """Generate a random density matrix from the Bures metric.
 
     Args:
-        dim (int: the length of the density matrix.
+        dim (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
         seed (int or RandomState): RandomState for rng.
