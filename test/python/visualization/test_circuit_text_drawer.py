@@ -2288,7 +2288,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                              coupling_map=coupling_map, optimization_level=0)
+                              coupling_map=coupling_map, optimization_level=0, seed_transpiler=0)
         self.assertEqual(qc_result.draw(output='text').single_string(), expected)
 
 
