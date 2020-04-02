@@ -210,7 +210,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
+        end_time = time()
+        _log_transpile_time(start_time, end_time)
         return circuits[0]
+    end_time = time()
+    _log_transpile_time(start_time, end_time)
     return circuits
 
 
