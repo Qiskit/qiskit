@@ -495,12 +495,12 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high', layout=None, initial_value=True):
+                 line_length=None, vertical_compression='high', layout=None, initial_state=True):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
-        self.initial_value = initial_value
+        self.initial_state = initial_state
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -998,7 +998,7 @@ class TextDrawing():
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
         """
-        wire_names = self.wire_names(with_initial_value=self.initial_value)
+        wire_names = self.wire_names(with_initial_value=self.initial_state)
         if not wire_names:
             return []
 

@@ -1574,7 +1574,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text', initial_value=True).single_string(), expected)
+        self.assertEqual(circuit.draw(output='text', initial_state=True).single_string(), expected)
 
     def test_text_complex_piimaginary(self):
         """Complex numbers including pi show up in the text
@@ -1588,7 +1588,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text', initial_value=True).single_string(), expected)
+        self.assertEqual(circuit.draw(output='text', initial_state=True).single_string(), expected)
 
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
@@ -2292,7 +2292,7 @@ class TestTextWithLayout(QiskitTestCase):
 
 
 class TestTextInitialValue(QiskitTestCase):
-    """Testing the initial_value parameter"""
+    """Testing the initial_state parameter"""
 
     def setUp(self) -> None:
         qr = QuantumRegister(2, 'q')
@@ -2301,7 +2301,7 @@ class TestTextInitialValue(QiskitTestCase):
         self.circuit.measure(qr, cr)
 
     def test_draw_initial_value_default(self):
-        """ Text drawer (.draw) default initial_value parameter (False). """
+        """ Text drawer (.draw) default initial_state parameter (False). """
         expected = '\n'.join(["     ┌─┐   ",
                               "q_0: ┤M├───",
                               "     └╥┘┌─┐",
@@ -2315,7 +2315,7 @@ class TestTextInitialValue(QiskitTestCase):
         self.assertEqual(self.circuit.draw(output='text').single_string(), expected)
 
     def test_draw_initial_value_true(self):
-        """ Text drawer .draw(initial_value=True). """
+        """ Text drawer .draw(initial_state=True). """
         expected = '\n'.join(["        ┌─┐   ",
                               "q_0: |0>┤M├───",
                               "        └╥┘┌─┐",
@@ -2325,11 +2325,11 @@ class TestTextInitialValue(QiskitTestCase):
                               "            ║ ",
                               " c_1: 0 ════╩═",
                               "              "])
-        self.assertEqual(self.circuit.draw(output='text', initial_value=True).single_string(),
+        self.assertEqual(self.circuit.draw(output='text', initial_state=True).single_string(),
                          expected)
 
     def test_initial_value_false(self):
-        """ Text drawer with initial_value parameter False. """
+        """ Text drawer with initial_state parameter False. """
         expected = '\n'.join(["     ┌─┐   ",
                               "q_0: ┤M├───",
                               "     └╥┘┌─┐",
@@ -2340,7 +2340,7 @@ class TestTextInitialValue(QiskitTestCase):
                               "c_1: ════╩═",
                               "           "])
 
-        self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_value=False)), expected)
+        self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_state=False)), expected)
 
 
 if __name__ == '__main__':

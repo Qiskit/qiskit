@@ -17,7 +17,7 @@ other:
 	measure_1: ═══════╩═
 
      ...python
-	circuit.draw(initial_value=True)
+	circuit.draw(initial_state=True)
 
      ....
 	              ░ ┌─┐

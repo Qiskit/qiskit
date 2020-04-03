@@ -41,7 +41,7 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None, initial_value=False):
+                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False):
         """QCircuitImage initializer.
 
         Args:
@@ -56,7 +56,7 @@ class QCircuitImage:
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
                included.
-            initial_value (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+            initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -114,7 +114,7 @@ class QCircuitImage:
         self.has_target = False
         self.reverse_bits = reverse_bits
         self.layout = layout
-        self.initial_value = initial_value
+        self.initial_value = initial_state
         self.plot_barriers = plot_barriers
 
         #################################
