@@ -764,7 +764,7 @@ class QuantumCircuit:
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
             initial_value (bool): Optional. Adds |0> in the beginning of the line.
-                Only used by the ``text``, ``latex`` and ``latex_source outputs.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
 
         Returns:
