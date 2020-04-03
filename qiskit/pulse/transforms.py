@@ -346,7 +346,10 @@ def sequentialize(schedule: Schedule) -> Schedule:
 
 def parallelize(schedule):
     """Schedule all top-level nodes in parallel."""
-    raise NotImplementedError()
+    aligned = Schedule()
+    for child in schedule._children:
+        aligned.append(child, mutate=True)
+    return aligned
 
 
 def group(schedule):
