@@ -39,7 +39,8 @@ class Kernel:
     def __repr__(self):
         return "{}({}{})".format(self.__class__.__name__,
                                  "'" + self.name + "', " or "",
-                                 ', '.join("{}={}".format(str(k), str(v)) for k, v in self.params))
+                                 ', '.join("{}={}".format(str(k), str(v))
+                                           for k, v in self.params.items()))
 
 
 class Discriminator:
@@ -60,7 +61,8 @@ class Discriminator:
     def __repr__(self):
         return "{}({}{})".format(self.__class__.__name__,
                                  "'" + self.name + "', " or "",
-                                 ', '.join("{}={}".format(str(k), str(v)) for k, v in self.params))
+                                 ', '.join("{}={}".format(str(k), str(v))
+                                           for k, v in self.params.items()))
 
 
 class LoRange:

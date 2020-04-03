@@ -692,6 +692,133 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(len(memory), shots)
             self.assertEqual(set(memory), set(['0', '2']))
 
+    def test_reset_2qubit(self):
+        """Test reset method for 2-qubit state"""
+
+        state = Statevector(np.array([1, 0, 0, 1]) / np.sqrt(2))
+        state.seed(100)
+
+        with self.subTest(msg='reset'):
+            psi = state.copy()
+            value = psi.reset()
+            target = Statevector(np.array([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset'):
+            psi = state.copy()
+            value = psi.reset([0, 1])
+            target = Statevector(np.array([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset [0]'):
+            psi = state.copy()
+            value = psi.reset([0])
+            targets = [Statevector(np.array([1, 0, 0, 0])),
+                       Statevector(np.array([0, 0, 1, 0]))]
+            self.assertIn(value, targets)
+
+        with self.subTest(msg='reset [0]'):
+            psi = state.copy()
+            value = psi.reset([1])
+            targets = [Statevector(np.array([1, 0, 0, 0])),
+                       Statevector(np.array([0, 1, 0, 0]))]
+            self.assertIn(value, targets)
+
+    def test_reset_qutrit(self):
+        """Test reset method for qutrit"""
+
+        state = Statevector(np.array([1, 1, 1]) / np.sqrt(3))
+        state.seed(200)
+        value = state.reset()
+        target = Statevector(np.array([1, 0, 0]))
+        self.assertEqual(value, target)
+
+    def test_measure_2qubit(self):
+        """Test measure method for 2-qubit state"""
+
+        state = Statevector.from_label('+0')
+        seed = 200
+        shots = 100
+
+        with self.subTest(msg='measure'):
+            for i in range(shots):
+                psi = state.copy()
+                psi.seed(seed + i)
+                outcome, value = psi.measure()
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = Statevector.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = Statevector.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [0, 1]'):
+            for i in range(shots):
+                psi = state.copy()
+                outcome, value = psi.measure([0, 1])
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = Statevector.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = Statevector.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1, 0]'):
+            for i in range(shots):
+                psi = state.copy()
+                outcome, value = psi.measure([1, 0])
+                self.assertIn(outcome, ['00', '01'])
+                if outcome == '00':
+                    target = Statevector.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = Statevector.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [0]'):
+            for i in range(shots):
+                psi = state.copy()
+                outcome, value = psi.measure([0])
+                self.assertEqual(outcome, '0')
+                target = Statevector(np.array([1, 0, 1, 0]) / np.sqrt(2))
+                self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1]'):
+            for i in range(shots):
+                psi = state.copy()
+                outcome, value = psi.measure([1])
+                self.assertIn(outcome, ['0', '1'])
+                if outcome == '0':
+                    target = Statevector.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = Statevector.from_label('10')
+                    self.assertEqual(value, target)
+
+    def test_measure_qutrit(self):
+        """Test measure method for qutrit"""
+
+        state = Statevector(np.array([1, 1, 1]) / np.sqrt(3))
+        seed = 200
+        shots = 100
+
+        for i in range(shots):
+            psi = state.copy()
+            psi.seed(seed + i)
+            outcome, value = psi.measure()
+            self.assertIn(outcome, ['0', '1', '2'])
+            if outcome == '0':
+                target = Statevector([1, 0, 0])
+                self.assertEqual(value, target)
+            elif outcome == '1':
+                target = Statevector([0, 1, 0])
+                self.assertEqual(value, target)
+            else:
+                target = Statevector([0, 0, 1])
+                self.assertEqual(value, target)
+
 
 if __name__ == '__main__':
     unittest.main()

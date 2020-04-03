@@ -110,7 +110,7 @@ class ParametricPulse(Pulse):
                                             interp_method=interp_method, scale=scale,
                                             interactive=interactive)
 
-    def __eq__(self, other: 'ParametricPulse') -> bool:
+    def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
 
     def __hash__(self) -> int:
@@ -170,8 +170,9 @@ class Gaussian(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
     def __repr__(self) -> str:
-        return '{}(duration={}, amp={}, sigma={})' \
-               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma)
+        return "{}(duration={}, amp={}, sigma={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma,
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class GaussianSquare(ParametricPulse):
@@ -250,8 +251,9 @@ class GaussianSquare(ParametricPulse):
                 "width": self.width}
 
     def __repr__(self) -> str:
-        return '{}(duration={}, amp={}, sigma={}, width={})' \
-               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width)
+        return "{}(duration={}, amp={}, sigma={}, width={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width,
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class Drag(ParametricPulse):
@@ -363,8 +365,9 @@ class Drag(ParametricPulse):
                 "beta": self.beta}
 
     def __repr__(self) -> str:
-        return '{}(duration={}, amp={}, sigma={}, beta={})' \
-               ''.format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta)
+        return "{}(duration={}, amp={}, sigma={}, beta={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta,
+                         ", name='{}'".format(self.name) if self.name is not None else "")
 
 
 class ConstantPulse(ParametricPulse):
@@ -410,4 +413,6 @@ class ConstantPulse(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp}
 
     def __repr__(self) -> str:
-        return '{}(duration={}, amp={})'.format(self.__class__.__name__, self.duration, self.amp)
+        return "{}(duration={}, amp={}{})" \
+               "".format(self.__class__.__name__, self.duration, self.amp,
+                         ", name='{}'".format(self.name) if self.name is not None else "")
