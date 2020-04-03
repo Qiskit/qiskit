@@ -64,10 +64,10 @@ class TestTransforms(TestBuilderContext):
 
         reference = pulse.Schedule()
         # d0
-        reference.append(instructions.Play(test_pulse, d0))
-        reference.append(instructions.Play(test_pulse, d0))
+        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, d0)
         # d1
-        reference.append(instructions.Play(test_pulse, d1))
+        reference += instructions.Play(test_pulse, d1)
 
         self.assertEqual(schedule, reference)
 
@@ -85,13 +85,10 @@ class TestTransforms(TestBuilderContext):
 
         reference = pulse.Schedule()
         # d0
-        reference.append(instructions.Play(test_pulse, d0))
-        reference.append(instructions.Delay(10, d0))
-        reference.append(instructions.Play(test_pulse, d0))
+        reference.insert(0, instructions.Play(test_pulse, d0), mutate=True)
+        reference.insert(20, instructions.Play(test_pulse, d0), mutate=True)
         # d1
-        reference.append(instructions.Delay(10, d1))
-        reference.append(instructions.Play(test_pulse, d1))
-        reference.append(instructions.Delay(10, d1))
+        reference.insert(10, instructions.Play(test_pulse, d1), mutate=True)
 
         self.assertEqual(schedule, reference)
 
@@ -109,10 +106,10 @@ class TestTransforms(TestBuilderContext):
 
         reference = pulse.Schedule()
         # d0
-        reference.append(instructions.Play(test_pulse, d0))
-        reference.append(instructions.Play(test_pulse, d0))
+        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, d0)
         # d1
-        reference.append(instructions.Play(test_pulse, d1))
+        reference += instructions.Play(test_pulse, d1)
 
         self.assertEqual(schedule, reference)
 
@@ -130,13 +127,12 @@ class TestTransforms(TestBuilderContext):
 
         reference = pulse.Schedule()
         # d0
-        reference.append(instructions.Play(test_pulse, d0))
-        reference.append(instructions.Play(test_pulse, d0))
+        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, d0)
         # d1
-        reference.append(instructions.Play(test_pulse, d1))
+        reference.insert(10, instructions.Play(test_pulse, d1), mutate=True)
 
         self.assertEqual(schedule, reference)
-
 
 
 class TestInstructions(TestBuilderContext):

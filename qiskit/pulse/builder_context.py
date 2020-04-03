@@ -165,7 +165,7 @@ class _PulseBuilder():
     """Builder context class."""
 
     def __init__(self,
-                 backend, block: Schedule = None,
+                 backend, entry_block: Schedule = None,
                  transpiler_settings: Mapping = None,
                  circuit_scheduler_settings: Mapping = None):
         """Initialize builder context.
@@ -175,11 +175,10 @@ class _PulseBuilder():
         Args:
             backend (BaseBackend):
         """
-
         #: BaseBackend: Backend instance for context builder.
         self.backend = backend
 
-        #: Schedule: Current current schedule of BuilderContext.
+        #: pulse.Schedule: Current current schedule of BuilderContext.
         self._block = None
 
         #: QuantumCircuit: Lazily constructed quantum circuit
@@ -193,10 +192,12 @@ class _PulseBuilder():
             circuit_scheduler_settings = {}
         self._circuit_scheduler_settings = {}
 
-        if block is None:
-            block = Schedule()
+        if entry_block is None:
+            entry_block = Schedule()
+        # pulse.Schedule: Root program block
+        self._entry_block = entry_block
 
-        self.set_current_block(block)
+        self.set_current_block(Schedule())
 
     def __enter__(self):
         """Enter Builder Context."""
@@ -205,6 +206,7 @@ class _PulseBuilder():
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
+        self.compile()
         BUILDER_CONTEXT.reset(self._backend_ctx_token)
 
     @property
@@ -235,6 +237,15 @@ class _PulseBuilder():
         self.schedule_lazy_circuit()
         self._circuit_scheduler_settings = settings
 
+    def compile(self) -> Schedule:
+        """Compile built program."""
+        # Not much happens because we currently compile as we build.
+        # This should be offloaded to a true compilation module
+        # once we define a more sophisticated IR.
+        program = self._entry_block.append(self.block, mutate=True)
+        self.set_current_block(Schedule())
+        return program
+
     @_schedule_lazy_circuit_before
     def set_current_block(self, block: Schedule):
         """Set the current block."""
@@ -244,12 +255,12 @@ class _PulseBuilder():
     @_schedule_lazy_circuit_before
     def append_block(self, block: Schedule):
         """Add a block to the current active block."""
-        self.block.append(block)
+        self.block.append(block, mutate=True)
 
     @_schedule_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
         """Add an instruction to the current active block."""
-        self.block.append(instruction)
+        self.block.append(instruction, mutate=True)
 
     def call_schedule(self, schedule: Schedule):
         """Call a schedule."""
@@ -280,7 +291,9 @@ class _PulseBuilder():
         if not lazy:
             self.schedule_lazy_circuit()
 
-    def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy=True):
+    def call_gate(self,
+                  gate: circuit.Gate, qubits: Tuple[int, ...],
+                  lazy=True):
         """Lower a circuit gate to pulse instruction."""
         try:
             iter(qubits)
@@ -290,10 +303,6 @@ class _PulseBuilder():
         qc = circuit.QuantumCircuit(self.num_qubits)
         qc.append(gate, qargs=qubits)
         self.call_circuit(qc)
-
-    def compile(self) -> Schedule:
-        """Compile final pulse schedule program."""
-        return self._program
 
 
 def build(backend, schedule):

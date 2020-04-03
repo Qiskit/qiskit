@@ -279,6 +279,7 @@ class Schedule(ScheduleComponent):
         sched_timeslots = (schedule.timeslots if start_time == 0
                            else schedule.timeslots.shift(start_time))
         self._timeslots = self.timeslots.merge(sched_timeslots)
+        return self
 
     def _immutable_insert(self,
                           start_time: int,
@@ -299,7 +300,8 @@ class Schedule(ScheduleComponent):
         return new_sched
 
     def append(self, schedule: ScheduleComponent,
-               name: Optional[str] = None) -> 'Schedule':
+               name: Optional[str] = None,
+               mutate: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
 
@@ -311,10 +313,12 @@ class Schedule(ScheduleComponent):
         Args:
             schedule: Schedule to be appended.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
+            mutate: Perform operation by mutating this schedule. Otherwise return
+                a new ``Schedule``.
         """
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, name=name)
+        return self.insert(time, schedule, name=name, mutate=mutate)
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
