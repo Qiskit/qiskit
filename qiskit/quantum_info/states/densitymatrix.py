@@ -25,6 +25,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -294,6 +295,35 @@ class DensityMatrix(QuantumState):
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs
+
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            DensityMatrix: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform evolution by the reset
+            :class:`~qiskit.quantum_info.SuperOp` of the reset subsystems.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(2 * (self._dim, ), dtype=complex)
+            state[0, 0] = 1
+            return DensityMatrix(state, dims=self._dims)
+
+        # Reset by evolving by reset SuperOp
+        dims = self.dims(qargs)
+        reset_superop = SuperOp(ScalarOp(dims, coeff=0))
+        reset_superop.data[0] = Operator(ScalarOp(dims)).data.ravel()
+        return self.evolve(reset_superop, qargs=qargs)
 
     @classmethod
     def from_label(cls, label):
