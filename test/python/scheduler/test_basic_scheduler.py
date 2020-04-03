@@ -17,7 +17,7 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, Gaussian)
+                          MeasureChannel, MemorySlot, Gaussian, Play)
 
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -170,14 +170,13 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
-        acquire = Acquire(duration=10)
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
             (28, self.inst_map.get('cx', [0, 1])),
             (50, self.inst_map.get('measure', [0, 1])),
             (60, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (60, acquire(AcquireChannel(0), MemorySlot(0))),
-            (60, acquire(AcquireChannel(1), MemorySlot(1))))
+            (60, Acquire(10, AcquireChannel(0), MemorySlot(0))),
+            (60, Acquire(10, AcquireChannel(1), MemorySlot(1))))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
@@ -292,7 +291,7 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.append(Gate('gauss', 1, []), qargs=[qr[0]])
-        custom_gauss = Schedule(Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0)))
+        custom_gauss = Schedule(Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0)))
         self.inst_map.add('gauss', [0], custom_gauss)
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
         self.assertEqual(sched.instructions[0],
