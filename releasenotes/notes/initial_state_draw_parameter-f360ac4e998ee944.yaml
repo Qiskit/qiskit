@@ -1,7 +1,10 @@
 ---
 upgrade:
   - |
-    The circuit ``draw`` method has a new boolean `initial_state` parameter for optinally including the initial state in the drawing.
+    The :class:`~qiskit.circuit.QuantumCircuit` method :meth:`~qiskit.circuit.QuantumCircuit.draw`
+    and :func:`qiskit.visualization.circuit_drawer` function will no longer include the initial state
+    included in visualizations by default. If you would like to retain the initial state in the output
+    visualization you need to set the ``initial_state`` kwarg to ``True``. For example, running:
     ...python
     circuit = QuantumCircuit(2)
     circuit.measure_all()
