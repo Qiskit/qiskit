@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    ``qiskit.transpile()`` now allows you to pass ``layout_method``
+    and ``routing_method`` to select a particular method for placement and
+    routing of circuits on constrained architectures. e.g.
+    ``transpile(circ, backend, layout_method='dense', routing_method='lookahead')``

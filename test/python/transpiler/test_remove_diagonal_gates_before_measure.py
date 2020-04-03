@@ -19,7 +19,6 @@ from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -398,7 +397,7 @@ class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager.append(
             [RemoveDiagonalGatesBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile(circuit, pass_manager=pass_manager)
+        after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
 

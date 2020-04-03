@@ -19,11 +19,9 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.circuit import Parameter
 
 
@@ -61,7 +59,7 @@ class TestOptimize1qGates(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
-        result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
 
