@@ -90,7 +90,7 @@ class HamiltonianGate(Gate):
         if isinstance(self.params[1], ParameterExpression):
             unbound_t = len(self.params[1].parameters) > 0
         if isinstance(self.params[1], Number) or not unbound_t:
-            #pylint: disable=no-member
+            # pylint: disable=no-member
             return scipy.linalg.expm(1j * self.params[0] * self.params[1])
         else:
             raise NotImplementedError("Unable to generate Unitary matrix for "
@@ -139,6 +139,7 @@ class HamiltonianGate(Gate):
         """ The qasm for the UnitaryGate defining this HamiltonianGate
         """
         return self._define().qasm()
+
 
 def hamiltonian(self, matrix, time, qubits, label=None):
     """Apply u2 to q."""

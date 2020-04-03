@@ -23,7 +23,6 @@ from numpy.testing import assert_allclose
 import qiskit
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
 from qiskit.test import QiskitTestCase
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
@@ -100,7 +99,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
 
     def test_2q_hamiltonian(self):
         """test 2 qubit hamiltonian """
-        backend = BasicAer.get_backend('qasm_simulator')
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -111,7 +109,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
         passman.append(CXCancellation())
-        qc2 = transpile(qc, backend, pass_manager=passman)
+        qc2 = transpile(qc, pass_manager=passman)
 
         # Testing bind after transpile
         qc2 = qc2.bind_parameters({theta: np.pi / 2})
