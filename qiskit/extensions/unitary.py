@@ -183,10 +183,11 @@ class UnitaryGate(Gate):
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
     def validate_parameter(self, parameter):
+        """Unitary gate parameter has to be an ndarray."""
         if isinstance(parameter, numpy.ndarray):
             return parameter
         else:
-            raise CircuitError("invalid param type {0} in instruction "
+            raise CircuitError("invalid param type {0} in gate "
                                "{1}".format(type(parameter), self.name))
 
 

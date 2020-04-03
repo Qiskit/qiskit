@@ -119,8 +119,9 @@ class MCGupDiag(Gate):
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
 
     def validate_parameter(self, parameter):
+        """Multi controlled single-qubit unitary gate parameter has to be an ndarray."""
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError("invalid param type {0} in instruction "
+            raise CircuitError("invalid param type {0} in gate "
                                "{1}".format(type(parameter), self.name))

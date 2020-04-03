@@ -140,6 +140,7 @@ class Instruction:
             self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
+        """Instruction parameters has no validation or normalization."""
         return parameter
 
     def is_parameterized(self):

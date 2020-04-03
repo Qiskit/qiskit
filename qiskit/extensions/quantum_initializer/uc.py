@@ -265,10 +265,11 @@ class UCGate(Gate, metaclass=UCMeta):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
 
     def validate_parameter(self, parameter):
+        """Uniformly controlled gate parameter has to be an ndarray."""
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError("invalid param type {0} in instruction "
+            raise CircuitError("invalid param type {0} in gate "
                                "{1}".format(type(parameter), self.name))
 
 

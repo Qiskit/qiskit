@@ -134,10 +134,11 @@ class SingleQubitUnitary(Gate):
         return -a, -b, -c, d
 
     def validate_parameter(self, parameter):
+        """Single-qubit unitary gate parameter has to be an ndarray."""
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError("invalid param type {0} in instruction "
+            raise CircuitError("invalid param type {0} in gate "
                                "{1}".format(type(parameter), self.name))
 
 

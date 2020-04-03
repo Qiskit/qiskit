@@ -222,6 +222,7 @@ class Gate(Instruction):
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
 
     def validate_parameter(self, parameter):
+        """Gate parameters should be int, float, or ParameterExpression"""
         if isinstance(parameter, (int, float, ParameterExpression)):
             return parameter
         else:
