@@ -1,0 +1,32 @@
+---
+other:
+  - |
+    The circuit ``draw`` method has a new boolean `initial_state` parameter for optinally including the initial state in the drawing.
+    ...python
+	circuit = QuantumCircuit(2)
+	circuit.measure_all()
+	circuit.draw(inital_state=False)
+    ...
+	            ░ ┌─┐
+	      q_0: ─░─┤M├───
+	            ░ └╥┘┌─┐
+	      q_1: ─░──╫─┤M├
+	            ░  ║ └╥┘
+	measure_0: ════╩══╬═
+	                  ║
+	measure_1: ═══════╩═
+
+     ...python
+	circuit.draw(initial_value=True)
+
+     ....
+	              ░ ┌─┐
+	     q_0: |0>─░─┤M├───
+	              ░ └╥┘┌─┐
+	     q_1: |0>─░──╫─┤M├
+	              ░  ║ └╥┘
+	measure_0: 0 ════╩══╬═
+	                    ║
+	measure_1: 0 ═══════╩═
+
+    Because the default is `False`, this change might differ from previous behavior for ascii and latex drawers. 
