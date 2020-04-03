@@ -16,6 +16,7 @@
 Abstract QuantumState class.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -59,17 +60,12 @@ class QuantumState(ABC):
         return False
 
     def __repr__(self):
-        prefix = '{}('.format(self.rep)
+        prefix = '{}('.format(self._rep)
         pad = len(prefix) * ' '
         return '{}{},\n{}dims={})'.format(
             prefix, np.array2string(
                 self.data, separator=', ', prefix=prefix),
             pad, self._dims)
-
-    @property
-    def rep(self):
-        """Return state representation string."""
-        return self._rep
 
     @property
     def dim(self):
@@ -211,9 +207,41 @@ class QuantumState(ABC):
         """
         pass
 
-    @abstractmethod
+    def _add(self, other):
+        """Return the linear combination self + other.
+
+        Args:
+            other (QuantumState): a state object.
+
+        Returns:
+            QuantumState: the linear combination self + other.
+
+        Raises:
+            NotImplementedError: if subclass does not support addition.
+        """
+        raise NotImplementedError(
+            "{} does not support addition".format(type(self)))
+
+    def _multiply(self, other):
+        """Return the scalar multipled state other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            QuantumState: the scalar multipled state other * self.
+
+        Raises:
+            NotImplementedError: if subclass does not support scala
+                                 multiplication.
+        """
+        raise NotImplementedError(
+            "{} does not support scalar multiplication".format(type(self)))
+
     def add(self, other):
         """Return the linear combination self + other.
+
+        DEPRECATED: use ``state + other`` instead.
 
         Args:
             other (QuantumState): a quantum state object.
@@ -225,11 +253,15 @@ class QuantumState(ABC):
             QiskitError: if other is not a quantum state, or has
                          incompatible dimensions.
         """
-        pass
+        warnings.warn("`{}.add` method is deprecated, use + binary operator"
+                      "`state + other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(other)
 
-    @abstractmethod
     def subtract(self, other):
         """Return the linear operator self - other.
+
+        DEPRECATED: use ``state - other`` instead.
 
         Args:
             other (QuantumState): a quantum state object.
@@ -241,22 +273,27 @@ class QuantumState(ABC):
             QiskitError: if other is not a quantum state, or has
                          incompatible dimensions.
         """
-        pass
+        warnings.warn("`{}.subtract` method is deprecated, use - binary operator"
+                      "`state - other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(-other)
 
-    @abstractmethod
     def multiply(self, other):
-        """Return the linear operator self * other.
+        """Return the scalar multipled state other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear combination other * self.
+            QuantumState: the scalar multipled state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
         """
-        pass
+        warnings.warn("`{}.multiply` method is deprecated, use * binary operator"
+                      "`other * state` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._multiply(other)
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -628,19 +665,19 @@ class QuantumState(ABC):
         return self.tensor(other)
 
     def __mul__(self, other):
-        return self.multiply(other)
+        return self._multiply(other)
 
     def __truediv__(self, other):
-        return self.multiply(1 / other)
+        return self._multiply(1 / other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __add__(self, other):
-        return self.add(other)
+        return self._add(other)
 
     def __sub__(self, other):
-        return self.subtract(other)
+        return self._add(-other)
 
     def __neg__(self):
-        return self.multiply(-1)
+        return self._multiply(-1)

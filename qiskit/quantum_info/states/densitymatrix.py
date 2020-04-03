@@ -147,7 +147,7 @@ class DensityMatrix(QuantumState):
         data = np.kron(other._data, self._data)
         return DensityMatrix(data, dims)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
@@ -166,33 +166,14 @@ class DensityMatrix(QuantumState):
             raise QiskitError("other DensityMatrix has different dimensions.")
         return DensityMatrix(self.data + other.data, self.dims())
 
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        Args:
-            other (DensityMatrix): a quantum state object.
-
-        Returns:
-            DensityMatrix: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        if not isinstance(other, DensityMatrix):
-            other = DensityMatrix(other)
-        if self.dim != other.dim:
-            raise QiskitError("other DensityMatrix has different dimensions.")
-        return DensityMatrix(self.data - other.data, self.dims())
-
-    def multiply(self, other):
-        """Return the linear operator self * other.
+    def _multiply(self, other):
+        """Return the scalar multiplied state other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            DensityMatrix: the linear combination other * self.
+            DensityMatrix: the scalar multiplied state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.

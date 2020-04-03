@@ -128,14 +128,14 @@ class Statevector(QuantumState):
         data = np.kron(other._data, self._data)
         return Statevector(data, dims)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
             other (Statevector): a quantum state object.
 
         Returns:
-            LinearOperator: the linear combination self + other.
+            Statevector: the linear combination self + other.
 
         Raises:
             QiskitError: if other is not a quantum state, or has
@@ -147,33 +147,14 @@ class Statevector(QuantumState):
             raise QiskitError("other Statevector has different dimensions.")
         return Statevector(self.data + other.data, self.dims())
 
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        Args:
-            other (Statevector): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        if not isinstance(other, Statevector):
-            other = Statevector(other)
-        if self.dim != other.dim:
-            raise QiskitError("other Statevector has different dimensions.")
-        return Statevector(self.data - other.data, self.dims())
-
-    def multiply(self, other):
-        """Return the linear operator self * other.
+    def _multiply(self, other):
+        """Return the scalar multiplied state self * other.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear combination other * self.
+            Statevector: the scalar multiplied state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
