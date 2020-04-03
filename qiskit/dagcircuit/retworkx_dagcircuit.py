@@ -107,7 +107,7 @@ class RetworkxDAGCircuit(DAGCircuit):
             generator(DAGNode): node in topological order
         """
         def _key(x):
-            return str(x.qargs)
+            return x.sort_key
 
         return iter(rx.lexicographical_topological_sort(
             self._multi_graph,

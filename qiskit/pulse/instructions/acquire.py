@@ -16,6 +16,7 @@
 some metadata for the acquisition process; for example, where to store classified readout data.
 """
 import warnings
+import itertools
 
 from typing import List, Optional, Union
 
@@ -107,17 +108,6 @@ class Acquire(Instruction):
         else:
             reg_slot = []
 
-        if name is None and channels is None:
-            name = 'acq{:10x}'.format(hash((duration, kernel, discriminator)))
-        elif name is None:
-            name = 'acq{:10x}'.format(hash((duration, tuple(channels), tuple(mem_slot),
-                                            tuple(reg_slot), kernel, discriminator)))
-
-        if channels is not None:
-            super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
-        else:
-            super().__init__(duration, name=name)
-
         self._acquires = channels
         self._channel = channels[0] if channels else None
         self._mem_slots = mem_slot
@@ -125,11 +115,14 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-    @property
-    def operands(self) -> List:
-        """Return a list of instruction operands."""
-        return [self.duration, self.channel,
-                self.mem_slot, self.reg_slot]
+        if channels is None:
+            warnings.warn("Usage of Acquire without specifying a channel is deprecated. For "
+                          "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
+                          "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
+        all_channels = [group for group in [channels, mem_slot, reg_slot] if group is not None]
+        flattened_channels = tuple(itertools.chain.from_iterable(all_channels))
+        super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
+                         duration, flattened_channels, name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -182,7 +175,7 @@ class Acquire(Instruction):
         """RegisterSlots."""
         return self._reg_slots
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
@@ -191,9 +184,6 @@ class Acquire(Instruction):
             ', ' + str(self.reg_slot) if self.reg_slot else '',
             ', ' + str(self.kernel) if self.kernel else '',
             ', ' + str(self.discriminator) if self.discriminator else '')
-
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and self.operands == other.operands
 
     def __call__(self,
                  channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,

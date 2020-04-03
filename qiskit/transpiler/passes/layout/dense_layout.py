@@ -115,18 +115,18 @@ class DenseLayout(AnalysisPass):
                 map_iter += 1
         self.property_set['layout'] = layout
 
-    def _best_subset(self, n_qubits):
+    def _best_subset(self, num_qubits):
         """Computes the qubit mapping with the best connectivity.
 
         Args:
-            n_qubits (int): Number of subset qubits to consider.
+            num_qubits (int): Number of subset qubits to consider.
 
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.
         """
-        if n_qubits == 1:
+        if num_qubits == 1:
             return np.array([0])
-        if n_qubits == 0:
+        if num_qubits == 0:
             return []
 
         device_qubits = self.coupling_map.size()
@@ -146,12 +146,12 @@ class DenseLayout(AnalysisPass):
 
             connection_count = 0
             sub_graph = []
-            for i in range(n_qubits):
+            for i in range(num_qubits):
                 node_idx = bfs[i]
                 for j in range(sp_cmap.indptr[node_idx],
                                sp_cmap.indptr[node_idx + 1]):
                     node = sp_cmap.indices[j]
-                    for counter in range(n_qubits):
+                    for counter in range(num_qubits):
                         if node == bfs[counter]:
                             connection_count += 1
                             sub_graph.append([node_idx, node])
@@ -161,24 +161,26 @@ class DenseLayout(AnalysisPass):
                 curr_error = 0
                 # compute meas error for subset
                 avg_meas_err = np.mean(self.meas_arr)
-                meas_diff = np.mean(self.meas_arr[bfs[0:n_qubits]])-avg_meas_err
+                meas_diff = np.mean(
+                    self.meas_arr[bfs[0:num_qubits]])-avg_meas_err
                 if meas_diff > 0:
                     curr_error += self.num_meas*meas_diff
 
-                cx_err = np.mean([self.cx_mat[edge[0], edge[1]] for edge in sub_graph])
+                cx_err = np.mean([self.cx_mat[edge[0], edge[1]]
+                                  for edge in sub_graph])
                 if self.coupling_map.is_symmetric:
                     cx_err /= 2
                 curr_error += self.num_cx*cx_err
                 if connection_count >= best and curr_error < best_error:
                     best = connection_count
                     best_error = curr_error
-                    best_map = bfs[0:n_qubits]
+                    best_map = bfs[0:num_qubits]
                     best_sub = sub_graph
 
             else:
                 if connection_count > best:
                     best = connection_count
-                    best_map = bfs[0:n_qubits]
+                    best_map = bfs[0:num_qubits]
                     best_sub = sub_graph
 
         # Return a best mapping that has reduced bandwidth
@@ -190,7 +192,7 @@ class DenseLayout(AnalysisPass):
         cols = [edge[1] for edge in new_cmap]
         data = [1]*len(rows)
         sp_sub_graph = sp.coo_matrix((data, (rows, cols)),
-                                     shape=(n_qubits, n_qubits)).tocsr()
+                                     shape=(num_qubits, num_qubits)).tocsr()
         perm = cs.reverse_cuthill_mckee(sp_sub_graph)
         best_map = best_map[perm]
         return best_map
