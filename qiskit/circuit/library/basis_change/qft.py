@@ -37,6 +37,7 @@ class QFT(QuantumCircuit):
 
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
+        self._data = None
 
     @QuantumCircuit.num_qubits.setter
     def num_qubits(self, num_qubits: int) -> None:
@@ -48,11 +49,11 @@ class QFT(QuantumCircuit):
         # pad with new qubits if the circuit is too small
         if num_qubits > super().num_qubits:
             self.add_register(QuantumRegister(num_qubits - super().num_qubits))
-            self._data = []
+            self._data = None
         # reset if the circuit is being shrunk
         elif num_qubits < super().num_qubits:
             self.qregs = [QuantumRegister(num_qubits)]
-            self._data = []
+            self._data = None
 
     @property
     def approximation_degree(self) -> int:
@@ -76,20 +77,39 @@ class QFT(QuantumCircuit):
         if approximation_degree < 0:
             raise ValueError('Approximation degree cannot be smaller than 0.')
 
-        self._is_built = approximation_degree == self._approximation_degree
-        self._approximation_degree = approximation_degree
+        if approximation_degree != self._approximation_degree:
+            self._data = []
+            self._approximation_degree = approximation_degree
+
+    @property
+    def do_swaps(self) -> bool:
+        """Whether the final swaps of the QFT are applied or not.
+
+        Returns:
+            True, if the final swaps are applied, False if not.
+        """
+        return self._do_swaps
+
+    @do_swaps.setter
+    def do_swaps(self, do_swaps: bool) -> None:
+        """Specifiy whether to do the final swaps of the QFT circuit or not.
+
+        Args:
+            do_swaps: If True, the final swaps are applied, if False not.
+        """
+        if do_swaps != self._do_swaps:
+            self._data = None
+            self._do_swaps = do_swaps
 
     def _swap_qubits(self):
         num_qubits = self.num_qubits
         for i in range(num_qubits // 2):
-            self.cx(i, num_qubits - i - 1)
-            self.cx(num_qubits - i - 1, i)
-            self.cx(i, num_qubits - i - 1)
+            self.swap(i, num_qubits - i - 1)
 
     def inverse(self) -> QuantumCircuit:
         """Return the inverse QFT."""
         iqft = self.copy(name=self.name + '_dg')
-        iqft._data = []
+        iqft._data = None
         iqft._build(inverse=True)
         return iqft
 
@@ -99,8 +119,10 @@ class QFT(QuantumCircuit):
         Args:
             inverse: Boolean flag to indicate Inverse Quantum Fourier Transform.
         """
-        if len(self._data) > 0:
+        if self._data:
             return
+
+        self._data = []
 
         if self._do_swaps and not inverse:
             self._swap_qubits()
@@ -110,23 +132,20 @@ class QFT(QuantumCircuit):
             neighbor_range = range(max(0, j - self.num_qubits + self._approximation_degree + 1), j)
             if inverse:
                 neighbor_range = reversed(neighbor_range)
-                self.u2(0, np.pi, j)
+                self.h(j)
             for k in neighbor_range:
                 lam = 1.0 * np.pi / float(2 ** (j - k))
                 if inverse:
                     lam *= -1
-                self.u1(lam / 2, j)
-                self.cx(j, k)
-                self.u1(-lam / 2, k)
-                self.cx(j, k)
-                self.u1(lam / 2, k)
+                self.cu1(lam, j, k)
             if not inverse:
-                self.u2(0, np.pi, j)
+                self.h(j)
 
         if self._do_swaps and inverse:
             self._swap_qubits()
 
     @property
     def data(self):
-        self._build()
+        if self._data is None:
+            self._build()
         return super().data
