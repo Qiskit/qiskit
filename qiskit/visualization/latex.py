@@ -114,7 +114,7 @@ class QCircuitImage:
         self.has_target = False
         self.reverse_bits = reverse_bits
         self.layout = layout
-        self.initial_value = initial_state
+        self.initial_state = initial_state
         self.plot_barriers = plot_barriers
 
         #################################
@@ -222,7 +222,7 @@ class QCircuitImage:
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
-                if self.initial_value:
+                if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
                 self._latex[i][0] = label
