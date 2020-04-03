@@ -86,4 +86,4 @@ class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value."""
 
     def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)
