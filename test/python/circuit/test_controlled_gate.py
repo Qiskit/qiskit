@@ -20,7 +20,7 @@ from inspect import signature
 from test import combine
 import numpy as np
 from numpy import pi
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
@@ -702,11 +702,16 @@ class TestControlledGate(QiskitTestCase):
         """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
-            sig = signature(gate_class.__init__)
-            free_params = len(sig.parameters) - 1  # subtract "self"
-            base_gate = gate_class(*params[0:free_params])
-            cgate = base_gate.control()
-            self.assertEqual(base_gate.base_gate, cgate.base_gate)
+            with self.subTest(i=gate_class):
+                sig = signature(gate_class.__init__)
+                numargs = len([param for param in sig.parameters.values()
+                               if param.kind == param.POSITIONAL_ONLY or
+                               (param.kind == param.POSITIONAL_OR_KEYWORD and
+                                param.default is param.empty and
+                                param.name is not 'self')])
+                base_gate = gate_class(*params[0:numargs])
+                cgate = base_gate.control()
+                self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     def test_all_inverses(self):
         """
@@ -746,22 +751,20 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state_zeros = 0
         ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
         for cls in gate_classes:
-            # if cls.__name__ != 'CXGate':
-            #     print(f'skipping {cls.__name__}')
-            #     continue
+            sig = signature(cls)
+            numargs = len([param for param in sig.parameters.values()
+                           if param.kind == param.POSITIONAL_ONLY or
+                           (param.kind == param.POSITIONAL_OR_KEYWORD and
+                            param.default is param.empty)])
+            args = [theta] * numargs
+            if cls in [MSGate, Barrier]:
+                args[0] = 2
+            gate = cls(*args)
+            circ = QuantumCircuit(gate.num_qubits)
+            circ.append(gate, range(gate.num_qubits))
             for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
                 with self.subTest(i='{0}, ctrl_state={1}'.format(cls.__name__,
                                                                  ctrl_state)):
-                    sig = signature(cls)
-                    numargs = len([param for param in sig.parameters.values()
-                                   if param.kind == param.POSITIONAL_ONLY or
-                                   (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                    param.default is param.empty)])
-                    args = [theta] * numargs
-                    if cls in [MSGate, Barrier]:
-                        args[0] = 2
-                    #gate = cls(*args, ctrl_state=ctrl_state)
-                    gate = cls(*args)
                     try:
                         cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
                     except (AttributeError, QiskitError):
@@ -771,18 +774,14 @@ class TestControlledGate(QiskitTestCase):
                     if gate.name == 'rz':
                         iden = Operator.from_label('I')
                         zgen = Operator.from_label('Z')
-                        base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
+                        base_mat = (np.cos(0.5 * theta) * iden
+                                    - 1j * np.sin(0.5 * theta) * zgen).data
                     else:
                         base_mat = Operator(gate).data
                     target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                          ctrl_state=ctrl_state)
-                    # cgate.to_matrix != target_mat !!!
-                    # maybe the issue is setting base_gate in presence of ctrl_state
-                    #import ipdb; ipdb.set_trace()                    
-                    source_mat = Operator(cgate).data
-                    np.set_printoptions(linewidth=200, precision=2)
-                    #import ipdb; ipdb.set_trace()
-                    self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+                    self.assertTrue(matrix_equal(Operator(cgate).data,
+                                                 target_mat, ignore_phase=True))
 
     @data(2, 3)
     def test_relative_phase_toffoli_gates(self, num_ctrl_qubits):
@@ -915,29 +914,6 @@ class TestControlledGate(QiskitTestCase):
                 # assert both are representatives of one another
                 self.assertTrue(isinstance(new(*params), old))
                 self.assertTrue(isinstance(old(*params), new))
-
-
-@ddt
-class TestParameterCtrlState(QiskitTestCase):
-    """Test controlled gates with ctrl_state"""
-    @data((RXGate(0.5), CRXGate(0.5)),
-          (RYGate(0.5), CRYGate(0.5)),
-          (RZGate(0.5), CRZGate(0.5)),
-          (XGate(), CXGate()),
-          (YGate(), CYGate()),
-          (ZGate(), CZGate()),
-          (U1Gate(0.5), CU1Gate(0.5)),
-          (SwapGate(), CSwapGate()),
-          (HGate(), CHGate()),
-          (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)))
-    @unpack
-    def test_ctrl_state_one(self, gate, controlled_gate):
-        """Test controlled gates with ctrl_state
-        See https://github.com/Qiskit/qiskit-terra/pull/4025
-        """
-        self.assertEqual(gate.control(1, ctrl_state='1'), controlled_gate)
-        # TODO: once https://github.com/Qiskit/qiskit-terra/issues/3304 is fixed, move this test
-        # to use _compute_control_matrix instead of plain assertEqual
 
 
 if __name__ == '__main__':

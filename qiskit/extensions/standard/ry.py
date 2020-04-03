@@ -49,9 +49,9 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new RY gate."""
-        super().__init__('ry', 1, [theta])
+        super().__init__('ry', 1, [theta], label=label)
 
     def _define(self):
         """
@@ -100,11 +100,9 @@ class RYGate(Gate):
 
 
 @deprecate_arguments({'q': 'qubit'})
-def ry(self, theta, qubit, *, label=None, ctrl_state=None,
-       q=None):  # pylint: disable=invalid-name,unused-argument
+def ry(self, theta, qubit, *, label=None, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply :class:`~qiskit.extensions.standard.RYGate`."""
-    return self.append(RYGate(theta, label=label, ctrl_state=ctrl_state),
-                       [qubit], [])
+    return self.append(RYGate(theta, label=label), [qubit], [])
 
 
 QuantumCircuit.ry = ry

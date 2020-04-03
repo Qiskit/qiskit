@@ -49,13 +49,17 @@ def add_control(operation: Union[Gate, ControlledGate],
 
     """
     import qiskit.extensions.standard as standard
+    if ctrl_state is None:
+        ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, standard.RZGate) or operation.name == 'rz':
         # num_ctrl_qubits > 1
         # the condition matching 'name' above is to catch a test case,
         # 'TestControlledGate.test_rotation_gates', where the rz gate
         # gets converted to a circuit before becoming a generic Gate object.
         cgate = standard.CRZGate(*operation.params)
-        return cgate.control(num_ctrl_qubits - 1)
+        cngate = cgate.control(num_ctrl_qubits - 1)
+        cngate.ctrl_state = ctrl_state
+        return cngate
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
@@ -91,6 +95,12 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.extensions.standard.multi_control_rotation_gates
     import qiskit.extensions.standard.multi_control_toffoli_gate
     import qiskit.extensions.standard.multi_control_u1_gate
+
+    # check args
+    if num_ctrl_qubits == 0:
+        return operation
+    elif num_ctrl_qubits < 0:
+        raise CircuitError('number of control qubits must be positive integer')
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
@@ -144,13 +154,16 @@ def control(operation: Union[Gate, ControlledGate],
                        mode='noancilla')
             else:
                 raise CircuitError('gate contains non-controllable instructions')
+
     instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
+        new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
         base_name = operation.base_gate.name
         base_gate = operation.base_gate
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
+        new_ctrl_state = ctrl_state
         base_name = operation.name
         base_gate = operation
     # In order to maintain some backward compatibility with gate names this
@@ -168,7 +181,7 @@ def control(operation: Union[Gate, ControlledGate],
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition,
-                                          ctrl_state=ctrl_state)
+                                          ctrl_state=new_ctrl_state)
     cgate.base_gate = base_gate
     return cgate
 

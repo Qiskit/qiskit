@@ -20,6 +20,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions._utils import _compute_control_matrix
 from qiskit.util import deprecate_arguments
 
 
@@ -90,7 +91,7 @@ class SwapGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CSwapGate(label=None, ctrl_state=None)
+            return CSwapGate(label=None, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -230,15 +231,10 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         return CSwapGate()  # self-inverse
 
     def to_matrix(self):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+        """Return a numpy.array for the CCX gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):

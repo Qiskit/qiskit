@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
+from qiskit.extensions._utils import _compute_control_matrix
 from qiskit.qasm import pi
 from qiskit.util import deprecate_arguments
 
@@ -216,6 +217,11 @@ class CYGate(ControlledGate, metaclass=CYMeta):
     #                         [0, 0, 0, -1j],
     #                         [0, 0, 1, 0],
     #                         [0, 1j, 0, 0]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the CCX gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class CyGate(CYGate, metaclass=CYMeta):
@@ -234,7 +240,7 @@ class CyGate(CYGate, metaclass=CYMeta):
                       'tgt': 'target_qubit'})
 def cy(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
        *, label=None, ctrl_state=None,
-ctl=None, tgt=None):  # pylint: disable=unused-argument
+       ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CYGate`."""
     return self.append(CYGate(label=label, ctrl_state=ctrl_state),
                        [control_qubit, target_qubit], [])

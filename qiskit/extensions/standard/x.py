@@ -125,7 +125,7 @@ class XGate(Gate):
 def x(self, qubit, *, label=None, ctrl_state=None, q=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.XGate`.
     """
-    return self.append(XGate(label=label, ctrl_state=ctrl_state), [qubit], [])
+    return self.append(XGate(label=label), [qubit], [])
 
 
 QuantumCircuit.x = x
@@ -218,27 +218,30 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         Returns:
             ControlledGate: controlled version of this gate.
         """
+        if ctrl_state is None:
+            ctrl_state = 2**num_ctrl_qubits - 1
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         if num_ctrl_qubits == 1:
-            return CCXGate(label=label, ctrl_state=ctrl_state)
+            return CCXGate(label=label, ctrl_state=new_ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+                               ctrl_state=new_ctrl_state)
 
     def inverse(self):
         """Return inverted CX gate (itself)."""
         return CXGate()  # self-inverse
 
-    # def to_matrix(self):
-    #     """Return a numpy.array for the CX gate."""
-    #     if self.ctrl_state:
-    #         return numpy.array([[1, 0, 0, 0],
-    #                             [0, 0, 0, 1],
-    #                             [0, 0, 1, 0],
-    #                             [0, 1, 0, 0]], dtype=complex)
-    #     else:
-    #         return numpy.array([[0, 0, 1, 0],
-    #                             [0, 1, 0, 0],
-    #                             [1, 0, 0, 0],
-    #                             [0, 0, 0, 1]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the CX gate."""
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 0, 0, 1],
+                                [0, 0, 1, 0],
+                                [0, 1, 0, 0]], dtype=complex)
+        else:
+            return numpy.array([[0, 0, 1, 0],
+                                [0, 1, 0, 0],
+                                [1, 0, 0, 0],
+                                [0, 0, 0, 1]], dtype=complex)
 
 
 class CnotGate(CXGate, metaclass=CXMeta):
@@ -386,8 +389,21 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
 
     # def to_matrix(self):
     #     """Return a numpy.array for the CCX gate."""
-    #     return _compute_control_matrix(self.base_gate.to_matrix(), 2,
-    #                                    ctrl_state=self.ctrl_state)
+    #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+    #                         [0, 1, 0, 0, 0, 0, 0, 0],
+    #                         [0, 0, 1, 0, 0, 0, 0, 0],
+    #                         [0, 0, 0, 0, 0, 0, 0, 1],
+    #                         [0, 0, 0, 0, 1, 0, 0, 0],
+    #                         [0, 0, 0, 0, 0, 1, 0, 0],
+    #                         [0, 0, 0, 0, 0, 0, 1, 0],
+    #                         [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
+
+
+    def to_matrix(self):
+        """Return a numpy.array for the CCX gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class ToffoliGate(CCXGate, metaclass=CCXMeta):

@@ -122,8 +122,6 @@ class Gate(Instruction):
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        if num_ctrl_qubits == 0:
-            return self
         # pylint: disable=cyclic-import
         from .add_control import add_control
         return add_control(self, num_ctrl_qubits, label, ctrl_state)
