@@ -134,7 +134,7 @@ def circuit_drawer(circuit,
             will be no returned Figure since it is redundant. This is only used
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
             will be silently ignored with all other outputs.
-        initial_value (bool): Optional. Adds |0> in the beginning of the line.
+        initial_value (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
     Returns:
