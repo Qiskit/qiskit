@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added ``channels`` to the Pulse enabled backend configuration schema.
-    The ``channels`` is a dictionary where each entry represents a channel configuration
-    and contains configuration values such as the channel's mapping to qubits.
