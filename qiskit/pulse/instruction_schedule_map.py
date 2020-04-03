@@ -47,6 +47,8 @@ class InstructionScheduleMap():
     where the first key is the name of a circuit instruction (e.g. ``'u1'``, ``'measure'``), the
     second key is a tuple of qubit indices, and the final value is a Schedule implementing the
     requested instruction.
+
+    These can usually be seen as gate calibrations.
     """
 
     def __init__(self):
