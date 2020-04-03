@@ -105,7 +105,20 @@ class QFT(QuantumCircuit):
         self._insert_barriers = insert_barriers
         self._data = None
 
-    @QuantumCircuit.num_qubits.setter
+    @property
+    def num_qubits(self) -> int:
+        """The number of qubits in the QFT circuit.
+
+        Returns:
+            The number of qubits in the circuit.
+
+        Note:
+            This method needs to be overwritten to allow adding the setter for num_qubits while
+            still complying to pylint.
+        """
+        return super().num_qubits
+
+    @num_qubits.setter
     def num_qubits(self, num_qubits: int) -> None:
         """Set the number of qubits.
 
