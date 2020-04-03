@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,18 +16,11 @@
 
 import numpy as np
 from qiskit import compiler
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Unroller
 
 
 def convert_to_basis_gates(circuit):
     """ unroll the circuit using the basis u1, u2, u3, cx, and id gates """
-    # pylint: disable=import-outside-toplevel
-    from qiskit import BasicAer
-    unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
-    p_m = PassManager(passes=[unroller])
-    qc = compiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=p_m)
-    return qc
+    return compiler.transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'])
 
 
 def summarize_circuits(circuits):
