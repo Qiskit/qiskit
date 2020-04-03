@@ -30,4 +30,4 @@ class ParametricInstruction:
                       "duration=duration), DriveChannel(0)) -> Play(Gaussian(amp=amp, sigma=sigma,"
                       " duration=duration), DriveChannel(0)).",
                       DeprecationWarning)
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)

@@ -17,7 +17,7 @@
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
-from qiskit.transpiler.pass_manager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller

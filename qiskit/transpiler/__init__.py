@@ -26,6 +26,7 @@ Pass Managment
    :toctree: ../stubs/
 
    PassManager
+   PassManagerConfig
    PropertySet
    FlowController
 
@@ -59,6 +60,7 @@ Exceptions
 
 from .runningpassmanager import FlowController
 from .passmanager import PassManager
+from .passmanager_config import PassManagerConfig
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet

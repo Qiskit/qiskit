@@ -603,8 +603,8 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        command = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
-        return command(channel) << t0
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+        return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):
