@@ -18,9 +18,8 @@ from math import pi
 from qiskit.pulse.pulse_lib import gaussian
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.pulse import DriveChannel, Schedule
-from qiskit.pulse.builder_context import (build, delay, left_barrier, measure, play, sequential,
-                                  shift_phase, u2)
+import qiskit.pulse as pulse
+from qiskit.pulse import pulse_lib, instructions
 
 
 class TestBuilderContext(QiskitTestCase):
@@ -30,28 +29,114 @@ class TestBuilderContext(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
 
     def test_context(self):
-        backend = FakeOpenPulse2Q()
-
-        schedule = Schedule()
-        with build(backend, schedule):
-            delay(0, 1000)
-            u2(0, 0, pi/2)
-            delay(0, 1000)
-            u2(0, 0, pi)
-            with left_barrier():
-                play(DriveChannel(0), gaussian(500, 0.1, 125))
-                shift_phase(DriveChannel(0), pi/2)
-                play(DriveChannel(0), gaussian(500, 0.1, 125))
-                u2(1, 0, pi/2)
-            with sequential():
-                u2(0, 0, pi/2)
-                u2(1, 0, pi/2)
-                u2(0, 0, pi/2)
-            measure(0)
+        """Test a general program build."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.delay(0, 1000)
+            pulse.u2(0, 0, pi/2)
+            pulse.delay(0, 1000)
+            pulse.u2(0, 0, pi)
+            with pulse.left_barrier():
+                pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
+                pulse.shift_phase(pulse.DriveChannel(0), pi/2)
+                pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
+                pulse.u2(1, 0, pi/2)
+            with pulse.sequential():
+                pulse.u2(0, 0, pi/2)
+                pulse.u2(1, 0, pi/2)
+                pulse.u2(0, 0, pi/2)
+            pulse.measure(0)
 
 
 class TestTransforms(TestBuilderContext):
     """Test builder transforms."""
+    def test_parallel(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.parallel():
+                pulse.play(d0, test_pulse)
+                pulse.play(d1, test_pulse)
+                pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference.append(instructions.Play(test_pulse, d0))
+        reference.append(instructions.Play(test_pulse, d0))
+        # d1
+        reference.append(instructions.Play(test_pulse, d1))
+
+        self.assertEqual(schedule, reference)
+
+    def test_sequential(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.sequential():
+                pulse.play(d0, test_pulse)
+                pulse.play(d1, test_pulse)
+                pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference.append(instructions.Play(test_pulse, d0))
+        reference.append(instructions.Delay(10, d0))
+        reference.append(instructions.Play(test_pulse, d0))
+        # d1
+        reference.append(instructions.Delay(10, d1))
+        reference.append(instructions.Play(test_pulse, d1))
+        reference.append(instructions.Delay(10, d1))
+
+        self.assertEqual(schedule, reference)
+
+    def test_left_align(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.left_align():
+                pulse.play(d0, test_pulse)
+                pulse.play(d1, test_pulse)
+                pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference.append(instructions.Play(test_pulse, d0))
+        reference.append(instructions.Play(test_pulse, d0))
+        # d1
+        reference.append(instructions.Play(test_pulse, d1))
+
+        self.assertEqual(schedule, reference)
+
+    def test_right_align(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.right_align():
+                pulse.play(d0, test_pulse)
+                pulse.play(d1, test_pulse)
+                pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference.append(instructions.Play(test_pulse, d0))
+        reference.append(instructions.Play(test_pulse, d0))
+        # d1
+        reference.append(instructions.Play(test_pulse, d1))
+
+        self.assertEqual(schedule, reference)
+
 
 
 class TestInstructions(TestBuilderContext):

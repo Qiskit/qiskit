@@ -133,19 +133,18 @@ import collections
 import contextvars
 import functools
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Mapping, Union
+from typing import Any, Callable, Dict, Mapping, Tuple, Union
 
-from qiskit.extensions.standard import CnotGate, U1Gate, U2Gate, U3Gate, XGate
-from qiskit.circuit import QuantumCircuit
-
-from . import PulseError, transforms, macros
-from .pulse_lib import Pulse
-from .channels import (AcquireChannel, Channel, MemorySlot,
-                       PulseChannel, RegisterSlot)
-from .configuration import Discriminator, Kernel
-from .instructions import (Acquire, Delay, Instruction, Play,
-                           SetFrequency, ShiftPhase, Snapshot)
-from .schedule import Schedule
+import qiskit.extensions.standard as gates
+import qiskit.circuit as circuit
+import qiskit.pulse.channels as channels
+import qiskit.pulse.configuration as configuration
+import qiskit.pulse.exceptions as exceptions
+import qiskit.pulse.instructions as instructions
+import qiskit.pulse.macros as macros
+import qiskit.pulse.pulse_lib as pulse_lib
+import qiskit.pulse.transforms as transforms
+from qiskit.pulse.schedule import Schedule
 
 
 #: contextvars.ContextVar[BuilderContext]: current builder
@@ -248,7 +247,7 @@ class _PulseBuilder():
         self.block.append(block)
 
     @_schedule_lazy_circuit_before
-    def append_instruction(self, instruction: Instruction):
+    def append_instruction(self, instruction: instructions.Instruction):
         """Add an instruction to the current active block."""
         self.block.append(instruction)
 
@@ -258,7 +257,7 @@ class _PulseBuilder():
 
     def new_circuit(self):
         """Create a new circuit for scheduling."""
-        return QuantumCircuit(self.num_qubits)
+        return circuit.QuantumCircuit(self.num_qubits)
 
     def schedule_lazy_circuit(self):
         """Call a QuantumCircuit."""
@@ -276,19 +275,19 @@ class _PulseBuilder():
                                       **self.circuit_scheduler_settings)
             self.call_schedule(sched)
 
-    def call_circuit(self, circuit: QuantumCircuit, lazy=True):
+    def call_circuit(self, circuit: circuit.QuantumCircuit, lazy=True):
         self._lazy_circuit.extend(circuit)
         if not lazy:
             self.schedule_lazy_circuit()
 
-    def call_gate(self, gate, qubits, lazy=True):
+    def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy=True):
         """Lower a circuit gate to pulse instruction."""
         try:
             iter(qubits)
         except TypeError:
             qubits = (qubits,)
 
-        qc = QuantumCircuit(self.num_qubits)
+        qc = circuit.QuantumCircuit(self.num_qubits)
         qc.append(gate, qargs=qubits)
         self.call_circuit(qc)
 
@@ -328,7 +327,7 @@ def append_block(block: Schedule):
     active_builder().append_block(block)
 
 
-def append_instruction(instruction: Instruction):
+def append_instruction(instruction: instructions.Instruction):
     """Append an instruction to current context."""
     active_builder().append_instruction(instruction)
 
@@ -364,6 +363,16 @@ def _transform_context(transform: Callable) -> Callable:
     return wrap
 
 
+@_transform_context(transforms.parallelize)
+def parallel():
+    """Parallel transform builder context."""
+
+
+@_transform_context(transforms.sequentialize)
+def sequential():
+    """Sequential transform builder context."""
+
+
 @_transform_context(transforms.left_barrier)
 def left_barrier():
     """Left barrier transform builder context."""
@@ -382,16 +391,6 @@ def left_align():
 @_transform_context(transforms.right_align)
 def right_align():
     """Right align transform builder context."""
-
-
-@_transform_context(transforms.sequentialize)
-def sequential():
-    """Sequential transform builder context."""
-
-
-@_transform_context(transforms.parallelize)
-def parallel():
-    """Parallel transform builder context."""
 
 
 @_transform_context(transforms.group)
@@ -444,52 +443,56 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
 
 # Base Instructions ############################################################
-def delay(channel: Channel, duration: int):
+def delay(channel: channels.Channel, duration: int):
     """Delay on a ``channel`` for a ``duration``."""
-    append_instruction(Delay(duration, channel))
+    append_instruction(instructions.Delay(duration, channel))
 
 
-def play(channel: PulseChannel, pulse: Pulse):
+def play(channel: channels.PulseChannel, pulse: pulse_lib.Pulse):
     """Play a ``pulse`` on a ``channel``."""
-    append_instruction(Play(pulse, channel))
+    append_instruction(instructions.Play(pulse, channel))
 
 
-def acquire(channel: Union[AcquireChannel, int],
-            register: Union[RegisterSlot, MemorySlot],
+def acquire(channel: Union[channels.AcquireChannel, int],
+            register: Union[channels.RegisterSlot, channels.MemorySlot],
             duration: int,
-            **metadata: Union[Kernel, Discriminator]):
-    """Acquire for a ``duration`` on a ``channel`` and store the result in a ``register``."""
-    if isinstance(register, MemorySlot):
-        append_instruction(Acquire(duration, channel, mem_slot=register, **metadata))
-    elif isinstance(register, RegisterSlot):
-        append_instruction(Acquire(duration, channel, reg_slot=register, **metadata))
-    raise PulseError(
+            **metadata: Union[configuration.Kernel, configuration.Discriminator]):
+    """Acquire for a ``duration`` on a ``channel`` and store the result
+    in a ``register``."""
+    if isinstance(register, channels.MemorySlot):
+        append_instruction(instructions.Acquire(
+            duration, channel, mem_slot=register, **metadata))
+    elif isinstance(register, channels.RegisterSlot):
+        append_instruction(instructions.Acquire(
+            duration, channel, reg_slot=register, **metadata))
+    raise exceptions.PulseError(
         'Register of type: "{}" is not supported'.format(type(register)))
 
 
-def set_frequency(channel: PulseChannel, frequency: float):
+def set_frequency(channel: channels.PulseChannel, frequency: float):
     """Set the ``frequency`` of a pulse ``channel``."""
-    append_instruction(SetFrequency(frequency, channel))
+    append_instruction(instructions.SetFrequency(frequency, channel))
 
 
-def shift_frequency(channel: PulseChannel, frequency: float):
+def shift_frequency(channel: channels.PulseChannel, frequency: float):
     """Shift the ``frequency`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-def set_phase(channel: PulseChannel, phase: float):
+def set_phase(channel: channels.PulseChannel, phase: float):
     """Set the ``phase`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-def shift_phase(channel: PulseChannel, phase: float):
+def shift_phase(channel: channels.PulseChannel, phase: float):
     """Shift the ``phase`` of a pulse ``channel``."""
-    append_instruction(ShiftPhase(phase, channel))
+    append_instruction(instructions.ShiftPhase(phase, channel))
 
 
 def snapshot(label: str, snapshot_type: str = 'statevector'):
     """Simulator snapshot."""
-    append_instruction(Snapshot(label, snapshot_type=snapshot_type))
+    append_instruction(instructions.Snapshot(label,
+                                             snapshot_type=snapshot_type))
 
 
 def call_schedule(schedule: Schedule):
@@ -497,18 +500,18 @@ def call_schedule(schedule: Schedule):
     active_builder().call_schedule(schedule)
 
 
-def call_circuit(circuit: QuantumCircuit, lazy=True):
+def call_circuit(circuit: circuit.QuantumCircuit, lazy=True):
     """Call a quantum ``circuit`` in the builder context."""
     active_builder().call_circuit(circuit, lazy=True)
 
 
-def call(target: Union[QuantumCircuit, Schedule]):
+def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within this builder context."""
-    if isinstance(target, QuantumCircuit):
+    if isinstance(target, circuit.QuantumCircuit):
         call_circuit(target)
     elif isinstance(target, Schedule):
         call_schedule(target)
-    raise PulseError(
+    raise exceptions.PulseError(
         'Target of type "{}" is not supported.'.format(type(target)))
 
 
@@ -527,26 +530,26 @@ def delay_qubit(qubit: int, duration: int):
 
 
 # Gate instructions ############################################################
-def call_gate(gate, qubits):
+def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
     """Lower a circuit gate to pulse instruction."""
     active_builder().call_gate(gate, qubits)
 
 
 def cx(control: int, target: int):
-    call_gate(CnotGate(), control, target)
+    call_gate(gates.CnotGate(), control, target)
 
 
 def u1(qubit: int, theta: float):
-    call_gate(U1Gate(theta), qubit)
+    call_gate(gates.U1Gate(theta), qubit)
 
 
 def u2(qubit: int, phi: float, lam: float):
-    call_gate(U2Gate(phi, lam), qubit)
+    call_gate(gates.U2Gate(phi, lam), qubit)
 
 
 def u3(qubit: int, theta: float, phi: float, lam: float):
-    call_gate(U3Gate(phi, lam), qubit)
+    call_gate(gates.U3Gate(phi, lam), qubit)
 
 
 def x(qubit: int):
-    call_gate(XGate(), qubit)
+    call_gate(gates.XGate(), qubit)

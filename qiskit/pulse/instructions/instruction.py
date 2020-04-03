@@ -33,7 +33,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
-from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
 
