@@ -5,31 +5,29 @@ upgrade:
     and :func:`qiskit.visualization.circuit_drawer` function will no longer include the initial state
     included in visualizations by default. If you would like to retain the initial state in the output
     visualization you need to set the ``initial_state`` kwarg to ``True``. For example, running:
-    ...python
-    circuit = QuantumCircuit(2)
-    circuit.measure_all()
-    circuit.draw(inital_state=False)
-    ...
-                ░ ┌─┐
-          q_0: ─░─┤M├───
-                ░ └╥┘┌─┐
-          q_1: ─░──╫─┤M├
-                ░  ║ └╥┘
-    measure_0: ════╩══╬═
-                      ║
-    measure_1: ═══════╩═
+   .. jupyter-execute::
 
-     ...python
-    circuit.draw(initial_state=True)
+      circuit = QuantumCircuit(2)
+      circuit.measure_all()
+      circuit.draw(output='mpl')
 
-     ....
-                  ░ ┌─┐
-         q_0: |0>─░─┤M├───
-                  ░ └╥┘┌─┐
-         q_1: |0>─░──╫─┤M├
-                  ░  ║ └╥┘
-    measure_0: 0 ════╩══╬═
-                        ║
-    measure_1: 0 ═══════╩═
+   This no longer includes the initial state. If you'd like to retain it you can run:
 
-    Because the default is `False`, this change might differ from previous behavior for ascii and latex drawers.
+   .. jupyter-execute::
+
+      circuit = QuantumCircuit(2)
+      circuit.measure_all()
+      circuit.draw(output='mpl', initial_state=True)
+      
+feature:
+  - |
+    A new kwarg, ``initial_state`` has been added to the :func:`qiskit.visualization.circuit_drawer`
+    function and the :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the initial state will be included
+    in circuit visualizations for all backends. For example:
+    
+    .. jupyter-execute::
+
+      circuit = QuantumCircuit(2)
+      circuit.measure_all()
+      circuit.draw(output='mpl', initial_state=True)
