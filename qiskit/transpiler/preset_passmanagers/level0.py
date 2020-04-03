@@ -17,7 +17,7 @@
 Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
-from qiskit.transpiler.pass_manager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
