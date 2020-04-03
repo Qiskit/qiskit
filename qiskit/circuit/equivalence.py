@@ -168,7 +168,7 @@ def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
 
     param_map = dict(zip(equiv_params, query_params))
-    equiv = equiv_circuit.bind_parameters(param_map, inplace=False)
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
 
     return equiv
 

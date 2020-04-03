@@ -91,19 +91,19 @@ class TestParameters(QiskitTestCase):
         qc.u3(0, theta, 0, qr)
 
         if inplace:
-            qc.bind_parameters({theta: 0.5}, inplace=True)
+            qc.assign_parameters({theta: 0.5}, inplace=True)
             self.assertEqual(float(qc.data[0][0].params[0]), 0.5)
             self.assertEqual(float(qc.data[1][0].params[1]), 0.5)
 
             with self.assertRaises(CircuitError):
                 # cannot rebind because the parameter has been replaced in the original circuit
-                bqc = qc.bind_parameters({theta: 0.6})
+                bqc = qc.assign_parameters({theta: 0.6})
 
         else:
-            bqc = qc.bind_parameters({theta: 0.5})
+            bqc = qc.assign_parameters({theta: 0.5})
             self.assertEqual(float(bqc.data[0][0].params[0]), 0.5)
             self.assertEqual(float(bqc.data[1][0].params[1]), 0.5)
-            bqc = qc.bind_parameters({theta: 0.6})
+            bqc = qc.assign_parameters({theta: 0.6})
             self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
             self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
 
@@ -143,7 +143,7 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
 
-        pqc = qc.bind_parameters({theta: 2, x: new_x}, inplace=inplace)
+        pqc = qc.assign_parameters({theta: 2, x: new_x}, inplace=inplace)
         if inplace:
             self.assertEqual(qc.parameters, {new_x})
         else:
@@ -166,7 +166,7 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(isinstance(pqc.data[0][0].params[0], ParameterExpression))
         self.assertEqual(str(pqc.data[0][0].params[0]), 'phi + 2')
 
-        fbqc = pqc.bind_parameters({phi: 1})
+        fbqc = pqc.assign_parameters({phi: 1})
 
         self.assertEqual(fbqc.parameters, set())
         self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
@@ -216,7 +216,7 @@ class TestParameters(QiskitTestCase):
         gate = RZGate(theta)
         qc.append(gate, [0], [])
         qc.append(gate, [0], [])
-        qc2 = qc.bind_parameters({theta: 1.0})
+        qc2 = qc.assign_parameters({theta: 1.0})
         self.assertEqual(len(qc2._parameter_table), 0)
         for gate, _, _ in qc2.data:
             self.assertEqual(float(gate.params[0]), 1.0)
@@ -234,7 +234,7 @@ class TestParameters(QiskitTestCase):
         circs = []
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
-            circs.append(qc_aer.bind_parameters({theta: theta_i}))
+            circs.append(qc_aer.assign_parameters({theta: theta_i}))
         qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             self.assertEqual(float(qobj.experiments[index].instructions[0].params[0]),
@@ -303,7 +303,7 @@ class TestParameters(QiskitTestCase):
             qc.barrier()
         theta_vals = numpy.linspace(0, 1, len(theta)) * numpy.pi
         self.assertEqual(set(qc.parameters), set(theta.params))
-        bqc = qc.bind_parameters({theta: theta_vals})
+        bqc = qc.assign_parameters({theta: theta_vals})
         for gate_tuple in bqc.data:
             if hasattr(gate_tuple[0], 'params') and gate_tuple[0].params:
                 self.assertIn(float(gate_tuple[0].params[0]), theta_vals)
@@ -463,7 +463,7 @@ class TestParameters(QiskitTestCase):
         double_qc = qc + qc
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
 
-        bound_test_qc = test_qc.bind_parameters({theta: 1})
+        bound_test_qc = test_qc.assign_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
     def test_rebinding_instruction_copy(self):
@@ -478,8 +478,8 @@ class TestParameters(QiskitTestCase):
         qc1 = QuantumCircuit(1)
         qc1.append(instr, [0])
 
-        output1 = qc1.bind_parameters({theta: 0.1}).decompose()
-        output2 = qc1.bind_parameters({theta: 0.2}).decompose()
+        output1 = qc1.assign_parameters({theta: 0.1}).decompose()
+        output2 = qc1.assign_parameters({theta: 0.2}).decompose()
 
         expected1 = QuantumCircuit(1)
         expected1.rx(0.1, 0)
@@ -507,13 +507,13 @@ class TestParameters(QiskitTestCase):
         qc2.append(inst, [0])
 
         if parameter_type == 'numbers':
-            bound_qc2 = qc2.bind_parameters({theta: 0.5})
+            bound_qc2 = qc2.assign_parameters({theta: 0.5})
             expected_parameters = set()
             expected_qc2 = QuantumCircuit(1)
             expected_qc2.rx(0.5, 0)
         else:
             phi = Parameter('ph')
-            bound_qc2 = qc2.bind_parameters({theta: phi})
+            bound_qc2 = qc2.assign_parameters({theta: phi})
             expected_parameters = {phi}
             expected_qc2 = QuantumCircuit(1)
             expected_qc2.rx(phi, 0)
@@ -556,13 +556,13 @@ class TestParameters(QiskitTestCase):
         qc3.append(inst, [0])
 
         if parameter_type == 'numbers':
-            bound_qc3 = qc3.bind_parameters({theta: 0.5})
+            bound_qc3 = qc3.assign_parameters({theta: 0.5})
             expected_parameters = set()
             expected_qc3 = QuantumCircuit(1)
             expected_qc3.rx(0.5, 0)
         else:
             phi = Parameter('ph')
-            bound_qc3 = qc3.bind_parameters({theta: phi})
+            bound_qc3 = qc3.assign_parameters({theta: phi})
             expected_parameters = {phi}
             expected_qc3 = QuantumCircuit(1)
             expected_qc3.rx(phi, 0)
@@ -604,7 +604,7 @@ class TestParameters(QiskitTestCase):
         unbound_qc.append(sub_inst, [0, 1], [])
         unbound_qc.measure(0, 0)
 
-        bound_qc = unbound_qc.bind_parameters({theta: numpy.pi/2})
+        bound_qc = unbound_qc.assign_parameters({theta: numpy.pi/2})
 
         shots = 1024
         job = execute(bound_qc, backend=BasicAer.get_backend('qasm_simulator'), shots=shots)
@@ -869,9 +869,9 @@ class TestParameterExpressions(QiskitTestCase):
         expected_qc.r(1, numpy.pi/2, 0)
 
         if order == 'bind-decompose':
-            decomp_bound_qc = qc2.bind_parameters(binds).decompose()
+            decomp_bound_qc = qc2.assign_parameters(binds).decompose()
         elif order == 'decompose-bind':
-            decomp_bound_qc = qc2.decompose().bind_parameters(binds)
+            decomp_bound_qc = qc2.decompose().assign_parameters(binds)
 
         self.assertEqual(decomp_bound_qc.parameters, set())
         self.assertEqual(decomp_bound_qc, expected_qc)
@@ -916,9 +916,9 @@ class TestParameterExpressions(QiskitTestCase):
         expected_qc.r(1, numpy.pi/2, 0)
 
         if order == 'bind-decompose':
-            decomp_bound_qc = qc2.bind_parameters(binds).decompose()
+            decomp_bound_qc = qc2.assign_parameters(binds).decompose()
         elif order == 'decompose-bind':
-            decomp_bound_qc = qc2.decompose().bind_parameters(binds)
+            decomp_bound_qc = qc2.decompose().assign_parameters(binds)
 
         self.assertEqual(decomp_bound_qc.parameters, set())
         self.assertEqual(decomp_bound_qc, expected_qc)
@@ -947,7 +947,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc.measure(0, 0)
 
         theta_range = numpy.linspace(0, 2 * numpy.pi, 128)
-        circuits = [qc.bind_parameters({theta: theta_val})
+        circuits = [qc.assign_parameters({theta: theta_val})
                     for theta_val in theta_range]
 
         self.assertEqual(len(circuits), len(theta_range))

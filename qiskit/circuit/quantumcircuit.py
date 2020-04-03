@@ -1297,13 +1297,19 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def bind_parameters(self, value_dict, inplace=False):
-        """Assign parameters to values yielding a new circuit.
+    def assign_parameters(self, param_dict, inplace=False):
+        """Assign parameters to new parameters or values.
+
+        The keys of the parameter dictionary must be instances of the current circuit. The
+        values of the dictionary can either be numeric values or new parameter objects.
+        The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            value_dict (dict): {parameter: value, ...}
+            param_dict (dict): A dictionary specifying the mapping from ``current_parameter``
+                to ``new_parameter``, where ``new_parameter`` can be a new parameter object
+                or a numeric value.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
-                returned, if True the circuit instance itself is modified.
+                returned. If True the circuit instance itself is modified.
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
@@ -1311,20 +1317,52 @@ class QuantumCircuit:
         Returns:
             optional(QuantumCircuit): A copy of the circuit with bound parameters, if
                 ``inplace`` is True, otherwise None.
+
+        Examples:
+
+            >>> from qiskit.circuit import QuantumCircuit, Parameter
+            >>> circuit = QuantumCircuit(2)
+            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            >>> circuit.ry(params[0], 0)
+            >>> circuit.crx(params[1], 0, 1)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(A) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(C) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+            >>> bound_circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(2) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(1) ├
+                             └───────┘
+            >>> bound_circuit.parameters  # this one has no free parameters anymore
+            set()
+            >>> circuit.parameters  # the original one is still parameterized
+            {Parameter(A), Parameter(C)}
         """
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
 
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-        unrolled_value_dict = self._unroll_param_dict(value_dict)
+        unrolled_param_dict = self._unroll_param_dict(param_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_value_dict.keys() > self.parameters:
+        if unrolled_param_dict.keys() > self.parameters:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self.parameters]))
+                [str(p) for p in param_dict.keys() - self.parameters]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-        for parameter, value in unrolled_value_dict.items():
+        for parameter, value in unrolled_param_dict.items():
             if isinstance(value, Parameter):
                 bound_circuit._substitute_parameter(parameter, value)
             else:
@@ -1332,6 +1370,20 @@ class QuantumCircuit:
                 del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
 
         return None if inplace else bound_circuit
+
+    def bind_parameters(self, value_dict):
+        """Assign parameters to values yielding a new circuit.
+
+        Args:
+            value_dict (dict): {parameter: value, ...}
+
+        Raises:
+            CircuitError: If value_dict contains parameters not present in the circuit
+
+        Returns:
+            QuantumCircuit: copy of self with assignment substitution.
+        """
+        return self.assign_parameters(value_dict, inplace=False)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
