@@ -16,7 +16,6 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-from inspect import signature
 from test import combine
 import numpy as np
 from numpy import pi
@@ -42,6 +41,8 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         MSGate, Barrier, RCCXGate, RCCCXGate)
 from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
+
+from .gate_utils import _get_free_params
 
 
 @ddt
@@ -345,9 +346,10 @@ class TestControlledGate(QiskitTestCase):
             qc.add_register(q_ancillas)
         else:
             num_ancillas = 0
+            q_ancillas = None
 
         # apply hadamard on control qubits and toffoli gate
-        qc.mct(q_controls, q_target[0], None, mode='basic')
+        qc.mct(q_controls, q_target[0], q_ancillas, mode='basic')
 
         # execute the circuit and obtain statevector result
         backend = BasicAer.get_backend('unitary_simulator')
@@ -702,9 +704,11 @@ class TestControlledGate(QiskitTestCase):
         """
         params = [0.1 * i for i in range(10)]
         for gate_class in ControlledGate.__subclasses__():
-            sig = signature(gate_class.__init__)
-            free_params = len(sig.parameters) - 1  # subtract "self"
-            base_gate = gate_class(*params[0:free_params])
+            num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+            free_params = params[:num_free_params]
+            if gate_class in [allGates.MCU1Gate]:
+                free_params[1] = 3
+            base_gate = gate_class(*free_params)
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
@@ -722,11 +726,7 @@ class TestControlledGate(QiskitTestCase):
                 if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                     continue
                 try:
-                    sig = signature(cls)
-                    numargs = len([param for param in sig.parameters.values()
-                                   if param.kind == param.POSITIONAL_ONLY
-                                   or (param.kind == param.POSITIONAL_OR_KEYWORD
-                                       and param.default is param.empty)])
+                    numargs = len(_get_free_params(cls))
                     args = [2]*numargs
 
                     gate = cls(*args)
@@ -738,20 +738,18 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_controlled_standard_gates(self, num_ctrl_qubits):
-        """Test the controlled versions of all standard gates."""
-        gate_classes = [cls for name, cls in allGates.__dict__.items()
-                        if isinstance(cls, type)]
+        """Test controlled versions of all standard gates."""
+        gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
         theta = pi / 2
         for cls in gate_classes:
             with self.subTest(i=cls):
-                sig = signature(cls)
-                numargs = len([param for param in sig.parameters.values()
-                               if param.kind == param.POSITIONAL_ONLY or
-                               (param.kind == param.POSITIONAL_OR_KEYWORD and
-                                param.default is param.empty)])
+                numargs = len(_get_free_params(cls))
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
+                elif cls in [allGates.MCU1Gate]:
+                    args[1] = 2
+
                 gate = cls(*args)
                 try:
                     cgate = gate.control(num_ctrl_qubits)
