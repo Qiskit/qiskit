@@ -18,8 +18,9 @@ from math import pi
 from qiskit.pulse.pulse_lib import gaussian
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.pulse import (build, delay, left_barrier, measure, play, sequential,
-                          shift_phase, u2, DriveChannel, Schedule)
+from qiskit.pulse import DriveChannel, Schedule
+from qiskit.pulse.builder_context import (build, delay, left_barrier, measure, play, sequential,
+                                  shift_phase, u2)
 
 
 class TestBuilderContext(QiskitTestCase):
