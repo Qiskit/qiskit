@@ -142,7 +142,6 @@ from . import PulseError, transforms, macros
 from .pulse_lib import Pulse
 from .channels import (AcquireChannel, Channel, MemorySlot,
                        PulseChannel, RegisterSlot)
-from .circuit_scheduler import schedule_circuit
 from .configuration import Discriminator, Kernel
 from .instructions import (Acquire, Delay, Instruction, Play,
                            SetFrequency, ShiftPhase, Snapshot)
@@ -537,15 +536,15 @@ def cx(control: int, target: int):
     call_gate(CnotGate(), control, target)
 
 
-def u1(qubit: int, theta):
+def u1(qubit: int, theta: float):
     call_gate(U1Gate(theta), qubit)
 
 
-def u2(qubit: int, phi, lam):
+def u2(qubit: int, phi: float, lam: float):
     call_gate(U2Gate(phi, lam), qubit)
 
 
-def u3(qubit: int, theta, phi, lam):
+def u3(qubit: int, theta: float, phi: float, lam: float):
     call_gate(U3Gate(phi, lam), qubit)
 
 
