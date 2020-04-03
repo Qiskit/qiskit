@@ -16,6 +16,7 @@
 Abstract QuantumState class.
 """
 
+import copy
 import warnings
 from abc import ABC, abstractmethod
 
@@ -34,14 +35,8 @@ class QuantumState(ABC):
     _RTOL_DEFAULT = RTOL_DEFAULT
     _MAX_TOL = 1e-4
 
-    def __init__(self, rep, data, dims):
+    def __init__(self, dims):
         """Initialize a state object."""
-        if not isinstance(rep, str):
-            raise QiskitError("rep must be a string not a {}".format(
-                rep.__class__))
-        self._rep = rep
-        self._data = data
-
         # Dimension attributes
         # Note that the tuples of input and output dims are ordered
         # from least-significant to most-significant subsystems
@@ -53,19 +48,7 @@ class QuantumState(ABC):
         self._rng = np.random.RandomState()
 
     def __eq__(self, other):
-        if (isinstance(other, self.__class__)
-                and self.dims() == other.dims()):
-            return np.allclose(
-                self.data, other.data, rtol=self.rtol, atol=self.atol)
-        return False
-
-    def __repr__(self):
-        prefix = '{}('.format(self._rep)
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self.data, separator=', ', prefix=prefix),
-            pad, self._dims)
+        return isinstance(other, self.__class__) and self.dims() == other.dims()
 
     @property
     def dim(self):
@@ -76,11 +59,6 @@ class QuantumState(ABC):
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
         return self._num_qubits
-
-    @property
-    def data(self):
-        """Return data."""
-        return self._data
 
     @property
     def atol(self):
@@ -144,9 +122,7 @@ class QuantumState(ABC):
 
     def copy(self):
         """Make a copy of current operator."""
-        # pylint: disable=no-value-for-parameter
-        # The constructor of subclasses from raw data should be a copy
-        return self.__class__(self.data, self.dims())
+        return copy.deepcopy(self)
 
     def seed(self, value=None):
         """Set the seed for the quantum state RNG."""

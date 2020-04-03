@@ -56,11 +56,11 @@ class DensityMatrix(QuantumState):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            mat = np.array(data.to_matrix(), dtype=complex)
+            mat = np.asarray(data.to_matrix(), dtype=complex)
         elif isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw matrix in either a
             # python list or numpy array format.
-            mat = np.array(data, dtype=complex)
+            mat = np.asarray(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for DensityMatrix")
         # Convert statevector into a density matrix
@@ -72,8 +72,25 @@ class DensityMatrix(QuantumState):
         if mat.ndim != 2 or mat.shape[0] != mat.shape[1]:
             raise QiskitError(
                 "Invalid DensityMatrix input: not a square matrix.")
-        subsystem_dims = self._automatic_dims(dims, mat.shape[0])
-        super().__init__('DensityMatrix', mat, subsystem_dims)
+        self._data = mat
+        super().__init__(self._automatic_dims(dims, self._data.shape[0]))
+
+    def __eq__(self, other):
+        return super().__eq__(other) and np.allclose(
+            self._data, other._data, rtol=self.rtol, atol=self.atol)
+
+    def __repr__(self):
+        prefix = 'DensityMatrix('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self._data, separator=', ', prefix=prefix),
+            pad, self._dims)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
 
     def is_valid(self, atol=None, rtol=None):
         """Return True if trace 1 and positive semidefinite."""

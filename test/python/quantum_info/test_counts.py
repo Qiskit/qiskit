@@ -37,7 +37,7 @@ class TestStates(QiskitTestCase):
         sim = BasicAer.get_backend('statevector_simulator')
         res = execute(qc, sim).result()
         vec = res.get_statevector()
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             counts = state_to_counts(vec)
         self.assertAlmostEqual(counts['00000'], 0.5)
         self.assertAlmostEqual(counts['11111'], 0.5)
