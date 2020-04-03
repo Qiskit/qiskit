@@ -98,6 +98,21 @@ class FakeOpenPulse3Q(FakeBackend):
                     'purpose': 'drive',
                     'operates': {'qubits': [2]}
                 },
+                'm0': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [0]}
+                },
+                'm1': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [1]}
+                },
+                'm2': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [2]}
+                },
                 'u0': {
                     'type': 'control',
                     'purpose': 'cross-resonance',

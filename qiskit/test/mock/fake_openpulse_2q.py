@@ -105,6 +105,16 @@ class FakeOpenPulse2Q(FakeBackend):
                     'purpose': 'cross-resonance',
                     'type': 'control'
                 },
+                'm0': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [0]}
+                },
+                'm1': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [1]}
+                },
                 'u1': {
                     'operates': {'qubits': [1, 0]},
                     'purpose': 'cross-resonance',
