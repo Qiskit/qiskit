@@ -19,11 +19,75 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
 class QFT(QuantumCircuit):
-    """Quantum Fourier Transform Circuit."""
+    r"""Quantum Fourier Transform Circuit.
+
+    The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
+
+    .. math::
+
+        |j\rangle \mapsto \frac{1}{2^{n/2}} \sum_{k=0}^{2^n - 1} e^{2\pi ijk / 2^n} |k\rangle
+
+    The circuit that implements this transformation can be implemented using Hadamard gates
+    on each qubit, a series of controlled-U1 (or Z, depending on the phase) gates and a
+    layer of Swap gates. The layer of Swap gates can in principle be dropped if the QFT appears
+    at the end of the circuit, since then the re-ordering can be done classically. They
+    can be turned off using the ``do_swaps`` attribute.
+
+    For 4 qubits, the circuit that implements this transformation is:
+
+    .. parsed-literal::
+
+                    ░ ┌───┐                      ░                     ░              ░       ░
+        q_0: ─X─────░─┤ H ├─■──────■──────■──────░─────────────────────░──────────────░───────░─
+              │     ░ └───┘ │pi/2  │      │      ░ ┌───┐               ░              ░       ░
+        q_1: ─┼──X──░───────■──────┼──────┼──────░─┤ H ├─■──────■──────░──────────────░───────░─
+              │  │  ░              │pi/4  │      ░ └───┘ │pi/2  │      ░ ┌───┐        ░       ░
+        q_2: ─┼──X──░──────────────■──────┼──────░───────■──────┼──────░─┤ H ├─■──────░───────░─
+              │     ░                     │pi/8  ░              │pi/4  ░ └───┘ │pi/2  ░ ┌───┐ ░
+        q_3: ─X─────░─────────────────────■──────░──────────────■──────░───────■──────░─┤ H ├─░─
+                    ░                            ░                     ░              ░ └───┘ ░
+
+    The inverse QFT can be obtained by calling the ``.inverse()`` method on this class.
+    The respective circuit diagram is:
+
+    .. parsed-literal::
+                    ░               ░                       ░                         ┌───┐ ░
+        q_0: ───────░───────────────░───────────────────────░──■───────■───────■──────┤ H ├─░─────X─
+                    ░               ░                 ┌───┐ ░  │       │       │-pi/2 └───┘ ░     │
+        q_1: ───────░───────────────░──■───────■──────┤ H ├─░──┼───────┼───────■────────────░──X──┼─
+                    ░         ┌───┐ ░  │       │-pi/2 └───┘ ░  │       │-pi/4               ░  │  │
+        q_2: ───────░──■──────┤ H ├─░──┼───────■────────────░──┼───────■────────────────────░──X──┼─
+              ┌───┐ ░  │-pi/2 └───┘ ░  │-pi/4               ░  │-pi/8                       ░     │
+        q_3: ─┤ H ├─░──■────────────░──■────────────────────░──■────────────────────────────░─────X─
+              └───┘ ░               ░                       ░                               ░
+
+    One method to reduce circuit depth is to implement the QFT approximately by ignoring
+    controlled-phase rotations where the angle is beneath a threshold. This is discussed
+    in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+    https://arxiv.org/abs/quant-ph/0403071.
+
+    Here, this can be adjusted using the ``approximation_degree`` attribute: the smallest
+    ``approximation_degree`` rotation angles are dropped from the QFT. For instance, a QFT
+    on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
+
+    .. parsed-literal::
+                ┌───┐
+        q_0: ─X─┤ H ├─■──────■────────────────────────────────────────────────────────────
+              │ └───┘ │pi/2  │     ┌───┐
+        q_1: ─┼───X───■──────┼─────┤ H ├─■──────■─────────────────────────────────────────
+              │   │          │pi/4 └───┘ │pi/2  │     ┌───┐
+        q_2: ─┼───┼──────────■───────────■──────┼─────┤ H ├─■──────■──────────────────────
+              │   │                             │pi/4 └───┘ │pi/2  │     ┌───┐
+        q_3: ─┼───X─────────────────────────────■───────────■──────┼─────┤ H ├─■──────────
+              │                                                    │pi/4 └───┘ │pi/2 ┌───┐
+        q_4: ─X────────────────────────────────────────────────────■───────────■─────┤ H ├
+                                                                                     └───┘
+    """
 
     def __init__(self, *regs,
                  approximation_degree: int = 0,
                  do_swaps: bool = True,
+                 insert_barriers: bool = False,
                  name: str = 'qft') -> None:
         """Construct a new QFT circuit.
 
@@ -31,17 +95,21 @@ class QFT(QuantumCircuit):
             *regs: The number of qubits or qubit registers on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).
             do_swaps: Whether to include the final swaps in the QFT.
+            insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
         super().__init__(*regs, name=name)
 
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
+        self._insert_barriers = insert_barriers
         self._data = None
 
     @QuantumCircuit.num_qubits.setter
     def num_qubits(self, num_qubits: int) -> None:
         """Set the number of qubits.
+
+        Note that this changes the registers of the circuit.
 
         Args:
             num_qubits: The new number of qubits.
@@ -82,6 +150,26 @@ class QFT(QuantumCircuit):
             self._approximation_degree = approximation_degree
 
     @property
+    def insert_barriers(self) -> bool:
+        """Whether barriers are inserted for better visualization or not.
+
+        Returns:
+            True, if barriers are inserted, False if not.
+        """
+        return self._insert_barriers
+
+    @insert_barriers.setter
+    def insert_barriers(self, insert_barriers: bool) -> None:
+        """Specify whether barriers are inserted for better visualization or not.
+
+        Args:
+            insert_barriers: If True, barriers are inserted, if False not.
+        """
+        if insert_barriers != self._insert_barriers:
+            self._data = None
+            self._insert_barriers = insert_barriers
+
+    @property
     def do_swaps(self) -> bool:
         """Whether the final swaps of the QFT are applied or not.
 
@@ -106,43 +194,27 @@ class QFT(QuantumCircuit):
         for i in range(num_qubits // 2):
             self.swap(i, num_qubits - i - 1)
 
-    def inverse(self) -> QuantumCircuit:
-        """Return the inverse QFT."""
-        iqft = self.copy(name=self.name + '_dg')
-        iqft._data = None
-        iqft._build(inverse=True)
-        return iqft
-
-    def _build(self, inverse: bool = False) -> None:
-        """Construct the circuit representing the desired state vector.
-
-        Args:
-            inverse: Boolean flag to indicate Inverse Quantum Fourier Transform.
-        """
+    def _build(self) -> None:
+        """Construct the circuit representing the desired state vector."""
         if self._data:
             return
 
         self._data = []
 
-        if self._do_swaps and not inverse:
+        if self._do_swaps:
             self._swap_qubits()
+            if self.insert_barriers:
+                self.barrier()
 
-        qubit_range = reversed(range(self.num_qubits)) if inverse else range(self.num_qubits)
-        for j in qubit_range:
-            neighbor_range = range(max(0, j - self.num_qubits + self._approximation_degree + 1), j)
-            if inverse:
-                neighbor_range = reversed(neighbor_range)
-                self.h(j)
-            for k in neighbor_range:
-                lam = 1.0 * np.pi / float(2 ** (j - k))
-                if inverse:
-                    lam *= -1
+        for j in range(self.num_qubits):
+            self.h(j)
+            num_entanglements = max(0, self.num_qubits - max(self.approximation_degree, j))
+            for k in range(j + 1, j + num_entanglements):
+                lam = np.pi / (2 ** (k - j))
                 self.cu1(lam, j, k)
-            if not inverse:
-                self.h(j)
 
-        if self._do_swaps and inverse:
-            self._swap_qubits()
+            if self.insert_barriers:
+                self.barrier()
 
     @property
     def data(self):

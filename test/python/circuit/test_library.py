@@ -132,19 +132,19 @@ class TestBasisChanges(QiskitTestCase):
                 self.assertQFTIsCorrect(qft)
 
     @data(
-        (4, 0),
-        (4, 2),
-        (4, 5),
+        (4, 0, False),
+        (3, 0, True),
+        (6, 2, False),
+        (4, 5, True),
     )
     @unpack
-    def test_qft_num_gates(self, num_qubits, approximation_degree):
+    def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
-        basis_gates = ['h', 'swap', 'cu1']
+        basis_gates = ['h', 'swap', 'cu1', 'barrier']
 
-        qft = QFT(num_qubits, approximation_degree=approximation_degree)
+        qft = QFT(num_qubits, approximation_degree=approximation_degree,
+                  insert_barriers=insert_barriers)
         ops = transpile(qft, basis_gates=basis_gates).count_ops()
-        print(ops)
-        print(qft.draw())
 
         with self.subTest(msg='assert H count'):
             self.assertEqual(ops['h'], num_qubits)
@@ -156,3 +156,7 @@ class TestBasisChanges(QiskitTestCase):
             expected = sum(max(0, min(num_qubits - 1 - k, num_qubits - 1 - approximation_degree))
                            for k in range(num_qubits))
             self.assertEqual(ops.get('cu1', 0), expected)
+
+        with self.subTest(msg='assert barrier count'):
+            expected = qft.num_qubits + 1 if insert_barriers else 0
+            self.assertEqual(ops.get('barrier', 0), expected)
