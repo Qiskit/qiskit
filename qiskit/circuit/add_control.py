@@ -94,7 +94,6 @@ def control(operation: Union[Gate, ControlledGate],
     # pylint: disable=unused-import
     import qiskit.extensions.standard.multi_control_rotation_gates
     import qiskit.extensions.standard.multi_control_toffoli_gate
-    import qiskit.extensions.standard.multi_control_u1_gate
 
     # check args
     if num_ctrl_qubits == 0:
@@ -110,16 +109,13 @@ def control(operation: Union[Gate, ControlledGate],
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
             operation.base_gate.name == 'x'):
-        qc.mct(q_control[:] + q_target[:-1],
-               q_target[-1],
-               None,
-               mode='noancilla')
+        qc.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
     elif operation.name == 'rx':
         qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     elif operation.name == 'ry':
         qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
-                q_ancillae, use_basis_gates=True)
+                q_ancillae, mode='noancilla', use_basis_gates=True)
     elif operation.name == 'rz':
         qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
@@ -134,7 +130,7 @@ def control(operation: Union[Gate, ControlledGate],
                             use_basis_gates=True)
                 elif phi == 0 and lamb == 0:
                     qc.mcry(theta, q_control, q_target[rule[1][0].index],
-                            q_ancillae, mode='noancilla', use_basis_gates=True)
+                            q_ancillae, use_basis_gates=True)
                 elif theta == 0 and phi == 0:
                     qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
                             use_basis_gates=True)
@@ -148,10 +144,8 @@ def control(operation: Union[Gate, ControlledGate],
             elif rule[0].name == 'u1':
                 qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
             elif rule[0].name == 'cx':
-                qc.mct(q_control[:] + [q_target[rule[1][0].index]],
-                       q_target[rule[1][1].index],
-                       None,
-                       mode='noancilla')
+                qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
+                       q_ancillae)
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
