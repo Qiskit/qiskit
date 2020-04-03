@@ -28,7 +28,17 @@ Boolean Logic Circuits
    InnerProduct
    Permutation
    XOR
+
+Basis Change Circuit
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
+
 """
 
 
 from .boolean_logic import Permutation, XOR, InnerProduct
+from .basis_change import QFT
