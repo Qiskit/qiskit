@@ -1,5 +1,5 @@
 ---
-other:
+upgrade:
   - |
     The circuit ``draw`` method has a new boolean `initial_state` parameter for optinally including the initial state in the drawing.
     ...python
