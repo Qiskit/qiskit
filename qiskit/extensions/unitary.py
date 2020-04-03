@@ -191,7 +191,6 @@ class UnitaryGate(Gate):
                                "{1}".format(type(parameter), self.name))
 
 
-
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     r"""
     Compute the controlled version of the input matrix with qiskit ordering.
