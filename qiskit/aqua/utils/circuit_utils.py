@@ -15,12 +15,14 @@
 """ Circuit utility functions """
 
 import numpy as np
-from qiskit import compiler
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.transpiler.passes import Unroller
 
 
 def convert_to_basis_gates(circuit):
-    """ unroll the circuit using the basis u1, u2, u3, cx, and id gates """
-    return compiler.transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'])
+    """ unroll the circuit using the basis u1, u2, u3, cx gates """
+    unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx'])
+    return dag_to_circuit(unroller.run(circuit_to_dag(circuit)))
 
 
 def summarize_circuits(circuits):
