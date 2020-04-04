@@ -29,7 +29,6 @@ class ControlledGate(Gate):
 
         Attributes:
             num_ctrl_qubits (int): The number of control qubits.
-            ctrl_state (int): The control state in decimal notation.
 
         Args:
             name (str): The Qobj name of the gate.
@@ -66,23 +65,29 @@ class ControlledGate(Gate):
     def definition(self):
         """Return definition in terms of other basic gates. If the gate has
         open controls, as determined from `self.ctrl_state`, the returned
-        definition is conjugated with X."""
+        definition is conjugated with X without changing the internal
+        `_definition`.
+        """
         if not self._definition:
             self._define()
         # pylint: disable=cyclic-import
-        from qiskit.extensions.standard import XGate, CnotGate
+        from qiskit.extensions.standard import XGate, CXGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:
             qreg = self._definition[0][1][0].register
-        elif isinstance(self, CnotGate):
+            definition = self._definition
+        elif isinstance(self, CXGate):
             qreg = QuantumRegister(self.num_qubits, 'q')
-            self._definition = [(self, [qreg[0], qreg[1]], [])]
+            definition = [(self, [qreg[0], qreg[1]], [])]
         open_rules = []
         for qind, val in enumerate(bit_ctrl_state[::-1]):
             if val == '0':
                 open_rules.append([XGate(), [qreg[qind]], []])
-        return open_rules + self._definition + open_rules
+        if open_rules:
+            return open_rules + definition + open_rules
+        else:
+            return self._definition
 
     @definition.setter
     def definition(self, excited_def):
@@ -124,11 +129,13 @@ class ControlledGate(Gate):
             raise CircuitError('invalid control state specification')
 
     def __eq__(self, other):
-        if not isinstance(other, ControlledGate):
-            return False
-        else:
-            return (other.num_ctrl_qubits == self.num_ctrl_qubits and
-                    self.base_gate == other.base_gate)
+        return (isinstance(other, ControlledGate) and
+                self.num_ctrl_qubits == other.num_ctrl_qubits and
+                self.ctrl_state == other.ctrl_state and
+                self.base_gate == other.base_gate and
+                self.num_qubits == other.num_qubits and
+                self.num_clbits == other.num_clbits and
+                self.definition == other.definition)
 
     def inverse(self):
         """Invert this gate by calling inverse on the base gate."""

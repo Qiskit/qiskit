@@ -15,16 +15,13 @@
 """Test the optimize-1q-gate pass"""
 
 import unittest
-import sympy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.circuit import Parameter
 
 
@@ -62,7 +59,7 @@ class TestOptimize1qGates(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
-        result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
 
@@ -92,41 +89,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
-
-    def test_optimize_1q_gates_sympy_expressions(self):
-        """optimizes single qubit gate sequences with sympy expressions.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/172
-        """
-        qr = QuantumRegister(4)
-        cr = ClassicalRegister(4)
-        circ = QuantumCircuit(qr, cr)
-        # unary
-        circ.u1(-sympy.pi, qr[0])
-        circ.u1(-sympy.pi / 2, qr[0])
-        # binary
-        circ.u1(0.2 * sympy.pi + 0.3 * sympy.pi, qr[1])
-        circ.u1(1.3 - 0.3, qr[1])
-        circ.u1(0.1 * sympy.pi / 2, qr[1])
-        # extern
-        circ.u1(sympy.sin(0.2 + 0.3 - sympy.pi), qr[2])
-        # power
-        circ.u1(sympy.pi, qr[3])
-        circ.u1(0.3 + (-sympy.pi) ** 2, qr[3])
-
-        dag = circuit_to_dag(circ)
-        simplified_dag = Optimize1qGates().run(dag)
-
-        params = set()
-        for node in simplified_dag.named_nodes('u1'):
-            params.add(node.op.params[0])
-
-        expected_params = {-3 * np.pi / 2,
-                           1.0 + 0.55 * np.pi,
-                           -0.479425538604203,
-                           0.3 + np.pi + np.pi ** 2}
-
-        self.assertEqual(params, expected_params)
 
     def test_ignores_conditional_rotations(self):
         """Conditional rotations should not be considered in the chain.
@@ -169,7 +131,7 @@ class TestOptimize1qGates(QiskitTestCase):
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
 
-        expected = QuantumCircuit(qr,)
+        expected = QuantumCircuit(qr)
         expected.u1(0.7, qr)
         expected.h(qr)
 
@@ -259,6 +221,70 @@ class TestOptimize1qGates(QiskitTestCase):
         after = Optimize1qGates().run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+
+class TestOptimize1qGatesParamReduction(QiskitTestCase):
+    """Test for 1q gate optimizations parameter reduction, reduce n in Un """
+
+    def test_optimize_u3_to_u2(self):
+        """U3(pi/2, pi/3, pi/4) ->  U2(pi/3, pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(np.pi / 2, np.pi / 3, np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(np.pi / 3, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_to_u2_round(self):
+        """U3(1.5707963267948961, 1.0471975511965971, 0.7853981633974489) ->  U2(pi/3, pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(1.5707963267948961, 1.0471975511965971, 0.7853981633974489, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(np.pi / 3, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_to_u1(self):
+        """U3(0, 0, pi/4) ->  U1(pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(0, 0, np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u1(np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_to_u1_round(self):
+        """U3(1e-16, 1e-16, pi/4) ->  U1(pi/4)"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(1e-16, 1e-16, np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u1(np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
 
 
 if __name__ == '__main__':

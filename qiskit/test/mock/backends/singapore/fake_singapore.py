@@ -57,6 +57,7 @@ class FakeSingapore(FakeBackend):
             open_pulse=False,
             memory=True,
             max_shots=8192,
+            max_experiments=900,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=cmap,
         )

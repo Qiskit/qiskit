@@ -16,8 +16,8 @@
 DensityMatrix quantum state class.
 """
 
+import warnings
 from numbers import Number
-
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -25,12 +25,12 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.counts import state_to_counts
 
 
 class DensityMatrix(QuantumState):
@@ -78,9 +78,9 @@ class DensityMatrix(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if trace 1 and positive semidefinite."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         # Check trace == 1
         if not np.allclose(self.trace(), 1, rtol=rtol, atol=atol):
             return False
@@ -158,7 +158,7 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
@@ -177,7 +177,7 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if other is not a quantum state, or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
@@ -215,8 +215,11 @@ class DensityMatrix(QuantumState):
 
         Raises:
             QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+                         specified QuantumState subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
@@ -230,28 +233,130 @@ class DensityMatrix(QuantumState):
         # Unitary evolution by an Operator
         return self._evolve_operator(other, qargs=qargs)
 
-    @classmethod
-    def from_label(cls, label):
-        """Return a tensor product of Pauli X,Y,Z eigenstates.
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
 
         Args:
-            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+
+        Examples:
+
+            Consider a 2-qubit product state :math:`\\rho=\\rho_1\\otimes\\rho_0`
+            with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
+            :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import DensityMatrix
+
+                rho = DensityMatrix.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = rho.probabilities()
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring only qubit-0
+                probs_qubit_0 = rho.probabilities([0])
+                print('Qubit-0 probs: {}'.format(probs_qubit_0))
+
+                # Probabilities for measuring only qubit-1
+                probs_qubit_1 = rho.probabilities([1])
+                print('Qubit-1 probs: {}'.format(probs_qubit_1))
+
+            We can also permute the order of qubits in the ``qargs`` list
+            to change the qubit position in the probabilities output
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import DensityMatrix
+
+                rho = DensityMatrix.from_label('+0')
+
+                # Probabilities for measuring both qubits
+                probs = rho.probabilities([0, 1])
+                print('probs: {}'.format(probs))
+
+                # Probabilities for measuring both qubits
+                # but swapping qubits 0 and 1 in output
+                probs_swapped = rho.probabilities([1, 0])
+                print('Swapped probs: {}'.format(probs_swapped))
+        """
+        probs = self._subsystem_probabilities(
+            np.abs(self.data.diagonal()), self._dims, qargs=qargs)
+        if decimals is not None:
+            probs = probs.round(decimals=decimals)
+        return probs
+
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            DensityMatrix: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform evolution by the reset
+            :class:`~qiskit.quantum_info.SuperOp` of the reset subsystems.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(2 * (self._dim, ), dtype=complex)
+            state[0, 0] = 1
+            return DensityMatrix(state, dims=self._dims)
+
+        # Reset by evolving by reset SuperOp
+        dims = self.dims(qargs)
+        reset_superop = SuperOp(ScalarOp(dims, coeff=0))
+        reset_superop.data[0] = Operator(ScalarOp(dims)).data.ravel()
+        return self.evolve(reset_superop, qargs=qargs)
+
+    @classmethod
+    def from_label(cls, label):
+        r"""Return a tensor product of Pauli X,Y,Z eigenstates.
+
+        .. list-table:: Single-qubit state labels
+           :header-rows: 1
+
+           * - Label
+             - Statevector
+           * - ``"0"``
+             - :math:`\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}`
+           * - ``"1"``
+             - :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
+           * - ``"+"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}`
+           * - ``"-"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}`
+           * - ``"r"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -i \\ i & 1 \end{pmatrix}`
+           * - ``"l"``
+             - :math:`\frac{1}{2}\begin{pmatrix} 1 & i \\ -i & 1 \end{pmatrix}`
+
+        Args:
+            label (string): a eigenstate string ket label (see table for
+                            allowed values).
 
         Returns:
             Statevector: The N-qubit basis state density matrix.
 
         Raises:
             QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
-
-        Additional Information:
-            The labels correspond to the single-qubit states:
-            '0': [[1, 0], [0, 0]]
-            '1': [[0, 0], [0, 1]]
-            '+': [[0.5, 0.5], [0.5 , 0.5]]
-            '-': [[0.5, -0.5], [-0.5 , 0.5]]
-            'r': [[0.5, -0.5j], [0.5j , 0.5]]
-            'l': [[0.5, 0.5j], [-0.5j , 0.5]]
+                         of the label is larger than an explicitly specified num_qubits.
         """
         return DensityMatrix(Statevector.from_label(label))
 
@@ -259,30 +364,94 @@ class DensityMatrix(QuantumState):
     def from_instruction(cls, instruction):
         """Return the output density matrix of an instruction.
 
-        The statevector is initialized in the state |0,...,0> of the same
-        number of qubits as the input instruction or circuit, evolved
+        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of
+        the same number of qubits as the input instruction or circuit, evolved
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (Instruction or QuantumCircuit): instruction or circuit
+            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             DensityMatrix: the final density matrix.
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
-            density matrix simulation.
+                         density matrix simulation.
         """
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
-        n_qubits = instruction.num_qubits
-        init = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
+        num_qubits = instruction.num_qubits
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
-        vec = DensityMatrix(init, dims=n_qubits * [2])
+        vec = DensityMatrix(init, dims=num_qubits * [2])
         vec._append_instruction(instruction)
         return vec
+
+    def to_dict(self, decimals=None):
+        r"""Convert the density matrix to dictionary form.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            decimals (None or int): the number of decimal places to round
+                                    values. If None no rounding is done
+                                    (Default: None).
+
+        Returns:
+            dict: the dictionary form of the DensityMatrix.
+
+        Examples:
+
+            The ket-form of a 2-qubit density matrix
+            :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
+
+            .. jupyter-execute::
+
+                from qiskit.quantum_info import DensityMatrix
+
+                rho = DensityMatrix.from_label('-0')
+                print(rho.to_dict())
+
+            For non-qubit subsystems the integer range can go from 0 to 9. For
+            example in a qutrit system
+
+            .. jupyter-execute::
+
+                import numpy as np
+                from qiskit.quantum_info import DensityMatrix
+
+                mat = np.zeros((9, 9))
+                mat[0, 0] = 0.25
+                mat[3, 3] = 0.25
+                mat[6, 6] = 0.25
+                mat[-1, -1] = 0.25
+                rho = DensityMatrix(mat, dims=(3, 3))
+                print(rho.to_dict())
+
+            For large subsystem dimensions delimeters are required. The
+            following example is for a 20-dimensional system consisting of
+            a qubit and 10-dimensional qudit.
+
+            .. jupyter-execute::
+
+                import numpy as np
+                from qiskit.quantum_info import DensityMatrix
+
+                mat = np.zeros((2 * 10, 2 * 10))
+                mat[0, 0] = 0.5
+                mat[-1, -1] = 0.5
+                rho = DensityMatrix(mat, dims=(2, 10))
+                print(rho.to_dict())
+        """
+        return self._matrix_to_dict(self.data,
+                                    self._dims,
+                                    decimals=decimals,
+                                    string_labels=True)
 
     @property
     def _shape(self):
@@ -369,10 +538,16 @@ class DensityMatrix(QuantumState):
         return vec
 
     def to_counts(self):
-        """Returns the density matrix as a counts dict
-        of probabilities.
+        """Returns the density matrix as a counts dict of probabilities.
+
+        DEPRECATED: use :meth:`probabilities_dict` instead.
 
         Returns:
             dict: Counts of probabilities.
         """
-        return state_to_counts(self.data.diagonal(), self._atol, True)
+        warnings.warn(
+            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
+            ' and will be removed no earlier than 3 months after that '
+            'release date. You should use the `Statevector.probabilities_dict`'
+            ' method instead.', DeprecationWarning, stacklevel=2)
+        return self.probabilities_dict()

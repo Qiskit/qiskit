@@ -21,7 +21,7 @@ from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from .instruction import Instruction
+from ..instructions import Instruction
 from .command import Command
 
 
@@ -86,4 +86,4 @@ class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value."""
 
     def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)

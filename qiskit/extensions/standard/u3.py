@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Two-pulse single-qubit gate.
+U3 Gate, three-parameter single-qubit gate.
 """
 
 import numpy
@@ -26,21 +26,57 @@ from qiskit.util import deprecate_arguments
 
 # pylint: disable=cyclic-import
 class U3Gate(Gate):
-    """Two-pulse single-qubit gate."""
+    r"""Generic single-qubit rotation gate with 3 Euler angles.
+
+    Implemented using two X90 pulses on IBM Quantum systems:
+
+    .. math::
+        U2(\phi, \lambda) = RZ(\phi+\pi/2) RX(\frac{\pi}{2}) RZ(\lambda-\pi/2)
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────────┐
+        q_0: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        U3(\theta, \phi, \lambda) =
+            \begin{pmatrix}
+                \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+            \end{pmatrix}
+
+    **Examples:**
+
+    .. math::
+
+        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+
+    .. math::
+
+        U3(\theta, 0, 0) = RY(\theta)
+    """
 
     def __init__(self, theta, phi, lam, label=None):
-        """Create new two-pulse single qubit gate."""
+        """Create new U3 gate."""
         super().__init__('u3', 1, [theta, phi, lam], label=label)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted U3 gate.
 
-        u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
+        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\phi,-\lambda)`)
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-U3 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -75,32 +111,7 @@ class U3Gate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def u3(self, theta, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply U3 gate with angle theta, phi, and lam to a specified qubit (qubit).
-    u3(θ, φ, λ) := U(θ, φ, λ) = Rz(φ + 3π)Rx(π/2)Rz(θ + π)Rx(π/2)Rz(λ)
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            theta = Parameter('theta')
-            phi = Parameter('φ')
-            lam = Parameter('λ')
-            circuit = QuantumCircuit(1)
-            circuit.u3(theta,phi,lam,0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            import numpy
-            from qiskit.extensions.standard.u3 import U3Gate
-            U3Gate(numpy.pi/2,numpy.pi/2,numpy.pi/2).to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.U3Gate`."""
     return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
 
@@ -118,10 +129,66 @@ class CU3Meta(type):
 
 
 class CU3Gate(ControlledGate, metaclass=CU3Meta):
-    """The controlled-u3 gate."""
+    r"""Controlled-U3 gate (3-parameter two-qubit gate).
+
+    This is a controlled version of the U3 gate (generic single qubit rotation).
+    It is restricted to 3 parameters, and so cannot cover generic two-qubit
+    controlled gates).
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──────■──────
+             ┌─────┴─────┐
+        q_1: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CU3(\theta, \phi, \lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| +
+            U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0                   & 0 & 0 \\
+                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & 0                   & 1 & 0 \\
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────────┐
+            q_0: ┤ U3(ϴ,φ,λ) ├
+                 └─────┬─────┘
+            q_1: ──────■──────
+
+        .. math::
+
+            CU3(\theta, \phi, \lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I +
+                |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+                \begin{pmatrix}
+                    1 & 0   & 0                  & 0 \\
+                    0 & 1   & 0                  & 0 \\
+                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta, phi, lam):
-        """Create new cu3 gate."""
+        """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
         self.base_gate = U3Gate(theta, phi, lam)
 
@@ -153,7 +220,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        r"""Return inverted CU3 gate.
+
+        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
+        """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
@@ -173,27 +243,72 @@ class Cu3Gate(CU3Gate, metaclass=CU3Meta):
                       'tgt': 'target_qubit'})
 def cu3(self, theta, phi, lam, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cU3 gate from a specified control (control_qubit) to target (target_qubit) qubit
-    with angle theta, phi, and lam.
-    A cU3 gate implements a U3(theta,phi,lam) on the target qubit when the
-    control qubit is in state |1>.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            theta = Parameter('θ')
-            phi = Parameter('φ')
-            lam = Parameter('λ')
-            circuit = QuantumCircuit(2)
-            circuit.cu3(theta,phi,lam,0,1)
-            circuit.draw()
-    """
+    """Apply :class:`~qiskit.extensions.standard.U3Gate`."""
     return self.append(CU3Gate(theta, phi, lam), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cu3 = cu3
+
+
+def _generate_gray_code(num_bits):
+    """Generate the gray code for ``num_bits`` bits."""
+    if num_bits <= 0:
+        raise ValueError('Cannot generate the gray code for less than 1 bit.')
+    result = [0]
+    for i in range(num_bits):
+        result += [x + 2**i for x in reversed(result)]
+    return [format(x, '0%sb' % num_bits) for x in result]
+
+
+def _gray_code_chain(q, num_ctrl_qubits, gate):
+    """Apply the gate to the the last qubit in the register ``q``, controlled on all
+    preceding qubits. This function uses the gray code to propagate down to the last qubit.
+
+    Ported and adapted from Aqua (github.com/Qiskit/qiskit-aqua),
+    commit 769ca8d, file qiskit/aqua/circuits/gates/multi_control_u1_gate.py.
+    """
+    from qiskit.extensions.standard.x import CXGate
+
+    rule = []
+    q_controls, q_target = q[:num_ctrl_qubits], q[num_ctrl_qubits]
+    gray_code = _generate_gray_code(num_ctrl_qubits)
+    last_pattern = None
+
+    for pattern in gray_code:
+        if '1' not in pattern:
+            continue
+        if last_pattern is None:
+            last_pattern = pattern
+        # find left most set bit
+        lm_pos = list(pattern).index('1')
+
+        # find changed bit
+        comp = [i != j for i, j in zip(pattern, last_pattern)]
+        if True in comp:
+            pos = comp.index(True)
+        else:
+            pos = None
+        if pos is not None:
+            if pos != lm_pos:
+                rule.append(
+                    (CXGate(), [q_controls[pos], q_controls[lm_pos]], [])
+                )
+            else:
+                indices = [i for i, x in enumerate(pattern) if x == '1']
+                for idx in indices[1:]:
+                    rule.append(
+                        (CXGate(), [q_controls[idx], q_controls[lm_pos]], [])
+                    )
+        # check parity
+        if pattern.count('1') % 2 == 0:
+            # inverse
+            rule.append(
+                (gate.inverse(), [q_controls[lm_pos], q_target], [])
+            )
+        else:
+            rule.append(
+                (gate, [q_controls[lm_pos], q_target], [])
+            )
+        last_pattern = pattern
+
+    return rule
