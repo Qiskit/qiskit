@@ -14,7 +14,9 @@ features:
     circuit.
 deprecations:
   - |
-    The function ``qiskit.quantum_info.synthesis.euler_angles_1q` is now
+    The function ``qiskit.quantum_info.synthesis.euler_angles_1q`` is now
     deprecated. It has been superseded by the
     :class:`qiskit.quantum_info.OneQubitEulerDecomposer` class which provides
-    the same functionality though ``OneQubitEulerDecomposer().angles(mat)``.
+    the same functionality through::
+
+        OneQubitEulerDecomposer().angles(mat)

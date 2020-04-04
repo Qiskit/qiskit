@@ -43,11 +43,11 @@ features:
         Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
 deprecations:
   - |
-    py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
-    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
+    :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    :py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
     now subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse` and have been
-    moved to the ``pulse_lib``. The previous path via ``pulse.commands`` is
-    deprecated and will be removed in a future release.
+    moved to the :mod:`qiskit.pulse.pulse_lib`. The previous path via
+    ``pulse.commands`` is deprecated and will be removed in a future release.
   - |
     ``DelayInstruction`` has been deprecated and replaced by
     :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
@@ -77,8 +77,8 @@ deprecations:
 
         ShiftPhase(<phase>)(<channel>)
   - |
-    The ``call`` method of py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
-    py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s have been deprecated.
+    The ``call`` method of :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    :py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s have been deprecated.
     The migration is as follows::
 
         Pulse(<*args>)(<channel>) -> Play(Pulse(*args), <channel>)

@@ -1,13 +1,16 @@
 ---
 fixes:
   - |
-    A bug in ``from_qasm_str`` loading custom gates was fixed. Now, loading this QASM::
+    A bug in :meth`qiskit.circuit.QuantumCircuit.from_qasm_str` and
+    :meth`qiskit.circuit.QuantumCircuit.from_qasm_file` when
+    loading QASM with custom gates defined has been fixed. Now, loading
+    this QASM::
 
         OPENQASM 2.0;
         include "qelib1.inc";
         gate rinv q {sdg q; h q; sdg q; h q; }
         qreg q[1];
-        rinv q[0];"""
+        rinv q[0];
      
     is equivalent to the following circuit::
 
@@ -21,3 +24,5 @@ fixes:
         qr = QuantumRegister(1, name='q')
         expected = QuantumCircuit(qr, name='circuit')
         expected.append(rinv, [qr[0]])
+
+    Fixes `#1566 <https://github.com/Qiskit/qiskit-terra/issues/1566>`_
