@@ -291,51 +291,6 @@ QuantumCircuit.cx = cx
 QuantumCircuit.cnot = cx
 
 
-def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancilla'):
-    r"""Apply multi-cX gate.
-
-    Applied from a specified controls ``control_qubits`` to target ``target_qubit`` qubit with
-    angle ``lam``. A multi-cX gate applies an X gate on the target qubit when all control qubits are
-    in state :math:`|1\rangle`.
-
-    The multi-cX gate can be implemented using different techniques, which use different numbers
-    of ancilla qubits and have varying circuit depth. These modes are:
-    - 'no-ancilla': Requires 0 ancilla qubits.
-    - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
-    - 'v-chain-clean-ancillas': Requires 2 less ancillas than the number of control qubits.
-    - 'v-chain-dirty-ancillas': Same as for the clean ancillas (but the circuit will be longer).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit
-            circuit = QuantumCircuit(6)
-            circuit.mcx(lam, [0, 1, 2, 3, 4], 5)  # uses the default mode 'no-ancilla'
-            circuit.draw()
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit
-            circuit = QuantumCircuit(9)
-            circuit.mcx(lam, [0, 1, 2, 3, 4], 5, [6, 7, 8], mode='v-chain-clean-ancillas')
-            circuit.draw()
-    """
-    num_ctrl_qubits = len(control_qubits)
-    qubits = control_qubits[:] + [target_qubit]
-    gate = MCXGate(num_ctrl_qubits)
-    if ancilla_qubits:
-        qubits += ancilla_qubits[:gate.num_ancilla_qubits]
-    return self.append(gate, qubits, [])
-
-
-# support both mcx and mct in QuantumCircuits
-QuantumCircuit.mcx = mcx
-QuantumCircuit.mct = mcx
-
-
 class CCXMeta(type):
     """A metaclass to ensure that CCXGate and ToffoliGate are of the same type.
 
@@ -740,21 +695,17 @@ class MCXGate(ControlledGate):
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):  # pylint: disable=unused-argument
-        """Get the number of required ancilla qubits.
+        """Get the number of required ancilla qubits without instantiating the class.
 
         This staticmethod might be necessary to check the number of ancillas before
         creating the gate, or to use the number of ancillas in the initialization.
         """
         return 0
 
-    def _define(self):
-        """Define the controlled X gate.
-
-        Note that the singly-controlled X gate its own definition since it is part of the
-        universal basis gate set.
-        """
-        default = XGate().control(self.num_ctrl_qubits)
-        self.definition = default.definition
+    @property
+    def num_ancilla_qubits(self):
+        """The number of ancilla qubits."""
+        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a multi-controlled-X gate with more control lines.
@@ -910,3 +861,81 @@ class MCXVChain(MCXGate):
                     (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
 
         self.definition = definition
+
+
+def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancilla'):
+    r"""Apply multi-cX gate.
+
+    Applied from a specified controls ``control_qubits`` to target ``target_qubit`` qubit with
+    angle ``lam``. A multi-cX gate applies an X gate on the target qubit when all control qubits are
+    in state :math:`|1\rangle`.
+
+    The multi-cX gate can be implemented using different techniques, which use different numbers
+    of ancilla qubits and have varying circuit depth. These modes are:
+    - 'no-ancilla': Requires 0 ancilla qubits.
+    - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
+    - 'v-chain-clean': Requires 2 less ancillas than the number of control qubits.
+    - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).
+
+    Examples:
+
+        Circuit Representation:
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit
+            circuit = QuantumCircuit(6)
+            circuit.mcx(lam, [0, 1, 2, 3, 4], 5)  # uses the default mode 'no-ancilla'
+            circuit.draw()
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit
+            circuit = QuantumCircuit(9)
+            circuit.mcx(lam, [0, 1, 2, 3, 4], 5, [6, 7, 8], mode='v-chain-clean-ancillas')
+            circuit.draw()
+    """
+    num_ctrl_qubits = len(control_qubits)
+    qubits = control_qubits[:] + [target_qubit]
+
+    available_implementations = {
+        'noancilla': MCXGrayCode(num_ctrl_qubits),
+        'recursion': MCXRecursive(num_ctrl_qubits),
+        'v-chain-clean': MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
+        'v-chain-dirty': MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+        # outdated, previous names
+        'advanced': MCXRecursive(num_ctrl_qubits),
+        'basic': MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
+        'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+    }
+
+    try:
+        gate = available_implementations[mode]
+    except KeyError:
+        all_modes = list(available_implementations.keys())
+        raise ValueError('Unsupported mode ({}) selected, choose one of {}'.format(mode, all_modes))
+
+    required = gate.num_ancilla_qubits
+    if required > 0:
+        if ancilla_qubits is None:
+            raise AttributeError('No ancillas provided, but {} are needed!'.format(required))
+
+        # convert ancilla qubits to a list if they were passed as int or qubit
+        if not hasattr(ancilla_qubits, '__len__'):
+            ancilla_qubits = [ancilla_qubits]
+
+        if len(ancilla_qubits) < required:
+            actually = len(ancilla_qubits)
+            raise ValueError('At least {} ancillas required, but {} given.'.format(required,
+                                                                                   actually))
+        # size down if too many ancillas were provided
+        ancilla_qubits = ancilla_qubits[:required]
+    else:
+        ancilla_qubits = []
+
+    return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
+
+
+# support both mcx and mct in QuantumCircuits
+QuantumCircuit.mcx = mcx
+QuantumCircuit.mct = mcx
