@@ -5,5 +5,5 @@ features:
     :meth:`~qiskit.providers.BaseJob.wait_for_final_state` that polls for the
     job status until the job reaches a final state (such as ``DONE`` or
     ``ERROR``). This method also takes an optional ``callback`` kwarg which
-    is a Python callable that will be invoked during each iteration of the
+    takes a Python callable that will be called during each iteration of the
     poll loop.

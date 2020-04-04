@@ -5,7 +5,7 @@ features:
     instructions are built.
 
     With the previous style, ``Command`` s were called with channels to make
-    an :py:class:`~qiskit.pulse.instruction.Instruction`. The usage of both
+    an :py:class:`~qiskit.pulse.instructions.Instruction`. The usage of both
     commands and instructions was a point of confusion. This was the previous
     style::
 
@@ -33,8 +33,9 @@ features:
   - |
     There is now a :py:class:`~qiskit.pulse.instructions.Play` instruction
     which takes a description of a pulse envelope and a channel. There is a
-    new :py:class:`~qiskit.pulse.pulse_lib.Pulse` class in the ``pulse_lib``
-    from which the pulse envelope description should subclass.
+    new :py:class:`~qiskit.pulse.pulse_lib.Pulse` class in the
+    :mod:`~qiskit.pulse.pulse_lib` from which the pulse envelope description
+    should subclass.
 
     For example::
 
@@ -46,7 +47,7 @@ deprecations:
     py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
     now subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse` and have been
     moved to the ``pulse_lib``. The previous path via ``pulse.commands`` is
-    deprecated.
+    deprecated and will be removed in a future release.
   - |
     ``DelayInstruction`` has been deprecated and replaced by
     :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
@@ -63,8 +64,9 @@ deprecations:
 
     The new ``Delay`` instruction does not support a ``command`` attribute.
   - |
-    ``FrameChange`` and ``FrameChangeInstruction`` have been deprecated and replaced
-    by :py:class:`~qiskit.pulse.instructions.ShiftPhase`. The changes are::
+    ``FrameChange`` and ``FrameChangeInstruction`` have been deprecated and
+    replaced by :py:class:`~qiskit.pulse.instructions.ShiftPhase`. The changes
+    are::
 
         FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel>)
         FrameChangeInstruction(FrameChange(<phase>), <channel>)

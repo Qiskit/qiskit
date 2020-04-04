@@ -4,8 +4,7 @@ features:
     The :meth:`qiskit.result.Result` method
     :meth:`~qiskit.result.Result.get_counts` will now return a list of all the
     counts available when there are multiple circuits in a job. This works when
-    ``get_counts()`` is called with no arguments but maintains the possibility
-    to run single circuits.
+    ``get_counts()`` is called with no arguments.
 
     The main consideration for this feature was for drawing all the results
     from multiple circuits in the same histogram. For example it is now

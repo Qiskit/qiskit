@@ -13,9 +13,11 @@ features:
     a random :class:`~qiskit.quantum_info.Statevector`.
 upgrade:
   - |
-    Updates :func:`qiskit.quantum_info.random_density_matrix` to return a
-    a random :class:`~qiskit.quantum_info.DensityMatrix` object.
+    The :func:`qiskit.quantum_info.random_density_matrix` function will
+    now return a random :class:`~qiskit.quantum_info.DensityMatrix` object. In
+    previous releases it returned a numpy array.
 deprecations:
   - |
-    Deprecates :func:`qiskit.quantum_info.random_state`, use
-    :func:`qiskit.quantum_info.random_statevector` instead.
+    The :func:`qiskit.quantum_info.random_state` function has been deprecated
+    and will be removed in a future release. Instead you should use the
+    :func:`qiskit.quantum_info.random_statevector` function.

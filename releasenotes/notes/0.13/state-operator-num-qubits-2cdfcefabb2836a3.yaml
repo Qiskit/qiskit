@@ -1,6 +1,8 @@
 ---
 features:
   - |
-    Add a ``num_qubits`` attribute to ``QuantumState`` and ``BaseOperator`` classes.
-    This returns the number of qubits for N-qubit states and operators, and returns
-    ``None`` for non-qubit states and operators.
+    Add a ``num_qubits`` attribute to ``QuantumState`` (which is the base
+    class for :class:`~qiskit.quantum_info.StateVector` and
+    :class:`~qiskit.quantum_info.DensityMatrix`) and ``BaseOperator``
+    classes. This returns the number of qubits for N-qubit states and
+    operators, and returns ``None`` for non-qubit states and operators.

@@ -30,5 +30,7 @@ upgrade:
     providing syntax highlighting of OpenQASM 2.0 code in Jupyter widgets and
     optionally for the :meth:`qiskit.circuit.QuantumCircuit.qasm` method. It
     must be installed (either with ``pip install pygments`` or
-    ``pip install qiskit-terra[visualization]``) prior to using the widget or
-    the ``formatted`` kwarg on the ``qasm()`` method.
+    ``pip install qiskit-terra[visualization]``) prior to using the
+    ``%circuit_library_info`` widget in :mod:`qiskit.tools.jupyter` or
+    the ``formatted`` kwarg on the :meth:`~qiskit.circuit.QuantumCircuit.qasm`
+    method.

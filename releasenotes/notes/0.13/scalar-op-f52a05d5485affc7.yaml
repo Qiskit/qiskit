@@ -1,11 +1,13 @@
 ---
 features:
   - |
-    Adds ``ScalarOp`` operator class that represents a scalar multiple of an
-    identity operator. This can be used to initialize an identity on arbitrary
-    dimension subsystems and it will be implicitly converted to other
-    BaseOperator subclasses (such as an ``Operator`` or ``QuantumChannel``)
-    when it is composed with, or added too, them.
+    Adds :class:`qiskit.quantum_info.ScalarOp` operator class that represents
+    a scalar multiple of an identity operator. This can be used to initialize
+    an identity on arbitrary dimension subsystems and it will be implicitly
+    converted to other ``BaseOperator`` subclasses (such as an
+    :class:`~qiskit.quantum_info.Operator` or
+    :class:`~qiskit.quantum_info.QuantumChannel`) when it is composed with,
+    or added too, them.
 
     Example: Identity operator
 

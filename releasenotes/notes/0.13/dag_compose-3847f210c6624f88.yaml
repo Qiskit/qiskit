@@ -47,5 +47,6 @@ features:
 deprecations:
   - |
     The ``DAGCircuit.compose_back()`` and ``DAGCircuit.extend_back()`` methods
-    are deprecated in favor of ``dag.compose()`` which is more general and
-    more flexible method that provides the same functionality.
+    are deprecated and will be removed in a future release. Instead you should
+    use the :meth:`qiskit.dagcircuit.DAGCircuit.compose` method, which is more
+    general and more flexible method that provides the same functionality.

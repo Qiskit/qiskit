@@ -9,8 +9,8 @@ upgrade:
         sched = Schedule()
         sched += Delay(5)(DriveChannel(0))
   - |
-    PulseChannelSpec was deprecated in Terra 0.11.0 and has now been removed.
-    Use BackendConfiguration instead::
+    ``PulseChannelSpec``, which was deprecated in Terra 0.11.0, has now been
+    removed. Use BackendConfiguration instead::
 
         config = backend.configuration()
         drive_chan_0 = config.drives(0)
