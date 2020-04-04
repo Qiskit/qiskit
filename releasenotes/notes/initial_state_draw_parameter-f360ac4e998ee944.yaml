@@ -8,10 +8,11 @@ upgrade:
     running:
 
     .. jupyter-execute::
+       from qiskit import *
 
        circuit = QuantumCircuit(2)
        circuit.measure_all()
-       circuit.draw(output='mpl')
+       circuit.draw(output='text')
 
     This no longer includes the initial state. If you'd like to retain it you can run:
 
@@ -19,7 +20,7 @@ upgrade:
 
        circuit = QuantumCircuit(2)
        circuit.measure_all()
-       circuit.draw(output='mpl', initial_state=True)
+       circuit.draw(output='text', initial_state=True)
       
 features:
   - |
@@ -32,4 +33,4 @@ features:
 
       circuit = QuantumCircuit(2)
       circuit.measure_all()
-      circuit.draw(output='mpl', initial_state=True)
+      circuit.draw(output='text', initial_state=True)
