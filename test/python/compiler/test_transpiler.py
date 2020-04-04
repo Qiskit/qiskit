@@ -15,7 +15,6 @@
 """Tests basic functionality of the transpile function"""
 
 import math
-import unittest
 from unittest.mock import patch
 from ddt import ddt, data
 
