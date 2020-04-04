@@ -60,7 +60,7 @@ Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
-   ConstantPulse
+   Constant
    Drag
    Gaussian
    GaussianSquare
