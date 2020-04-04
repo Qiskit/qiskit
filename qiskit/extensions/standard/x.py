@@ -209,11 +209,6 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         super().__init__('cx', 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate()
 
-        name = 'cx' if num_ctrl_qubits == 1 else 'mcx'
-
-        super().__init__(name, num_ctrl_qubits + 1 + self.num_ancilla_qubits, [],
-                         num_ctrl_qubits=num_ctrl_qubits)
-
     @property
     def num_ancilla_qubits(self):
         """Return the number of required ancillas."""
@@ -226,25 +221,6 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         except KeyError:
             raise ValueError('The mode "{}" is not supported. '.format(self.mode)
                              + 'Choose one of {}'.format(','.join(required_ancillas.keys())))
-
-    def _define(self):
-        """Define the controlled X gate.
-
-        Note that the singly-controlled X gate its own definition since it is part of the
-        universal basis gate set.
-        """
-        if self.num_ctrl_qubits == 1:
-            pass
-        elif self.num_ctrl_qubits == 2:
-            self.definition = CCXGate().definition
-        else:
-            q = QuantumRegister(self.num_qubits)
-            rule = _mcx_rule(q, self.num_ctrl_qubits, self.mode)
-
-            definition = []
-            for inst in rule:
-                definition.append(inst)
-            self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
@@ -259,16 +235,16 @@ class CXGate(ControlledGate, metaclass=CXMeta):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            total_num_ctrl_qubits = self.num_ctrl_qubits + num_ctrl_qubits
-            if total_num_ctrl_qubits == 1:  # can happen with CXGate(num_ctrl_qubits=0).control()
+            if num_ctrl_qubits == 0:
                 return CXGate()
-            if total_num_ctrl_qubits == 2:
+            if num_ctrl_qubits == 1:
                 return CCXGate()
-            if total_num_ctrl_qubits == 3:
+            if num_ctrl_qubits == 2:
                 return CCCXGate()
-            if total_num_ctrl_qubits == 4:
+            if num_ctrl_qubits == 3:
                 return CCCCXGate()
-            return CXGate(num_ctrl_qubits=total_num_ctrl_qubits)
+            return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1)
+
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -349,7 +325,7 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
     """
     num_ctrl_qubits = len(control_qubits)
     qubits = control_qubits[:] + [target_qubit]
-    gate = CXGate(num_ctrl_qubits, mode)
+    gate = MCXGate(num_ctrl_qubits)
     if ancilla_qubits:
         qubits += ancilla_qubits[:gate.num_ancilla_qubits]
     return self.append(gate, qubits, [])
@@ -552,7 +528,7 @@ class CCCXGate(ControlledGate):
             angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
                 3-qubit controlled X gate, an angle of π/8 the 3-qubit controlled sqrt(X) gate.
         """
-        super().__init__('cccx', 4, [])
+        super().__init__('cccx', 4, [], num_ctrl_qubits=3)
         self.base_gate = XGate()
         self._angle = angle
 
@@ -597,31 +573,31 @@ class CCCXGate(ControlledGate):
         q = QuantumRegister(4)
         rule = [
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[0], q[3]]),
+            (CU1Gate(-self._angle), [q[0], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[1], q[3]]),
+            (CU1Gate(self._angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[1], q[3]]),
+            (CU1Gate(-self._angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]]),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[2], q[3]]),
+            (CU1Gate(-self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]]),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[2], q[3]]),
+            (CU1Gate(-self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], [])
         ]
         for inst in rule:
@@ -688,7 +664,7 @@ class CCCCXGate(ControlledGate):
 
     def __init__(self):
         """Create a new 4-qubit controlled X gate."""
-        super().__init__('ccccx', 5, [])
+        super().__init__('ccccx', 5, [], num_ctrl_qubits=4)
         self.base_gate = XGate()
 
     def _define(self):
@@ -752,127 +728,185 @@ def ccccx(self, control_qubit1, control_qubit2, control_qubit3, control_qubit4, 
 QuantumCircuit.ccccx = ccccx
 
 
-def _mcx_rule(q, num_ctrl_qubits, mode):
-    """Define the multi-controlled X gate, according to the set strategy."""
-    if num_ctrl_qubits == 0:
-        rule = [(XGate(), [q[0]], [])]
-    elif num_ctrl_qubits == 1:
-        rule = [(CXGate(), [q[0], q[1]], [])]
-    elif num_ctrl_qubits == 2:
-        rule = [(CCXGate(), [q[0], q[1], q[2]], [])]
-    elif num_ctrl_qubits == 3:
-        rule = [(CCCXGate(), [q[0], q[1], q[2], q[3]], [])]
-    elif num_ctrl_qubits == 4:
-        rule = [(CCCCXGate(), [q[0], q[1], q[2], q[3], q[3]], [])]
-    else:
-        if mode == 'no-ancilla':
-            rule = _no_ancilla_rule(q)
-        elif mode == 'recursion':
-            q_state, q_ancilla = q[:-1], q[-1]
-            rule = _recursion_rule(q_state, q_ancilla)
-        elif mode == 'v-chain-clean-ancilla':
-            q_state, q_ancillas = q[:num_ctrl_qubits - 2], q[num_ctrl_qubits - 2:]
-            rule = _v_chain_rule(q_state, q_ancillas, num_ctrl_qubits, dirty_ancillas=False)
-        elif mode == 'v-chain-dirty-ancilla':
-            q_state, q_ancillas = q[:num_ctrl_qubits - 2], q[num_ctrl_qubits - 2:]
-            rule = _v_chain_rule(q_state, q_ancillas, num_ctrl_qubits, dirty_ancillas=True)
+class MCXGate(ControlledGate):
+    """The general, multi-controlled X gate."""
 
-    return rule
+    def __init__(self, num_ctrl_qubits):
+        """Create new MCX gate."""
+        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        super().__init__('mcx', num_ctrl_qubits + 1 + num_ancilla_qubits, [],
+                         num_ctrl_qubits=num_ctrl_qubits)
+        self.base_gate = XGate()
 
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):  # pylint: disable=unused-argument
+        """Get the number of required ancilla qubits.
 
-def _no_ancilla_rule(q):
-    """Get the rule if no ancilla is used."""
-    num_qubits = len(q)
-    rule = [
-        (HGate(), [q[-1]], []),
-        (MCU1Gate(numpy.pi, num_ctrl_qubits=num_qubits - 1), q, []),
-        (HGate(), [q[-1], []])
-    ]
-    return rule
+        This staticmethod might be necessary to check the number of ancillas before
+        creating the gate, or to use the number of ancillas in the initialization.
+        """
+        return 0
 
+    def _define(self):
+        """Define the controlled X gate.
 
-def _recursion_rule(q, q_ancilla):
-    """Get the rule if the recursion strategy is used."""
-    # recursion stop
-    if len(q) == 4:
-        return [(CCCXGate(), q, [])]
-    if len(q) == 5:
-        return [(CCCCXGate(), q, [])]
+        Note that the singly-controlled X gate its own definition since it is part of the
+        universal basis gate set.
+        """
+        default = XGate().control(self.num_ctrl_qubits)
+        self.definition = default.definition
 
-    # recurse
-    num_ctrl_qubits = len(q) - 1
-    middle = ceil(num_ctrl_qubits / 2)
-    first_half = [*q[:middle], q_ancilla]
-    second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[middle]]
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Return a multi-controlled-X gate with more control lines.
 
-    rule = []
-    rule.append(_recursion_rule(first_half, q_ancilla=q[middle]))
-    rule.append(_recursion_rule(second_half, q_ancilla=q[middle - 1]))
-    rule.append(_recursion_rule(first_half, q_ancilla=q[middle]))
-    rule.append(_recursion_rule(second_half, q_ancilla=q[middle - 1]))
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
 
-    return rule
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            # use __class__ so this works for derived classes
+            return self.__class__(self.num_ctrl_qubits + num_ctrl_qubits)
+        return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
 
-def _v_chain_rule(q, q_ancillas, num_ctrl_qubits, dirty_ancillas=False):
-    """Get the rule for the V chain strategy."""
-    if len(q_ancillas) < num_ctrl_qubits - 2:
-        raise ValueError('At least {} ancillas are required.'.format(num_ctrl_qubits - 2))
+class MCXGrayCode(MCXGate):
+    r"""Implement the multi-controlled X gate using the Gray code.
 
-    from qiskit.extensions.standard.u1 import U1Gate
-    from qiskit.extensions.standard.u2 import U2Gate
-    from qiskit.extensions.standard.rccx import RCCXGate
+    This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
+    """
 
-    q_controls, q_target = q[:-1], q[-1]
-    if dirty_ancillas:
-        i = num_ctrl_qubits - 3
-        rule = [
-            (U2Gate(0, numpy.pi), [q_target], []),
-            (CXGate(), [q_target, q_ancillas[i]], []),
-            (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-            (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_target, q_ancillas[i]], []),
-            (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-            (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+    def _define(self):
+        """Define the MCX gate using the Gray code."""
+        q = QuantumRegister(self.num_qubits)
+        print('nq:', self.num_qubits)
+        self.definition = [
+            (HGate(), [q[-1]], []),
+            (MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], []),
+            (HGate(), [q[-1]], [])
         ]
-        for j in reversed(range(2, num_ctrl_qubits - 1)):
-            rule.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]]))
-            i -= 1
-    else:
+
+
+class MCXRecursive(MCXGate):
+    """Implement the multi-controlled X gate using recursion.
+
+    Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
+    four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
+    for these we have a concrete implementation that do not require ancillas.
+    """
+
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):  # pylint: disable=unused-argument
+        """Get the number of required ancilla qubits."""
+        return 1
+
+    def _define(self):
+        """Define the MCX gate using recursion."""
+        q = QuantumRegister(self.num_qubits)
+        self.definition = self._recurse(q[:-1], q_ancilla=q[-1])
+
+    def _recurse(self, q, q_ancilla=None):
+        # recursion stop
+        if len(q) == 4:
+            return [(CCCXGate(), q[:], [])]
+        if len(q) == 5:
+            return [(CCCCXGate(), q[:], [])]
+
+        # recurse
+        num_ctrl_qubits = len(q) - 1
+        middle = ceil(num_ctrl_qubits / 2)
+        first_half = [*q[:middle], q_ancilla]
+        second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[num_ctrl_qubits]]
+
         rule = []
+        rule += self._recurse(first_half, q_ancilla=q[middle])
+        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
+        rule += self._recurse(first_half, q_ancilla=q[middle])
+        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
 
-    rule.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]]))
-    # i = 0
-    for i, j in enumerate(list(range(2, num_ctrl_qubits - 1))):
-        rule.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]]))
-        # i += 1
+        return rule
 
-    if dirty_ancillas:
-        sub_rule = [
-            (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-            (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_target, q_ancillas[i]], []),
-            (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-            (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-            (CXGate(), [q_target, q_ancillas[i]], []),
-            (U2Gate(0, numpy.pi), [q_target], []),
-        ]
-        for inst in sub_rule:
-            rule.append(inst)
-    else:
-        rule.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
 
-    for j in reversed(range(2, num_ctrl_qubits - 1)):
-        rule.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]]))
-        i -= 1
-    rule.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]]))
+class MCXVChain(MCXGate):
+    """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    if dirty_ancillas:
-        for i, j in enumerate(list(range(2, num_ctrl_qubits - 1))):
-            rule.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]]))
+    def __init__(self, num_ctrl_qubits, dirty_ancillas=False):
+        super().__init__(num_ctrl_qubits)
+        self._dirty_ancillas = dirty_ancillas
 
-    return rule
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):
+        """Get the number of required ancilla qubits."""
+        return max(0, num_ctrl_qubits - 2)
+
+    def _define(self):
+        """Define the MCX gate using a V-chain of CX gates."""
+        from qiskit.extensions.standard.u1 import U1Gate
+        from qiskit.extensions.standard.u2 import U2Gate
+        from qiskit.extensions.standard.rccx import RCCXGate
+
+        q = QuantumRegister(self.num_qubits, name='q')
+        q_controls = q[:self.num_ctrl_qubits]
+        q_target = q[self.num_ctrl_qubits]
+        q_ancillas = q[self.num_ctrl_qubits + 1:]
+
+        definition = []
+
+        if self._dirty_ancillas:
+            i = self.num_ctrl_qubits - 3
+            definition = [
+                (U2Gate(0, numpy.pi), [q_target], []),
+                (CXGate(), [q_target, q_ancillas[i]], []),
+                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_target, q_ancillas[i]], []),
+                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+            ]
+            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
+                definition.append(
+                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
+                i -= 1
+        else:
+            definition = []
+
+        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
+        i = 0
+        for j in range(2, self.num_ctrl_qubits - 1):
+            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
+            i += 1
+
+        if self._dirty_ancillas:
+            sub_rule = [
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_target, q_ancillas[i]], []),
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_target, q_ancillas[i]], []),
+                (U2Gate(0, numpy.pi), [q_target], []),
+            ]
+            for inst in sub_rule:
+                definition.append(inst)
+        else:
+            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
+
+        for j in reversed(range(2, self.num_ctrl_qubits - 1)):
+            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
+            i -= 1
+        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
+
+        if self._dirty_ancillas:
+            for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
+                definition.append(
+                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
+
+        self.definition = definition
