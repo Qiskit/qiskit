@@ -1002,7 +1002,8 @@ class QuantumCircuit:
         if possible.
 
         This routine will ignore final measurements in the circuit
-        if they exist.
+        if they exist, i.e. it returns the statevector BEFORE the
+        measurements.
 
         Returns:
             Statevector: A Statevector object containing circuit output.
@@ -1026,7 +1027,7 @@ class QuantumCircuit:
         # are loaded when the Operator class is invoked and
         # they rely on the QuantumCircuit so there is a
         # circular import that is impossible to remove.
-        from ..quantum_info import Statevector
+        from ..quantum_info import Statevector  # pylint: disable=cyclic-import
         new_circ = self.remove_final_measurements(inplace=False)
         return Statevector.from_instruction(new_circ)
 

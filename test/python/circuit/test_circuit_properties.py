@@ -19,6 +19,7 @@
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.quantum_info import Statevector
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
@@ -557,6 +558,25 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[2], c[0])
         qc.measure(q[3], c[0])
         self.assertEqual(qc.num_unitary_factors(), 5)
+
+    def test_circuit_statevector(self):
+        """Test circuit returns correct statevector.
+        """
+        bv_circ = QuantumCircuit(5)
+        bv_circ.x(4)
+        bv_circ.h(range(5))
+        bv_circ.cx(range(1, 3), 4)
+        bv_circ.h(range(5))
+        bv_circ.barrier()
+        bv_circ.measure_all()
+        statevec = bv_circ.statevector()
+        ans = Statevector([0, 0, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0,
+                           0, 1, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0],
+                          dims=(2, 2, 2, 2, 2))
+        self.assertEqual(statevec, ans)
 
     def test_num_qubits_qubitless_circuit(self):
         """Check output in absence of qubits
