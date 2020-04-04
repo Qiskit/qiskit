@@ -311,8 +311,10 @@ def _parse_transpile_args(circuits, backend,
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
 
+    faulty_qubits_map = _create_faulty_qubits_map(backend)
+
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
-    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
+    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits, faulty_qubits_map)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
     layout_method = _parse_layout_method(layout_method, num_circuits)
@@ -342,6 +344,21 @@ def _parse_transpile_args(circuits, backend,
     return list_transpile_args
 
 
+def _create_faulty_qubits_map(backend):
+    """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
+       from working qubit in the backend to dumnmy qubits that are consecutive."""
+    faulty_qubits_map = None
+    if backend is not None:
+        faulty_qubits = backend.faulty_qubits()
+        if faulty_qubits:
+            faulty_qubits_map = {}
+            configuration = backend.configuration()
+            working_qubits = set(range(configuration.n_qubits)) - set(faulty_qubits)
+            for dummy_qubit, working_qubit in enumerate(working_qubits):
+                faulty_qubits_map[working_qubit] = dummy_qubit
+    return faulty_qubits_map
+
+
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
@@ -362,13 +379,23 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     return basis_gates
 
 
-def _parse_coupling_map(coupling_map, backend, num_circuits):
+def _parse_coupling_map(coupling_map, backend, num_circuits, faulty_map):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         if getattr(backend, 'configuration', None):
             configuration = backend.configuration()
             if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
-                coupling_map = CouplingMap(configuration.coupling_map)
+                if faulty_map:
+                    coupling_map = CouplingMap()
+                    for qubit1, qubit2 in configuration.coupling_map:
+                        if qubit1 in faulty_map and qubit2 in faulty_map:
+                            coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                        elif qubit1 in faulty_map and faulty_map[qubit1] not in coupling_map.physical_qubits:
+                            coupling_map.add_physical_qubit(faulty_map[qubit1])
+                        elif qubit2 in faulty_map and faulty_map[qubit2] not in coupling_map.physical_qubits:
+                            coupling_map.add_physical_qubit(faulty_map[qubit2])
+                else:
+                    coupling_map = CouplingMap(configuration.coupling_map)
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):

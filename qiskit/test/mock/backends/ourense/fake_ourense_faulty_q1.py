@@ -27,8 +27,8 @@ from .fake_ourense import FakeOurense
 class FakeOurenseFaultyQ1(FakeOurense):
     """A fake 5 qubit backend, with a faulty q1
          0 ↔ (1) ↔ 3 ↔ 4
-             ↕
-             2
+              ↕
+              2
     """
 
     def properties(self):

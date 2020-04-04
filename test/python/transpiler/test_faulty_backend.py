@@ -14,24 +14,28 @@
 
 """Tests preset pass manager whith faulty backends"""
 
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
 
 
 class TestFaultyQ1(QiskitTestCase):
-    """Test preset passmanagers with FakeOurenseFaultyQ1."""
+    """Test preset passmanagers with FakeOurenseFaultyQ1.
+       A 5 qubit backend, with a faulty q1
+         0 ↔ (1) ↔ 3 ↔ 4
+              ↕
+              2
+    """
 
     def setUp(self) -> None:
         self.backend = FakeOurenseFaultyQ1()
 
-    def test_level_0(self):
-        """Test level 0 Ourense backend with a faulty Q1 """
-        q = QuantumRegister(4, name='q')
-        circuit = QuantumCircuit(q)
-        circuit.h(q)
-        circuit.cz(q[0], q[1])
+    def test_level_2(self):
+        """Test level 2 Ourense backend with a faulty Q1 """
+        circuit = QuantumCircuit(4)
+        circuit.h(range(4))
+        circuit.cz(0, 1)
         circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=0, seed_transpiler=42)
+        result = transpile(circuit, backend=self.backend, optimization_level=2, seed_transpiler=42)
         print(result)
