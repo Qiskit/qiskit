@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
+from qiskit.extensions.standard.u1 import MCU1Gate
 from qiskit.qasm import pi
 from qiskit.util import deprecate_arguments
 
@@ -713,11 +714,10 @@ def _mcx_rule(q, num_ctrl_qubits, mode):
 
 def _no_ancilla_rule(q):
     """Get the rule if no ancilla is used."""
-    from qiskit.extensions.standard.u1 import CU1Gate
     num_qubits = len(q)
     rule = [
         (HGate(), [q[-1]], []),
-        (CU1Gate(numpy.pi, num_ctrl_qubits=num_qubits - 1), q, []),
+        (MCU1Gate(numpy.pi, num_ctrl_qubits=num_qubits - 1), q, []),
         (HGate(), [q[-1], []])
     ]
     return rule
