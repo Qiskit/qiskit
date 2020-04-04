@@ -17,7 +17,7 @@ import warnings
 
 # pylint: disable=unused-import
 
-from qiskit.pulse.pulse_lib import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
+from qiskit.pulse.pulse_lib import ParametricPulse, Gaussian, GaussianSquare, Drag, Constant
 from qiskit.pulse.channels import Channel
 
 

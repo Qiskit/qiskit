@@ -37,7 +37,7 @@ class ParametricPulseShapes(Enum):
     gaussian = commands.Gaussian
     gaussian_square = commands.GaussianSquare
     drag = commands.Drag
-    constant = commands.ConstantPulse
+    constant = commands.Constant
 
 
 class ConversionMethodBinder:

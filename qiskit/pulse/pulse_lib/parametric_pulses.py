@@ -370,7 +370,7 @@ class Drag(ParametricPulse):
                          ", name='{}'".format(self.name) if self.name is not None else "")
 
 
-class ConstantPulse(ParametricPulse):
+class Constant(ParametricPulse):
     """
     A simple constant pulse, with an amplitude value and a duration:
 

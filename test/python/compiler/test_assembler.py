@@ -661,7 +661,7 @@ class TestPulseAssembler(QiskitTestCase):
         sched = pulse.Schedule(name='test_parametric')
         sched += Play(pulse.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         sched += Play(pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
         sched += Play(pulse.GaussianSquare(duration=150, amp=0.2,
                                            sigma=8, width=140), MeasureChannel(0)) << sched.duration
         backend = FakeOpenPulse3Q()
@@ -693,7 +693,7 @@ class TestPulseAssembler(QiskitTestCase):
         """
         sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
         sched += Play(pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
         backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = ['something_extra']
