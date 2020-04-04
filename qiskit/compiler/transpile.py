@@ -188,17 +188,20 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', 1)
 
+    faulty_qubits_map = _create_faulty_qubits_map(backend)
+
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method,
                                            seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           callback, output_name, faulty_qubits_map)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
     # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
+    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)),
+                            task_args=(faulty_qubits_map, backend))
 
     if len(circuits) == 1:
         return circuits[0]
@@ -234,7 +237,8 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
                                   'in the coupling_map')
 
 
-def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
+def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
+                       faulty_qubits_map: [None, Dict], backend) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit_config_tuple (tuple):
@@ -242,10 +246,10 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             transpile_config (dict): configuration dictating how to transpile. The
                 dictionary has the following format:
                 {'optimization_level': int,
-                 'pass_manager': PassManager,
                  'output_name': string,
                  'callback': callable,
                  'pass_manager_config': PassManagerConfig}
+            faulty_qubits_map (dict or None):
     Returns:
         The transpiled circuit
     Raises:
@@ -284,15 +288,29 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     if ms_basis_swap is not None:
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
-    return pass_manager.run(circuit, callback=transpile_config['callback'],
+    result = pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])
+
+    if faulty_qubits_map:
+        faulty_qreg = result._create_qreg(1, 'faulty')
+        result.add_register(faulty_qreg)
+        new_layout = Layout()
+        i = 0
+        for real_qubit in range(backend.configuration().n_qubits):
+            if real_qubit in faulty_qubits_map:
+                new_layout[real_qubit] = result._layout[faulty_qubits_map[real_qubit]]
+            else:
+                new_layout[real_qubit] = faulty_qreg[i]
+                i += 1
+        result._layout = new_layout
+    return result
 
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method,
                           seed_transpiler, optimization_level,
-                          callback, output_name) -> List[Dict]:
+                          callback, output_name, faulty_qubits_map) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -310,8 +328,6 @@ def _parse_transpile_args(circuits, backend,
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
-
-    faulty_qubits_map = _create_faulty_qubits_map(backend)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits, faulty_qubits_map)
