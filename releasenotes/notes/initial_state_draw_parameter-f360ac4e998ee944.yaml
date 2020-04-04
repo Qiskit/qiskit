@@ -8,19 +8,20 @@ upgrade:
     running:
 
     .. jupyter-execute::
-       from qiskit import *
+        from qiskit import QuantumCircuit
 
-       circuit = QuantumCircuit(2)
-       circuit.measure_all()
-       circuit.draw(output='text')
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='text')
 
     This no longer includes the initial state. If you'd like to retain it you can run:
 
     .. jupyter-execute::
+        from qiskit import QuantumCircuit
 
-       circuit = QuantumCircuit(2)
-       circuit.measure_all()
-       circuit.draw(output='text', initial_state=True)
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='text', initial_state=True)
       
 features:
   - |
@@ -30,7 +31,8 @@ features:
     in circuit visualizations for all backends. For example:
     
     .. jupyter-execute::
+        from qiskit import QuantumCircuit
 
-      circuit = QuantumCircuit(2)
-      circuit.measure_all()
-      circuit.draw(output='text', initial_state=True)
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='text', initial_state=True)
