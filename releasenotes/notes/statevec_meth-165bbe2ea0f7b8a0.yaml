@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a `statevector` method to `QuantumCircuit` that allows for a
+    statevector to be computed directly from the circuit, if possible.
