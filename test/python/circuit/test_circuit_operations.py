@@ -240,7 +240,7 @@ class TestCircuitOperations(QiskitTestCase):
         store those measured values.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
@@ -255,7 +255,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test measure_all with inplace=False
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         new_circuit = circuit.measure_all(inplace=False)
