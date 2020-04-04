@@ -21,7 +21,7 @@ upgrade:
        circuit.measure_all()
        circuit.draw(output='mpl', initial_state=True)
       
-feature:
+features:
   - |
     A new kwarg, ``initial_state`` has been added to the :func:`qiskit.visualization.circuit_drawer`
     function and the :class:`~qiskit.circuit.QuantumCircuit` method
