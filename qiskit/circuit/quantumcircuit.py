@@ -997,7 +997,6 @@ class QuantumCircuit:
         """
         return sum(reg.size for reg in self.qregs + self.cregs)
 
-
     def statevector(self):
         """Return the resulting statevector for the circuit
         if possible.
@@ -1020,7 +1019,7 @@ class QuantumCircuit:
                 bv_circ.h(range(5))
                 bv_circ.measure_all()
 
-                bv_circ.statevector()       
+                bv_circ.statevector()
 
         """
         # This import needs to be here because the extensions
