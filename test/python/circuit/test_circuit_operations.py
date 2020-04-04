@@ -286,7 +286,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -301,7 +301,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
