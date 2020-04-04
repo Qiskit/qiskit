@@ -17,8 +17,8 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (SamplePulse, Constant, Gaussian, GaussianSquare, Drag,
-                                    gaussian)
+from qiskit.pulse.pulse_lib import (SamplePulse, Constant, ConstantPulse, Gaussian,
+                                    GaussianSquare, Drag, gaussian)
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
@@ -246,6 +246,13 @@ class TestParametricPulses(QiskitTestCase):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
+
+    def test_deprecated_parametric_pulses(self):
+        """Test deprecated parametric pulses."""
+        with self.assertWarns(DeprecationWarning):
+            const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
+            self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
+            self.assertEqual(len(const.get_sample_pulse().samples), 150)
 
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
