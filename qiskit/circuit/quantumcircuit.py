@@ -997,6 +997,40 @@ class QuantumCircuit:
         """
         return sum(reg.size for reg in self.qregs + self.cregs)
 
+
+    def statevector(self):
+        """Return the resulting statevector for the circuit
+        if possible.
+
+        This routine will ignore final measurements in the circuit
+        if they exist.
+
+        Returns:
+            Statevector: A Statevector object containing circuit output.
+
+        Example:
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+
+                bv_circ = QuantumCircuit(5)
+                bv_circ.x(4)
+                bv_circ.h(range(5))
+                bv_circ.cx(range(4), 4)
+                bv_circ.h(range(5))
+                bv_circ.measure_all()
+
+                bv_circ.statevector()       
+
+        """
+        # This import needs to be here because the extensions
+        # are loaded when the Operator class is invoked and
+        # they rely on the QuantumCircuit so there is a
+        # circular import that is impossible to remove.
+        from ..quantum_info import Statevector
+        new_circ = self.remove_final_measurements(inplace=False)
+        return Statevector.from_instruction(new_circ)
+
     @property
     def num_qubits(self):
         """Return number of qubits."""
