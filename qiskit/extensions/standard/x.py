@@ -209,19 +209,6 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         super().__init__('cx', 2, [], num_ctrl_qubits=1)
         self.base_gate = XGate()
 
-    @property
-    def num_ancilla_qubits(self):
-        """Return the number of required ancillas."""
-        required_ancillas = {'v-chain-clean-ancillas': max(0, self._num_ctrl_qubits - 2),
-                             'v-chain-dirty-ancillas': max(0, self._num_ctrl_qubits - 2),
-                             'recursion': int(self._num_ctrl_qubits > 4),
-                             'no-ancilla': 0}
-        try:
-            return required_ancillas[self.mode]
-        except KeyError:
-            raise ValueError('The mode "{}" is not supported. '.format(self.mode)
-                             + 'Choose one of {}'.format(','.join(required_ancillas.keys())))
-
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
 
@@ -734,7 +721,6 @@ class MCXGrayCode(MCXGate):
     def _define(self):
         """Define the MCX gate using the Gray code."""
         q = QuantumRegister(self.num_qubits)
-        print('nq:', self.num_qubits)
         self.definition = [
             (HGate(), [q[-1]], []),
             (MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], []),
@@ -753,7 +739,7 @@ class MCXRecursive(MCXGate):
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):  # pylint: disable=unused-argument
         """Get the number of required ancilla qubits."""
-        return 1
+        return int(num_ctrl_qubits > 4)
 
     def _define(self):
         """Define the MCX gate using recursion."""
@@ -896,7 +882,6 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
             circuit.draw()
     """
     num_ctrl_qubits = len(control_qubits)
-    qubits = control_qubits[:] + [target_qubit]
 
     available_implementations = {
         'noancilla': MCXGrayCode(num_ctrl_qubits),
