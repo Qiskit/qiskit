@@ -59,6 +59,17 @@ class TestFaultyQ1(QiskitTestCase):
             if node.type == 'op':
                 raise AssertionError('Faulty Qubit Q1 not totally idle')
 
+    def test_level_1(self):
+        """Test level 1 Ourense backend with a faulty Q1 """
+        circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
+        circuit.h(range(4))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile(circuit, backend=self.backend, optimization_level=1, seed_transpiler=42)
+
+        self.assertIdleQ1(result)
+        self.assertEqualCount(circuit, result)
+
     def test_level_2(self):
         """Test level 2 Ourense backend with a faulty Q1 """
         circuit = QuantumCircuit(QuantumRegister(4, 'qr'))

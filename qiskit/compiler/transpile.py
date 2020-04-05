@@ -446,6 +446,17 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
     if backend_properties is None:
         if getattr(backend, 'properties', None):
             backend_properties = backend.properties()
+            if backend_properties is not None and backend.faulty_qubits():
+                faulty_qubits = sorted(backend.faulty_qubits(), reverse=True)
+                # remove faulty qubits in backend_properties.qubits
+                for faulty_qubit in faulty_qubits:
+                    del backend_properties.qubits[faulty_qubit]
+                # remove gates with parameters using faulty qubits
+                gates = []
+                for gate in backend_properties.gates:
+                    if not any([qubits in faulty_qubits for qubits in gate.qubits]):
+                        gates.append(gate)
+                backend_properties.gates = gates
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
