@@ -797,7 +797,7 @@ class MCXRecursive(MCXGate):
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    def __new__(cls, num_ctrl_qubits, dirty_ancillas=False):  # pylint: disable=unused-argument
+    def __new__(cls, num_ctrl_qubits=None, dirty_ancillas=False):  # pylint: disable=unused-argument
         """Create a new MCX instance.
 
         This must be defined anew to include the additional argument ``dirty_ancillas``.
@@ -854,13 +854,13 @@ class MCXVChain(MCXGate):
 
         if self._dirty_ancillas:
             sub_rule = [
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
                 (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
                 (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
+                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
                 (U2Gate(0, numpy.pi), [q_target], []),
             ]
