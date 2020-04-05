@@ -615,8 +615,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(0, 4, 5)
     def test_mcx_gates(self, num_ctrl_qubits):
-        import matplotlib.pyplot as plt
-        from qiskit.quantum_info.states import partial_trace
+        """Test the mcx gates."""
         backend = BasicAer.get_backend('statevector_simulator')
         reference = np.zeros(2 ** (num_ctrl_qubits + 1))
         reference[-1] = 1
@@ -628,7 +627,8 @@ class TestControlledGate(QiskitTestCase):
                      ]:
             with self.subTest(gate=gate):
                 circuit = QuantumCircuit(gate.num_qubits)
-                circuit.x(list(range(num_ctrl_qubits)))
+                if num_ctrl_qubits > 0:
+                    circuit.x(list(range(num_ctrl_qubits)))
                 circuit.append(gate, list(range(gate.num_qubits)), [])
                 statevector = execute(circuit, backend).result().get_statevector()
 
