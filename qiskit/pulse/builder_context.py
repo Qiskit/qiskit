@@ -382,16 +382,6 @@ def sequential():
     """Sequential transform builder context."""
 
 
-@_transform_context(transforms.left_barrier)
-def left_barrier():
-    """Left barrier transform builder context."""
-
-
-@_transform_context(transforms.right_barrier)
-def right_barrier():
-    """Right barrier transform builder context."""
-
-
 @_transform_context(transforms.left_align)
 def left_align():
     """Left align transform builder context."""
@@ -400,6 +390,11 @@ def left_align():
 @_transform_context(transforms.right_align)
 def right_align():
     """Right align transform builder context."""
+
+
+@_transform_context(transforms.left_barrier)
+def barrier():
+    """Barrier transform builder context."""
 
 
 @_transform_context(transforms.group)

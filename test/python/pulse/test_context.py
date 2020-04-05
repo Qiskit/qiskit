@@ -134,6 +134,19 @@ class TestTransforms(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
+    def test_barrier(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(100, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.play(d0, test_pulse)
+            pulse.play(d1, test_pulse)
+            pulse.barrier(d0, d1)
+            pulse.play(d0, test_pulse)
+
+
 
 class TestInstructions(TestBuilderContext):
     """Test builder instructions."""
