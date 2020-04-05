@@ -456,13 +456,15 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
 
                 gates = []
                 for gate in backend_properties.gates:
-                    # remove gates with faulty qubits (and remap the gates in terms of faulty_qubits_map)
+                    # remove gates with faulty qubits (and remap the gates in terms of
+                    # faulty_qubits_map)
                     if any([qubits in faulty_qubits for qubits in gate.qubits]):
                         continue
                     gate_dict = gate.to_dict()
                     replacement_gate = Gate.from_dict(gate_dict)
                     gate_dict['qubits'] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
-                    gate_dict['name'] = "%s%s" % (gate_dict['gate'], '_'.join([str(qubit) for qubit in gate_dict['qubits']]))
+                    args = '_'.join([str(qubit) for qubit in gate_dict['qubits']])
+                    gate_dict['name'] = "%s%s" % (gate_dict['gate'], args)
                     gates.append(replacement_gate)
 
                 backend_properties.gates = gates
