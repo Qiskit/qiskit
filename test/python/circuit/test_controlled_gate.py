@@ -615,25 +615,32 @@ class TestControlledGate(QiskitTestCase):
 
     @data(0, 4, 5)
     def test_mcx_gates(self, num_ctrl_qubits):
-        reference = _compute_control_matrix(XGate().to_matrix(), num_ctrl_qubits)
-        backend = BasicAer.get_backend('unitary_simulator')
+        import matplotlib.pyplot as plt
+        from qiskit.quantum_info.states import partial_trace
+        backend = BasicAer.get_backend('statevector_simulator')
+        reference = np.zeros(2 ** (num_ctrl_qubits + 1))
+        reference[-1] = 1
 
         for gate in [MCXGrayCode(num_ctrl_qubits),
-                     #  MCXRecursive(num_ctrl_qubits),
-                     #  MCXVChain(num_ctrl_qubits, False),
-                     #  MCXVChain(num_ctrl_qubits, True),
+                     MCXRecursive(num_ctrl_qubits),
+                     MCXVChain(num_ctrl_qubits, False),
+                     MCXVChain(num_ctrl_qubits, True),
                      ]:
             with self.subTest(gate=gate):
                 circuit = QuantumCircuit(gate.num_qubits)
+                circuit.x(list(range(num_ctrl_qubits)))
                 circuit.append(gate, list(range(gate.num_qubits)), [])
-                simulated = execute(circuit, backend).result().get_unitary()
+                statevector = execute(circuit, backend).result().get_statevector()
 
                 # account for ancillas
-                if hasattr(gate, 'num_ancilla_qubits'):
-                    simulated = simulated[:-2 ** gate.num_ancilla_qubits,
-                                          :-2 ** gate.num_ancilla_qubits]
+                if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
+                    corrected = np.zeros(2 ** (num_ctrl_qubits + 1), dtype=complex)
+                    for i, statevector_amplitude in enumerate(statevector):
+                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits:], 2)
+                        corrected[i] += statevector_amplitude
+                    statevector = corrected
 
-                self.assertTrue(matrix_equal(reference, simulated, ignore_phase=True))
+                np.testing.assert_array_almost_equal(statevector.real, reference)
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
@@ -784,7 +791,7 @@ class TestControlledGate(QiskitTestCase):
                 elif cls in [MCU1Gate]:
                     args[1] = 2
                 elif issubclass(cls, MCXGate):
-                    args[0] = 5
+                    args = [5]
 
                 gate = cls(*args)
 
