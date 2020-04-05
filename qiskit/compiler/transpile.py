@@ -18,6 +18,7 @@ from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import Gate
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.dagcircuit import DAGCircuit
@@ -347,7 +348,8 @@ def _parse_transpile_args(circuits, backend,
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits, faulty_qubits_map)
-    backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
+    backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits,
+                                                   faulty_qubits_map)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
@@ -441,7 +443,7 @@ def _parse_coupling_map(coupling_map, backend, num_circuits, faulty_map):
     return coupling_map
 
 
-def _parse_backend_properties(backend_properties, backend, num_circuits):
+def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_qubits_map):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
         if getattr(backend, 'properties', None):
@@ -451,11 +453,18 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                 # remove faulty qubits in backend_properties.qubits
                 for faulty_qubit in faulty_qubits:
                     del backend_properties.qubits[faulty_qubit]
-                # remove gates with parameters using faulty qubits
+
                 gates = []
                 for gate in backend_properties.gates:
-                    if not any([qubits in faulty_qubits for qubits in gate.qubits]):
-                        gates.append(gate)
+                    # remove gates with faulty qubits (and remap the gates in terms of faulty_qubits_map)
+                    if any([qubits in faulty_qubits for qubits in gate.qubits]):
+                        continue
+                    gate_dict = gate.to_dict()
+                    replacement_gate = Gate.from_dict(gate_dict)
+                    gate_dict['qubits'] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
+                    gate_dict['name'] = "%s%s" % (gate_dict['gate'], '_'.join([str(qubit) for qubit in gate_dict['qubits']]))
+                    gates.append(replacement_gate)
+
                 backend_properties.gates = gates
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
