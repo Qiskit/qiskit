@@ -673,6 +673,23 @@ QuantumCircuit.ccccx = ccccx
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
+    def __new__(cls, num_ctrl_qubits):
+        """Create a new MCX instance.
+
+        Depending on the number of controls, this creates an explicit X, CX, CCX, CCCX or CCCCX
+        instance or a generic MCX gate.
+        """
+        explicit = {
+            0: XGate(),
+            1: CXGate(),
+            2: CCXGate(),
+            3: CCCXGate(),
+            4: CCCCXGate()
+        }
+        if num_ctrl_qubits in explicit.keys():
+            return explicit[num_ctrl_qubits]
+        return super().__new__(cls)
+
     def __init__(self, num_ctrl_qubits):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
@@ -688,6 +705,10 @@ class MCXGate(ControlledGate):
         creating the gate, or to use the number of ancillas in the initialization.
         """
         return 0
+
+    def _define(self):
+        """The standard definition used the Gray code implementation."""
+        self.definition = MCXGrayCode(self.num_ctrl_qubits).definition
 
     @property
     def num_ancilla_qubits(self):
