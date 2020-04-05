@@ -241,15 +241,10 @@ class CXGate(ControlledGate, metaclass=CXMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the CX gate."""
-        if self.num_ctrl_qubits == 1:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, 0, 0, 1],
-                                [0, 0, 1, 0],
-                                [0, 1, 0, 0]], dtype=complex)
-        else:
-            from qiskit.extensions.unitary import _compute_control_matrix
-            base_mat = XGate().to_matrix()
-            return _compute_control_matrix(base_mat, self.num_ctrl_qubits)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, 1],
+                            [0, 0, 1, 0],
+                            [0, 1, 0, 0]], dtype=complex)
 
 
 class CnotGate(CXGate, metaclass=CXMeta):
