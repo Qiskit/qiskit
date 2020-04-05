@@ -17,6 +17,7 @@
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
+from qiskit.converters import circuit_to_dag
 from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
 
 
@@ -34,13 +35,20 @@ class TestFaultyQ1(QiskitTestCase):
     def assertEqualResult(self, circuit1, circuit2):
         pass
 
+    def assertIdleQ1(self, circuit):
+        physical_qubits = QuantumRegister(5, 'q')
+        nodes = circuit_to_dag(circuit).nodes_on_wire(physical_qubits[1])
+        for node in nodes:
+            if node.type == 'op':
+                raise AssertionError('Faulty Qubit Q1 not totally idle')
+
     def test_level_2(self):
         """Test level 2 Ourense backend with a faulty Q1 """
+
         circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
         circuit.h(range(4))
         circuit.cz(0, 1)
         circuit.measure_all()
         result = transpile(circuit, backend=self.backend, optimization_level=2, seed_transpiler=42)
-        print('')
-        print(result)
-        print(result.draw(with_layout=False))
+
+        self.assertIdleQ1(result)
