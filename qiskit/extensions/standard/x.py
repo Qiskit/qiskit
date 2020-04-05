@@ -570,23 +570,7 @@ class CCCXGate(ControlledGate):
 
 
 def cccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
-    """Apply the 3-qubit controlled X (cccX) gate from four specified controls
-    (control_qubit1..3) to target (target_qubit) qubit. This gate is canonically used to rotate the
-    qubit state from |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1⟩.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(4)
-            circuit.cccx(0,1,2,3)
-            circuit.draw()
-    """
-
+    """Apply :class:`~qiskit.extensions.standard.CCCXGate`."""
     return self.append(CCCXGate(),
                        [control_qubit1, control_qubit2, control_qubit3, target_qubit],
                        [])
@@ -644,23 +628,7 @@ class CCCCXGate(ControlledGate):
 
 
 def ccccx(self, control_qubit1, control_qubit2, control_qubit3, control_qubit4, target_qubit):
-    """Apply the 4-qubit controlled X (ccccX) gate from four specified controls
-    (control_qubit1..4) to target (target_qubit) qubit. This gate is canonically used to rotate the
-    qubit state from |0⟩ to |1⟩, or vice versa when both the control qubits are in state |1⟩.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(5)
-            circuit.ccccx(0,1,2,3,4)
-            circuit.draw()
-    """
-
+    """Apply :class:`~qiskit.extensions.standard.CCCCXGate`."""
     return self.append(CCCCXGate(),
                        [control_qubit1, control_qubit2, control_qubit3, control_qubit4,
                         target_qubit],
@@ -883,12 +851,8 @@ class MCXVChain(MCXGate):
         self.definition = definition
 
 
-def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancilla'):
-    r"""Apply multi-cX gate.
-
-    Applied from a specified controls ``control_qubits`` to target ``target_qubit`` qubit with
-    angle ``lam``. A multi-cX gate applies an X gate on the target qubit when all control qubits are
-    in state :math:`|1\rangle`.
+def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
+    """Apply :class:`~qiskit.extensions.standard.MCXGate`.
 
     The multi-cX gate can be implemented using different techniques, which use different numbers
     of ancilla qubits and have varying circuit depth. These modes are:
@@ -896,24 +860,6 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
     - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
     - 'v-chain-clean': Requires 2 less ancillas than the number of control qubits.
     - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit
-            circuit = QuantumCircuit(6)
-            circuit.mcx(lam, [0, 1, 2, 3, 4], 5)  # uses the default mode 'no-ancilla'
-            circuit.draw()
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit
-            circuit = QuantumCircuit(9)
-            circuit.mcx(lam, [0, 1, 2, 3, 4], 5, [6, 7, 8], mode='v-chain-clean-ancillas')
-            circuit.draw()
     """
     num_ctrl_qubits = len(control_qubits)
 
