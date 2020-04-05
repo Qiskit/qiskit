@@ -828,7 +828,7 @@ class MCXVChain(MCXGate):
 
         if self._dirty_ancillas:
             i = self.num_ctrl_qubits - 3
-            definition = [
+            ancilla_pre_rule = [
                 (U2Gate(0, numpy.pi), [q_target], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
                 (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
@@ -839,12 +839,13 @@ class MCXVChain(MCXGate):
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
                 (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
             ]
+            for inst in ancilla_pre_rule:
+                definition.append(inst)
+
             for j in reversed(range(2, self.num_ctrl_qubits - 1)):
                 definition.append(
                     (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
                 i -= 1
-        else:
-            definition = []
 
         definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
         i = 0
@@ -853,7 +854,7 @@ class MCXVChain(MCXGate):
             i += 1
 
         if self._dirty_ancillas:
-            sub_rule = [
+            ancilla_post_rule = [
                 (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
                 (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
@@ -864,7 +865,7 @@ class MCXVChain(MCXGate):
                 (CXGate(), [q_target, q_ancillas[i]], []),
                 (U2Gate(0, numpy.pi), [q_target], []),
             ]
-            for inst in sub_rule:
+            for inst in ancilla_post_rule:
                 definition.append(inst)
         else:
             definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
