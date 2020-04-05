@@ -38,7 +38,9 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         CCXGate, HGate, RZGate, RXGate,
                                         RYGate, CRYGate, CRXGate, CSwapGate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RCCCXGate)
+                                        MSGate, Barrier, RCCXGate, RCCCXGate,
+                                        MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
+                                        MCXVChain, CCCXGate, CCCCXGate)
 from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
@@ -604,6 +606,35 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
+    @data(0, 1, 2, 3, 4)
+    def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
+        """Test the creating a MCX gate yields the explicit definition if we know it."""
+        cls = MCXGate(num_ctrl_qubits).__class__
+        explicit = {0: XGate, 1: CXGate, 2: CCXGate, 3: CCCXGate, 4: CCCCXGate}
+        self.assertEqual(cls, explicit[num_ctrl_qubits])
+
+    @data(0, 4, 5)
+    def test_mcx_gates(self, num_ctrl_qubits):
+        reference = _compute_control_matrix(XGate().to_matrix(), num_ctrl_qubits)
+        backend = BasicAer.get_backend('unitary_simulator')
+
+        for gate in [MCXGrayCode(num_ctrl_qubits),
+                     #  MCXRecursive(num_ctrl_qubits),
+                     #  MCXVChain(num_ctrl_qubits, False),
+                     #  MCXVChain(num_ctrl_qubits, True),
+                     ]:
+            with self.subTest(gate=gate):
+                circuit = QuantumCircuit(gate.num_qubits)
+                circuit.append(gate, list(range(gate.num_qubits)), [])
+                simulated = execute(circuit, backend).result().get_unitary()
+
+                # account for ancillas
+                if hasattr(gate, 'num_ancilla_qubits'):
+                    simulated = simulated[:-2 ** gate.num_ancilla_qubits,
+                                          :-2 ** gate.num_ancilla_qubits]
+
+                self.assertTrue(matrix_equal(reference, simulated, ignore_phase=True))
+
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
         """Test inverting the controlled X gate."""
@@ -706,8 +737,11 @@ class TestControlledGate(QiskitTestCase):
         for gate_class in ControlledGate.__subclasses__():
             num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
             free_params = params[:num_free_params]
-            if gate_class in [allGates.MCU1Gate]:
+            if gate_class in [MCU1Gate]:
                 free_params[1] = 3
+            elif gate_class in [MCXGate]:
+                free_params[0] = 3
+
             base_gate = gate_class(*free_params)
             cgate = base_gate.control()
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
@@ -747,10 +781,16 @@ class TestControlledGate(QiskitTestCase):
                 args = [theta] * numargs
                 if cls in [MSGate, Barrier]:
                     args[0] = 2
-                elif cls in [allGates.MCU1Gate]:
+                elif cls in [MCU1Gate]:
                     args[1] = 2
+                elif issubclass(cls, MCXGate):
+                    args[0] = 5
 
                 gate = cls(*args)
+
+                if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
+                    # skip matrices that include ancilla qubits
+                    continue
                 try:
                     cgate = gate.control(num_ctrl_qubits)
                 except (AttributeError, QiskitError):

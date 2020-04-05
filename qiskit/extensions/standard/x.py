@@ -673,21 +673,24 @@ QuantumCircuit.ccccx = ccccx
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
-    def __new__(cls, num_ctrl_qubits):
+    def __new__(cls, num_ctrl_qubits=None):
         """Create a new MCX instance.
 
         Depending on the number of controls, this creates an explicit X, CX, CCX, CCCX or CCCCX
         instance or a generic MCX gate.
         """
         explicit = {
-            0: XGate(),
-            1: CXGate(),
-            2: CCXGate(),
-            3: CCCXGate(),
-            4: CCCCXGate()
+            0: XGate,
+            1: CXGate,
+            2: CCXGate,
+            3: CCCXGate,
+            4: CCCCXGate
         }
         if num_ctrl_qubits in explicit.keys():
-            return explicit[num_ctrl_qubits]
+            gate_class = explicit[num_ctrl_qubits]
+            gate = gate_class.__new__(gate_class)
+            gate.__init__()  # if __new__ does not return the same type as cls, init is not called
+            return gate
         return super().__new__(cls)
 
     def __init__(self, num_ctrl_qubits):

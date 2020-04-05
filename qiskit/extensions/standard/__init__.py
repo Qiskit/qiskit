@@ -36,7 +36,9 @@ from .t import TGate, TdgGate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate
-from .x import XGate, CXGate, CCXGate, MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
+from .x import (
+    XGate, CXGate, CCXGate, CCCXGate, CCCCXGate, MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
+)
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
