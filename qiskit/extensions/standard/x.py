@@ -773,6 +773,8 @@ class MCXRecursive(MCXGate):
             return [(CCCXGate(), q[:], [])]
         if len(q) == 5:
             return [(CCCCXGate(), q[:], [])]
+        if len(q) < 4:
+            raise AttributeError('Something went wrong in the recursion, have less than 4 qubits.')
 
         # recurse
         num_ctrl_qubits = len(q) - 1
