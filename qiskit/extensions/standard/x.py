@@ -512,7 +512,7 @@ class CCCXGate(ControlledGate):
         """
         from qiskit.extensions.standard.u1 import CU1Gate
         definition = []
-        q = QuantumRegister(4)
+        q = QuantumRegister(4, name='q')
         rule = [
             (HGate(), [q[3]], []),
             (CU1Gate(-self._angle), [q[0], q[3]], []),
@@ -622,7 +622,7 @@ class CCCCXGate(ControlledGate):
         """
         from qiskit.extensions.standard.u1 import CU1Gate
         definition = []
-        q = QuantumRegister(5)
+        q = QuantumRegister(5, name='q')
         rule = [
             (HGate(), [q[4]], []),
             (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
@@ -741,7 +741,7 @@ class MCXGrayCode(MCXGate):
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, name='q')
         self.definition = [
             (HGate(), [q[-1]], []),
             (MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], []),
@@ -764,7 +764,7 @@ class MCXRecursive(MCXGate):
 
     def _define(self):
         """Define the MCX gate using recursion."""
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, name='q')
         self.definition = self._recurse(q[:-1], q_ancilla=q[-1])
 
     def _recurse(self, q, q_ancilla=None):
@@ -793,6 +793,13 @@ class MCXRecursive(MCXGate):
 
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
+
+    def __new__(cls, num_ctrl_qubits, dirty_ancillas=False):  # pylint: disable=unused-argument
+        """Create a new MCX instance.
+
+        This must be defined anew to include the additional argument ``dirty_ancillas``.
+        """
+        return super().__new__(cls, num_ctrl_qubits)
 
     def __init__(self, num_ctrl_qubits, dirty_ancillas=False):
         super().__init__(num_ctrl_qubits)
@@ -909,7 +916,7 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='no-ancill
     available_implementations = {
         'noancilla': MCXGrayCode(num_ctrl_qubits),
         'recursion': MCXRecursive(num_ctrl_qubits),
-        'v-chain-clean': MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
+        'v-chain-clean': MCXVChain(num_ctrl_qubits, False),
         'v-chain-dirty': MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
         # outdated, previous names
         'advanced': MCXRecursive(num_ctrl_qubits),
