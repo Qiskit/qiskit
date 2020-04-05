@@ -14,7 +14,7 @@
 
 """Tests preset pass manager whith faulty backends"""
 
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
@@ -32,10 +32,27 @@ class TestFaultyQ1(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = FakeOurenseFaultyQ1()
 
-    def assertEqualResult(self, circuit1, circuit2):
-        pass
+    def assertEqualCount(self, circuit1, circuit2):
+        """Asserts circuit1 and circuit2 has the same result counts after execution in BasicAer"""
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 2048
+
+        result1=execute(circuit1, backend,
+                basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
+
+        result2=execute(circuit2, backend,
+                basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
+
+        for key in set(result1.keys()).union(result2.keys()):
+            with self.subTest(key=key):
+                diff = abs(result1.get(key, 0) - result2.get(key, 0))
+                self.assertLess(diff / shots * 100, 2.5)
+
 
     def assertIdleQ1(self, circuit):
+        """Asserts the Q1 in circuit is not used with operations"""
         physical_qubits = QuantumRegister(5, 'q')
         nodes = circuit_to_dag(circuit).nodes_on_wire(physical_qubits[1])
         for node in nodes:
@@ -44,7 +61,6 @@ class TestFaultyQ1(QiskitTestCase):
 
     def test_level_2(self):
         """Test level 2 Ourense backend with a faulty Q1 """
-
         circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
         circuit.h(range(4))
         circuit.cz(0, 1)
@@ -52,3 +68,4 @@ class TestFaultyQ1(QiskitTestCase):
         result = transpile(circuit, backend=self.backend, optimization_level=2, seed_transpiler=42)
 
         self.assertIdleQ1(result)
+        self.assertEqualCount(circuit, result)
