@@ -67,6 +67,8 @@ class BaseBackend(ABC):
         """
         properties = self.properties()
         faulty = []
+        if properties is None:
+            return faulty
         for qubit in range(self._configuration.n_qubits):
             if not properties.is_qubit_operational(qubit):
                 faulty.append(qubit)
