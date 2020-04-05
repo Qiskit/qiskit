@@ -175,3 +175,46 @@ gate rcccx a,b,c,d
   u1(-pi/4) d;
   u2(0,pi) d;
 }
+// 3-controlled X gate
+gate cccx a,b,c,d
+{
+    h d; cu1(-pi/4) a,d; h d;
+    cx a,b;
+    h d; cu1(pi/4) b,d; h d;
+    cx a,b;
+    h d; cu1(-pi/4) b,d; h d;
+    cx b,c;
+    h d; cu1(pi/4) c,d; h d;
+    cx a,c;
+    h d; cu1(-pi/4) c,d; h d;
+    cx b,c;
+    h d; cu1(pi/4) c,d; h d;
+    cx a,c;
+    h d; cu1(-pi/4) c,d; h d;
+}
+// 3-controlled sqrt(X) gate, this equals the CCCX gate where the CU1 rotations are -pi/8 not -pi/4
+gate cccsqrtx a,b,c,d
+{
+    h d; cu1(-pi/8) a,d; h d;
+    cx a,b;
+    h d; cu1(pi/8) b,d; h d;
+    cx a,b;
+    h d; cu1(-pi/8) b,d; h d;
+    cx b,c;
+    h d; cu1(pi/8) c,d; h d;
+    cx a,c;
+    h d; cu1(-pi/8) c,d; h d;
+    cx b,c;
+    h d; cu1(pi/8) c,d; h d;
+    cx a,c;
+    h d; cu1(-pi/8) c,d; h d;
+}
+// 4-controlled X gate
+gate ccccx a,b,c,d,e
+{
+    h e; cu1(-pi/2) d,e; h e;
+    cccx a,b,c,d;
+    h d; cu1(pi/4) d,e; h d;
+    cccx a,b,c,d;
+    cccsqrtx a,b,c,e;
+}
