@@ -27,7 +27,8 @@ from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import isinstanceint, isinstancelist
+from qiskit.transpiler.passes import ApplyLayout
+from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
@@ -289,21 +290,36 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
     result = pass_manager.run(circuit, callback=transpile_config['callback'],
-                            output_name=transpile_config['output_name'])
+                              output_name=transpile_config['output_name'])
 
     if faulty_qubits_map:
-        faulty_qreg = result._create_qreg(1, 'faulty')
-        result.add_register(faulty_qreg)
-        new_layout = Layout()
-        i = 0
-        for real_qubit in range(backend.configuration().n_qubits):
-            if real_qubit in faulty_qubits_map:
-                new_layout[real_qubit] = result._layout[faulty_qubits_map[real_qubit]]
-            else:
-                new_layout[real_qubit] = faulty_qreg[i]
-                i += 1
-        result._layout = new_layout
+        return _remap_circuit_faulty_backend(result, backend, faulty_qubits_map)
+
     return result
+
+
+def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
+    faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
+    faulty_qreg = circuit._create_qreg(1, 'faulty')
+    new_layout = Layout()
+    faulty_qubit = 0
+    for real_qubit in range(backend.configuration().n_qubits):
+        if real_qubit in faulty_qubits_map:
+            new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
+        else:
+            new_layout[real_qubit] = faulty_qreg[faulty_qubit]
+            faulty_qubit += 1
+    physical_layout_dict = {}
+    for qubit in circuit.qubits:
+        physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
+    for qubit in faulty_qreg:
+        physical_layout_dict[qubit] = new_layout[qubit]
+    dag_circuit = circuit_to_dag(circuit)
+    apply_layout_pass = ApplyLayout()
+    apply_layout_pass.property_set['layout'] = Layout(physical_layout_dict)
+    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit))
+    circuit._layout = new_layout
+    return circuit
 
 
 def _parse_transpile_args(circuits, backend,

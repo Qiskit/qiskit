@@ -142,7 +142,7 @@ class CouplingMap:
         lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
         lengths = dict(lengths)
         size = len(lengths)
-        cmap = np.full((size, size), -1, dtype=int)
+        cmap = np.full((size, size), -1, dtype=float)
         for idx in range(size):
             cmap[idx, np.fromiter(lengths[idx].keys(), dtype=int)] = np.fromiter(
                 lengths[idx].values(), dtype=int)
