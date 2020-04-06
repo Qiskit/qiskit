@@ -185,9 +185,9 @@ class Optimize1qGates(TransformationPass):
                                                  (2 * np.pi)) == 0:
                     right_name = "nop"
 
-            if right_name == "u1" and "u1" not in self.basis:
-                right_name = "u3"
             if right_name == "u2" and "u2" not in self.basis:
+                right_name = "u3"
+            if right_name == "u1" and "u1" not in self.basis:
                 right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
