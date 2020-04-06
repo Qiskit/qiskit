@@ -32,5 +32,11 @@ Boolean Logic Circuits
 
 
 from .boolean_logic import Permutation, XOR, InnerProduct
-from .arithmetic import (LinearPauliRotations, PiecewiseLinearPauliRotations,
-                         PolynomialPauliRotations, IntegerComparator, WeightedAdder)
+from .arithmetic import (
+    FunctionalPauliRotations,
+    LinearPauliRotations,
+    PiecewiseLinearPauliRotations,
+    PolynomialPauliRotations,
+    IntegerComparator,
+    WeightedAdder
+)
