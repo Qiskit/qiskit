@@ -387,18 +387,6 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate()  # self-inverse
 
-    # def to_matrix(self):
-    #     """Return a numpy.array for the CCX gate."""
-    #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 1, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 1, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 1],
-    #                         [0, 0, 0, 0, 1, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 1, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 1, 0],
-    #                         [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
-
-
     def to_matrix(self):
         """Return a numpy.array for the CCX gate."""
         return _compute_control_matrix(self.base_gate.to_matrix(),
