@@ -28,6 +28,38 @@ Boolean Logic Circuits
    InnerProduct
    Permutation
    XOR
+
+
+Arithmetic Circuits
+===================
+
+Functional Pauli Rotations
+++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FunctionalPauliRotations
+   LinearPauliRotations
+   PolynomialPauliRotations
+   PiecewiseLinearPauliRotations
+
+Adders
+++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedAdder
+
+Comparators
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntegerComparator
+
 """
 
 
