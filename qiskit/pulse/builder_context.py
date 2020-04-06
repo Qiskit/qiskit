@@ -500,10 +500,31 @@ def shift_phase(channel: channels.PulseChannel, phase: float):
     append_instruction(instructions.ShiftPhase(phase, channel))
 
 
+def barrier(*channels_or_qubits: Union[channels.Channel, int]):
+    """Barrier a set of channels and qubits.
+
+    Args:
+        channels_or_qubits: Channels or qubits to barrier.
+
+    .. todo:: Implement this as a proper instruction.
+    """
+    channels = set()
+    for channel_or_qubit in channels_or_qubits:
+        if isinstance(channel_or_qubit, int):
+            channels += qubit_channels(channel_or_qubit)
+        elif isinstance(channel_or_qubit, channels.Channel):
+            channels += channel_or_qubit
+        else:
+            raise exceptions.PulseError(
+                '{} is not a "Channel" or '
+                'qubit (integer).'.format(channel_or_qubit))
+    raise NotImplementedError('Barrier has not yet been implemented.')
+
+
 def snapshot(label: str, snapshot_type: str = 'statevector'):
     """Simulator snapshot."""
-    append_instruction(instructions.Snapshot(label,
-                                             snapshot_type=snapshot_type))
+    append_instruction(
+        instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
 def call_schedule(schedule: Schedule):

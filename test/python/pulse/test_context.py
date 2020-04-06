@@ -15,10 +15,12 @@
 """Test pulse builder context utilities."""
 
 from math import pi
+import unittest
+
+import qiskit.pulse as pulse
 from qiskit.pulse.pulse_lib import gaussian
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-import qiskit.pulse as pulse
 from qiskit.pulse import pulse_lib, instructions
 
 
@@ -36,7 +38,7 @@ class TestBuilderContext(QiskitTestCase):
             pulse.u2(0, 0, pi/2)
             pulse.delay(0, 1000)
             pulse.u2(0, 0, pi)
-            with pulse.left_barrier():
+            with pulse.left_align():
                 pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
                 pulse.shift_phase(pulse.DriveChannel(0), pi/2)
                 pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
@@ -134,22 +136,39 @@ class TestTransforms(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    def test_barrier(self):
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-        test_pulse = pulse_lib.ConstantPulse(100, 1.0)
-
-        schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
-            pulse.play(d0, test_pulse)
-            pulse.play(d1, test_pulse)
-            pulse.barrier(d0, d1)
-            pulse.play(d0, test_pulse)
-
-
 
 class TestInstructions(TestBuilderContext):
     """Test builder instructions."""
+    @unittest.expectedFailure
+    def test_barrier(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.left_align():
+                pulse.play(d0, test_pulse)
+                pulse.barrier(d0, d1)
+                pulse.play(d1, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Play(test_pulse, d0)
+        # d1
+        reference.insert(10, instructions.Play(test_pulse, d1), mutate=True)
+
+        self.assertEqual(schedule, reference)
+
+        # test barrier on qubits
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.left_align():
+                pulse.play(d0, test_pulse)
+                pulse.barrier(0, 1)
+                pulse.play(d1, test_pulse)
+
+        self.assertEqual(schedule, reference)
 
 
 class TestUtilities(TestBuilderContext):
