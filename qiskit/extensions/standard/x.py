@@ -112,6 +112,7 @@ class XGate(Gate):
                 return CCCXGate()
             if num_ctrl_qubits == 4:
                 return CCCCXGate()
+            return MCXGate(num_ctrl_qubits)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -401,6 +402,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
                 return CCCXGate()
             if num_ctrl_qubits == 2:
                 return CCCCXGate()
+            return MCXGate(num_ctrl_qubits + 2)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -487,23 +489,6 @@ class CCCXGate(ControlledGate):
             cx a,c;
             h d; cu1(-pi/4) c,d; h d;
         }
-
-        gate cccsqrtx a,b,c,d
-        {
-            h d; cu1(-pi/8) a,d; h d;
-            cx a,b;
-            h d; cu1(pi/8) b,d; h d;
-            cx a,b;
-            h d; cu1(-pi/8) b,d; h d;
-            cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
-            h d; cu1(-pi/8) c,d; h d;
-            cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
-            h d; cu1(-pi/8) c,d; h d;
-        }
         """
         from qiskit.extensions.standard.u1 import CU1Gate
         definition = []
@@ -554,8 +539,10 @@ class CCCXGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            if self._angle == numpy.pi / 4 and num_ctrl_qubits == 1:
-                return CCCCXGate()
+            if self._angle == numpy.pi / 4:
+                if num_ctrl_qubits == 1:
+                    return CCCCXGate()
+                return MCXGate(num_ctrl_qubits + 3)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -590,6 +577,22 @@ class CCCCXGate(ControlledGate):
 
     def _define(self):
         """
+        gate cccsqrtx a,b,c,d
+        {
+            h d; cu1(-pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+        }
         gate ccccx a,b,c,d,e
         {
             h e; cu1(-pi/2) d,e; h e;
@@ -616,6 +619,23 @@ class CCCCXGate(ControlledGate):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            return MCXGate(num_ctrl_qubits + 4)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         """Invert this gate. The CCCCX is its own inverse."""
