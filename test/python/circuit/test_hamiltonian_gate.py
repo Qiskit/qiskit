@@ -20,8 +20,10 @@ import json
 import numpy as np
 from numpy.testing import assert_allclose
 
+
 import qiskit
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
@@ -35,40 +37,33 @@ from qiskit.transpiler.passes import CXCancellation
 class TestHamiltonianGate(QiskitTestCase):
     """Tests for the HamiltonianGate class."""
 
-    def setUp(self):
-        """Setup."""
-        pass
-
     def test_set_matrix(self):
         """Test instantiation"""
-        try:
-            HamiltonianGate([[0, 1], [1, 0]], 1)
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.fail('unexpected exception in init of HamiltonianGate: {0}'.format(err))
+        hamiltonian = HamiltonianGate([[0, 1], [1, 0]], 1)
+        self.assertEqual(hamiltonian.num_qubits, 1)
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
-        try:
+        with self.assertRaises(ExtensionError):
             HamiltonianGate([[1, 0], [1, 1]], 1)
-        # pylint: disable=broad-except
-        except Exception:
-            pass
-        else:
-            self.fail('setting Unitary with non-hermitian matrix did not raise')
 
     def test_conjugate(self):
         """test conjugate"""
-        ymat = np.conj(np.array([[0, -1j], [1j, 0]]))
-        ham = HamiltonianGate([[1, 1j], [-1j, 1]], np.pi / 2)
+        ham = HamiltonianGate([[0, 1j], [-1j, 2]], np.pi / 4)
         np.testing.assert_array_almost_equal(ham.conjugate().to_matrix(),
-                                             ymat)
+                                             np.conj(ham.to_matrix()))
+
+    def test_transpose(self):
+        """test transpose"""
+        ham = HamiltonianGate([[15, 1j], [-1j, -2]], np.pi / 7)
+        np.testing.assert_array_almost_equal(ham.transpose().to_matrix(),
+                                             np.transpose(ham.to_matrix()))
 
     def test_adjoint(self):
         """test adjoint operation"""
-        uni = HamiltonianGate([[0, 1j], [-1j, 0]], np.pi)
-        np.testing.assert_array_almost_equal(uni.adjoint().to_matrix(),
-                                             uni.to_matrix())
+        ham = HamiltonianGate([[3, 4j], [-4j, -.2]], np.pi * .143)
+        np.testing.assert_array_almost_equal(ham.adjoint().to_matrix(),
+                                             np.transpose(np.conj(ham.to_matrix())))
 
 
 class TestHamiltonianCircuit(QiskitTestCase):

@@ -229,7 +229,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
 
 
 def unitary(self, obj, qubits, label=None):
-    """Apply u2 to q."""
+    """Apply unitary to qubits."""
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     return self.append(UnitaryGate(obj, label=label), qubits, [])
