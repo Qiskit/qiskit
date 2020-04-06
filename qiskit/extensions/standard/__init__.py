@@ -19,8 +19,6 @@ from .h import HGate, CHGate
 from .i import IGate
 from .ms import MSGate
 from .r import RGate
-from .rccx import RCCXGate
-from .rcccx import RCCCXGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
 from .ry import RYGate, CRYGate
@@ -37,7 +35,8 @@ from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate
 from .x import (
-    XGate, CXGate, CCXGate, CCCXGate, CCCCXGate, MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
+    XGate, CXGate, CCXGate, RCCXGate, CCCXGate, RCCCXGate, CCCCXGate,
+    MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 )
 from .y import YGate, CYGate
 from .z import ZGate, CZGate

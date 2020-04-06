@@ -23,7 +23,8 @@ from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.t import TdgGate
-from qiskit.extensions.standard.u1 import MCU1Gate
+from qiskit.extensions.standard.u1 import U1Gate, MCU1Gate
+from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.qasm import pi
 from qiskit.util import deprecate_arguments
 
@@ -451,6 +452,74 @@ QuantumCircuit.ccx = ccx
 QuantumCircuit.toffoli = ccx
 
 
+class RCCXGate(Gate):
+    """The simplified Toffoli gate, also referred to as Margolus gate.
+
+    The simplified Toffoli gate implements the Toffoli gate up to relative phases.
+    This implementation requires three CX gates which is the minimal amount possible,
+    as shown in https://arxiv.org/abs/quant-ph/0312225.
+    Note, that the simplified Toffoli is not equivalent to the Toffoli. But can be used in places
+    where the Toffoli gate is uncomputed again.
+
+    This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
+    of Fig. 3.
+    """
+
+    def __init__(self):
+        """Create a new simplified CCX gate."""
+        super().__init__('rccx', 3, [])
+
+    def _define(self):
+        """
+        gate rccx a,b,c
+        { u2(0,pi) c;
+          u1(pi/4) c;
+          cx b, c;
+          u1(-pi/4) c;
+          cx a, c;
+          u1(pi/4) c;
+          cx b, c;
+          u1(-pi/4) c;
+          u2(0,pi) c;
+        }
+        """
+        definition = []
+        q = QuantumRegister(3, 'q')
+        rule = [
+            (U2Gate(0, pi), [q[2]], []),  # H gate
+            (U1Gate(pi / 4), [q[2]], []),  # T gate
+            (CXGate(), [q[1], q[2]], []),
+            (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
+            (CXGate(), [q[0], q[2]], []),
+            (U1Gate(pi / 4), [q[2]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
+            (U2Gate(0, pi), [q[2]], []),  # H gate
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def to_matrix(self):
+        """Return a numpy.array for the simplified CCX gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, -1j],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, -1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
+
+
+def rccx(self, control_qubit1, control_qubit2, target_qubit):
+    """Apply :class:`~qiskit.extensions.standard.RCCXGate`."""
+    return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+
+
+QuantumCircuit.rccx = rccx
+
+
 class CCCXGate(ControlledGate):
     """The 3-qubit controlled X gate.
 
@@ -559,6 +628,100 @@ def cccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
 
 
 QuantumCircuit.cccx = cccx
+
+
+class RCCCXGate(Gate):
+    """The simplified 3-controlled Toffoli gate.
+
+    The simplified Toffoli gate implements the Toffoli gate up to relative phases.
+    Note, that the simplified Toffoli is not equivalent to the Toffoli. But can be used in places
+    where the Toffoli gate is uncomputed again.
+
+    This concrete implementation is from https://arxiv.org/abs/1508.03273, the complete circuit
+    of Fig. 4.
+    """
+
+    def __init__(self):
+        """Create a new RCCCX gate."""
+        super().__init__('rcccx', 4, [])
+
+    def _define(self):
+        """
+        gate rcccx a,b,c,d
+        { u2(0,pi) d;
+          u1(pi/4) d;
+          cx c,d;
+          u1(-pi/4) d;
+          u2(0,pi) d;
+          cx a,d;
+          u1(pi/4) d;
+          cx b,d;
+          u1(-pi/4) d;
+          cx a,d;
+          u1(pi/4) d;
+          cx b,d;
+          u1(-pi/4) d;
+          u2(0,pi) d;
+          u1(pi/4) d;
+          cx c,d;
+          u1(-pi/4) d;
+          u2(0,pi) d;
+        }
+        """
+        definition = []
+        q = QuantumRegister(4, 'q')
+
+        rule = [
+            (U2Gate(0, pi), [q[3]], []),  # H gate
+            (U1Gate(pi / 4), [q[3]], []),  # T gate
+            (CXGate(), [q[2], q[3]], []),
+            (U1Gate(-pi / 4), [q[3]], []),  # inverse T gate
+            (U2Gate(0, pi), [q[3]], []),
+            (CXGate(), [q[0], q[3]], []),
+            (U1Gate(pi / 4), [q[3]], []),
+            (CXGate(), [q[1], q[3]], []),
+            (U1Gate(-pi / 4), [q[3]], []),
+            (CXGate(), [q[0], q[3]], []),
+            (U1Gate(pi / 4), [q[3]], []),
+            (CXGate(), [q[1], q[3]], []),
+            (U1Gate(-pi / 4), [q[3]], []),
+            (U2Gate(0, pi), [q[3]], []),
+            (U1Gate(pi / 4), [q[3]], []),
+            (CXGate(), [q[2], q[3]], []),
+            (U1Gate(-pi / 4), [q[3]], []),
+            (U2Gate(0, pi), [q[3]], []),
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
+    def to_matrix(self):
+        """Return a numpy.array for the RCCCX gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
+
+
+def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
+    """Apply :class:`~qiskit.extensions.standard.RCCCXGate`."""
+    return self.append(RCCCXGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+                       [])
+
+
+QuantumCircuit.rcccx = rcccx
 
 
 class CCCCXGate(ControlledGate):
