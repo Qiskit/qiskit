@@ -613,7 +613,7 @@ class TestControlledGate(QiskitTestCase):
         explicit = {0: XGate, 1: CXGate, 2: CCXGate, 3: CCCXGate, 4: CCCCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(0, 4, 5)
+    @data(0, 3, 4, 5)
     def test_mcx_gates(self, num_ctrl_qubits):
         """Test the mcx gates."""
         backend = BasicAer.get_backend('statevector_simulator')
