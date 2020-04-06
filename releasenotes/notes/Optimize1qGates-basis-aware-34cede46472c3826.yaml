@@ -1,5 +1,0 @@
----
-features:
-  - |
-    The pass ``Optimize1qGates`` now supports an optional parameter ``basis_gates``.
-    This allows ``Optimize1qGates`` to avoid using gates that are not supported by the basis.
