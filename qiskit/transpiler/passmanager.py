@@ -212,6 +212,8 @@ class PassManager:
         """
         if isinstance(circuits, QuantumCircuit):
             return self._run_single_circuit(circuits, output_name, callback)
+        elif len(circuits) == 1:
+            return self._run_single_circuit(circuits[0], output_name, callback)
         else:
             return self._run_several_circuits(circuits, output_name, callback)
 
