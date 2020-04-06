@@ -191,9 +191,9 @@ class Optimize1qGates(TransformationPass):
                 right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
-            if right_name == "u1" and "u1" in self.basis:
+            if right_name == "u1":
                 new_op = U1Gate(right_parameters[2])
-            if right_name == "u2" and "u2" in self.basis:
+            if right_name == "u2":
                 new_op = U2Gate(right_parameters[1], right_parameters[2])
             if right_name == "u3":
                 if "u3" in self.basis:
