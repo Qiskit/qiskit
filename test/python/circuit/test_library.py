@@ -19,10 +19,12 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 
-from qiskit import execute, BasicAer, transpile
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, XOR, InnerProduct, QFT
+
+from qiskit.quantum_info import Operator
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
@@ -61,11 +63,6 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 class TestBasisChanges(QiskitTestCase):
     """Test the basis changes."""
 
-    def to_matrix(self, circuit):
-        """Get the unitary matrix from simulating the circuit with the unitary simulator."""
-        backend = BasicAer.get_backend('unitary_simulator')
-        return execute(circuit, backend).result().get_unitary()
-
     def assertQFTIsCorrect(self, qft, num_qubits=None, inverse=False, add_swaps_at_end=False):
         """Assert that the QFT circuit produces the correct matrix.
 
@@ -79,9 +76,7 @@ class TestBasisChanges(QiskitTestCase):
 
             qft = qft + circuit
 
-        simulated = self.to_matrix(qft)
-
-        print(qft.draw())
+        simulated = Operator(qft)
 
         num_qubits = num_qubits or qft.num_qubits
         expected = np.empty((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
@@ -97,7 +92,9 @@ class TestBasisChanges(QiskitTestCase):
         if inverse:
             expected = np.conj(expected)
 
-        np.testing.assert_array_almost_equal(simulated, expected)
+        expected = Operator(expected)
+
+        self.assertTrue(expected.equiv(simulated))
 
     @data(True, False)
     def test_qft_matrix(self, inverse):
