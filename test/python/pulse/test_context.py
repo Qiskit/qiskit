@@ -136,6 +136,26 @@ class TestTransforms(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
+    def test_group(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.play(d0, test_pulse)
+            with pulse.group():
+                pulse.play(d1, test_pulse)
+                pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, d0)
+        # d1
+        reference = reference.insert(10, instructions.Play(test_pulse, d1))
+        self.assertEqual(schedule, reference)
+
 
 class TestInstructions(TestBuilderContext):
     """Test builder instructions."""

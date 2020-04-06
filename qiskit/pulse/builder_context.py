@@ -361,15 +361,18 @@ def _transform_context(transform: Callable,
         @contextmanager
         def wrapped_transform(*args, **kwargs):
             builder = _current_builder()
-            block = Schedule()
-            builder.set_current_block(block)
+            current_block = builder.block
+            transform_block = Schedule()
+            builder.set_current_block(transform_block)
             try:
                 yield
             finally:
-                builder.set_current_block(transform(block,
-                                                    *args,
-                                                    **kwargs,
-                                                    **decorator_kwargs))
+                transformed_block = transform(transform_block,
+                                              *args,
+                                              **kwargs,
+                                              **decorator_kwargs)
+                builder.set_current_block(current_block)
+                builder.append_block(transformed_block)
 
         return wrapped_transform
 
