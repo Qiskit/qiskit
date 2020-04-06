@@ -184,17 +184,20 @@ class Optimize1qGates(TransformationPass):
                     right_name = "nop"
 
             if right_name == "u1" and "u1" not in self.basis:
-                right_name = "u2"
+                right_name = "u3"
             if right_name == "u2" and "u2" not in self.basis:
                 right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
-            if right_name == "u1":
+            if right_name == "u1" and "u1" in self.basis:
                 new_op = U1Gate(right_parameters[2])
-            if right_name == "u2":
+            if right_name == "u2" and "u2" in self.basis:
                 new_op = U2Gate(right_parameters[1], right_parameters[2])
             if right_name == "u3":
-                new_op = U3Gate(*right_parameters)
+                if "u3" in self.basis:
+                    new_op = U3Gate(*right_parameters)
+                else:
+                    raise TranspilerError('It was not possible to use the basis %s' % self.basis)
 
             if right_name != 'nop':
                 dag.substitute_node(run[0], new_op, inplace=True)
