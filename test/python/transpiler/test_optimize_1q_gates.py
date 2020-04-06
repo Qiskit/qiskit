@@ -23,6 +23,7 @@ from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -318,7 +319,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         self.assertEqual(expected, result)
 
     def test_optimize_u3_basis_u2_cx(self):
-        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4) with basis u2 and cx"""
+        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4). Basis [u2, cx]."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.u3(np.pi / 2, 0, np.pi / 4, qr[0])
@@ -333,6 +334,35 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
+
+    def test_optimize_u1_basis_u2_u3(self):
+        """U1(pi/4) ->  U3(0, 0, pi/4). Basis [u2, u3]."""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u1(np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u3(0, 0, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(['u2', 'u3']))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u1_basis_u2(self):
+        """U1(pi/4) ->  Raises. Basis [u2]"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u1(np.pi / 4, qr[0])
+
+        expected = QuantumCircuit(qr)
+        expected.u3(0, 0, np.pi / 4, qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(['u2']))
+        with self.assertRaises(TranspilerError):
+            _ = passmanager.run(circuit)
 
 
 if __name__ == '__main__':
