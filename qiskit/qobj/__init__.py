@@ -94,4 +94,5 @@ class Qobj(QasmQobj):
         warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
                       'PulseQobj depending on your application instead.',
                       DeprecationWarning, stacklevel=2)
-        super(Qobj, self).__init__()
+        super(Qobj, self).__init__(qobj_id=qobj_id, config=config,
+                                   experiments=experiments, header=header)

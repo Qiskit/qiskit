@@ -1,0 +1,47 @@
+---
+features:
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Statevector.measure` method to the
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` quantum state classes. This
+    allows sampling a single measurement outcome from the specified subsystems
+    and collapsing the statevector to the post-measurement computational basis
+    state. For example
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+      
+      psi = Statevector.from_label('+1')
+  
+      # Measure both qubits
+      outcome, psi_meas = psi.measure()
+      print("measure([0, 1]) outcome:", outcome, "Post-measurement state:")
+      print(psi_meas)
+
+      # Measure qubit-1 only
+      outcome, psi_meas = psi.measure([1])
+      print("measure([1]) outcome:", outcome, "Post-measurement state:")
+      print(psi_meas)
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Statevector.reset` method to the
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` quantum state classes. This
+    allows reseting some or all subsystems to the :math:`|0\rangle` state.
+    For example
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+      
+      psi = Statevector.from_label('+1')
+
+      # Reset both qubits
+      psi_reset = psi.reset()
+      print("Post reset state: ")
+      print(psi_reset)
+
+      # Reset qubit-1 only
+      psi_reset = psi.reset([1])
+      print("Post reset([1]) state: ")
+      print(psi_reset)

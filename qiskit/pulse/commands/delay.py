@@ -35,4 +35,4 @@ class DelayInstruction(Instruction):
                       "For example: DelayInstruction(Delay(5), DriveChannel(0)) -> "
                       "Delay(5, DriveChannel(0)).",
                       DeprecationWarning)
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)
