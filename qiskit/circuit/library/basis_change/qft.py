@@ -14,7 +14,9 @@
 
 """Quantum Fourier Transform Circuit."""
 
+from typing import Optional
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
@@ -51,6 +53,7 @@ class QFT(QuantumCircuit):
     The respective circuit diagram is:
 
     .. parsed-literal::
+
                     ░               ░                       ░                         ┌───┐ ░
         q_0: ───────░───────────────░───────────────────────░──■───────■───────■──────┤ H ├─░─────X─
                     ░               ░                 ┌───┐ ░  │       │       │-pi/2 └───┘ ░     │
@@ -71,6 +74,7 @@ class QFT(QuantumCircuit):
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
     .. parsed-literal::
+
                 ┌───┐
         q_0: ─X─┤ H ├─■──────■────────────────────────────────────────────────────────────
               │ └───┘ │pi/2  │     ┌───┐
@@ -84,7 +88,8 @@ class QFT(QuantumCircuit):
                                                                                      └───┘
     """
 
-    def __init__(self, *regs,
+    def __init__(self,
+                 num_qubits: Optional[int] = None,
                  approximation_degree: int = 0,
                  do_swaps: bool = True,
                  insert_barriers: bool = False,
@@ -92,18 +97,20 @@ class QFT(QuantumCircuit):
         """Construct a new QFT circuit.
 
         Args:
-            *regs: The number of qubits or qubit registers on which the QFT acts.
+            num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).
             do_swaps: Whether to include the final swaps in the QFT.
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
-        super().__init__(*regs, name=name)
+        super().__init__(name=name)
 
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
         self._data = None
+
+        self.num_qubits = num_qubits
 
     @property
     def num_qubits(self) -> int:
@@ -127,14 +134,13 @@ class QFT(QuantumCircuit):
         Args:
             num_qubits: The new number of qubits.
         """
-        # pad with new qubits if the circuit is too small
-        if num_qubits > super().num_qubits:
-            self.add_register(QuantumRegister(num_qubits - super().num_qubits))
-            self._data = None
-        # reset if the circuit is being shrunk
-        elif num_qubits < super().num_qubits:
-            self.qregs = [QuantumRegister(num_qubits)]
-            self._data = None
+        if num_qubits != self.num_qubits:
+            self._invalidate()
+
+            if num_qubits:
+                self.qregs = [QuantumRegister(num_qubits)]
+            else:
+                self.qregs = []
 
     @property
     def approximation_degree(self) -> int:
@@ -159,7 +165,7 @@ class QFT(QuantumCircuit):
             raise ValueError('Approximation degree cannot be smaller than 0.')
 
         if approximation_degree != self._approximation_degree:
-            self._data = []
+            self._invalidate()
             self._approximation_degree = approximation_degree
 
     @property
@@ -179,7 +185,7 @@ class QFT(QuantumCircuit):
             insert_barriers: If True, barriers are inserted, if False not.
         """
         if insert_barriers != self._insert_barriers:
-            self._data = None
+            self._invalidate()
             self._insert_barriers = insert_barriers
 
     @property
@@ -199,8 +205,12 @@ class QFT(QuantumCircuit):
             do_swaps: If True, the final swaps are applied, if False not.
         """
         if do_swaps != self._do_swaps:
-            self._data = None
+            self._invalidate()
             self._do_swaps = do_swaps
+
+    def _invalidate(self) -> None:
+        """Invalidate the current build of the circuit."""
+        self._data = None
 
     def _swap_qubits(self):
         num_qubits = self.num_qubits
