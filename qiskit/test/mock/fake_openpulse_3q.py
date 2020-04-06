@@ -126,7 +126,7 @@ class FakeOpenPulse3Q(FakeBackend):
                 'u2': {
                     'type': 'control',
                     'purpose': 'cross-resonance',
-                    'operates': {'qubits': [2]}
+                    'operates': {'qubits': [2, 1]}
                 }
             }
         )
