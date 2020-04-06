@@ -104,5 +104,5 @@ class LayoutTransformation(TransformationPass):
 
         edge_map = {vqubit: dag.qubits()[pqubit]
                     for (pqubit, vqubit) in perm_circ.inputmap.items()}
-        dag.compose_back(perm_circ.circuit, edge_map=edge_map)
+        dag.compose(perm_circ.circuit, edge_map=edge_map)
         return dag

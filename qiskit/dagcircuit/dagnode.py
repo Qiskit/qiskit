@@ -30,6 +30,7 @@ class DAGNode:
         """Create a node """
         self._node_id = nid
         self.data_dict = data_dict
+        self.sort_key = str(self.qargs)
 
     @property
     def type(self):
@@ -64,6 +65,7 @@ class DAGNode:
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
         self.data_dict['qargs'] = new_qargs
+        self.sort_key = str(new_qargs)
 
     @property
     def cargs(self):

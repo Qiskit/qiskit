@@ -17,7 +17,6 @@
 import unittest
 
 import numpy as np
-
 import qiskit.pulse as pulse
 from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -25,10 +24,12 @@ from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
+from qiskit.pulse.pulse_lib import gaussian
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.scheduler import measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown
+from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
 
 
@@ -378,6 +379,40 @@ class TestPulseAssembler(QiskitTestCase):
             'backend_version': '0.0.0'
         }
 
+    def test_assemble_sample_pulse(self):
+        """Test that the pulse lib and qobj instruction can be paired up."""
+        schedule = pulse.Schedule()
+        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test0'),
+                               pulse.DriveChannel(0),
+                               name='test1')
+        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
+                               pulse.DriveChannel(0),
+                               name='test2')
+        schedule += pulse.Play(pulse.SamplePulse([0.5]*16, name='test0'),
+                               pulse.DriveChannel(0),
+                               name='test1')
+        qobj = assemble(schedule,
+                        qobj_header=self.header,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[],
+                        **self.config)
+        validate_qobj_against_schema(qobj)
+
+        test_dict = qobj.to_dict()
+        experiment = test_dict['experiments'][0]
+        inst0_name = experiment['instructions'][0]['name']
+        inst1_name = experiment['instructions'][1]['name']
+        inst2_name = experiment['instructions'][2]['name']
+        pulses = {}
+        for item in test_dict['config']['pulse_library']:
+            pulses[item['name']] = item['samples']
+        self.assertTrue(all(name in pulses for name in [inst0_name, inst1_name, inst2_name]))
+        # Their pulses are the same
+        self.assertEqual(inst0_name, inst1_name)
+        self.assertTrue(np.allclose(pulses[inst0_name], [0.1]*16))
+        self.assertTrue(np.allclose(pulses[inst2_name], [0.5]*16))
+
     def test_assemble_single_schedule_without_lo_config(self):
         """Test assembling a single schedule, no lo config."""
         qobj = assemble(self.schedule,
@@ -571,9 +606,25 @@ class TestPulseAssembler(QiskitTestCase):
                         **self.config)
         validate_qobj_against_schema(qobj)
 
-        self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
-        self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
-        self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
+        self.assertNotEqual(qobj.config.pulse_library[0].name,
+                            qobj.config.pulse_library[1].name)
+
+    def test_pulse_name_conflicts_in_other_schedule(self):
+        """Test two pulses with the same name in different schedule can be resolved."""
+        backend = FakeAlmaden()
+
+        schedules = []
+        ch_d0 = pulse.DriveChannel(0)
+        for amp in (0.1, 0.2):
+            sched = Schedule()
+            sched += gaussian(duration=100, amp=amp, sigma=30, name='my_pulse')(ch_d0)
+            sched += measure(qubits=[0], backend=backend) << 100
+            schedules.append(sched)
+
+        qobj = assemble(schedules, backend)
+
+        # two user pulses and one measurement pulse should be contained
+        self.assertEqual(len(qobj.config.pulse_library), 3)
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
@@ -632,9 +683,9 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertDictEqual(qobj_insts[2].parameters, {'duration': 25, 'amp': 1})
         self.assertDictEqual(qobj_insts[3].parameters,
                              {'duration': 150, 'sigma': 8, 'amp': 0.2, 'width': 140})
-        self.assertListEqual(
+        self.assertEqual(
             qobj.to_dict()['experiments'][0]['instructions'][0]['parameters']['amp'],
-            [0.0, 0.5])
+            0.5j)
 
     def test_assemble_parametric_unsupported(self):
         """Test that parametric pulses are translated to SamplePulses if they're not supported

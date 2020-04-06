@@ -39,7 +39,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         transpiled_circuit.name = 'test'
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
-        self.qobj = assemble(transpiled_circuit, shots=1000)
+        self.qobj = assemble(transpiled_circuit, shots=1000, seed_simulator=self.seed)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
