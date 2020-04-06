@@ -894,7 +894,7 @@ class TestLogAssembler(QiskitTestCase):
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()
-        assembly_log_lines = [x for x in output_lines if x.__contains__(log_msg)]
+        assembly_log_lines = [x for x in output_lines if log_msg in x]
         self.assertTrue(len(assembly_log_lines) == 1)
 
     def test_assembly_log_time(self):
