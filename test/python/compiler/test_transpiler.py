@@ -722,7 +722,7 @@ class TestLogTranspile(QiskitTestCase):
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()
-        transpile_log_lines = [x for x in output_lines if x.__contains__(log_msg)]
+        transpile_log_lines = [x for x in output_lines if log_msg in x]
         self.assertTrue(len(transpile_log_lines) > 0)
 
     def test_transpile_log_time(self):
