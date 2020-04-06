@@ -23,7 +23,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix

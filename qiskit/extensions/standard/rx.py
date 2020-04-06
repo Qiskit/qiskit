@@ -100,8 +100,7 @@ class RXGate(Gate):
 
 
 @deprecate_arguments({'q': 'qubit'})
-def rx(self, theta, qubit, *, label=None,
-       q=None):  # pylint: disable=invalid-name,unused-argument
+def rx(self, theta, qubit, *, label=None, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply :class:`~qiskit.extensions.standard.RXGate`."""
     return self.append(RXGate(theta, label=label),
                        [qubit], [])
