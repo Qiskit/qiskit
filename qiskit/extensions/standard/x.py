@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""X, CX and CCX gates."""
+"""X, CX, CCX, CCCX and CCCCX gates."""
 
 from math import ceil
 import numpy
