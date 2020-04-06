@@ -37,7 +37,9 @@ class Optimize1qGates(TransformationPass):
         """Optimize1qGates initializer.
 
         Args:
-            basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']` .
+            basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
+                of this pass, the basis is the set intersection between the `basis` parameter and
+                the set `{'u1','u2','u3'}`.
         """
         super().__init__()
         self.basis = basis if basis else ["u1", "u2", "u3"]
