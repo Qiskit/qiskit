@@ -239,7 +239,7 @@ class ParameterExpression():
     def __complex__(self):
         if self.parameters:
             raise TypeError('ParameterExpression with unbound parameters ({}) '
-                            'cannot be cast to a float.'.format(self.parameters))
+                            'cannot be cast to a complex.'.format(self.parameters))
         return complex(self._symbol_expr)
 
     def __copy__(self):
