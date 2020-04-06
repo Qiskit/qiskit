@@ -211,12 +211,6 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         """Return inverted CY gate (itself)"""
         return CYGate()  # self-inverse
 
-    # def to_matrix(self):
-    #     """Return a numpy.array for the CY gate."""
-    #     return numpy.array([[1, 0, 0, 0],
-    #                         [0, 0, 0, -1j],
-    #                         [0, 0, 1, 0],
-    #                         [0, 1j, 0, 0]], dtype=complex)
     def to_matrix(self):
         """Return a numpy.array for the CCX gate."""
         return _compute_control_matrix(self.base_gate.to_matrix(),
