@@ -693,7 +693,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_state=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -763,6 +763,9 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+                Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -904,7 +907,8 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_state=initial_state)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -1229,7 +1233,7 @@ class QuantumCircuit:
         else:
             circ = self.copy()
 
-        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        new_creg = circ._create_creg(len(circ.qubits), 'meas')
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(circ.qubits, new_creg)

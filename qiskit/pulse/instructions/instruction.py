@@ -28,6 +28,7 @@ import warnings
 from abc import ABC
 
 from typing import Tuple, List, Iterable, Callable, Optional, Union
+import numpy as np
 
 from ..channels import Channel
 from ..interfaces import ScheduleComponent
@@ -58,7 +59,7 @@ class Instruction(ScheduleComponent, ABC):
             name: Optional display name for this instruction.
         """
         self._command = None
-        if not isinstance(duration, int):
+        if not isinstance(duration, (int, np.integer)):
             warnings.warn("Commands have been deprecated. Use `qiskit.pulse.instructions` instead.",
                           DeprecationWarning)
             self._command = duration
