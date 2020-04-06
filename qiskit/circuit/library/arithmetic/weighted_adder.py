@@ -23,8 +23,8 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 class WeightedAdder(QuantumCircuit):
     r"""A circuit to compute the weighted sum of qubit registers.
 
-    Given :math:`n` qubits :math:`q_0, \ldots, q_{n-1}` and non-negative integer weights
-    :math:`\lambda_0, \ldots, \lambda_{n-1}`, this circuit performs the operation
+    Given :math:`n` qubit basis states :math:`q_0, \ldots, q_{n-1} \in \{0, 1\}` and non-negative
+    integer weights :math:`\lambda_0, \ldots, \lambda_{n-1}`, this circuit performs the operation
 
     .. math::
 
@@ -48,19 +48,19 @@ class WeightedAdder(QuantumCircuit):
     .. parsed-literal::
 
                    ┌────────┐
-          state_0: ┤0       ├ \ state_0 * weights[0]
+          state_0: ┤0       ├ | state_0 * weights[0]
                    │        │ |
           state_1: ┤1       ├ | + state_1 * weights[1]
                    │        │ |
           state_2: ┤2       ├ | + state_2 * weights[2]
                    │        │ |
-          state_3: ┤3       ├ / + state_3 * weights[3]
+          state_3: ┤3       ├ | + state_3 * weights[3]
                    │        │
-            sum_0: ┤4       ├ \
+            sum_0: ┤4       ├ |
                    │  Adder │ |
             sum_1: ┤5       ├ | = sum_0 * 2^0 + sum_1 * 2^1 + sum_2 * 2^2
                    │        │ |
-            sum_2: ┤6       ├ /
+            sum_2: ┤6       ├ |
                    │        │
           carry_0: ┤7       ├
                    │        │
