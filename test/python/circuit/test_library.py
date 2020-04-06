@@ -66,29 +66,33 @@ class TestBasisChanges(QiskitTestCase):
         backend = BasicAer.get_backend('unitary_simulator')
         return execute(circuit, backend).result().get_unitary()
 
-    def assertQFTIsCorrect(self, qft, num_qubits=None, inverse=False, prepend_swaps=False):
+    def assertQFTIsCorrect(self, qft, num_qubits=None, inverse=False, add_swaps_at_end=False):
         """Assert that the QFT circuit produces the correct matrix.
 
         Can be provided with an explicit number of qubits, if None is provided the number
         of qubits is set to ``qft.num_qubits``.
         """
-        if prepend_swaps:
+        if add_swaps_at_end:
             circuit = QuantumCircuit(*qft.qregs)
             for i in range(circuit.num_qubits // 2):
                 circuit.swap(i, circuit.num_qubits - i - 1)
 
-            qft = circuit + qft
+            qft = qft + circuit
 
         simulated = self.to_matrix(qft)
+
+        print(qft.draw())
 
         num_qubits = num_qubits or qft.num_qubits
         expected = np.empty((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
         for i in range(2 ** num_qubits):
+            i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             for j in range(i, 2 ** num_qubits):
                 entry = np.exp(2 * np.pi * 1j * i * j / 2 ** num_qubits) / 2 ** (num_qubits / 2)
-                expected[i, j] = entry
+                j_qiskit = int(bin(j)[2:].zfill(num_qubits)[::-1], 2)
+                expected[i_qiskit, j_qiskit] = entry
                 if i != j:
-                    expected[j, i] = entry
+                    expected[j_qiskit, i_qiskit] = entry
 
         if inverse:
             expected = np.conj(expected)
@@ -98,7 +102,7 @@ class TestBasisChanges(QiskitTestCase):
     @data(True, False)
     def test_qft_matrix(self, inverse):
         """Test the matrix representation of the QFT."""
-        num_qubits = 4
+        num_qubits = 5
         qft = QFT(num_qubits)
         if inverse:
             qft = qft.inverse()
@@ -123,7 +127,7 @@ class TestBasisChanges(QiskitTestCase):
         with self.subTest(msg='test with swaps'):
             qft.num_qubits = 4
             qft.do_swaps = False
-            self.assertQFTIsCorrect(qft, prepend_swaps=True)
+            self.assertQFTIsCorrect(qft, add_swaps_at_end=True)
 
         with self.subTest(msg='set approximation'):
             qft.approximation_degree = 2
@@ -140,7 +144,7 @@ class TestBasisChanges(QiskitTestCase):
     @unpack
     def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
-        basis_gates = ['h', 'swap', 'cu1', 'barrier']
+        basis_gates = ['h', 'swap', 'cu1']
 
         qft = QFT(num_qubits, approximation_degree=approximation_degree,
                   insert_barriers=insert_barriers)
@@ -158,5 +162,5 @@ class TestBasisChanges(QiskitTestCase):
             self.assertEqual(ops.get('cu1', 0), expected)
 
         with self.subTest(msg='assert barrier count'):
-            expected = qft.num_qubits + 1 if insert_barriers else 0
+            expected = qft.num_qubits if insert_barriers else 0
             self.assertEqual(ops.get('barrier', 0), expected)
