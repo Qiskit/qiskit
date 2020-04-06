@@ -152,3 +152,29 @@ class InnerProduct(QuantumCircuit):
 
         for i in range(num_qubits):
             self.cz(qr_a[i], qr_b[i])
+
+
+class OR(QuantumCircuit):
+    """A circuit implementing the logical OR operation on a number of qubits."""
+
+    def __init__(self, num_variable_qubits: int,  flags: Optional[List[int]] = None,
+                 mcx_mode: str = 'noancilla') -> None:
+        """Create a new logical OR circuit.
+
+        Args:
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
+                into an additional result qubit.
+            flags: A list of +1/0/-1 marking negations or omisiions of qubits.
+            mcx_mode: The mode to be used to implement the multi-controlled X gate.
+        """
+        qr_variable = QuantumRegister(num_variable_qubits, name='variable')
+        qr_result = QuantumRegister(1, name='result')
+
+        super().__init__(qr_variable, qr_result, name='or')
+
+        flags = flags or [1] * num_variable_qubits
+
+        qr_control = [q for flag, q in zip(qr_variable, flags) if flag != 0]
+
+        self.x(qr_result)
+
