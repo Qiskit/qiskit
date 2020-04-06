@@ -14,6 +14,7 @@
 
 """Unit tests for pulse instructions."""
 
+import numpy as np
 from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, pulse_lib
 from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot, SetFrequency, Acquire
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -61,10 +62,16 @@ class TestDelay(QiskitTestCase):
         self.assertIsInstance(delay.id, int)
         self.assertEqual(delay.name, 'test_name')
         self.assertEqual(delay.duration, 10)
+        self.assertIsInstance(delay.duration, int)
         self.assertEqual(delay.operands, (10, DriveChannel(0)))
         self.assertEqual(delay, Delay(10, DriveChannel(0)))
         self.assertNotEqual(delay, Delay(11, DriveChannel(1)))
         self.assertEqual(repr(delay), "Delay(10, DriveChannel(0), name='test_name')")
+
+        # Test numpy int for duration
+        delay = Delay(np.int32(10), DriveChannel(0), name='test_name2')
+        self.assertEqual(delay.duration, 10)
+        self.assertIsInstance(delay.duration, np.integer)
 
 
 class TestSetFrequency(QiskitTestCase):
