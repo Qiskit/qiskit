@@ -184,7 +184,7 @@ class Optimize1qGates(TransformationPass):
                     right_name = "nop"
 
             if right_name == "u1" and "u1" not in self.basis:
-                right_name = "u2"
+                right_name = "u3"
             if right_name == "u2" and "u2" not in self.basis:
                 right_name = "u3"
 
