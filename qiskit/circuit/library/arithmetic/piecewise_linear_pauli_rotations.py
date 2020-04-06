@@ -88,8 +88,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         Args:
             breakpoints: The new breakpoints.
         """
+        self._invalidate()
         self._breakpoints = breakpoints
-        self._data = None
 
         if self.num_state_qubits and breakpoints:
             self._reset_registers(self.num_state_qubits)
@@ -110,8 +110,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         Args:
             slopes: The new slopes.
         """
+        self._invalidate()
         self._slopes = slopes
-        self._data = None
 
     @property
     def offsets(self) -> List[float]:
@@ -129,8 +129,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         Args:
             offsets: The new offsets.
         """
+        self._invalidate()
         self._offsets = offsets
-        self._data = None
 
     @property
     def mapped_slopes(self) -> List[float]:

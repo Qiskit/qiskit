@@ -73,7 +73,7 @@ class IntegerComparator(QuantumCircuit):
     @value.setter
     def value(self, value: int) -> None:
         if value != self._value:
-            self._data = None  # reset data
+            self._invalidate()
             self._value = value
 
     @property
@@ -93,7 +93,7 @@ class IntegerComparator(QuantumCircuit):
             geq: If True, the comparator compares ``>=``, if False ``<``.
         """
         if geq != self._geq:
-            self._data = None  # reset data
+            self._invalidate()
             self._geq = geq
 
     @property
@@ -115,7 +115,7 @@ class IntegerComparator(QuantumCircuit):
             num_state_qubits: The new number of state qubits.
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
-            self._data = None  # reset data
+            self._invalidate()  # reset data
             self._num_state_qubits = num_state_qubits
 
             if num_state_qubits:
@@ -155,6 +155,10 @@ class IntegerComparator(QuantumCircuit):
         if self._data is None:
             self._build()
         return self._data
+
+    def _invalidate(self) -> None:
+        """Invalidate the current build of the circuit."""
+        self._data = None
 
     def _configuration_is_valid(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration is valid."""

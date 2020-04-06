@@ -25,8 +25,8 @@ from .functional_pauli_rotations import FunctionalPauliRotations
 class LinearPauliRotations(FunctionalPauliRotations):
     r"""Linearly-controlled X, Y or Z rotation.
 
-    For a register of state qubits |x>, a target qubit |0> and the basis 'Y' this
-    circuit acts as:
+    For a register of state qubits :math:`|x\rangle`, a target qubit :math:`|0\rangle` and the
+    basis ``'Y'`` this circuit acts as:
 
     .. parsed-literal::
 
@@ -39,8 +39,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
             q_n: ─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
                   └────────────┘  └───────────────┘       └───────────────────┘
 
-    This can for example be used to approximate linear functions, with :math:`a/2` = slope
-    and :math:`b/2` = offset and the basis 'Y':
+    This can for example be used to approximate linear functions, with :math:`a/2 =` ``slope``
+    and :math:`b/2 =` ``offset`` and the basis ``'Y'``:
 
     .. math::
 
@@ -95,8 +95,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
             The slope of the rotation angles.
         """
         if self._slope is None or slope != self._slope:
+            self._invalidate()
             self._slope = slope
-            self._data = None
 
     @property
     def offset(self) -> float:
@@ -118,8 +118,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
             offset: The offset rotation angle.
         """
         if self._offset is None or offset != self._offset:
+            self._invalidate()
             self._offset = offset
-            self._data = None
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
         """Set the number of state qubits.

@@ -93,8 +93,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         Args:
             The slope of the rotation angles.
         """
+        self._invalidate()
         self._coeffs = coeffs
-        self._data = None
 
         # the number of ancilla's depends on the number of coefficients, so update if necessary
         if coeffs and self.num_state_qubits:
@@ -128,8 +128,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             reverse: If True, the rotations are applied on the reversed list. If False, then not.
         """
         if self._reverse is None or reverse != self._reverse:
+            self._invalidate()
             self._reverse = reverse
-            self._data = None
 
     @property
     def num_ancilla_qubits(self) -> int:
@@ -201,12 +201,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
                 rotation_coeffs[control_state] += coeff * num_combs * power
 
         return rotation_coeffs
-
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return super().data
 
     def _build(self):
         super()._build()

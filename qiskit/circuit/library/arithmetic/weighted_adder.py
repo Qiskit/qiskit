@@ -130,8 +130,8 @@ class WeightedAdder(QuantumCircuit):
                     raise ValueError('Non-integer weights are not supported!')
                 weights[i] = np.round(weight)
 
+        self._invalidate()
         self._weights = weights
-        self._data = None
         self._reset_registers()
 
     @property
@@ -151,9 +151,13 @@ class WeightedAdder(QuantumCircuit):
             num_state_qubits: The new number of state qubits.
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
-            self._data = None
+            self._invalidate()
             self._num_state_qubits = num_state_qubits
             self._reset_registers()
+
+    def _invalidate(self) -> None:
+        """Invalidate the current build of the circuit."""
+        self._data = None
 
     def _reset_registers(self):
         if self.num_state_qubits:

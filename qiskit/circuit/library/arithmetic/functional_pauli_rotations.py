@@ -69,8 +69,8 @@ class FunctionalPauliRotations(QuantumCircuit, ABC):
         if self._basis is None or basis != self._basis:
             if basis not in ['x', 'y', 'z']:
                 raise ValueError('The provided basis must be X, Y or Z, not {}'.format(basis))
+            self._invalidate()
             self._basis = basis
-            self._data = None
 
     @property
     def num_state_qubits(self) -> int:
@@ -92,10 +92,14 @@ class FunctionalPauliRotations(QuantumCircuit, ABC):
             num_state_qubits: The new number of qubits.
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
-            self._data = None
+            self._invalidate()
             self._num_state_qubits = num_state_qubits
 
             self._reset_registers(num_state_qubits)
+
+    def _invalidate(self) -> None:
+        """Invalidate the current build of the circuit."""
+        self._data = None
 
     @abstractmethod
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
