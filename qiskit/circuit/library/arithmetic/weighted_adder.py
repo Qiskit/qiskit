@@ -78,7 +78,8 @@ class WeightedAdder(QuantumCircuit):
 
         Args:
             num_state_qubits: The number of state qubits.
-            weights: List of weights, one for each state qubit.
+            weights: List of weights, one for each state qubit. If none are provided they
+                default to 1 for every qubit.
             name: The name of the circuit.
         """
         super().__init__(name=name)
