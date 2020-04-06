@@ -1,0 +1,51 @@
+---
+features:
+  - |
+    Add :meth:`~qiskit.quantum_info.Statevector.sample_counts` and
+    :meth:`~qiskit.quantum_info.Statevector.sample_memory` methods to the :class:`~qiskit.quantum_info.Statevector`
+    and :class:`~qiskit.quantum_info.DensityMatrix` classes for sampling
+    measurement outcomes on subsystems.
+
+    Example:
+
+      Generate a counts dictionary by sampling from a statevector
+
+      .. jupyter-execute::
+
+        from qiskit.quantum_info import Statevector
+
+        psi = Statevector.from_label('+0')
+        shots = 1024
+  
+        # Sample counts dictionary
+        counts = psi.sample_counts(shots)
+        print('Measure both:', counts)
+
+        # Qubit-0
+        counts0 = psi.sample_counts(shots, [0])
+        print('Measure Qubit-0:', counts0)
+
+        # Qubit-1
+        counts1 = psi.sample_counts(shots, [1])
+        print('Measure Qubit-1:', counts1)
+
+      Return the array of measurement outcomes for each sample
+    
+      .. jupyter-execute::
+
+        from qiskit.quantum_info import Statevector
+
+        psi = Statevector.from_label('-1')
+        shots = 10
+  
+        # Sample memory
+        mem = psi.sample_memory(shots)
+        print('Measure both:', mem)
+
+        # Qubit-0
+        mem0 = psi.sample_memory(shots, [0])
+        print('Measure Qubit-0:', mem0)
+
+        # Qubit-1
+        mem1 = psi.sample_memory(shots, [1])
+        print('Measure Qubit-1:', mem1)

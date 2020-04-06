@@ -20,7 +20,7 @@ from types import SimpleNamespace
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states import state_to_counts
+from qiskit.quantum_info.states import Statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.qobj.utils import MeasLevel
@@ -114,14 +114,14 @@ class Result(SimpleNamespace):
             the number of times this outcome was measured.
 
             Statevector backends return a dictionary with key 'statevector' and
-            values being a list[list[complex components]] list of 2^n_qubits
+            values being a list[list[complex components]] list of 2^num_qubits
             complex amplitudes. Where each complex number is represented as a 2
             entry list for each component. For example, a list of
             [0.5+1j, 0-1j] would be represented as [[0.5, 1], [0, -1]].
 
             Unitary backends return a dictionary with key 'unitary' and values
             being a list[list[list[complex components]]] list of
-            2^n_qubits x 2^n_qubits complex amplitudes in a two entry list for
+            2^num_qubits x 2^num_qubits complex amplitudes in a two entry list for
             each component. For example if the amplitude is
             [[0.5+0j, 0-1j], ...] the value returned will be
             [[[0.5, 0], [0, -1]], ...].
@@ -224,7 +224,7 @@ class Result(SimpleNamespace):
                 dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
             elif 'statevector' in self.data(key).keys():
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
-                dict_list.append(state_to_counts(vec))
+                dict_list.append(Statevector(vec).probabilities_dict(decimals=15))
             else:
                 raise QiskitError('No counts for experiment "{0}"'.format(key))
 
@@ -244,7 +244,7 @@ class Result(SimpleNamespace):
                 If None, does not round.
 
         Returns:
-            list[complex]: list of 2^n_qubits complex amplitudes.
+            list[complex]: list of 2^num_qubits complex amplitudes.
 
         Raises:
             QiskitError: if there is no statevector for the experiment.
@@ -265,7 +265,7 @@ class Result(SimpleNamespace):
                 If None, does not round.
 
         Returns:
-            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
+            list[list[complex]]: list of 2^num_qubits x 2^num_qubits complex
                 amplitudes.
 
         Raises:

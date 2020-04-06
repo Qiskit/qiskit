@@ -135,14 +135,15 @@ class CZMeta(type):
 class CZGate(ControlledGate, metaclass=CZMeta):
     r"""Controlled-Z gate.
 
+    This is a Clifford and symmetric gate.
+
     **Circuit symbol:**
 
     .. parsed-literal::
 
-             ┌───┐
-        q_0: ┤ Z ├
-             └─┬─┘
-        q_1: ──■──
+        q_0: ─■─
+              │
+        q_1: ─■─
 
     **Matrix representation:**
 

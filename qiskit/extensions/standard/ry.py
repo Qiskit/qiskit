@@ -124,13 +124,10 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
-
-             ┌───────┐
-        q_0: ┤ Ry(ϴ) ├
-             └───┬───┘
-        q_1: ────■────
-
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Ry(ϴ) ├
+             └───────┘
 
     **Matrix representation:**
 
@@ -138,13 +135,13 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRY(\theta)\ q_1, q_0 =
-        |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
+        CRY(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & \cos{\th} & -\sin{\th} \\
-                0 & 0 & \sin{\th} & \cos{\th}
+                1 & 0         & 0 & 0 \\
+                0 & \cos{\th} & 0 & -\sin{\th} \\
+                0 & 0         & 1 & 0 \\
+                0 & \sin{\th} & 0 & \cos{\th}
             \end{pmatrix}
 
     .. note::
@@ -152,20 +149,26 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Ry(ϴ) ├
+                 └───┬───┘
+            q_1: ────■────
 
         .. math::
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            CRY(\theta)\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
+            CRY(\theta)\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
                 \begin{pmatrix}
-                    1 & 0         & 0 & 0 \\
-                    0 & \cos{\th} & 0 & -\sin{\th} \\
-                    0 & 0         & 1 & 0 \\
-                    0 & \sin{\th} & 0 & \cos{\th}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & \cos{\th} & -\sin{\th} \\
+                    0 & 0 & \sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
 

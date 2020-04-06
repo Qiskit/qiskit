@@ -73,9 +73,9 @@ class ScalarOp(BaseOperator):
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return np.isclose(np.abs(self.coeff), 1, atol=atol, rtol=rtol)
 
     def to_matrix(self):
