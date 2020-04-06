@@ -302,7 +302,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
         self.assertEqual(circuit, result)
 
-    def test_optimize_u3_basis_u3_u2(self):
+    def test_optimize_u3_basis_u2(self):
         """U3(pi/2, 0, pi/4) ->  U2(0, pi/4)"""
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
@@ -313,6 +313,24 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(['u2']))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_basis_u2_cx(self):
+        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4) with basis u2 and cx"""
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u3(np.pi / 2, 0, np.pi / 4, qr[0])
+        circuit.cx(qr[0], qr[1])
+
+        expected = QuantumCircuit(qr)
+        expected.u2(0, np.pi / 4, qr[0])
+        expected.cx(qr[0], qr[1])
+
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(['u2', 'cx']))
         result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
