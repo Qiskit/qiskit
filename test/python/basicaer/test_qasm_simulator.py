@@ -69,7 +69,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.log_output.seek(0)
         # Filter unrelated log lines
         output_lines = self.log_output.readlines()
-        execute_log_lines = [x for x in output_lines if x.__contains__(log_msg)]
+        execute_log_lines = [x for x in output_lines if log_msg in x]
         self.assertTrue(len(execute_log_lines) > 0)
 
     def test_submission_log_time(self):
