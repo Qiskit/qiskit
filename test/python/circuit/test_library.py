@@ -442,7 +442,7 @@ class TestWeightedAdder(QiskitTestCase):
     """Test the weighted adder circuit."""
 
     def assertSummationIsCorrect(self, adder):
-        """Assert that ``adder`` correctly implements the summation w.r.t. it's set weights."""
+        """Assert that ``adder`` correctly implements the summation w.r.t. its set weights."""
 
         circuit = QuantumCircuit(adder.num_qubits)
         circuit.h(list(range(adder.num_state_qubits)))
