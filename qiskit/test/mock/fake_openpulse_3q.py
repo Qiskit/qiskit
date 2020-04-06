@@ -84,7 +84,7 @@ class FakeOpenPulse3Q(FakeBackend):
                     'operates': {'qubits': [2]}
                 },
                 'd0': {
-                    'type': 'drive'
+                    'type': 'drive',
                     'purpose': 'drive',
                     'operates': {'qubits': [0]}
                 },
@@ -116,12 +116,17 @@ class FakeOpenPulse3Q(FakeBackend):
                 'u0': {
                     'type': 'control',
                     'purpose': 'cross-resonance',
-                   'operates': {'qubits': [0, 1]}
+                    'operates': {'qubits': [0, 1]}
                 },
                 'u1': {
                     'type': 'control',
                     'purpose': 'cross-resonance',
                     'operates': {'qubits': [1, 0]}
+                },
+                'u2': {
+                    'type': 'control',
+                    'purpose': 'cross-resonance',
+                    'operates': {'qubits': [2]}
                 }
             }
         )
