@@ -100,11 +100,6 @@ class FakeOpenPulse2Q(FakeBackend):
                     'purpose': 'drive',
                     'type': 'drive'
                 },
-                'u0': {
-                    'operates': {'qubits': [0, 1]},
-                    'purpose': 'cross-resonance',
-                    'type': 'control'
-                },
                 'm0': {
                     'type': 'measure',
                     'purpose': 'measure',
@@ -114,6 +109,11 @@ class FakeOpenPulse2Q(FakeBackend):
                     'type': 'measure',
                     'purpose': 'measure',
                     'operates': {'qubits': [1]}
+                },
+                'u0': {
+                    'operates': {'qubits': [0, 1]},
+                    'purpose': 'cross-resonance',
+                    'type': 'control'
                 },
                 'u1': {
                     'operates': {'qubits': [1, 0]},
