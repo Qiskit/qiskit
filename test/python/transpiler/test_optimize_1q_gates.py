@@ -328,7 +328,6 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         expected.u2(0, np.pi / 4, qr[0])
         expected.cx(qr[0], qr[1])
 
-
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(['u2', 'cx']))
         result = passmanager.run(circuit)
