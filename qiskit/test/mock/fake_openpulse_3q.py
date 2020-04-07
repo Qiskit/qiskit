@@ -66,7 +66,69 @@ class FakeOpenPulse3Q(FakeBackend):
                 [100, 1000], [1000, 100], [100, 1000],
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ]
+            ],
+            channels={
+                'acquire0': {
+                    'type': 'acquire',
+                    'purpose': 'acquire',
+                    'operates': {'qubits': [0]}
+                },
+                'acquire1': {
+                    'type': 'acquire',
+                    'purpose': 'acquire',
+                    'operates': {'qubits': [1]}
+                },
+                'acquire2': {
+                    'type': 'acquire',
+                    'purpose': 'acquire',
+                    'operates': {'qubits': [2]}
+                },
+                'd0': {
+                    'type': 'drive',
+                    'purpose': 'drive',
+                    'operates': {'qubits': [0]}
+                },
+                'd1': {
+                    'type': 'drive',
+                    'purpose': 'drive',
+                    'operates': {'qubits': [1]}
+                },
+                'd2': {
+                    'type': 'drive',
+                    'purpose': 'drive',
+                    'operates': {'qubits': [2]}
+                },
+                'm0': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [0]}
+                },
+                'm1': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [1]}
+                },
+                'm2': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [2]}
+                },
+                'u0': {
+                    'type': 'control',
+                    'purpose': 'cross-resonance',
+                    'operates': {'qubits': [0, 1]}
+                },
+                'u1': {
+                    'type': 'control',
+                    'purpose': 'cross-resonance',
+                    'operates': {'qubits': [1, 0]}
+                },
+                'u2': {
+                    'type': 'control',
+                    'purpose': 'cross-resonance',
+                    'operates': {'qubits': [2, 1]}
+                }
+            }
         )
 
         self._defaults = PulseDefaults.from_dict({
