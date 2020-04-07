@@ -402,15 +402,9 @@ class AstInterpreter:
         if name in self.standard_extension:
             op = self.standard_extension[name](*params)
         elif name in self.gates:
-            if self.gates[name]['opaque']:
-                # call an opaque gate
-                op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
-            else:
-                # call a custom gate
-                op = Instruction(name=name,
-                                 num_qubits=self.gates[name]['n_bits'],
-                                 num_clbits=0,
-                                 params=params)
+            op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
+            if not self.gates[name]['opaque']:
+                # call a custom gate (otherwise, opaque)
                 op.definition = self._gate_definition_to_qiskit_definition(self.gates[name],
                                                                            params=params)
         else:

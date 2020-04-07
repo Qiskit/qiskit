@@ -145,7 +145,7 @@ class Instruction:
         warnings.warn('This instruction is not validating parameters.'
                       'Implement validate_parameter method to add validation.'
                       'In the future, the base class Instruction will raise NotImplemented',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=4)
         return parameter
 
     def is_parameterized(self):
