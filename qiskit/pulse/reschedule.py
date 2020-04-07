@@ -15,7 +15,7 @@
 """Deprecated transforms. Moved to "qiskit.pulse.transforms"."""
 import warnings
 
+from .transforms import *
+
 warnings.warn('This module has been moved to "qiskit.pulse.transforms".',
               DeprecationWarning)
-
-from .transforms import *
