@@ -55,7 +55,7 @@ class TestBuilderContext(QiskitTestCase):
 
 
 class TestContexts(TestBuilderContext):
-    """Test builder contexts."""
+    """test context builder contexts."""
     def test_parallel(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
@@ -198,7 +198,7 @@ class TestContexts(TestBuilderContext):
 
 
 class TestInstructions(TestBuilderContext):
-    """Test builder instructions."""
+    """test context builder instructions."""
 
     def test_delay(self):
         d0 = pulse.DriveChannel(0)
@@ -420,7 +420,7 @@ class TestInstructions(TestBuilderContext):
 
 
 class TestUtilities(TestBuilderContext):
-    """Test builder utilities."""
+    """test context builder utilities."""
     def test_current_backend(self):
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
@@ -473,7 +473,7 @@ class TestUtilities(TestBuilderContext):
 
 
 class TestMacros(TestBuilderContext):
-    """Test builder macros."""
+    """test context builder macros."""
 
     def test_measure(self):
         """Test utility function - measure."""
@@ -511,4 +511,4 @@ class TestMacros(TestBuilderContext):
 
 
 class TestGates(TestBuilderContext):
-    """Test builder gates."""
+    """test context builder gates."""
