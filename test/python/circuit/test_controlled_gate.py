@@ -904,7 +904,8 @@ class TestControlledGate(QiskitTestCase):
 
                 # assert both are representatives of one another
                 self.assertTrue(isinstance(new(*params), old))
-                self.assertTrue(isinstance(old(*params), new))
+                with self.assertWarns(DeprecationWarning):
+                    self.assertTrue(isinstance(old(*params), new))
 
 @ddt
 class TestParameterCtrlState(QiskitTestCase):
