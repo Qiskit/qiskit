@@ -224,14 +224,27 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-    # transpiling the circuits using given transpile options
-    if pass_manager is not None:
-        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
-                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
+    if schedule_circuit:
+        # do not transpile a schedule circuit
+        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
+            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
+        experiments = schedule(circuits=experiments,
+                               backend=backend,
+                               inst_map=inst_map,
+                               meas_map=meas_map,
+                               method=scheduling_method)
+    elif pass_manager is not None:
+        # transpiling using pass_manager
+        _check_conflicting_argument(optimization_level=optimization_level,
+                                    basis_gates=basis_gates,
+                                    coupling_map=coupling_map,
+                                    seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
-                                    initial_layout=initial_layout, backend=backend)
+                                    initial_layout=initial_layout,
+                                    backend=backend)
         experiments = pass_manager.run(experiments)
     else:
+        # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
                                 coupling_map=coupling_map,
@@ -240,16 +253,6 @@ def execute(experiments, backend,
                                 seed_transpiler=seed_transpiler,
                                 optimization_level=optimization_level,
                                 backend=backend)
-
-    if schedule_circuit:
-        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
-            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
-        experiments = schedule(circuits=experiments,
-                               backend=backend,
-                               inst_map=inst_map,
-                               meas_map=meas_map,
-                               method=scheduling_method
-                               )
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
