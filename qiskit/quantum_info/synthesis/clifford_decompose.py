@@ -270,12 +270,12 @@ def _cx_cost3(clifford):
     U = clifford.table.array
     n = 3
     # create information transfer matrices R1, R2
-    R1 = np.zeros((n, n), dtype=np.int8)
-    R2 = np.zeros((n, n), dtype=np.int8)
+    R1 = np.zeros((n, n), dtype=int)
+    R2 = np.zeros((n, n), dtype=int)
     for q1 in range(n):
         for q2 in range(n):
             R2[q1, q2] = _rank2(U[q1, q2], U[q1, q2 + n], U[q1 + n, q2], U[q1 + n, q2 + n])
-            mask = np.zeros(2 * n, dtype=np.int8)
+            mask = np.zeros(2 * n, dtype=int)
             mask[[q2, q2 + n]] = 1
             isLocX = np.array_equal(U[q1, :] & mask, U[q1, :])
             isLocZ = np.array_equal(U[q1 + n, :] & mask, U[q1 + n, :])
@@ -283,42 +283,33 @@ def _cx_cost3(clifford):
                                     (U[q1, :] ^ U[q1 + n, :]))
             R1[q1, q2] = 1 * (isLocX or isLocZ or isLocY) + 1 * (isLocX and isLocZ and isLocY)
 
-    diag1 = np.sort(np.diag(R1))
-    diag2 = np.sort(np.diag(R2))
+    diag1 = np.sort(np.diag(R1)).tolist()
+    diag2 = np.sort(np.diag(R2)).tolist()
 
     nz1 = np.count_nonzero(R1)
     nz2 = np.count_nonzero(R2)
 
-    if np.array_equal(diag1, np.array([2, 2, 2])):
+    if diag1 == [2, 2, 2]:
         return 0
 
-    if np.array_equal(diag1, np.array([1, 1, 2])):
+    if diag1 == [1, 1, 2]:
         return 1
 
-    if (np.array_equal(diag1, [0, 1, 1])
-            or (np.array_equal(diag1, [1, 1, 1]) and nz2 < 9)
-            or (np.array_equal(diag1, [0, 0, 2]) and np.array_equal(
-                diag2, np.array([1, 1, 2])))):
+    if (diag1 == [0, 1, 1]
+            or (diag1 == [1, 1, 1] and nz2 < 9)
+            or (diag1 == [0, 0, 2] and diag2 == [1, 1, 2])):
         return 2
 
-    if ((np.array_equal(diag1, [1, 1, 1]) and nz2 == 9)
-            or (np.array_equal(diag1, [0, 0, 1])
-                and np.array_equal(diag2, [2, 2, 2]))
-            or (np.array_equal(diag1, [0, 0, 1])
-                and np.array_equal(diag2, [1, 1, 2]) and nz2 < 9)
-            or (np.array_equal(diag1, [0, 0, 1]) and nz1 == 1)
-            or (np.array_equal(diag1, [0, 0, 2])
-                and np.array_equal(diag2, [0, 0, 2]))
-            or (nz1 == 0 and np.array_equal(diag2, [1, 2, 2]))):
+    if ((diag1 == [1, 1, 1] and nz2 == 9)
+            or (diag1 == [0, 0, 1] and (
+                nz1 == 1 or diag2 == [2, 2, 2] or (diag2 == [1, 1, 2] and nz2 < 9)))
+            or (diag1 == [0, 0, 2] and diag2 == [0, 0, 2])
+            or (diag2 == [1, 2, 2] and nz1 == 0)):
         return 3
 
-    if (np.array_equal(diag2, [0, 0, 1])
-            or (np.array_equal(diag1, [0, 0, 0])
-                and np.array_equal(diag2, [1, 1, 1])
-                and nz2 == 9 and nz1 == 3)
-            or (np.array_equal(diag1, [0, 0, 0])
-                and np.array_equal(diag2, [0, 1, 1])
-                and nz2 == 8 and nz1 == 2)):
+    if (diag2 == [0, 0, 1] or (diag1 == [0, 0, 0] and (
+            (diag2 == [1, 1, 1] and nz2 == 9 and nz1 == 3)
+            or (diag2 == [0, 1, 1] and nz2 == 8 and nz1 == 2)))):
         return 5
 
     if nz1 == 3 and nz2 == 3:
