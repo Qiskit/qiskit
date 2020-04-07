@@ -82,17 +82,25 @@ class Acquire(Instruction):
         else:
             channels = channel
 
-        if mem_slot and not isinstance(mem_slot, list):
-            mem_slot = [mem_slot]
+        if mem_slot:
+            try:
+                mem_slot = list(mem_slot)
+            except TypeError:
+                mem_slot = [mem_slot]
         elif mem_slots:
             mem_slot = mem_slots
+        else:
+            mem_slot = []
 
         if reg_slot:
-            reg_slot = [reg_slot]
-        elif reg_slots and not isinstance(reg_slots, list):
-            reg_slot = [reg_slots]
-        else:
+            try:
+                reg_slot = list(reg_slot)
+            except TypeError:
+                reg_slot = [reg_slot]
+        elif reg_slots:
             reg_slot = reg_slots
+        else:
+            reg_slot = []
 
         if channels and not (mem_slot or reg_slot):
             raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
@@ -104,14 +112,16 @@ class Acquire(Instruction):
             if len(channels) != len(reg_slot):
                 raise PulseError("The number of reg_slots must be equal to the number of "
                                  "channels.")
-        else:
-            reg_slot = []
 
         if name is None and channels is None:
             name = 'acq{:10x}'.format(hash((duration, kernel, discriminator)))
         elif name is None:
-            name = 'acq{:10x}'.format(hash((duration, tuple(channels), tuple(mem_slot),
-                                            tuple(reg_slot), kernel, discriminator)))
+            name = 'acq{:10x}'.format(hash((duration,
+                                            tuple(channels),
+                                            tuple(mem_slot),
+                                            tuple(reg_slot),
+                                            kernel,
+                                            discriminator)))
 
         if channels is not None:
             super().__init__(duration, *channels, *mem_slot, *reg_slot, name=name)
