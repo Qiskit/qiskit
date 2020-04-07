@@ -654,7 +654,7 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
         unitary_gates = []
-        for instruction, qargs, cargs in self._data:
+        for instruction, qargs, cargs in self.data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
