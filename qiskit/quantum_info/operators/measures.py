@@ -19,11 +19,18 @@ A collection of useful quantum information functions for operators.
 
 import warnings
 import numpy as np
+from scipy import sparse
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit.quantum_info.operators.channel import SuperOp
+from qiskit.quantum_info.operators.channel import SuperOp, Choi
+
+try:
+    import cvxpy
+    _HAS_CVX = True
+except ImportError:
+    _HAS_CVX = False
 
 
 def process_fidelity(channel,
@@ -200,3 +207,109 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
     """
     return 1 - average_gate_fidelity(
         channel, target=target, require_cp=require_cp, require_tp=require_tp)
+
+
+def diamond_norm(choi, **kwargs):
+    r"""Return the diamond norm of the input quantum channel object.
+
+    This function computes the completely-bounded trace-norm (often
+    referred to as the diamond-norm) of the input quantum channel object
+    using the semidefinite-program from reference [1].
+
+    Args:
+        choi(Choi or QuantumChannel): a quantum channel object or
+                                      Choi-matrix array.
+        kwargs: optional arguments to pass to CVXPY solver.
+
+    Returns:
+        float: The completely-bounded trace norm
+               :math:`\|\mathcal{E}\|_{\diamond}`.
+
+    Raises:
+        QiskitError: if CVXPY package cannot be found.
+
+    Additional Information:
+        The input to this function is typically *not* a CPTP quantum
+        channel, but rather the *difference* between two quantum channels
+        :math:`\|\Delta\mathcal{E}\|_\diamond` where
+        :math:`\Delta\mathcal{E} = \mathcal{E}_1 - \mathcal{E}_2`.
+
+    Reference:
+        J. Watrous. "Simpler semidefinite programs for completely bounded
+        norms", arXiv:1207.5726 [quant-ph] (2012).
+
+    .. note::
+
+        This function requires the optional CVXPY package to be installed.
+        Any additional kwargs will be passed to the ``cvxpy.solve``
+        function. See the CVXPY documentation for information on available
+        SDP solvers.
+    """
+    _cvxpy_check('`diamond_norm`')  # Check CVXPY is installed
+
+    if not isinstance(choi, Choi):
+        choi = Choi(choi)
+
+    def cvx_bmat(mat_r, mat_i):
+        """Block matrix for embedding complex matrix in reals"""
+        return cvxpy.bmat([[mat_r, -mat_i], [mat_i, mat_r]])
+
+    # Dimension of input and output spaces
+    dim_in = choi._input_dim
+    dim_out = choi._output_dim
+    size = dim_in * dim_out
+
+    # SDP Variables to convert to real valued problem
+    r0_r = cvxpy.Variable((dim_in, dim_in))
+    r0_i = cvxpy.Variable((dim_in, dim_in))
+    r0 = cvx_bmat(r0_r, r0_i)
+
+    r1_r = cvxpy.Variable((dim_in, dim_in))
+    r1_i = cvxpy.Variable((dim_in, dim_in))
+    r1 = cvx_bmat(r1_r, r1_i)
+
+    x_r = cvxpy.Variable((size, size))
+    x_i = cvxpy.Variable((size, size))
+    iden = sparse.eye(dim_out)
+
+    # Watrous uses row-vec convention for his Choi matrix while we use
+    # col-vec. It turns out row-vec convention is requried for CVXPY too
+    # since the cvxpy.kron function must have a constant as its first argument.
+    c_r = cvxpy.bmat([[cvxpy.kron(iden, r0_r), x_r], [x_r.T, cvxpy.kron(iden, r1_r)]])
+    c_i = cvxpy.bmat([[cvxpy.kron(iden, r0_i), x_i], [-x_i.T, cvxpy.kron(iden, r1_i)]])
+    c = cvx_bmat(c_r, c_i)
+
+    # Transpose out Choi-matrix to row-vec convention and vectorize.
+    choi_vec = np.transpose(
+        np.reshape(choi.data, (dim_in, dim_out, dim_in, dim_out)),
+        (1, 0, 3, 2)).ravel(order='F')
+    choi_vec_r = choi_vec.real
+    choi_vec_i = choi_vec.imag
+
+    # Constraints
+    cons = [
+        r0 >> 0, r0_r == r0_r.T, r0_i == - r0_i.T, cvxpy.trace(r0_r) == 1,
+        r1 >> 0, r1_r == r1_r.T, r1_i == - r1_i.T, cvxpy.trace(r1_r) == 1,
+        c >> 0
+    ]
+
+    # Objective function
+    obj = cvxpy.Maximize(choi_vec_r * cvxpy.vec(x_r) - choi_vec_i * cvxpy.vec(x_i))
+    prob = cvxpy.Problem(obj, cons)
+    sol = prob.solve(**kwargs)
+    return sol
+
+
+def _cvxpy_check(name):
+    """Check that a supported CVXPY version is installed"""
+    # Check if CVXPY package is installed
+    if not _HAS_CVX:
+        raise QiskitError(
+            'CVXPY backage is requried for {}. Install'
+            ' with `pip install cvxpy` to use.'.format(name))
+    # Check CVXPY version
+    version = cvxpy.__version__
+    if version[0] != '1':
+        raise ImportError(
+            'Incompatible CVXPY version {} found.'
+            ' Install version >=1.0.'.format(version))
