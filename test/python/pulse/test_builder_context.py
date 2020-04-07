@@ -21,6 +21,7 @@ import numpy as np
 
 import qiskit.circuit as circuit
 import qiskit.pulse as pulse
+import qiskit.pulse.macros as macros
 from qiskit.pulse.pulse_lib import gaussian
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -473,6 +474,19 @@ class TestUtilities(TestBuilderContext):
 
 class TestMacros(TestBuilderContext):
     """Test builder macros."""
+
+    def test_measure(self):
+        """Test utility function - measure."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.measure(0)
+
+        reference = macros.measure(
+            qubits=[0],
+            inst_map=self.backend.defaults().instruction_schedule_map,
+            meas_map=self.backend.configuration().meas_map)
+
+        self.assertEqual(schedule, reference)
 
 
 class TestGates(TestBuilderContext):

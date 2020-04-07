@@ -271,8 +271,5 @@ class TestPad(QiskitTestCase):
         self.assertEqual(pad(sched, channels=channels), ref_sched)
 
 
-class TestAlignmentTransforms(QiskitTestCase):
-    """Test alignment transformations."""
-
 if __name__ == '__main__':
     unittest.main()
