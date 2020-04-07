@@ -22,3 +22,43 @@ prelude: >
 
     For full details on all the changes made in this release see the detailed
     release notes below.
+
+upgrade:
+  - |
+    The :class:`qiskit.dagcircuit.DAGNode` method ``pop`` which was deprecated
+    in the 0.9.0 release has been removed. If you were using this method you
+    can leverage Python's ``del`` statement or ``delattr()`` function
+    to perform the same task.
+features:
+  - |
+    The circuit library :mod:`qiskit.circuit.library` has new circuit
+    definitions for arithmetic circuits:
+
+    * :class:`~qiskit.circuit.library.FunctionalPauliRotations`
+    * :class:`~qiskit.circuit.library.LinearPauliRotations`
+    * :class:`~qiskit.circuit.library.PolynomialPauliRotations`
+    * :class:`~qiskit.circuit.library.PiecewiseLinearPauliRotations`
+    * :class:`~qiskit.circuit.library.WeightedAdder`
+    * :class:`~qiskit.circuit.library.IntegerComparator`
+
+deprecations:
+  - |
+    Passing in the data to the constructor for
+    :class:`qiskit.dagcircuit.DAGNode` as a dictionary arg ``data_dict``
+    is deprecated and will be removed in a future release. Instead you should
+    now pass the fields in as kwargs to the constructor. For example the
+    previous behavior of::
+
+      from qiskit.dagcircuit import DAGNode
+
+      data_dict = {
+          'type': 'in',
+          'name': 'q_0',
+      }
+      node = DAGNode(data_dict)
+
+    should now be::
+
+      from qiskit.dagcircuit import DAGNode
+
+      node = DAGNode(type='in', name='q_0')
