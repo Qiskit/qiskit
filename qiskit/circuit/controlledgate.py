@@ -50,6 +50,7 @@ class ControlledGate(Gate):
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise CircuitError('number of control qubits must be less than the number of qubits')
+        self.base_gate = None
         if definition:
             self.definition = definition
             if len(definition) == 1:

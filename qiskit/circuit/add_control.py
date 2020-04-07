@@ -15,6 +15,7 @@
 Add control to operation if supported.
 """
 from typing import Union, Optional
+import re
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
@@ -93,8 +94,12 @@ def control(operation: Union[Gate, ControlledGate],
 
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        base_name = operation.base_gate.name
-        base_gate = operation.base_gate
+        if operation.base_gate:
+            base_gate = operation.base_gate
+            base_name = operation.base_gate.name
+        else:
+            base_gate = None
+            base_name = re.sub('^c+\d*', '', operation.name)
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
@@ -112,7 +117,7 @@ def control(operation: Union[Gate, ControlledGate],
     # detect opaque gate
     if not operation.definition:
         # since u3, cx, and i are opaque-like we want to distinguish them here;
-        if operation.__class__ is Gate:
+        if operation.__class__ in [Gate, ControlledGate]:
             cgate = controlledgate.ControlledGate(
                 new_name,
                 operation.num_qubits + num_ctrl_qubits,
@@ -123,8 +128,6 @@ def control(operation: Union[Gate, ControlledGate],
                 ctrl_state=ctrl_state)
             cgate.base_gate = base_gate
             return cgate
-        # else:
-        #     raise QiskitError('Controlled opaque gates should be ')
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
@@ -133,7 +136,7 @@ def control(operation: Union[Gate, ControlledGate],
 
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate.name == 'x'):
+            operation.base_gate and operation.base_gate.name == 'x'):
         qc.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
     elif operation.name == 'rx':
         qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
