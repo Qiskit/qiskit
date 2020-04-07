@@ -54,7 +54,7 @@ class TestBackendConfiguration(QiskitTestCase):
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if the system doesn't have that many qubits
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
-        self.assertEqual(self.config.control(0), ControlChannel(0))
+        self.assertEqual(self.config.control([0, 1]), ControlChannel(0))
 
     def test_get_channel_qubits(self):
         """Test to get all qubits operated on a given channel."""
@@ -64,11 +64,15 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
 
-    def test_get_qubit_channels_2q(self):
+    def test_get_qubit_channels(self):
         """Test to get all channels operated on a given qubit."""
         self.assertEqual(set(self.config.get_qubit_channels(qubit=1)),
-                         {MeasureChannel(1), AcquireChannel(1), ControlChannel(1),
-                          DriveChannel(1)})
+                         {AcquireChannel(1), ControlChannel(1), ControlChannel(0), DriveChannel(1),
+                          MeasureChannel(1)})
+        backend_3q = self.provider.get_backend('fake_openpulse_3q')
+        self.assertEqual(set(backend_3q.configuration().get_qubit_channels(1)),
+                         {MeasureChannel(1), ControlChannel(0), ControlChannel(2),
+                          AcquireChannel(1), DriveChannel(1), ControlChannel(1)})
 
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""

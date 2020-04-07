@@ -14,7 +14,7 @@
 
 """Model and schema for backend configuration."""
 import re
-from typing import Dict, List, Any, Set
+from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -402,15 +402,18 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, qubit: int) -> ControlChannel:
+    def control(self, qubits: List) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
+        Args:
+            qubits: List of qubits of the form `[control_qubit, target_qubit]`
+
         Returns:
             Qubit control channel.
         """
-        return ControlChannel(qubit)
+        return ControlChannel(qubits[0])
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """Return a list of indices for qubits which are operated on directly by the given channel.
@@ -420,24 +423,27 @@ class PulseBackendConfiguration(BackendConfiguration):
         control qubit and the value at index 1 is target qubit.
         """
         data = re.match(r"(?P<pulse_channel>[a-zA-Z]+)([(])(?P<index>[0-9]+)([)])", str(channel))
-        for ch, config in self.channels.items():
+        for pulse_channel, config in self.channels.items():
             if config['operates']['qubits'][0] == int(data.group('index')):
-                test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", ch)
+                test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", pulse_channel)
                 if data.group('pulse_channel') == 'DriveChannel' and test.group('channel') == 'd':
-                    return config['operates']['qubits']
-                elif data.group('pulse_channel') == 'MeasureChannel' and test.group('channel') == 'm':
-                    return config['operates']['qubits']
-                elif data.group('pulse_channel') == 'ControlChannel' and test.group('channel') == 'u':
-                    return config['operates']['qubits']
+                    qubits = config['operates']['qubits']
+                elif (data.group('pulse_channel') == 'MeasureChannel'
+                      and test.group('channel') == 'm'):
+                    qubits = config['operates']['qubits']
+                elif (data.group('pulse_channel') == 'ControlChannel'
+                      and test.group('channel') == 'u'):
+                    qubits = config['operates']['qubits']
                 elif (data.group('pulse_channel') == 'AcquireChannel' and
                       test.group('channel') == 'acquire'):
-                    return config['operates']['qubits']
+                    qubits = config['operates']['qubits']
+        return qubits
 
     def get_qubit_channels(self, qubit: int) -> List[Channel]:
         """Return a list of channels which operate on the given qubit."""
         channels = list()
         for channel, config in self.channels.items():
-            if int(config['operates']['qubits'][0]) == qubit:
+            if qubit in config['operates']['qubits']:
                 test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
                 if test.group('channel') == 'd':
                     channels.append(self.drive(qubit=qubit))
@@ -446,7 +452,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                 elif test.group('channel') == 'acquire':
                     channels.append(self.acquire(qubit=qubit))
                 elif test.group('channel') == 'u':
-                    channels.append(self.control(qubit=qubit))
+                    channels.append(self.control(qubits=config['operates']['qubits']))
         return channels
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
