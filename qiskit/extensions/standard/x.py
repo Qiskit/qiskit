@@ -630,16 +630,6 @@ class CCCXGate(ControlledGate):
     #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
 
-def cccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
-    """Apply :class:`~qiskit.extensions.standard.CCCXGate`."""
-    return self.append(CCCXGate(),
-                       [control_qubit1, control_qubit2, control_qubit3, target_qubit],
-                       [])
-
-
-QuantumCircuit.cccx = cccx
-
-
 class RCCCXGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
@@ -807,17 +797,6 @@ class CCCCXGate(ControlledGate):
     def inverse(self):
         """Invert this gate. The CCCCX is its own inverse."""
         return CCCCXGate()
-
-
-def ccccx(self, control_qubit1, control_qubit2, control_qubit3, control_qubit4, target_qubit):
-    """Apply :class:`~qiskit.extensions.standard.CCCCXGate`."""
-    return self.append(CCCCXGate(),
-                       [control_qubit1, control_qubit2, control_qubit3, control_qubit4,
-                        target_qubit],
-                       [])
-
-
-QuantumCircuit.ccccx = ccccx
 
 
 class MCXGate(ControlledGate):
