@@ -628,7 +628,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
 
 
 def cx(control: int, target: int):
-    call_gate(gates.CnotGate(), (control, target))
+    call_gate(gates.CXGate(), (control, target))
 
 
 def u1(qubit: int, theta: float):
