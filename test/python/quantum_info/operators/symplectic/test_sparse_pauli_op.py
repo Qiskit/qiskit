@@ -258,7 +258,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3])
-    def test_qargs_dot(self,  num_qubits):
+    def test_qargs_dot(self, num_qubits):
         """Test 3-qubit dot method with {num_qubits}-qubit qargs."""
         spp_op1 = self.random_spp_op(3, 2 ** 3)
         spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)

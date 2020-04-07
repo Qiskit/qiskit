@@ -292,7 +292,7 @@ class SparsePauliOp(BaseOperator):
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
         table = self.table.expand(other.table)
-        coeffs = np.kron([self.coeffs, other.coeffs])
+        coeffs = np.kron(self.coeffs, other.coeffs)
         return SparsePauliOp(table, coeffs)
 
     def _add(self, other, qargs=None):
