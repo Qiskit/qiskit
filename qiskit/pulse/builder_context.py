@@ -167,10 +167,11 @@ class _PulseBuilder():
     """Builder context class."""
 
     def __init__(self,
-                 backend, entry_block: Schedule = None,
+                 backend,
+                 entry_block: Schedule = None,
+                 default_alignment: Union[str, Callable] = 'left',
                  transpiler_settings: Mapping = None,
-                 circuit_scheduler_settings: Mapping = None,
-                 default_alignment: Union[str, Callable] = 'left'):
+                 circuit_scheduler_settings: Mapping = None):
         """Initialize builder context.
 
         This is not a public class
@@ -187,6 +188,10 @@ class _PulseBuilder():
         #: QuantumCircuit: Lazily constructed quantum circuit
         self._lazy_circuit = self.new_circuit()
 
+        # ContextManager: Default alignment context.
+        self._default_alignment_context = None
+        self.set_default_alignment_context(default_alignment)
+
         if transpiler_settings is None:
             transpiler_settings = {}
         self._transpiler_settings = transpiler_settings
@@ -202,16 +207,13 @@ class _PulseBuilder():
 
         self.set_current_block(Schedule())
 
-        # ContextManager: Default alignment context.
-        self._default_alignment_context = None
-        self._set_default_alignment(default_alignment)
-
     def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXT.set(self)
         with self._default_alignment_context:
             return self
 
+    @_schedule_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
         self.compile()
@@ -232,6 +234,7 @@ class _PulseBuilder():
         return self._transpiler_settings
 
     @transpiler_settings.setter
+    @_schedule_lazy_circuit_before
     def transpiler_settings(self, settings: Mapping):
         self.schedule_lazy_circuit()
         self._transpiler_settings = settings
@@ -241,6 +244,7 @@ class _PulseBuilder():
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
+    @_schedule_lazy_circuit_before
     def circuit_scheduler_settings(self, settings: Mapping):
         self.schedule_lazy_circuit()
         self._circuit_scheduler_settings = settings
@@ -257,6 +261,7 @@ class _PulseBuilder():
         elif (isinstance(default_alignment, str)):
             self._default_alignment_context = default_alignment
 
+    @_schedule_lazy_circuit_before
     def compile(self) -> Schedule:
         """Compile built program."""
         # Not much happens because we currently compile as we build.
@@ -325,15 +330,26 @@ class _PulseBuilder():
         self.call_circuit(qc)
 
 
-def build(backend, schedule):
+def build(backend, schedule: Schedule,
+          default_alignment: str = 'left',
+          transpiler_settings: Dict[str, Any] = None,
+          circuit_scheduler_settings: Dict[str, Any] = None):
     """
     A context manager for the pulse DSL.
 
     Args:
-        backend: a qiskit backend
+        backend (BaseBackend): a qiskit backend
         schedule: a *mutable* pulse Schedule
+        default_alignment: Default alignment context. One of ``left`` or ``right``,
+            or an alignment context instance.
+        transpiler_settings: Settings for the transpiler.
+        circuit_scheduler_settings: Settings for the circuit scheduler.
     """
-    return _PulseBuilder(backend, schedule)
+    return _PulseBuilder(backend,
+                         schedule,
+                         default_alignment=default_alignment,
+                         transpiler_settings=transpiler_settings,
+                         circuit_scheduler_settings=circuit_scheduler_settings)
 
 
 # Builder Utilities ############################################################
@@ -352,7 +368,10 @@ def current_backend():
 
 
 def append_block(block: Schedule):
-    """Append a block to the current block. The current block is not changed."""
+    """Append a block to the current block.
+
+    The current block is not changed.
+    """
     _current_builder().append_block(block)
 
 
@@ -362,9 +381,7 @@ def append_instruction(instruction: instructions.Instruction):
 
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
-    """
-    Returns the 'typical' set of channels associated with a qubit.
-    """
+    """Returns the 'typical' set of channels associated with a qubit."""
     raise NotImplementedError('Qubit channels is not yet implemented.')
 
 
@@ -397,13 +414,13 @@ def _transform_context(transform: Callable,
             try:
                 yield
             finally:
+                builder.schedule_lazy_circuit()
                 transformed_block = transform(transform_block,
                                               *args,
                                               **kwargs,
                                               **decorator_kwargs)
                 builder.set_current_block(current_block)
                 builder.append_block(transformed_block)
-
         return wrapped_transform
 
     return wrap
@@ -560,7 +577,7 @@ def call_schedule(schedule: Schedule):
 
 def call_circuit(circuit: circuit.QuantumCircuit, lazy=True):
     """Call a quantum ``circuit`` in the builder context."""
-    _current_builder().call_circuit(circuit, lazy=True)
+    _current_builder().call_circuit(circuit, lazy=lazy)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
@@ -569,8 +586,9 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
         call_circuit(target)
     elif isinstance(target, Schedule):
         call_schedule(target)
-    raise exceptions.PulseError(
-        'Target of type "{}" is not supported.'.format(type(target)))
+    else:
+        raise exceptions.PulseError(
+            'Target of type "{}" is not supported.'.format(type(target)))
 
 
 # Macros #######################################################################

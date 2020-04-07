@@ -344,7 +344,7 @@ class TestInstructions(TestBuilderContext):
         d1 = pulse.DriveChannel(1)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
+        reference = reference.insert(10, instructions.Delay(10, d0))
         reference += instructions.Delay(20, d1)
 
         schedule = pulse.Schedule()
@@ -363,22 +363,26 @@ class TestInstructions(TestBuilderContext):
 
     def test_call_circuit(self):
         inst_map = self.backend.defaults().instruction_schedule_map
-        reference = inst_map.get('cx', (0, 1))
+        reference = inst_map.get('u1', (0,), 0.0)
 
-        cx_qc = circuit.QuantumCircuit(2)
-        cx_qc.cx(0, 1)
+        u1_qc = circuit.QuantumCircuit(2)
+        u1_qc.u1(0.0, 0)
 
-        schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
-            with pulse.right_align():
-                pulse.call_circuit(cx_qc)
-
-        self.assertEqual(schedule, reference)
+        transpiler_settings = {'optimization_level': 0}
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(self.backend,
+                         schedule,
+                         transpiler_settings=transpiler_settings):
             with pulse.right_align():
-                pulse.call(cx_qc)
+                pulse.call_circuit(u1_qc)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend,
+                         schedule,
+                         transpiler_settings=transpiler_settings):
+            with pulse.right_align():
+                pulse.call(u1_qc)
 
         self.assertEqual(schedule, reference)
 

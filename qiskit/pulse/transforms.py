@@ -18,6 +18,7 @@ Basic rescheduling functions which take schedules or instructions
 """
 import warnings
 
+import collections
 from typing import List, Optional, Iterable
 
 import numpy as np
@@ -268,23 +269,20 @@ def right_align(schedule: Schedule) -> Schedule:
         right aligned.
     """
     left_aligned = left_align(schedule)
-    max_duration = 0
+    total_duration = left_aligned.duration
 
-    channel_durations = {}
-    for channel in left_aligned.channels:
-        channel_sched = left_aligned.filter(channels=[channel])
-        channel_duration = channel_sched.duration-channel_sched.start_time
-        channel_durations[channel] = channel_sched.duration
-        max_duration = max(max_duration, channel_duration)
+    latest_available_times = collections.defaultdict(lambda: total_duration)
+    right_aligned = Schedule()
+    for _, child in left_aligned.children:
+        child_channels = child.channels
+        latest_available_duration = min(latest_available_times[channel] for
+                                        channel in child_channels)
+        insert_time = latest_available_duration - child.duration
+        right_aligned.insert(insert_time, child, mutate=True)
+        latest_available_times.update(
+            dict.fromkeys(child_channels, insert_time))
 
-    aligned = Schedule()
-    for instr_time, instruction in left_aligned.instructions:
-        instr_max_dur = max(channel_durations[channel] for channel in
-                            instruction.channels)
-        instr_delayed_time = max_duration - instr_max_dur + instr_time
-        aligned.insert(instr_delayed_time, instruction, mutate=True)
-
-    return aligned
+    return right_aligned
 
 
 def left_barrier(schedule: Schedule,
