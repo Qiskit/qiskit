@@ -165,6 +165,7 @@ class TestBasisChanges(QiskitTestCase):
             self.assertEqual(ops.get('barrier', 0), expected)
 
 
+@ddt
 class TestFunctionalPauliRotations(QiskitTestCase):
     """Test the functional Pauli rotations."""
 
