@@ -23,4 +23,3 @@ sphinx-tabs>=1.1.11
 sphinx-autodoc-typehints
 jupyter-sphinx
 pygments>=2.4
-cvxpy>=1.0.15
