@@ -16,12 +16,10 @@
 Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
-from numbers import Number
 import numpy
 import scipy.linalg
 
-from qiskit.circuit import Gate, ParameterExpression
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.exceptions import ExtensionError
@@ -74,23 +72,18 @@ class HamiltonianGate(Gate):
             return False
         if self.label != other.label:
             return False
-        # Should we match unitaries as equal if they are equal
-        # up to global phase?
         operators_eq = matrix_equal(self.params[0], other.params[0], ignore_phase=True)
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
     def to_matrix(self):
         """Return matrix for the unitary."""
-        unbound_t = False
-        if isinstance(self.params[1], ParameterExpression):
-            unbound_t = len(self.params[1].parameters) > 0
-        if isinstance(self.params[1], Number) or not unbound_t:
+        try:
             # pylint: disable=no-member
-            return scipy.linalg.expm(1j * self.params[0] * self.params[1])
-        else:
-            raise NotImplementedError("Unable to generate Unitary matrix for "
-                                      "unbound t parameter {}".format(self.params[1]))
+            return scipy.linalg.expm(1j * self.params[0] * float(self.params[1]))
+        except TypeError:
+            raise TypeError("Unable to generate Unitary matrix for "
+                            "unbound t parameter {}".format(self.params[1]))
 
     def inverse(self):
         """Return the adjoint of the unitary."""
@@ -110,7 +103,8 @@ class HamiltonianGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        self.definition = UnitaryGate(self.to_matrix()).definition
+        q = QuantumRegister(self.num_qubits, 'q')
+        self.definition = [UnitaryGate(self.to_matrix()), q[:], []]
 
 
 def hamiltonian(self, operator, time, qubits, label=None):
