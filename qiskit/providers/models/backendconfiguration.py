@@ -14,6 +14,7 @@
 
 """Model and schema for backend configuration."""
 import re
+import warnings
 from typing import Dict, List
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
@@ -402,18 +403,24 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, qubits: List) -> ControlChannel:
+    def control(self, channel: int, qubits: List = None) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
         Args:
+            channels: Deprecated
             qubits: List of qubits of the form `[control_qubit, target_qubit]`
 
         Returns:
             Qubit control channel.
         """
-        return ControlChannel(qubits[0])
+        if qubits:
+            return ControlChannel(qubits[0])
+        warnings.warn('control(channel: int) is deprecated. Use '
+                      'control(qubits: List[control_qubit, target_qubit]) instead.',
+                      DeprecationWarning)
+        return ControlChannel(channel)
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """Return a list of indices for qubits which are operated on directly by the given channel.
