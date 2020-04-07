@@ -23,7 +23,6 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.qasm.node.real import Real
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.extensions.standard.barrier import Barrier
