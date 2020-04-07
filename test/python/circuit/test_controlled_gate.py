@@ -19,7 +19,7 @@ import unittest
 from test import combine
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
@@ -305,7 +305,7 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
-        for ctrl_state in range(2**num_controls):
+        for ctrl_state in range(2 ** num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             lam = 0.3165354 * pi
             qc = QuantumCircuit(q_controls, q_target)
@@ -357,7 +357,7 @@ class TestControlledGate(QiskitTestCase):
 
         # compare to expectation
         if num_ancillas > 0:
-            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+            simulated = simulated[:2 ** (num_controls + 1), :2 ** (num_controls + 1)]
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -386,7 +386,7 @@ class TestControlledGate(QiskitTestCase):
 
         simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
         if num_ancillas > 0:
-            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+            simulated = simulated[:2 ** (num_controls + 1), :2 ** (num_controls + 1)]
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -415,7 +415,7 @@ class TestControlledGate(QiskitTestCase):
 
         simulated = execute(qc, BasicAer.get_backend('unitary_simulator')).result().get_unitary(qc)
         if num_ancillas > 0:
-            simulated = simulated[:2**(num_controls + 1), :2**(num_controls + 1)]
+            simulated = simulated[:2 ** (num_controls + 1), :2 ** (num_controls + 1)]
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -451,7 +451,7 @@ class TestControlledGate(QiskitTestCase):
         num_target = 1
         qreg = QuantumRegister(num_ctrl + num_target)
 
-        theta = pi/2
+        theta = pi / 2
         gu1 = u1.U1Gate(theta)
         grx = rx.RXGate(theta)
         gry = ry.RYGate(theta)
@@ -520,7 +520,7 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
-        for ctrl_state in range(2**num_controls):
+        for ctrl_state in range(2 ** num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
             qc = QuantumCircuit(q_controls, q_target)
@@ -571,7 +571,7 @@ class TestControlledGate(QiskitTestCase):
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
 
-        for ctrl_state in range(2**num_controls):
+        for ctrl_state in range(2 ** num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
             if num_ancillas > 0:
@@ -597,7 +597,7 @@ class TestControlledGate(QiskitTestCase):
             backend = BasicAer.get_backend('unitary_simulator')
             simulated = execute(qc, backend).result().get_unitary(qc)
             if num_ancillas > 0:
-                simulated = simulated[:2**(num_controls + 1), :2**(num_controls+1)]
+                simulated = simulated[:2 ** (num_controls + 1), :2 ** (num_controls + 1)]
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
 
@@ -651,7 +651,7 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2
-        base_gate = random_unitary(2**num_target).to_instruction()
+        base_gate = random_unitary(2 ** num_target).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
@@ -668,7 +668,7 @@ class TestControlledGate(QiskitTestCase):
         for i in range(num_target_qubits - 1):
             target_op = target_op.tensor(XGate())
 
-        for i in range(2**num_qubits):
+        for i in range(2 ** num_qubits):
             input_bitstring = bin(i)[2:].zfill(num_qubits)
             input_target = input_bitstring[0:num_target_qubits]
             input_ctrl = input_bitstring[-num_ctrl_qubits:]
@@ -676,7 +676,7 @@ class TestControlledGate(QiskitTestCase):
             cop = Operator(_compute_control_matrix(target_op.data,
                                                    num_ctrl_qubits,
                                                    ctrl_state=input_ctrl))
-            for j in range(2**num_qubits):
+            for j in range(2 ** num_qubits):
                 output_bitstring = bin(j)[2:].zfill(num_qubits)
                 output_target = output_bitstring[0:num_target_qubits]
                 output_ctrl = output_bitstring[-num_ctrl_qubits:]
@@ -727,7 +727,7 @@ class TestControlledGate(QiskitTestCase):
                     continue
                 try:
                     numargs = len(_get_free_params(cls))
-                    args = [2]*numargs
+                    args = [2] * numargs
 
                     gate = cls(*args)
                     self.assertEqual(gate.inverse().control(2),
@@ -741,7 +741,7 @@ class TestControlledGate(QiskitTestCase):
         """Test controlled versions of all standard gates."""
         gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
         theta = pi / 2
-        ctrl_state_ones = 2**num_ctrl_qubits - 1
+        ctrl_state_ones = 2 ** num_ctrl_qubits - 1
         ctrl_state_zeros = 0
         ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
         for cls in gate_classes:
@@ -850,7 +850,7 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state=-1)
         with self.assertRaises(CircuitError):
-            base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
+            base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
@@ -905,6 +905,29 @@ class TestControlledGate(QiskitTestCase):
                 # assert both are representatives of one another
                 self.assertTrue(isinstance(new(*params), old))
                 self.assertTrue(isinstance(old(*params), new))
+
+@ddt
+class TestParameterCtrlState(QiskitTestCase):
+    @data((RXGate(0.5), CRXGate(0.5)),
+          (RYGate(0.5), CRYGate(0.5)),
+          (RZGate(0.5), CRZGate(0.5)),
+          (XGate(), CXGate()),
+          (YGate(), CYGate()),
+          (ZGate(), CZGate()),
+          (U1Gate(0.5), CU1Gate(0.5)),
+          (SwapGate(), CSwapGate()),
+          (HGate(), CHGate()),
+          (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)))
+    @unpack
+    def test_ctrl_state_one(self, gate, controlled_gate):
+        """Test controlled gates with ctrl_state
+        See https://github.com/Qiskit/qiskit-terra/pull/4025
+        """
+        self.assertEqual(gate.control(1, ctrl_state='1'), controlled_gate)
+        # TODO: once https://github.com/Qiskit/qiskit-terra/issues/3304 is fixed
+        # TODO: move this test to
+        # self.assertEqual(Operator(gate.control(1, ctrl_state='1')),
+        # Operator(controlled_gate.to_matrix()))
 
 
 if __name__ == '__main__':
