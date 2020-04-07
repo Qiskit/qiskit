@@ -365,9 +365,8 @@ class WeightedPauliOperator(BaseOperator):
                         break
             for idx in indices:
                 new_idx = old_to_new_indices[idx]
-                if new_idx is not None:
+                if new_idx is not None and new_idx not in new_indices:
                     new_indices.append(new_idx)
-            new_indices = list(set(new_indices))
             if new_indices and not found:
                 new_basis.append((basis, new_indices))
         op._basis = new_basis
