@@ -29,6 +29,8 @@ from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate, HGate,
                                         SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
+from qiskit.quantum_info.synthesis.clifford_decompose import (
+    decompose_clifford_ag, decompose_clifford_bm)
 
 
 class VGate(Gate):
