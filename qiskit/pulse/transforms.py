@@ -275,8 +275,11 @@ def right_align(schedule: Schedule) -> Schedule:
     right_aligned = Schedule()
     for _, child in left_aligned.children:
         child_channels = child.channels
-        latest_available_duration = min(latest_available_times[channel] for
-                                        channel in child_channels)
+        if child_channels:
+            latest_available_duration = min(latest_available_times[channel] for
+                                            channel in child_channels)
+        else:
+            latest_available_duration = 0
         insert_time = latest_available_duration - child.duration
         right_aligned.insert(insert_time, child, mutate=True)
         latest_available_times.update(

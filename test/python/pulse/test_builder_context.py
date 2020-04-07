@@ -585,7 +585,6 @@ class TestGates(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_measure(self):
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):

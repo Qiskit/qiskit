@@ -275,13 +275,7 @@ class Schedule(ScheduleComponent):
             start_time: Time to insert the second schedule.
             schedule: Schedule to mutably insert.
         """
-        if isinstance(schedule, Schedule):
-            shifted_children = schedule.children
-            if start_time != 0:
-                shifted_children = tuple((t + start_time, child) for t, child in shifted_children)
-            self._children += shifted_children
-        else:  # isinstance(schedule, Instruction)
-            self._children += ((start_time, schedule),)
+        self._children += ((start_time, schedule),)
 
         sched_timeslots = (schedule.timeslots if start_time == 0
                            else schedule.timeslots.shift(start_time))
