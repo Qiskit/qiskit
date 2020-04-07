@@ -153,10 +153,8 @@ class SparsePauliOp(BaseOperator):
         # Compose with adjoint
         val = self.compose(self.adjoint()).simplify()
         # See if the result is an identity
-        if (val.size == 1 and np.all(~val.table.X & ~val.table.Z)
-                and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)):
-            return True
-        return False
+        return (val.size == 1 and np.all(~val.table.X & ~val.table.Z)
+                and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol))
 
     def conjugate(self):
         """Return the conjugate of the operator."""
@@ -174,7 +172,7 @@ class SparsePauliOp(BaseOperator):
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
         ret = self.copy()
-        minus = (-1) ** np.sum(ret.X & ret.Z, axis=1) % 2
+        minus = (-1) ** np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2)
         ret._coeffs *= minus
         return ret
 
@@ -275,7 +273,7 @@ class SparsePauliOp(BaseOperator):
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
         table = self.table.tensor(other.table)
-        coeffs = np.concatenate([self.coeffs, other.coeffs])
+        coeffs = np.kron(self.coeffs, other.coeffs)
         return SparsePauliOp(table, coeffs)
 
     def expand(self, other):
@@ -294,7 +292,7 @@ class SparsePauliOp(BaseOperator):
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
         table = self.table.expand(other.table)
-        coeffs = np.concatenate([self.coeffs, other.coeffs])
+        coeffs = np.kron([self.coeffs, other.coeffs])
         return SparsePauliOp(table, coeffs)
 
     def _add(self, other, qargs=None):
@@ -417,9 +415,9 @@ class SparsePauliOp(BaseOperator):
         """
         # Get default atol and rtol
         if atol is None:
-            atol = SparsePauliOp.atol
+            atol = SparsePauliOp._ATOL_DEFAULT
         if rtol is None:
-            rtol = SparsePauliOp.rtol
+            rtol = SparsePauliOp._RTOL_DEFAULT
 
         if not isinstance(obj, Operator):
             obj = Operator(obj)
@@ -449,7 +447,8 @@ class SparsePauliOp(BaseOperator):
 
     @staticmethod
     def from_list(obj):
-        """Construct from a list [(coeff, Pauli_Str)]"""
+        """Construct from a list [(pauli_str, coeffs)]"""
+        obj = list(obj)  # To convert zip or other iterable
         num_qubits = len(PauliTable._from_label(obj[0][0]))
         size = len(obj)
         coeffs = np.zeros(size, dtype=complex)
@@ -472,7 +471,7 @@ class SparsePauliOp(BaseOperator):
                           return a list (Default: False).
 
         Returns:
-            list or array: The rows of the PauliTable in label form.
+            list or array: List of pairs (label, coeff) for rows of the PauliTable.
         """
         # Dtype for a structured array with string labels and complex coeffs
         pauli_labels = self.table.to_labels(array=True)
