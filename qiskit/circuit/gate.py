@@ -223,8 +223,8 @@ class Gate(Instruction):
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
-        if isinstance(parameter, (int, float, ParameterExpression)):
+        if isinstance(parameter, (int, float, np.number, ParameterExpression)):
             return parameter
         else:
-            raise CircuitError("invalid param type {0} for gate  "
-                               "{1}".format(type(parameter), self.name))
+            raise CircuitError("invalid param type {0} for gate {1}".format(type(parameter),
+                                                                            self.name))
