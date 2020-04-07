@@ -79,7 +79,7 @@ class PauliMeasure(Instruction):
         transformations = []
 
         from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.s import SdgGate
+        from qiskit.extensions.standard.s import SGate, SdgGate
 
         for qubit_basis in basis:
             if qubit_basis.lower() == 'x':
@@ -87,7 +87,7 @@ class PauliMeasure(Instruction):
             elif qubit_basis.lower() == 'y':
                 # since measure and S commute, S and Sdg cancel each other
                 pre_rotation = [SdgGate(), HGate()]
-                post_rotation = [HGate(), SdgGate()]
+                post_rotation = [HGate(), SGate()]
             elif qubit_basis.lower() == 'z':
                 pre_rotation = post_rotation = []
             else:
