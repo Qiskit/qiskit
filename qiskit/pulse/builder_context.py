@@ -134,7 +134,8 @@ import contextvars
 import functools
 import numpy as np
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Mapping, Set, Tuple, Union
+from typing import (Any, Callable, ContextManager, Dict,
+                    Mapping, Set, Tuple, Union)
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -168,7 +169,8 @@ class _PulseBuilder():
     def __init__(self,
                  backend, entry_block: Schedule = None,
                  transpiler_settings: Mapping = None,
-                 circuit_scheduler_settings: Mapping = None):
+                 circuit_scheduler_settings: Mapping = None,
+                 default_alignment: Union[str, Callable] = 'left'):
         """Initialize builder context.
 
         This is not a public class
@@ -200,10 +202,15 @@ class _PulseBuilder():
 
         self.set_current_block(Schedule())
 
+        # ContextManager: Default alignment context.
+        self._default_alignment_context = None
+        self._set_default_alignment(default_alignment)
+
     def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXT.set(self)
-        return self
+        with self._default_alignment_context:
+            return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
@@ -237,6 +244,18 @@ class _PulseBuilder():
     def circuit_scheduler_settings(self, settings: Mapping):
         self.schedule_lazy_circuit()
         self._circuit_scheduler_settings = settings
+
+    def set_default_alignment_context(self,
+                                      default_alignment:
+                                      Union[str, ContextManager] = 'left'):
+        """Set the default alignment."""
+        if default_alignment == 'left':
+            self._default_alignment_context = left_align()
+        elif default_alignment == 'right':
+            self._default_alignment_context = right_align()
+        # Assume is a contextmanager
+        elif (isinstance(default_alignment, str)):
+            self._default_alignment_context = default_alignment
 
     def compile(self) -> Schedule:
         """Compile built program."""
