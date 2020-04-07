@@ -15,7 +15,6 @@
 """Tests basic functionality of the transpile function"""
 
 import math
-import unittest
 import io
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
