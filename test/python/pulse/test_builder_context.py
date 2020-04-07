@@ -41,15 +41,16 @@ class TestBuilderContext(QiskitTestCase):
     def test_context(self):
         """Test a general program build."""
         schedule = pulse.Schedule()
+        d0 = pulse.DriveChannel(0)
         with pulse.build(self.backend, schedule):
-            pulse.delay(0, 1000)
+            pulse.delay(d0, 1000)
             pulse.u2(0, 0, pi/2)
-            pulse.delay(0, 1000)
+            pulse.delay(d0, 1000)
             pulse.u2(0, 0, pi)
             with pulse.left_align():
-                pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
+                pulse.play(d0, gaussian(500, 0.1, 125))
                 pulse.shift_phase(pulse.DriveChannel(0), pi/2)
-                pulse.play(pulse.DriveChannel(0), gaussian(500, 0.1, 125))
+                pulse.play(d0, gaussian(500, 0.1, 125))
                 pulse.u2(1, 0, pi/2)
             with pulse.sequential():
                 pulse.u2(0, 0, pi/2)
