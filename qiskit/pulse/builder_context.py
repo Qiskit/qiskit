@@ -231,7 +231,7 @@ class _PulseBuilder():
 
     @property
     def circuit_scheduler_settings(self) -> Mapping:
-        return self._transpiler_settings
+        return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
     def circuit_scheduler_settings(self, settings: Mapping):
@@ -349,6 +349,16 @@ def qubit_channels(qubit: int) -> Set[channels.Channel]:
     raise NotImplementedError('Qubit channels is not yet implemented.')
 
 
+def current_transpiler_settings() -> Dict[str, Any]:
+    """Return current context transpiler settings."""
+    return _current_builder().transpiler_settings
+
+
+def current_circuit_scheduler_settings() -> Dict[str, Any]:
+    """Return current context circuit scheduler settings."""
+    return _current_builder().circuit_scheduler_settings
+
+
 # Contexts ###########################################################
 def _transform_context(transform: Callable,
                        **decorator_kwargs) -> Callable:
@@ -421,39 +431,27 @@ def pad(*channels):
 @contextmanager
 def transpiler_settings(**settings):
     """Set the current current tranpiler settings for this context."""
-    if settings:
-        builder = _current_builder()
-        transpiler_settings = builder.transpiler_settings
-        builder.transpiler_settings = collections.ChainMap(
-            settings, transpiler_settings)
-        try:
-            yield
-        finally:
-            builder.transpiler_settings = transpiler_settings
-    yield
+    builder = _current_builder()
+    current_transpiler_settings = builder.transpiler_settings
+    builder.transpiler_settings = collections.ChainMap(
+        settings, current_transpiler_settings)
+    try:
+        yield
+    finally:
+        builder.transpiler_settings = current_transpiler_settings
 
 
 @contextmanager
-def circuit_scheduling_settings(**settings):
+def circuit_scheduler_settings(**settings):
     """Set the current current circuit scheduling settings for this context."""
-    if settings:
-        builder = _current_builder()
-        circuit_scheduler_settings = builder.circuit_scheduler_settings
-        builder.circuit_scheduler_settings = collections.ChainMap(
-            settings, circuit_scheduler_settings)
-        try:
-            yield
-        finally:
-            builder.circuit_scheduler_settings = circuit_scheduler_settings
-    yield
-
-
-def current_transpiler_settings() -> Dict[str, Any]:
-    """Return current context transpiler settings."""
-
-
-def current_circuit_scheduler_settings() -> Dict[str, Any]:
-    """Return current context circuit scheduler settings."""
+    builder = _current_builder()
+    current_circuit_scheduler_settings = builder.circuit_scheduler_settings
+    builder.circuit_scheduler_settings = collections.ChainMap(
+        settings, current_circuit_scheduler_settings)
+    try:
+        yield
+    finally:
+        builder.circuit_scheduler_settings = current_circuit_scheduler_settings
 
 
 # Base Instructions ############################################################

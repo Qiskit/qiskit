@@ -53,8 +53,8 @@ class TestBuilderContext(QiskitTestCase):
             pulse.measure(0)
 
 
-class TestTransforms(TestBuilderContext):
-    """Test builder transforms."""
+class TestContexts(TestBuilderContext):
+    """Test builder contexts."""
     def test_parallel(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
@@ -158,6 +158,24 @@ class TestTransforms(TestBuilderContext):
         # d1
         reference = reference.insert(10, instructions.Play(test_pulse, d1))
         self.assertEqual(schedule, reference)
+
+    def test_transpiler_settings(self):
+        """Test that two cx gates are optimized away with higher optimization level"""
+        twice_cx_qc = circuit.QuantumCircuit(2)
+        twice_cx_qc.cx(0, 1)
+        twice_cx_qc.cx(0, 1)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.transpiler_settings(optimization_level=0):
+                pulse.call_circuit(twice_cx_qc)
+        self.assertNotEqual(len(schedule.instructions), 0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.transpiler_settings(optimization_level=3):
+                pulse.call_circuit(twice_cx_qc)
+        self.assertEqual(len(schedule.instructions), 0)
 
 
 class TestInstructions(TestBuilderContext):
@@ -413,6 +431,22 @@ class TestUtilities(TestBuilderContext):
             qubit_channels = pulse.qubit_channels(0)
 
         self.assertEqual(qubit_channels, set())
+
+    def test_current_transpiler_settings(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertFalse(pulse.current_transpiler_settings())
+            with pulse.transpiler_settings(test_setting=1):
+                self.assertEqual(
+                    pulse.current_transpiler_settings()['test_setting'], 1)
+
+    def test_current_circuit_scheduler_settings(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertFalse(pulse.current_circuit_scheduler_settings())
+            with pulse.circuit_scheduler_settings(test_setting=1):
+                self.assertEqual(
+                    pulse.current_circuit_scheduler_settings()['test_setting'], 1)
 
 
 class TestMacros(TestBuilderContext):
