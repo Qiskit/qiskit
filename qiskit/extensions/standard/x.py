@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""X, CX, CCX, CCCX and CCCCX gates."""
+"""X, CX, CCX, C3X and C4X gates."""
 
 from math import ceil
 import numpy
@@ -110,9 +110,9 @@ class XGate(Gate):
             if num_ctrl_qubits == 2:
                 return CCXGate()
             if num_ctrl_qubits == 3:
-                return CCCXGate()
+                return C3XGate()
             if num_ctrl_qubits == 4:
-                return CCCCXGate()
+                return C4XGate()
             return MCXGate(num_ctrl_qubits)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
@@ -228,9 +228,9 @@ class CXGate(ControlledGate, metaclass=CXMeta):
             if num_ctrl_qubits == 1:
                 return CCXGate()
             if num_ctrl_qubits == 2:
-                return CCCXGate()
+                return C3XGate()
             if num_ctrl_qubits == 3:
-                return CCCCXGate()
+                return C4XGate()
             return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1)
 
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
@@ -398,9 +398,9 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CCCXGate()
+                return C3XGate()
             if num_ctrl_qubits == 2:
-                return CCCCXGate()
+                return C4XGate()
             return MCXGate(num_ctrl_qubits + 2)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
@@ -513,7 +513,7 @@ def rccx(self, control_qubit1, control_qubit2, target_qubit):
 QuantumCircuit.rccx = rccx
 
 
-class CCCXGate(ControlledGate):
+class C3XGate(ControlledGate):
     """The 3-qubit controlled X gate.
 
     This implementation is based on Page 17 of [1].
@@ -535,7 +535,7 @@ class CCCXGate(ControlledGate):
 
     def _define(self):
         """
-        gate cccx a,b,c,d
+        gate c3x a,b,c,d
         {
             h d; cu1(-pi/4) a,d; h d;
             cx a,b;
@@ -600,18 +600,18 @@ class CCCXGate(ControlledGate):
         if ctrl_state is None:
             if self._angle == numpy.pi / 4:
                 if num_ctrl_qubits == 1:
-                    return CCCCXGate()
+                    return C4XGate()
                 return MCXGate(num_ctrl_qubits + 3)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate. The CCCX is its own inverse."""
-        return CCCXGate(angle=self._angle)
+        """Invert this gate. The C3X is its own inverse."""
+        return C3XGate(angle=self._angle)
 
     # This matrix is only correct if the angle is pi/4
     # def to_matrix(self):
-    #     """Return a numpy.array for the CCCX gate."""
+    #     """Return a numpy.array for the C3X gate."""
     #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #                         [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #                         [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -630,7 +630,7 @@ class CCCXGate(ControlledGate):
     #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
 
-class RCCCXGate(Gate):
+class RC3XGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
     The simplified Toffoli gate implements the Toffoli gate up to relative phases.
@@ -642,12 +642,12 @@ class RCCCXGate(Gate):
     """
 
     def __init__(self):
-        """Create a new RCCCX gate."""
+        """Create a new RC3X gate."""
         super().__init__('rcccx', 4, [])
 
     def _define(self):
         """
-        gate rcccx a,b,c,d
+        gate rc3x a,b,c,d
         { u2(0,pi) d;
           u1(pi/4) d;
           cx c,d;
@@ -693,7 +693,7 @@ class RCCCXGate(Gate):
         self.definition = definition
 
     def to_matrix(self):
-        """Return a numpy.array for the RCCCX gate."""
+        """Return a numpy.array for the RC3X gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -713,15 +713,15 @@ class RCCCXGate(Gate):
 
 
 def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
-    """Apply :class:`~qiskit.extensions.standard.RCCCXGate`."""
-    return self.append(RCCCXGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+    """Apply :class:`~qiskit.extensions.standard.RC3XGate`."""
+    return self.append(RC3XGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit],
                        [])
 
 
 QuantumCircuit.rcccx = rcccx
 
 
-class CCCCXGate(ControlledGate):
+class C4XGate(ControlledGate):
     """The 4-qubit controlled X gate.
 
     This implementation is based on Page 21, Lemma 7.5, of [1].
@@ -737,7 +737,7 @@ class CCCCXGate(ControlledGate):
 
     def _define(self):
         """
-        gate cccsqrtx a,b,c,d
+        gate c3sqrtx a,b,c,d
         {
             h d; cu1(-pi/8) a,d; h d;
             cx a,b;
@@ -753,13 +753,13 @@ class CCCCXGate(ControlledGate):
             cx a,c;
             h d; cu1(-pi/8) c,d; h d;
         }
-        gate ccccx a,b,c,d,e
+        gate c4x a,b,c,d,e
         {
             h e; cu1(-pi/2) d,e; h e;
-            cccx a,b,c,d;
+            c3x a,b,c,d;
             h d; cu1(pi/4) d,e; h d;
-            cccx a,b,c,d;
-            cccsqrtx a,b,c,e;
+            c3x a,b,c,d;
+            c3sqrtx a,b,c,e;
         }
         """
         from qiskit.extensions.standard.u1 import CU1Gate
@@ -768,12 +768,12 @@ class CCCCXGate(ControlledGate):
             (HGate(), [q[4]], []),
             (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-            (CCCXGate(), [q[0], q[1], q[2], q[3]], []),
+            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
             (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-            (CCCXGate(), [q[0], q[1], q[2], q[3]], []),
-            (CCCXGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
+            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
         ]
         self.definition = definition
 
@@ -795,8 +795,8 @@ class CCCCXGate(ControlledGate):
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate. The CCCCX is its own inverse."""
-        return CCCCXGate()
+        """Invert this gate. The C4X is its own inverse."""
+        return C4XGate()
 
 
 class MCXGate(ControlledGate):
@@ -805,7 +805,7 @@ class MCXGate(ControlledGate):
     def __new__(cls, num_ctrl_qubits=None):
         """Create a new MCX instance.
 
-        Depending on the number of controls, this creates an explicit X, CX, CCX, CCCX or CCCCX
+        Depending on the number of controls, this creates an explicit X, CX, CCX, C3X or C4X
         instance or a generic MCX gate.
         """
         # these gates will always be implemented for all modes of the MCX if the number of control
@@ -907,18 +907,18 @@ class MCXRecursive(MCXGate):
         """Define the MCX gate using recursion."""
         q = QuantumRegister(self.num_qubits, name='q')
         if self.num_qubits == 4:
-            self.definition = [(CCCXGate(), q[:], [])]
+            self.definition = [(C3XGate(), q[:], [])]
         elif self.num_qubits == 5:
-            self.definition = [(CCCCXGate(), q[:], [])]
+            self.definition = [(C4XGate(), q[:], [])]
         else:
             self.definition = self._recurse(q[:-1], q_ancilla=q[-1])
 
     def _recurse(self, q, q_ancilla=None):
         # recursion stop
         if len(q) == 4:
-            return [(CCCXGate(), q[:], [])]
+            return [(C3XGate(), q[:], [])]
         if len(q) == 5:
-            return [(CCCCXGate(), q[:], [])]
+            return [(C4XGate(), q[:], [])]
         if len(q) < 4:
             raise AttributeError('Something went wrong in the recursion, have less than 4 qubits.')
 

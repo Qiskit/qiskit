@@ -26,7 +26,7 @@ from . import (
     MSGate,
     RGate,
     RCCXGate,
-    RCCCXGate,
+    RC3XGate,
     RXGate,
     CRXGate,
     RXXGate,
@@ -125,10 +125,10 @@ for inst, qargs, cargs in [
     def_rccx.append(inst, qargs, cargs)
 _sel.add_equivalence(RCCXGate(), def_rccx)
 
-# RCCCXGate
+# RC3XGate
 
 q = QuantumRegister(4, 'q')
-def_rcccx = QuantumCircuit(q)
+def_rc3x = QuantumCircuit(q)
 for inst, qargs, cargs in [
         (HGate(), [q[3]], []),
         (TGate(), [q[3]], []),
@@ -149,8 +149,8 @@ for inst, qargs, cargs in [
         (TdgGate(), [q[3]], []),
         (HGate(), [q[3]], []),
 ]:
-    def_rcccx.append(inst, qargs, cargs)
-_sel.add_equivalence(RCCCXGate(), def_rcccx)
+    def_rc3x.append(inst, qargs, cargs)
+_sel.add_equivalence(RC3XGate(), def_rc3x)
 
 # RXGate
 

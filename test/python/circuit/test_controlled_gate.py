@@ -38,7 +38,7 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         CCXGate, HGate, RZGate, RXGate,
                                         RYGate, CRYGate, CRXGate, CSwapGate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RCCCXGate,
+                                        MSGate, Barrier, RCCXGate, RC3XGate,
                                         MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
                                         MCXVChain)
 from qiskit.extensions.unitary import _compute_control_matrix
@@ -838,7 +838,7 @@ class TestControlledGate(QiskitTestCase):
         if num_ctrl_qubits == 2:
             repr_mat = RCCXGate().to_matrix()
         else:  # num_ctrl_qubits == 3:
-            repr_mat = RCCCXGate().to_matrix()
+            repr_mat = RC3XGate().to_matrix()
 
         # test up to phase
         # note, that all entries may have an individual phase! (as opposed to a global phase)

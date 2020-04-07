@@ -153,8 +153,8 @@ gate rccx a,b,c
   u1(-pi/4) c;
   u2(0,pi) c;
 }
-// relative-phase CCCX
-gate rcccx a,b,c,d
+// relative-phase 3-controlled X gate
+gate rc3x a,b,c,d
 {
   u2(0,pi) d;
   u1(pi/4) d;
@@ -176,7 +176,7 @@ gate rcccx a,b,c,d
   u2(0,pi) d;
 }
 // 3-controlled X gate
-gate cccx a,b,c,d
+gate c3x a,b,c,d
 {
     h d; cu1(-pi/4) a,d; h d;
     cx a,b;
@@ -192,8 +192,8 @@ gate cccx a,b,c,d
     cx a,c;
     h d; cu1(-pi/4) c,d; h d;
 }
-// 3-controlled sqrt(X) gate, this equals the CCCX gate where the CU1 rotations are -pi/8 not -pi/4
-gate cccsqrtx a,b,c,d
+// 3-controlled sqrt(X) gate, this equals the C3X gate where the CU1 rotations are -pi/8 not -pi/4
+gate c3sqrtx a,b,c,d
 {
     h d; cu1(-pi/8) a,d; h d;
     cx a,b;
@@ -210,11 +210,11 @@ gate cccsqrtx a,b,c,d
     h d; cu1(-pi/8) c,d; h d;
 }
 // 4-controlled X gate
-gate ccccx a,b,c,d,e
+gate c4x a,b,c,d,e
 {
     h e; cu1(-pi/2) d,e; h e;
-    cccx a,b,c,d;
+    c3x a,b,c,d;
     h d; cu1(pi/4) d,e; h d;
-    cccx a,b,c,d;
-    cccsqrtx a,b,c,e;
+    c3x a,b,c,d;
+    c3sqrtx a,b,c,e;
 }
