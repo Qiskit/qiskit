@@ -224,7 +224,8 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-    if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
+    if isinstance(experiments, Schedule) or (isinstance(experiments, list) and
+                                             isinstance(experiments[0], Schedule)):
         # do not transpile a schedule circuit
         if schedule_circuit:
             raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
