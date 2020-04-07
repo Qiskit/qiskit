@@ -214,8 +214,8 @@ class DAGCircuit:
 
             wire_name = "%s[%s]" % (wire.register.name, wire.index)
 
-            inp_node = DAGNode(data_dict={'type': 'in', 'name': wire_name, 'wire': wire})
-            outp_node = DAGNode(data_dict={'type': 'out', 'name': wire_name, 'wire': wire})
+            inp_node = DAGNode(type='in', name=wire_name, wire=wire)
+            outp_node = DAGNode(type='out', name=wire_name, wire=wire)
 
             inp_node_id = self._add_multi_graph_node(inp_node)
             outp_node_id = self._add_multi_graph_node(outp_node)
@@ -283,17 +283,9 @@ class DAGCircuit:
         Returns:
             DAGNode: The node for the new op on the DAG
         """
-        node_properties = {
-            "type": "op",
-            "op": op,
-            "name": op.name,
-            "qargs": qargs,
-            "cargs": cargs,
-            "condition": condition
-        }
-
         # Add a new operation node to the graph
-        new_node = DAGNode(data_dict=node_properties)
+        new_node = DAGNode(type="op", op=op, name=op.name, qargs=qargs,
+                           cargs=cargs, condition=condition)
         self._add_multi_graph_node(new_node)
         return new_node
 
@@ -876,14 +868,13 @@ class DAGCircuit:
                     op.num_qubits, op.num_clbits))
 
         if inplace:
-            node.data_dict['op'] = op
-            node.data_dict['name'] = op.name
+            node.op = op
+            node.name = op.name
             return node
 
-        new_data_dict = node.data_dict.copy()
-        new_data_dict['op'] = op
-        new_data_dict['name'] = op.name
-        new_node = DAGNode(new_data_dict)
+        new_node = copy.copy(node)
+        new_node.op = op
+        new_node.name = op.name
 
         node_index = self._add_multi_graph_node(new_node)
 
