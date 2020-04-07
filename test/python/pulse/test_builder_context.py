@@ -488,6 +488,27 @@ class TestMacros(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
+    @unittest.expectedFailure
+    def test_delay_qubit(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.delay_qubit(0, 10)
+
+        d0 = pulse.DriveChannel(0)
+        m0 = pulse.MeasureChannel(0)
+        a0 = pulse.AcquireChannel(0)
+        u0 = pulse.ControlChannel(0)
+        u1 = pulse.ControlChannel(0)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(d0)
+        reference += instructions.Delay(m0)
+        reference += instructions.Delay(a0)
+        reference += instructions.Delay(u0)
+        reference += instructions.Delay(u1)
+
+        self.assertEqual(schedule, reference)
+
 
 class TestGates(TestBuilderContext):
     """Test builder gates."""
