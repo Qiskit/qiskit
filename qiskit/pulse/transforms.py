@@ -250,7 +250,7 @@ def left_align(schedule: Schedule) -> Schedule:
         left aligned.
     """
     aligned = Schedule()
-    for _, child in schedule._children:
+    for _, child in schedule.children:
         aligned = push_append(aligned, child)
 
     return aligned
@@ -339,7 +339,7 @@ def sequentialize(schedule: Schedule) -> Schedule:
         applied sequentially across channels
     """
     aligned = Schedule()
-    for _, child in schedule._children:
+    for _, child in schedule.children:
         aligned.insert(aligned.duration, child, mutate=True)
     return aligned
 
@@ -347,7 +347,7 @@ def sequentialize(schedule: Schedule) -> Schedule:
 def parallelize(schedule):
     """Schedule all top-level nodes in parallel."""
     aligned = Schedule()
-    for _, child in schedule._children:
+    for _, child in schedule.children:
         aligned.append(child, mutate=True)
     return aligned
 

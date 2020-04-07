@@ -63,7 +63,7 @@ class Schedule(ScheduleComponent):
         self._name = name
 
         timeslots = []
-        _children = []
+        children = []
         for sched_pair in schedules:
             # recreate as sequence starting at 0.
             if not isinstance(sched_pair, (list, tuple)):
@@ -75,7 +75,7 @@ class Schedule(ScheduleComponent):
             if insert_time:
                 sched_timeslots = sched_timeslots.shift(insert_time)
             timeslots.append(sched_timeslots)
-            _children.append(sched_pair)
+            children.append(sched_pair)
 
         try:
             self._timeslots = TimeslotCollection(*timeslots)
@@ -90,7 +90,7 @@ class Schedule(ScheduleComponent):
             raise PulseError('Schedules overlap: {0} for {1}'
                              ''.format(ts_err.message, formatted_schedules)) from ts_err
 
-        self.__children = tuple(_children)
+        self._children = tuple(children)
 
     @property
     def name(self) -> str:
@@ -118,8 +118,15 @@ class Schedule(ScheduleComponent):
         return self.timeslots.channels
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        return self.__children
+    def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+        """Return the children ``ScheduleComponent``s of this Schedule.
+
+        Returns:
+            A tuple, where each element is a two-tuple containing the initial
+            scheduled time of each ``ScheduleComponent`` and the component
+            itself.
+        """
+        return self._children
 
     @property
     def instructions(self):
@@ -171,7 +178,7 @@ class Schedule(ScheduleComponent):
                 :class:`~qiskit.pulse.Instruction`
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
-        for insert_time, child_sched in self._children:
+        for insert_time, child_sched in self.children:
             yield from child_sched._instructions(time + insert_time)
 
     def union(self,
@@ -235,8 +242,8 @@ class Schedule(ScheduleComponent):
             time: Time to shift by
         """
         self._timeslots = self._timeslots.shift(time)
-        self.__children = tuple((orig_time+time, component) for
-                                orig_time, component in self._children)
+        self._children = tuple((orig_time+time, component) for
+                                orig_time, component in self.children)
         return self
 
     def insert(self,
@@ -269,12 +276,12 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to mutably insert.
         """
         if isinstance(schedule, Schedule):
-            shifted_children = schedule._children
+            shifted_children = schedule.children
             if start_time != 0:
                 shifted_children = tuple((t + start_time, child) for t, child in shifted_children)
-            self.__children += shifted_children
+            self._children += shifted_children
         else:  # isinstance(schedule, Instruction)
-            self.__children += ((start_time, schedule),)
+            self._children += ((start_time, schedule),)
 
         sched_timeslots = (schedule.timeslots if start_time == 0
                            else schedule.timeslots.shift(start_time))
@@ -390,7 +397,7 @@ class Schedule(ScheduleComponent):
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
-        subschedules = self.flatten()._children
+        subschedules = self.flatten().children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
         return Schedule(*valid_subschedules, name=new_sched_name)
 

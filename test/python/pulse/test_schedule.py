@@ -170,7 +170,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
-        self.assertEqual((), sched._children)
+        self.assertEqual((), sched.children)
         self.assertEqual(TimeslotCollection(), sched.timeslots)
         self.assertEqual([], list(sched.instructions))
 
@@ -246,20 +246,20 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
-        """Test if a schedule keeps its _children after attached to another schedule."""
+        """Test if a schedule keeps its children after attached to another schedule."""
         acquire = Acquire(10)
-        _children = (acquire(self.config.acquire(0), MemorySlot(0)).shift(20) +
+        children = (acquire(self.config.acquire(0), MemorySlot(0)).shift(20) +
                      acquire(self.config.acquire(0), MemorySlot(0)))
-        self.assertEqual(2, len(list(_children.instructions)))
+        self.assertEqual(2, len(list(children.instructions)))
 
-        sched = acquire(self.config.acquire(0), MemorySlot(0)).append(_children)
+        sched = acquire(self.config.acquire(0), MemorySlot(0)).append(children)
         self.assertEqual(3, len(list(sched.instructions)))
 
-        # add 2 instructions to _children (2 instructions -> 4 instructions)
-        _children = _children.append(acquire(self.config.acquire(0), MemorySlot(0)))
-        _children = _children.insert(100, acquire(self.config.acquire(0),
+        # add 2 instructions to children (2 instructions -> 4 instructions)
+        children = children.append(acquire(self.config.acquire(0), MemorySlot(0)))
+        children = children.insert(100, acquire(self.config.acquire(0),
                                                   MemorySlot(0)))
-        self.assertEqual(4, len(list(_children.instructions)))
+        self.assertEqual(4, len(list(children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
