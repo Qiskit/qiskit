@@ -132,6 +132,7 @@ syntax. For example::
 import collections
 import contextvars
 import functools
+import numpy as np
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Mapping, Tuple, Union
 
@@ -348,7 +349,7 @@ def qubit_channels(qubit: int):
     raise NotImplementedError('Qubit channels is not yet implemented.')
 
 
-# Transform Contexts ###########################################################
+# Contexts ###########################################################
 def _transform_context(transform: Callable,
                        **decorator_kwargs) -> Callable:
     """A tranform context.
@@ -417,7 +418,6 @@ def pad(*channels):
     """Pad all availale timeslots with delays upon exiting context."""
 
 
-# Compiler Directive Contexts ##################################################
 @contextmanager
 def transpiler_settings(**settings):
     """Set the current current tranpiler settings for this context."""
@@ -462,8 +462,13 @@ def delay(channel: channels.Channel, duration: int):
     append_instruction(instructions.Delay(duration, channel))
 
 
-def play(channel: channels.PulseChannel, pulse: pulse_lib.Pulse):
+def play(channel: channels.PulseChannel,
+         pulse: Union[pulse_lib.Pulse, np.ndarray]):
     """Play a ``pulse`` on a ``channel``."""
+
+    if not isinstance(pulse, pulse_lib.Pulse):
+        pulse = pulse_lib.SamplePulse(pulse)
+
     append_instruction(instructions.Play(pulse, channel))
 
 
@@ -479,8 +484,9 @@ def acquire(channel: Union[channels.AcquireChannel, int],
     elif isinstance(register, channels.RegisterSlot):
         append_instruction(instructions.Acquire(
             duration, channel, reg_slot=register, **metadata))
-    raise exceptions.PulseError(
-        'Register of type: "{}" is not supported'.format(type(register)))
+    else:
+        raise exceptions.PulseError(
+            'Register of type: "{}" is not supported'.format(type(register)))
 
 
 def set_frequency(channel: channels.PulseChannel, frequency: float):

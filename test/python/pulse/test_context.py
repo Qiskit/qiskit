@@ -17,6 +17,9 @@
 from math import pi
 import unittest
 
+import numpy as np
+
+import qiskit.circuit as circuit
 import qiskit.pulse as pulse
 from qiskit.pulse.pulse_lib import gaussian
 from qiskit.test import QiskitTestCase
@@ -159,6 +162,189 @@ class TestTransforms(TestBuilderContext):
 
 class TestInstructions(TestBuilderContext):
     """Test builder instructions."""
+
+    def test_delay(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.delay(d0, 10)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_play_parametric_pulse(self):
+        d0 = pulse.DriveChannel(0)
+        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        reference += instructions.Play(test_pulse, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_play_sample_pulse(self):
+        d0 = pulse.DriveChannel(0)
+        test_pulse = pulse_lib.SamplePulse([0.0, 0.0])
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.play(d0, test_pulse)
+
+        reference = pulse.Schedule()
+        reference += instructions.Play(test_pulse, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_play_array_pulse(self):
+        d0 = pulse.DriveChannel(0)
+        test_array = np.array([0., 0.], dtype=np.complex_)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.play(d0, test_array)
+
+        reference = pulse.Schedule()
+        test_pulse = pulse.SamplePulse(test_array)
+        reference += instructions.Play(test_pulse, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_acquire_memory_slot(self):
+        acquire0 = pulse.AcquireChannel(0)
+        mem0 = pulse.MemorySlot(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.acquire(acquire0, mem0, 10)
+
+        reference = pulse.Schedule()
+        reference += pulse.Acquire(10, acquire0, mem_slot=mem0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_acquire_register_slot(self):
+        acquire0 = pulse.AcquireChannel(0)
+        reg0 = pulse.RegisterSlot(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.acquire(acquire0, reg0, 10)
+
+        reference = pulse.Schedule()
+        reference += pulse.Acquire(10, acquire0, reg_slot=reg0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_set_frequency(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.set_frequency(d0, 1e9)
+
+        reference = pulse.Schedule()
+        reference += instructions.SetFrequency(1e9, d0)
+
+        self.assertEqual(schedule, reference)
+
+    @unittest.expectedFailure
+    def test_shift_frequency(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.shift_frequency(d0, 0.1e9)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftFrequency(0.1e9, d0)
+
+        self.assertEqual(schedule, reference)
+
+    @unittest.expectedFailure
+    def test_set_phase(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.set_phase(d0, 3.14)
+
+        reference = pulse.Schedule()
+        reference += instructions.SetPhase(3.14, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_shift_phase(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.shift_phase(d0, 3.14)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftPhase(3.14, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_snapshot(self):
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.snapshot('test', 'state')
+
+        reference = pulse.Schedule()
+        reference += instructions.Snapshot('test', 'state')
+
+        self.assertEqual(schedule, reference)
+
+    def test_call_schedule(self):
+        schedule = pulse.Schedule()
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(20, d1)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.right_align():
+                pulse.call_schedule(reference)
+
+        self.assertEqual(schedule, reference)
+
+    def test_call_circuit(self):
+        schedule = pulse.Schedule()
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(20, d1)
+
+        inst_map = self.backend.defaults().instruction_schedule_map
+        reference = inst_map.get('cx', (0, 1))
+
+        cx_qc = circuit.QuantumCircuit(2)
+        cx_qc.cx(0, 1)
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.right_align():
+                pulse.call_circuit(cx_qc)
+
+        self.assertEqual(schedule, reference)
+
+        with pulse.build(self.backend, schedule):
+            with pulse.right_align():
+                pulse.call(cx_qc)
+
+        self.assertEqual(schedule, reference)
+
     @unittest.expectedFailure
     def test_barrier(self):
         d0 = pulse.DriveChannel(0)
