@@ -57,14 +57,14 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(self.config.control(0), ControlChannel(0))
 
     def test_get_channel_qubits_2q(self):
-        """Test to retrieve Channels from ``channels`` configuration in 2Q backend."""
+        """Test to retrieve channels from ``channels`` configuration in 2Q backend."""
         self.assertEqual(self.config.get_channel_qubits(), {ControlChannel(0), ControlChannel(1),
                                                             MeasureChannel(0), MeasureChannel(1),
                                                             AcquireChannel(0), AcquireChannel(1),
                                                             DriveChannel(0), DriveChannel(1)})
 
     def test_get_channel_qubits_3q(self):
-        """Test to retrieve Channels from ``channels`` configuration in 3Q backend."""
+        """Test to retrieve channels from ``channels`` configuration in 3Q backend."""
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().get_channel_qubits(),
                          {DriveChannel(0), DriveChannel(1), DriveChannel(2),

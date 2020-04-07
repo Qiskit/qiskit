@@ -14,7 +14,7 @@
 
 """Model and schema for backend configuration."""
 import re
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -411,12 +411,17 @@ class PulseBackendConfiguration(BackendConfiguration):
         """
         return ControlChannel(qubit)
 
-    def get_channel_qubits(self) -> Tuple[Any]:
+    def get_channel_qubits(self) -> List[Any]:
         """
-        Parse the channels configuration from the backend.
+        Parse ``channels`` configuration from the backend and return list of Qiskit Pulse channels.
+
+        The ``channels`` contains information of all channels -- their type, purpose and qubits
+        operated on. This method retrieves the associated qubit and returns a list of Qiskit Pulse
+        channels -- AcquireChannel(qubit), DriveChannel(qubit), ControlChannel(qubit),
+        MeasureChannel(qubit).
 
         Returns:
-            Tuple of Channel(s).
+            List of Channel(s).
         """
         channels = set()
         channel_config = self.channels
