@@ -697,82 +697,36 @@ class TestControlledGate(QiskitTestCase):
                          (output_target != cond_output)) or
                         output_ctrl != input_ctrl)
 
-    def test_base_gate_setting(self):
+    @data(*ControlledGate.__subclasses__())
+    def test_base_gate_setting(self, gate_class):
+        """Test all gates in standard extensions which are of type ControlledGate
+        and have a base gate setting.
         """
-        Test all gates in standard extensions which are of type ControlledGate and have a base gate
-        setting.
-        """
-        params = [0.1 * i for i in range(10)]
-        for gate_class in ControlledGate.__subclasses__():
-            num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
-            free_params = params[:num_free_params]
-            if gate_class in [allGates.MCU1Gate]:
-                free_params[1] = 3
-            base_gate = gate_class(*free_params)
-            cgate = base_gate.control()
-            self.assertEqual(base_gate.base_gate, cgate.base_gate)
+        num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+        free_params = [0.1 * i for i in range(num_free_params)]
+        if gate_class in [allGates.MCU1Gate]:
+            free_params[1] = 3
+        base_gate = gate_class(*free_params)
+        cgate = base_gate.control()
+        self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
-    def test_all_inverses(self):
+    @data(*[gate for name, gate in allGates.__dict__.items() if isinstance(gate, type)])
+    def test_all_inverses(self, gate):
+        """Test all gates in standard extensions except those that cannot be controlled
+        or are being deprecated.
         """
-        Test all gates in standard extensions except those that cannot be controlled or are being
-        deprecated.
-        """
-        gate_classes = [cls for name, cls in allGates.__dict__.items()
-                        if isinstance(cls, type)]
-        for cls in gate_classes:
+        if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
-            with self.subTest(i=cls):
-                if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
-                    continue
-                try:
-                    numargs = len(_get_free_params(cls))
-                    args = [2] * numargs
+            try:
+                numargs = len(_get_free_params(gate))
+                args = [2] * numargs
 
-                    gate = cls(*args)
-                    self.assertEqual(gate.inverse().control(2),
-                                     gate.control(2).inverse())
-                except AttributeError:
-                    # skip gates that do not have a control attribute (e.g. barrier)
-                    pass
-
-    @data(1, 2, 3)
-    def test_controlled_standard_gates(self, num_ctrl_qubits):
-        """Test controlled versions of all standard gates."""
-        gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
-        theta = pi / 2
-        ctrl_state_ones = 2 ** num_ctrl_qubits - 1
-        ctrl_state_zeros = 0
-        ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
-        for cls in gate_classes:
-            numargs = len(_get_free_params(cls))
-            args = [theta] * numargs
-            if cls in [MSGate, Barrier]:
-                args[0] = 2
-            elif cls in [allGates.MCU1Gate]:
-                args[1] = 2
-
-            gate = cls(*args)
-            for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
-                with self.subTest(i='{0}, ctrl_state={1}'.format(cls.__name__,
-                                                                 ctrl_state)):
-                    try:
-                        cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
-                    except (AttributeError, QiskitError):
-                        # 'object has no attribute "control"'
-                        # skipping Id and Barrier
-                        continue
-                    if gate.name == 'rz':
-                        iden = Operator.from_label('I')
-                        zgen = Operator.from_label('Z')
-                        base_mat = (np.cos(0.5 * theta) * iden
-                                    - 1j * np.sin(0.5 * theta) * zgen).data
-                    else:
-                        base_mat = Operator(gate).data
-                    target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
-                                                         ctrl_state=ctrl_state)
-                    self.assertTrue(matrix_equal(Operator(cgate).data,
-                                                 target_mat, ignore_phase=True))
+                gate = gate(*args)
+                self.assertEqual(gate.inverse().control(2), gate.control(2).inverse())
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
 
     @data(2, 3)
     def test_relative_phase_toffoli_gates(self, num_ctrl_qubits):
@@ -854,6 +808,45 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+@ddt
+class TestControlledStandardGates(QiskitTestCase):
+    @combine(num_ctrl_qubits=[1, 2, 3],
+             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
+    def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
+        """Test controlled versions of all standard gates."""
+        theta = pi / 2
+        ctrl_state_ones = 2 ** num_ctrl_qubits - 1
+        ctrl_state_zeros = 0
+        ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
+
+        numargs = len(_get_free_params(gate_class))
+        args = [theta] * numargs
+        if gate_class in [MSGate, Barrier]:
+            args[0] = 2
+        elif gate_class in [allGates.MCU1Gate]:
+            args[1] = 2
+
+        gate = gate_class(*args)
+        for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
+            with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
+                                                             ctrl_state)):
+                try:
+                    cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+                except (AttributeError, QiskitError):
+                    # 'object has no attribute "control"'
+                    # skipping Id and Barrier
+                    continue
+                if gate.name == 'rz':
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    base_mat = (np.cos(0.5 * theta) * iden
+                                - 1j * np.sin(0.5 * theta) * zgen).data
+                else:
+                    base_mat = Operator(gate).data
+                target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
+                                                     ctrl_state=ctrl_state)
+                self.assertTrue(matrix_equal(Operator(cgate).data,
+                                             target_mat, ignore_phase=True))
 
 @ddt
 class TestDeprecatedGates(QiskitTestCase):
