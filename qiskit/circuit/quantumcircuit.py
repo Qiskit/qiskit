@@ -1144,7 +1144,7 @@ class QuantumCircuit:
         cpy = copy.copy(self)
 
         instr_instances = {id(instr): instr
-                           for instr, _, __ in self._data}
+                           for instr, _, __ in self.data}
 
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
@@ -1157,7 +1157,7 @@ class QuantumCircuit:
         }
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
-                     for inst, qargs, cargs in self._data]
+                     for inst, qargs, cargs in self.data]
 
         if name:
             cpy.name = name
