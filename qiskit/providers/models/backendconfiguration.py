@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
-from typing import Dict, List
+import re
+from typing import Dict, List, Any, Tuple
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
-from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
+from qiskit.pulse.channels import Channel, DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation import fields
 from qiskit.validation.validate import PatternProperties
@@ -400,7 +401,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, channel: int) -> ControlChannel:
+    def control(self, qubit: int) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
@@ -408,8 +409,28 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit control channel.
         """
-        # TODO: Determine this from the hamiltonian.
-        return ControlChannel(channel)
+        return ControlChannel(qubit)
+
+    def get_channel_qubits(self) -> Tuple[Any]:
+        """
+        Parse the channels configuration from the backend.
+
+        Returns:
+            Tuple of Channel(s).
+        """
+        channels = set()
+        channel_config = self.channels
+        for channel, config in channel_config.items():
+            test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
+            if test.group('channel') == 'd':
+                channels.add(self.drive(qubit=int(config['operates']['qubits'][0])))
+            elif test.group('channel') == 'm':
+                channels.add(self.measure(qubit=int(config['operates']['qubits'][0])))
+            elif test.group('channel') == 'acquire':
+                channels.add(self.acquire(qubit=int(config['operates']['qubits'][0])))
+            elif test.group('channel') == 'u':
+                channels.add(self.control(qubit=int(config['operates']['qubits'][0])))
+        return channels
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """
