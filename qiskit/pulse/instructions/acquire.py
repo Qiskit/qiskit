@@ -48,7 +48,7 @@ class Acquire(Instruction):
                  channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
                  mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
                  reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 mem_slots: Optional[List[MemorySlot]] = None,
                  reg_slot: Optional[RegisterSlot] = None,
                  kernel: Optional[Kernel] = None,
                  discriminator: Optional[Discriminator] = None,
@@ -99,7 +99,10 @@ class Acquire(Instruction):
             except TypeError:
                 reg_slot = [reg_slot]
         elif reg_slots:
-            reg_slot = reg_slots
+            try:
+                reg_slot = list(reg_slots)
+            except TypeError:
+                reg_slot = [reg_slots]
         else:
             reg_slot = []
 
