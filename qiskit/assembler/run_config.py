@@ -58,10 +58,12 @@ class RunConfig(SimpleNamespace):
     @classmethod
     def from_dict(cls, data):
         """Create a new RunConfig object from a dictionary.
+
         Args:
             data (dict): A dictionary representing the RunConfig to create.
                          It will be in the same format as output by
                          :meth:`to_dict`.
+
         Returns:
             RunConfig: The RunConfig from the input dictionary.
         """
