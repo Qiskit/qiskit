@@ -33,6 +33,7 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 import copy
+import warnings
 from itertools import zip_longest
 
 import numpy
@@ -141,6 +142,10 @@ class Instruction:
 
     def validate_parameter(self, parameter):
         """Instruction parameters has no validation or normalization."""
+        warnings.warn('This instruction is not validating parameters.'
+                      'Implement validate_parameter method to add validation.'
+                      'In the future, the base class Instruction will raise NotImplemented',
+                      DeprecationWarning)
         return parameter
 
     def is_parameterized(self):
