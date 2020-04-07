@@ -62,7 +62,7 @@ def measure(self, qubit, cbit):
 QuantumCircuit.measure = measure
 
 
-class PauliMeasure(Instruction):
+class MeasurePauli(Instruction):
     """Perform a measurement with preceding basis change operations."""
 
     def __init__(self, basis):
@@ -120,7 +120,7 @@ class PauliMeasure(Instruction):
         self.definition = definition
 
 
-def pauli_measure(self, basis, qubits, cbits):
+def measure_pauli(self, basis, qubits, cbits):
     """Measure in the Pauli-X basis."""
     # transform to list if they are not already
     qubits = qubits if hasattr(qubits, '__len__') else [qubits]
@@ -133,7 +133,7 @@ def pauli_measure(self, basis, qubits, cbits):
     if len(basis) != len(qubits):
         raise ValueError('Number of qubits does not match basis arguments.')
 
-    return self.append(PauliMeasure(basis=basis), qubits, cbits)
+    return self.append(MeasurePauli(basis=basis), qubits, cbits)
 
 
-QuantumCircuit.pauli_measure = pauli_measure
+QuantumCircuit.measure_pauli = measure_pauli
