@@ -54,7 +54,7 @@ class TestBackendConfiguration(QiskitTestCase):
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if the system doesn't have that many qubits
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
-        self.assertEqual(self.config.control([0, 1]), ControlChannel(0))
+        self.assertEqual(self.config.control(qubits=[0, 1]), ControlChannel(0))
 
     def test_get_channel_qubits(self):
         """Test to get all qubits operated on a given channel."""

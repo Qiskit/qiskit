@@ -403,13 +403,13 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, channel: int, qubits: List = None) -> ControlChannel:
+    def control(self, channel: int = None, qubits: List = None) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
         Args:
-            channels: Deprecated
+            channel: Deprecated
             qubits: List of qubits of the form `[control_qubit, target_qubit]`
 
         Returns:
