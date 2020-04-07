@@ -20,6 +20,7 @@ import unittest
 import numpy as np
 
 import qiskit.circuit as circuit
+import qiskit.compiler as compiler
 import qiskit.pulse as pulse
 import qiskit.pulse.macros as macros
 from qiskit.pulse.pulse_lib import gaussian
@@ -33,6 +34,9 @@ class TestBuilderContext(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
+        self.configuration = self.backend.configuration()
+        self.defaults = self.backend.defaults()
+        self.inst_map = self.defaults.instruction_schedule_map
 
     def test_context(self):
         """Test a general program build."""
@@ -363,7 +367,7 @@ class TestInstructions(TestBuilderContext):
         self.assertEqual(schedule, reference)
 
     def test_call_circuit(self):
-        inst_map = self.backend.defaults().instruction_schedule_map
+        inst_map = self.inst_map
         reference = inst_map.get('u1', (0,), 0.0)
 
         u1_qc = circuit.QuantumCircuit(2)
@@ -483,8 +487,8 @@ class TestMacros(TestBuilderContext):
 
         reference = macros.measure(
             qubits=[0],
-            inst_map=self.backend.defaults().instruction_schedule_map,
-            meas_map=self.backend.configuration().meas_map)
+            inst_map=self.inst_map,
+            meas_map=self.configuration.meas_map)
 
         self.assertEqual(schedule, reference)
 
@@ -512,3 +516,87 @@ class TestMacros(TestBuilderContext):
 
 class TestGates(TestBuilderContext):
     """test context builder gates."""
+
+    def test_cx(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.cx(0, 1)
+
+        reference_qc = circuit.QuantumCircuit(2)
+        reference_qc.cx(0, 1)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_u1(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.u1(0, np.pi)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.u1(np.pi, 0)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_u2(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.u2(0, np.pi, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.u2(np.pi, 0, 0)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_u3(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.u3(0, np.pi, 0, np.pi/2)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.u3(np.pi, 0, np.pi/2, 0)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_x(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.x(0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.x(0)
+        reference_qc = compiler.transpile(reference_qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_lazy_evaluation_with_transpiler(self):
+        """Test that the two cx gates are optimizied away by the transpiler."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.cx(0, 1)
+            pulse.cx(0, 1)
+
+        reference_qc = circuit.QuantumCircuit(2)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    @unittest.expectedFailure
+    def test_measure(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.sequential():
+                pulse.x(0)
+                pulse.measure(0)
+
+        reference_qc = circuit.QuantumCircuit(1, 1)
+        reference_qc.x(0)
+        reference_qc.measure(0, 0)
+        reference_qc = compiler.transpile(reference_qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)

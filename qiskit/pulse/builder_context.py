@@ -135,7 +135,7 @@ import functools
 import numpy as np
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    Mapping, Set, Tuple, Union)
+                    List, Mapping, Set, Tuple, Union)
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -287,14 +287,6 @@ class _PulseBuilder():
         """Add an instruction to the current current block."""
         self.block.append(instruction, mutate=True)
 
-    def call_schedule(self, schedule: Schedule):
-        """Call a schedule."""
-        self.append_block(schedule)
-
-    def new_circuit(self):
-        """Create a new circuit for scheduling."""
-        return circuit.QuantumCircuit(self.num_qubits)
-
     def schedule_lazy_circuit(self):
         """Call a QuantumCircuit."""
         if len(self._lazy_circuit):
@@ -310,6 +302,14 @@ class _PulseBuilder():
                                       self.backend,
                                       **self.circuit_scheduler_settings)
             self.call_schedule(sched)
+
+    def call_schedule(self, schedule: Schedule):
+        """Call a schedule."""
+        self.append_block(schedule)
+
+    def new_circuit(self):
+        """Create a new circuit for scheduling."""
+        return circuit.QuantumCircuit(self.num_qubits)
 
     def call_circuit(self, circuit: circuit.QuantumCircuit, lazy=True):
         self._lazy_circuit.extend(circuit)
@@ -355,7 +355,13 @@ def build(backend, schedule: Schedule,
 # Builder Utilities ############################################################
 def _current_builder() -> _PulseBuilder:
     """Get the current builder in the current context."""
-    return BUILDER_CONTEXT.get()
+    try:
+        return BUILDER_CONTEXT.get()
+    except LookupError as err:
+        raise exceptions.PulseError(
+            'A Pulse context builder method was called outside of '
+            'a builder context. Try calling within a builder '
+            'context, eg., "with build(backend, context): ...".') from err
 
 
 def current_backend():
@@ -575,9 +581,9 @@ def call_schedule(schedule: Schedule):
     _current_builder().call_schedule(schedule)
 
 
-def call_circuit(circuit: circuit.QuantumCircuit, lazy=True):
+def call_circuit(circuit: circuit.QuantumCircuit):
     """Call a quantum ``circuit`` in the builder context."""
-    _current_builder().call_circuit(circuit, lazy=lazy)
+    _current_builder().call_circuit(circuit)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
@@ -592,11 +598,21 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 
 
 # Macros #######################################################################
-def measure(qubit: int):
+def measure(qubit: int,
+            register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
+            ) -> List[Union[channels.MemorySlot, channels.RegisterSlot]]:
     backend = current_backend()
-    call_schedule(macros.measure(qubits=[qubit],
-                  inst_map=backend.defaults().instruction_schedule_map,
-                  meas_map=backend.configuration().meas_map))
+    if not register:
+        register = channels.MemorySlot(qubit)
+
+    measure_sched = macros.measure(
+        qubits=[qubit],
+        inst_map=backend.defaults().instruction_schedule_map,
+        meas_map=backend.configuration().meas_map,
+        qubit_mem_slots={register: register})
+    call_schedule(measure_sched)
+
+    return register
 
 
 def delay_qubit(qubit: int, duration: int):
@@ -612,7 +628,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
 
 
 def cx(control: int, target: int):
-    call_gate(gates.CnotGate(), control, target)
+    call_gate(gates.CnotGate(), (control, target))
 
 
 def u1(qubit: int, theta: float):
@@ -624,7 +640,7 @@ def u2(qubit: int, phi: float, lam: float):
 
 
 def u3(qubit: int, theta: float, phi: float, lam: float):
-    call_gate(gates.U3Gate(phi, lam), qubit)
+    call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
 
 def x(qubit: int):
