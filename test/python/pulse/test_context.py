@@ -318,20 +318,20 @@ class TestInstructions(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    def test_call_circuit(self):
         schedule = pulse.Schedule()
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
+        with pulse.build(self.backend, schedule):
+            with pulse.right_align():
+                pulse.call(reference)
 
-        reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
-        reference += instructions.Delay(20, d1)
+        self.assertEqual(schedule, reference)
 
+    def test_call_circuit(self):
         inst_map = self.backend.defaults().instruction_schedule_map
         reference = inst_map.get('cx', (0, 1))
 
         cx_qc = circuit.QuantumCircuit(2)
         cx_qc.cx(0, 1)
+
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             with pulse.right_align():
@@ -339,6 +339,7 @@ class TestInstructions(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
+        schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             with pulse.right_align():
                 pulse.call(cx_qc)
@@ -379,6 +380,39 @@ class TestInstructions(TestBuilderContext):
 
 class TestUtilities(TestBuilderContext):
     """Test builder utilities."""
+    def test_current_backend(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertEqual(pulse.current_backend(), self.backend)
+
+    def test_append_block(self):
+        d0 = pulse.DriveChannel(0)
+        block = pulse.Schedule()
+        block += instructions.Delay(10, d0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.append_block(block)
+
+        self.assertEqual(schedule, block)
+
+    def test_append_instruction(self):
+        d0 = pulse.DriveChannel(0)
+        instruction = instructions.Delay(10, d0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.append_instruction(instruction)
+
+        self.assertEqual(schedule, instruction)
+
+    @unittest.expectedFailure
+    def test_qubit_channels(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            qubit_channels = pulse.qubit_channels(0)
+
+        self.assertEqual(qubit_channels, set())
 
 
 class TestMacros(TestBuilderContext):

@@ -134,7 +134,7 @@ import contextvars
 import functools
 import numpy as np
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Mapping, Tuple, Union
+from typing import Any, Callable, Dict, Mapping, Set, Tuple, Union
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -342,7 +342,7 @@ def append_instruction(instruction: instructions.Instruction):
     _current_builder().append_instruction(instruction)
 
 
-def qubit_channels(qubit: int):
+def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """
     Returns the 'typical' set of channels associated with a qubit.
     """
