@@ -578,6 +578,39 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             self.log.debug('The fidelity between matrix and circuit: %s', f_mc)
             self.assertAlmostEqual(f_mc, 1)
 
+    def test_simplification(self):
+        """ Test Hamiltonians produce same result after simplification by constructor """
+        q = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(q)
+        qc.rx(10.9891251356965, 0)
+        qc.rx(6.286692023269373, 1)
+        qc.rz(7.848801398269382, 0)
+        qc.rz(9.42477796076938, 1)
+        qc.cx(0, 1)
+
+        def eval_op(op):
+            from qiskit import execute
+            backend = BasicAer.get_backend('qasm_simulator')
+            evaluation_circuits = op.construct_evaluation_circuit(qc, False)
+            job = execute(evaluation_circuits, backend, shots=1024)
+            return op.evaluate_with_result(job.result(), False)
+
+        pauli_string = [[1.0, Pauli.from_label('XX')],
+                        [-1.0, Pauli.from_label('YY')],
+                        [-1.0, Pauli.from_label('ZZ')]]
+        wpo = WeightedPauliOperator(pauli_string)
+        expectation_value, _ = eval_op(wpo)
+        self.assertAlmostEqual(expectation_value, -3.0, places=2)
+
+        # Half each coefficient value but double up (6 Paulis total)
+        pauli_string = [[0.5, Pauli.from_label('XX')],
+                        [-0.5, Pauli.from_label('YY')],
+                        [-0.5, Pauli.from_label('ZZ')]]
+        pauli_string *= 2
+        wpo2 = WeightedPauliOperator(pauli_string)
+        expectation_value, _ = eval_op(wpo2)
+        self.assertAlmostEqual(expectation_value, -3.0, places=2)
+
 
 if __name__ == '__main__':
     unittest.main()
