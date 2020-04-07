@@ -37,32 +37,24 @@ class QFT(QuantumCircuit):
 
     For 4 qubits, the circuit that implements this transformation is:
 
-    .. parsed-literal::
+    .. jupyter-execute::
+        :hide-code:
 
-             ┌───┐                      ░                     ░              ░       ░
-        q_0: ┤ H ├─■──────■──────■──────░─────────────────────░──────────────░───────░──X────
-             └───┘ │pi/2  │      │      ░ ┌───┐               ░              ░       ░  │
-        q_1: ──────■──────┼──────┼──────░─┤ H ├─■──────■──────░──────────────░───────░──┼──X─
-                          │pi/4  │      ░ └───┘ │pi/2  │      ░ ┌───┐        ░       ░  │  │
-        q_2: ─────────────■──────┼──────░───────■──────┼──────░─┤ H ├─■──────░───────░──┼──X─
-                                 │pi/8  ░              │pi/4  ░ └───┘ │pi/2  ░ ┌───┐ ░  │
-        q_3: ────────────────────■──────░──────────────■──────░───────■──────░─┤ H ├─░──X────
-                                        ░                     ░              ░ └───┘ ░
+        from qiskit.circuit.library import QFT
+        import qiskit.tools.jupyter
+        circuit = QFT(4)
+        %circuit_library_info circuit
 
     The inverse QFT can be obtained by calling the ``inverse`` method on this class.
     The respective circuit diagram is:
 
-    .. parsed-literal::
+    .. jupyter-execute::
+        :hide-code:
 
-                    ░       ░               ░                       ░                         ┌───┐
-        q_0: ────X──░───────░───────────────░───────────────────────░──■───────■───────■──────┤ H ├
-                 │  ░       ░               ░                 ┌───┐ ░  │       │       │-pi/2 └───┘
-        q_1: ─X──┼──░───────░───────────────░──■───────■──────┤ H ├─░──┼───────┼───────■───────────
-              │  │  ░       ░         ┌───┐ ░  │       │-pi/2 └───┘ ░  │       │-pi/4
-        q_2: ─X──┼──░───────░──■──────┤ H ├─░──┼───────■────────────░──┼───────■───────────────────
-                 │  ░ ┌───┐ ░  │-pi/2 └───┘ ░  │-pi/4               ░  │-pi/8
-        q_3: ────X──░─┤ H ├─░──■────────────░──■────────────────────░──■───────────────────────────
-                    ░ └───┘ ░               ░                       ░
+        from qiskit.circuit.library import QFT
+        import qiskit.tools.jupyter
+        circuit = QFT(4).inverse()
+        %circuit_library_info circuit
 
     One method to reduce circuit depth is to implement the QFT approximately by ignoring
     controlled-phase rotations where the angle is beneath a threshold. This is discussed
@@ -73,19 +65,14 @@ class QFT(QuantumCircuit):
     ``approximation_degree`` rotation angles are dropped from the QFT. For instance, a QFT
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
-    .. parsed-literal::
+    .. jupyter-execute::
+        :hide-code:
 
-                 ┌───┐
-        q5_0: |0>┤ H ├─■──────■─────────────────────────────────────────────────────────────X────
-                 └───┘ │pi/2  │     ┌───┐                                                   │
-        q5_1: |0>──────■──────┼─────┤ H ├─■──────■──────────────────────────────────────────┼──X─
-                              │pi/4 └───┘ │pi/2  │     ┌───┐                                │  │
-        q5_2: |0>─────────────■───────────■──────┼─────┤ H ├─■──────■───────────────────────┼──┼─
-                                                 │pi/4 └───┘ │pi/2  │     ┌───┐             │  │
-        q5_3: |0>────────────────────────────────■───────────■──────┼─────┤ H ├─■───────────┼──X─
-                                                                    │pi/4 └───┘ │pi/2 ┌───┐ │
-        q5_4: |0>───────────────────────────────────────────────────■───────────■─────┤ H ├─X────
-                                                                                      └───┘
+        from qiskit.circuit.library import QFT
+        import qiskit.tools.jupyter
+        circuit = QFT(5, approximation_degree=2)
+        %circuit_library_info circuit
+
     """
 
     def __init__(self,
