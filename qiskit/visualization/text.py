@@ -1062,12 +1062,14 @@ class Layer:
             cbit_index = sorted([i for i, x in enumerate(self.cregs) if x in clbits])
             qbit_index = sorted([i for i, x in enumerate(self.qregs) if x in qubits])
 
-            # Further below, indices are used as wire labels. Here, get the length of the longest label,
-            # and pad all labels with spaces to this length.
+            # Further below, indices are used as wire labels. Here, get the length of
+            # the longest label, and pad all labels with spaces to this length.
             wire_label_len = max(len(str(len(qubits) - 1)),
                                  len(str(len(clbits) - 1)))
-            qargs = [str(qubits.index(qbit)).ljust(wire_label_len, ' ') for qbit in self.qregs if qbit in qubits]
-            cargs = [str(clbits.index(cbit)).ljust(wire_label_len, ' ') for cbit in self.cregs if cbit in clbits]
+            qargs = [str(qubits.index(qbit)).ljust(wire_label_len, ' ')
+                     for qbit in self.qregs if qbit in qubits]
+            cargs = [str(clbits.index(cbit)).ljust(wire_label_len, ' ')
+                     for cbit in self.cregs if cbit in clbits]
 
             box_height = len(self.qregs) - min(qbit_index) + max(cbit_index) + 1
 
@@ -1109,7 +1111,8 @@ class Layer:
             bits = list(qubits)
             bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
             wire_label_len = len(str(len(bits) - 1))
-            qargs = [str(bits.index(qbit)).ljust(wire_label_len, ' ') for qbit in self.qregs if qbit in bits]
+            qargs = [str(bits.index(qbit)).ljust(wire_label_len, ' ')
+                     for qbit in self.qregs if qbit in bits]
             bits.sort(key=self.qregs.index)
             set_bit = self.set_qubit
             OnWire = BoxOnQuWire
