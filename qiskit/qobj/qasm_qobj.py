@@ -17,6 +17,7 @@
 """Module providing definitions of QASM Qobj classes."""
 
 import os
+import pprint
 from types import SimpleNamespace
 
 import json
@@ -122,6 +123,29 @@ class QasmQobjInstruction:
 
         return out_dict
 
+    def __repr__(self):
+        out = "QasmQobjInstruction(name='%s'" % self.name
+        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
+                     'conditional', 'label', 'mask', 'relation', 'val',
+                     'snapshot_type']:
+            attr_val = getattr(self, attr, None)
+            if attr_val is not None:
+                if isinstance(attr_val, str):
+                    out += ', %s="%s"' % (attr, attr_val)
+                else:
+                    out += ", %s=%s" % (attr, attr_val)
+        out += ')'
+        return out
+
+    def __str__(self):
+        out = "Instruction: %s\n" % self.name
+        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
+                     'conditional', 'label', 'mask', 'relation', 'val',
+                     'snapshot_type']:
+            if hasattr(self, attr):
+                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new QasmQobjInstruction object from a dictionary.
@@ -160,6 +184,23 @@ class QasmQobjExperiment:
         self.config = config or QasmQobjExperimentConfig()
         self.header = header or QasmQobjExperimentHeader()
         self.instructions = instructions or []
+
+    def __repr__(self):
+        instructions_str = [repr(x) for x in self.instructions]
+        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
+            repr(self.config), repr(self.header), instructions_repr)
+        return out
+
+    def __str__(self):
+        out = '\nQASM Experiment:\n'
+        config = pprint.pformat(self.config.to_dict())
+        header = pprint.pformat(self.header.to_dict())
+        out += 'Header:\n%s\n' % header
+        out += 'Config:\n%s\n\n' % config
+        for instruction in self.instructions:
+            out += '\t%s\n' % instruction
+        return out
 
     def to_dict(self):
         """Return a dictionary format representation of the Experiment.
@@ -365,6 +406,25 @@ class QasmQobj:
         self.qobj_id = qobj_id
         self.type = 'QASM'
         self.schema_version = '1.1.0'
+
+    def __repr__(self):
+        experiments_str = [repr(x) for x in self.experiments]
+        experiments_repr = '[' + ', '.join(experiments_str) + ']'
+        out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+            self.qobj_id, repr(self.config), experiments_repr,
+            repr(self.header))
+        return out
+
+    def __str__(self):
+        out = "QASM Qobj: %s:\n" % self.qobj_id
+        config = pprint.pformat(self.config.to_dict())
+        out += "Config: %s\n" % str(config)
+        header = pprint.pformat(self.header.to_dict())
+        out += "Header: %s\n" % str(header)
+        out += "Experiments:\n"
+        for experiment in self.experiments:
+            out += "%s" % str(experiment)
+        return out
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the QASM Qobj.

@@ -17,7 +17,7 @@
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
-from qiskit.transpiler.pass_manager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -119,7 +119,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if routing_method == 'basic':
         _swap += [BasicSwap(coupling_map)]
     elif routing_method == 'stochastic':
-        _swap += [StochasticSwap(coupling_map, trials=50, seed=seed_transpiler)]
+        _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
     else:
@@ -163,5 +163,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
+    pm1.append(_unroll)  # TODO: it can be removed if Optimize1qGates is basis-aware
 
     return pm1
