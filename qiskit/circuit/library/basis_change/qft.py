@@ -49,7 +49,7 @@ class QFT(QuantumCircuit):
         q_3: ────────────────────■──────░──────────────■──────░───────■──────░─┤ H ├─░──X────
                                         ░                     ░              ░ └───┘ ░
 
-    The inverse QFT can be obtained by calling the ``.inverse()`` method on this class.
+    The inverse QFT can be obtained by calling the ``inverse`` method on this class.
     The respective circuit diagram is:
 
     .. parsed-literal::
