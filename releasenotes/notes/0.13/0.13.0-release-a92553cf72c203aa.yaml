@@ -10,15 +10,6 @@ prelude: >
     performance. Circuit transpilation speed in the 0.13.0 release should
     be significanlty faster than in previous releases.
 
-    A library of quantum circuits is introduced in
-    :mod:`qiskit.circuit.library`, containing some circuits of interest.
-    The contents of this library will grow over time. Each circuit can be
-    executed on its own, or used as a building block in building larger
-    circuits. With this, Qiskit's circuits no longer assume an implicit
-    initial state of :math:`|0\rangle`, and will not be drawn with this
-    initial state. The all-zero initial state is still assumed on a backend
-    when a circuit is executed.
-
     There has been a significant simplification to the style in which Pulse
     instructions are built. Now, ``Command`` s are deprecated and a unified
     set of :py:class:`~qiskit.pulse.instruction.Instruction` s are supported.
