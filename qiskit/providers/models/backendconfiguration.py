@@ -18,7 +18,7 @@ from typing import Dict, List, Any
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
-from qiskit.pulse.channels import Channel, DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
+from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation import fields
 from qiskit.validation.validate import PatternProperties
