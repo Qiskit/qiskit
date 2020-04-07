@@ -27,13 +27,14 @@ class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
     def __init__(self,
-                 n_qubits: int,
+                 num_qubits: int,
                  pattern: Optional[List[int]] = None,
-                 seed: Optional[int] = None) -> QuantumCircuit:
+                 seed: Optional[int] = None,
+                 ) -> QuantumCircuit:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
-            n_qubits: circuit width.
+            num_qubits: circuit width.
             pattern: permutation pattern. If None, permute randomly.
             seed: random seed in case a random permutation is requested.
 
@@ -53,19 +54,19 @@ class Permutation(QuantumCircuit):
                 %circuit_library_info circuit
 
         """
-        super().__init__(n_qubits, name="permutation")
+        super().__init__(num_qubits, name="permutation")
 
         if pattern is not None:
-            if sorted(pattern) != list(range(n_qubits)):
+            if sorted(pattern) != list(range(num_qubits)):
                 raise CircuitError("Permutation pattern must be some "
-                                   "ordering of 0..n_qubits-1 in a list.")
+                                   "ordering of 0..num_qubits-1 in a list.")
             pattern = np.array(pattern)
         else:
             rng = np.random.RandomState(seed)
-            pattern = np.arange(n_qubits)
+            pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
-        for i in range(n_qubits):
+        for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):
                 self.swap(i, int(pattern[i]))
                 pattern[pattern[i]] = -1
@@ -80,13 +81,14 @@ class XOR(QuantumCircuit):
     """
 
     def __init__(self,
-                 n_qubits: int,
+                 num_qubits: int,
                  amount: Optional[int] = None,
-                 seed: Optional[int] = None) -> QuantumCircuit:
+                 seed: Optional[int] = None,
+                 ) -> QuantumCircuit:
         """Return a circuit implementing bitwise xor.
 
         Args:
-            n_qubits: the width of circuit.
+            num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.
 
@@ -105,16 +107,16 @@ class XOR(QuantumCircuit):
                 circuit = XOR(5, seed=42)
                 %circuit_library_info circuit
         """
-        super().__init__(n_qubits, name="xor")
+        super().__init__(num_qubits, name="xor")
 
         if amount is not None:
-            if len(bin(amount)[2:]) > n_qubits:
+            if len(bin(amount)[2:]) > num_qubits:
                 raise CircuitError("Bits in 'amount' exceed circuit width")
         else:
             rng = np.random.RandomState(seed)
-            amount = rng.randint(0, 2**n_qubits)
+            amount = rng.randint(0, 2**num_qubits)
 
-        for i in range(n_qubits):
+        for i in range(num_qubits):
             bit = amount & 1
             amount = amount >> 1
             if bit == 1:
@@ -124,13 +126,13 @@ class XOR(QuantumCircuit):
 class InnerProduct(QuantumCircuit):
     """An n_qubit circuit that computes the inner product of two registers."""
 
-    def __init__(self, n_qubits: int) -> QuantumCircuit:
+    def __init__(self, num_qubits: int) -> QuantumCircuit:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 
         This implementation uses CZ gates.
 
         Args:
-            n_qubits: width of top and bottom registers (half total circuit width)
+            num_qubits: width of top and bottom registers (half total circuit width)
 
         Returns:
             A circuit computing inner product of two registers.
@@ -144,9 +146,9 @@ class InnerProduct(QuantumCircuit):
                 circuit = InnerProduct(5)
                 %circuit_library_info circuit
         """
-        qr_a = QuantumRegister(n_qubits)
-        qr_b = QuantumRegister(n_qubits)
+        qr_a = QuantumRegister(num_qubits)
+        qr_b = QuantumRegister(num_qubits)
         super().__init__(qr_a, qr_b, name="inner_product")
 
-        for i in range(n_qubits):
+        for i in range(num_qubits):
             self.cz(qr_a[i], qr_b[i])

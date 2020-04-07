@@ -16,12 +16,15 @@
 Abstract QuantumState class.
 """
 
+import copy
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
@@ -32,14 +35,8 @@ class QuantumState(ABC):
     _RTOL_DEFAULT = RTOL_DEFAULT
     _MAX_TOL = 1e-4
 
-    def __init__(self, rep, data, dims):
+    def __init__(self, dims):
         """Initialize a state object."""
-        if not isinstance(rep, str):
-            raise QiskitError("rep must be a string not a {}".format(
-                rep.__class__))
-        self._rep = rep
-        self._data = data
-
         # Dimension attributes
         # Note that the tuples of input and output dims are ordered
         # from least-significant to most-significant subsystems
@@ -51,24 +48,7 @@ class QuantumState(ABC):
         self._rng = np.random.RandomState()
 
     def __eq__(self, other):
-        if (isinstance(other, self.__class__)
-                and self.dims() == other.dims()):
-            return np.allclose(
-                self.data, other.data, rtol=self.rtol, atol=self.atol)
-        return False
-
-    def __repr__(self):
-        prefix = '{}('.format(self.rep)
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self.data, separator=', ', prefix=prefix),
-            pad, self._dims)
-
-    @property
-    def rep(self):
-        """Return state representation string."""
-        return self._rep
+        return isinstance(other, self.__class__) and self.dims() == other.dims()
 
     @property
     def dim(self):
@@ -79,11 +59,6 @@ class QuantumState(ABC):
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
         return self._num_qubits
-
-    @property
-    def data(self):
-        """Return data."""
-        return self._data
 
     @property
     def atol(self):
@@ -147,9 +122,7 @@ class QuantumState(ABC):
 
     def copy(self):
         """Make a copy of current operator."""
-        # pylint: disable=no-value-for-parameter
-        # The constructor of subclasses from raw data should be a copy
-        return self.__class__(self.data, self.dims())
+        return copy.deepcopy(self)
 
     def seed(self, value=None):
         """Set the seed for the quantum state RNG."""
@@ -210,9 +183,41 @@ class QuantumState(ABC):
         """
         pass
 
-    @abstractmethod
+    def _add(self, other):
+        """Return the linear combination self + other.
+
+        Args:
+            other (QuantumState): a state object.
+
+        Returns:
+            QuantumState: the linear combination self + other.
+
+        Raises:
+            NotImplementedError: if subclass does not support addition.
+        """
+        raise NotImplementedError(
+            "{} does not support addition".format(type(self)))
+
+    def _multiply(self, other):
+        """Return the scalar multipled state other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            QuantumState: the scalar multipled state other * self.
+
+        Raises:
+            NotImplementedError: if subclass does not support scala
+                                 multiplication.
+        """
+        raise NotImplementedError(
+            "{} does not support scalar multiplication".format(type(self)))
+
     def add(self, other):
         """Return the linear combination self + other.
+
+        DEPRECATED: use ``state + other`` instead.
 
         Args:
             other (QuantumState): a quantum state object.
@@ -224,11 +229,15 @@ class QuantumState(ABC):
             QiskitError: if other is not a quantum state, or has
                          incompatible dimensions.
         """
-        pass
+        warnings.warn("`{}.add` method is deprecated, use + binary operator"
+                      "`state + other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(other)
 
-    @abstractmethod
     def subtract(self, other):
         """Return the linear operator self - other.
+
+        DEPRECATED: use ``state - other`` instead.
 
         Args:
             other (QuantumState): a quantum state object.
@@ -240,22 +249,27 @@ class QuantumState(ABC):
             QiskitError: if other is not a quantum state, or has
                          incompatible dimensions.
         """
-        pass
+        warnings.warn("`{}.subtract` method is deprecated, use - binary operator"
+                      "`state - other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(-other)
 
-    @abstractmethod
     def multiply(self, other):
-        """Return the linear operator self * other.
+        """Return the scalar multipled state other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear combination other * self.
+            QuantumState: the scalar multipled state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
         """
-        pass
+        warnings.warn("`{}.multiply` method is deprecated, use * binary operator"
+                      "`other * state` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._multiply(other)
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -318,21 +332,17 @@ class QuantumState(ABC):
             self.dims(qargs),
             string_labels=True)
 
-    def sample_measure(self, qargs=None, shots=1, memory=False):
-        """Sample measurement outcomes in the computational basis.
+    def sample_memory(self, shots, qargs=None):
+        """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
+            shots (int): number of samples to generate.
             qargs (None or list): subsystems to sample measurements for,
                                 if None sample measurement of all
                                 subsystems (Default: None).
-            shots (int): number of samples to generate (Default: 1).
-            memory (bool): if True return a list of all samples in order
-                        otherwise return a counts dictionary of samples
-                        (Default: False).
 
         Returns:
-            dict: sampled counts dict if ``memory=False``.
-            np.array: sampled counts in order if ``memory=True``.
+            np.array: list of sampled counts if the order sampled.
 
         Additional Information:
 
@@ -352,15 +362,76 @@ class QuantumState(ABC):
             np.arange(len(probs)), self.dims(qargs), string_labels=True)
 
         # Sample outcomes
-        samples = self._rng.choice(labels, p=probs, size=shots)
+        return self._rng.choice(labels, p=probs, size=shots)
 
-        if memory:
-            # Return all samples in order they were generated
-            return samples
+    def sample_counts(self, shots, qargs=None):
+        """Sample a dict of qubit measurement outcomes in the computational basis.
+
+        Args:
+            shots (int): number of samples to generate.
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+
+        Returns:
+            dict: sampled counts dictionary.
+
+        Additional Information:
+
+            This function *samples* measurement outcomes using the measure
+            :meth:`probabilities` for the current state and `qargs`. It does
+            not actually implement the measurement so the current state is
+            not modified.
+
+            The seed for random number generator used for sampling can be
+            set to a fixed value by using the stats :meth:`seed` method.
+        """
+        # Sample list of outcomes
+        samples = self.sample_memory(shots, qargs=qargs)
 
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)
         return dict(zip(inds, counts))
+
+    def measure(self, qargs=None):
+        """Measure subsystems and return outcome and post-measure state.
+
+        Note that this function uses the QuantumStates internal random
+        number generator for sampling the measurement outcome. The RNG
+        seed can be set using the :meth:`seed` method.
+
+        Args:
+            qargs (list or None): subsystems to sample measurements for,
+                                  if None sample measurement of all
+                                  subsystems (Default: None).
+
+        Returns:
+            tuple: the pair ``(outcome, state)`` where ``outcome`` is the
+                   measurement outcome string label, and ``state`` is the
+                   collapsed post-measurement state for the corresponding
+                   outcome.
+        """
+        # Sample a single measurement outcome from probabilities
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Format outcome
+        outcome = self._index_to_ket_array(
+            sample, self.dims(qargs), string_labels=True)[0]
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Update state object
+        # TODO: implement a more efficient state update method for
+        # diagonal matrix multiplication
+        ret = self.evolve(
+            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
+            qargs=qargs)
+
+        return outcome, ret
 
     @classmethod
     def _automatic_dims(cls, dims, size):
@@ -570,19 +641,19 @@ class QuantumState(ABC):
         return self.tensor(other)
 
     def __mul__(self, other):
-        return self.multiply(other)
+        return self._multiply(other)
 
     def __truediv__(self, other):
-        return self.multiply(1 / other)
+        return self._multiply(1 / other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __add__(self, other):
-        return self.add(other)
+        return self._add(other)
 
     def __sub__(self, other):
-        return self.subtract(other)
+        return self._add(-other)
 
     def __neg__(self):
-        return self.multiply(-1)
+        return self._multiply(-1)
