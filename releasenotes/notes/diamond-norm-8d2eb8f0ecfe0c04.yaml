@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add :meth:`qiskit.quantum_info.diamond_norm` function for computing the
+    diamond norm (completely-bounded trace-norm) of a quantum channel. This
+    can be used to compute the distance between two quantum channels using
+    ``diamond_norm(chan1 - chan2)``.
