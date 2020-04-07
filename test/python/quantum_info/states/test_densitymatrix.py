@@ -173,11 +173,6 @@ class TestDensityMatrix(QiskitTestCase):
             self.assertEqual(DensityMatrix(rho),
                              DensityMatrix(rho.tolist()))
 
-    def test_rep(self):
-        """Test Operator representation string property."""
-        state = DensityMatrix(self.rand_rho(2))
-        self.assertEqual(state.rep, 'DensityMatrix')
-
     def test_copy(self):
         """Test DensityMatrix copy method"""
         for _ in range(5):
@@ -301,14 +296,13 @@ class TestDensityMatrix(QiskitTestCase):
             rho1 = self.rand_rho(4)
             state0 = DensityMatrix(rho0)
             state1 = DensityMatrix(rho1)
-            self.assertEqual(state0.add(state1), DensityMatrix(rho0 + rho1))
             self.assertEqual(state0 + state1, DensityMatrix(rho0 + rho1))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         state1 = DensityMatrix(self.rand_rho(2))
         state2 = DensityMatrix(self.rand_rho(3))
-        self.assertRaises(QiskitError, state1.add, state2)
+        self.assertRaises(QiskitError, state1.__add__, state2)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -325,7 +319,6 @@ class TestDensityMatrix(QiskitTestCase):
             rho = self.rand_rho(4)
             state = DensityMatrix(rho)
             val = np.random.rand() + 1j * np.random.rand()
-            self.assertEqual(state.multiply(val), DensityMatrix(val * rho))
             self.assertEqual(val * state, DensityMatrix(val * state))
 
     def test_negate(self):

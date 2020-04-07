@@ -165,11 +165,6 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(Statevector(vec),
                              Statevector(vec.tolist()))
 
-    def test_rep(self):
-        """Test Operator representation string property."""
-        state = Statevector(self.rand_vec(2))
-        self.assertEqual(state.rep, 'Statevector')
-
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
@@ -293,14 +288,13 @@ class TestStatevector(QiskitTestCase):
             vec1 = self.rand_vec(4)
             state0 = Statevector(vec0)
             state1 = Statevector(vec1)
-            self.assertEqual(state0.add(state1), Statevector(vec0 + vec1))
             self.assertEqual(state0 + state1, Statevector(vec0 + vec1))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         state1 = Statevector(self.rand_vec(2))
         state2 = Statevector(self.rand_vec(3))
-        self.assertRaises(QiskitError, state1.add, state2)
+        self.assertRaises(QiskitError, state1.__add__, state2)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -317,7 +311,6 @@ class TestStatevector(QiskitTestCase):
             vec = self.rand_vec(4)
             state = Statevector(vec)
             val = np.random.rand() + 1j * np.random.rand()
-            self.assertEqual(state.multiply(val), Statevector(val * vec))
             self.assertEqual(val * state, Statevector(val * state))
 
     def test_negate(self):
