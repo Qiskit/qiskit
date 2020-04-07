@@ -56,21 +56,19 @@ class TestBackendConfiguration(QiskitTestCase):
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
         self.assertEqual(self.config.control(0), ControlChannel(0))
 
-    def test_get_channel_qubits_2q(self):
-        """Test to retrieve channels from ``channels`` configuration in 2Q backend."""
-        self.assertEqual(self.config.get_channel_qubits(), {ControlChannel(0), ControlChannel(1),
-                                                            MeasureChannel(0), MeasureChannel(1),
-                                                            AcquireChannel(0), AcquireChannel(1),
-                                                            DriveChannel(0), DriveChannel(1)})
-
-    def test_get_channel_qubits_3q(self):
-        """Test to retrieve channels from ``channels`` configuration in 3Q backend."""
+    def test_get_channel_qubits(self):
+        """Test to get all qubits operated on a given channel."""
+        self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
+        self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
-        self.assertEqual(backend_3q.configuration().get_channel_qubits(),
-                         {DriveChannel(0), DriveChannel(1), DriveChannel(2),
-                          MeasureChannel(0), MeasureChannel(1), MeasureChannel(2),
-                          AcquireChannel(0), AcquireChannel(1), AcquireChannel(2),
-                          ControlChannel(0), ControlChannel(1), ControlChannel(2)})
+        self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
+        self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
+
+    def test_get_qubit_channels_2q(self):
+        """Test to get all channels operated on a given qubit."""
+        self.assertEqual(set(self.config.get_qubit_channels(qubit=1)),
+                         {MeasureChannel(1), AcquireChannel(1), ControlChannel(1),
+                          DriveChannel(1)})
 
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
