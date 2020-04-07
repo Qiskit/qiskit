@@ -224,15 +224,10 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-    if schedule_circuit:
+    if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
         # do not transpile a schedule circuit
-        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
+        if schedule_circuit:
             raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
-        experiments = schedule(circuits=experiments,
-                               backend=backend,
-                               inst_map=inst_map,
-                               meas_map=meas_map,
-                               method=scheduling_method)
     elif pass_manager is not None:
         # transpiling using pass_manager
         _check_conflicting_argument(optimization_level=optimization_level,
@@ -253,6 +248,13 @@ def execute(experiments, backend,
                                 seed_transpiler=seed_transpiler,
                                 optimization_level=optimization_level,
                                 backend=backend)
+
+    if schedule_circuit:
+        experiments = schedule(circuits=experiments,
+                               backend=backend,
+                               inst_map=inst_map,
+                               meas_map=meas_map,
+                               method=scheduling_method)
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
