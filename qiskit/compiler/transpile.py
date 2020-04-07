@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+import logging
+from time import time
 import warnings
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -33,6 +35,8 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
+
+LOG = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -165,10 +169,15 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     circuits = circuits if isinstance(circuits, list) else [circuits]
 
     # transpiling schedules is not supported yet.
+    start_time = time()
     if all(isinstance(c, Schedule) for c in circuits):
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
         if len(circuits) == 1:
+            end_time = time()
+            _log_transpile_time(start_time, end_time)
             return circuits[0]
+        end_time = time()
+        _log_transpile_time(start_time, end_time)
         return circuits
 
     if pass_manager is not None:
@@ -201,7 +210,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
+        end_time = time()
+        _log_transpile_time(start_time, end_time)
         return circuits[0]
+    end_time = time()
+    _log_transpile_time(start_time, end_time)
     return circuits
 
 
@@ -232,6 +245,11 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
                                   'in {} '.format(circuit.name) +
                                   'is greater than maximum ({}) '.format(max_qubits) +
                                   'in the coupling_map')
+
+
+def _log_transpile_time(start_time, end_time):
+    log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    LOG.info(log_msg)
 
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
