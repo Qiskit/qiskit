@@ -177,6 +177,24 @@ class TestContexts(TestBuilderContext):
                 pulse.call_circuit(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
+    def test_scheduler_settings(self):
+        inst_map = pulse.InstructionScheduleMap()
+        d0 = pulse.DriveChannel(0)
+        test_x_sched = pulse.Schedule()
+        test_x_sched += instructions.Delay(10, d0)
+        inst_map.add('x', (0,), test_x_sched)
+
+        x_qc = circuit.QuantumCircuit(2)
+        x_qc.x(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.transpiler_settings(basis_gates=['x']):
+                with pulse.circuit_scheduler_settings(inst_map=inst_map):
+                    pulse.call_circuit(x_qc)
+
+        self.assertEqual(schedule, test_x_sched)
+
 
 class TestInstructions(TestBuilderContext):
     """Test builder instructions."""
