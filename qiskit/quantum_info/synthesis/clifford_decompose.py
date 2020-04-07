@@ -83,11 +83,11 @@ def decompose_clifford_bm(clifford):
         table = clifford.table.array[pos][:, pos]
         phase = clifford.table.phase[pos]
         circ = _decompose_clifford_1q(table, phase)
-        if len(circ):
+        if len(circ) > 0:
             ret_circ.append(_decompose_clifford_1q(table, phase), [qubit])
 
     # Add the inverse of the 2-qubit reductions circuit
-    if len(inv_circuit):
+    if len(inv_circuit) > 0:
         ret_circ.append(inv_circuit.inverse(), range(num_qubits))
     return ret_circ.decompose()
 
@@ -266,6 +266,7 @@ def _cx_cost2(clifford):
 
 def _cx_cost3(clifford):
     """Return CX cost of a 3-qubit clifford."""
+    # pylint: disable=too-many-return-statements,too-many-boolean-expressions
     U = clifford.table.array
     n = 3
     # create information transfer matrices R1, R2

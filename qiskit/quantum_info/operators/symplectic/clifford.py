@@ -344,9 +344,6 @@ class Clifford(BaseOperator):
         from reference [1]. For N > 3 qubits this is done using the general
         non-optimal compilation routine from reference [2].
 
-        Args:
-            clifford (Clifford): a clifford operator.
-
         Return:
             QuantumCircuit: a circuit implementation of the Clifford.
 
