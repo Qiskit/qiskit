@@ -1175,18 +1175,6 @@ class QuantumCircuit:
             new_creg = ClassicalRegister(length, name)
         return new_creg
 
-    def _create_qreg(self, length, name):
-        """ Creates a qreg, checking if QuantumRegister with same name exists
-        """
-        if name in [qreg.name for qreg in self.qregs]:
-            save_prefix = QuantumRegister.prefix
-            QuantumRegister.prefix = name
-            new_qreg = QuantumRegister(length)
-            QuantumRegister.prefix = save_prefix
-        else:
-            new_qreg = QuantumRegister(length, name)
-        return new_qreg
-
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
