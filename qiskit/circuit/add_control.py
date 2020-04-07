@@ -99,7 +99,7 @@ def control(operation: Union[Gate, ControlledGate],
             base_name = operation.base_gate.name
         else:
             base_gate = None
-            base_name = re.sub('^c+\d*', '', operation.name)
+            base_name = re.sub(r'^c+\d*', '', operation.name)
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         base_name = operation.name
@@ -124,7 +124,7 @@ def control(operation: Union[Gate, ControlledGate],
                 operation.params,
                 label=label,
                 num_ctrl_qubits=new_num_ctrl_qubits,
-                definition=None,
+                definition=[],  # empty list instead of None for Unroller.
                 ctrl_state=ctrl_state)
             cgate.base_gate = base_gate
             return cgate

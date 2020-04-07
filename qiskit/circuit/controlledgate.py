@@ -74,8 +74,8 @@ class ControlledGate(Gate):
         # pylint: disable=cyclic-import
         if not self._definition:
             # still no definition? opaque gate
-            return None
-        from qiskit.extensions.standard import XGate, XGate
+            return []  # empty list instead of None for Unroller.
+        from qiskit.extensions.standard import XGate, CXGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:

@@ -180,7 +180,7 @@ class TestControlledGate(QiskitTestCase):
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertIs(copaque.definition, None)
+        self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, ctrl_state)
 
     @data(1, 2, 3)
@@ -190,17 +190,13 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state = num_ctrl_qubits
         params = []
 
-        #define opaque gate class
-        class Opaque(Gate):
-            def __init__(self, name, num_qubits, params=None):
-                pass
         opaque = Gate('opaque', num_qubits, params)
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertIs(copaque.definition, None)
+        self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, ctrl_state)
-        
+
     @data(1, 2)
     def test_controlled_opaque_controlled_gate(self, num_ctrl_qubits):
         """Test control of opaque gate"""
@@ -214,8 +210,19 @@ class TestControlledGate(QiskitTestCase):
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertIs(copaque.definition, None)
+        self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, ctrl_state)
+
+    def test_transpile_controlled_opaque(self):
+        """Test transpiling controlled opaque gate"""
+        from qiskit import transpile
+        basis_gates = ['u1', 'u3', 'cx']
+        gate = Gate('my_gate', 1, [])
+        #gate._definition = []
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gate.control(), [0, 1], [])
+        transpile(circuit, basis_gates=basis_gates)
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
