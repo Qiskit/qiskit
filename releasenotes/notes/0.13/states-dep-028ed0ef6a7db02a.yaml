@@ -8,9 +8,11 @@ deprecations:
   - |
     The ``add``, ``subtract``, and ``multiple`` methods of the
     :class:`qiskit.quantum_info.Statevector` and 
-    :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated.
-    Use ``+``, ``-``, ``*`` binary operators instead.
+    :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated and will
+    be removed in a future release. Instead you shoulde use ``+``, ``-``, ``*``
+    binary operators instead.
   - |
     The ``rep`` method of the :class:`qiskit.quantum_info.Statevector` and 
-    :class:`qiskit.quantum_info.DensityMatrix` classes is deprecated. Use
-    ``isinstance`` to check for type instead.
+    :class:`qiskit.quantum_info.DensityMatrix` classes is deprecated and will
+    be removed in a future release. Instead you should use ``isinstance`` to
+    check for type instead.
