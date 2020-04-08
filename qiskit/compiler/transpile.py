@@ -301,11 +301,11 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
-    faulty_qreg = circuit._create_qreg(1, 'faulty')
+    faulty_qreg = circuit._create_qreg(3, 'faulty')
     new_layout = Layout()
     faulty_qubit = 0
     for real_qubit in range(backend.configuration().n_qubits):
-        if real_qubit in faulty_qubits_map:
+        if faulty_qubits_map[real_qubit] is not None:
             new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
         else:
             new_layout[real_qubit] = faulty_qreg[faulty_qubit]
@@ -380,16 +380,28 @@ def _parse_transpile_args(circuits, backend,
 
 def _create_faulty_qubits_map(backend):
     """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
-       from working qubit in the backend to dumnmy qubits that are consecutive."""
+       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
         faulty_qubits = backend.faulty_qubits()
         if faulty_qubits:
             faulty_qubits_map = {}
             configuration = backend.configuration()
-            working_qubits = set(range(configuration.n_qubits)) - set(faulty_qubits)
-            for dummy_qubit, working_qubit in enumerate(working_qubits):
-                faulty_qubits_map[working_qubit] = dummy_qubit
+            full_coupling_map = configuration.coupling_map
+            functional_coupling_map = [edge for edge in full_coupling_map
+                                            if set(edge).isdisjoint(faulty_qubits)]
+            if CouplingMap(functional_coupling_map).is_connected():
+                connected_working_qubits = {qubit for edge in functional_coupling_map
+                                            for qubit in edge}
+            else:
+                raise Exception('TODO')
+            dummy_qubit_counter = 0
+            for qubit in range(configuration.n_qubits):
+                if qubit in connected_working_qubits:
+                    faulty_qubits_map[qubit] = dummy_qubit_counter
+                    dummy_qubit_counter += 1
+                else:
+                    faulty_qubits_map[qubit] = None
     return faulty_qubits_map
 
 
@@ -422,12 +434,8 @@ def _parse_coupling_map(coupling_map, backend, num_circuits, faulty_map):
                 if faulty_map:
                     coupling_map = CouplingMap()
                     for qubit1, qubit2 in configuration.coupling_map:
-                        if qubit1 in faulty_map and qubit2 in faulty_map:
+                        if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
                             coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
-                        elif qubit1 in faulty_map and faulty_map[qubit1] not in coupling_map.physical_qubits:
-                            coupling_map.add_physical_qubit(faulty_map[qubit1])
-                        elif qubit2 in faulty_map and faulty_map[qubit2] not in coupling_map.physical_qubits:
-                            coupling_map.add_physical_qubit(faulty_map[qubit2])
                 else:
                     coupling_map = CouplingMap(configuration.coupling_map)
 

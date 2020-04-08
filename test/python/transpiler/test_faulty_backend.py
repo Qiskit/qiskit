@@ -50,7 +50,6 @@ class TestFaultyQ1(QiskitTestCase):
                 diff = abs(result1.get(key, 0) - result2.get(key, 0))
                 self.assertLess(diff / shots * 100, 2.5)
 
-
     def assertIdleQ1(self, circuit):
         """Asserts the Q1 in circuit is not used with operations"""
         physical_qubits = QuantumRegister(5, 'q')
@@ -61,8 +60,8 @@ class TestFaultyQ1(QiskitTestCase):
 
     def test_level_1(self):
         """Test level 1 Ourense backend with a faulty Q1 """
-        circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
-        circuit.h(range(4))
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
         circuit.cz(0, 1)
         circuit.measure_all()
         result = transpile(circuit, backend=self.backend, optimization_level=1, seed_transpiler=42)
@@ -72,11 +71,22 @@ class TestFaultyQ1(QiskitTestCase):
 
     def test_level_2(self):
         """Test level 2 Ourense backend with a faulty Q1 """
-        circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
-        circuit.h(range(4))
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
         circuit.cz(0, 1)
         circuit.measure_all()
         result = transpile(circuit, backend=self.backend, optimization_level=2, seed_transpiler=42)
+
+        self.assertIdleQ1(result)
+        self.assertEqualCount(circuit, result)
+
+    def test_level_3(self):
+        """Test level 3 Ourense backend with a faulty Q1 """
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile(circuit, backend=self.backend, optimization_level=3, seed_transpiler=42)
 
         self.assertIdleQ1(result)
         self.assertEqualCount(circuit, result)
