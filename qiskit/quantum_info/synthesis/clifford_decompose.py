@@ -84,7 +84,7 @@ def decompose_clifford_bm(clifford):
         phase = clifford.table.phase[pos]
         circ = _decompose_clifford_1q(table, phase)
         if len(circ) > 0:
-            ret_circ.append(_decompose_clifford_1q(table, phase), [qubit])
+            ret_circ.append(circ, [qubit])
 
     # Add the inverse of the 2-qubit reductions circuit
     if len(inv_circuit) > 0:
