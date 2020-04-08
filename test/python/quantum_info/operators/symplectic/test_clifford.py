@@ -29,6 +29,8 @@ from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate, HGate,
                                         SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
+from qiskit.quantum_info.synthesis.clifford_decompose import (
+    decompose_clifford_ag, decompose_clifford_bm)
 
 
 class VGate(Gate):
@@ -57,6 +59,7 @@ class WGate(Gate):
 
 def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
     """Generate a pseudo random Clifford circuit."""
+
     if gates == 'all':
         if num_qubits == 1:
             gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w']
@@ -81,7 +84,11 @@ def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
         'swap': (SwapGate(), 2)
     }
 
-    rng = np.random.RandomState(seed=seed)
+    if isinstance(seed, np.random.RandomState):
+        rng = seed
+    else:
+        rng = np.random.RandomState(seed=seed)
+
     samples = rng.choice(gates, num_gates)
 
     circ = QuantumCircuit(num_qubits)
@@ -344,6 +351,68 @@ class TestCliffordGates(QiskitTestCase):
 
 
 @ddt
+class TestCliffordSynthesis(QiskitTestCase):
+    """Test Clifford synthesis methods."""
+
+    def _cliffords_1q(self):
+        clifford_dicts = [
+            {"stabilizer": ["+Z"], "destabilizer": ["-X"]},
+            {"stabilizer": ["-Z"], "destabilizer": ["+X"]},
+            {"stabilizer": ["-Z"], "destabilizer": ["-X"]},
+            {"stabilizer": ["+Z"], "destabilizer": ["+Y"]},
+            {"stabilizer": ["+Z"], "destabilizer": ["-Y"]},
+            {"stabilizer": ["-Z"], "destabilizer": ["+Y"]},
+            {"stabilizer": ["-Z"], "destabilizer": ["-Y"]},
+            {"stabilizer": ["+X"], "destabilizer": ["+Z"]},
+            {"stabilizer": ["+X"], "destabilizer": ["-Z"]},
+            {"stabilizer": ["-X"], "destabilizer": ["+Z"]},
+            {"stabilizer": ["-X"], "destabilizer": ["-Z"]},
+            {"stabilizer": ["+X"], "destabilizer": ["+Y"]},
+            {"stabilizer": ["+X"], "destabilizer": ["-Y"]},
+            {"stabilizer": ["-X"], "destabilizer": ["+Y"]},
+            {"stabilizer": ["-X"], "destabilizer": ["-Y"]},
+            {"stabilizer": ["+Y"], "destabilizer": ["+X"]},
+            {"stabilizer": ["+Y"], "destabilizer": ["-X"]},
+            {"stabilizer": ["-Y"], "destabilizer": ["+X"]},
+            {"stabilizer": ["-Y"], "destabilizer": ["-X"]},
+            {"stabilizer": ["+Y"], "destabilizer": ["+Z"]},
+            {"stabilizer": ["+Y"], "destabilizer": ["-Z"]},
+            {"stabilizer": ["-Y"], "destabilizer": ["+Z"]},
+            {"stabilizer": ["-Y"], "destabilizer": ["-Z"]}]
+        return [Clifford.from_dict(i) for i in clifford_dicts]
+
+    def test_decompose_1q(self):
+        """Test synthesis for all 1-qubit Cliffords"""
+        for cliff in self._cliffords_1q():
+            with self.subTest(msg='Test circuit {}'.format(cliff)):
+                target = cliff
+                value = Clifford(cliff.to_circuit())
+                self.assertEqual(target, value)
+
+    @combine(num_qubits=[2, 3])
+    def test_decompose_2q_bm(self, num_qubits):
+        """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.RandomState(seed=1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(decompose_clifford_bm(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_decompose_2q_ag(self, num_qubits):
+        """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.RandomState(seed=1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(decompose_clifford_ag(target))
+            self.assertEqual(value, target)
+
+
+@ddt
 class TestCliffordDecomposition(QiskitTestCase):
     """Test Clifford decompositions."""
     @combine(gates=[['h', 's'], ['h', 's', 'i', 'x', 'y', 'z'],
@@ -415,7 +484,7 @@ class TestCliffordDecomposition(QiskitTestCase):
             target = Operator(circ)
             self.assertTrue(value.equiv(target))
 
-    @combine(num_qubits=[1, 2, 3])
+    @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_circuit(self, num_qubits):
         """Test to_circuit method"""
         samples = 10
@@ -427,14 +496,14 @@ class TestCliffordDecomposition(QiskitTestCase):
                                            num_gates,
                                            gates=gates,
                                            seed=seed + i)
-            decomp = Clifford(circ).to_circuit()
+            target = Clifford(circ)
+            decomp = target.to_circuit()
             self.assertIsInstance(decomp, QuantumCircuit)
             self.assertEqual(decomp.num_qubits, circ.num_qubits)
-            value = Operator(decomp)
-            target = Operator(circ)
-            self.assertTrue(value.equiv(target))
+            # Convert back to clifford and check it is the same
+            self.assertEqual(Clifford(decomp), target)
 
-    @combine(num_qubits=[1, 2, 3])
+    @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_instruction(self, num_qubits):
         """Test to_instruction method"""
         samples = 10
@@ -446,12 +515,12 @@ class TestCliffordDecomposition(QiskitTestCase):
                                            num_gates,
                                            gates=gates,
                                            seed=seed + i)
-            decomp = Clifford(circ).to_instruction()
+            target = Clifford(circ)
+            decomp = target.to_instruction()
             self.assertIsInstance(decomp, Gate)
             self.assertEqual(decomp.num_qubits, circ.num_qubits)
-            value = Operator(decomp)
-            target = Operator(circ)
-            self.assertTrue(value.equiv(target))
+            # Convert back to clifford and check it is the same
+            self.assertEqual(Clifford(decomp), target)
 
 
 @ddt
