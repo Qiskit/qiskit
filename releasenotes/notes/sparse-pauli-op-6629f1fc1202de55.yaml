@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Adds :class:`qiskit.quantum_info.SparsePauliOp` operator class. This is an
-    efficient representaiton of an N-qubit matrix that is sparse in the Pauli
-    basis and uses a :class:`qiskit.quantum_info.PauliTable` and vector of
-    complex coefficients for its data structure.
