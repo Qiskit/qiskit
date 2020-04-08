@@ -14,11 +14,14 @@
 
 """Tests preset pass manager whith faulty backends"""
 
+from ddt import ddt, data
+
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
+from qiskit.extensions.standard import CnotGate
 
 
 class TestFaultyBackendCase(QiskitTestCase):
@@ -41,6 +44,7 @@ class TestFaultyBackendCase(QiskitTestCase):
                 self.assertLess(diff / shots * 100, 2.5)
 
 
+@ddt
 class TestFaultyCX01(TestFaultyBackendCase):
     """Test preset passmanagers with FakeOurenseFaultyCX01
     A fake 5 qubit backend, with a faulty CX(Q0, Q1) (and symmetric).
@@ -52,18 +56,31 @@ class TestFaultyCX01(TestFaultyBackendCase):
     def setUp(self) -> None:
         self.backend = FakeOurenseFaultyCX13()
 
-    def test_level_1(self):
-        """Test level 1 Ourense backend with a faulty CX(Q0, Q1) """
+    def assertIdleCX01(self, circuit):
+        """Asserts the CX(0, 1) (and symmetric) is not used in the circuit"""
+        physical_qubits = QuantumRegister(5, 'q')
+        cx_nodes = circuit_to_dag(circuit).op_nodes(CnotGate)
+        for node in cx_nodes:
+            if set(node.qargs) == {physical_qubits[0], physical_qubits[1]}:
+                raise AssertionError('Faulty CX(Q0, Q1) (or symmetric) is being used.')
+
+    @data(0, 1, 2, 3)
+    def test_level(self, level):
+        """Test level {level} Ourense backend with a faulty CX(Q0, Q1) """
         circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
         circuit.h(range(4))
         circuit.ccx(0, 1, 2)
         circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=1, seed_transpiler=42)
+        result = transpile(circuit,
+                           backend=self.backend,
+                           optimization_level=level,
+                           seed_transpiler=42)
 
-        # self.assertIdleCX13(result)
+        self.assertIdleCX01(result)
         self.assertEqualCount(circuit, result)
 
 
+@ddt
 class TestFaultyQ1(TestFaultyBackendCase):
     """Test preset passmanagers with FakeOurenseFaultyQ1.
        A 5 qubit backend, with a faulty q1
@@ -83,46 +100,16 @@ class TestFaultyQ1(TestFaultyBackendCase):
             if node.type == 'op':
                 raise AssertionError('Faulty Qubit Q1 not totally idle')
 
-    def test_level_0(self):
-        """Test level 0 Ourense backend with a faulty Q1 """
+    @data(0, 1, 2, 3)
+    def test_level(self, level):
+        """Test level {level} Ourense backend with a faulty Q1 """
         circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
         circuit.h(range(2))
         circuit.cz(0, 1)
         circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=0, seed_transpiler=42)
-
-        self.assertIdleQ1(result)
-        self.assertEqualCount(circuit, result)
-
-    def test_level_1(self):
-        """Test level 1 Ourense backend with a faulty Q1 """
-        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
-        circuit.h(range(2))
-        circuit.cz(0, 1)
-        circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=1, seed_transpiler=42)
-
-        self.assertIdleQ1(result)
-        self.assertEqualCount(circuit, result)
-
-    def test_level_2(self):
-        """Test level 2 Ourense backend with a faulty Q1 """
-        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
-        circuit.h(range(2))
-        circuit.cz(0, 1)
-        circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=2, seed_transpiler=42)
-
-        self.assertIdleQ1(result)
-        self.assertEqualCount(circuit, result)
-
-    def test_level_3(self):
-        """Test level 3 Ourense backend with a faulty Q1 """
-        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
-        circuit.h(range(2))
-        circuit.cz(0, 1)
-        circuit.measure_all()
-        result = transpile(circuit, backend=self.backend, optimization_level=3, seed_transpiler=42)
+        result = transpile(circuit, backend=self.backend,
+                           optimization_level=level,
+                           seed_transpiler=42)
 
         self.assertIdleQ1(result)
         self.assertEqualCount(circuit, result)
