@@ -12,10 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Testing a Faulty Backend (1Q)."""
+"""Testing a Faulty Ourense Backend."""
 
-from qiskit.test.mock import FakeOurenseFaultyQ1
-from qiskit.test.mock import FakeOurenseFaultyCX13
+from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13, FakeOurenseFaultyCX01
 from qiskit.test import QiskitTestCase
 
 
@@ -34,16 +33,33 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
         self.assertEqual(self.backend.faulty_qubits(), [1])
 
 
-class FaultyGateBackendTestCase(QiskitTestCase):
+class FaultyGate13BackendTestCase(QiskitTestCase):
     backend = FakeOurenseFaultyCX13()
 
     def test_operational_gate(self):
         self.assertFalse(self.backend.properties().is_gate_operational('cx', [1, 3]))
+        self.assertFalse(self.backend.properties().is_gate_operational('cx', [3, 1]))
 
     def test_faulty_gates(self):
         """Test faulty_gates method. """
         gates = self.backend.faulty_gates()
-        self.assertEqual(len(gates), 1)
-        self.assertEqual(gates[0].gate, 'cx')
-        self.assertEqual(gates[0].qubits, [1, 3])
-        self.assertEqual(gates[0].name, 'cx1_3')
+        self.assertEqual(len(gates), 2)
+        self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
+        self.assertEqual([gate.qubits for gate in gates], [[1, 3], [3, 1]])
+        self.assertEqual([gate.name for gate in gates], ['cx1_3', 'cx3_1'])
+
+
+class FaultyGate01BackendTestCase(QiskitTestCase):
+    backend = FakeOurenseFaultyCX01()
+
+    def test_operational_gate(self):
+        self.assertFalse(self.backend.properties().is_gate_operational('cx', [0, 1]))
+        self.assertFalse(self.backend.properties().is_gate_operational('cx', [1, 0]))
+
+    def test_faulty_gates(self):
+        """Test faulty_gates method. """
+        gates = self.backend.faulty_gates()
+        self.assertEqual(len(gates), 2)
+        self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
+        self.assertEqual([gate.qubits for gate in gates], [[0, 1], [1, 0]])
+        self.assertEqual([gate.name for gate in gates], ['cx0_1', 'cx1_0'])

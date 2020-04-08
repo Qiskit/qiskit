@@ -22,6 +22,7 @@ from .tenerife import FakeTenerife
 from .ourense import FakeOurense
 from .ourense import FakeOurenseFaultyQ1
 from .ourense import FakeOurenseFaultyCX13
+from .ourense import FakeOurenseFaultyCX01
 from .vigo import FakeVigo
 from .burlington import FakeBurlington
 from .melbourne import FakeMelbourne

@@ -429,7 +429,8 @@ def _create_faulty_qubits_map(backend):
                                        if (set(edge).isdisjoint(faulty_qubits) and
                                            edge not in faulty_edges)]
 
-            if CouplingMap(functional_coupling_map).is_connected():
+            coupling_map = CouplingMap(functional_coupling_map)
+            if coupling_map.is_connected():
                 connected_working_qubits = {qubit for edge in functional_coupling_map
                                             for qubit in edge}
             else:

@@ -17,3 +17,4 @@
 from .fake_ourense import FakeOurense
 from .fake_ourense_faulty_q1 import FakeOurenseFaultyQ1
 from .fake_ourense_faulty_cx13 import FakeOurenseFaultyCX13
+from .fake_ourense_faulty_cx01 import FakeOurenseFaultyCX01
