@@ -1326,7 +1326,7 @@ class QuantumCircuit:
                 returned. If True the circuit instance itself is modified.
 
         Raises:
-            CircuitError: If value_dict contains parameters not present in the circuit
+            CircuitError: If param_dict contains parameters not present in the circuit
 
         Returns:
             optional(QuantumCircuit): A copy of the circuit with bound parameters, if
