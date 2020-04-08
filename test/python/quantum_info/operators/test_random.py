@@ -21,9 +21,13 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator, Stinespring, Choi
+from qiskit.quantum_info import Clifford, PauliTable, StabilizerTable
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.random import random_hermitian
 from qiskit.quantum_info.random import random_quantum_channel
+from qiskit.quantum_info.random import random_clifford
+from qiskit.quantum_info.random import random_pauli_table
+from qiskit.quantum_info.random import random_stabilizer_table
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 
 
@@ -152,6 +156,105 @@ class TestRandomQuantumChannel(QiskitTestCase):
         random_unitary(2, seed=seed)
         rng_before = np.random.randint(1000, size=test_cases)
         random_unitary(2, seed=seed)
+        rng_after = np.random.randint(1000, size=test_cases)
+        self.assertFalse(np.all(rng_before == rng_after))
+
+
+@ddt
+class TestRandomClifford(QiskitTestCase):
+    """Testing random_clifford function."""
+
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 150, 211])
+    def test_valid(self, num_qubits):
+        """Test random_clifford {num_qubits}-qubits."""
+        value = random_clifford(num_qubits)
+        with self.subTest(msg='Test type'):
+            self.assertIsInstance(value, Clifford)
+        with self.subTest(msg='Test num_qubits'):
+            self.assertEqual(value.num_qubits, num_qubits)
+
+    def test_fixed_seed(self):
+        """Test fixing seed fixes output"""
+        seed = 1532
+        value1 = random_clifford(4, seed=seed)
+        value2 = random_clifford(4, seed=seed)
+        self.assertEqual(value1, value2)
+
+    def test_not_global_seed(self):
+        """Test fixing random_hermitian seed is locally scoped."""
+        seed = 314159
+        test_cases = 100
+        random_hermitian(2, seed=seed)
+        rng_before = np.random.randint(1000, size=test_cases)
+        random_hermitian(2, seed=seed)
+        rng_after = np.random.randint(1000, size=test_cases)
+        self.assertFalse(np.all(rng_before == rng_after))
+
+
+@ddt
+class TestRandomPauliTable(QiskitTestCase):
+    """Testing random_pauli_table function."""
+
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250],
+             size=[1, 10, 100])
+    def test_valid(self, num_qubits, size):
+        """Test random_pauli_table {num_qubits}-qubits, size {size}."""
+        value = random_pauli_table(num_qubits, size=size)
+        with self.subTest(msg='Test type'):
+            self.assertIsInstance(value, PauliTable)
+        with self.subTest(msg='Test num_qubits'):
+            self.assertEqual(value.num_qubits, num_qubits)
+        with self.subTest(msg='Test type'):
+            self.assertEqual(len(value), size)
+
+    def test_fixed_seed(self):
+        """Test fixing seed fixes output"""
+        seed = 1532
+        value1 = random_pauli_table(10, size=10, seed=seed)
+        value2 = random_pauli_table(10, size=10, seed=seed)
+        self.assertEqual(value1, value2)
+
+    def test_not_global_seed(self):
+        """Test fixing random_hermitian seed is locally scoped."""
+        seed = 314159
+        test_cases = 100
+        random_pauli_table(10, size=10, seed=seed)
+        rng_before = np.random.randint(1000, size=test_cases)
+        random_pauli_table(10, seed=seed)
+        rng_after = np.random.randint(1000, size=test_cases)
+        self.assertFalse(np.all(rng_before == rng_after))
+
+
+@ddt
+class TestRandomStabilizerTable(QiskitTestCase):
+    """Testing random_stabilizer_table function."""
+
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250],
+             size=[1, 10, 100])
+    def test_valid(self, num_qubits, size):
+        """Test random_stabilizer_table {num_qubits}-qubits, size {size}."""
+        value = random_stabilizer_table(num_qubits, size=size)
+        with self.subTest(msg='Test type'):
+            self.assertIsInstance(value, StabilizerTable)
+        with self.subTest(msg='Test num_qubits'):
+            self.assertEqual(value.num_qubits, num_qubits)
+        with self.subTest(msg='Test type'):
+            self.assertEqual(len(value), size)
+
+    def test_fixed_seed(self):
+        """Test fixing seed fixes output"""
+        seed = 1532
+        value1 = random_stabilizer_table(10, size=10, seed=seed)
+        value2 = random_stabilizer_table(10, size=10, seed=seed)
+        self.assertEqual(value1, value2)
+
+    def test_not_global_seed(self):
+        """Test fixing random_hermitian seed is locally scoped."""
+        seed = 314159
+        test_cases = 100
+        random_stabilizer_table(10, size=10, seed=seed)
+        rng_before = np.random.randint(1000, size=test_cases)
+        random_stabilizer_table(10, seed=seed)
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 
