@@ -7,5 +7,3 @@ features:
     Also, by using the ``inplace`` argument it can be specified if a copy with the
     new parameter values should be returned (``inplace=False``, default behaviour), or
     if the original circuit should be modified (``inplace=True``).
-    This makes the existing ``_substitute_parameters`` method obsolete, since this is
-    equal to ``bind_parameters(param_dict, inplace=True)```.
