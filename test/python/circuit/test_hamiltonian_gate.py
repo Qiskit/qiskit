@@ -71,7 +71,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
 
     def test_1q_hamiltonian(self):
         """test 1 qubit hamiltonian"""
-        qr = QuantumRegister(1)
+        qr = QuantumRegister(1, 'q0')
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
         matrix = np.zeros((2, 2))
