@@ -67,7 +67,7 @@ syntax. For example::
       # with left():
 
       # all pulse instructions occur as late as possible
-      with right_align():
+      with right_alignment():
         set_phase(d1, math.pi)
         # starts at t=30
         delay(d0, 100)
@@ -254,9 +254,9 @@ class _PulseBuilder():
                                       Union[str, ContextManager] = 'left'):
         """Set the default alignment."""
         if default_alignment == 'left':
-            self._default_alignment_context = left_align()
+            self._default_alignment_context = left_alignment()
         elif default_alignment == 'right':
-            self._default_alignment_context = right_align()
+            self._default_alignment_context = right_alignment()
         # Assume is a contextmanager
         elif (isinstance(default_alignment, str)):
             self._default_alignment_context = default_alignment
@@ -442,13 +442,13 @@ def sequential():
     """Sequential transform builder context."""
 
 
-@_transform_context(transforms.left_align)
-def left_align():
+@_transform_context(transforms.align_left)
+def left_alignment():
     """Left align transform builder context."""
 
 
-@_transform_context(transforms.right_align)
-def right_align():
+@_transform_context(transforms.align_right)
+def right_alignment():
     """Right align transform builder context."""
 
 

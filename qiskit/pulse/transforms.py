@@ -23,6 +23,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
+import qiskit.pulse.exceptions as exceptions
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .commands import AcquireInstruction
 from .exceptions import PulseError
@@ -239,7 +240,7 @@ def push_append(this: List[ScheduleComponent],
     return this.insert(insert_time, other)
 
 
-def left_align(schedule: Schedule) -> Schedule:
+def align_left(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
@@ -257,7 +258,7 @@ def left_align(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def right_align(schedule: Schedule) -> Schedule:
+def align_right(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
@@ -268,7 +269,7 @@ def right_align(schedule: Schedule) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         right aligned.
     """
-    left_aligned = left_align(schedule)
+    left_aligned = align_left(schedule)
     total_duration = left_aligned.duration
 
     latest_available_times = collections.defaultdict(lambda: total_duration)
@@ -304,7 +305,7 @@ def left_barrier(schedule: Schedule,
         New schedule with input `schedule`` child schedules and instructions
         left barriered.
     """
-    aligned = left_align(schedule)
+    aligned = align_left(schedule)
     return pad(aligned, channels=channels)
 
 
@@ -324,7 +325,7 @@ def right_barrier(schedule: Schedule,
         New schedule with input `schedule`` child schedules and instructions
         right barriered.
     """
-    aligned = right_align(schedule)
+    aligned = align_left(schedule)
     return pad(aligned, channels=channels)
 
 
@@ -345,12 +346,22 @@ def sequentialize(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def parallelize(schedule):
-    """Schedule all top-level nodes in parallel."""
-    aligned = Schedule()
-    for _, child in schedule.children:
-        aligned.append(child, mutate=True)
-    return aligned
+def parallelize(schedule, alignment: str = 'left'):
+    """Schedule all top-level nodes in parallel.
+
+    Args:
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+        alignment: Alignment policy to parallelize by. Available options are
+            ``left`` and ``right``
+    """
+    if alignment == 'left':
+        return align_left(schedule)
+    elif alignment == 'right':
+        return align_right(schedule)
+    else:
+        raise exceptions.PulseError('The selected alignment policy of "{}" '
+                                    'is not supported.'.format(alignment))
 
 
 def group(schedule):

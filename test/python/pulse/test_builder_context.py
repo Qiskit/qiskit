@@ -38,26 +38,6 @@ class TestBuilderContext(QiskitTestCase):
         self.defaults = self.backend.defaults()
         self.inst_map = self.defaults.instruction_schedule_map
 
-    def test_context(self):
-        """Test a general program build."""
-        schedule = pulse.Schedule()
-        d0 = pulse.DriveChannel(0)
-        with pulse.build(self.backend, schedule):
-            pulse.delay(d0, 1000)
-            pulse.u2(0, 0, pi/2)
-            pulse.delay(d0, 1000)
-            pulse.u2(0, 0, pi)
-            with pulse.left_align():
-                pulse.play(d0, gaussian(500, 0.1, 125))
-                pulse.shift_phase(pulse.DriveChannel(0), pi/2)
-                pulse.play(d0, gaussian(500, 0.1, 125))
-                pulse.u2(1, 0, pi/2)
-            with pulse.sequential():
-                pulse.u2(0, 0, pi/2)
-                pulse.u2(1, 0, pi/2)
-                pulse.u2(0, 0, pi/2)
-            pulse.measure(0)
-
 
 class TestContexts(TestBuilderContext):
     """test context builder contexts."""
@@ -103,14 +83,14 @@ class TestContexts(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    def test_left_align(self):
+    def test_left_alignment(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         test_pulse = pulse_lib.ConstantPulse(10, 1.0)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.left_align():
+            with pulse.left_alignment():
                 pulse.play(d0, test_pulse)
                 pulse.play(d1, test_pulse)
                 pulse.play(d0, test_pulse)
@@ -124,14 +104,14 @@ class TestContexts(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    def test_right_align(self):
+    def test_right_alignment(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         test_pulse = pulse_lib.ConstantPulse(10, 1.0)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.right_align():
+            with pulse.right_alignment():
                 pulse.play(d0, test_pulse)
                 pulse.play(d1, test_pulse)
                 pulse.play(d0, test_pulse)
@@ -355,14 +335,14 @@ class TestInstructions(TestBuilderContext):
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.right_align():
+            with pulse.right_alignment():
                 pulse.call_schedule(reference)
 
         self.assertEqual(schedule, reference)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.right_align():
+            with pulse.right_alignment():
                 pulse.call(reference)
 
         self.assertEqual(schedule, reference)
@@ -380,14 +360,14 @@ class TestInstructions(TestBuilderContext):
         with pulse.build(self.backend,
                          schedule,
                          transpiler_settings=transpiler_settings):
-            with pulse.right_align():
+            with pulse.right_alignment():
                 pulse.call_circuit(u1_qc)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend,
                          schedule,
                          transpiler_settings=transpiler_settings):
-            with pulse.right_align():
+            with pulse.right_alignment():
                 pulse.call(u1_qc)
 
         self.assertEqual(schedule, reference)
@@ -400,7 +380,7 @@ class TestInstructions(TestBuilderContext):
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.left_align():
+            with pulse.left_alignment():
                 pulse.play(d0, test_pulse)
                 pulse.barrier(d0, d1)
                 pulse.play(d1, test_pulse)
@@ -416,7 +396,7 @@ class TestInstructions(TestBuilderContext):
         # test barrier on qubits
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.left_align():
+            with pulse.left_alignment():
                 pulse.play(d0, test_pulse)
                 pulse.barrier(0, 1)
                 pulse.play(d1, test_pulse)
@@ -598,5 +578,33 @@ class TestGates(TestBuilderContext):
         reference_qc.measure(0, 0)
         reference_qc = compiler.transpile(reference_qc, self.backend)
         reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+
+class TestBuilderComposition(TestBuilderContext):
+    """Test more sophisticated composite builder examples."""
+
+    def test_context(self):
+        """Test a general program build."""
+        schedule = pulse.Schedule()
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+        with pulse.build(self.backend, schedule):
+            with pulse.sequential():
+                pulse.delay(d0, 10)
+                pulse.u2(1, 0, pi/2)
+                with pulse.right_alignment():
+                    pulse.play(d0, pulse_lib.ConstantPulse(20, 0.1))
+                    pulse.play(d1, pulse_lib.ConstantPulse(30, 0.1))
+                    pulse.u2(1, 0, pi/2)
+                with pulse.parallel():
+                    pulse.u2(0, 0, pi/2)
+                    pulse.u2(1, 0, pi/2)
+                    pulse.u2(0, 0, pi/2)
+            pulse.measure(0)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
 
         self.assertEqual(schedule, reference)

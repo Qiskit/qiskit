@@ -119,7 +119,8 @@ class Schedule(ScheduleComponent):
 
     @property
     def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        """Return the children ``ScheduleComponent``s of this Schedule.
+        """Return the child``ScheduleComponent``s of this ``Schedule`` in the
+        order they were added to the schedule.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
