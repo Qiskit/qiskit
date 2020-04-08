@@ -14,7 +14,18 @@ prelude: >
     instructions are built. Now, ``Command`` s are deprecated and a unified
     set of :py:class:`~qiskit.pulse.instruction.Instruction` s are supported.
 
-    --- Quantum Info TODO ---
+    The :mod:`qiskit.quantum_info` module includes several new functions
+    for generating random operators (such as Cliffords and quantum channels)
+    and for computing the diamond norm of quantum channels; upgrades to the
+    :class:`~qiskit.quantum_info.Statevector` and
+    :class:`~qiskit.quantum_info.DensityMatrix` classes to support
+    computing measurement probabilities and sampling measurements; and several
+    new classes are based on the symplectic representation
+    of Pauli matrices. These new classes include Clifford operators
+    (:class:`~qiskit.quantum_info.Clifford`), N-qubit matrices that are
+    sparse in the Pauli basis (:class:`~qiskit.quantum_info.SparsePauliOp`),
+    lists of Pauli's (:class:`~qiskit.quantum_info.PauliTable`),
+    and lists of stabilizers (:class:`~qiskit.quantum_info.StabilizerTable`).
 
     This release also has vastly improved documentation across Qiskit,
     including improved documentation for the :mod:`qiskit.circuit`,

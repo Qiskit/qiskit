@@ -1,6 +1,9 @@
 ---
 features:
   - |
+    Adds :func:`qiskit.quantum_info.random_clifford` for generating a random
+    :class:`qiskit.quantum_info.Clifford` operator.
+  - |
     Add :func:`qiskit.quantum_info.random_quantum_channel` function
     for generating a random quantum channel with fixed
     :class:`~qiskit.quantum_info.Choi`-rank in the
@@ -11,6 +14,12 @@ features:
   - |
     Add :func:`qiskit.quantum_info.random_statevector` for generating
     a random :class:`~qiskit.quantum_info.Statevector`.
+  - |
+    Adds :func:`qiskit.quantum_info.random_pauli_table` for generating a random
+    :class:`qiskit.quantum_info.PauliTable`.
+  - |
+    Adds :func:`qiskit.quantum_info.random_stabilizer_table` for generating a random
+    :class:`qiskit.quantum_info.StabilizerTable`.
 upgrade:
   - |
     The :func:`qiskit.quantum_info.random_density_matrix` function will
