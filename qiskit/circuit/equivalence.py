@@ -171,8 +171,3 @@ def _rebind_equiv(equiv, query_params):
     equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
 
     return equiv
-
-
-def _partition_dict(dict_, predicate):
-    return ({k: v for k, v in dict_.items() if predicate(k, v)},
-            {k: v for k, v in dict_.items() if not predicate(k, v)})
