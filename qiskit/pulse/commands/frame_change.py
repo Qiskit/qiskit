@@ -82,4 +82,4 @@ class FrameChangeInstruction(Instruction):
                       "FrameChangeInstruction(FrameChange(3.14), DriveChannel(0)) -> "
                       "ShiftPhase(3.14, DriveChannel(0)).",
                       DeprecationWarning)
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)
