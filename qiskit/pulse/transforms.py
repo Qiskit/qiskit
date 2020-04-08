@@ -23,7 +23,6 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-import qiskit.pulse.exceptions as exceptions
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .commands import AcquireInstruction
 from .exceptions import PulseError
@@ -289,7 +288,24 @@ def align_right(schedule: Schedule) -> Schedule:
     return right_aligned
 
 
-def left_barrier(schedule: Schedule,
+def align_sequential(schedule: Schedule) -> Schedule:
+    """Schedule all top-level nodes in parallel.
+
+    Args:
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+
+    Returns:
+        New schedule with input `schedule`` child schedules and instructions
+        applied sequentially across channels
+    """
+    aligned = Schedule()
+    for _, child in schedule.children:
+        aligned.insert(aligned.duration, child, mutate=True)
+    return aligned
+
+
+def barrier_left(schedule: Schedule,
                  channels: Optional[Iterable[Channel]] = None
                  ) -> Schedule:
     """Align on the left and create a barrier so that pulses cannot be inserted
@@ -309,7 +325,7 @@ def left_barrier(schedule: Schedule,
     return pad(aligned, channels=channels)
 
 
-def right_barrier(schedule: Schedule,
+def barrier_right(schedule: Schedule,
                   channels: Optional[Iterable[Channel]] = None
                   ) -> Schedule:
     """Align on the right and create a barrier so that pulses cannot be
@@ -327,41 +343,6 @@ def right_barrier(schedule: Schedule,
     """
     aligned = align_left(schedule)
     return pad(aligned, channels=channels)
-
-
-def sequentialize(schedule: Schedule) -> Schedule:
-    """Schedule all top-level nodes in parallel.
-
-    Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        applied sequentially across channels
-    """
-    aligned = Schedule()
-    for _, child in schedule.children:
-        aligned.insert(aligned.duration, child, mutate=True)
-    return aligned
-
-
-def parallelize(schedule, alignment: str = 'left'):
-    """Schedule all top-level nodes in parallel.
-
-    Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
-        alignment: Alignment policy to parallelize by. Available options are
-            ``left`` and ``right``
-    """
-    if alignment == 'left':
-        return align_left(schedule)
-    elif alignment == 'right':
-        return align_right(schedule)
-    else:
-        raise exceptions.PulseError('The selected alignment policy of "{}" '
-                                    'is not supported.'.format(alignment))
 
 
 def group(schedule):

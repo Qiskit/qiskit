@@ -45,7 +45,7 @@ syntax. For example::
       # We also provide alignment contexts
       # if channels are not supplied defaults to all channels
       # this context starts at t=10 due to earlier pulses
-      with sequential():
+      with align_sequential():
         play(d0, gaussian_pulse)
         # play another pulse after at t=20
         play(d1, gaussian_pulse)
@@ -55,7 +55,7 @@ syntax. For example::
         # Scheduling contexts are layered, and the output of a child context is
         # a fixed scheduled block in its parent context.
         # starts at t=20
-        with parallel():
+        with align_left():
           # start at t=20
           play(d0, gaussian_pulse)
           # start at t=20
@@ -67,7 +67,7 @@ syntax. For example::
       # with left():
 
       # all pulse instructions occur as late as possible
-      with right_alignment():
+      with align_rightment():
         set_phase(d1, math.pi)
         # starts at t=30
         delay(d0, 100)
@@ -135,7 +135,7 @@ import functools
 import numpy as np
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    List, Mapping, Set, Tuple, Union)
+                    List, Mapping, Set, Tuple, TypeVar, Union)
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -152,8 +152,10 @@ from qiskit.pulse.schedule import Schedule
 #: contextvars.ContextVar[BuilderContext]: current builder
 BUILDER_CONTEXT = contextvars.ContextVar("backend")
 
+T = TypeVar('T')
 
-def _schedule_lazy_circuit_before(fn):
+
+def _schedule_lazy_circuit_before(fn: Callable[...,  T]) -> Callable[...,  T]:
     """Decorator thats schedules and calls the current circuit executing
     the decorated function."""
     @functools.wraps(fn)
@@ -253,13 +255,7 @@ class _PulseBuilder():
                                       default_alignment:
                                       Union[str, ContextManager] = 'left'):
         """Set the default alignment."""
-        if default_alignment == 'left':
-            self._default_alignment_context = left_alignment()
-        elif default_alignment == 'right':
-            self._default_alignment_context = right_alignment()
-        # Assume is a contextmanager
-        elif (isinstance(default_alignment, str)):
-            self._default_alignment_context = default_alignment
+        self._default_alignment_context = align(default_alignment)
 
     @_schedule_lazy_circuit_before
     def compile(self) -> Schedule:
@@ -340,8 +336,8 @@ def build(backend, schedule: Schedule,
     Args:
         backend (BaseBackend): a qiskit backend
         schedule: a *mutable* pulse Schedule
-        default_alignment: Default alignment context. One of ``left`` or ``right``,
-            or an alignment context instance.
+        default_alignment: Default alignment context. One of ``left``, ``right``,
+            ``sequential``, or an alignment context instance.
         transpiler_settings: Settings for the transpiler.
         circuit_scheduler_settings: Settings for the circuit scheduler.
     """
@@ -402,8 +398,9 @@ def current_circuit_scheduler_settings() -> Dict[str, Any]:
 
 
 # Contexts ###########################################################
-def _transform_context(transform: Callable,
-                       **decorator_kwargs) -> Callable:
+def _transform_context(transform: Callable[[Schedule], Schedule],
+                       **decorator_kwargs: Any,
+                       ) -> Callable[..., ContextManager[None]]:
     """A tranform context.
 
     Args:
@@ -432,33 +429,46 @@ def _transform_context(transform: Callable,
     return wrap
 
 
-@_transform_context(transforms.parallelize)
-def parallel():
-    """Parallel transform builder context."""
+def align(alignment: str = 'left') -> ContextManager[None]:
+    """General alignment context.
 
-
-@_transform_context(transforms.sequentialize)
-def sequential():
-    """Sequential transform builder context."""
+    Args:
+        alignment: Alignment policy to follow.
+            One of "left", "right" or "sequential".
+    """
+    if alignment == 'left':
+        return align_left()
+    elif alignment == 'right':
+        return align_right()
+    elif alignment == 'sequential':
+        return align_sequential()
+    else:
+        raise exceptions.PulseError('Alignment "{}" is not '
+                                    'supported.'.format(alignment))
 
 
 @_transform_context(transforms.align_left)
-def left_alignment():
-    """Left align transform builder context."""
+def align_left() -> ContextManager[None]:
+    """Left alignment transform builder context."""
 
 
 @_transform_context(transforms.align_right)
-def right_alignment():
-    """Right align transform builder context."""
+def align_right() -> ContextManager[None]:
+    """Right alignment transform builder context."""
+
+
+@_transform_context(transforms.align_sequential)
+def align_sequential() -> ContextManager[None]:
+    """Sequential alignment transform builder context."""
 
 
 @_transform_context(transforms.group)
-def group():
+def group() -> ContextManager[None]:
     """Group the instructions within this context fixing their relative timing."""
 
 
 @_transform_context(transforms.flatten)
-def flatten():
+def flatten() -> ContextManager[None]:
     """Flatten any grouped instructions upon exiting context.
 
     .. warning:: This will remove any ``barrier`` you have set.
@@ -466,12 +476,12 @@ def flatten():
 
 
 @_transform_context(transforms.pad, mutate=True)
-def pad(*channels):
+def pad(*channels) -> ContextManager[None]:
     """Pad all availale timeslots with delays upon exiting context."""
 
 
 @contextmanager
-def transpiler_settings(**settings):
+def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the current current tranpiler settings for this context."""
     builder = _current_builder()
     current_transpiler_settings = builder.transpiler_settings
@@ -484,7 +494,7 @@ def transpiler_settings(**settings):
 
 
 @contextmanager
-def circuit_scheduler_settings(**settings):
+def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     """Set the current current circuit scheduling settings for this context."""
     builder = _current_builder()
     current_circuit_scheduler_settings = builder.circuit_scheduler_settings
@@ -600,7 +610,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 # Macros #######################################################################
 def measure(qubit: int,
             register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
-            ) -> List[Union[channels.MemorySlot, channels.RegisterSlot]]:
+            ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
     backend = current_backend()
     if not register:
         register = channels.MemorySlot(qubit)
@@ -616,7 +626,7 @@ def measure(qubit: int,
 
 
 def delay_qubit(qubit: int, duration: int):
-    with parallel(), group():
+    with align_left(), group():
         for channel in qubit_channels(qubit):
             delay(channel, duration)
 
