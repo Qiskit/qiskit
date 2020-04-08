@@ -161,6 +161,7 @@ def _decompose_clifford_1q(pauli, phase):
     destab_x, destab_z = pauli[0]
     stab_x, stab_z = pauli[1]
 
+    # Z-stabilizer
     if stab_z and not stab_x:
         stab_label = 'Z'
         if destab_z:
@@ -169,6 +170,7 @@ def _decompose_clifford_1q(pauli, phase):
         else:
             destab_label = 'X'
 
+    # X-stabilizer
     elif not stab_z and stab_x:
         stab_label = 'X'
         if destab_x:
@@ -178,16 +180,16 @@ def _decompose_clifford_1q(pauli, phase):
             destab_label = 'Z'
         circuit.h(0)
 
+    # Y-stabilizer
     else:
         stab_label = 'Y'
-        circuit.h(0)
         if destab_z:
             destab_label = 'Z'
-            circuit.s(0)
         else:
             destab_label = 'X'
-            circuit.sdg(0)
-            circuit.h(0)
+            circuit.s(0)
+        circuit.h(0)
+        circuit.s(0)
 
     # Add circuit name
     name_destab = "Destabilizer = ['{}{}']".format(destab_phase_label, destab_label)
