@@ -21,17 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
 
 
-class TestFaultyQ1(QiskitTestCase):
-    """Test preset passmanagers with FakeOurenseFaultyQ1.
-       A 5 qubit backend, with a faulty q1
-         0 ↔ (1) ↔ 3 ↔ 4
-              ↕
-              2
-    """
-
-    def setUp(self) -> None:
-        self.backend = FakeOurenseFaultyQ1()
-
+class TestFaultyBackendCase(QiskitTestCase):
     def assertEqualCount(self, circuit1, circuit2):
         """Asserts circuit1 and circuit2 has the same result counts after execution in BasicAer"""
         backend = BasicAer.get_backend('qasm_simulator')
@@ -50,6 +40,41 @@ class TestFaultyQ1(QiskitTestCase):
                 diff = abs(result1.get(key, 0) - result2.get(key, 0))
                 self.assertLess(diff / shots * 100, 2.5)
 
+
+class TestFaultyCX13(TestFaultyBackendCase):
+    """Test preset passmanagers with FakeOurenseFaultyCX13
+    A fake 5 qubit backend, with a faulty CX(Q1, Q3)
+         0 ↔ 1 (↔) 3 ↔ 4
+             ↕
+             2
+    """
+
+    def setUp(self) -> None:
+        self.backend = FakeOurenseFaultyCX13()
+
+    def test_level_1(self):
+        """Test level 1 Ourense backend with a faulty CX(Q1, Q3) """
+        circuit = QuantumCircuit(QuantumRegister(3, 'qr'))
+        circuit.h(range(3))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+        result = transpile(circuit, backend=self.backend, optimization_level=1, seed_transpiler=42)
+
+        # self.assertIdleCX13(result)
+        self.assertEqualCount(circuit, result)
+
+
+class TestFaultyQ1(TestFaultyBackendCase):
+    """Test preset passmanagers with FakeOurenseFaultyQ1.
+       A 5 qubit backend, with a faulty q1
+         0 ↔ (1) ↔ 3 ↔ 4
+              ↕
+              2
+    """
+
+    def setUp(self) -> None:
+        self.backend = FakeOurenseFaultyQ1()
+
     def assertIdleQ1(self, circuit):
         """Asserts the Q1 in circuit is not used with operations"""
         physical_qubits = QuantumRegister(5, 'q')
@@ -57,6 +82,17 @@ class TestFaultyQ1(QiskitTestCase):
         for node in nodes:
             if node.type == 'op':
                 raise AssertionError('Faulty Qubit Q1 not totally idle')
+
+    def test_level_0(self):
+        """Test level 0 Ourense backend with a faulty Q1 """
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile(circuit, backend=self.backend, optimization_level=0, seed_transpiler=42)
+
+        self.assertIdleQ1(result)
+        self.assertEqualCount(circuit, result)
 
     def test_level_1(self):
         """Test level 1 Ourense backend with a faulty Q1 """
