@@ -33,14 +33,14 @@ class FakeOurenseFaultyCX13(FakeOurense):
 
     def properties(self):
         """Returns a snapshot of device properties as recorded on 8/30/19.
-        Sets the gate CX(Q1, Q3) as non-operational.
+        Sets the gate CX(Q0, Q1) (and symmetric) as non-operational.
         """
         dirname = os.path.dirname(__file__)
         filename = "props_ourense.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
         for qubit in props['gates']:
-            if qubit['name'] == 'cx1_3':
+            if qubit['name'] == 'cx0_1' or qubit['name'] == 'cx1_0':
                 qubit['parameters'].append({"date": "2000-01-01 00:00:00Z",
                                             "name": "operational",
                                             "unit": "",

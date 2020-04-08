@@ -301,11 +301,16 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
     faulty_qubits = backend.faulty_qubits()
+    disconnected_qubits = set([k for k, v in faulty_qubits_map.items() if v is None]).difference(faulty_qubits)
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
-    faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
-    disconnected_qreg = circuit._create_qreg(
-        len([qubit for qubit in faulty_qubits_map.values() if qubit is None]) -
-        len(faulty_qubits), 'disconnected')
+    if faulty_qubits:
+        faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
+    else:
+        faulty_qreg = []
+    if disconnected_qubits:
+        disconnected_qreg = circuit._create_qreg(len(disconnected_qubits), 'disconnected')
+    else:
+        disconnected_qreg = []
 
     new_layout = Layout()
     faulty_qubit = 0
@@ -395,12 +400,16 @@ def _create_faulty_qubits_map(backend):
     faulty_qubits_map = None
     if backend is not None:
         faulty_qubits = backend.faulty_qubits()
-        if faulty_qubits:
+        faulty_edges = [gates.qubits for gates in backend.faulty_gates()]
+
+        if faulty_qubits or faulty_edges:
             faulty_qubits_map = {}
             configuration = backend.configuration()
             full_coupling_map = configuration.coupling_map
             functional_coupling_map = [edge for edge in full_coupling_map
-                                       if set(edge).isdisjoint(faulty_qubits)]
+                                       if (set(edge).isdisjoint(faulty_qubits) and
+                                           edge not in faulty_edges)]
+
             if CouplingMap(functional_coupling_map).is_connected():
                 connected_working_qubits = {qubit for edge in functional_coupling_map
                                             for qubit in edge}
@@ -477,7 +486,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
                 for gate in backend_properties.gates:
                     # remove gates with faulty qubits (and remap the gates in terms of
                     # faulty_qubits_map)
-                    if any([qubits in faulty_qubits for qubits in gate.qubits]):
+                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]):
                         continue
                     gate_dict = gate.to_dict()
                     replacement_gate = Gate.from_dict(gate_dict)

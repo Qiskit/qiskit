@@ -79,6 +79,8 @@ class BaseBackend(ABC):
         """
         properties = self.properties()
         faulty = []
+        if properties is None:
+            return faulty
         for gate in properties.gates:
             if not properties.is_gate_operational(gate.gate, gate.qubits):
                 faulty.append(gate)
