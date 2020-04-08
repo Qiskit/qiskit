@@ -427,6 +427,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         Returns:
             Qubit control channel.
         """
+        # TODO: Determine this from the hamiltonian.
         if qubits:
             try:
                 if not all(0 <= qubit <= self.n_qubits for qubit in qubits):
@@ -439,7 +440,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                 raise BackendConfigurationError("Couldn't find the ControlChannel operating "
                                                 "on qubits {}.".format(qubits))
         warnings.warn('control(channel: int) is deprecated. Use '
-                      'control(qubits: List[control_qubit, target_qubit]) instead.',
+                      'control(qubits: List or Tuple [control_qubit, target_qubit]) instead.',
                       DeprecationWarning)
         return ControlChannel(channel)
 
