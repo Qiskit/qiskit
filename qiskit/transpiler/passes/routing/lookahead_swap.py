@@ -114,6 +114,10 @@ class LookaheadSwap(TransformationPass):
                                                 self.search_depth,
                                                 self.search_width)
 
+            if best_step is None:
+                raise TranspilerError('Lookahead failed to find a swap which mapped '
+                                      'gates or improved layout score.')
+
             logger.debug('Found best step: mapped %d gates. Added swaps: %s.',
                          len(best_step['gates_mapped']), best_step['swaps_added'])
 
@@ -142,7 +146,8 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
     Returns:
-        dict: Describes solution step found.
+        optional(dict): Describes solution step found. If None, no swaps leading
+            to an improvement were found. Keys:
             layout (Layout): Virtual to physical qubit map after SWAPs.
             swaps_added (list): List of qargs of swap gates introduced.
             gates_remaining (list): Gates that could not be mapped.
@@ -172,20 +177,43 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
                  depth, [(swap, _score_swap(swap)) for swap in ranked_swaps[:width*2]])
 
     best_swap, best_step = None, None
-    for swap in ranked_swaps[:width]:
+    for rank, swap in enumerate(ranked_swaps):
         trial_layout = layout.copy()
         trial_layout.swap(*swap)
         next_step = _search_forward_n_swaps(trial_layout, gates_remaining,
                                             coupling_map, depth - 1, width)
 
+        if next_step is None:
+            continue
+
         # ranked_swaps already sorted by distance, so distance is the tie-breaker.
         if best_swap is None or _score_step(next_step) > _score_step(best_step):
             logger.debug('At depth %d, updating best step: %s (score: %f).',
-                         depth, next_step['swaps_added'], _score_step(next_step))
+                         depth, [swap] + next_step['swaps_added'], _score_step(next_step))
             best_swap, best_step = swap, next_step
 
-    logger.debug('At depth %d, best swap set (of %d examined): %s.',
-                 depth, min(width, len(ranked_swaps)), best_step['swaps_added'])
+        if (
+                rank >= min(width, len(ranked_swaps)-1)
+                and best_step is not None
+                and (
+                    len(best_step['gates_mapped']) > depth
+                    or len(best_step['gates_remaining']) < len(gates_remaining)
+                    or (_calc_layout_distance(best_step['gates_remaining'],
+                                              coupling_map,
+                                              best_step['layout'])
+                        < _calc_layout_distance(gates_remaining,
+                                                coupling_map,
+                                                layout)))):
+            # Once we've examined either $WIDTH swaps, or all available swaps,
+            # return the best-scoring swap provided it leads to an improvement
+            # in either the number of gates mapped, number of gates left to be
+            # mapped, or in the score of the ending layout.
+            break
+    else:
+        return None
+
+    logger.debug('At depth %d, best_swap set: %s.',
+                 depth, [best_swap] + best_step['swaps_added'])
 
     best_swap_gate = _swap_ops_from_edge(best_swap, layout)
     return {
