@@ -48,8 +48,9 @@ def circuit_to_gate(circuit, parameter_map=None):
 
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
-            raise QiskitError('One or more instructions in this instruction '
-                              'cannot be converted to a gate')
+            raise QiskitError(('One or more instructions cannot be converted to'
+                               ' a gate. "{}" is not a gate instruction').format(
+                                   inst.name))
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}

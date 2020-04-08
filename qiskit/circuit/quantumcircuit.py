@@ -694,7 +694,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_state=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -764,6 +764,9 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+                Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -905,7 +908,8 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_state=initial_state)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -1141,7 +1145,7 @@ class QuantumCircuit:
         cpy = copy.copy(self)
 
         instr_instances = {id(instr): instr
-                           for instr, _, __ in self._data}
+                           for instr, _, __ in self.data}
 
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
@@ -1154,7 +1158,7 @@ class QuantumCircuit:
         }
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
-                     for inst, qargs, cargs in self._data]
+                     for inst, qargs, cargs in self.data]
 
         if name:
             cpy.name = name
