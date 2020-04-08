@@ -1390,7 +1390,9 @@ class QuantumCircuit:
         return None if inplace else bound_circuit
 
     def bind_parameters(self, value_dict):
-        """Assign parameters to values yielding a new circuit.
+        """Assign numeric parameters to values yielding a new circuit.
+
+        To assign new Parameter objects or
 
         Args:
             value_dict (dict): {parameter: value, ...}
@@ -1402,11 +1404,22 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
-            raise TypeError('The bind_parameters method cannot bind a type '
-                            'ParameterExpression to a parameter. Use the '
-                            'QuantumCircuit.assign_parameters method instead.')
-        return self.assign_parameters(value_dict, inplace=False)
+        bound_circuit = self.copy()
+
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+        unrolled_value_dict = self._unroll_param_dict(value_dict)
+
+        # check that only existing parameters are in the parameter dictionary
+        if unrolled_value_dict.keys() > self.parameters:
+            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in value_dict.keys() - self.parameters]))
+
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+        for parameter, value in unrolled_value_dict.items():
+            bound_circuit._bind_parameter(parameter, value)
+            del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+
+        return bound_circuit
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
