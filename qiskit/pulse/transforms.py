@@ -212,10 +212,10 @@ def pad(schedule: Schedule,
 
 
 def push_append(this: List[ScheduleComponent],
-                other: List[ScheduleComponent]
+                other: List[ScheduleComponent],
                 ) -> Schedule:
-    r"""Return a new schedule with `schedule` inserted at the maximum time over
-    all channels shared between `self` and `schedule`.
+    r"""Return a ``this`` with ``other`` inserted at the maximum time over
+    all channels shared between ```this`` and ``other``.
 
    $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
 
@@ -236,7 +236,7 @@ def push_append(this: List[ScheduleComponent],
         insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
     else:
         insert_time = 0
-    return this.insert(insert_time, other)
+    return this.insert(insert_time, other, mutate=True)
 
 
 def align_left(schedule: Schedule) -> Schedule:
@@ -252,7 +252,7 @@ def align_left(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in schedule.children:
-        aligned = push_append(aligned, child)
+        push_append(aligned, child)
 
     return aligned
 
@@ -273,17 +273,16 @@ def align_right(schedule: Schedule) -> Schedule:
 
     latest_available_times = collections.defaultdict(lambda: total_duration)
     right_aligned = Schedule()
-    for _, child in left_aligned.children:
+    for _, child in reversed(left_aligned.children):
         child_channels = child.channels
+        # drop node without channels as it is empty
         if child_channels:
             latest_available_duration = min(latest_available_times[channel] for
                                             channel in child_channels)
-        else:
-            latest_available_duration = 0
-        insert_time = latest_available_duration - child.duration
-        right_aligned.insert(insert_time, child, mutate=True)
-        latest_available_times.update(
-            dict.fromkeys(child_channels, insert_time))
+            insert_time = latest_available_duration - child.duration
+            right_aligned.insert(insert_time, child, mutate=True)
+            latest_available_times.update(
+                dict.fromkeys(child_channels, insert_time))
 
     return right_aligned
 

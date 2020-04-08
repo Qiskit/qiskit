@@ -67,7 +67,7 @@ syntax. For example::
       # with left():
 
       # all pulse instructions occur as late as possible
-      with align_rightment():
+      with align_right():
         set_phase(d1, math.pi)
         # starts at t=30
         delay(d0, 100)
@@ -135,7 +135,7 @@ import functools
 import numpy as np
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    List, Mapping, Set, Tuple, TypeVar, Union)
+                    Mapping, Set, Tuple, TypeVar, Union)
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -171,7 +171,7 @@ class _PulseBuilder():
     def __init__(self,
                  backend,
                  entry_block: Schedule = None,
-                 default_alignment: Union[str, Callable] = 'left',
+                 alignment: Union[str, Callable] = 'left',
                  transpiler_settings: Mapping = None,
                  circuit_scheduler_settings: Mapping = None):
         """Initialize builder context.
@@ -191,8 +191,7 @@ class _PulseBuilder():
         self._lazy_circuit = self.new_circuit()
 
         # ContextManager: Default alignment context.
-        self._default_alignment_context = None
-        self.set_default_alignment_context(default_alignment)
+        self._default_alignment_context = align(alignment)
 
         if transpiler_settings is None:
             transpiler_settings = {}
@@ -250,12 +249,6 @@ class _PulseBuilder():
     def circuit_scheduler_settings(self, settings: Mapping):
         self.schedule_lazy_circuit()
         self._circuit_scheduler_settings = settings
-
-    def set_default_alignment_context(self,
-                                      default_alignment:
-                                      Union[str, ContextManager] = 'left'):
-        """Set the default alignment."""
-        self._default_alignment_context = align(default_alignment)
 
     @_schedule_lazy_circuit_before
     def compile(self) -> Schedule:
@@ -327,7 +320,7 @@ class _PulseBuilder():
 
 
 def build(backend, schedule: Schedule,
-          default_alignment: str = 'left',
+          alignment: str = 'left',
           transpiler_settings: Dict[str, Any] = None,
           circuit_scheduler_settings: Dict[str, Any] = None):
     """
@@ -336,14 +329,14 @@ def build(backend, schedule: Schedule,
     Args:
         backend (BaseBackend): a qiskit backend
         schedule: a *mutable* pulse Schedule
-        default_alignment: Default alignment context. One of ``left``, ``right``,
+        alignment: Default alignment context. One of ``left``, ``right``,
             ``sequential``, or an alignment context instance.
         transpiler_settings: Settings for the transpiler.
         circuit_scheduler_settings: Settings for the circuit scheduler.
     """
     return _PulseBuilder(backend,
                          schedule,
-                         default_alignment=default_alignment,
+                         alignment=alignment,
                          transpiler_settings=transpiler_settings,
                          circuit_scheduler_settings=circuit_scheduler_settings)
 
