@@ -182,7 +182,7 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -235,12 +235,6 @@ class ParameterExpression():
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
-
-    def __complex__(self):
-        if self.parameters:
-            raise TypeError('ParameterExpression with unbound parameters ({}) '
-                            'cannot be cast to a complex.'.format(self.parameters))
-        return complex(self._symbol_expr)
 
     def __copy__(self):
         return self

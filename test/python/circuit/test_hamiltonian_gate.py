@@ -22,7 +22,7 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate
+from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -79,8 +79,18 @@ class TestHamiltonianCircuit(QiskitTestCase):
         theta = Parameter('theta')
         qc.append(HamiltonianGate(matrix, theta), [qr[0]])
         qc = qc.bind_parameters({theta: 1})
+
         # test of qasm output
         self.log.info(qc.qasm())
+        ref_qasm = "OPENQASM 2.0;\n" \
+                   "include \"qelib1.inc\";\n" \
+                   "qreg q0[1];\n" \
+                   "creg c0[1];\n" \
+                   "x q0[0];\n" \
+                   "hamiltonian([[0.+0.j 0.+0.j]\n" \
+                   " [0.+0.j 0.+0.j]],1) q0[0];\n"
+        self.assertEqual(qc.qasm(), ref_qasm)
+
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
@@ -88,8 +98,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertTrue(len(dag_nodes) == 1)
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1])
+        self.assertListEqual(dnode.qargs, qc.qubits)
         assert_allclose(dnode.op.to_matrix(), np.eye(2))
 
     def test_2q_hamiltonian(self):
@@ -179,3 +188,14 @@ class TestHamiltonianCircuit(QiskitTestCase):
         # check json serialization
         self.assertTrue(isinstance(json.dumps(qobj_dict, cls=NumpyEncoder),
                                    str))
+
+    def test_decomposes_into_correct_unitary(self):
+        """test 2 qubit hamiltonian """
+        qc = QuantumCircuit(2)
+        matrix = Operator.from_label('XY')
+        theta = Parameter('theta')
+        uni2q = HamiltonianGate(matrix, theta)
+        qc.append(uni2q, [0, 1])
+        qc = qc.bind_parameters({theta: np.pi / 2}).decompose()
+        decomposed_ham = qc.data[0][0]
+        self.assertEqual(decomposed_ham, UnitaryGate(Operator.from_label('XY')))

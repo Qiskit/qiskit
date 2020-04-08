@@ -626,7 +626,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
         """Verify operations between a Parameter and a non-float will raise."""
 
-        bad_constants = ['1', numpy.Inf, numpy.NaN, None, {}, []]
+        bad_constants = [1j, '1', numpy.Inf, numpy.NaN, None, {}, []]
 
         x = Parameter('x')
 

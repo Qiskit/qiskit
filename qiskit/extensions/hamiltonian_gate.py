@@ -72,7 +72,7 @@ class HamiltonianGate(Gate):
             return False
         if self.label != other.label:
             return False
-        operators_eq = matrix_equal(self.params[0], other.params[0], ignore_phase=True)
+        operators_eq = matrix_equal(self.params[0], other.params[0], ignore_phase=False)
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
@@ -104,7 +104,7 @@ class HamiltonianGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         q = QuantumRegister(self.num_qubits, 'q')
-        self.definition = [UnitaryGate(self.to_matrix()), q[:], []]
+        self.definition = [(UnitaryGate(self.to_matrix()), q[:], [])]
 
 
 def hamiltonian(self, operator, time, qubits, label=None):
