@@ -15,7 +15,7 @@
 """Model and schema for backend configuration."""
 import re
 import warnings
-from typing import Dict, List
+from typing import Dict, List, Any, Tuple, Union
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -303,6 +303,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                  meas_kernels: List[str],
                  discriminators: List[str],
                  hamiltonian: Dict[str, str] = None,
+                 channels: Dict[str, Any] = None,
                  **kwargs):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
@@ -331,6 +332,8 @@ class PulseBackendConfiguration(BackendConfiguration):
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
+            channels: An optional dictionary containing information of each channels -- their
+                purpose, type and qubits operated on.
             **kwargs: Optional fields.
         """
         self.n_uchannels = n_uchannels
@@ -352,6 +355,10 @@ class PulseBackendConfiguration(BackendConfiguration):
         if channel_bandwidth:
             self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
                                       (min_range, max_range) in channel_bandwidth]
+
+        self.channels = channels
+        if channels:
+            self.control_channels = self.__parse_control_channels(channels=channels)
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -403,20 +410,34 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, channel: int = None, qubits: List = None) -> ControlChannel:
+    def control(self, channel: int = None,
+                qubits: Union[Tuple[int], List[int]] = None) -> ControlChannel:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
         Args:
-            channel: Deprecated
-            qubits: List of qubits of the form `[control_qubit, target_qubit]`
+            channel: Deprecated.
+            qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
+
+        Raises:
+            BackendConfigurationError: If the qubit is not a part of the system or if
+                given ``qubits`` is not found.
 
         Returns:
             Qubit control channel.
         """
         if qubits:
-            return ControlChannel(qubits[0])
+            try:
+                if not all(0 <= qubit <= self.n_qubits for qubit in qubits):
+                    raise BackendConfigurationError("Invalid indices {} for {}-qubit "
+                                                    "systems.".format(qubits, self.n_qubits))
+                if isinstance(qubits, list):
+                    qubits = tuple(qubits)
+                return self.control_channels[qubits]
+            except KeyError:
+                raise BackendConfigurationError("Couldn't find the ControlChannel operating "
+                                                "on qubits {}.".format(qubits))
         warnings.warn('control(channel: int) is deprecated. Use '
                       'control(qubits: List[control_qubit, target_qubit]) instead.',
                       DeprecationWarning)
@@ -491,3 +512,21 @@ class PulseBackendConfiguration(BackendConfiguration):
         for u_chan_lo in self.u_channel_lo[channel.index]:
             result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
         return result
+
+    def __parse_control_channels(self, channels: Dict[set, Any]) -> Dict[Tuple[int], Channel]:
+        r"""Generates a dictionary of ``ControlChannel``\s and tuple of qubits they operate on.
+
+        Args:
+            channels: An optional dictionary containing information of each channels -- their
+                purpose, type and qubits operated on.
+
+        Returns:
+            Dictionary of tuple of qubits and ``ControlChannel``\s.
+        """
+        control_channels = {}
+        for channel, config in channels.items():
+            test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
+            if test.group('channel') == 'u':
+                control_channels[tuple(config['operates']['qubits'])] = ControlChannel(
+                    int(test.group('index')))  # ControlChannel(index of 'u<i>')
+        return control_channels
