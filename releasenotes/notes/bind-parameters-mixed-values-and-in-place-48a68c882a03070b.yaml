@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    The ``QuantumCircuit.bind_parameters`` method now accepts a parameter dictionary with both
+    The new ``QuantumCircuit.assign_parameters`` method accepts a parameter dictionary with both
     floats and Parameters objects in a single dictionary. I.e. the method allows to bind
     floats, Parameters or both in a single dictionary.
     Also, by using the ``inplace`` argument it can be specified if a copy with the
