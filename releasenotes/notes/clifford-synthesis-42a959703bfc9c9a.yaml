@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds optimized :meth:`~qiskit.quantum_info.Clifford.to_circuit` method for
+    :class:`qiskit.quantum_info.Clifford` compilation into
+    circuits with optimal number of CX gates for up to 3-qubits. Non-optimal
+    compilation is used for > 3 qubits.
