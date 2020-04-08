@@ -1393,10 +1393,15 @@ class QuantumCircuit:
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
+            TypeError: If value_dict contains a ParameterExpression in the values.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
+        if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
+            raise TypeError('The bind_parameters method cannot bind a type '
+                            'ParameterExpression to a parameter. Use the '
+                            'QuantumCircuit.assign_parameters method instead.')
         return self.assign_parameters(value_dict, inplace=False)
 
     def _unroll_param_dict(self, value_dict):
