@@ -41,7 +41,7 @@ class Barrier(Instruction):
 
     def validate_parameter(self, parameter):
         """Barrier paramenter"""
-        raise CircuitError("Barrier has no parameters: {0} was provided".format(type(parameter))
+        raise CircuitError("Barrier has no parameters: {0} was provided".format(type(parameter)))
 
 
 def barrier(self, *qargs):
