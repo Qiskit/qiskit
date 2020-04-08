@@ -33,7 +33,6 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 import copy
-import warnings
 from itertools import zip_longest
 
 import numpy
