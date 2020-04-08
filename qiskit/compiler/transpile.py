@@ -301,7 +301,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
     faulty_qubits = backend.faulty_qubits()
-    disconnected_qubits = set([k for k, v in faulty_qubits_map.items() if v is None]).difference(faulty_qubits)
+    disconnected_qubits = set([k for k, v in faulty_qubits_map.items()
+                               if v is None]).difference(faulty_qubits)
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
     if faulty_qubits:
         faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
@@ -476,17 +477,19 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
     if backend_properties is None:
         if getattr(backend, 'properties', None):
             backend_properties = backend.properties()
-            if backend_properties is not None and backend.faulty_qubits():
+            if backend_properties is not None and backend.faulty_qubits() or backend.faulty_gates():
                 faulty_qubits = sorted(backend.faulty_qubits(), reverse=True)
+                faulty_edges = [gates.qubits for gates in backend.faulty_gates()]
                 # remove faulty qubits in backend_properties.qubits
                 for faulty_qubit in faulty_qubits:
                     del backend_properties.qubits[faulty_qubit]
 
                 gates = []
                 for gate in backend_properties.gates:
-                    # remove gates with faulty qubits (and remap the gates in terms of
+                    # remove gates using faulty edges or with faulty qubits (and remap the gates in terms of
                     # faulty_qubits_map)
-                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]):
+                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
+                            gate.qubits in faulty_edges:
                         continue
                     gate_dict = gate.to_dict()
                     replacement_gate = Gate.from_dict(gate_dict)
