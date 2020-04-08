@@ -1314,7 +1314,7 @@ class QuantumCircuit:
     def assign_parameters(self, param_dict, inplace=False):
         """Assign parameters to new parameters or values.
 
-        The keys of the parameter dictionary must be instances of the current circuit. The
+        The keys of the parameter dictionary must be Parameter instances in the current circuit. The
         values of the dictionary can either be numeric values or new parameter objects.
         The values can be assigned to the current circuit object or to a copy of it.
 
