@@ -46,7 +46,7 @@ def _append_circuit(clifford, circuit, qargs=None):
     basis_1q = {
         'i': _append_i, 'id': _append_i, 'iden': _append_i,
         'x': _append_x, 'y': _append_y, 'z': _append_z, 'h': _append_h,
-        's': _append_s, 'sdg': __append_sdg, 'sinv': __append_sdg,
+        's': _append_s, 'sdg': _append_sdg, 'sinv': _append_sdg,
         'v': _append_v, 'w': _append_w
     }
     basis_2q = {
@@ -194,7 +194,7 @@ def _append_s(clifford, qubit):
     return clifford
 
 
-def __append_sdg(clifford, qubit):
+def _append_sdg(clifford, qubit):
     """Apply an Sdg gate to a Clifford.
 
     Args:
