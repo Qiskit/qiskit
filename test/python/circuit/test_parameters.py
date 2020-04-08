@@ -123,10 +123,10 @@ class TestParameters(QiskitTestCase):
             with self.subTest(assign_fun=assign_fun):
                 pqc = getattr(qc, assign_fun)({theta: 2})
 
-        self.assertEqual(pqc.parameters, {x})
+                self.assertEqual(pqc.parameters, {x})
 
-        self.assertEqual(float(pqc.data[0][0].params[0]), 2)
-        self.assertEqual(float(pqc.data[1][0].params[1]), 2)
+                self.assertEqual(float(pqc.data[0][0].params[0]), 2)
+                self.assertEqual(float(pqc.data[1][0].params[1]), 2)
 
     @data(True, False)
     def test_mixed_binding(self, inplace):
