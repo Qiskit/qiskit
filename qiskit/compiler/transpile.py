@@ -300,20 +300,31 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
+    faulty_qubits = backend.faulty_qubits()
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
-    faulty_qreg = circuit._create_qreg(3, 'faulty')
+    faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
+    disconnected_qreg = circuit._create_qreg(
+        len([qubit for qubit in faulty_qubits_map.values() if qubit is None]) -
+        len(faulty_qubits), 'disconnected')
+
     new_layout = Layout()
     faulty_qubit = 0
+    disconnected_qubit = 0
+
     for real_qubit in range(backend.configuration().n_qubits):
         if faulty_qubits_map[real_qubit] is not None:
             new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
         else:
-            new_layout[real_qubit] = faulty_qreg[faulty_qubit]
-            faulty_qubit += 1
+            if real_qubit in faulty_qubits:
+                new_layout[real_qubit] = faulty_qreg[faulty_qubit]
+                faulty_qubit += 1
+            else:
+                new_layout[real_qubit] = disconnected_qreg[disconnected_qubit]
+                disconnected_qubit += 1
     physical_layout_dict = {}
     for qubit in circuit.qubits:
         physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
-    for qubit in faulty_qreg:
+    for qubit in faulty_qreg[:] + disconnected_qreg[:]:
         physical_layout_dict[qubit] = new_layout[qubit]
     dag_circuit = circuit_to_dag(circuit)
     apply_layout_pass = ApplyLayout()
@@ -389,7 +400,7 @@ def _create_faulty_qubits_map(backend):
             configuration = backend.configuration()
             full_coupling_map = configuration.coupling_map
             functional_coupling_map = [edge for edge in full_coupling_map
-                                            if set(edge).isdisjoint(faulty_qubits)]
+                                       if set(edge).isdisjoint(faulty_qubits)]
             if CouplingMap(functional_coupling_map).is_connected():
                 connected_working_qubits = {qubit for edge in functional_coupling_map
                                             for qubit in edge}

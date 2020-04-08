@@ -37,13 +37,13 @@ class TestFaultyQ1(QiskitTestCase):
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 2048
 
-        result1=execute(circuit1, backend,
-                basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
-                seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
+        result1 = execute(circuit1, backend,
+                          basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                          seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
 
-        result2=execute(circuit2, backend,
-                basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
-                seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
+        result2 = execute(circuit2, backend,
+                          basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
+                          seed_simulator=0, seed_transpiler=0, shots=shots).result().get_counts()
 
         for key in set(result1.keys()).union(result2.keys()):
             with self.subTest(key=key):
