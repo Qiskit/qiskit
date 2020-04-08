@@ -41,10 +41,6 @@ def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
 
     ops = circuit.count_ops()
 
-    num_cx = None
-    if 'cx' in ops.keys():
-        num_cx = ops['cx']
-
     html = "<table>"
     html += """<style>
 table {
@@ -80,7 +76,8 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     html += "<tr><td>Width</td><td>{}</td></tr>".format(circuit.width())
     html += "<tr><td>Depth</td><td>{}</td></tr>".format(circuit.depth())
     html += "<tr><td>Gate Count</td><td>{}</td></tr>".format(sum(ops.values()))
-    html += "<tr><td>CX Count</td><td>{}</td></tr>".format(num_cx)
+    for key, num in ops.items():
+        html += "<tr><td>\t{} Count</td><td>{}</td></tr>".format(key, num)
     html += "</table>"
 
     out_wid = wid.HTML(html)
