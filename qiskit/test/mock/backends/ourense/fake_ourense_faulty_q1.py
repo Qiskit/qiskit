@@ -19,8 +19,7 @@ Fake Ourense device (5 qubit). With a faulty Q1
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
+from qiskit.providers.models import BackendProperties
 from .fake_ourense import FakeOurense
 
 
