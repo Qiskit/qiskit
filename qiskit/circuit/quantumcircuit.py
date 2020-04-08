@@ -1392,7 +1392,8 @@ class QuantumCircuit:
     def bind_parameters(self, value_dict):
         """Assign numeric parameters to values yielding a new circuit.
 
-        To assign new Parameter objects or
+        To assign new Parameter objects or bind the values in-place, without yielding a new
+        circuit, use the assign_parameters method.
 
         Args:
             value_dict (dict): {parameter: value, ...}
