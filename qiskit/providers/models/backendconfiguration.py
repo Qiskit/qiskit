@@ -433,7 +433,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             warnings.warn('control(channel: int) is deprecated. Use '
                           'control(qubits: List or Tuple [control_qubit, target_qubit]) instead.',
                           DeprecationWarning)
-            # TODO: channel = [qubits]
+            return ControlChannel(channel) # TODO: Fix this logic
         try:
             if isinstance(qubits, list):
                 qubits = tuple(qubits)
