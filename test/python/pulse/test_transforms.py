@@ -15,7 +15,8 @@
 """Test cases for pulse transforms."""
 from typing import Set
 
-from qiskit.pulse import Schedule, SamplePulse, DriveChannel, Play, Gaussian, GaussianSquare, ConstantPulse, Drag
+from qiskit.pulse import (Schedule, SamplePulse, DriveChannel, Play,
+                          Gaussian, GaussianSquare, ConstantPulse, Drag)
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import compress_pulses
 
@@ -78,8 +79,10 @@ class TestCompressTransform(QiskitTestCase):
         drive_channel = DriveChannel(0)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
         schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
@@ -97,8 +100,10 @@ class TestCompressTransform(QiskitTestCase):
         drive_channel = DriveChannel(0)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.49j), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.19, sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.19,
+                                        sigma=8, width=140), drive_channel)
         schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.41j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
@@ -108,3 +113,14 @@ class TestCompressTransform(QiskitTestCase):
         original_pulse_ids = get_pulse_ids(schedule)
         compressed_pulse_ids = get_pulse_ids(compressed_schedule)
         self.assertEqual(len(original_pulse_ids), len(compressed_pulse_ids))
+
+    def test_with_different_channels(self):
+        """Test with different channels."""
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+
+        compressed_schedule = compress_pulses(schedule)
+        original_pulse_ids = get_pulse_ids(schedule)
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(compressed_pulse_ids), len(original_pulse_ids))
