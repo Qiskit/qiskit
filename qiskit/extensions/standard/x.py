@@ -531,7 +531,7 @@ class C3XGate(ControlledGate):
         """
         super().__init__('mcx', 4, [], num_ctrl_qubits=3)
         self.base_gate = XGate()
-        self._angle =
+        self._angle = angle
 
     def _define(self):
         """
