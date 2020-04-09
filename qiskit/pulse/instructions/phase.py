@@ -55,7 +55,7 @@ class ShiftPhase(Instruction):
             warnings.warn("Usage of ShiftPhase without specifying a channel is deprecated. For "
                           "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
                           "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
-        self._phase = phase
+        self._phase = float(phase)
         self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
