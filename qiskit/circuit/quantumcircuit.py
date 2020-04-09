@@ -20,13 +20,10 @@ import sys
 import warnings
 import multiprocessing as mp
 from collections import OrderedDict
-import pygments
-from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
 import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.qasm.pygments import OpenQASMLexer, QasmTerminalStyle
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -37,6 +34,15 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
 
 class QuantumCircuit:
@@ -636,6 +642,10 @@ class QuantumCircuit:
 
         Returns:
             str: If formatted=False.
+
+        Raises:
+            ImportError: If pygments is not installed and ``formatted`` is
+                ``True``.
         """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -668,6 +678,10 @@ class QuantumCircuit:
             file.close()
 
         if formatted:
+            if not HAS_PYGMENTS:
+                raise ImportError("To use the formatted output pygments must "
+                                  'be installed. To install run "pip install '
+                                  'pygments".')
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
@@ -679,7 +693,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_state=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -749,6 +763,9 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+                Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -890,7 +907,8 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_state=initial_state)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -984,20 +1002,25 @@ class QuantumCircuit:
         return sum(reg.size for reg in self.qregs + self.cregs)
 
     @property
-    def n_qubits(self):
-        """
-        Return number of qubits.
-        """
+    def num_qubits(self):
+        """Return number of qubits."""
         qubits = 0
         for reg in self.qregs:
             qubits += reg.size
         return qubits
 
     @property
-    def n_clbits(self):
-        """
-        Return number of classical bits.
-        """
+    def n_qubits(self):
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return number of classical bits."""
         return sum(len(reg) for reg in self.cregs)
 
     def count_ops(self):
@@ -1121,7 +1144,7 @@ class QuantumCircuit:
         cpy = copy.copy(self)
 
         instr_instances = {id(instr): instr
-                           for instr, _, __ in self._data}
+                           for instr, _, __ in self.data}
 
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
@@ -1134,7 +1157,7 @@ class QuantumCircuit:
         }
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
-                     for inst, qargs, cargs in self._data]
+                     for inst, qargs, cargs in self.data]
 
         if name:
             cpy.name = name
@@ -1198,7 +1221,7 @@ class QuantumCircuit:
         else:
             circ = self.copy()
 
-        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        new_creg = circ._create_creg(len(circ.qubits), 'meas')
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(circ.qubits, new_creg)

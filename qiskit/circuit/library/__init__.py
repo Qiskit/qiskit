@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,7 +28,47 @@ Boolean Logic Circuits
    InnerProduct
    Permutation
    XOR
+
+
+Arithmetic Circuits
+===================
+
+Functional Pauli Rotations
+++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FunctionalPauliRotations
+   LinearPauliRotations
+   PolynomialPauliRotations
+   PiecewiseLinearPauliRotations
+
+Adders
+++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedAdder
+
+Comparators
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntegerComparator
+
 """
 
 
 from .boolean_logic import Permutation, XOR, InnerProduct
+from .arithmetic import (
+    FunctionalPauliRotations,
+    LinearPauliRotations,
+    PiecewiseLinearPauliRotations,
+    PolynomialPauliRotations,
+    IntegerComparator,
+    WeightedAdder
+)

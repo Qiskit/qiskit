@@ -173,11 +173,6 @@ class TestDensityMatrix(QiskitTestCase):
             self.assertEqual(DensityMatrix(rho),
                              DensityMatrix(rho.tolist()))
 
-    def test_rep(self):
-        """Test Operator representation string property."""
-        state = DensityMatrix(self.rand_rho(2))
-        self.assertEqual(state.rep, 'DensityMatrix')
-
     def test_copy(self):
         """Test DensityMatrix copy method"""
         for _ in range(5):
@@ -301,14 +296,13 @@ class TestDensityMatrix(QiskitTestCase):
             rho1 = self.rand_rho(4)
             state0 = DensityMatrix(rho0)
             state1 = DensityMatrix(rho1)
-            self.assertEqual(state0.add(state1), DensityMatrix(rho0 + rho1))
             self.assertEqual(state0 + state1, DensityMatrix(rho0 + rho1))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         state1 = DensityMatrix(self.rand_rho(2))
         state2 = DensityMatrix(self.rand_rho(3))
-        self.assertRaises(QiskitError, state1.add, state2)
+        self.assertRaises(QiskitError, state1.__add__, state2)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -325,7 +319,6 @@ class TestDensityMatrix(QiskitTestCase):
             rho = self.rand_rho(4)
             state = DensityMatrix(rho)
             val = np.random.rand() + 1j * np.random.rand()
-            self.assertEqual(state.multiply(val), DensityMatrix(val * rho))
             self.assertEqual(val * state, DensityMatrix(val * state))
 
     def test_negate(self):
@@ -545,8 +538,8 @@ class TestDensityMatrix(QiskitTestCase):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
-    def test_sample_measure_ghz(self):
-        """Test sample measure method for GHZ state"""
+    def test_sample_counts_ghz(self):
+        """Test sample_counts method for GHZ state"""
 
         shots = 2000
         threshold = 0.02 * shots
@@ -560,42 +553,27 @@ class TestDensityMatrix(QiskitTestCase):
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
-
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
 
         # 2-qubit qargs
         target = {'00': shots / 2, '11': shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
-
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
 
         # 1-qubit qargs
         target = {'0': shots / 2, '1': shots / 2}
         for qargs in [[0], [1], [2]]:
 
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
-
-    def test_sample_measure_w(self):
-        """Test sample measure method for W state"""
+    def test_sample_counts_w(self):
+        """Test sample_counts method for W state"""
         shots = 3000
         threshold = 0.02 * shots
         state = DensityMatrix((
@@ -608,42 +586,27 @@ class TestDensityMatrix(QiskitTestCase):
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
             with self.subTest(msg='P({})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
-
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
 
         # 2-qubit qargs
         target = {'00': shots / 3, '01': shots / 3, '10': shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
             with self.subTest(msg='P({})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
-
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
 
         # 1-qubit qargs
         target = {'0': 2 * shots / 3, '1': shots / 3}
         for qargs in [[0], [1], [2]]:
 
             with self.subTest(msg='P({})'.format(qargs)):
-                counts = state.sample_measure(qargs=qargs, shots=shots)
+                counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
-                memory = state.sample_measure(qargs=qargs, shots=shots, memory=True)
-                self.assertEqual(len(memory), shots)
-                self.assertEqual(set(memory), set(target))
-
-    def test_sample_measure_qutrit(self):
-        """Test sample measure method for qutrit state"""
+    def test_sample_counts_qutrit(self):
+        """Test sample_counts method for qutrit state"""
         p = 0.3
         shots = 1000
         threshold = 0.02 * shots
@@ -652,13 +615,214 @@ class TestDensityMatrix(QiskitTestCase):
 
         with self.subTest(msg='counts'):
             target = {'0': shots * p, '2': shots * (1 - p)}
-            counts = state.sample_measure(shots=shots)
+            counts = state.sample_counts(shots=shots)
             self.assertDictAlmostEqual(counts, target, threshold)
 
+    def test_sample_memory_ghz(self):
+        """Test sample_memory method for GHZ state"""
+
+        shots = 2000
+        state = DensityMatrix((
+            Statevector.from_label('000') +
+            Statevector.from_label('111')) / np.sqrt(2))
+        state.seed(100)
+
+        # 3-qubit qargs
+        target = {'000': shots / 2, '111': shots / 2}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 2-qubit qargs
+        target = {'00': shots / 2, '11': shots / 2}
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 1-qubit qargs
+        target = {'0': shots / 2, '1': shots / 2}
+        for qargs in [[0], [1], [2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+    def test_sample_memory_w(self):
+        """Test sample_memory method for W state"""
+        shots = 3000
+        state = DensityMatrix((
+            Statevector.from_label('001') +
+            Statevector.from_label('010') +
+            Statevector.from_label('100')) / np.sqrt(3))
+        state.seed(100)
+
+        target = {'001': shots / 3, '010': shots / 3, '100': shots / 3}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 2-qubit qargs
+        target = {'00': shots / 3, '01': shots / 3, '10': shots / 3}
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 1-qubit qargs
+        target = {'0': 2 * shots / 3, '1': shots / 3}
+        for qargs in [[0], [1], [2]]:
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = state.sample_memory(shots, qargs=qargs)
+                self.assertEqual(len(memory), shots)
+                self.assertEqual(set(memory), set(target))
+
+    def test_sample_memory_qutrit(self):
+        """Test sample_memory method for qutrit state"""
+        p = 0.3
+        shots = 1000
+        state = DensityMatrix(np.diag([p, 0, 1 - p]))
+        state.seed(100)
+
         with self.subTest(msg='memory'):
-            memory = state.sample_measure(shots=shots, memory=True)
+            memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
             self.assertEqual(set(memory), set(['0', '2']))
+
+    def test_reset_2qubit(self):
+        """Test reset method for 2-qubit state"""
+
+        state = DensityMatrix(np.diag([0.5, 0, 0, 0.5]))
+
+        with self.subTest(msg='reset'):
+            rho = state.copy()
+            value = rho.reset()
+            target = DensityMatrix(np.diag([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset'):
+            rho = state.copy()
+            value = rho.reset([0, 1])
+            target = DensityMatrix(np.diag([1, 0, 0, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset [0]'):
+            rho = state.copy()
+            value = rho.reset([0])
+            target = DensityMatrix(np.diag([0.5, 0, 0.5, 0]))
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='reset [0]'):
+            rho = state.copy()
+            value = rho.reset([1])
+            target = DensityMatrix(np.diag([0.5, 0.5, 0, 0]))
+            self.assertEqual(value, target)
+
+    def test_reset_qutrit(self):
+        """Test reset method for qutrit"""
+
+        state = DensityMatrix(np.diag([1, 1, 1]) / 3)
+        state.seed(200)
+        value = state.reset()
+        target = DensityMatrix(np.diag([1, 0, 0]))
+        self.assertEqual(value, target)
+
+    def test_measure_2qubit(self):
+        """Test measure method for 2-qubit state"""
+
+        state = DensityMatrix.from_label('+0')
+        seed = 200
+        shots = 100
+
+        with self.subTest(msg='measure'):
+            for i in range(shots):
+                rho = state.copy()
+                rho.seed(seed + i)
+                outcome, value = rho.measure()
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [0, 1]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([0, 1])
+                self.assertIn(outcome, ['00', '10'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1, 0]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([1, 0])
+                self.assertIn(outcome, ['00', '01'])
+                if outcome == '00':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+        with self.subTest(msg='measure [0]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([0])
+                self.assertEqual(outcome, '0')
+                target = DensityMatrix.from_label('+0')
+                self.assertEqual(value, target)
+
+        with self.subTest(msg='measure [1]'):
+            for i in range(shots):
+                rho = state.copy()
+                outcome, value = rho.measure([1])
+                self.assertIn(outcome, ['0', '1'])
+                if outcome == '0':
+                    target = DensityMatrix.from_label('00')
+                    self.assertEqual(value, target)
+                else:
+                    target = DensityMatrix.from_label('10')
+                    self.assertEqual(value, target)
+
+    def test_measure_qutrit(self):
+        """Test measure method for qutrit"""
+
+        state = DensityMatrix(np.diag([1, 1, 1]) / 3)
+        seed = 200
+        shots = 100
+
+        for i in range(shots):
+            rho = state.copy()
+            rho.seed(seed + i)
+            outcome, value = rho.measure()
+            self.assertIn(outcome, ['0', '1', '2'])
+            if outcome == '0':
+                target = DensityMatrix(np.diag([1, 0, 0]))
+                self.assertEqual(value, target)
+            elif outcome == '1':
+                target = DensityMatrix(np.diag([0, 1, 0]))
+                self.assertEqual(value, target)
+            else:
+                target = DensityMatrix(np.diag([0, 0, 1]))
+                self.assertEqual(value, target)
 
 
 if __name__ == '__main__':

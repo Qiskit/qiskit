@@ -32,6 +32,18 @@ class TestUserConfig(QiskitTestCase):
         config.read_config_file()
         self.assertEqual({}, config.settings)
 
+    def test_invalid_suppress_packaging_warnings(self):
+        test_config = """
+        [default]
+        suppress_packaging_warnings = 76
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(ValueError, config.read_config_file)
+
     def test_invalid_optimization_level(self):
         test_config = """
         [default]
@@ -88,12 +100,41 @@ class TestUserConfig(QiskitTestCase):
             self.assertEqual({'transpile_optimization_level': 1},
                              config.settings)
 
+    def test_valid_suppress_packaging_warnings_false(self):
+        test_config = """
+        [default]
+        suppress_packaging_warnings = false
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({},
+                             config.settings)
+
+    def test_valid_suppress_packaging_warnings_true(self):
+        test_config = """
+        [default]
+        suppress_packaging_warnings = true
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'suppress_packaging_warnings': True},
+                             config.settings)
+
     def test_all_options_valid(self):
         test_config = """
         [default]
         circuit_drawer = latex
         circuit_mpl_style = default
         transpile_optimization_level = 3
+        suppress_packaging_warnings = true
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -103,4 +144,6 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex',
                               'circuit_mpl_style': 'default',
-                              'transpile_optimization_level': 3}, config.settings)
+                              'transpile_optimization_level': 3,
+                              'suppress_packaging_warnings': True},
+                             config.settings)
