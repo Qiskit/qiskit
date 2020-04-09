@@ -30,7 +30,7 @@ Boolean Logic Circuits
    XOR
 
 Basis Change Circuits
-====================
+=====================
 
 .. autosummary::
    :toctree: ../stubs/
