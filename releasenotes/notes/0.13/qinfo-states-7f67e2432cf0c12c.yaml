@@ -172,7 +172,7 @@ upgrade:
     input array if it is already the correct dtype.
 deprecations:
   - |
-    The ``add``, ``subtract``, and ``multiple`` methods of the
+    The ``add``, ``subtract``, and ``multiply`` methods of the
     :class:`qiskit.quantum_info.Statevector` and 
     :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated and will
     be removed in a future release. Instead you shoulde use ``+``, ``-``, ``*``

@@ -4,7 +4,7 @@ upgrade:
     `fastjsonschema <https://pypi.org/project/fastjsonschema/>`_ is added as a
     dependency. This is used for much faster validation of qobj dictionaries
     against the JSON schema when the ``to_dict()`` method is called on qobj
-    objects with the ``validate`` set to ``True``.
+    objects with the ``validate`` keyword argument set to ``True``.
   - |
     The qobj construction classes in :mod:`qiskit.qobj` will no longer validate
     against the qobj jsonschema by default. These include the following classes:
@@ -62,7 +62,7 @@ upgrade:
     json serialization as expected by IBMQ's API. These Qobj objects are
     the current format we use for passing experiments to providers/backends
     and while having a dictionary format that could just be passed to the IBMQ
-    api directly was moderately useful for ``qiskit-ibmq-provider``, it made
+    API directly was moderately useful for ``qiskit-ibmq-provider``, it made
     things more difficult for other providers. Especially for providers that
     wrap local simulators. Moving forward the definitions of what is passed
     between providers and the IBMQ API request format will be further decoupled
@@ -138,7 +138,7 @@ other:
     * :class:`~qiskit.qobj.QasmQobj`
     * :class:`~qiskit.qobj.PulseQobj`
 
-    From :mod:`qiskit.qobj` have all been reimplemented without using the
+    from :mod:`qiskit.qobj` have all been reimplemented without using the
     marsmallow library. These new implementations are designed to be drop-in
     replacement (except for as noted in the upgrade release notes) but
     specifics inherited from marshmallow may not work. Please file issues for

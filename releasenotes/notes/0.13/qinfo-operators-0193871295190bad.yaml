@@ -95,7 +95,7 @@ features:
     converted to other ``BaseOperator`` subclasses (such as an
     :class:`qiskit.quantum_info.Operator` or
     :class:`qiskit.quantum_info.SuperOp`) when it is composed with,
-    or added too, them.
+    or added to, them.
 
     Example: Identity operator
 
@@ -111,7 +111,7 @@ features:
   - |
     A new method, :meth:`~qiskit.quantum_info.Operator.reshape`, has been added
     to the :class:`qiskit.quantum_innfo.Operator` class that returns a shallow
-    copy of an operatorsubclass with reshaped subsystem input or output dimensions.
+    copy of an operator subclass with reshaped subsystem input or output dimensions.
     The combined dimensions of all subsystems must be the same as the original
     operator or an exception will be raised.
 upgrade:
@@ -121,7 +121,7 @@ upgrade:
     :class:`~qiskit.quantum_info.SparsePauliOp`,
     :class:`~qiskit.quantum_info.PauliTable`,
     :class:`~qiskit.quantum_info.StabilizerTable`, operator classes have an added
-    call method that allows them to assign a `qargs` to the operator for use
+    ``call`` method that allows them to assign a `qargs` to the operator for use
     with the :meth:`~qiskit.quantum_info.Operator.compose`,
     :meth:`~qiskit.quantum_info.Operator.dot`, 
     :meth:`~qiskit.quantum_info.Statevector.evolve`,``+``, and ``-`` operations.
@@ -152,7 +152,7 @@ upgrade:
       for j in range(n_qubits - 1):
           ham = ham + ZZ([j, j+1])
   - |
-    The ``BaseOperator`` class no longer has been updated so that addition,
+    The ``BaseOperator`` class has been updated so that addition,
     subtraction and scalar multiplication are no longer abstract methods. This
     means that they are no longer required to be implemented in subclasses if
     they are not supported. The base class will raise a ``NotImplementedError``
