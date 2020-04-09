@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-rz gate.
+Controlled-rz gate.
 """
 import warnings
 # pylint: disable=unused-import

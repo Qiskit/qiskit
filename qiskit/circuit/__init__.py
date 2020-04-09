@@ -43,6 +43,7 @@ Gates and Instructions
    Reset
    Instruction
    InstructionSet
+   EquivalenceLibrary
 
 Parametric Quantum Circuits
 ===========================
@@ -54,6 +55,13 @@ Parametric Quantum Circuits
     ParameterVector
     ParameterExpression
 
+Random Circuits
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random.random_circuit
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
@@ -68,3 +76,4 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .equivalence import EquivalenceLibrary

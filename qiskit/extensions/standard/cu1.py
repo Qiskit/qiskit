@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-controlled-u1 gate.
+Controlled-u1 gate.
 """
 import warnings
 # pylint: disable=unused-import

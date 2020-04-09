@@ -45,7 +45,7 @@ class EnlargeWithAncilla(TransformationPass):
 
         layout_virtual_qubits = layout.get_virtual_bits().keys()
         new_qregs = {virtual_qubit.register for virtual_qubit in layout_virtual_qubits
-                     if virtual_qubit not in dag.wires}
+                     if virtual_qubit not in dag._wires}
 
         for qreg in new_qregs:
             dag.add_qreg(qreg)

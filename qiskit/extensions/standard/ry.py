@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Rotation around the y-axis.
+Rotation around the Y axis.
 """
 import math
 import numpy
@@ -26,11 +26,32 @@ from qiskit.util import deprecate_arguments
 
 
 class RYGate(Gate):
-    """rotation around the y-axis."""
+    r"""Single-qubit rotation about the Y axis.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌───────┐
+        q_0: ┤ Ry(ϴ) ├
+             └───────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RX(\theta) = exp(-i \th Y) =
+            \begin{pmatrix}
+                \cos{\th} & -\sin{\th} \\
+                \sin{\th} & \cos{\th}
+            \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new ry single qubit gate."""
-        super().__init__("ry", 1, [theta])
+        """Create new RY gate."""
+        super().__init__('ry', 1, [theta])
 
     def _define(self):
         """
@@ -38,16 +59,16 @@ class RYGate(Gate):
         """
         from qiskit.extensions.standard.r import RGate
         definition = []
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         rule = [
-            (RGate(self.params[0], pi/2), [q[0]], [])
+            (RGate(self.params[0], pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Controlled version of this gate.
+        """Return a (mutli-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -60,19 +81,19 @@ class RYGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CryGate(self.params[0])
+                return CRYGate(self.params[0])
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        """Invert this gate.
+        r"""Return inverted RY gate.
 
-        ry(theta)^dagger = ry(-theta)
+        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
         return RYGate(-self.params[0])
 
     def to_matrix(self):
-        """Return a Numpy.array for the RY gate."""
+        """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin],
@@ -81,43 +102,79 @@ class RYGate(Gate):
 
 @deprecate_arguments({'q': 'qubit'})
 def ry(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-    """Apply Ry gate with angle theta to a specified qubit (qubit).
-    An Ry gate implements a theta radian rotation of the qubit state vector about the
-    y axis of the Bloch sphere.
-
-    Examples:
-
-        Circuit Representation:
-
-        .. jupyter-execute::
-
-            from qiskit.circuit import QuantumCircuit, Parameter
-
-            theta = Parameter('θ')
-            circuit = QuantumCircuit(1)
-            circuit.ry(theta,0)
-            circuit.draw()
-
-        Matrix Representation:
-
-        .. jupyter-execute::
-
-            import numpy
-            from qiskit.extensions.standard.ry import RYGate
-            RYGate(numpy.pi/2).to_matrix()
-    """
+    """Apply :class:`~qiskit.extensions.standard.RYGate`."""
     return self.append(RYGate(theta), [qubit], [])
 
 
 QuantumCircuit.ry = ry
 
 
-class CryGate(ControlledGate):
-    """controlled-ry gate."""
+class CRYMeta(type):
+    """A metaclass to ensure that CryGate and CRYGate are of the same type.
+
+    Can be removed when CryGate gets removed.
+    """
+    @classmethod
+    def __instancecheck__(mcs, inst):
+        return type(inst) in {CRYGate, CryGate}  # pylint: disable=unidiomatic-typecheck
+
+
+class CRYGate(ControlledGate, metaclass=CRYMeta):
+    r"""Controlled-RY gate.
+
+    **Circuit symbol:**
+
+        q_0: ────■────
+             ┌───┴───┐
+        q_1: ┤ Ry(ϴ) ├
+             └───────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        CRY(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0         & 0 & 0 \\
+                0 & \cos{\th} & 0 & -\sin{\th} \\
+                0 & 0         & 1 & 0 \\
+                0 & \sin{\th} & 0 & \cos{\th}
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────┐
+            q_0: ┤ Ry(ϴ) ├
+                 └───┬───┘
+            q_1: ────■────
+
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            CRY(\theta)\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0 \\
+                    0 & 1 & 0 & 0 \\
+                    0 & 0 & \cos{\th} & -\sin{\th} \\
+                    0 & 0 & \sin{\th} & \cos{\th}
+                \end{pmatrix}
+    """
 
     def __init__(self, theta):
-        """Create new cry gate."""
-        super().__init__("cry", 2, [theta], num_ctrl_qubits=1)
+        """Create new CRY gate."""
+        super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
         self.base_gate = RYGate(theta)
 
     def _define(self):
@@ -128,31 +185,43 @@ class CryGate(ControlledGate):
         }
 
         """
-        from qiskit.extensions.standard.x import CnotGate
         from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.x import CXGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         rule = [
             (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
-        return CryGate(-self.params[0])
+        """Return inverse RY gate (i.e. with the negative rotation angle)."""
+        return CRYGate(-self.params[0])
+
+
+class CryGate(CRYGate, metaclass=CRYMeta):
+    """The deprecated CRYGate class."""
+
+    def __init__(self, theta):
+        import warnings
+        warnings.warn('The class CryGate is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the class CRYGate instead.',
+                      DeprecationWarning, stacklevel=2)
+        super().__init__(theta)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cry(self, theta, control_qubit, target_qubit,
         *, ctl=None, tgt=None):  # pylint: disable=unused-argument
-    """Apply cry from ctl to tgt with angle theta."""
-    return self.append(CryGate(theta), [control_qubit, target_qubit], [])
+    """Apply :class:`~qiskit.extensions.standard.CRYGate`."""
+    return self.append(CRYGate(theta), [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cry = cry

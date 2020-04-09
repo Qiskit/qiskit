@@ -36,8 +36,8 @@ angles_list = [[0], [0.4], [0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
 rot_axis_list = ["X", "Y", "Z"]
 
 
-class TestUCXYZ(QiskitTestCase):
-    """Qiskit tests for UCX, UCY and UCZ rotations gates."""
+class TestUCRXYZ(QiskitTestCase):
+    """Qiskit tests for UCRXGate, UCRYGate and UCRZGate rotations gates."""
 
     def test_ucy(self):
         """ Test the decomposition of uniformly controlled rotations."""
@@ -47,11 +47,11 @@ class TestUCXYZ(QiskitTestCase):
                 q = QuantumRegister(num_contr + 1)
                 qc = QuantumCircuit(q)
                 if rot_axis == "X":
-                    qc.ucx(angles, q[1:num_contr + 1], q[0])
+                    qc.ucrx(angles, q[1:num_contr + 1], q[0])
                 elif rot_axis == "Y":
-                    qc.ucy(angles, q[1:num_contr + 1], q[0])
+                    qc.ucry(angles, q[1:num_contr + 1], q[0])
                 else:
-                    qc.ucz(angles, q[1:num_contr + 1], q[0])
+                    qc.ucrz(angles, q[1:num_contr + 1], q[0])
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
                 # Simulate the decomposed gate

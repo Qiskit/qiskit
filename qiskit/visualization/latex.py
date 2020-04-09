@@ -41,7 +41,7 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None):
+                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False):
         """QCircuitImage initializer.
 
         Args:
@@ -56,6 +56,7 @@ class QCircuitImage:
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
                included.
+            initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -113,6 +114,7 @@ class QCircuitImage:
         self.has_target = False
         self.reverse_bits = reverse_bits
         self.layout = layout
+        self.initial_state = initial_state
         self.plot_barriers = plot_barriers
 
         #################################
@@ -213,13 +215,16 @@ class QCircuitImage:
                                     ": 0}"
             else:
                 if self.layout is None:
-                    label = "\\lstick{{ {{{}}}_{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : \\ket{{0}} }}".format(
+                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
                         self.layout[self.ordered_regs[i].index].register.name,
                         self.layout[self.ordered_regs[i].index].index,
                         self.ordered_regs[i].index)
+                if self.initial_state:
+                    label += "\\ket{{0}}"
+                label += " }"
                 self._latex[i][0] = label
 
     def _get_image_depth(self):
@@ -373,7 +378,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'ccz', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
@@ -407,7 +412,10 @@ class QCircuitImage:
                         for index, pos in enumerate(ctrl_pos):
                             self._latex[pos][column] = "\\ctrl{" + str(
                                 pos_array[index + 1] - pos_array[index]) + "}"
-                        self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                        if name == 'Z':
+                            self._latex[pos_array[-1]][column] = "\\control\\qw"
+                        else:
+                            self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
                     else:
                         pos_start = min(pos_qargs)
                         pos_stop = max(pos_qargs)

@@ -20,11 +20,9 @@ import unittest
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
 
 
 class TestCollect2qBlocks(QiskitTestCase):
@@ -67,21 +65,21 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         blocks : [['cx', 'id', 'id', 'id'], ['id', 'cx']]
 
-                ┌───┐┌────┐┌─┐      ┌────┐┌───┐
-        q_0: |0>┤ X ├┤ Id ├┤M├──────┤ Id ├┤ X ├
-                └─┬─┘├────┤└╥┘┌────┐└────┘└─┬─┘
-        q_1: |0>──■──┤ Id ├─╫─┤ Id ├────────■──
-                     └────┘ ║ └────┘
-         c_0: 0 ════════════╩══════════════════
+                ┌───┐┌───┐┌─┐     ┌───┐┌───┐
+        q_0: |0>┤ X ├┤ I ├┤M├─────┤ I ├┤ X ├
+                └─┬─┘├───┤└╥┘┌───┐└───┘└─┬─┘
+        q_1: |0>──■──┤ I ├─╫─┤ I ├───────■──
+                     └───┘ ║ └───┘
+         c_0: 0 ═══════════╩════════════════
 
         """
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
-        qc.iden(0)
-        qc.iden(1)
+        qc.i(0)
+        qc.i(1)
         qc.measure(0, 0)
-        qc.iden(0)
-        qc.iden(1)
+        qc.i(0)
+        qc.i(1)
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)
@@ -89,7 +87,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
-        good_names = ["cx", "u1", "u2", "u3", "id"]
+        good_names = ['cx', 'u1', 'u2', 'u3', 'id']
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
@@ -130,12 +128,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
         qc = QuantumCircuit.from_qasm_str(qasmstr)
-        backend = FakeMelbourne()
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, backend, pass_manager=pass_manager)
+        pass_manager.run(qc)
 
         self.assertEqual([['cx']],
                          [[n.name for n in block]
@@ -178,7 +175,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, pass_manager=pass_manager)
+        pass_manager.run(qc)
         self.assertEqual([['cx']],
                          [[n.name for n in block]
                           for block in pass_manager.property_set['block_list']])
