@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    ``circuit.num_nonlocal_gates()`` shows the number of gates involving 2 or
+    or more qubits in a circuit. These gates are more costly in terms of time
+    and error to implement.
