@@ -28,20 +28,20 @@ operations on quantum data, such as qubits. It is an ordered sequence of quantum
 gates, measurements and resets, which may be conditioned on real-time classical
 computation. A set of quantum gates is said to be universal if any unitary
 transformation of the quantum data can be efficiently approximated arbitrarily well
-as as sequence of gates in the set. Any quantum program can be represented by a 
+as as sequence of gates in the set. Any quantum program can be represented by a
 sequence of quantum circuits and classical near-time computation.
 
 In Qiskit, this core element is represented by the :class:`QuantumCircuit` class.
-Below is an example of a quantum circuit that makes a three-qubit GHZ state 
+Below is an example of a quantum circuit that makes a three-qubit GHZ state
 defined as:
 
 .. math::
 
-   |\psi\\rangle = \\left(|000\\rangle+|111\\rangle\\right)/\sqrt{2}
+   |\\psi\\rangle = \\left(|000\\rangle+|111\\rangle\\right)/\\sqrt{2}
 
 
 .. jupyter-execute::
-   
+
    from qiskit import QuantumCircuit
    # Create a circuit with a register of three qubits
    circ = QuantumCircuit(3)
@@ -74,7 +74,7 @@ Supplementary Information
    Consider the following circuit:
 
    .. jupyter-execute::
-   
+
       from qiskit import QuantumCircuit
       qc = QuantumCircuit(12)
       for idx in range(5):
@@ -108,9 +108,9 @@ Supplementary Information
 
       qc.num_qubits
 
-   
+
    .. important::
-      
+
       For a quantum circuit composed from just qubits, the circuit width is equal
       to the number of qubits. This is the definition used in quantum computing. However,
       for more complicated circuits with classical registers, and classically controlled gates,
@@ -118,7 +118,7 @@ Supplementary Information
       qubits in a quantum circuit as the width.
 
 
-   It is also straightforward to get the number and type of the gates in a circuit using 
+   It is also straightforward to get the number and type of the gates in a circuit using
    :meth:`QuantumCircuit.count_ops`:
 
    .. jupyter-execute::
@@ -157,9 +157,8 @@ Supplementary Information
 
    We can verify our graphical result using :meth:`QuantumCircuit.depth`:
 
-
    .. jupyter-execute::
-   
+
       qc.depth()
 
 
