@@ -1,7 +1,7 @@
 ---
-prelude: >
-    The 0.13.0 release includes several new features and bug fixes. There are
-    many big changes this release.
+prelude: |
+    The 0.13.0 release includes many big changes. Some highlights for this
+    release are:
 
     For the transpiler we have switched the graph library used to build the
     :class:`qiskit.dagcircuit.DAGCircuit` class which is the underlying data
