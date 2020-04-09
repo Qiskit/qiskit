@@ -44,7 +44,7 @@ features:
   - |
     Added a new circuit library module :mod:`qiskit.circuit.library`. This will
     be a place for constructors of commonly used circuits that can be used as
-    building blocks for larger circuit or applications.
+    building blocks for larger circuits or applications.
 deprecations:
   - |
     Passing in the data to the constructor for
