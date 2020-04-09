@@ -18,7 +18,7 @@ Abstract BaseOperator class.
 
 import copy
 import warnings
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
@@ -26,12 +26,53 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
-class BaseOperator(ABC):
-    """Abstract linear operator base class."""
+class TolerancesMeta(type):
+    """Metaclass to handle tolerances"""
+    def __init__(cls, *args, **kwargs):
+        cls._ATOL_DEFAULT = ATOL_DEFAULT
+        cls._RTOL_DEFAULT = RTOL_DEFAULT
+        cls._MAX_TOL = 1e-4
+        super().__init__(cls, args, kwargs)
 
-    _ATOL_DEFAULT = ATOL_DEFAULT
-    _RTOL_DEFAULT = RTOL_DEFAULT
-    _MAX_TOL = 1e-4
+    @property
+    def atol(cls):
+        """The default absolute tolerance parameter for float comparisons."""
+        return cls._ATOL_DEFAULT
+
+    def _check_value(cls, value, value_name):
+        """Check if value is within valid ranges"""
+        if value < 0:
+            raise QiskitError(
+                "Invalid {} ({}) must be non-negative.".format(value_name, value))
+        if value > cls._MAX_TOL:
+            raise QiskitError(
+                "Invalid {} ({}) must be less than {}.".format(value_name, value, cls._MAX_TOL))
+
+    @atol.setter
+    def atol(cls, value):
+        """Set the class default absolute tolerance parameter for float comparisons."""
+        cls._check_value(value, "atol")  # pylint: disable=no-value-for-parameter
+        cls._ATOL_DEFAULT = value
+
+    @property
+    def rtol(cls):
+        """The relative tolerance parameter for float comparisons."""
+        return cls._RTOL_DEFAULT
+
+    @rtol.setter
+    def rtol(cls, value):
+        """Set the class default relative tolerance parameter for float comparisons."""
+        cls._check_value(value, "rtol")  # pylint: disable=no-value-for-parameter
+        cls._RTOL_DEFAULT = value
+
+
+class AbstractTolerancesMeta(TolerancesMeta, ABCMeta):
+    """Abstract Metaclass to handle tolerances"""
+    pass
+
+
+class BaseOperator(metaclass=AbstractTolerancesMeta):
+    """Abstract linear operator base class."""
 
     def __init__(self, input_dims, output_dims):
         """Initialize an operator object."""
@@ -87,36 +128,34 @@ class BaseOperator(ABC):
     @property
     def atol(self):
         """The default absolute tolerance parameter for float comparisons."""
-        return self.__class__._ATOL_DEFAULT
+        return self.__class__.atol
 
     @property
     def rtol(self):
         """The relative tolerance parameter for float comparisons."""
-        return self.__class__._RTOL_DEFAULT
+        return self.__class__.rtol
 
     @classmethod
     def set_atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons."""
-        if value < 0:
-            raise QiskitError(
-                "Invalid atol ({}) must be non-negative.".format(value))
-        if value > cls._MAX_TOL:
-            raise QiskitError(
-                "Invalid atol ({}) must be less than {}.".format(
-                    value, cls._MAX_TOL))
-        cls._ATOL_DEFAULT = value
+        """Set the class default absolute tolerance parameter for float comparisons.
+
+        DEPRECATED: use operator.atol = value instead
+        """
+        warnings.warn("`{}.set_atol` method is deprecated, use `{}.atol = "
+                      "value` instead.".format(cls.__name__, cls.__name__),
+                      DeprecationWarning)
+        cls.atol = value
 
     @classmethod
     def set_rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons."""
-        if value < 0:
-            raise QiskitError(
-                "Invalid atol ({}) must be non-negative.".format(value))
-        if value > cls._MAX_TOL:
-            raise QiskitError(
-                "Invalid atol ({}) must be less than {}.".format(
-                    value, cls._MAX_TOL))
-        cls._RTOL_DEFAULT = value
+        """Set the class default relative tolerance parameter for float comparisons.
+
+        DEPRECATED: use operator.rtol = value instead
+        """
+        warnings.warn("`{}.set_rtol` method is deprecated, use `{}.rtol = "
+                      "value` instead.".format(cls.__name__, cls.__name__),
+                      DeprecationWarning)
+        cls.rtol = value
 
     def reshape(self, input_dims=None, output_dims=None):
         """Return a shallow copy with reshaped input and output subsystem dimensions.
