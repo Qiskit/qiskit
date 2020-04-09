@@ -104,4 +104,4 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
     def test_operational(self):
         """Test operation status of a given qubit."""
-        self.assertTrue(self.properties.operational(0))
+        self.assertTrue(self.properties.is_qubit_operational(0))
