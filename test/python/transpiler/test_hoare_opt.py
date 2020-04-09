@@ -23,6 +23,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.extensions.standard import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.dagcircuit import DAGNode
+from qiskit.quantum_info import Statevector
 
 
 class TestHoareOptimizer(QiskitTestCase):
@@ -40,6 +41,9 @@ class TestHoareOptimizer(QiskitTestCase):
         expected = QuantumCircuit(3)
         expected.h(1)
         expected.z(1)
+
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
 
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
@@ -102,6 +106,9 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.cswap(2, 3, 5)
         expected.cswap(2, 4, 6)
 
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
+
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
 
@@ -132,6 +139,9 @@ class TestHoareOptimizer(QiskitTestCase):
         for i in range(3, 0, -1):
             expected.cx(i, i-1)
 
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
+
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
 
@@ -158,6 +168,9 @@ class TestHoareOptimizer(QiskitTestCase):
         for i in range(0, 4):
             expected.cx(i, i+1)
 
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
+
         pass_ = HoareOptimizer(size=6)
         result = pass_.run(circuit_to_dag(circuit))
 
@@ -183,6 +196,9 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.h(2)
         expected.cx(1, 0)
         expected.x(0)
+
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
 
         pass_ = HoareOptimizer(size=4)
         result = pass_.run(circuit_to_dag(circuit))
@@ -269,6 +285,9 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.cx(3, 5)
         for i in range(1, 3):
             expected.cx(i*2+1, i*2)
+
+        sv = Statevector.from_label('0' * circuit.num_qubits)
+        self.assertEqual(sv @ circuit, sv @ expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
