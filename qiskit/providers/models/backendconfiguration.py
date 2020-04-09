@@ -15,7 +15,8 @@
 """Model and schema for backend configuration."""
 import re
 import warnings
-from typing import Dict, List, Any, Tuple, Union
+from collections import defaultdict
+from typing import Dict, List, Any, Iterable, Tuple, Union
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
@@ -332,8 +333,8 @@ class PulseBackendConfiguration(BackendConfiguration):
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
-            channels: An optional dictionary containing information of each channels -- their
-                purpose, type and qubits operated on.
+            channels: An optional dictionary containing information of each channel -- their
+                purpose, type, and qubits operated on.
             **kwargs: Optional fields.
         """
         self.n_uchannels = n_uchannels
@@ -358,7 +359,7 @@ class PulseBackendConfiguration(BackendConfiguration):
 
         self.channels = channels
         if channels:
-            self.control_channels = self.__parse_control_channels(channels=channels)
+            self.map_qubits_channels = self._parse_channels(channels=channels)
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
@@ -410,8 +411,8 @@ class PulseBackendConfiguration(BackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, channel: int = None,
-                qubits: Union[Tuple[int], List[int]] = None) -> ControlChannel:
+    def control(self, qubits: Iterable[int] = None,
+                channel: int = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
@@ -425,63 +426,43 @@ class PulseBackendConfiguration(BackendConfiguration):
                 given ``qubits`` is not found.
 
         Returns:
-            Qubit control channel.
+            List of control channel.
         """
         # TODO: Determine this from the hamiltonian.
-        if qubits:
-            try:
-                if not all(0 <= qubit <= self.n_qubits for qubit in qubits):
-                    raise BackendConfigurationError("Invalid indices {} for {}-qubit "
-                                                    "systems.".format(qubits, self.n_qubits))
-                if isinstance(qubits, list):
-                    qubits = tuple(qubits)
-                return self.control_channels[qubits]
-            except KeyError:
-                raise BackendConfigurationError("Couldn't find the ControlChannel operating "
-                                                "on qubits {}.".format(qubits))
-        warnings.warn('control(channel: int) is deprecated. Use '
+        if channel is not None:
+            warnings.warn('control(channel: int) is deprecated. Use '
                       'control(qubits: List or Tuple [control_qubit, target_qubit]) instead.',
                       DeprecationWarning)
-        return ControlChannel(channel)
+            # TODO: channel = [qubits]
+        try:
+            if isinstance(qubits, list):
+                qubits = tuple(qubits)
+            return self.map_qubits_channels[qubits]
+        except KeyError:
+            raise BackendConfigurationError("Couldn't find the ControlChannel operating on qubits "
+                                            "{} on {}-qubit system.".format(qubits, self.n_qubits))
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
-        """Return a list of indices for qubits which are operated on directly by the given channel.
-
-        The ``channels`` configuration in the backend contains information of all channels -- their
-        type, purpose and qubits operated on. For ControlChannel, the value at index 0 is the
-        control qubit and the value at index 1 is target qubit.
         """
-        data = re.match(r"(?P<pulse_channel>[a-zA-Z]+)([(])(?P<index>[0-9]+)([)])", str(channel))
-        for pulse_channel, config in self.channels.items():
-            if config['operates']['qubits'][0] == int(data.group('index')):
-                test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", pulse_channel)
-                if data.group('pulse_channel') == 'DriveChannel' and test.group('channel') == 'd':
-                    qubits = config['operates']['qubits']
-                elif (data.group('pulse_channel') == 'MeasureChannel'
-                      and test.group('channel') == 'm'):
-                    qubits = config['operates']['qubits']
-                elif (data.group('pulse_channel') == 'ControlChannel'
-                      and test.group('channel') == 'u'):
-                    qubits = config['operates']['qubits']
-                elif (data.group('pulse_channel') == 'AcquireChannel' and
-                      test.group('channel') == 'acquire'):
-                    qubits = config['operates']['qubits']
-        return qubits
+        Return a list of indices for qubits which are operated on directly by the given channel.
+        """
+        for qubit, chl in self.map_qubits_channels.items():
+            if channel in chl:
+                return list(qubit)
 
-    def get_qubit_channels(self, qubit: int) -> List[Channel]:
-        """Return a list of channels which operate on the given qubit."""
+    def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
+        """Return a list of channels which operate on the given qubit(s)."""
         channels = list()
-        for channel, config in self.channels.items():
-            if qubit in config['operates']['qubits']:
-                test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
-                if test.group('channel') == 'd':
-                    channels.append(self.drive(qubit=qubit))
-                elif test.group('channel') == 'm':
-                    channels.append(self.measure(qubit=qubit))
-                elif test.group('channel') == 'acquire':
-                    channels.append(self.acquire(qubit=qubit))
-                elif test.group('channel') == 'u':
-                    channels.append(self.control(qubits=config['operates']['qubits']))
+        if isinstance(qubit, int):
+            for qbit in self.map_qubits_channels.keys():
+                if qubit in qbit:
+                    channels.extend(self.map_qubits_channels[qbit])
+            qubit = tuple(map(int, str(qubit)))
+        elif isinstance(qubit, list):
+            qubit = tuple(qubit)
+            channels.extend(self.map_qubits_channels[qubit])
+        elif isinstance(qubit, tuple):
+            channels.extend(self.map_qubits_channels[qubit])
         return channels
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
@@ -514,20 +495,29 @@ class PulseBackendConfiguration(BackendConfiguration):
             result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
         return result
 
-    def __parse_control_channels(self, channels: Dict[set, Any]) -> Dict[Tuple[int], Channel]:
-        r"""Generates a dictionary of ``ControlChannel``\s and tuple of qubits they operate on.
+    def _parse_channels(self, channels: Dict[set, Any]) -> Dict[Tuple[int], Channel]:
+        r"""Generates a dictionary of ``Channel``\s and tuple of qubit(s) they operate on.
 
         Args:
-            channels: An optional dictionary containing information of each channels -- their
-                purpose, type and qubits operated on.
+            channels: An optional dictionary containing information of each channel -- their
+                purpose, type, and qubits operated on.
 
         Returns:
-            Dictionary of tuple of qubits and ``ControlChannel``\s.
+            Dictionary of tuple of qubit(s) and ``Channel``\s.
         """
-        control_channels = {}
+        map_qubits_channels = defaultdict(list)
         for channel, config in channels.items():
             test = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
             if test.group('channel') == 'u':
-                control_channels[tuple(config['operates']['qubits'])] = ControlChannel(
-                    int(test.group('index')))  # ControlChannel(index of 'u<i>')
-        return control_channels
+                map_qubits_channels[tuple(config['operates']['qubits'])].append(ControlChannel(
+                    int(test.group('index'))))  # ControlChannel(index of 'u<i>')
+            elif test.group('channel') == 'd':
+                map_qubits_channels[tuple(config['operates']['qubits'])].append(DriveChannel(
+                    int(test.group('index'))))  # DriveChannel(index of 'u<i>')
+            elif test.group('channel') == 'm':
+                map_qubits_channels[tuple(config['operates']['qubits'])].append(MeasureChannel(
+                    int(test.group('index'))))  # MeasureChannel(index of 'u<i>')
+            elif test.group('channel') == 'acquire':
+                map_qubits_channels[tuple(config['operates']['qubits'])].append(AcquireChannel(
+                    int(test.group('index'))))  # AcquireChannel(index of 'u<i>')
+        return dict(map_qubits_channels)
