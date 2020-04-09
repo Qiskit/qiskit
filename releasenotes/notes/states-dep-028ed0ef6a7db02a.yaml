@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The :class:`qiskit.quantum_info.Statevector` and 
+    :class:`qiskit.quantum_info.DensityMatrix` classes no longer copy the
+    input array if it is already the correct dtype.
+deprecations:
+  - |
+    The ``add``, ``subtract``, and ``multiple`` methods of the
+    :class:`qiskit.quantum_info.Statevector` and 
+    :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated.
+    Use ``+``, ``-``, ``*`` binary operators instead.
+  - |
+    The ``rep`` method of the :class:`qiskit.quantum_info.Statevector` and 
+    :class:`qiskit.quantum_info.DensityMatrix` classes is deprecated. Use
+    ``isinstance`` to check for type instead.

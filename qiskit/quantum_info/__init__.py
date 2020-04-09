@@ -25,7 +25,9 @@ Operators
    :toctree: ../stubs/
 
    Operator
+   Clifford
    ScalarOp
+   SparsePauliOp
    Pauli
    pauli_group
    Quaternion
@@ -61,11 +63,11 @@ Measures
 .. autosummary::
    :toctree: ../stubs/
 
-   state_fidelity
-   purity
    average_gate_fidelity
    process_fidelity
    gate_error
+   diamond_norm
+   state_fidelity
    purity
    concurrence
    entropy
@@ -87,9 +89,15 @@ Random
 .. autosummary::
    :toctree: ../stubs/
 
-   random_unitary
-   random_state
+   random_statevector
    random_density_matrix
+   random_unitary
+   random_hermitian
+   random_clifford
+   random_quantum_channel
+   random_pauli_table
+   random_stabilizer_table
+   random_state
 
 Analysis
 =========
@@ -115,10 +123,12 @@ from .operators import Operator, ScalarOp
 from .operators.pauli import Pauli, pauli_group
 from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-from .operators.measures import process_fidelity
-from .operators import average_gate_fidelity
-from .operators import gate_error
-from .operators.symplectic import PauliTable, StabilizerTable
+from .operators.measures import (process_fidelity,
+                                 average_gate_fidelity,
+                                 gate_error,
+                                 diamond_norm)
+from .operators.symplectic import (Clifford, SparsePauliOp,
+                                   PauliTable, StabilizerTable)
 from .operators.symplectic import pauli_basis
 
 from .states import Statevector, DensityMatrix
@@ -127,7 +137,13 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
                      mutual_information, shannon_entropy)
 from .states.states import basis_state, projector
 
-from .random import random_unitary, random_state, random_density_matrix
+from .random import (random_quantum_channel, random_unitary,
+                     random_clifford, random_pauli_table,
+                     random_stabilizer_table,
+                     random_hermitian, random_statevector,
+                     random_density_matrix, random_state)
+
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)
+
 from .analysis import hellinger_fidelity

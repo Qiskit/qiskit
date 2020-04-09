@@ -139,11 +139,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
     .. parsed-literal::
 
-             ┌───────────┐
-        q_0: ┤ U3(ϴ,φ,λ) ├
-             └─────┬─────┘
-        q_1: ──────■──────
-
+        q_0: ──────■──────
+             ┌─────┴─────┐
+        q_1: ┤ U3(ϴ,φ,λ) ├
+             └───────────┘
 
     **Matrix representation:**
 
@@ -151,34 +150,40 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CU3(\theta, \phi, \lambda)\ q_1, q_0=
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+        CU3(\theta, \phi, \lambda)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| +
+            U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0   & 0                  & 0 \\
-                0 & 1   & 0                  & 0 \\
-                0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                1 & 0                   & 0 & 0 \\
+                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & 0                   & 1 & 0 \\
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
-
 
     .. note::
 
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In many textbooks, controlled gates are
         presented with the assumption of more significant qubits as control,
-        which is how we present the gate above as well, resulting in textbook
-        matrices. Instead, if we use q_0 as control, the matrix will be:
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. parsed-literal::
+                 ┌───────────┐
+            q_0: ┤ U3(ϴ,φ,λ) ├
+                 └─────┬─────┘
+            q_1: ──────■──────
 
         .. math::
 
-            CU3(\theta, \phi, \lambda)\ q_0, q_1 =
-                I \otimes |0\rangle\langle 0| +
-                U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            CU3(\theta, \phi, \lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I +
+                |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
                 \begin{pmatrix}
-                    1 & 0                   & 0 & 0 \\
-                    0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
-                    0 & 0                   & 1 & 0 \\
-                    0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                    1 & 0   & 0                  & 0 \\
+                    0 & 1   & 0                  & 0 \\
+                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
 
@@ -243,3 +248,67 @@ def cu3(self, theta, phi, lam, control_qubit, target_qubit,
 
 
 QuantumCircuit.cu3 = cu3
+
+
+def _generate_gray_code(num_bits):
+    """Generate the gray code for ``num_bits`` bits."""
+    if num_bits <= 0:
+        raise ValueError('Cannot generate the gray code for less than 1 bit.')
+    result = [0]
+    for i in range(num_bits):
+        result += [x + 2**i for x in reversed(result)]
+    return [format(x, '0%sb' % num_bits) for x in result]
+
+
+def _gray_code_chain(q, num_ctrl_qubits, gate):
+    """Apply the gate to the the last qubit in the register ``q``, controlled on all
+    preceding qubits. This function uses the gray code to propagate down to the last qubit.
+
+    Ported and adapted from Aqua (github.com/Qiskit/qiskit-aqua),
+    commit 769ca8d, file qiskit/aqua/circuits/gates/multi_control_u1_gate.py.
+    """
+    from qiskit.extensions.standard.x import CXGate
+
+    rule = []
+    q_controls, q_target = q[:num_ctrl_qubits], q[num_ctrl_qubits]
+    gray_code = _generate_gray_code(num_ctrl_qubits)
+    last_pattern = None
+
+    for pattern in gray_code:
+        if '1' not in pattern:
+            continue
+        if last_pattern is None:
+            last_pattern = pattern
+        # find left most set bit
+        lm_pos = list(pattern).index('1')
+
+        # find changed bit
+        comp = [i != j for i, j in zip(pattern, last_pattern)]
+        if True in comp:
+            pos = comp.index(True)
+        else:
+            pos = None
+        if pos is not None:
+            if pos != lm_pos:
+                rule.append(
+                    (CXGate(), [q_controls[pos], q_controls[lm_pos]], [])
+                )
+            else:
+                indices = [i for i, x in enumerate(pattern) if x == '1']
+                for idx in indices[1:]:
+                    rule.append(
+                        (CXGate(), [q_controls[idx], q_controls[lm_pos]], [])
+                    )
+        # check parity
+        if pattern.count('1') % 2 == 0:
+            # inverse
+            rule.append(
+                (gate.inverse(), [q_controls[lm_pos], q_target], [])
+            )
+        else:
+            rule.append(
+                (gate, [q_controls[lm_pos], q_target], [])
+            )
+        last_pattern = pattern
+
+    return rule

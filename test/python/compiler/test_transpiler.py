@@ -15,8 +15,10 @@
 """Tests basic functionality of the transpile function"""
 
 import math
-import unittest
+import io
+from logging import StreamHandler, getLogger
 from unittest.mock import patch
+import sys
 from ddt import ddt, data
 
 from qiskit import BasicAer
@@ -33,7 +35,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 from qiskit.quantum_info import Operator
-from qiskit.transpiler.pass_manager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 
 
@@ -535,7 +537,7 @@ class TestTranspile(QiskitTestCase):
         resources_before = circuit.count_ops()
 
         pass_manager = PassManager()
-        out_circuit = transpile(circuit, pass_manager=pass_manager)
+        out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
@@ -608,7 +610,6 @@ class TestTranspile(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
 
-    @unittest.skip('skipping due to MacOS specific failure, unrolling to u2')
     def test_basis_subset(self):
         """Test a transpilation with a basis subset of the standard basis"""
         qr = QuantumRegister(1, 'q1')
@@ -696,6 +697,37 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(qc, out)
 
 
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+
+    def handleError(self, record):
+        raise sys.exc_info()
+
+
+class TestLogTranspile(QiskitTestCase):
+    """Testing the log_transpile option."""
+
+    def setUp(self):
+        logger = getLogger()
+        logger.setLevel('DEBUG')
+        self.output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.output))
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def assertTranspileLog(self, log_msg):
+        """ Runs the transpiler and check for logs containing specified message"""
+        transpile(self.circuit)
+        self.output.seek(0)
+        # Filter unrelated log lines
+        output_lines = self.output.readlines()
+        transpile_log_lines = [x for x in output_lines if log_msg in x]
+        self.assertTrue(len(transpile_log_lines) > 0)
+
+    def test_transpile_log_time(self):
+        """Check Total Transpile Time is logged"""
+        self.assertTranspileLog('Total Transpile Time')
+
+
 class TestTranspileCustomPM(QiskitTestCase):
     """Test transpile function with custom pass manager"""
 
@@ -717,7 +749,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         )
         passmanager = level_0_pass_manager(pm_conf)
 
-        transpiled = transpile([qc, qc], pass_manager=passmanager)
+        transpiled = passmanager.run([qc, qc])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         expected.u2(0, 3.141592653589793, 0)
