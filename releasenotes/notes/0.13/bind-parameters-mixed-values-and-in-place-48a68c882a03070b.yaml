@@ -1,9 +1,12 @@
 ---
 features:
   - |
-    The new ``QuantumCircuit.assign_parameters`` method accepts a parameter dictionary with both
-    floats and Parameters objects in a single dictionary. I.e. the method allows to bind
-    floats, Parameters or both in a single dictionary.
-    Also, by using the ``inplace`` argument it can be specified if a copy with the
-    new parameter values should be returned (``inplace=False``, default behaviour), or
-    if the original circuit should be modified (``inplace=True``).
+    A new method, :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`
+    has been added to the :class:`qiskit.circuit.QuantumCircuit` class. This
+    method accepts a parameter dictionary with both floats and Parameters
+    objects in a single dictionary. In other words this new method allows you
+    to bind floats, Parameters or both in a single dictionary.
+
+    Also, by using the ``inplace`` kwarg it can be specified you can optionally
+    modify the original circuit in place. By default this is set to ``False``
+    and a copy of the original circuit will be returned from the method.

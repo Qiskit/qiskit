@@ -1,6 +1,8 @@
 ---
 features:
   - |
-    ``circuit.num_nonlocal_gates()`` shows the number of gates involving 2 or
-    or more qubits in a circuit. These gates are more costly in terms of time
-    and error to implement.
+    A new method :meth:`~qiskit.circuit.QuantumCircuit.num_nonlocal_gates`
+    has been added to the :class:`qiskit.circuit.QuantumCircuit` class.
+    This method will return the number of gates in a circuit that involve 2 or
+    or more qubits. These gates are more costly in terms of time and error to
+    implement.

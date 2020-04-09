@@ -12,7 +12,7 @@ prelude: >
 
     There has been a significant simplification to the style in which Pulse
     instructions are built. Now, ``Command`` s are deprecated and a unified
-    set of :py:class:`~qiskit.pulse.instruction.Instruction` s are supported.
+    set of :class:`~qiskit.pulse.instructions.Instruction` s are supported.
 
     The :mod:`qiskit.quantum_info` module includes several new functions
     for generating random operators (such as Cliffords and quantum channels)
