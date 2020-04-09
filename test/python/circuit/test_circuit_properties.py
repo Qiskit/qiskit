@@ -418,7 +418,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(expected, result)
 
     def test_circuit_nonlocal_gates(self):
-        """Tet num_nonlocal_gates.
+        """Test num_nonlocal_gates.
         """
         q = QuantumRegister(6, 'q')
         c = ClassicalRegister(2, 'c')
