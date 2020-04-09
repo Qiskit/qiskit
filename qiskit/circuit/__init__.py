@@ -56,7 +56,7 @@ defined as:
 
 
 Supplementary Information
-========================
+=========================
 
 .. container:: toggle
 
