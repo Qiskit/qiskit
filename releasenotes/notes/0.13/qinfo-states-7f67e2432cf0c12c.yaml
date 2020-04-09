@@ -178,11 +178,6 @@ deprecations:
     be removed in a future release. Instead you shoulde use ``+``, ``-``, ``*``
     binary operators instead.
   - |
-    The ``rep`` method of the :class:`qiskit.quantum_info.Statevector` and 
-    :class:`qiskit.quantum_info.DensityMatrix` classes is deprecated and will
-    be removed in a future release. Instead you should use ``isinstance`` to
-    check for type instead.
-  - |
     Deprecates :meth:`qiskit.quantum_info.Statevector.to_counts`,
     :meth:`qiskit.quantum_info.DensityMatrix.to_counts`, and
     :func:`qiskit.quantum_info.counts.state_to_counts`. These functions
