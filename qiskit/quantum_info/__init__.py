@@ -27,6 +27,7 @@ Operators
    Operator
    Clifford
    ScalarOp
+   SparsePauliOp
    Pauli
    pauli_group
    Quaternion
@@ -126,7 +127,8 @@ from .operators.measures import (process_fidelity,
                                  average_gate_fidelity,
                                  gate_error,
                                  diamond_norm)
-from .operators.symplectic import Clifford, PauliTable, StabilizerTable
+from .operators.symplectic import (Clifford, SparsePauliOp,
+                                   PauliTable, StabilizerTable)
 from .operators.symplectic import pauli_basis
 
 from .states import Statevector, DensityMatrix
