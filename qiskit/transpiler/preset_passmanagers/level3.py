@@ -30,6 +30,10 @@ from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
+<<<<<<< Updated upstream
+=======
+# from qiskit.transpiler.passes import StochasticSwap
+>>>>>>> Stashed changes
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
