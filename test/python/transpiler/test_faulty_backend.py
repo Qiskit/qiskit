@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
-from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
+from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01
 from qiskit.extensions.standard import CnotGate
 
 
@@ -54,7 +54,7 @@ class TestFaultyCX01(TestFaultyBackendCase):
     """
 
     def setUp(self) -> None:
-        self.backend = FakeOurenseFaultyCX13()
+        self.backend = FakeOurenseFaultyCX01()
 
     def assertIdleCX01(self, circuit):
         """Asserts the CX(0, 1) (and symmetric) is not used in the circuit"""
