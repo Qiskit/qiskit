@@ -319,8 +319,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
     faulty_qubits = backend.faulty_qubits()
-    disconnected_qubits = set([k for k, v in faulty_qubits_map.items()
-                               if v is None]).difference(faulty_qubits)
+    disconnected_qubits = {k for k, v in faulty_qubits_map.items()
+                           if v is None}.difference(faulty_qubits)
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
     if faulty_qubits:
         faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
