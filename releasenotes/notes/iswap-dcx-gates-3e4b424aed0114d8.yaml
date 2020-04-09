@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Added two new gates, iswap and dcx, which are locally equivalent to
-    each other and can be used to enact particular XY interactions.
-    A brief motivation for these gates can be found
-    [here](arxiv.org/abs/quant-ph/0209035).
