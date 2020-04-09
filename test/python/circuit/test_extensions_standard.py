@@ -32,7 +32,7 @@ from qiskit.extensions.standard import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-    ZGate, CZGate
+    ZGate, CZGate, Barrier
 )
 
 
@@ -65,6 +65,11 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.barrier, self.cr)
         self.assertRaises(CircuitError, qc.barrier, (self.qr, 'a'))
         self.assertRaises(CircuitError, qc.barrier, .0)
+
+    def test_barrier_parameters(self):
+        barrier = Barrier(2)
+        with self.assertRaises(CircuitError):
+            barrier.params = [0, 1]
 
     def test_conditional_barrier_invalid(self):
         qc = self.circuit
