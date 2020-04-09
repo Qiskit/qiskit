@@ -23,6 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.standard.x import CXGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -245,6 +246,14 @@ class Initialize(Instruction):
                               "qubits. However, %s were provided." %
                               (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
+
+    def validate_parameter(self, parameter):
+        """Initialize instruction parameter can be int, float, and complex."""
+        if isinstance(parameter, (int, float, complex)):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for instruction  "
+                               "{1}".format(type(parameter), self.name))
 
 
 def initialize(self, params, qubits):
