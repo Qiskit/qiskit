@@ -44,7 +44,15 @@ class SparsePauliOp(BaseOperator):
     """
 
     def __init__(self, data, coeffs=None):
-        """Initialize an operator object."""
+        """Initialize an operator object.
+
+        Args:
+            data (PauliTable): Pauli table of terms.
+            coeffs (np.ndarray): complex coefficients for Pauli terms.
+
+        Raises:
+            QiskitError: If the input data or coeffs are invalid.
+        """
         if isinstance(data, SparsePauliOp):
             table = data._table
             coeffs = data._coeffs
@@ -153,8 +161,8 @@ class SparsePauliOp(BaseOperator):
         # Compose with adjoint
         val = self.compose(self.adjoint()).simplify()
         # See if the result is an identity
-        return (val.size == 1 and np.all(~val.table.X & ~val.table.Z)
-                and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol))
+        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
+                and not (np.any(val.table.X) | np.any(val.table.Z)))
 
     def conjugate(self):
         """Return the conjugate of the operator."""
