@@ -429,12 +429,7 @@ def _create_faulty_qubits_map(backend):
                                        if (set(edge).isdisjoint(faulty_qubits) and
                                            edge not in faulty_edges)]
 
-            coupling_map = CouplingMap(functional_coupling_map)
-            if coupling_map.is_connected():
-                connected_working_qubits = {qubit for edge in functional_coupling_map
-                                            for qubit in edge}
-            else:
-                raise Exception('TODO')
+            connected_working_qubits = CouplingMap(functional_coupling_map).largest_connected_component()
             dummy_qubit_counter = 0
             for qubit in range(configuration.n_qubits):
                 if qubit in connected_working_qubits:

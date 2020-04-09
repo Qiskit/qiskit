@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
-from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01
+from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01, FakeOurenseFaultyCX13
 from qiskit.extensions.standard import CnotGate
 
 
@@ -77,6 +77,42 @@ class TestFaultyCX01(TestFaultyBackendCase):
                            seed_transpiler=42)
 
         self.assertIdleCX01(result)
+        self.assertEqualCount(circuit, result)
+
+
+@ddt
+class TestFaultyCX13(TestFaultyBackendCase):
+    """Test preset passmanagers with FakeOurenseFaultyCX13
+    A fake 5 qubit backend, with a faulty CX(Q1, Q3) (and symmetric).
+         0 ↔ 1 (↔) 3 ↔ 4
+             ↕
+             2
+    """
+
+    def setUp(self) -> None:
+        self.backend = FakeOurenseFaultyCX13()
+
+    def assertIdleCX13(self, circuit):
+        """Asserts the CX(1, 3) (and symmetric) is not used in the circuit"""
+        physical_qubits = QuantumRegister(5, 'q')
+        cx_nodes = circuit_to_dag(circuit).op_nodes(CnotGate)
+        for node in cx_nodes:
+            if set(node.qargs) == {physical_qubits[1], physical_qubits[3]}:
+                raise AssertionError('Faulty CX(Q1, Q3) (or symmetric) is being used.')
+
+    @data(0, 1, 2, 3)
+    def test_level(self, level):
+        """Test level {level} Ourense backend with a faulty CX(Q1, Q3) """
+        circuit = QuantumCircuit(QuantumRegister(3, 'qr'))
+        circuit.h(range(3))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+        result = transpile(circuit,
+                           backend=self.backend,
+                           optimization_level=level,
+                           seed_transpiler=42)
+
+        self.assertIdleCX13(result)
         self.assertEqualCount(circuit, result)
 
 
