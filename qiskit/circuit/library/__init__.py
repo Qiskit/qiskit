@@ -29,7 +29,7 @@ Boolean Logic Circuits
    Permutation
    XOR
 
-Basis Change Circuit
+Basis Change Circuits
 ====================
 
 .. autosummary::
@@ -67,6 +67,21 @@ Comparators
 
    IntegerComparator
 
+Characterization and Validation Circuits
+========================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumVolume
+
+Quantum Complexity Advantage Circuits
+=====================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FourierChecking
 """
 
 
@@ -80,3 +95,5 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder
 )
+from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
