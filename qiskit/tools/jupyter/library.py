@@ -103,7 +103,9 @@ def details_widget(circuit: QuantumCircuit) -> wid.VBox:
     details = wid.VBox(children=[detail_label,
                                  circuit_data_table(circuit)],
                        layout=wid.Layout(width='30%',
-                                         height='auto'))
+                                         height='auto',
+                                         max_height='500px', 
+                                         overflow='hidden scroll'))
     return details
 
 
