@@ -42,16 +42,9 @@ upgrade:
     to perform the same task.
 features:
   - |
-    The circuit library :mod:`qiskit.circuit.library` has new circuit
-    definitions for arithmetic circuits:
-
-    * :class:`~qiskit.circuit.library.FunctionalPauliRotations`
-    * :class:`~qiskit.circuit.library.LinearPauliRotations`
-    * :class:`~qiskit.circuit.library.PolynomialPauliRotations`
-    * :class:`~qiskit.circuit.library.PiecewiseLinearPauliRotations`
-    * :class:`~qiskit.circuit.library.WeightedAdder`
-    * :class:`~qiskit.circuit.library.IntegerComparator`
-
+    Added a new circuit library module :mod:`qiskit.circuit.library`. This will
+    be a place for constructors of commonly used circuits that can be used as
+    building blocks for larger circuit or applications.
 deprecations:
   - |
     Passing in the data to the constructor for
