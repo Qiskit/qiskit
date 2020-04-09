@@ -425,11 +425,11 @@ def _create_faulty_qubits_map(backend):
             faulty_qubits_map = {}
             configuration = backend.configuration()
             full_coupling_map = configuration.coupling_map
-            functional_coupling_map = [edge for edge in full_coupling_map
+            functional_cm_list = [edge for edge in full_coupling_map
                                        if (set(edge).isdisjoint(faulty_qubits) and
                                            edge not in faulty_edges)]
 
-            connected_working_qubits = CouplingMap(functional_coupling_map).largest_connected_component()
+            connected_working_qubits = CouplingMap(functional_cm_list).largest_connected_component()
             dummy_qubit_counter = 0
             for qubit in range(configuration.n_qubits):
                 if qubit in connected_working_qubits:
@@ -500,8 +500,8 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
 
                 gates = []
                 for gate in backend_properties.gates:
-                    # remove gates using faulty edges or with faulty qubits (and remap the gates in terms of
-                    # faulty_qubits_map)
+                    # remove gates using faulty edges or with faulty qubits (and remap the
+                    # gates in terms of faulty_qubits_map)
                     if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
                             gate.qubits in faulty_edges:
                         continue
