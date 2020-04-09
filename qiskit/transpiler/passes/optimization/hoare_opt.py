@@ -36,6 +36,9 @@ class HoareOptimizer(TransformationPass):
         Args:
             size (int): size of gate cache, in number of gates
         """
+        if not HAS_Z3:
+            raise TranspilerError('z3-solver is required to use HoareOptimizer. '
+                                  'To install, run "pip install z3-solver".')
         super().__init__()
         self.solver = Solver()
         self.variables = dict()
@@ -332,9 +335,6 @@ class HoareOptimizer(TransformationPass):
         Raises:
             TranspilerError: if unable to import z3 solver
         """
-        if not HAS_Z3:
-            raise TranspilerError('z3-solver is required to use HoareOptimizer. '
-                                  'To install, run "pip install z3-solver".')
         self._initialize(dag)
         self._traverse_dag(dag)
         if self.size > 1:
