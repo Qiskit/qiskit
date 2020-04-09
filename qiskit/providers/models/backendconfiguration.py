@@ -418,8 +418,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         controlling multiqubit interactions. This channel is derived from other channels.
 
         Args:
-            channel: Deprecated.
             qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
+            channel: Deprecated.
 
         Raises:
             BackendConfigurationError: If the qubit is not a part of the system or if
@@ -431,8 +431,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         # TODO: Determine this from the hamiltonian.
         if channel is not None:
             warnings.warn('control(channel: int) is deprecated. Use '
-                      'control(qubits: List or Tuple [control_qubit, target_qubit]) instead.',
-                      DeprecationWarning)
+                          'control(qubits: List or Tuple [control_qubit, target_qubit]) instead.',
+                          DeprecationWarning)
             # TODO: channel = [qubits]
         try:
             if isinstance(qubits, list):
@@ -445,10 +445,17 @@ class PulseBackendConfiguration(BackendConfiguration):
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
         Return a list of indices for qubits which are operated on directly by the given channel.
+
+        Raises:
+            BackendConfigurationError: If ``channel`` is not a found.
+
+        Returns:
+            List of qubits operated on my the given ``channel``.
         """
         for qubit, chl in self.map_qubits_channels.items():
             if channel in chl:
                 return list(qubit)
+        raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
 
     def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
         """Return a list of channels which operate on the given qubit(s)."""

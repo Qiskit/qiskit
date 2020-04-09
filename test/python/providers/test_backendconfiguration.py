@@ -56,6 +56,7 @@ class TestBackendConfiguration(QiskitTestCase):
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
         self.assertEqual(self.config.control(qubits=[0, 1]), [ControlChannel(0)])
         with self.assertRaises(BackendConfigurationError):
+            # Check that an error is raised if key not found in self.map_qubits_channel
             self.config.control(qubits=(10, 1))
 
     def test_get_channel_qubits(self):
