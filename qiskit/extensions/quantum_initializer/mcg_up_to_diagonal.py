@@ -29,6 +29,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.quantum_initializer.uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -116,3 +117,11 @@ class MCGupDiag(Gate):
         q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
         q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
+
+    def validate_parameter(self, parameter):
+        """Multi controlled single-qubit unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
