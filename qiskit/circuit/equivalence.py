@@ -168,17 +168,6 @@ def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
 
     param_map = dict(zip(equiv_params, query_params))
-
-    symbolic_param_map, numeric_param_map = _partition_dict(
-        param_map,
-        lambda k, v: isinstance(v, ParameterExpression))
-
-    equiv = equiv_circuit.bind_parameters(numeric_param_map)
-    equiv._substitute_parameters(symbolic_param_map)
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
 
     return equiv
-
-
-def _partition_dict(dict_, predicate):
-    return ({k: v for k, v in dict_.items() if predicate(k, v)},
-            {k: v for k, v in dict_.items() if not predicate(k, v)})
