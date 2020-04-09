@@ -167,9 +167,11 @@ Supplementary Information
 
       <br>
 
+Quantum Circuit API
+===================
 
 Quantum Circuit Construction
-============================
+----------------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -181,7 +183,7 @@ Quantum Circuit Construction
    Clbit
 
 Gates and Instructions
-======================
+----------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -195,7 +197,7 @@ Gates and Instructions
    EquivalenceLibrary
 
 Parametric Quantum Circuits
-===========================
+---------------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -205,7 +207,7 @@ Parametric Quantum Circuits
     ParameterExpression
 
 Random Circuits
-===============
+---------------
 
 .. autosummary::
    :toctree: ../stubs/
