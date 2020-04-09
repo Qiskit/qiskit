@@ -40,7 +40,7 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
-    def __init__(self, phase: float,
+    def __init__(self, phase: complex,
                  channel: Optional[PulseChannel] = None,
                  name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
@@ -55,7 +55,7 @@ class ShiftPhase(Instruction):
             warnings.warn("Usage of ShiftPhase without specifying a channel is deprecated. For "
                           "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
                           "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
-        self._phase = float(phase)
+        self._phase = phase
         self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
