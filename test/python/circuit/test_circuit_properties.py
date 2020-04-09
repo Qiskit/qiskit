@@ -402,7 +402,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):
-        """Tet circuit count ops.
+        """Test circuit count ops.
         """
         q = QuantumRegister(6, 'q')
         qc = QuantumCircuit(q)
