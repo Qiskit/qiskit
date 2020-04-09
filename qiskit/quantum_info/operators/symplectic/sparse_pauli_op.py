@@ -162,7 +162,7 @@ class SparsePauliOp(BaseOperator):
         val = self.compose(self.adjoint()).simplify()
         # See if the result is an identity
         return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
-                and not (np.any(val.table.X) | np.any(val.table.Z)))
+                and not np.any(val.table.X) and not np.any(val.table.Z))
 
     def conjugate(self):
         """Return the conjugate of the operator."""
