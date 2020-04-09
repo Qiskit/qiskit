@@ -25,6 +25,7 @@ from qiskit.extensions.standard import CnotGate
 
 
 class TestFaultyBackendCase(QiskitTestCase):
+    """Base TestCase for testing transpilation if faulty backends."""
     def assertEqualCount(self, circuit1, circuit2):
         """Asserts circuit1 and circuit2 has the same result counts after execution in BasicAer"""
         backend = BasicAer.get_backend('qasm_simulator')

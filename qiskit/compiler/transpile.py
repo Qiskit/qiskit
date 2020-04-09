@@ -269,7 +269,11 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
                  'output_name': string,
                  'callback': callable,
                  'pass_manager_config': PassManagerConfig}
-            faulty_qubits_map (dict or None):
+        faulty_qubits_map (dict or None): Only used when backends report faulty qubits/gates. It
+                   is a map from working qubit in the backend to dumnmy qubits that are consecutive
+                   and connected.
+        backend (BaseBackend or None): The backend with remap the circuit if it has faulty
+                                       qubits/gates.
     Returns:
         The transpiled circuit
     Raises:
