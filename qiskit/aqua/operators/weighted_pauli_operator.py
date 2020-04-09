@@ -624,8 +624,8 @@ class WeightedPauliOperator(BaseOperator):
 
         Raises:
             AquaError: if Operator is empty
-            AquaError: Can not find quantum register with `q` as the name and do not provide
-                       quantum register explicitly
+            AquaError: if quantum register is not provided explicitly and
+                       cannot find quantum register with `q` as the name
             AquaError: The provided qr is not in the wave_function
         """
         if self.is_empty():
@@ -636,8 +636,8 @@ class WeightedPauliOperator(BaseOperator):
         if qr is None:
             qr = find_regs_by_name(wave_function, 'q')
             if qr is None:
-                raise AquaError("Either providing the quantum register (qr) explicitly"
-                                "or used `q` as the name in the input circuit.")
+                raise AquaError("Either provide the quantum register (qr) explicitly or use"
+                                " `q` as the name of the quantum register in the input circuit.")
         else:
             if not wave_function.has_register(qr):
                 raise AquaError("The provided QuantumRegister (qr) is not in the circuit.")
