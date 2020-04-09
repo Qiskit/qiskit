@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    :func:`qiskit.execute.execute` has a new kwarg ``schedule_circuit``. By
+    :func:`~qiskit.execute.execute` has a new kwarg ``schedule_circuit``. By
     setting ``schedule_circuit=True`` this enables scheduling of the circuit
     into a :class:`~qiskit.pulse.Schedule`. This allows users building
     :class:`qiskit.circuit.QuantumCircuit` objects to make use of custom

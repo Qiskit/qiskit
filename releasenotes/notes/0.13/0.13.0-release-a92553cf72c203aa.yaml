@@ -31,6 +31,11 @@ prelude: |
     including improved documentation for the :mod:`qiskit.circuit`,
     :mod:`qiskit.pulse` and :mod:`qiskit.quantum_info` modules.
 
+    Additionally, the naming of gate objects and
+    :class:`~qiskit.circuit.QuantumCircuit` methods have been updated to be
+    more consistent. This has resulted in several classes and methods being
+    deprecated as things move to a more consistent naming scheme.
+
     For full details on all the changes made in this release see the detailed
     release notes below.
 

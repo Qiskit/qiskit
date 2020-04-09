@@ -13,6 +13,12 @@ upgrade:
     * ``coupling_map``
     * ``backend_properties``
     * ``seed_transpiler``
+  - |
+    The function ``transpile_circuit`` in
+    :mod:`qiskit.transpiler` has been removed. To transpile a circuit with a
+    custom :class:`~qiskit.transpiler.PassManager` now you should use the
+    :meth:`~qiskit.transpiler.PassManager.run` method of the
+    :class:~qiskit.transpiler.PassManager` object.
 
 deprecations:
   - |
@@ -21,10 +27,3 @@ deprecations:
     Instead of setting it at the object level during creation it should now
     be set as a kwarg parameter on the :meth:`qiskit.transpiler.PassManager.run`
     method.
-  - |
-    The function ``transpile_circuit`` in
-    :mod:`qiskit.transpiler` is deprecated and will be removed in a future
-    release. To transpile a circuit with a custom
-    :class:`~qiskit.transpiler.PassManager` now you should use the
-    :meth:`~qiskit.transpiler.PassManager.run` method of the
-    :class:~qiskit.transpiler.PassManager` object.
