@@ -78,6 +78,48 @@ class FakeOpenPulse2Q(FakeBackend):
                           'r': 0.02,
                           'alpha0': -0.33,
                           'alpha1': -0.33}
+            },
+            channels={
+                'acquire0': {
+                    'operates': {'qubits': [0]},
+                    'purpose': 'acquire',
+                    'type': 'acquire'
+                },
+                'acquire1': {
+                    'operates': {'qubits': [1]},
+                    'purpose': 'acquire',
+                    'type': 'acquire'
+                },
+                'd0': {
+                    'operates': {'qubits': [0]},
+                    'purpose': 'drive',
+                    'type': 'drive'
+                },
+                'd1': {
+                    'operates': {'qubits': [1]},
+                    'purpose': 'drive',
+                    'type': 'drive'
+                },
+                'm0': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [0]}
+                },
+                'm1': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [1]}
+                },
+                'u0': {
+                    'operates': {'qubits': [0, 1]},
+                    'purpose': 'cross-resonance',
+                    'type': 'control'
+                },
+                'u1': {
+                    'operates': {'qubits': [1, 0]},
+                    'purpose': 'cross-resonance',
+                    'type': 'control'
+                }
             }
         )
 

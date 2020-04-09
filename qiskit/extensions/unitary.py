@@ -23,6 +23,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.standard import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -180,6 +181,14 @@ class UnitaryGate(Gate):
         self._qasm_definition = overall
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
+
+    def validate_parameter(self, parameter):
+        """Unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, numpy.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
 
 
 def unitary(self, obj, qubits, label=None):
