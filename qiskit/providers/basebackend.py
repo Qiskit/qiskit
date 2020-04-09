@@ -65,7 +65,7 @@ class BaseBackend(ABC):
     def faulty_qubits(self):
         """Return a list of faulty qubits.
         """
-        properties = self.properties() # pylint: disable=assignment-from-none
+        properties = self.properties()  # pylint: disable=assignment-from-none
         faulty = []
         if properties is None:
             return faulty
@@ -77,7 +77,7 @@ class BaseBackend(ABC):
     def faulty_gates(self):
         """Return a list of faulty gates.
         """
-        properties = self.properties() # pylint: disable=assignment-from-none
+        properties = self.properties()  # pylint: disable=assignment-from-none
         faulty = []
         if properties is None:
             return faulty
