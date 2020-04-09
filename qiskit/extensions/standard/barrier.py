@@ -19,7 +19,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.exceptions import CircuitError
 
 
 class Barrier(Instruction):
@@ -38,10 +37,6 @@ class Barrier(Instruction):
 
     def c_if(self, classical, val):
         raise QiskitError('Barriers are compiler directives and cannot be conditional.')
-
-    def validate_parameter(self, parameter):
-        """Barrier paramenter"""
-        raise CircuitError("Barrier has no parameters: {0} was provided".format(type(parameter)))
 
 
 def barrier(self, *qargs):
