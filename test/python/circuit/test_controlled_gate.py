@@ -740,6 +740,7 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
@@ -797,6 +798,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
             self.assertTrue(uqc.size() <= 20)
 
     def test_composite(self):
+        """Test composite gate count."""
         qreg = QuantumRegister(self.num_ctrl + self.num_target)
         qc = QuantumCircuit(qreg, name='composite')
         qc.append(self.grx.control(self.num_ctrl), qreg)
@@ -810,8 +812,11 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
+
 @ddt
 class TestControlledStandardGates(QiskitTestCase):
+    """Tests for control standard gates."""
+
     @combine(num_ctrl_qubits=[1, 2, 3],
              gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
     def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
@@ -850,8 +855,11 @@ class TestControlledStandardGates(QiskitTestCase):
                 self.assertTrue(matrix_equal(Operator(cgate).data,
                                              target_mat, ignore_phase=True))
 
+
 @ddt
 class TestDeprecatedGates(QiskitTestCase):
+    """Test controlled of deprecated gates."""
+
     import qiskit.extensions.standard.i as i
     import qiskit.extensions.standard.rx as rx
     import qiskit.extensions.standard.ry as ry
@@ -901,6 +909,8 @@ class TestDeprecatedGates(QiskitTestCase):
 
 @ddt
 class TestParameterCtrlState(QiskitTestCase):
+    """Test gate equality with ctrl_state parameter."""
+
     @data((RXGate(0.5), CRXGate(0.5)),
           (RYGate(0.5), CRYGate(0.5)),
           (RZGate(0.5), CRZGate(0.5)),
