@@ -24,6 +24,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.qobj.utils import MeasLevel
+from qiskit.qobj import QobjHeader
 
 
 class Result(SimpleNamespace):
@@ -44,14 +45,19 @@ class Result(SimpleNamespace):
     """
 
     def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, date=None, status=None, header=None, date=None,
-                 status=None, header=None, **kwargs):
+                 results, date=None, status=None, header=None, **kwargs):
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
+        if date is not None:
+            self.date = date
+        if status is not None:
+            self.status = status
+        if header is not None:
+            self.header = header
         self.__dict__.update(kwargs)
 
     def to_dict(self):
@@ -67,14 +73,18 @@ class Result(SimpleNamespace):
             if field not in ['backend_name', 'backend_version', 'qobj_id',
                              'job_id', 'success', 'results']:
                 out_dict[field] = getattr(self, field)
+            elif field == 'header':
+                out_dict[field] = self.header.to_dict()
         return out_dict
 
     @classmethod
     def from_dict(cls, data):
-        in_data = copy.copy()
+        in_data = copy.copy(data)
         in_data['results'] = [
             ExperimentResult.from_dict(x) for x in in_data.pop('results')]
-        cls(**in_data)
+        if 'header' in in_data:
+            in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
+        return cls(**in_data)
 
     def __getstate__(self):
         return self.to_dict()
@@ -83,9 +93,23 @@ class Result(SimpleNamespace):
         return self.from_dict(state)
 
     def __reduce__(self):
-        return (self.__class__, (self.backend_name, self.backend_version,
-                                 self.qobj_id, self.job_id, self.success,
-                                 self.results))
+        args = [self.backend_name, self.backend_version,
+                self.qobj_id, self.job_id, self.success,
+                self.results]
+        if hasattr(self, 'date'):
+            args.append(self.date)
+        else:
+            args.append(None)
+        if hasattr(self, 'status'):
+            args.append(self.status)
+        else:
+            args.append(None)
+        if hasattr(self, 'header'):
+            args.append(self.header)
+        else:
+            args.append(None)
+        state = self.to_dict()
+        return (self.__class__, tuple(args), state)
 
     def data(self, experiment=None):
         """Get the raw data for an experiment.

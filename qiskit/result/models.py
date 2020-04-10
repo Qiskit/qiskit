@@ -18,6 +18,7 @@ import copy
 from types import SimpleNamespace
 
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
+from qiskit.qobj import QobjExperimentHeader
 from qiskit.validation.exceptions import ModelValidationError
 
 
@@ -91,7 +92,8 @@ class ExperimentResult(SimpleNamespace):
             status (str): The status of the experiment
             seed (int): The seed used for simulation (if run on a simulator)
             meas_return (str): The type of measurement returned
-            header (dict): A free form dictionary header for the experiment
+            header (qiskit.qobj.QobjExperimentHeader): A free form dictionary
+                header for the experiment
             kwargs: Arbitrary extra fields
 
         Raises:
@@ -101,6 +103,8 @@ class ExperimentResult(SimpleNamespace):
         self.success = success
         self.data = data
         self.meas_level = meas_level
+        if header is not None:
+            self.header = header
         if status is not None:
             self.status = status
         if seed is not None:
@@ -121,12 +125,19 @@ class ExperimentResult(SimpleNamespace):
         for field in self.__dict__.keys():
             if field not in ['shots', 'success', 'data', 'meas_level']:
                 out_dict[field] = getattr(self, field)
+            elif field == 'header':
+                out_dict['header'] = self.header.to_dict()
+        print(out_dict)
         return out_dict
 
     @classmethod
     def from_dict(cls, data):
-        in_data = copy.copy()
+        in_data = copy.copy(data)
         in_data['data'] = ExperimentResultData.from_dict(in_data.pop('data'))
+        if 'header' in in_data:
+#            print(in_data['header'])
+            in_data['header'] = QobjExperimentHeader.from_dict(
+                in_data.pop('header'))
         return cls(**in_data)
 
     def __getstate__(self):
@@ -136,4 +147,23 @@ class ExperimentResult(SimpleNamespace):
         return self.from_dict(state)
 
     def __reduce__(self):
-        return (self.__class__, (self.shots, self.success, self.data))
+        args = [self.shots, self.success, self.data, self.meas_level]
+        if hasattr(self, 'status'):
+            args.append(self.status)
+        else:
+            args.append(None)
+        if hasattr(self, 'seed'):
+            args.append(self.seed)
+        else:
+            args.append(None)
+        if hasattr(self, 'meas_return'):
+            args.append(self.meas_return)
+        else:
+            args.append(None)
+        if hasattr(self, 'header'):
+            args.append(self.header)
+        else:
+            args.append(None)
+
+        state = self.to_dict()
+        return (self.__class__, tuple(args), state)
