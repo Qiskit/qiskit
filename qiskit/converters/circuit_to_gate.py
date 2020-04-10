@@ -48,8 +48,9 @@ def circuit_to_gate(circuit, parameter_map=None):
 
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
-            raise QiskitError('One or more instructions in this instruction '
-                              'cannot be converted to a gate')
+            raise QiskitError(('One or more instructions cannot be converted to'
+                               ' a gate. "{}" is not a gate instruction').format(
+                                   inst.name))
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
@@ -77,8 +78,12 @@ def circuit_to_gate(circuit, parameter_map=None):
         reg_index = ordered_regs.index(bit.register)
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
-    target = circuit.copy()
-    target._substitute_parameters(parameter_dict)
+    target = circuit.assign_parameters(parameter_dict, inplace=False)
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+    # pylint: enable=cyclic-import
+    sel.add_equivalence(gate, target)
 
     definition = target.data
 

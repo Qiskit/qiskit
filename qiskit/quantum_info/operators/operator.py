@@ -120,7 +120,7 @@ class Operator(BaseOperator):
         if not super().__eq__(other):
             return False
         return np.allclose(
-            self.data, other.data, rtol=self._rtol, atol=self._atol)
+            self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
@@ -138,8 +138,9 @@ class Operator(BaseOperator):
             Operator: The N-qubit operator.
 
         Raises:
-            QiskitError: if the label contains invalid characters, or the length
-            of the label is larger than an explicitly specified num_qubits.
+            QiskitError: if the label contains invalid characters, or the
+                         length of the label is larger than an explicitly
+                         specified num_qubits.
 
         Additional Information:
             The labels correspond to the single-qubit matrices:
@@ -186,9 +187,9 @@ class Operator(BaseOperator):
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
     def to_operator(self):
@@ -297,7 +298,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         return super().dot(other, qargs=qargs)
 
@@ -312,7 +313,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-            are not equal, or the power is not a positive integer.
+                         are not equal, or the power is not a positive integer.
         """
         if not isinstance(n, int):
             raise QiskitError("Can only take integer powers of Operator.")
@@ -378,7 +379,7 @@ class Operator(BaseOperator):
 
         Raises:
             QiskitError: if other is not an operator, or has incompatible
-            dimensions.
+                         dimensions.
         """
         # pylint: disable=import-outside-toplevel, cyclic-import
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
@@ -433,9 +434,9 @@ class Operator(BaseOperator):
         if self.dim != other.dim:
             return False
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 

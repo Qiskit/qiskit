@@ -26,30 +26,44 @@ Extracting the greatest performance from quantum hardware requires real-time pul
 instructions. Pulse answers that need: it enables the quantum physicist *user* to specify the
 exact time dynamics of an experiment. It is especially powerful for error mitigation techniques.
 
-The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-commands`) scheduled in
+The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-insts`) scheduled in
 parallel over multiple virtual hardware or simulator resources (see: :ref:`pulse-channels`). The
 system also allows the user to recover the time dynamics of the measured output.
 
 This is sufficient to allow the quantum physicist to explore and correct for noise in a quantum
 system.
 
-.. _pulse-commands:
+.. _pulse-insts:
 
-Commands (:mod:`~qiskit.pulse.commands`)
-========================================
+Instructions (:mod:`~qiskit.pulse.instructions`)
+================================================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   SamplePulse
+   ~qiskit.pulse.instructions
+
+   Acquire
    Delay
-   FrameChange
+   Play
+   SetFrequency
+   ShiftPhase
+   Snapshot
+
+Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
+========================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib
+
+   ~qiskit.pulse.pulse_lib.discrete
+   SamplePulse
+   ConstantPulse
+   Drag
    Gaussian
    GaussianSquare
-   Drag
-   ConstantPulse
-   Acquire
-   Snapshot
 
 .. _pulse-channels:
 
@@ -66,6 +80,8 @@ Channels are characterized by their type and their index. See each channel type 
 .. autosummary::
    :toctree: ../stubs/
 
+   ~qiskit.pulse.channels
+
    DriveChannel
    MeasureChannel
    AcquireChannel
@@ -77,20 +93,12 @@ Schedules
 =========
 
 Schedules are Pulse programs. They describe instruction sequences for the control hardware.
-An :class:`~qiskit.pulse.Instruction` is a :py:class:`~qiskit.pulse.commands.Command` which has
-been assigned to its :class:`~qiskit.pulse.channels.Channel` (s).
 
 .. autosummary::
    :toctree: ../stubs/
 
    Schedule
    Instruction
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qiskit.pulse.commands
-   qiskit.pulse.channels
 
 Configuration
 =============
@@ -112,14 +120,6 @@ These utilities return modified :class:`~qiskit.pulse.Schedule` s.
    ~reschedule.add_implicit_acquires
    ~reschedule.pad
 
-Pulse Library
-=============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.pulse.pulse_lib.discrete
-
 Exceptions
 ==========
 
@@ -132,16 +132,12 @@ Exceptions
 
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
-from .cmd_def import CmdDef
-from .commands import (Acquire, AcquireInstruction, FrameChange,
-                       PersistentValue, SamplePulse, Kernel,
-                       Discriminator, ParametricPulse,
-                       ParametricInstruction, Gaussian,
-                       GaussianSquare, Drag, ConstantPulse, functional_pulse)
-from .configuration import LoConfig, LoRange
+from .commands import AcquireInstruction, FrameChange, PersistentValue
+from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-
-from .instructions import Instruction, Delay, ShiftPhase, Snapshot, SetFrequency
+from .instructions import Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot, SetFrequency
 from .interfaces import ScheduleComponent
+from .pulse_lib import SamplePulse, Gaussian, GaussianSquare, Drag, ConstantPulse, ParametricPulse
+from .pulse_lib.samplers.decorators import functional_pulse
 from .schedule import Schedule

@@ -74,7 +74,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if input data cannot be initialized as a
-            a list of Kraus matrices.
+                         a list of Kraus matrices.
 
         Additional Information:
             If the input or output dimensions are None, they will be
@@ -158,13 +158,13 @@ class Stinespring(QuantumChannel):
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if atol is None:
-            atol = self._atol
+            atol = self.atol
         if rtol is None:
-            rtol = self._rtol
+            rtol = self.rtol
         if self._data[1] is not None:
             return False
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
-        return is_identity_matrix(check, rtol=self._rtol, atol=self._atol)
+        return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
     def conjugate(self):
         """Return the conjugate of the QuantumChannel."""
@@ -206,7 +206,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Stinespring or has
-            incompatible dimensions.
+                         incompatible dimensions.
 
         Additional Information:
             Composition (``@``) is defined as `left` matrix multiplication for
@@ -238,7 +238,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a Stinespring or has
-            incompatible dimensions.
+                         incompatible dimensions.
         """
         return super().dot(other, qargs=qargs)
 
@@ -254,7 +254,8 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not an integer.
+                         QuantumChannel are not equal, or the power is not
+                         an integer.
         """
         if n > 0:
             return super().power(n)
@@ -306,7 +307,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if other cannot be converted to a channel or
-            has incompatible dimensions.
+                         has incompatible dimensions.
         """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
@@ -359,7 +360,7 @@ class Stinespring(QuantumChannel):
 
         Raises:
             QiskitError: if the quantum channel dimension does not match the
-            specified quantum state subsystem dimensions.
+                         specified quantum state subsystem dimensions.
         """
         return SuperOp(self)._evolve(state, qargs)
 

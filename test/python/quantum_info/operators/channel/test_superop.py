@@ -34,15 +34,18 @@ class TestSuperOp(ChannelTestCase):
         chan = SuperOp(self.sopI)
         assert_allclose(chan.data, self.sopI)
         self.assertEqual(chan.dim, (2, 2))
+        self.assertEqual(chan.num_qubits, 1)
 
         mat = np.zeros((4, 16))
         chan = SuperOp(mat)
         assert_allclose(chan.data, mat)
         self.assertEqual(chan.dim, (4, 2))
+        self.assertIsNone(chan.num_qubits)
 
         chan = SuperOp(mat.T)
         assert_allclose(chan.data, mat.T)
         self.assertEqual(chan.dim, (2, 4))
+        self.assertIsNone(chan.num_qubits)
 
         # Wrong input or output dims should raise exception
         self.assertRaises(

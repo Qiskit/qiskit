@@ -15,11 +15,13 @@
 """Assemble function for converting a list of circuits into a qobj."""
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
+import hashlib
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, Delay
-from qiskit.pulse.commands import (Command, PulseInstruction, Acquire, AcquireInstruction,
-                                   DelayInstruction, SamplePulse, ParametricInstruction)
+from qiskit.pulse import Schedule, Acquire, Delay, Play
+from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
+from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
+                                   DelayInstruction, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -133,8 +135,8 @@ def _assemble_experiments(
 
     # Top level Qobj configuration
     experiment_config = {
-        'pulse_library': [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
-                          for pulse in user_pulselib.values()],
+        'pulse_library': [PulseLibraryItem(name=name, samples=samples)
+                          for name, samples in user_pulselib.items()],
         'memory_slots': max([exp.header.memory_slots for exp in experiments])
     }
 
@@ -170,26 +172,28 @@ def _assemble_instructions(
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
 
-        if isinstance(instruction, ParametricInstruction):
-            pulse_shape = ParametricPulseShapes(type(instruction.command)).name
+        if isinstance(instruction, ParametricInstruction):  # deprecated
+            instruction = Play(instruction.command, instruction.channels[0], name=instruction.name)
+
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, ParametricPulse):
+            pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
-                # Convert to SamplePulse if the backend does not support it
-                instruction = PulseInstruction(instruction.command.get_sample_pulse(),
-                                               instruction.channels[0],
-                                               name=instruction.name)
+                instruction = Play(instruction.pulse.get_sample_pulse(),
+                                   instruction.channel,
+                                   name=instruction.name)
 
-        if isinstance(instruction, PulseInstruction):
-            name = instruction.command.name
-            if name in user_pulselib and instruction.command != user_pulselib[name]:
-                name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
-                instruction = PulseInstruction(
-                    command=SamplePulse(name=name, samples=instruction.command.samples),
-                    name=instruction.name,
-                    channel=instruction.channels[0])
-            # add samples to pulse library
-            user_pulselib[name] = instruction.command
+        if isinstance(instruction, PulseInstruction):  # deprecated
+            instruction = Play(SamplePulse(name=name, samples=instruction.command.samples),
+                               instruction.channels[0], name=name)
 
-        if isinstance(instruction, AcquireInstruction):
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, SamplePulse):
+            name = hashlib.sha256(instruction.pulse.samples).hexdigest()
+            instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
+                               channel=instruction.channel,
+                               name=name)
+            user_pulselib[name] = instruction.pulse.samples
+
+        if isinstance(instruction, (AcquireInstruction, Acquire)):
             max_memory_slot = max(max_memory_slot,
                                   *[slot.index for slot in instruction.mem_slots])
             # Acquires have a single AcquireChannel per inst, but we have to bundle them

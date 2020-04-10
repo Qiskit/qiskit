@@ -102,12 +102,14 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
+        self.assertEqual(op.num_qubits, 3)
 
         op = Operator(mat, input_dims=8, output_dims=8)
         assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
+        self.assertEqual(op.num_qubits, 3)
 
     def test_init_array(self):
         """Test initialization from array."""
@@ -117,6 +119,7 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.dim, (3, 3))
         self.assertEqual(op.input_dims(), (3,))
         self.assertEqual(op.output_dims(), (3,))
+        self.assertIsNone(op.num_qubits)
 
         mat = self.rand_matrix(2 * 3 * 4, 4 * 5)
         op = Operator(mat, input_dims=[4, 5], output_dims=[2, 3, 4])
@@ -124,6 +127,7 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.dim, (4 * 5, 2 * 3 * 4))
         self.assertEqual(op.input_dims(), (4, 5))
         self.assertEqual(op.output_dims(), (2, 3, 4))
+        self.assertIsNone(op.num_qubits)
 
     def test_init_array_except(self):
         """Test initialization exception from array."""

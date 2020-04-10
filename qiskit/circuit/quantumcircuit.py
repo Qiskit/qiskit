@@ -28,12 +28,22 @@ from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
+from .parameter import Parameter
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
 
 
 class QuantumCircuit:
@@ -624,8 +634,20 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def qasm(self):
-        """Return OpenQASM string."""
+    def qasm(self, formatted=False, filename=None):
+        """Return OpenQASM string.
+
+        Parameters:
+            formatted (bool): Return formatted Qasm string.
+            filename (str): Save Qasm to file with name 'filename'.
+
+        Returns:
+            str: If formatted=False.
+
+        Raises:
+            ImportError: If pygments is not installed and ``formatted`` is
+                ``True``.
+        """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -650,12 +672,29 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
-        return string_temp
+
+        if filename:
+            with open(filename, 'w+') as file:
+                file.write(string_temp)
+            file.close()
+
+        if formatted:
+            if not HAS_PYGMENTS:
+                raise ImportError("To use the formatted output pygments must "
+                                  'be installed. To install run "pip install '
+                                  'pygments".')
+            code = pygments.highlight(string_temp,
+                                      OpenQASMLexer(),
+                                      Terminal256Formatter(style=QasmTerminalStyle))
+            print(code)
+            return None
+        else:
+            return string_temp
 
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_state=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -725,6 +764,9 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+                Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -866,7 +908,8 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_state=initial_state)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -960,20 +1003,25 @@ class QuantumCircuit:
         return sum(reg.size for reg in self.qregs + self.cregs)
 
     @property
-    def n_qubits(self):
-        """
-        Return number of qubits.
-        """
+    def num_qubits(self):
+        """Return number of qubits."""
         qubits = 0
         for reg in self.qregs:
             qubits += reg.size
         return qubits
 
     @property
-    def n_clbits(self):
-        """
-        Return number of classical bits.
-        """
+    def n_qubits(self):
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return number of classical bits."""
         return sum(len(reg) for reg in self.cregs)
 
     def count_ops(self):
@@ -984,11 +1032,19 @@ class QuantumCircuit:
         """
         count_ops = {}
         for instr, _, _ in self._data:
-            if instr.name in count_ops.keys():
-                count_ops[instr.name] += 1
-            else:
-                count_ops[instr.name] = 1
+            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
+
+    def num_nonlocal_gates(self):
+        """Return number of non-local gates (i.e. involving 2+ qubits).
+
+        Conditional nonlocal gates are also included.
+        """
+        multi_qubit_gates = 0
+        for instr, _, _ in self._data:
+            if instr.num_qubits > 1:
+                multi_qubit_gates += 1
+        return multi_qubit_gates
 
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -1100,7 +1156,7 @@ class QuantumCircuit:
         cpy = copy.copy(self)
 
         instr_instances = {id(instr): instr
-                           for instr, _, __ in self._data}
+                           for instr, _, __ in self.data}
 
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
@@ -1113,7 +1169,7 @@ class QuantumCircuit:
         }
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
-                     for inst, qargs, cargs in self._data]
+                     for inst, qargs, cargs in self.data]
 
         if name:
             cpy.name = name
@@ -1177,7 +1233,7 @@ class QuantumCircuit:
         else:
             circ = self.copy()
 
-        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        new_creg = circ._create_creg(len(circ.qubits), 'meas')
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(circ.qubits, new_creg)
@@ -1265,31 +1321,117 @@ class QuantumCircuit:
         """Convenience function to get the parameters defined in the parameter table."""
         return set(self._parameter_table.keys())
 
+    @property
+    def num_parameters(self):
+        """Convenience function to get the number of parameter objects in the circuit."""
+        return len(self.parameters)
+
+    def assign_parameters(self, param_dict, inplace=False):
+        """Assign parameters to new parameters or values.
+
+        The keys of the parameter dictionary must be Parameter instances in the current circuit. The
+        values of the dictionary can either be numeric values or new parameter objects.
+        The values can be assigned to the current circuit object or to a copy of it.
+
+        Args:
+            param_dict (dict): A dictionary specifying the mapping from ``current_parameter``
+                to ``new_parameter``, where ``new_parameter`` can be a new parameter object
+                or a numeric value.
+            inplace (bool): If False, a copy of the circuit with the bound parameters is
+                returned. If True the circuit instance itself is modified.
+
+        Raises:
+            CircuitError: If param_dict contains parameters not present in the circuit
+
+        Returns:
+            optional(QuantumCircuit): A copy of the circuit with bound parameters, if
+                ``inplace`` is True, otherwise None.
+
+        Examples:
+
+            >>> from qiskit.circuit import QuantumCircuit, Parameter
+            >>> circuit = QuantumCircuit(2)
+            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            >>> circuit.ry(params[0], 0)
+            >>> circuit.crx(params[1], 0, 1)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(A) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(C) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+            >>> bound_circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(2) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(1) ├
+                             └───────┘
+            >>> bound_circuit.parameters  # this one has no free parameters anymore
+            set()
+            >>> circuit.parameters  # the original one is still parameterized
+            {Parameter(A), Parameter(C)}
+        """
+        # replace in self or in a copy depending on the value of in_place
+        bound_circuit = self if inplace else self.copy()
+
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+        unrolled_param_dict = self._unroll_param_dict(param_dict)
+
+        # check that only existing parameters are in the parameter dictionary
+        if unrolled_param_dict.keys() > self.parameters:
+            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in param_dict.keys() - self.parameters]))
+
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+        for parameter, value in unrolled_param_dict.items():
+            if isinstance(value, Parameter):
+                bound_circuit._substitute_parameter(parameter, value)
+            else:
+                bound_circuit._bind_parameter(parameter, value)
+                del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+
+        return None if inplace else bound_circuit
+
     def bind_parameters(self, value_dict):
-        """Assign parameters to values yielding a new circuit.
+        """Assign numeric parameters to values yielding a new circuit.
+
+        To assign new Parameter objects or bind the values in-place, without yielding a new
+        circuit, use the assign_parameters method.
 
         Args:
             value_dict (dict): {parameter: value, ...}
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
+            TypeError: If value_dict contains a ParameterExpression in the values.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        new_circuit = self.copy()
+        bound_circuit = self.copy()
+
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
+        # check that only existing parameters are in the parameter dictionary
         if unrolled_value_dict.keys() > self.parameters:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():
-            new_circuit._bind_parameter(parameter, value)
-        # clear evaluated expressions
-        for parameter in unrolled_value_dict:
-            del new_circuit._parameter_table[parameter]
-        return new_circuit
+            bound_circuit._bind_parameter(parameter, value)
+            del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+
+        return bound_circuit
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
@@ -1314,6 +1456,14 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
 
+    def _substitute_parameter(self, old_parameter, new_parameter):
+        """Substitute an existing parameter in all circuit instructions and the parameter table."""
+        for instr, param_index in self._parameter_table[old_parameter]:
+            new_param = instr.params[param_index].subs({old_parameter: new_parameter})
+            instr.params[param_index] = new_param
+            self._rebind_definition(instr, old_parameter, new_parameter)
+        self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
             for op, _, _ in instruction._definition:
@@ -1324,18 +1474,6 @@ class QuantumCircuit:
                         else:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
-
-    def _substitute_parameters(self, parameter_map):
-        """For every {existing_parameter: replacement_parameter} pair in
-        parameter_map, substitute replacement for existing in all
-        circuit instructions and the parameter table.
-        """
-        for old_parameter, new_parameter in parameter_map.items():
-            for (instr, param_index) in self._parameter_table[old_parameter]:
-                new_param = instr.params[param_index].subs({old_parameter: new_parameter})
-                instr.params[param_index] = new_param
-                self._rebind_definition(instr, old_parameter, new_parameter)
-            self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 
 def _circuit_from_qasm(qasm):

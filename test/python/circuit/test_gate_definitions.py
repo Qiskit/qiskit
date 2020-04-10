@@ -15,10 +15,24 @@
 
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
-from qiskit import QuantumCircuit, BasicAer, execute
+from ddt import ddt, data
+
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.circuit import ParameterVector
+
+
+from qiskit.extensions.standard import (
+    HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
+    CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
+    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    ZGate, CZGate, RYYGate
+)
+
+from qiskit.extensions.standard.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+
+from .gate_utils import _get_free_params
 
 
 class TestGateDefinitions(QiskitTestCase):
@@ -97,16 +111,48 @@ class TestGateDefinitions(QiskitTestCase):
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
-    def test_ryy_matrix_representation(self):
-        """Test the matrix representation of the RYY gate.
-        """
-        from qiskit.extensions.standard.ryy import RYYGate
-        theta = 0.991283
-        expected = RYYGate(theta).to_matrix()
 
-        circuit = QuantumCircuit(2)
-        circuit.ryy(theta, 0, 1)
-        backend = BasicAer.get_backend('unitary_simulator')
-        simulated = execute(circuit, backend).result().get_unitary()
+@ddt
+class TestStandardEquivalenceLibrary(QiskitTestCase):
+    """Standard Extension Test."""
 
-        self.assertTrue(matrix_equal(expected, simulated))
+    @data(
+        HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
+        CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
+        U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+        ZGate, CZGate, RYYGate
+    )
+    def test_definition_parameters(self, gate_class):
+        """Verify decompositions from standard equivalence library match definitions."""
+        n_params = len(_get_free_params(gate_class))
+        param_vector = ParameterVector('th', n_params)
+        float_vector = [0.1 * i for i in range(n_params)]
+
+        param_gate = gate_class(*param_vector)
+        float_gate = gate_class(*float_vector)
+
+        param_entry = std_eqlib.get_entry(param_gate)
+        float_entry = std_eqlib.get_entry(float_gate)
+
+        if not param_gate.definition:
+            self.assertEqual(len(param_entry), 0)
+            self.assertEqual(len(float_entry), 0)
+            return
+
+        if gate_class is CXGate:
+            # CXGate currently has a definition in terms of CXGate.
+            self.assertEqual(len(param_entry), 0)
+            self.assertEqual(len(float_entry), 0)
+            return
+
+        self.assertEqual(len(param_entry), 1)
+        self.assertEqual(len(float_entry), 1)
+
+        param_qc = QuantumCircuit(param_gate.num_qubits)
+        float_qc = QuantumCircuit(float_gate.num_qubits)
+
+        param_qc.append(param_gate, param_qc.qregs[0])
+        float_qc.append(float_gate, float_qc.qregs[0])
+
+        self.assertEqual(param_entry[0], param_qc.decompose())
+        self.assertEqual(float_entry[0], float_qc.decompose())

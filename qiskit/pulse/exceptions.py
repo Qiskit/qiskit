@@ -12,9 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors raised by pulse module.
-"""
+"""Exception for errors raised by the pulse module."""
 from qiskit.exceptions import QiskitError
 
 

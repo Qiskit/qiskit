@@ -45,9 +45,12 @@ Standard Extensions
    RYGate
    RZGate
    RZZGate
+   RZXGate
    SGate
    SdgGate
    SwapGate
+   iSwapGate
+   DCXGate
    TdgGate
    U1Gate
    U2Gate

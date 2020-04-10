@@ -19,8 +19,9 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels, instructions
+from qiskit.pulse import commands, channels, instructions, pulse_lib
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -119,7 +120,7 @@ class InstructionToQobjConverter:
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction):
+    def convert_acquire_deprecated(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -160,6 +161,52 @@ class InstructionToQobjConverter:
                         QobjMeasurementOption(
                             name=instruction.command.kernel.name,
                             params=instruction.command.kernel.params)
+                    ]
+                })
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.Acquire)
+    def convert_acquire(self, shift, instruction):
+        """Return converted `Acquire`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Acquire): acquire instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        meas_level = self._run_config.get('meas_level', 2)
+
+        command_dict = {
+            'name': 'acquire',
+            't0': shift + instruction.start_time,
+            'duration': instruction.duration,
+            'qubits': [q.index for q in instruction.acquires],
+            'memory_slot': [m.index for m in instruction.mem_slots]
+        }
+        if meas_level == MeasLevel.CLASSIFIED:
+            # setup discriminators
+            if instruction.discriminator:
+                command_dict.update({
+                    'discriminators': [
+                        QobjMeasurementOption(
+                            name=instruction.discriminator.name,
+                            params=instruction.discriminator.params)
+                    ]
+                })
+            # setup register_slots
+            if instruction.reg_slots:
+                command_dict.update({
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                })
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+            # setup kernels
+            if instruction.kernel:
+                command_dict.update({
+                    'kernels': [
+                        QobjMeasurementOption(
+                            name=instruction.kernel.name,
+                            params=instruction.kernel.params)
                     ]
                 })
         return self._qobj_model(**command_dict)
@@ -300,6 +347,33 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Play)
+    def convert_play(self, shift, instruction):
+        """Return the converted `Play`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (Play): An instance of Play.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        if isinstance(instruction.pulse, pulse_lib.ParametricPulse):
+            command_dict = {
+                'name': 'parametric_pulse',
+                'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name,
+                'parameters': instruction.pulse.parameters
+            }
+        else:
+            command_dict = {
+                'name': instruction.name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name
+            }
+
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
@@ -327,24 +401,19 @@ class QobjToInstructionConverter:
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, pulse_library, buffer=0, **run_config):
+    def __init__(self, pulse_library, **run_config):
         """Create new converter.
 
         Args:
              pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
-             buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        if buffer:
-            warnings.warn("Buffers are no longer supported. Please use an explicit Delay.")
         self._run_config = run_config
-
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
 
     def __call__(self, instruction):
-
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
@@ -375,7 +444,7 @@ class QobjToInstructionConverter:
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
-        """Return converted `AcquireInstruction`.
+        """Return converted `Acquire`.
 
         Args:
             instruction (PulseQobjInstruction): acquire qobj
@@ -404,8 +473,7 @@ class QobjToInstructionConverter:
                           "to first discriminator entry.")
         discriminator = discriminators[0]
         if discriminator:
-            discriminator = commands.Discriminator(name=discriminators[0].name,
-                                                   params=discriminators[0].params)
+            discriminator = Discriminator(name=discriminators[0].name, **discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
@@ -416,13 +484,14 @@ class QobjToInstructionConverter:
                           "kernel entry.")
         kernel = kernels[0]
         if kernel:
-            kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
+            kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
-        cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
 
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
-            schedule |= commands.AcquireInstruction(cmd, acquire_channel, mem_slot, reg_slot) << t0
+            schedule |= instructions.Acquire(duration, acquire_channel, mem_slot=mem_slot,
+                                             reg_slot=reg_slot, kernel=kernel,
+                                             discriminator=discriminator) << t0
 
         return schedule
 
@@ -508,11 +577,11 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = commands.SamplePulse(pulse.samples, pulse.name)
+        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
-            """Return converted `PulseInstruction`.
+            """Return converted `Play`.
 
             Args:
                 instruction (PulseQobjInstruction): pulse qobj
@@ -521,7 +590,7 @@ class QobjToInstructionConverter:
             """
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
-            return pulse(channel) << t0
+            return instructions.Play(pulse, channel) << t0
 
     @bind_name('parametric_pulse')
     def convert_parametric(self, instruction):
@@ -534,8 +603,8 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        command = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
-        return command(channel) << t0
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+        return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):

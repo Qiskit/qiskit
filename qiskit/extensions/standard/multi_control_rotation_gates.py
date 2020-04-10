@@ -19,6 +19,7 @@ import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
+from qiskit.extensions.standard.u3 import _generate_gray_code
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +34,6 @@ def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
         circuit.u3(theta / 2, phi, 0, target)
     else:
         circuit.cu3(theta, phi, lam, control, target)
-
-
-def _generate_gray_code(num_bits):
-    if num_bits <= 0:
-        raise QiskitError("Must have at least 1 control in a controlled gate")
-    result = [0]
-    for i in range(num_bits):
-        result += [x + 2**i for x in reversed(result)]
-    return [format(x, "0%sb" % num_bits) for x in result]
 
 
 def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
