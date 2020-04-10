@@ -180,7 +180,7 @@ class FakeBackendBuilder:
             ]
 
             variables.append(("jq{q1}q{q2}".format(q1=qubit1, q2=qubit2), 0))
-        for i, (qubit1, qubit2) in enumerate(list(itertools.combinations(range(self.n_qubits), 2))):
+        for i, (qubit1, qubit2) in enumerate(self.cmap):
             h_str.append("omegad{0}*X{1}||U{2}".format(qubit1, qubit2, i))
         for i in range(self.n_qubits):
             variables += [
@@ -198,7 +198,7 @@ class FakeBackendBuilder:
         qubit_lo_range = [[self.qubit_frequency - .5, self.qubit_frequency + .5]
                           for _ in range(self.n_qubits)]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(self.n_qubits)]
+        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i, _ in enumerate(self.cmap)]
 
         return PulseBackendConfiguration(
             backend_name=self.name,
