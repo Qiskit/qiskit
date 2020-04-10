@@ -486,9 +486,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
-        gates = [GateConfig.from_dict(x) for x in data.pop('gates')]
-        data['gates'] = gates
-        return cls(**data)
+        in_data = copy.copy(data)
+        gates = [GateConfig.from_dict(x) for x in in_data.pop('gates')]
+        in_data['gates'] = gates
+        input_uchannels = in_data.pop('u_channel_lo')
+        u_channels = [
+           UchannelLO.from_dict(x) for x in input_uchannels]
+        in_data['u_channel_lo'] = u_channels
+        return cls(**in_data)
 
     def to_dict(self):
         """Return a dictionary format representation of the GateConfig.
@@ -499,7 +504,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         out_dict = super().to_dict()
         out_dict.update({
             'n_uchannels': self.n_uchannels,
-            'u_channel_lo': self.u_channel_lo,
+            'u_channel_lo': [x.to_dict() for x in self.u_channel_lo],
             'meas_levels': self.meas_levels,
             'qubit_lo_range': self.qubit_lo_range,
             'meas_lo_range': self.meas_lo_range,

@@ -67,3 +67,8 @@ class TestFakeBackends(QiskitTestCase):
             self.assertIsInstance(backend.properties().to_dict(), dict)
         else:
             self.assertTrue(backend.configuration().simulator)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_to_dict_configuration(self, backend):
+        configuration = backend.configuration()
+        self.assertIsInstance(configuration.to_dict(), dict)
