@@ -74,6 +74,17 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+
+
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MCMT
+   MCMTVChain
+
 """
 
 
@@ -88,3 +99,7 @@ from .arithmetic import (
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
+from .generalized_gates import (
+    MCMT,
+    MCMTVChain
+)

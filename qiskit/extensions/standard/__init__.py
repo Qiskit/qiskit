@@ -17,7 +17,6 @@
 from .barrier import Barrier
 from .h import HGate, CHGate
 from .i import IGate
-from .mcmt import MCMTGate
 from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate

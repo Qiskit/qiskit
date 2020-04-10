@@ -22,10 +22,13 @@ from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import Permutation, XOR, InnerProduct
+from qiskit.circuit.library import Permutation, XOR, InnerProduct, MCMT, MCMTVChain
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
+from qiskit.exceptions import QiskitError
+from qiskit.extensions.standard import CZGate, CHGate, CXGate, XGate, ZGate
+from qiskit.quantum_info.states import state_fidelity
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
@@ -504,3 +507,130 @@ class TestWeightedAdder(QiskitTestCase):
             adder.num_state_qubits = 4
             adder.weights = [2, 0, 1, 1]
             self.assertSummationIsCorrect(adder)
+
+
+@ddt
+class TestMCMT(QiskitTestCase):
+    """Test the multi-controlled multi-target circuit."""
+
+    @data(MCMT, MCMTVChain)
+    def test_mcmt_as_normal_control(self, mcmt_class):
+        """Test that the MCMT can act as normal control gate."""
+        qc = QuantumCircuit(2)
+        mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
+        qc.append(mcmt.to_gate(), [0, 1], [])
+
+        ref = QuantumCircuit(2)
+        ref.ch(0, 1)
+
+        self.assertEqual(qc.decompose(), ref)
+
+    def test_missing_qubits(self):
+        """Test that an error is raised if qubits are missing."""
+        with self.subTest(msg='no control qubits'):
+            with self.assertRaises(AttributeError):
+                _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
+
+        with self.subTest(msg='no target qubits'):
+            with self.assertRaises(AttributeError):
+                _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+
+    def test_different_gate_types(self):
+        """Test the different supported input types for the target gate."""
+        x_circ = QuantumCircuit(1)
+        x_circ.x(0)
+        for input_gate in [x_circ, QuantumCircuit.cx, QuantumCircuit.x, 'cx', 'x', CXGate()]:
+            with self.subTest(input_gate=input_gate):
+                mcmt = MCMT(input_gate, 2, 2)
+                if isinstance(input_gate, QuantumCircuit):
+                    self.assertEqual(mcmt.gate.definition[0][0], XGate())
+                    self.assertEqual(len(mcmt.gate.definition), 1)
+                else:
+                    self.assertEqual(mcmt.gate, XGate())
+
+    def test_mcmt_v_chain_ancilla_test(self):
+        """Test too few and too many ancillas for the MCMT V-chain mode."""
+        with self.subTest(msg='insufficient number of ancillas on gate'):
+            qc = QuantumCircuit(5)
+            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, [0, 1, 2, 3, 4])
+
+        with self.subTest(msg='insufficient number of ancillas on method'):
+            qc = QuantumCircuit(5)
+            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, [0, 1, 2, 3, 4], [])
+
+        with self.subTest(msg='too many ancillas works on method'):
+            qc = QuantumCircuit(8)
+            qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7])
+
+    @data(
+        [CZGate(), 1, 1], [CHGate(), 1, 1],
+        [CZGate(), 3, 3], [CHGate(), 3, 3],
+        [CZGate(), 1, 5], [CHGate(), 1, 5],
+        [CZGate(), 5, 1], [CHGate(), 5, 1],
+    )
+    @unpack
+    def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
+        """Test the MCMT V-chain implementation test on a simulation."""
+        controls = QuantumRegister(num_controls)
+        targets = QuantumRegister(num_targets)
+
+        subsets = [tuple(range(i)) for i in range(num_controls + 1)]
+        for subset in subsets:
+            qc = QuantumCircuit(targets, controls)
+            # Initialize all targets to 1, just to be sure that
+            # the generic gate has some effect (f.e. Z gate has no effect
+            # on a 0 state)
+            qc.x(targets)
+
+            num_ancillas = max(0, num_controls - 1)
+
+            if num_ancillas > 0:
+                ancillas = QuantumRegister(num_ancillas)
+                qc.add_register(ancillas)
+                qubits = controls[:] + targets[:] + ancillas[:]
+            else:
+                qubits = controls[:] + targets[:]
+
+            for i in subset:
+                qc.x(controls[i])
+
+            mcmt = MCMTVChain(cgate, num_controls, num_targets)
+            qc.append(mcmt.to_instruction(), qubits)
+
+            for i in subset:
+                qc.x(controls[i])
+
+            backend = BasicAer.get_backend('statevector_simulator')
+            vec = np.asarray(execute(qc, backend).result().get_statevector(qc, decimals=16))
+            # target register is initially |11...1>, with length equal to 2**(n_targets)
+            vec_exp = np.array([0] * (2**(num_targets) - 1) + [1])
+
+            if isinstance(cgate, CZGate):
+                # Z gate flips the last qubit only if it's applied an odd number of times
+                if len(subset) == num_controls and (num_controls % 2) == 1:
+                    vec_exp[-1] = -1
+            elif isinstance(cgate, CHGate):
+                # if all the control qubits have been activated,
+                # we repeatedly apply the kronecker product of the Hadamard
+                # with itself and then multiply the results for the original
+                # state of the target qubits
+                if len(subset) == num_controls:
+                    h_i = 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
+                    h_tot = np.array([1])
+                    for _ in range(num_targets):
+                        h_tot = np.kron(h_tot, h_i)
+                    vec_exp = np.dot(h_tot, vec_exp)
+            else:
+                raise ValueError('Test not implement for gate: {}'.format(cgate))
+
+            # append the remaining part of the state
+            vec_exp = np.concatenate(
+                (vec_exp,
+                 [0] * (2**(num_controls + num_ancillas + num_targets) - vec_exp.size))
+            )
+            f_i = state_fidelity(vec, vec_exp)
+            self.assertAlmostEqual(f_i, 1)
