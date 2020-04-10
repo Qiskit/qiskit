@@ -29,7 +29,6 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit, Qubit
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
 
@@ -132,14 +131,6 @@ class SingleQubitUnitary(Gate):
         # (the one using negative angles).
         # Therefore, we have to take the inverse of the angles at the end.
         return -a, -b, -c, d
-
-    def validate_parameter(self, parameter):
-        """Single-qubit unitary gate parameter has to be an ndarray."""
-        if isinstance(parameter, np.ndarray):
-            return parameter
-        else:
-            raise CircuitError("invalid param type {0} in gate "
-                               "{1}".format(type(parameter), self.name))
 
 
 def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):
