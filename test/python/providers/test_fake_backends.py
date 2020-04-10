@@ -18,7 +18,7 @@
 import operator
 
 from test import combine
-from ddt import ddt
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
@@ -59,3 +59,11 @@ class TestFakeBackends(QiskitTestCase):
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, '11')
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_to_dict_properties(self, backend):
+        properties = backend.properties()
+        if properties:
+            self.assertIsInstance(backend.properties().to_dict(), dict)
+        else:
+            self.assertTrue(backend.configuration().simulator)
