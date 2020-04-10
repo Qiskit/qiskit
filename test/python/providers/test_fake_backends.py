@@ -72,3 +72,9 @@ class TestFakeBackends(QiskitTestCase):
     def test_to_dict_configuration(self, backend):
         configuration = backend.configuration()
         self.assertIsInstance(configuration.to_dict(), dict)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_defaults_to_dict(self, backend):
+        defaults = backend.defaults()
+        if defaults:
+            self.assertIsInstance(defaults.to_dict(), dict)

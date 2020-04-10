@@ -236,7 +236,7 @@ class PulseDefaults(SimpleNamespace):
         for key, value in self.__dict__.items():
             if key not in ['qubit_freq_est', 'meas_freq_est', 'buffer',
                            'pulse_library', 'cmd_def', 'meas_kernel',
-                           'discriminator']:
+                           'discriminator', 'converter']:
                 out_dict[key] = value
         return out_dict
 
