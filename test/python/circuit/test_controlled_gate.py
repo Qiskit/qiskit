@@ -40,7 +40,7 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
                                         MSGate, Barrier, RCCXGate, RC3XGate,
                                         MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, MCMTGate)
+                                        MCXVChain)
 from qiskit.extensions.unitary import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
@@ -785,9 +785,6 @@ class TestControlledGate(QiskitTestCase):
         gate_classes = [cls for cls in allGates.__dict__.values() if isinstance(cls, type)]
         theta = pi / 2
         for cls in gate_classes:
-            if cls == MCMTGate:
-                continue
-
             with self.subTest(i=cls):
                 numargs = len(_get_free_params(cls))
                 args = [theta] * numargs
