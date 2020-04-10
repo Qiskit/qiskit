@@ -687,7 +687,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
         return result
 
-    def _parse_channels(self, channels: Dict[set, Any]) -> Dict[Tuple[int], Channel]:
+    def _parse_channels(self, channels: Dict[set, Any]) -> Dict[Any, Any]:
         r"""
         Generates a dictionaries of ``Channel``\s, and tuple of qubit(s) they operate on.
 
@@ -696,9 +696,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 purpose, type, and qubits operated on.
 
         Returns:
-            qubit_channel_map: Dictionary mapping tuple of qubit(s) to ``Channel``\s.
-            channel_qubit_map: Dictionary mapping ``Channel``\s to qubit(s).
-            control_channels: Dictionary mapping tuple of qubit(s), to ``ControlChannel``\s.
+            qubit_channel_map: Dictionary mapping tuple of qubit(s) to list of ``Channel``\s.
+            channel_qubit_map: Dictionary mapping ``Channel`` to list of qubit(s).
+            control_channels: Dictionary mapping tuple of qubit(s), to list of
+                ``ControlChannel``\s.
         """
         qubit_channel_map = defaultdict(list)
         channel_qubit_map = defaultdict(list)
