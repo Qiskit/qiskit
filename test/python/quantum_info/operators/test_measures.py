@@ -14,15 +14,20 @@
 """Tests for operator measures."""
 
 import unittest
+from test import combine
+from ddt import ddt
+
 import numpy as np
 
 from qiskit.quantum_info import Operator, Choi
 from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
+from qiskit.quantum_info import diamond_norm
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestOperatorMeasures(QiskitTestCase):
     """Tests for Operator measures"""
     def test_operator_process_fidelity(self):
@@ -145,6 +150,31 @@ class TestOperatorMeasures(QiskitTestCase):
         err = gate_error(chan, op, require_cp=True, require_tp=True)
         target = 1 - average_gate_fidelity(chan, op)
         self.assertAlmostEqual(err, target, places=7)
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_diamond_norm(self, num_qubits):
+        """Test the diamond_norm for {num_qubits}-qubit pauli channel."""
+        # pylint: disable=import-outside-toplevel
+        try:
+            import cvxpy
+        except ImportError:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        # Pauli channels have an analytic expression for the
+        # diamond norm so we can easily test it
+        op = Choi(np.zeros((4 ** num_qubits, 4 ** num_qubits)))
+        labels = [num_qubits * i for i in ['I', 'X', 'Y', 'Z']]
+        coeffs = [-1.0, 0.5, 2.5, -0.1]
+        for coeff, label in zip(coeffs, labels):
+            op = op + coeff * Choi(Operator.from_label(label))
+        target = np.sum(np.abs(coeffs))
+
+        try:
+            value = diamond_norm(op)
+            self.assertAlmostEqual(value, target, places=4)
+        except cvxpy.SolverError:
+            self.skipTest("CVXPY solver failed.")
 
 
 if __name__ == '__main__':
