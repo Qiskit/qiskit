@@ -35,6 +35,8 @@ class HoareOptimizer(TransformationPass):
         """
         Args:
             size (int): size of gate cache, in number of gates
+        Raises:
+            TranspilerError: if unable to import z3 solver
         """
         if not HAS_Z3:
             raise TranspilerError('z3-solver is required to use HoareOptimizer. '
@@ -332,8 +334,6 @@ class HoareOptimizer(TransformationPass):
             dag (DAGCircuit): the directed acyclic graph to run on.
         Returns:
             DAGCircuit: Transformed DAG.
-        Raises:
-            TranspilerError: if unable to import z3 solver
         """
         self._initialize(dag)
         self._traverse_dag(dag)
