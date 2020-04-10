@@ -1406,7 +1406,7 @@ class DAGCircuit:
 
     def draw(self, scale: float = 0.7,
              filename: Optional[str] = None,
-             style: str = 'color') -> Optional['Ipython.display.Image']:
+             style: str = 'color') -> None:
         """
         Draws the dag circuit.
 
@@ -1422,7 +1422,8 @@ class DAGCircuit:
                 'color' (default): color input/output/op nodes
 
         Returns:
-            If running in Jupyter notebook and not saving to file, returns an image of the graph.
+            If running in Jupyter notebook and not saving to file, returns an
+            Ipython.display.image of the graph.
             Otherwise, returns None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
