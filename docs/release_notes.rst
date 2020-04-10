@@ -1452,8 +1452,8 @@ Bug Fixes
   to render :class:`~qiskit.extensions.CU1Gate` gates correctly.
   Fixes `#3684 <https://github.com/Qiskit/qiskit-terra/issues/3684>`_
 
-- A bug in :meth`qiskit.circuit.QuantumCircuit.from_qasm_str` and
-  :meth`qiskit.circuit.QuantumCircuit.from_qasm_file` when
+- A bug in :meth:`qiskit.circuit.QuantumCircuit.from_qasm_str` and
+  :meth:`qiskit.circuit.QuantumCircuit.from_qasm_file` when
   loading QASM with custom gates defined has been fixed. Now, loading
   this QASM::
 
