@@ -18,7 +18,8 @@
 import warnings
 from typing import Optional, List
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Instruction, Qubit
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.bit import Bit
 
 
