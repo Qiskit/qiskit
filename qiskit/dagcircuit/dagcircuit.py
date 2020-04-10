@@ -23,7 +23,6 @@ composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
 import os
-import warnings
 from collections import OrderedDict
 import copy
 import itertools
