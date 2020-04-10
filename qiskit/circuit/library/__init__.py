@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from .fourier_checking import FourierChecking
-from .quantum_volume import QuantumVolume
 """
 ===============================================
 Circuit Library (:mod:`qiskit.circuit.library`)
@@ -88,6 +86,5 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder
 )
-<< << << < HEAD
-== == == =
->>>>>> > master
+from .fourier_checking import FourierChecking
+from .quantum_volume import QuantumVolume
