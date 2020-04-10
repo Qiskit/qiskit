@@ -20,3 +20,4 @@ from .pauli_table import PauliTable
 from .pauli_utils import pauli_basis
 from .stabilizer_table import StabilizerTable
 from .clifford import Clifford
+from .sparse_pauli_op import SparsePauliOp

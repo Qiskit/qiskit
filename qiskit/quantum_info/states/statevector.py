@@ -36,31 +36,47 @@ class Statevector(QuantumState):
     def __init__(self, data, dims=None):
         """Initialize a state object."""
         if isinstance(data, Statevector):
-            # Shallow copy constructor
-            vec = data.data
+            self._data = data._data
             if dims is None:
-                dims = data.dims()
+                dims = data._dims
         elif isinstance(data, Operator):
             # We allow conversion of column-vector operators to Statevectors
             input_dim, output_dim = data.dim
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
-            vec = np.reshape(data.data, output_dim)
+            self._data = np.ravel(data.data)
         elif isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw vector in either a
             # python list or numpy array format.
-            vec = np.array(data, dtype=complex)
+            self._data = np.asarray(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Statevector")
         # Check that the input is a numpy vector or column-vector numpy
         # matrix. If it is a column-vector matrix reshape to a vector.
-        if vec.ndim not in [1, 2] or (vec.ndim == 2 and vec.shape[1] != 1):
+        ndim = self._data.ndim
+        shape = self._data.shape
+        if ndim not in [1, 2] or (ndim == 2 and shape[1] != 1):
             raise QiskitError("Invalid input: not a vector or column-vector.")
-        if vec.ndim == 2 and vec.shape[1] == 1:
-            vec = np.reshape(vec, vec.shape[0])
-        dim = vec.shape[0]
-        subsystem_dims = self._automatic_dims(dims, dim)
-        super().__init__('Statevector', vec, subsystem_dims)
+        if ndim == 2 and shape[1] == 1:
+            self._data = np.reshape(self._data, shape[0])
+        super().__init__(self._automatic_dims(dims, shape[0]))
+
+    def __eq__(self, other):
+        return super().__eq__(other) and np.allclose(
+            self._data, other._data, rtol=self.rtol, atol=self.atol)
+
+    def __repr__(self):
+        prefix = 'Statevector('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self.data, separator=', ', prefix=prefix),
+            pad, self._dims)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
 
     def is_valid(self, atol=None, rtol=None):
         """Return True if a Statevector has norm 1."""
@@ -128,14 +144,14 @@ class Statevector(QuantumState):
         data = np.kron(other._data, self._data)
         return Statevector(data, dims)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
             other (Statevector): a quantum state object.
 
         Returns:
-            LinearOperator: the linear combination self + other.
+            Statevector: the linear combination self + other.
 
         Raises:
             QiskitError: if other is not a quantum state, or has
@@ -147,33 +163,14 @@ class Statevector(QuantumState):
             raise QiskitError("other Statevector has different dimensions.")
         return Statevector(self.data + other.data, self.dims())
 
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        Args:
-            other (Statevector): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        if not isinstance(other, Statevector):
-            other = Statevector(other)
-        if self.dim != other.dim:
-            raise QiskitError("other Statevector has different dimensions.")
-        return Statevector(self.data - other.data, self.dims())
-
-    def multiply(self, other):
-        """Return the linear operator self * other.
+    def _multiply(self, other):
+        """Return the scalar multiplied state self * other.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear combination other * self.
+            Statevector: the scalar multiplied state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.

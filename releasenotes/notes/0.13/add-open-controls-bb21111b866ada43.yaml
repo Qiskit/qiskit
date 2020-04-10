@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Add ability to specify control conditioned on a qubit being in the
+    ground state. The state of the control qubits is represented by an
+    integer. For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.extensions.standard import XGate
+
+      qc = QuantumCircuit(4)
+      cgate = XGate().control(3, ctrl_state=6)
+      qc.append(cgate, [0, 1, 2, 3])
+
+    Creates a four qubit gate where the fourth qubit gets flipped if
+    the first qubit is in the ground state and the second and third
+    qubits are in the excited state. If ``ctrl_state`` is ``None``, the
+    default, control is conditioned on all control qubits being
+    excited.
