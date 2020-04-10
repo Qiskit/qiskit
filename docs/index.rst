@@ -50,9 +50,9 @@ Qiskit consists of four foundational elements:
   :caption: API References
   :hidden:
 
-  Qiskit Terra <apidoc/qiskit>
+  Qiskit Terra <apidoc/terra>
   Qiskit Aer <apidoc/aer>
-  Qiskit Ignis <apidoc_legacy/ignis/ignis>
+  Qiskit Ignis <apidoc/ignis>
   Qiskit Aqua <apidoc/index>
   Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
 
