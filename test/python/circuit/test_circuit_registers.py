@@ -12,21 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
 import numpy as np
 
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
-from qiskit import execute
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -177,27 +168,27 @@ class TestCircuitRegisters(QiskitTestCase):
 
     def test_apply_barrier_to_slice(self):
         """test applying barrier to register slice"""
-        n_qubits = 10
-        qr = QuantumRegister(n_qubits)
-        cr = ClassicalRegister(n_qubits)
+        num_qubits = 10
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(num_qubits)
         qc = QuantumCircuit(qr, cr)
         qc.barrier(qr)
         # barrier works a little different than normal gates for expansion
         # test full register
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0][0].name, 'barrier')
-        self.assertEqual(len(qc.data[0][1]), n_qubits)
+        self.assertEqual(len(qc.data[0][1]), num_qubits)
         for i, bit in enumerate(qc.data[0][1]):
             self.assertEqual(bit.index, i)
         # test slice
-        n_qubits = 2
+        num_qubits = 2
         qc = QuantumCircuit(qr, cr)
-        qc.barrier(qr[0:n_qubits])
+        qc.barrier(qr[0:num_qubits])
         self.log.info(qc.qasm())
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0][0].name, 'barrier')
-        self.assertEqual(len(qc.data[0][1]), n_qubits)
-        for i in range(n_qubits):
+        self.assertEqual(len(qc.data[0][1]), num_qubits)
+        for i in range(num_qubits):
             self.assertEqual(qc.data[0][1][i].index, i)
 
     def test_apply_ccx_to_slice(self):
@@ -419,3 +410,43 @@ class TestCircuitRegisters(QiskitTestCase):
         for (gate, qargs, _) in circ.data:
             self.assertEqual(gate.name, 'unitary')
             self.assertEqual(len(qargs), 4)
+
+    def test_quantumregister_hash_upate_name(self):
+        """Test QuantumRegister hash changes on name update."""
+        test_reg = QuantumRegister(2)
+        orig_hash = hash(test_reg)
+        orig_bit_hashes = [hash(x) for x in test_reg]
+        test_reg.name = 'test_quantum'
+        new_hash = hash(test_reg)
+        new_bit_hashes = [hash(x) for x in test_reg]
+        self.assertNotEqual(orig_hash, new_hash)
+        for x in range(2):
+            self.assertNotEqual(orig_bit_hashes[x], new_bit_hashes[x])
+
+    def test_quantumregister_hash_upate_size(self):
+        """Test QuantumRegister hash changes on size update."""
+        test_reg = QuantumRegister(2)
+        orig_hash = hash(test_reg)
+        test_reg.size = 3
+        new_hash = hash(test_reg)
+        self.assertNotEqual(orig_hash, new_hash)
+
+    def test_classicalregister_hash_upate_name(self):
+        """Test ClassicalRegister hash changes on name update."""
+        test_reg = ClassicalRegister(2)
+        orig_hash = hash(test_reg)
+        orig_bit_hashes = [hash(x) for x in test_reg]
+        test_reg.name = 'test_classical'
+        new_hash = hash(test_reg)
+        new_bit_hashes = [hash(x) for x in test_reg]
+        self.assertNotEqual(orig_hash, new_hash)
+        for x in range(2):
+            self.assertNotEqual(orig_bit_hashes[x], new_bit_hashes[x])
+
+    def test_classicalregister_hash_upate_size(self):
+        """Test ClassicalRegister hash changes on size update."""
+        test_reg = ClassicalRegister(2)
+        orig_hash = hash(test_reg)
+        test_reg.size = 3
+        new_hash = hash(test_reg)
+        self.assertNotEqual(orig_hash, new_hash)

@@ -55,3 +55,13 @@ class TestBackendConfiguration(QiskitTestCase):
             # Check that an error is raised if the system doesn't have that many qubits
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
         self.assertEqual(self.config.control(0), ControlChannel(0))
+
+    def test_get_rep_times(self):
+        """Test whether rep time property is the right size"""
+        _rep_times_us = [100, 250, 500, 1000]
+        _rep_times_s = [_rt * 1.e-6 for _rt in _rep_times_us]
+
+        for i, time in enumerate(_rep_times_s):
+            self.assertAlmostEqual(self.config.rep_times[i], time)
+        for i, time in enumerate(_rep_times_us):
+            self.assertEqual(round(self.config.rep_times[i]*1e6), time)

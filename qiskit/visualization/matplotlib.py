@@ -34,6 +34,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
+from qiskit.circuit import ControlledGate
 from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
@@ -107,7 +108,7 @@ class MatplotlibDrawer:
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
-                              'Run "pip install matplotlib" before.')
+                              'To install, run "pip install matplotlib".')
 
         self._ast = None
         self._scale = DEFAULT_SCALE * scale
@@ -598,12 +599,12 @@ class MatplotlibDrawer:
             else:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
-            self.ax.text(self.x_offset, y, label, ha='right', va='center',
+            self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y],
+            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
         # classical register
         this_creg_dict = {}
@@ -629,20 +630,20 @@ class MatplotlibDrawer:
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
-            self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
+            self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.5 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
         if feedline_r:
-            self._linefeed_mark((self.fold + 1 - 0.1,
+            self._linefeed_mark((self.fold + self.x_offset + 1 - 0.1,
                                  - n_fold * (self._cond['n_lines'] + 1)))
         if feedline_l:
-            self._linefeed_mark((0.1,
+            self._linefeed_mark((self.x_offset + 0.3,
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
@@ -839,6 +840,29 @@ class MatplotlibDrawer:
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text="Unitary")
+                elif isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
+                        'cswap']:
+                    disp = op.op.base_gate.name
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    num_qargs = len(q_xy) - num_ctrl_qubits
+
+                    for i in range(num_ctrl_qubits):
+                        self._ctrl_qubit(q_xy[i], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                    # add qubit-qubit wiring
+                    self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
+                    if disp == 'z':
+                        self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                    elif num_qargs == 1:
+                        self._gate(q_xy[-1], wide=_iswide, fc=self._style.dispcol['multi'],
+                                   text=disp)
+                    else:
+                        self._custom_multiqubit_gate(
+                            q_xy[num_ctrl_qubits:], wide=_iswide, fc=self._style.dispcol['multi'],
+                            text=disp)
+
                 #
                 # draw single qubit gates
                 #
@@ -877,26 +901,32 @@ class MatplotlibDrawer:
                     elif op.name == 'cz':
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
-                            color = self._style.dispcol['multi']
+                            color = self._style.dispcol['cz']
                             self._ctrl_qubit(q_xy[0],
+                                             fc=color,
+                                             ec=color)
+                            self._ctrl_qubit(q_xy[1],
                                              fc=color,
                                              ec=color)
                         else:
                             self._ctrl_qubit(q_xy[0])
-                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color)
+                            self._ctrl_qubit(q_xy[1])
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
                             self._line(qreg_b, qreg_t,
-                                       lc=self._style.dispcol['multi'])
+                                       lc=color)
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
-                    elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
+                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
 
                         color = None
                         if self._style.name != 'bw':
-                            color = self._style.dispcol['multi']
+                            if op.name == 'cy':
+                                color = self._style.dispcol['cy']
+                            else:
+                                color = self._style.dispcol['multi']
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
@@ -918,12 +948,28 @@ class MatplotlibDrawer:
 
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
+
+                    # cu1 gate
+                    elif op.name == 'cu1':
+                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, text='U1 ({})'.format(param))
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+
                     # swap gate
                     elif op.name == 'swap':
                         self._swap(q_xy[0])
                         self._swap(q_xy[1])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
+
+                    # dcx and iswap gate
+                    elif op.name in ['dcx', 'iswap']:
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                                                     fc=self._style.dispcol[op.name], text=op.name)
+
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,

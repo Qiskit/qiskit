@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -77,8 +77,13 @@ class DefaultStyle:
             'z': pauli_color,
             'h': clifford_color,
             'cx': clifford_color,
+            'cy': clifford_color,
+            'cz': clifford_color,
+            'swap': clifford_color,
             's': clifford_color,
             'sdg': clifford_color,
+            'dcx': clifford_color,
+            'iswap': clifford_color,
             't': other_color,
             'tdg': other_color,
             'r': other_color,
@@ -87,7 +92,6 @@ class DefaultStyle:
             'rz': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
-            'swap': other_color,
             'multi': other_color,
             'meas': non_gate_color
         }
@@ -151,7 +155,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',

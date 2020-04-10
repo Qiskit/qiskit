@@ -21,7 +21,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U2Gate, CnotGate
+from qiskit.extensions.standard import U2Gate, CXGate
 
 
 class CXDirection(TransformationPass):
@@ -91,7 +91,7 @@ class CXDirection(TransformationPass):
                 sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
 
                 # Flips the cx
-                sub_dag.apply_operation_back(CnotGate(), [sub_qr[1], sub_qr[0]], [])
+                sub_dag.apply_operation_back(CXGate(), [sub_qr[1], sub_qr[0]], [])
 
                 # Add H gates after
                 sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])

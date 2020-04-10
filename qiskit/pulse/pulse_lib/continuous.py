@@ -17,6 +17,7 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
+import warnings
 from typing import Union, Tuple, Optional
 
 import numpy as np
@@ -42,42 +43,82 @@ def zero(times: np.ndarray) -> np.ndarray:
     return constant(times, 0)
 
 
-def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def square(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+           phase: float = 0) -> np.ndarray:
     """Continuous square wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    x = times/period+phase/np.pi
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    x = times*freq+phase/np.pi
     return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
 
 
-def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def sawtooth(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+             phase: float = 0) -> np.ndarray:
     """Continuous sawtooth wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    x = times/period+phase/np.pi
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    x = times*freq+phase/np.pi
     return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
 
 
-def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
+def triangle(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
+             phase: float = 0) -> np.ndarray:
     """Continuous triangle wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
-        period: Pulse period, units of dt.
+        freq: Pulse frequency. units of 1/dt.
+        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
+    Raises:
+        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    return amp*(-2*np.abs(sawtooth(times, 1, period, (phase-np.pi/2)/2)) + 1).astype(np.complex_)
+    if (freq is None) and (period is None):
+        raise ValueError('Both `freq` and `period` cannot be None')
+    if (freq is not None) and (period is not None):
+        raise ValueError('Both `freq` and `period` cannot be given')
+    if freq is None:
+        freq = 1./period
+        warnings.warn("The argument `period` is being deprecated."
+                      " Use `freq` for frequency instead",
+                      DeprecationWarning)
+    return amp*(-2*np.abs(
+        sawtooth(times, 1, freq, phase=(phase-np.pi/2)/2)) + 1).astype(np.complex_)
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
