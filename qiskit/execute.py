@@ -21,10 +21,20 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
+import logging
+from time import time
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
+
+logger = logging.getLogger(__name__)
+
+
+def _log_submission_time(start_time, end_time):
+    log_msg = ("Total Job Submission Time - %.5f (ms)"
+               % ((end_time - start_time) * 1000))
+    logger.info(log_msg)
 
 
 def execute(experiments, backend,
@@ -214,7 +224,6 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-
     # transpiling the circuits using given transpile options
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
@@ -264,7 +273,11 @@ def execute(experiments, backend,
                     )
 
     # executing the circuits on the backend and returning the job
-    return backend.run(qobj, **run_config)
+    start_time = time()
+    job = backend.run(qobj, **run_config)
+    end_time = time()
+    _log_submission_time(start_time, end_time)
+    return job
 
 
 def _check_conflicting_argument(**kargs):

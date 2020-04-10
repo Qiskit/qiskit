@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from .fourier_checking import FourierChecking
+from .quantum_volume import QuantumVolume
 """
 ===============================================
 Circuit Library (:mod:`qiskit.circuit.library`)
@@ -28,7 +30,6 @@ Boolean Logic Circuits
    InnerProduct
    Permutation
    XOR
-
 
 Arithmetic Circuits
 ===================
@@ -60,6 +61,21 @@ Comparators
 
    IntegerComparator
 
+Characterization and Validation Circuits
+========================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumVolume
+
+Quantum Complexity Advantage Circuits
+=====================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FourierChecking
 """
 
 
@@ -72,3 +88,6 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder
 )
+<< << << < HEAD
+== == == =
+>>>>>> > master
