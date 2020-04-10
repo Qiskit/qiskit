@@ -18,6 +18,7 @@ import copy
 import datetime
 from types import SimpleNamespace
 from typing import Any, Iterable, Tuple, Union
+import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
 
@@ -234,6 +235,8 @@ class BackendProperties(SimpleNamespace):
         backend_name = in_data.pop('backend_name')
         backend_version = in_data.pop('backend_version')
         last_update_date = in_data.pop('last_update_date')
+        if isinstance(last_update_date, str):
+            last_update_date = dateutil.parser.parse(last_update_date)
         qubits = []
         for qubit in in_data.pop('qubits'):
             nduvs = []
