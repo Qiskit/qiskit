@@ -123,4 +123,30 @@ class TestCompressTransform(QiskitTestCase):
         compressed_schedule = compress_pulses(schedule)
         original_pulse_ids = get_pulse_ids(schedule)
         compressed_pulse_ids = get_pulse_ids(compressed_schedule)
-        self.assertEqual(len(compressed_pulse_ids), len(original_pulse_ids))
+        self.assertEqual(len(original_pulse_ids), 2)
+        self.assertEqual(len(compressed_pulse_ids), 1)
+
+    def test_with_by_channel_compression(self):
+        """Test by channel compression."""
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+
+        compressed_schedule = compress_pulses(schedule, by_channel=True)
+        original_pulse_ids = get_pulse_ids(schedule)
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 3)
+        self.assertEqual(len(compressed_pulse_ids), 2)
+
+    def test_sample_pulses_with_tolerance(self):
+        """Test sample pulses with tolerance."""
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1001], epsilon=1e-3), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+
+        compressed_schedule = compress_pulses(schedule)
+        original_pulse_ids = get_pulse_ids(schedule)
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 2)
+        self.assertEqual(len(compressed_pulse_ids), 1)
