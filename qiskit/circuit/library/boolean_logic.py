@@ -21,6 +21,7 @@ from typing import List, Optional
 import numpy as np
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.extensions.standard import MCXGate
 
 
 class Permutation(QuantumCircuit):
@@ -157,7 +158,7 @@ class InnerProduct(QuantumCircuit):
 class OR(QuantumCircuit):
     """A circuit implementing the logical OR operation on a number of qubits."""
 
-    def __init__(self, num_variable_qubits: int,  flags: Optional[List[int]] = None,
+    def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
                  mcx_mode: str = 'noancilla') -> None:
         """Create a new logical OR circuit.
 
@@ -172,9 +173,64 @@ class OR(QuantumCircuit):
 
         super().__init__(qr_variable, qr_result, name='or')
 
+        # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
+        control_qubits = [q for q, flag in zip(qr_variable, flags) if flag != 0]
 
-        qr_control = [q for flag, q in zip(qr_variable, flags) if flag != 0]
+        # determine the qubits that need to be flipped (if a flag is > 0)
+        flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag > 0]
+
+        # determine the number of ancillas
+        num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
+        if num_ancillas > 0:
+            qr_ancilla = QuantumRegister(num_ancillas, 'ancilla')
+            self.add_register(qr_ancilla)
+        else:
+            qr_ancilla = []
 
         self.x(qr_result)
+        if len(flip_qubits) > 0:
+            self.x(flip_qubits)
+        self.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
+        if len(flip_qubits) > 0:
+            self.x(flip_qubits)
 
+
+class AND(QuantumCircuit):
+    """A circuit implementing the logical OR operation on a number of qubits."""
+
+    def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
+                 mcx_mode: str = 'noancilla') -> None:
+        """Create a new logical OR circuit.
+
+        Args:
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
+                into an additional result qubit.
+            flags: A list of +1/0/-1 marking negations or omisiions of qubits.
+            mcx_mode: The mode to be used to implement the multi-controlled X gate.
+        """
+        qr_variable = QuantumRegister(num_variable_qubits, name='variable')
+        qr_result = QuantumRegister(1, name='result')
+
+        super().__init__(qr_variable, qr_result, name='or')
+
+        # determine the control qubits: all that have a nonzero flag
+        flags = flags or [1] * num_variable_qubits
+        control_qubits = [q for q, flag in zip(qr_variable, flags) if flag != 0]
+
+        # determine the qubits that need to be flipped (if a flag is < 0)
+        flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag < 0]
+
+        # determine the number of ancillas
+        num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
+        if num_ancillas > 0:
+            qr_ancilla = QuantumRegister(num_ancillas, 'ancilla')
+            self.add_register(qr_ancilla)
+        else:
+            qr_ancilla = []
+
+        if len(flip_qubits) > 0:
+            self.x(flip_qubits)
+        self.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
+        if len(flip_qubits) > 0:
+            self.x(flip_qubits)
